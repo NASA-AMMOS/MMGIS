@@ -56,5 +56,5 @@ CAMP can be configured by setting the following environment variables on the con
 
 ## Contacts
 
-Dr. Fred J. Calef III - fred.calef@jpl.nasa.gov
-Tariq K. Soliman - tariq.soliman@jpl.nasa.gov
+Dr. Fred J. Calef III - fred.calef@jpl.nasa.gov  
+Tariq K. Soliman - tariq.k.soliman@jpl.nasa.gov
