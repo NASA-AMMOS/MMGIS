@@ -1,0 +1,262 @@
+.landingPage {
+    height: 100%;
+    overflow: hidden;
+    font-family: venus, sans-serif;
+    opacity: 0;
+    display: flex;
+    flex-flow: column;
+    background: #001;
+    /*
+    background: linear-gradient(
+        to left,
+        rgb(52, 138, 195) 0%,
+        rgb(40, 90, 153) 11.45%,
+        rgb(15, 24, 86) 36.16%,
+        rgb(0, 0, 37) 70%,
+        rgb(1, 1, 1) 100%
+    );
+    */
+}
+
+.landingPage #title img {
+    position: relative;
+    left: -6px;
+    top: 5px;
+}
+
+.landingPageMission {
+    transition: color 0.2s ease-in, padding-left 0.2s ease-out;
+    color: #bbb;
+    font-family: 'lato-light';
+    opacity: 1;
+    list-style-type: none;
+    margin: 10px 0px;
+    font-size: 23px;
+    line-height: 23px;
+    cursor: pointer;
+}
+.landingPageMission:hover {
+    color: #fff;
+    padding-left: 20px;
+    font-family: 'lato';
+}
+
+.landingPageMission:first-child {
+    margin-top: 0px;
+}
+
+#configIcon {
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    padding: 10px;
+    cursor: pointer;
+    color: #bbb;
+    transition: color 0.2s ease-in;
+    z-index: 100;
+}
+#configIcon:hover {
+    color: white;
+}
+
+#attributionIcon {
+    position: absolute;
+    bottom: 0px;
+    right: 0px;
+    padding: 10px;
+    cursor: pointer;
+    color: #bbb;
+    transition: color 0.2s ease-in;
+    z-index: 100;
+}
+#attributionIcon:hover {
+    color: white;
+}
+
+#attributions {
+    position: absolute;
+    right: 0px;
+    top: 0px;
+    font-family: 'lato';
+    padding: 10px 38px 0px 38px;
+    height: 100vh;
+    overflow-y: auto;
+    background: white;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+#attributions.active {
+    opacity: 1;
+    pointer-events: inherit;
+}
+
+#attributionsTitle {
+    width: 100%;
+    height: 40px;
+    line-height: 40px;
+    background: #242424;
+    border-radius: 3px;
+    display: flex;
+    justify-content: space-between;
+    padding: 0px 2px 0px 10px;
+    font-size: 14px;
+}
+#attributionsTitle > div {
+    display: flex;
+}
+#attributionsTitle img {
+    position: relative;
+    top: 4px;
+    left: -2px;
+}
+#attributions .attributionTitle_library {
+    padding-right: 3px;
+    color: black;
+    font-size: 20px;
+    font-family: 'venus';
+}
+#attributions .attributionTitle_version {
+    padding-right: 3px;
+    font-size: 13px;
+    color: #ccc;
+}
+#attributions .attributionTitle_by {
+    padding-right: 3px;
+    color: #eee;
+}
+#attributions .attributionTitle_author {
+    color: #eee;
+}
+#attributions .attributionTitle_under {
+    padding-right: 3px;
+    color: #eee;
+}
+#attributions .attributionTitle_license {
+    padding-right: 3px;
+    color: #eee;
+}
+#attributions .attributionTitle_github {
+    color: #eee;
+}
+
+#attributions a,
+#attributions a:active,
+#attributions a:visited {
+    color: #005fad;
+    transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+#attributions a:hover {
+    color: #71b4eb;
+}
+
+#attributionsTitle a,
+#attributionsTitle a:active,
+#attributionsTitle a:visited {
+    color: #71b4eb;
+}
+#attributionsTitle a:hover {
+    color: #005fad;
+}
+
+#attributions > ul {
+    list-style-type: none;
+    padding: 0;
+    margin-top: 5px;
+}
+#attributions > ul > li {
+    display: flex;
+    justify-content: space-between;
+    color: #242424;
+}
+#attributions > ul > li:last-child {
+    text-align: center;
+    display: block;
+    padding: 8px 8px 0px 8px;
+}
+#attributions > ul > li > div {
+    display: flex;
+}
+#attributions > ul > li > div:last-child {
+    padding-left: 20px;
+}
+#attributions .attribution_library {
+    padding-right: 3px;
+}
+#attributions .attribution_version {
+    padding-right: 3px;
+    font-size: 12px;
+    color: #6b6b6b;
+}
+#attributions .attribution_by {
+    padding-right: 3px;
+}
+#attributions .attribution_author {
+}
+#attributions .attribution_under {
+    padding-right: 3px;
+}
+#attributions .attribution_license {
+    padding-right: 3px;
+}
+#attributions .attribution_github {
+}
+
+#missionnotfound {
+    background: radial-gradient(
+        180% 100% ellipse at 50% 50%,
+        rgb(52, 138, 195) 0%,
+        rgb(40, 90, 153) 11.45%,
+        rgb(15, 24, 86) 36.16%,
+        rgb(0, 0, 37) 70%,
+        rgb(1, 1, 1) 100%
+    );
+}
+
+#missionnotfound #mnfmmgis {
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-family: 'venus';
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px;
+    color: #eee;
+}
+#missionnotfound #mnfmmgis:hover {
+    color: #fff;
+    text-shadow: 0px 0px 8px white;
+}
+
+#missionnotfound #mnfattractor {
+    width: 100%;
+    height: 1px;
+    background-color: #eee;
+    background: -webkit-radial-gradient(
+        circle,
+        transparent,
+        transparent,
+        #eee
+    ); /* Safari */
+    background: -o-radial-gradient(
+        circle,
+        transparent,
+        transparent,
+        #eee
+    ); /* Opera 11.6 to 12.0 */
+    background: -moz-radial-gradient(
+        circle,
+        transparent,
+        transparent,
+        #eee
+    ); /* Firefox 3.6 to 15 */
+    background: radial-gradient(
+        circle,
+        transparent,
+        transparent,
+        #eee
+    ); /* Standard syntax */
+    position: absolute;
+    top: calc(50% - 1px);
+    left: 0;
+}

@@ -1,0 +1,28 @@
+{
+  "name": "mmgis",
+  "version": "2.6.0",
+  "description": "A web-based mapping and localization solution for science operation on planetary missions.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.jpl.nasa.gov/MIPL/MMGIS"
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "cookie-parser": "^1.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^6.1.0",
+    "express": "^4.16.3",
+    "express-rate-limit": "^3.5.1",
+    "helmet": "^3.14.0",
+    "morgan": "^1.9.1",
+    "pug": "^2.0.3",
+    "swagger-ui-express": "^4.0.1"
+  }
+}

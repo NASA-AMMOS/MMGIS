@@ -1,0 +1,155 @@
+@font-face {
+    font-family: venus;
+    src: url(../../public/fonts/taxidriver/TaxiDriver.ttf);
+}
+
+html {
+  height: 100%;
+  background-color: #171717;
+}
+body {
+    background-color: #171717;
+    /*background: linear-gradient(to top, #0e3443, #1E2021);*/
+    background-repeat: no-repeat;
+    height: 100%;
+    color: black;
+    overflow-x: hidden;
+    margin: 0 4% 0 4%;
+}
+#topbar {
+  text-align: center;
+  padding: 4px;
+}
+#topbar #tbtitle, #topbar #tbtitle a {
+  font-size: 24px;
+  color: #CCC;
+  margin: 0;
+  padding: 0;
+}
+#topbar #tbmmgis {
+  -webkit-transition: all 0.2s ease-in;
+    transition: all 0.2s ease-in;
+  font-family: venus;
+}
+#topbar #tbmmgis:hover {
+  color: #999;
+}
+#topbar #tbconfig {
+  font-family: roboto;
+  cursor: default;
+}
+#topbar #divline {
+  width: 100%;
+  height: 1px;
+  background-color: #000;
+  background: -webkit-radial-gradient(circle, transparent, transparent, #999); /* Safari */
+  background: -o-radial-gradient(circle, transparent, transparent, #999); /* Opera 11.6 to 12.0 */
+  background: -moz-radial-gradient(circle, transparent, transparent, #999); /* Firefox 3.6 to 15 */
+  background: radial-gradient(circle, transparent, transparent, #999); /* Standard syntax */
+  position: absolute;
+  top: 22px;
+  left: 0;
+}
+
+#c_logo {
+  width: 5vw;
+  height: auto;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#new_mission {
+  border-radius: 0;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  height: 100%;
+  border-right: 8px solid #1E2021;
+  box-shadow: inset 0px 0px 12px #222;
+}
+
+#new_mission:hover {
+  color: #95cd6c;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.CodeMirror {
+  border: 1px solid #eee;
+  height: auto;
+}
+
+#missions a {
+  cursor: pointer;
+}
+
+.tabs {
+  box-shadow: inset 0px 0px 12px #222;
+  background-color: rgba(255,255,255,0.12);
+}
+.tabs .tab {
+  z-index: 10;
+}
+.tabs .tab a {
+  color: white;
+}
+.tabs .tab a:hover {
+  color: #95cd6c;
+}
+
+.tabs .indicator {
+  -webkit-transition: background-color 0.7s, box-shadow 0.7s;
+    transition: background-color 0.7s, box-shadow 0.7s;
+  box-shadow: inset 0px -12px 12px -12px #222;
+  height: 100%;
+  z-index: 9;
+  background-color: transparent;
+}
+
+#tab_new_mission, #tab_initial, #tab_projection, #tab_look, #tab_panels, #tab_tools, #tab_layers {
+  box-shadow: inset 0px 0px 12px black;
+}
+.checkbox-color[type="checkbox"].filled-in:checked + label:after {
+     border: 2px solid #558b2f;
+     background-color: #558b2f;
+}
+
+#home_cont {
+  height: 100%;
+  top: 50%;
+  color: #888;
+  font-size: 30px;
+  text-align: center;
+}
+
+.modal {
+    overflow: visible !important;
+    max-height: 100% !important;
+}
+
+#toast-container {
+    pointer-events: none;
+    top: 110px !important;
+    right: 6px !important;
+}
+
+.mmgisScrollbar::-webkit-scrollbar-track
+{
+	-webkit-box-shadow: inset 0px 0px 6px rgba(0,0,0,0.3);
+	background-color: Transparent;
+}
+
+.mmgisScrollbar::-webkit-scrollbar
+{
+	width: 6px;
+  height: 6px;
+	background-color: transparent;
+}
+
+.mmgisScrollbar::-webkit-scrollbar-thumb
+{
+  border-radius: 2px;
+	background-color: rgba(255,255,255,0.25);
+}

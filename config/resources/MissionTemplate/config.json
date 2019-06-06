@@ -1,0 +1,22 @@
+{
+    "msv": {
+        "mission": "",
+        "site": "",
+        "view": [
+            "0",
+            "0",
+            "3"
+        ],
+        "radius": {
+            "major": "3396190",
+            "minor": "3396190"
+        }
+    },
+    "panels": [
+        "viewer",
+        "map",
+        "globe"
+    ],
+    "tools": [],
+    "layers": []
+}

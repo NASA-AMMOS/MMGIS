@@ -1,0 +1,375 @@
+@font-face {
+  font-family: lato;
+  src: url(../../../public/fonts/lato/Lato-Regular.ttf),
+    url(../public/fonts/lato/Lato-Regular.ttf);
+}
+@font-face {
+  font-family: lato-light;
+  src: url(../../../public/fonts/lato/Lato-Light.ttf),
+    url(../public/fonts/lato/Lato-Light.ttf);
+}
+@font-face {
+  font-family: roboto;
+  src: url(../../../public/fonts/roboto/Roboto-Regular.ttf),
+    url(../public/fonts/roboto/Roboto-Regular.ttf);
+}
+@font-face {
+  font-family: venus;
+  src: url(../../../public/fonts/taxidriver/TaxiDriver.ttf),
+    url(../public/fonts/taxidriver/TaxiDriver.ttf);
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+body {
+  background-color: #001;
+  /*background: linear-gradient(to top, #0F1111, #1E2021);*/
+
+  overflow: hidden !important;
+  color: #fff;
+  font-family: roboto;
+}
+
+#nodeenv {
+  display: none;
+  position: absolute;
+  width: 36px;
+  height: 1px;
+  left: 0;
+  bottom: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #333;
+  z-index: 10000;
+}
+
+#topBar {
+}
+
+#topBarHelp {
+  color: #999;
+  opacity: 0.8;
+  transition: color 0.3s;
+  width: 24px;
+  height: 24px;
+}
+#topBarHelp:hover {
+  color: #fff;
+}
+
+#topBarLink {
+  color: #999;
+  opacity: 0.8;
+  transition: color 0.3s;
+  width: 24px;
+  height: 24px;
+}
+#topBarLink:hover {
+  color: #fff;
+}
+
+#topBarFullscreen {
+  color: #999;
+  opacity: 0.8;
+  transition: color 0.3s;
+  width: 24px;
+  height: 24px;
+}
+#topBarFullscreen:hover {
+  color: #fff;
+}
+
+#toggleUI {
+  opacity: 0.8;
+  cursor: pointer;
+  transition: color 0.3s;
+  width: 24px;
+  height: 24px;
+}
+
+#splitscreens {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+}
+#vmgScreen {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+}
+.splitterV {
+  height: 100%;
+  position: absolute;
+  cursor: col-resize;
+  display: flex;
+  align-items: center;
+  z-index: 500;
+  transition: opacity 0.3s;
+}
+.splitterV:hover {
+  opacity: 0.9;
+}
+
+.splitterVInner {
+  position: absolute;
+  left: -50%;
+  height: 100vh;
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0),
+    rgba(0, 0, 0, 0.4),
+    rgba(0, 0, 0, 0)
+  );
+  text-align: center;
+  display: inline-flex;
+  justify-content: space-evenly;
+  align-items: center;
+}
+
+.splitterVInner i {
+  width: 48px;
+  height: 30px;
+  line-height: 30px;
+  cursor: col-resize;
+  color: #aaa;
+}
+.splitterVInner i:hover {
+  color: #fff;
+}
+
+.splitterH {
+  /*background-color: #1A1A1A;*/
+  width: 100%;
+  position: absolute;
+  /*border-top: 1px solid #333;*/
+  /*border-bottom: 1px solid rgba(0,0,0,0.95);*/
+  cursor: row-resize;
+  z-index: 6;
+}
+
+.splitterText {
+  -webkit-transition: all 0.25s ease-in;
+  transition: all 0.25s ease-in;
+  position: absolute;
+  font-weight: bolder;
+  transform: rotate(90deg);
+  margin-left: 0px;
+  font-size: 18px;
+  color: #555;
+  transform-origin: bottom left 0;
+}
+.splitterText.active {
+  margin-left: 24px;
+  color: #999;
+  font-size: 14px !important;
+  transform: rotate(0deg) !important;
+}
+
+#tScreen {
+  width: 100%;
+  position: absolute;
+  bottom: 0px;
+}
+#toolsSplit {
+  left: 0px;
+}
+#toolsWrapper {
+  /*background-color: #071a21;*/
+  height: 0%;
+  width: 100%;
+  position: absolute;
+}
+
+#toolbar {
+  width: auto;
+  background: #001;
+  height: 30px;
+  position: absolute;
+  left: 0px;
+  bottom: 0px;
+  /*border-top: 1px solid #333;*/
+}
+
+#logoGoBack {
+  transition: 0.25s ease-in;
+  position: absolute;
+  bottom: 1px;
+  left: 24px;
+  opacity: 0.2;
+  z-index: 103;
+}
+#logoGoBack:hover {
+  opacity: 1;
+}
+
+.leaflet-container {
+  background: black;
+}
+.leaflet-popup-content-wrapper {
+  background: #161616;
+  color: #dcdcdc;
+  font-size: 16px;
+  line-height: 24px;
+  border-radius: 0;
+  max-height: 50vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.leaflet-popup-tip {
+  background: #0e3644;
+}
+.leaflet-popup-close-button {
+  margin-right: 0px;
+}
+
+.noPointerEvents {
+  pointer-events: none;
+}
+.noPointerEventsImportant {
+  pointer-events: none !important;
+}
+
+.mouseLngLat {
+  -webkit-transition: all 0.25s ease-in;
+  transition: all 0.25s ease-in;
+  opacity: 0.9;
+}
+.mouseLngLat:hover {
+  opacity: 1;
+}
+
+#topBarTitle {
+  -webkit-transition: all 0.25s ease-in;
+  transition: all 0.25s ease-in;
+  text-shadow: 0px 3px 3px black;
+}
+#topBarTitle:hover {
+  opacity: 0.7;
+}
+#mainDescSite {
+  -webkit-transition: all 0.25s ease-in;
+  transition: all 0.25s ease-in;
+  opacity: 0.66;
+}
+#mainDescSite:hover {
+  opacity: 1;
+}
+#mainDescPoint {
+  -webkit-transition: all 0.25s ease-in;
+  transition: all 0.25s ease-in;
+  opacity: 0.85;
+}
+#mainDescPoint:hover {
+  opacity: 1;
+}
+
+.ui.selection.list > .item.customColor1:hover {
+  background: rgba(18, 66, 84, 0.5) !important;
+}
+
+.leaflet-tile-pane {
+  image-rendering: pixelated;
+}
+
+.leaflet-control-zoom {
+  margin-top: 24px !important;
+  margin-right: 0px !important;
+  border: none !important;
+}
+.leaflet-control-zoom a {
+  background: transparent;
+  color: white;
+  border-bottom: none !important;
+}
+
+.leaflet-popup-content-wrapper::-webkit-scrollbar-track {
+  -webkit-box-shadow: inset 0px 0px 6px rgba(0, 0, 0, 0.3);
+  background-color: Transparent;
+}
+
+.leaflet-popup-content-wrapper::-webkit-scrollbar {
+  width: 2px;
+  height: 2px;
+  background-color: #001;
+}
+
+.leaflet-popup-content-wrapper::-webkit-scrollbar-thumb {
+  border-radius: 0px;
+  background-color: #26a8ff;
+}
+
+.leaflet-popup-annotation {
+  left: 0 !important;
+  top: -10px !important;
+}
+.leaflet-popup-annotation > .leaflet-popup-content-wrapper {
+  background: transparent;
+  box-shadow: none;
+  max-height: none !important;
+}
+.leaflet-popup-annotation .leaflet-popup-content {
+  margin: 0;
+  width: auto !important;
+}
+.leaflet-popup-annotation textarea {
+  background: rgba(0, 0, 0, 0.4);
+  color: white;
+  border: none;
+  padding: 3px;
+}
+.leaflet-popup-annotation .leaflet-popup-tip-container {
+  display: none;
+}
+
+/*Leaflet fix that prevents shifting at higher zooms on single images*/
+.leaflet-container img.leaflet-image-layer {
+  max-width: none !important;
+}
+
+.cplot_axis path {
+  fill: none;
+  stroke: #161616;
+}
+.cplot_axis line {
+  fill: none;
+  stroke: #fff;
+}
+
+.ui-menu .ui-menu-item {
+}
+
+#scaleBar {
+  margin: 0;
+  pointer-events: none;
+  z-index: 1001;
+  opacity: 0.66;
+}
+
+.childpointerevents > * {
+  pointer-events: auto;
+}
+
+*:focus {
+  outline: none;
+}
+/*Clear white highlighting*/
+::selection {
+  background-color: Transparent;
+  color: #888;
+}
+
+mark {
+  background: none;
+  color: lime;
+}
+
+.flexbetween {
+  display: flex;
+  justify-content: space-between;
+}

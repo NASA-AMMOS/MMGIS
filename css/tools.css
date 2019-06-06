@@ -1,0 +1,1401 @@
+/*CAMP TOOL*/
+#campTool {
+  color: black;
+}
+
+#campToolTop {
+  position: absolute;
+  top: 0px;
+  height: 50%;
+  border-bottom: 1px solid #26a8ff;
+  overflow-y: auto;
+}
+
+#campToolBottom {
+  position: absolute;
+  bottom: 0px;
+  height: 50%;
+  width: 100%;
+  overflow-y: auto;
+}
+
+.campToolButton1 {
+  background: rgba(38, 168, 255, 0.7);
+  border-radius: 2px;
+  padding: 3px 8px;
+  margin: 5px 0px;
+  text-align: center;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+.campToolButton1:hover {
+  background: white;
+  color: black;
+}
+
+#campToolNav {
+  padding: 0px 30px;
+  text-align: center;
+  background: #26a8ff;
+  box-shadow: 0px 4px 2px rgba(0, 0, 0, 0.2);
+}
+#campToolNav .campToolNavButton {
+  transition: background 0.2s ease-out;
+  height: 30px;
+  display: inline-flex;
+  text-align: center;
+  line-height: 30px;
+  border-radius: 1px;
+  vertical-align: middle;
+  cursor: pointer;
+  padding: 0px 6px 0px 4px;
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+#campToolNav .campToolNavButton:hover {
+  color: white;
+}
+#campToolNav .campToolNavButton.active {
+  color: white;
+}
+
+#campToolNav i {
+  padding-right: 3px;
+}
+
+#campToolDrawMain {
+  display: flex;
+  flex-flow: column;
+}
+
+#campToolDrawingTypeDiv {
+  display: flex;
+  background: #26a8ff;
+  color: #aaa;
+  justify-content: center;
+}
+#campToolDrawingTypeDiv div {
+  background: #001;
+  padding: 7px 11px 3px 11px;
+  cursor: pointer;
+  transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
+    background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
+    border-radius 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+#campToolDrawingTypeDiv div:hover {
+  color: white;
+}
+#campToolDrawingTypeDiv div.active {
+  background: #26a8ff;
+  color: white;
+}
+
+#campToolSection {
+}
+
+#campToolDrawSettingsTier {
+  display: flex;
+}
+#campToolDrawSettingTierSwitcher {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border: 1px solid #001;
+  border-radius: 2px;
+  cursor: pointer;
+  background: #291408;
+}
+#campToolDrawSettingTierSwitcher > div {
+  position: absolute;
+  height: 6px;
+  width: 100%;
+  background: white;
+  transition: top 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
+    background 0.15s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+#campToolDrawSettingTierSwitcher.over > div {
+  top: 0px;
+  background: #26a8ff;
+}
+#campToolDrawSettingTierSwitcher.through > div {
+  top: 6px;
+  background: #3fff26;
+}
+#campToolDrawSettingTierSwitcher.under > div {
+  top: 12px;
+  background: #ff2626;
+}
+#campToolDrawSettingTierLabel {
+  margin-top: 1px;
+  margin-left: 3px;
+  font-weight: bold;
+}
+
+#campToolContents {
+  position: absolute;
+  top: 30px;
+  left: 0px;
+  width: 100%;
+  height: calc(100% - 30px);
+}
+
+#campToolContents > div {
+  display: none;
+}
+
+.campToolDrawTitle {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 10px;
+  font-size: 17px;
+  font-weight: bold;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+#campToolDrawFilesTitle > div {
+  justify-content: space-between;
+  display: flex;
+  width: 100%;
+}
+
+#campToolDrawFilesNewDiv {
+  display: flex;
+}
+#campToolDrawFilesNewDiv > select {
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+  padding: 0px 4px;
+  margin: 7px 0px 7px 0px;
+  height: 30px;
+  width: 70px;
+  background: #eee;
+}
+#campToolDrawFilesNewName {
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+  padding: 0px 4px;
+  margin: 7px 0px 7px 7px;
+  height: 30px;
+  width: 109px;
+}
+#campToolDrawFilesNew {
+  cursor: pointer;
+  width: 30px;
+  height: 30px;
+  background: white;
+  color: black;
+  line-height: 30px;
+  text-align: center;
+  margin: 7px 7px 7px 0px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+}
+
+.campToolFileDelete {
+  cursor: pointer;
+}
+
+#campToolDrawFeaturesNewNameDiv {
+  margin-top: 7px;
+}
+#campToolDrawFeaturesNewName {
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+  width: 100%;
+  padding: 0px 4px;
+  height: 30px;
+}
+
+#campToolShapesCopyDiv {
+  background: #26a8ff;
+  display: flex;
+  width: 100%;
+  height: 30px;
+  padding: 6px 7px 7px 7px;
+  justify-content: space-between;
+}
+#campToolShapesCopyDiv > div:first-child {
+  color: white;
+  line-height: 25px;
+  font-weight: bold;
+  width: 48px;
+}
+#campToolShapesCopyDiv > div:last-child {
+  width: 48px;
+  color: white;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 7px;
+  position: relative;
+  height: 25px;
+  line-height: 11px;
+  text-align: center;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+#campToolShapesCopyDiv > div:last-child:hover {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+#campToolShapesCopyDiv select {
+  height: 23px !important;
+  padding: unset !important;
+}
+
+#campToolShapesCopyMessageDiv {
+  position: absolute;
+  bottom: 43px;
+  background: linear-gradient(to right, #26ff67, rgba(127, 255, 0, 1));
+  width: 100%;
+  height: 31px;
+  padding: 6px 7px 7px 7px;
+  text-align: center;
+  color: black;
+  font-weight: bold;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+
+#campToolDrawFilterDiv {
+  background: #26a8ff;
+  display: flex;
+  width: 100%;
+}
+#campToolDrawFilter {
+  border: none;
+  width: 153px;
+  padding: 0px 4px;
+  height: 30px;
+}
+#campToolDrawFilterClear {
+  width: 30px;
+  line-height: 28px;
+  color: #aaa;
+  text-align: center;
+  background: white;
+  margin-right: 7px;
+  height: 30px;
+  transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+#campToolDrawFilterClear:hover {
+  color: black;
+}
+#campToolDrawFilterCount {
+  line-height: 28px;
+  color: white;
+  width: 80px;
+  text-align: right;
+  height: 30px;
+  font-size: 14px;
+}
+
+#campToolDrawIntentFilterDiv {
+  display: flex;
+  padding: 7px 7px 7px 0px;
+  background: #26a8ff;
+}
+#campToolDrawIntentFilterDiv > div {
+  flex: 1;
+  width: 30px;
+  height: 30px;
+  background: white;
+  border: 2px solid #000;
+  border-radius: 3px;
+  text-align: center;
+  line-height: 30px;
+  margin-left: 7px;
+  font-weight: bold;
+  cursor: pointer;
+  color: #000;
+  transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
+    background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+#campToolDrawIntentFilterDiv > div:hover {
+  color: white;
+  background: #001;
+}
+#campToolDrawIntentFilterDiv > div.active {
+  color: white;
+}
+#campToolDrawIntentFilterDiv > div.active:nth-child(1) {
+  background: rgb(190, 38, 51);
+}
+#campToolDrawIntentFilterDiv > div.active:nth-child(2) {
+  background: rgb(235, 137, 49);
+}
+#campToolDrawIntentFilterDiv > div.active:nth-child(3) {
+  background: rgb(247, 226, 107);
+}
+#campToolDrawIntentFilterDiv > div.active:nth-child(4) {
+  background: rgb(163, 206, 39);
+}
+#campToolDrawIntentFilterDiv > div.active:nth-child(5) {
+  background: rgb(39, 146, 206);
+}
+#campToolDrawIntentFilterDiv > div.active:nth-child(6) {
+  background: rgb(100, 100, 100);
+}
+#campToolDrawIntentFilterDiv > div.active:nth-child(7) {
+  background: rgb(104, 28, 190);
+}
+
+#campToolDrawFilterDivToolTip {
+  position: absolute;
+  height: 30px;
+  width: 100%;
+  color: white;
+  text-shadow: 0px 0px 2px black;
+  opacity: 0;
+  pointer-events: none;
+  border-left: 7px solid #26a8ff;
+  line-height: 30px;
+  font-weight: bold;
+  padding-left: 7px;
+  transition: opacity 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95),
+    background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+#campToolDrawFilterDivToolTip.active {
+  opacity: 1;
+}
+
+#campToolDrawFilterDiv2 {
+  display: flex;
+  background: white;
+  border-left: 7px solid #26a8ff;
+}
+
+#campToolDrawSortDiv {
+  display: flex;
+  justify-content: flex-end;
+}
+#campToolDrawSortDiv > div {
+  height: 30px;
+  border-radius: 3px;
+  line-height: 30px;
+  margin-right: 4px;
+  text-align: center;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.3);
+  transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+#campToolDrawSortDiv > div:hover {
+  color: #001;
+}
+#campToolDrawSortDiv > div.active {
+  color: #001;
+}
+
+#campToolShapesFilterDiv {
+  background: #26a8ff;
+  display: flex;
+  width: 100%;
+}
+#campToolShapesFilter {
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+  width: 120px;
+  flex: 1;
+  padding: 0px 4px;
+  margin: 7px 0px 7px 7px;
+  height: 30px;
+}
+#campToolShapesFilterClear {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+  width: 30px;
+  line-height: 28px;
+  color: #aaa;
+  text-align: center;
+  background: white;
+  margin: 7px 0px;
+  height: 30px;
+  transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+#campToolShapesFilterClear:hover {
+  color: black;
+}
+#campToolShapesFilterCount {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+  line-height: 28px;
+  color: black;
+  text-align: center;
+  background: white;
+  margin: 7px 7px 7px 0px;
+  height: 30px;
+  font-size: 12px;
+}
+
+#campToolDrawFiles {
+}
+#campToolDrawFilesList {
+  list-style-type: none;
+  padding: 0;
+  margin: 0px;
+  height: calc(100vh - 210px);
+  overflow-y: auto;
+}
+#campToolDrawFilesList li {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 0px;
+}
+
+.campToolDrawFilesListElem {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: black;
+  transition: padding 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
+    background 0.3s cubic-bezier(0.445, 0.05, 0.55, 0.95),
+    height 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95),
+    opacity 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+.campToolDrawFilesListElem.on {
+}
+.campToolDrawFilesListElem.checked {
+  height: 40px !important;
+  padding: 10px 0px !important;
+  background: linear-gradient(to top, #26ff67, rgba(127, 255, 0, 1));
+}
+.campToolDrawFilesListElem:hover {
+  background: #001;
+  color: white;
+}
+
+.campToolFileEdit {
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+.campToolFileEdit.alwaysShow {
+  opacity: 0.25;
+}
+.campToolFileEdit.shown {
+  cursor: pointer;
+  opacity: 0.25;
+}
+.campToolFileEdit.shown:hover {
+  opacity: 1;
+}
+
+.campToolFilePublicity {
+  opacity: 0.25;
+}
+
+.campToolFileTooltip {
+  position: fixed;
+  left: 272px;
+  background: #001;
+  color: white;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+  max-width: 250px;
+  padding: 0px 8px;
+  border-bottom-right-radius: 3px;
+  border-top-right-radius: 3px;
+  line-height: 22px;
+}
+.campToolFileTooltip.active {
+  opacity: 1;
+}
+.campToolFileIntentTooltip {
+  height: 22px;
+  line-height: 22px;
+  text-align: center;
+  padding: 0px 8px;
+}
+.campToolFileNameTooltip {
+  height: 22px;
+  line-height: 22px;
+  font-size: 16px;
+  margin-right: 20px;
+}
+.campToolFileOwnerTooltip {
+  font-style: italic;
+  text-align: right;
+}
+.campToolFileDescriptionTooltip {
+  white-space: normal;
+  text-align: justify;
+  max-width: 0px;
+  max-height: 0px;
+  opacity: 0;
+}
+.campToolFileDescriptionTooltip.active {
+  opacity: 1;
+  max-width: 250px;
+  max-height: 100vh;
+}
+.campToolFileTooltip > div:nth-child(1) {
+  height: 22px;
+  line-height: 22px;
+  border-radius: 3px;
+  padding: 0px 2px;
+}
+.campToolFileTooltip > div:nth-child(3) {
+  padding: 0px 2px;
+}
+.campToolFileTooltipArrow {
+  position: absolute;
+  left: -15px;
+  top: 0;
+  width: 0;
+  height: 0;
+  border-top: 11px solid transparent;
+  border-bottom: 11px solid transparent;
+  border-right: 11px solid #001;
+}
+
+.campToolFileEditOn {
+  display: none;
+  color: black;
+}
+
+.campToolFileCheckbox {
+  padding-right: 5px;
+  cursor: pointer;
+  transition: opacity 0.2s ease-out;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  margin: 2px 5px 0px 5px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  transition: border 0.2s ease-out,
+    background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+.campToolFileCheckbox.checked {
+  border: 2px solid black;
+  background: #fff;
+}
+.campToolFileCheckbox.on {
+  border: none;
+  background: #26a8ff;
+}
+
+.campToolFileEye {
+  cursor: pointer;
+  opacity: 0.25;
+  transition: opacity 0.2s ease-out;
+}
+.campToolFileEye.mdi-eye {
+  opacity: 1;
+}
+
+#campToolDrawShapes {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+}
+
+#campToolShapesWrapper {
+  padding: 5px 0px;
+  width: 100%;
+  position: absolute;
+  z-index: 100;
+  background: rgb(38, 168, 255);
+  height: 100%;
+  transition: background 0.4s cubic-bezier(0.39, 0.575, 0.565, 1);
+  overflow-y: auto;
+}
+
+#campToolShapesWrapper > div {
+  display: none;
+  font-size: 18px;
+  height: 100px;
+  font-family: petita;
+  cursor: pointer;
+  padding: 2px 8px;
+  margin: 2px 5px;
+  background: rgba(255, 255, 255, 1);
+  box-sizing: border-box;
+  border-radius: 3px;
+  position: relative;
+  transition: background 0.2s ease-out, border-left 0.2s ease-in;
+}
+
+#campToolShapesWrapper > div:hover {
+  background: #ddd;
+  color: #291408;
+}
+
+#campToolShapesWrapper > div.active {
+  display: block;
+  background: white;
+  color: #291408;
+}
+#campToolShapesWrapper > div.open {
+  display: block;
+}
+
+#campToolDrawShapesNameROI {
+  position: absolute;
+  top: 41px;
+  left: 84px;
+  font-weight: bold;
+  font-size: 24px;
+}
+#campToolDrawShapesNameCampaign {
+  position: absolute;
+  top: 41px;
+  left: 58px;
+  font-weight: bold;
+  font-size: 22px;
+}
+#campToolDrawShapesNameCampsite {
+  position: absolute;
+  top: 41px;
+  left: 65px;
+  font-weight: bold;
+  font-size: 20px;
+}
+#campToolDrawShapesNameSignpost {
+  position: absolute;
+  top: 41px;
+  left: 65px;
+  font-weight: bold;
+  font-size: 20px;
+}
+#campToolDrawShapesNameTrail {
+  position: absolute;
+  top: 39px;
+  left: 79px;
+  font-weight: bold;
+  font-size: 25px;
+}
+#campToolDrawShapesNameNote {
+  position: absolute;
+  top: 41px;
+  left: 69px;
+  font-family: "blackjar";
+  font-size: 38px;
+}
+
+#campToolDrawSettingsSubtitle {
+  width: 100%;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+}
+#campToolDrawSettings {
+  width: 100%;
+  position: absolute;
+  bottom: 0px;
+  background: #26a8ff;
+}
+#campToolDrawSettingsBody > div:first-child {
+  padding: 7px 7px 0px 7px;
+}
+
+#campToolDrawSettingsMode {
+  color: white;
+  padding: 0px 4px;
+  background: #291408;
+  border-radius: 3px;
+  cursor: pointer;
+  width: 48px;
+  text-align: center;
+}
+
+#campToolRes {
+  width: 30px;
+  background: transparent;
+  border: 1px solid #999;
+}
+
+#campToolShapes {
+  height: 100%;
+}
+#campToolDrawShapesList {
+  overflow-y: auto;
+  height: calc(100% - 74px);
+}
+#campToolShapesFeaturesList {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+.campToolShapeLi {
+  color: black;
+  background: rgba(255, 255, 255, 0);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+  transition: background 0.4s cubic-bezier(0.39, 0.575, 0.565, 1),
+    padding 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+.campToolShapeLi:hover,
+.campToolShapeLi.hovered {
+  background: #291408;
+  color: white;
+}
+.campToolShapeLi.active {
+  background: linear-gradient(to left, #26ff67, #7fff00);
+  font-weight: bold;
+}
+
+.campToolShapeLiItem {
+  cursor: pointer;
+  display: flex;
+  height: 21px;
+  line-height: 21px;
+}
+.campToolShapeLiItemContent {
+  width: 100%;
+  padding: 3px 0px;
+}
+
+.campToolShapeLiItemCheck {
+  width: 16px;
+  height: 15px;
+  border-radius: 8px;
+  margin: 5px 5px 0px 5px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  transition: border 0.2s ease-out;
+}
+.campToolShapeLiItemCheck.checked {
+  border: 2px solid black;
+}
+
+.campToolShapeLiItemA {
+  width: 4px;
+  height: 100%;
+}
+.campToolShapeLiItemB {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 135px;
+}
+.campToolShapeLiItemC {
+  color: white;
+  padding: 0px 4px;
+  margin-right: 3px;
+  width: 36px;
+  font-family: monospace;
+  text-align: center;
+}
+
+.campToolContextMenu {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  width: 300px;
+  border-radius: 2px;
+  padding: 10px;
+  background: #ededed;
+  color: black;
+}
+.campToolContextMenuDragHandle {
+  position: absolute;
+  width: 100%;
+  height: 58px;
+  margin: -10px;
+  z-index: 500;
+}
+
+.campToolContextMenuColorGround {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  background: linear-gradient(to top, #26ff67, rgba(127, 255, 0, 1));
+  opacity: 0;
+  z-index: -1;
+}
+
+.campToolContextMenuHeaderColor {
+  position: absolute;
+  width: 100%;
+  height: 58px;
+  margin: -10px;
+  border-top-left-radius: 2px;
+  border-top-right-radius: 2px;
+  background: #001;
+  border-bottom: 2px solid #26a8ff;
+}
+
+.campToolContextMenuHeader {
+  position: relative;
+  margin-bottom: 16px;
+  color: white;
+}
+.campToolContextMenuHeaderName {
+  height: 25px;
+  font-size: 25px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 275px;
+}
+.campToolContextMenuHeaderName.group {
+  color: yellow;
+  font-weight: bold;
+}
+.campToolContextMenuHeader1 {
+  line-height: 18px;
+  font-size: 13px;
+  font-style: italic;
+  height: 10px;
+}
+.campToolContextMenuHeader1 span {
+  font-style: normal;
+}
+.campToolContextMenuHeaderFile {
+}
+.campToolContextMenuHeaderOwner {
+}
+.campToolContextMenuHeaderClose {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  cursor: pointer;
+  z-index: 501;
+}
+
+.campToolContextMenuPropertiesHeader {
+  font-size: 18px;
+  border-bottom: 1px solid rgba(41, 20, 8, 0.5);
+}
+.campToolContextMenuProperties {
+  padding: 0px 10px 16px 10px;
+}
+.campToolContextMenuStyleHeader {
+  font-size: 18px;
+  border-bottom: 1px solid rgba(41, 20, 8, 0.5);
+}
+.campToolContextMenuStyle > div {
+  width: 100%;
+  height: 28px;
+  padding: 0px 10px;
+  line-height: 28px;
+  display: flex;
+  text-align: right;
+}
+
+.campToolStyleHighlight {
+  line-height: 9px;
+  font-size: 10px;
+  width: 10px;
+  height: 10px;
+  border-radius: 5px;
+  background: transparent;
+  margin-left: 5px;
+  margin-top: 5px;
+  text-align: center;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0);
+  overflow: hidden;
+  transition: width 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+.campToolStyleHighlight:hover {
+  width: 40px;
+  padding: 0px 4px;
+  color: rgba(255, 255, 255, 1);
+}
+
+.campToolContextMenuStyle {
+  padding: 0px 0px 16px 0px;
+}
+.campToolContextMenuPositionHeader {
+  font-size: 18px;
+  border-bottom: 1px solid rgba(41, 20, 8, 0.5);
+}
+.campToolContextMenuPosition {
+  padding: 0px 10px 16px 10px;
+}
+.campToolContextMenuGeometryHeader {
+  font-size: 18px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.4);
+}
+.campToolContextMenuGeometry {
+  padding: 0px 10px 16px 10px;
+}
+.campToolContextMenuGeometry > div {
+  width: 100%;
+}
+.campToolContextMenuGeometry > div:first-child {
+  margin-right: 10px;
+}
+.campToolContextMenuSave > div {
+  width: 100%;
+  margin-bottom: 0px;
+}
+
+.campToolContextMenuReset {
+  width: 70px !important;
+  margin-right: 8px;
+}
+
+.campToolContextMenuProperties input {
+  color: black;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+}
+.campToolContextMenuProperties textarea {
+  color: black;
+  background: transparent;
+}
+.campToolContextMenuPropertiesName {
+  margin-bottom: 4px;
+}
+.campToolContextMenuPropertiesDescription {
+}
+
+.campToolFileInfo {
+  width: 145px;
+  cursor: pointer;
+  padding-left: 3px;
+  line-height: 21px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.campToolFileNameInput {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+  margin-bottom: 5px;
+  width: 100%;
+}
+.campToolFileOwner {
+  font-style: italic;
+  font-size: 12px;
+}
+
+.campToolFileEditOn {
+  position: fixed;
+  left: 272px;
+  background: #ededed;
+  margin-top: -22px;
+  padding: 4px 10px 0px 10px;
+}
+.campToolFileEditOnArrow {
+  position: absolute;
+  left: -10px;
+  top: 0;
+  width: 0;
+  height: 0;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+  border-right: 10px solid #ededed;
+}
+.campToolFileEditOnA {
+  display: flex;
+}
+.campToolFileEditOnB {
+  margin-right: 5px;
+}
+.campToolFileEditOnC {
+  display: flex;
+  justify-content: space-between;
+}
+.campToolFileEditOn textarea {
+  background: transparent;
+  width: 180px;
+}
+.campToolFilePublic {
+  display: flex;
+  cursor: pointer;
+}
+
+.campToolContextMenu .collapsible {
+  overflow: hidden;
+  max-height: 500px;
+  opacity: 1;
+  transition: max-height 0.4s cubic-bezier(0.445, 0.05, 0.55, 0.95),
+    opacity 0.3s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+.campToolContextMenu .collapsed {
+  max-height: 0px;
+  opacity: 0;
+}
+
+.campToolContextMenu .strokecolor,
+.campToolContextMenu .fillcolor {
+  border: 1px solid rgba(0, 0, 0, 0.4);
+}
+.campToolContextMenu .picking {
+  display: flex;
+  height: 1px;
+  margin: 0px 10px;
+  width: calc(100% - 20px);
+  padding: 0;
+  overflow-y: hidden;
+  background: white;
+  border-bottom: 1px solid rgba(180, 180, 180, 1);
+  transition: height 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+.campToolContextMenu .styleColorPicker {
+  background: #291408;
+}
+
+.campToolContextMenu .picking.open {
+  height: 28px;
+}
+.campToolContextMenu .styleColorPicker > div {
+  display: inline-block;
+  width: 20px;
+  height: 25px;
+  margin: 1px;
+  cursor: pointer;
+  box-shadow: inset 0px 0px 0px 3px rgba(255, 255, 255, 0);
+  transition: box-shadow 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+.campToolContextMenu .styleColorPicker > div:hover {
+  box-shadow: inset 0px 0px 5px rgba(255, 255, 255, 0);
+}
+.campToolContextMenu .styleColorPicker > div:nth-child(1) {
+  background-color: #000000;
+}
+.campToolContextMenu .styleColorPicker > div:nth-child(2) {
+  background-color: #9d9d9d;
+}
+.campToolContextMenu .styleColorPicker > div:nth-child(3) {
+  background-color: #ffffff;
+}
+.campToolContextMenu .styleColorPicker > div:nth-child(4) {
+  background-color: #be2633;
+}
+.campToolContextMenu .styleColorPicker > div:nth-child(5) {
+  background-color: #e06f8b;
+}
+.campToolContextMenu .styleColorPicker > div:nth-child(6) {
+  background-color: #493c2b;
+}
+.campToolContextMenu .styleColorPicker > div:nth-child(7) {
+  background-color: #a46422;
+}
+.campToolContextMenu .styleColorPicker > div:nth-child(8) {
+  background-color: #eb8931;
+}
+.campToolContextMenu .styleColorPicker > div:nth-child(9) {
+  background-color: #f7e26b;
+}
+.campToolContextMenu .styleColorPicker > div:nth-child(10) {
+  background-color: #2f484e;
+}
+.campToolContextMenu .styleColorPicker > div:nth-child(11) {
+  background-color: #44891a;
+}
+.campToolContextMenu .styleColorPicker > div:nth-child(12) {
+  background-color: #a3ce27;
+}
+.campToolContextMenu .styleColorPicker > div:nth-child(13) {
+  background-color: #1b2632;
+}
+.campToolContextMenu .styleColorPicker > div:nth-child(14) {
+  background-color: #005784;
+}
+.campToolContextMenu .styleColorPicker > div:nth-child(15) {
+  background-color: #31a2f2;
+}
+.campToolContextMenu .styleColorPicker > div:nth-child(16) {
+  background-color: #b2dcef;
+}
+
+.campToolContextMenu .styleOpacityPicker > div,
+.campToolContextMenu .strokeStylePicker > div,
+.campToolContextMenu .strokeWeightPicker > div,
+.campToolContextMenu .symbolPicker > div,
+.campToolContextMenu .radiusPicker > div,
+.campToolContextMenu .widthPicker > div,
+.campToolContextMenu .lengthPicker > div,
+.campToolContextMenu .lineCapPicker > div,
+.campToolContextMenu .lineJoinPicker > div {
+  flex: 1;
+  height: 27px;
+  text-align: center;
+  cursor: pointer;
+}
+.campToolContextMenu .styleOpacityPicker > div:hover,
+.campToolContextMenu .strokeStylePicker > div:hover,
+.campToolContextMenu .strokeWeightPicker > div:hover,
+.campToolContextMenu .symbolPicker > div:hover,
+.campToolContextMenu .radiusPicker > div:hover,
+.campToolContextMenu .widthPicker > div:hover,
+.campToolContextMenu .lengthPicker > div:hover,
+.campToolContextMenu .lineCapPicker > div:hover,
+.campToolContextMenu .lineJoinPicker > div:hover {
+  background: #291408;
+  color: white;
+}
+
+.styleInput {
+  opacity: 0;
+  pointer-events: none;
+  background: white;
+  border: none;
+  margin: 4px 0px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.4);
+  padding: 0px 4px;
+  width: 104px;
+  font-size: 12px;
+  transition: opacity 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+.styleprop.open .styleInput {
+  opacity: 1;
+  pointer-events: inherit;
+}
+
+.styleprop > div:first-child {
+  border-radius: 3px;
+  height: 20px;
+  line-height: 21px;
+  padding: 0px 4px;
+  margin-top: 4px;
+}
+
+.campToolContextMenu .stylevalue {
+  width: 50px;
+  height: 28px;
+  text-align: right;
+}
+
+.campToolContextMenu .stylevalue2 {
+  width: 20px;
+  height: 20px;
+  margin: 4px 0px;
+}
+
+.campToolContextMenu .campToolContextMenuSave {
+  display: flex;
+}
+.campToolContextMenu .campToolContextMenuSaveChanges {
+  flex: 1;
+}
+.campToolContextMenu .campToolContextMenuDelete {
+  width: 36px;
+  background: red;
+  margin-right: 8px;
+}
+.campToolContextMenuDelete.hide {
+  display: none;
+}
+
+.campToolContextMenu .sure {
+  display: none;
+}
+
+.campToolContextMenu .sureq > div {
+  display: flex;
+  font-size: 17px;
+  margin-top: 8px;
+}
+.campToolContextMenu .sureq > div > div {
+  margin-top: 2px;
+}
+
+.campToolContextMenuDeleteYes {
+  width: 65px !important;
+  background: crimson;
+  margin-left: 10px;
+}
+.campToolContextMenuDeleteNo {
+  width: 65px !important;
+  margin-left: 10px;
+}
+
+.campToolContextMenuHeaderCount {
+  opacity: 1;
+  transition: opacity 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+.campToolContextMenuHeaderCount.hide {
+  opacity: 0;
+}
+
+.campToolAnnotationWrapper {
+  display: flex;
+  background: #ededed;
+  border-bottom-right-radius: 3px;
+  border-top-right-radius: 3px;
+}
+.campToolAnnotation {
+  font-size: 18px;
+  background: transparent;
+  border: none;
+  padding: 2px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.campToolAnnotation.highlight {
+  color: #7fff00;
+}
+
+.campToolPreannotation {
+  font-size: 18px;
+  background: #ededed;
+  border: none;
+  border-right: 3px solid #26a8ff;
+  padding: 2px 6px;
+  color: #291408;
+}
+.campToolAnnotationWrapper i {
+  color: #291408;
+}
+.campToolAnnotationWrapper div {
+  padding: 2px 4px;
+  cursor: pointer;
+}
+.campToolAnnotationWrapper div {
+  padding: 2px 4px;
+  cursor: pointer;
+  transition: background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+.campToolAnnotationWrapper div:hover {
+  background: #26a8ff;
+  color: white;
+}
+
+#campToolMouseoverText {
+  position: fixed;
+  pointer-events: none;
+  text-align: center;
+  color: white;
+  background: #3b3d4d;
+  box-shadow: 0 2px 5px #000;
+  font-size: 18px;
+  padding: 4px 8px;
+  opacity: 0;
+  transition: opacity 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+#campToolMouseoverText.active {
+  opacity: 1;
+}
+
+/*history*/
+#campToolHistory {
+  display: flex;
+  flex-flow: column;
+  height: 100%;
+}
+
+#campToolHistoryFile {
+  background: #26a8ff;
+  height: 30px;
+  line-height: 30px;
+  text-align: center;
+  color: white;
+  font-size: 16px;
+  box-shadow: 0px 4px 2px rgba(0, 0, 0, 0.2);
+}
+
+#campToolHistoryContent {
+  flex: 1;
+  display: flex;
+  flex-flow: column;
+}
+
+#campToolHistoryToolbar {
+  position: relative;
+}
+#campToolHistoryTime {
+  width: 100%;
+  background: transparent;
+  padding: 10px;
+  border: none;
+  text-align: center;
+}
+#campToolHistoryNow {
+  color: #fff;
+  background: #000011;
+  padding-left: 10px;
+  padding: 2px 10px;
+  margin: 0px 5px 4px 5px;
+  border-radius: 2px;
+  text-align: center;
+  cursor: pointer;
+}
+
+#campToolHistoryViewer {
+  flex: 1;
+  display: flex;
+}
+
+#campToolHistorySequence {
+  flex: 1;
+  display: flex;
+  flex-flow: column;
+}
+#campToolHistoryTimeline {
+  width: 32px;
+  height: 100%;
+  border-left: 1px solid rgba(0, 0, 17, 0.61);
+  background: #aaff26;
+  position: relative;
+}
+#campToolHistoryTimelineSliderSequence {
+  width: 100%;
+  height: 100px;
+  background: #26a8ff;
+  opacity: 0;
+}
+#campToolHistoryTimelineSlider {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 100%;
+  border-bottom: 2px solid crimson;
+  background: #ff264c;
+  transition: height 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+#campToolHistorySequenceList {
+  margin: 0px 5px;
+  flex: 1;
+  overflow-y: auto;
+}
+#campToolHistorySequenceList > ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 17, 0.61);
+}
+
+#campToolHistorySequenceList > ul > li {
+  color: #001;
+  background: #aaff26;
+  border-bottom: 1px solid rgba(0, 0, 17, 0.25);
+  padding: 2px 10px;
+  cursor: pointer;
+  transition: opacity 1s cubic-bezier(0.47, 0, 0.745, 0.715);
+}
+#campToolHistorySequenceList > ul > li.inactive {
+  color: #fff;
+  background: #ff264c;
+  opacity: 0.7;
+}
+#campToolHistorySequenceList > ul > li:first-child {
+  border-top-left-radius: 2px;
+  border-top-right-radius: 2px;
+}
+#campToolHistorySequenceList > ul > li:last-child {
+  border-bottom-left-radius: 2px;
+  border-bottom-right-radius: 2px;
+}
+
+#campToolHistorySave {
+  height: 25px;
+  color: white;
+  background: #001;
+  line-height: 25px;
+  text-align: center;
+  font-size: 18px;
+  margin: 5px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+/*CURTAIN TOOL*/
+#CurtainToolList {
+  display: flex;
+}
+#CurtainToolList > div {
+  cursor: pointer;
+  padding-right: 10px;
+  font-size: 18px;
+  color: #bbb;
+  transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+#CurtainToolList > div:hover {
+  color: white;
+}
+#CurtainToolList > div.active {
+  color: white;
+  font-weight: bold;
+}

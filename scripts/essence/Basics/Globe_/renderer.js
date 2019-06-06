@@ -1,0 +1,55 @@
+define(['three', 'container', 'WebVR'], function(THREE, container, WebVR) {
+    var webglSupport = (function() {
+        try {
+            var canvas = document.createElement('canvas')
+            return !!(
+                window.WebGLRenderingContext &&
+                (canvas.getContext('webgl') ||
+                    canvas.getContext('experimental-webgl'))
+            )
+        } catch (e) {
+            return false
+        }
+    })()
+    container.innerHTML = ''
+    var renderer
+
+    if (webglSupport) {
+        renderer = new THREE.WebGLRenderer({
+            logarithmicDepthBuffer: false,
+            alpha: true,
+        })
+        renderer.setClearColor(0x000000, 0)
+        renderer.sortObjects = false
+        renderer.autoClear = false
+        renderer.listenVrTurnedOn = function(listening) {
+            renderer.vrTurnedOn = listening
+        }
+        renderer.listenVrTurnedOff = function(listening) {
+            renderer.vrTurnedOff = listening
+        }
+
+        var gl = renderer.getContext()
+        gl.enable(gl.SAMPLE_ALPHA_TO_COVERAGE)
+
+        renderer.vr.enabled = true
+        container.appendChild(WEBVR.createButton(renderer))
+
+        container.appendChild(renderer.domElement)
+
+        renderer.setPixelRatio(window.devicePixelRatio)
+        var updateSize = function() {
+            renderer.setSize(container.offsetWidth, container.offsetHeight)
+        }
+        window.addEventListener('resize', updateSize, false)
+        updateSize()
+    } else {
+        container.innerHTML =
+            "<div style='margin-bottom: 5px;'>Seems like <a target='_blank' href='https://www.khronos.org/webgl/wiki/Getting_a_WebGL_Implementation'>WebGL</a> isn't supported for you.</div><div>Find out how to get it <a target='_blank' href='https://get.webgl.org/'>here</a>.</div>"
+        container.style.textAlign = 'center'
+        container.style.fontSize = '18px'
+        console.warn('WebGL Not Supported')
+    }
+
+    return renderer
+})
