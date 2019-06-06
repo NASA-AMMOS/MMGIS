@@ -31,10 +31,7 @@ Spatial Data Infrastructure for Planetary Missions
 2. Run `./install.sh`  
    _Note:_ you may need to make this executable first.
 3. To run with apache, change .env file 'SERVER=apache', else 'SERVER=node'. Set PORT number appropriately.
-   For authentication, set 'AUTH=csso' for single sign on, or 'AUTH=none' for everything else. 'none' doesn't mean no authentication,
-   it just means not CSSO. LDAP authentication can be set on the Apache server settings. When using node, you can set 'NODE=development' or 'NODE=production'. Database parameters can also be set in this file, if one is used.
-4. Change the line "SELINUX=enforcing" to "SELINUX=permissive" in /etc/selinux/config.
-   _Note:_ This allows MMGIS to write files to its SQLITE database.
+   For authentication, set 'AUTH=csso' for single sign on, or 'AUTH=none' for everything else. When using node, you can set 'NODE=development' or 'NODE=production'. Database parameters can also be set in this file, if one is used.
 
 And you're done!
 
@@ -56,3 +53,8 @@ CAMP can be configured by setting the following environment variables on the con
 - `DB_HOST`: Database host URL
 - `DB_USER`: Username for database connection.
 - `DB_PASS`: Password for database.
+
+## Contacts
+
+Dr. Fred J. Calef III - fred.calef@jpl.nasa.gov
+Tariq K. Soliman - tariq.soliman@jpl.nasa.gov
