@@ -1,7 +1,6 @@
 # MMGIS (Multi-Mission Geographic Information System)
 
 Spatial Data Infrastructure for Planetary Missions
-[Test Mission Demo](http://miplmmgis.jpl.nasa.gov/mmgis/MMGISTEST/?mission=Test)
 
 ## Features
 
@@ -16,11 +15,11 @@ Spatial Data Infrastructure for Planetary Missions
 
 ## Requirements/Tested With
 
-- Apache 2.2.27
+- Apache 2.2.27+
 - PHP 5.4.16+
   - php-pdo php-mysqli pdo_sqlite modules enabled
-- SQLite3 3.8.8.3
-- GDAL 2.0.2 or 1.11.4 with Python bindings
+- SQLite3 3.8.8.3+
+- GDAL 2+ with Python bindings
 - Python 2.75+
 
 ## Installing
@@ -31,7 +30,7 @@ Spatial Data Infrastructure for Planetary Missions
 2. Run `./install.sh`  
    _Note:_ you may need to make this executable first.
 3. To run with apache, change .env file 'SERVER=apache', else 'SERVER=node'. Set PORT number appropriately.
-   For authentication, set 'AUTH=csso' for single sign on, or 'AUTH=none' for everything else. When using node, you can set 'NODE=development' or 'NODE=production'. Database parameters can also be set in this file, if one is used.
+   For authentication, set 'AUTH=csso' for single sign on, or 'AUTH=none' for everything else (inclduing LDAP auth). When using node, you can set 'NODE=development' or 'NODE=production'. Database parameters can also be set in this file, if one is used.
 
 And you're done!
 
@@ -44,11 +43,11 @@ In order to set up your own missions, navigate to `[path]/MMGIS/config` and eith
 To build the Docker image, run:
 `docker build -t <image tag> .`
 
-To run CAMP in a container, you need to create a directory on the host machine and map this to a directory in the container. On the host machine, create a `Missions` directory and copy the contents of `./Missions` to your directory. Map this directory to `/usr/src/app/Missions` in the container. For example, if the host directory is `/Missions`, launch the container with:
+To run MMGIS in a container, you need to create a directory on the host machine and map this to a directory in the container. On the host machine, create a `Missions` directory and copy the contents of `./Missions` to your directory. Map this directory to `/usr/src/app/Missions` in the container. For example, if the host directory is `/Missions`, launch the container with:
 
 `docker run -v /Missions:/usr/src/app/Missions <image tag>`
 
-CAMP can be configured by setting the following environment variables on the container:
+MMGIS can be configured by setting the following environment variables on the container:
 
 - `DB_HOST`: Database host URL
 - `DB_USER`: Username for database connection.
