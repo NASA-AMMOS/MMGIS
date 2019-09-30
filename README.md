@@ -53,7 +53,7 @@ MMGIS can be configured by setting the following environment variables on the co
 - `DB_USER`: Username for database connection.
 - `DB_PASS`: Password for database.
 
-## License: Apache 2.0
+## License: Apache 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
 
 License Terms
 
