@@ -55,8 +55,6 @@ MMGIS can be configured by setting the following environment variables on the co
 
 ## License: Apache 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
 
-License Terms
-
 Copyright (c) 2019, California Institute of Technology ("Caltech").  U.S. Government sponsorship acknowledged.
 
 All rights reserved.
