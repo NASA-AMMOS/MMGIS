@@ -38,7 +38,7 @@ Agree to any possible postgis installions in the gui or run `CREATE EXTENSION po
 `/` will always refer to the repo's root directory
 
 1. Clone the repo  
-`git clone <https://github.com/NASA-AMMOS/MMGIS>`
+`git clone https://github.com/NASA-AMMOS/MMGIS`
 
 1. From within `/`  
 `npm install`
