@@ -1,0 +1,103 @@
+{
+  "missions": ["Test"],
+  "tools": [
+    {
+      "name": "Layers",
+      "defaultIcon": "buffer",
+      "hasVars": false,
+      "description": "Hierarchically toggle layers on and off and alter their opacities.",
+      "descriptionFull": ""
+    },
+    {
+      "name": "Legend",
+      "defaultIcon": "format-list-bulleted-type",
+      "hasVars": false,
+      "description": "Show a chart mapping colors and symbols to meaning.",
+      "descriptionFull": ""
+    },
+    {
+      "name": "Info",
+      "defaultIcon": "information-variant",
+      "hasVars": false,
+      "description": "Display the geojson properties field of a clicked point.",
+      "descriptionFull": ""
+    },
+    {
+      "name": "Sites",
+      "defaultIcon": "pin",
+      "hasVars": true,
+      "description": "A button bar to navigate between various map locations.",
+      "descriptionFull": "<b>Please specify sites.</b> A button bar to navigate between various map locations, sets the current site variable which other functions may see and enables site url queries.<hr><div><ul style='display: inline-block; width: 50%;'><li>{</li><li>&nbsp;&nbsp;&nbsp;&nbsp;\"sites\": [</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\"name\": \"Gale Crater\",</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\"code\": \"GAC\",</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\"view\": [</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-4.6748,</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;137.3738,</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;13</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{}</li><li>&nbsp;&nbsp;&nbsp;&nbsp;]</li><li>}</li></ul><ul style='width: 50%; float: right'><li>&nbsp;</li><li>&nbsp;</li><li>&nbsp;</li><li>//The name that will show up in the site button.</li><li>//An ID code for the site. Must be UNIQUE!</li><li>//Where the camera should pan to.</li><li>//Latitude</li><li>//Longitude</li><li>//Zoom Level</li><li>&nbsp;</li><li>&nbsp;</li><li>//Repeat these objects to add more sites.</li></ul></div>"
+    },
+    {
+      "name": "FileManager",
+      "defaultIcon": "folder-multiple",
+      "hasVars": false,
+      "description": "A file finder/explorer to access and display other users' drawings.",
+      "descriptionFull": ""
+    },
+    {
+      "name": "Measure",
+      "defaultIcon": "chart-areaspline",
+      "hasVars": true,
+      "description": "Measure distances and generates elevation profiles.",
+      "descriptionFull": "<b>Please specify path to dem.</b> Measure distances and generates elevation profiles. Can also query specific bands at specific points of images and generate profiles of them.<hr><div><ul style='display: inline-block; width: 50%;'><li>{</li><li>&nbsp;&nbsp;&nbsp;&nbsp;\"dem\": \"Data/missionDEM.tif\"</li><li>}</li></ul><ul style='width: 50%; float: right'><li>&nbsp;</li><li>//Filepath to the dem relative to this mission's folder.</li></ul></div>"
+    },
+    {
+      "defaultIcon": "lead-pencil",
+      "description": "Draw polygons with colors, names and descriptions.",
+      "descriptionFull": "<b>Please specify a color legend.</b> Draw polygons with colors, names and descriptions. Polygons of the same file never overlap each other and there are options to draw, erase, delete, draw over, draw under, change the color, name, description, download and choose which file you're drawing to.<hr><div><ul style='display: inline-block; width: 50%;'><li>{</li><li>&nbsp;&nbsp;&nbsp;&nbsp;\"colorlegend\": [</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\"name\": \"Smooth Regolith\",</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\"color\": \"#1E5CB3\",</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\"value\": \"0\",</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\"invertTextColor\": true</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{}</li><li>&nbsp;&nbsp;&nbsp;&nbsp;],</li><li>&nbsp;&nbsp;&nbsp;&nbsp;\"demtilesets\": {</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\"path_to_DEM_tiles/{z}/{x}/{y}.png\": {<li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\"dim\": 32,</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\"z\": 20</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{}</li><li>&nbsp;&nbsp;&nbsp;&nbsp;}</li></li><li>}</li></ul><ul style='width: 50%; float: right'><li>&nbsp;</li><li>&nbsp;</li><li>&nbsp;</li><li>//The name that corresponds to this color.</li><li>//A hex color.</li><li>//Any metadata value.</li><li>//<i>Optional:</i> Make name color white for better contrast.</li><li>&nbsp;</li><li>//Repeat these objects to add more colors.</li><li>&nbsp;</li><li>//<i>Optional:</i> Make drawings get elevations.</li><li>//Path to DEM tiles from Mission folder.</li><li>//X/Y DEM tile pixel resolution.</li><li>//Zoom level to query from (ideally the base).</li><li>&nbsp;</li><li>//Repeat these to add fallback data if the above fail.</li></ul></div>",
+      "hasVars": true,
+      "name": "Draw"
+    },
+    {
+      "name": "Chemistry",
+      "defaultIcon": "flask",
+      "hasVars": false,
+      "description": "Display chemistry percentages via graphs of a clicked point.",
+      "descriptionFull": ""
+    },
+    {
+      "name": "Search",
+      "defaultIcon": "eye",
+      "hasVars": true,
+      "description": "Search a layer for a string.",
+      "descriptionFull": "<b>Please specify search fields.</b> Search a layer for a string and either go to it and/or select it. The strings are built from the layer elements' properties object. Which properties it searches through depends on the defined searchfields for each layer. Try to choose a combination that's unique.<hr><div><ul style='display: inline-block; width: 50%;'><li>{<li><li>&nbsp;&nbsp;&nbsp;&nbsp;\"searchfields\" : {</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\"LayerName\" : \"(prop1) round(prop3)\",</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{}</li><li>&nbsp;&nbsp;&nbsp;&nbsp;}</li><li>}</li></ul><ul style='width: 50%; float: right'><li>&nbsp;</li><li>&nbsp;</li><li>//LayerName is a layer defined in the layers tab. propN is a geojson property key of that layer. All propNs are placed between parentheses and separated by a space. Place 'round' or 'rmunder' before a prop to round it or remove its underscores.</li></ul></div>"
+    },
+    {
+      "defaultIcon": "map-marker",
+      "description": "Mouse over the map for a by-pixel legend of a raster.",
+      "descriptionFull": "Click to query underlying datasets.<hr><div><ul style='display: inline-block; width: 50%;'><li>{</li><li>&nbsp;&nbsp;&nbsp;&nbsp;[\"Layer Name\"]: {</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\"url\": \"path_to_data/data.tif\",</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\"bands\": \"how many bands to query from\",</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\"sigfigs\": \"how many digits after the decimal\",</li><li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\"unit\": \"whatever string unit\"</li><li>&nbsp;&nbsp;&nbsp;&nbsp;},</li><li>&nbsp;&nbsp;&nbsp;&nbsp;{}</li><li>}</li></ul><ul style='width: 50%; float: right'><li>&nbsp;</li><li>&nbsp;</li><li>//Path to the dem relative to this mission's folder.</li><li>&nbsp;</li><li>&nbsp;</li><li>//Repeat for more layers.</li></ul></div>",
+      "hasVars": true,
+      "name": "Identifier"
+    },
+    {
+      "name": "Curtain",
+      "defaultIcon": "waves",
+      "hasVars": true,
+      "description": "Curtain views of Ground Penetrating Radar data.",
+      "descriptionFull": "{\"data\": {\"Layer name\": \"Path to Layer's data\"} }"
+    },
+    {
+      "name": "Query",
+      "defaultIcon": "magnify",
+      "hasVars": true,
+      "description": "A short tool description",
+      "descriptionFull": "A more complete description that you see when you click on the description"
+    },
+    {
+      "name": "Camp",
+      "defaultIcon": "tent",
+      "hasVars": true,
+      "description": "",
+      "descriptionFull": ""
+    },
+    {
+      "name": "Trail",
+      "defaultIcon": "sign-direction",
+      "hasVars": false,
+      "description": "",
+      "descriptionFull": ""
+    }
+  ]
+}

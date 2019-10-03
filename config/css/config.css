@@ -1,0 +1,314 @@
+@font-face {
+    font-family: venus;
+    src: url(../../public/fonts/taxidriver/TaxiDriver.ttf);
+}
+
+html {
+  height: 100%;
+  background-color: white;
+}
+body {
+    background-color: white;
+    /*background: linear-gradient(to top, #0e3443, #1E2021);*/
+    background-repeat: no-repeat;
+    width: 100%;
+    color: black;
+    overflow-x: hidden;
+    display: flex;
+}
+
+#leftPanel {
+  width: 220px;
+  position: fixed;
+  height: 100%;
+  background: linear-gradient(to right, #121626 85%, #0b0e18 100%);
+  display: flex;
+  flex-flow: column;
+}
+#topbar {
+  display: none;
+}
+#mission_bar {
+  display: none;
+}
+
+#logout {
+  position: fixed;
+  top: 0px;
+  right: 0px;
+  width: 40px;
+  color: #121626;
+  height: 40px;
+  line-height: 40px;
+  text-align: center;
+  z-index: 1000;
+}
+
+.container {
+  margin-left: 220px;
+  width: 100% !important;
+  max-width: unset !important;
+}
+.container .row {
+  margin-left: 150px;
+  margin-right: 150px;
+}
+#modal_divs .row {
+  margin-left: 0px;
+  margin-right: 0px;
+}
+
+
+#topbar {
+  text-align: center;
+  padding: 4px;
+}
+#tbtitle {
+  font-size: 24px;
+  color: #CCC;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-flow: column;
+}
+#tbtitle a {
+  font-size: 24px;
+  color: #CCC;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+#tbmmgis {
+  -webkit-transition: all 0.2s ease-in;
+    transition: all 0.2s ease-in;
+  font-family: venus;
+}
+#tbmmgis:hover {
+  color: #999;
+}
+#tbconfig {
+  font-family: roboto;
+  cursor: default;
+  text-align: center;
+  font-size: 19px;
+  line-height: 7px;
+  margin: 4px 0px 16px;
+}
+#divline {
+  width: 100%;
+  height: 1px;
+  background-color: #000;
+  background: -webkit-radial-gradient(circle, transparent, transparent, #999); /* Safari */
+  background: -o-radial-gradient(circle, transparent, transparent, #999); /* Opera 11.6 to 12.0 */
+  background: -moz-radial-gradient(circle, transparent, transparent, #999); /* Firefox 3.6 to 15 */
+  background: radial-gradient(circle, transparent, transparent, #999); /* Standard syntax */
+  position: absolute;
+  top: 22px;
+  left: 0;
+}
+
+#config_logout {
+  cursor: pointer;
+  transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+#config_logout:hover {
+  color: black;
+}
+#config_logout::before {
+  transform: rotateZ(180deg);
+  padding-bottom: 1px;
+}
+
+#c_logo {
+  width: 5vw;
+  height: auto;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#new_mission {
+  height: 30px;
+  width: calc( 100% - 16px );
+  line-height: 30px;
+  margin: 4px 8px;
+  font-size: 14px;
+}
+
+#new_mission:hover {
+  color: #5ea1ed;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.CodeMirror {
+  border: 1px solid #eee;
+  height: auto;
+  margin: 0px 161px 0px 173px;
+  border-bottom: 2px solid #1565C0 !important;
+}
+
+#missions {
+  margin: 5px 0px;
+  flex: 1;
+  overflow-y: auto;
+}
+#missions a {
+  color: #ccc;
+}
+
+#missions li {
+  height: 30px;
+  line-height: 30px;
+  padding: 0px 16px 0px 8px;
+  font-size: 18px;
+  text-align: right;
+  cursor: pointer;
+}
+#missions li:hover a {
+  color: white;
+}
+#missions li.active {
+  background: white;
+  color: black !important;
+}
+#missions li.active a {
+  color: black !important;
+}
+
+#tab_overall_versions li:nth-child(even) {
+  background: rgba(0,0,0,0.03);
+}
+#tab_overall_versions li {
+  padding: 5px 20px;
+}
+.version_latest {
+  color: white;
+  background: #480080;
+  padding: 0px 4px;
+  border-radius: 3px;
+  margin-left: 5px;
+  font-size: 14px;
+}
+#tab_overall_versions .version_set {
+  color: white;
+  background: #1565C0;
+  padding: 0px 8px;
+  border-radius: 3px;
+  margin: 0px 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+#tab_overall_versions .version_download {
+  color: white;
+  background: #939393;
+  padding: 0px 3px;
+  border-radius: 3px;
+  font-size: 14px;
+  cursor: pointer;
+}
+#tab_overall_versions i {
+  line-height: 13px;
+  top: 4px;
+  position: relative;
+  cursor: pointer;
+}
+
+#udc {
+  display: flex;
+  justify-content: space-between;
+}
+#udc > div {
+  width: 30%;
+  text-align: center;
+  margin: 0px 3px;
+  color: white;
+  background: rgba(0,0,0,0.15);
+}
+
+.tabs {
+  background-color: white;
+}
+.tabs .tab {
+  z-index: 10;
+}
+.tabs .tab a {
+  color: #121626;
+}
+.tabs .tab a:hover {
+  color: #000;
+}
+
+.tabs .indicator {
+  height: 5px;
+  z-index: 9;
+  background-color: transparent;
+}
+
+#tab_new_mission, #tab_initial, #tab_projection, #tab_look, #tab_panels, #tab_tools, #tab_layers {
+
+}
+.checkbox-color[type="checkbox"].filled-in:checked + label:after {
+     border: 2px solid #1565C0;
+     background-color: #1565C0;
+}
+
+#home_cont {
+  height: 100%;
+  top: 50%;
+  color: #888;
+  font-size: 30px;
+  text-align: center;
+}
+
+.modal {
+    overflow: visible !important;
+    max-height: 100% !important;
+    transform: translateX(120px) !important;
+}
+.modal .modal-title {
+  display: flex;
+  justify-content: space-between;
+}
+.modal .clone {
+  height: 35px;
+  cursor: pointer;
+  color: #777;
+  transition: color 0.1s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+.modal .clone:hover {
+  color: #000;
+}
+
+#toast-container {
+    pointer-events: none;
+    top: 110px !important;
+    right: 6px !important;
+}
+
+#overall_mission_name {
+  text-align: center;
+  font-size: 100px;
+  color: #ddd;
+
+}
+
+.mmgisScrollbar::-webkit-scrollbar-track
+{
+	background-color: Transparent;
+}
+
+.mmgisScrollbar::-webkit-scrollbar
+{
+	width: 6px;
+  height: 6px;
+	background-color: transparent;
+}
+
+.mmgisScrollbar::-webkit-scrollbar-thumb
+{
+  border-radius: 2px;
+	background-color: rgba(0,0,0,0.25);
+}

@@ -1,0 +1,88 @@
+doctype html
+head
+  title MMGIS
+  meta(charset='utf-8')
+  meta(name='viewport' content='width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0')
+  link(rel='shortcut icon' href='../resources/logo.png')
+  style.
+    @font-face {
+    font-family: venus;
+    src: url("../public/fonts/venus-rising/Venus-Rising-Regular.ttf");
+    }
+    @font-face {
+    font-family: roboto;
+    src: url("../public/fonts/roboto/Roboto-Regular.ttf");
+    }
+    @keyframes fadein {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+    }
+    body, html {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: white;
+    user-select: none;
+    }
+    #main-container {
+    width: 100%;
+    height: 100%;
+    animation: fadein 3.5s;
+    }
+    .background {
+    background-image: url("../public/images/fallingastronaut.jpg");
+    width: 100%;
+    height: 100%;
+    background-position: center top;
+    background-repeat: no-repeat;
+    background-size: 100% auto;
+    }
+    #top {
+    width: 100%;
+    height: 90px;
+    }
+    #middle {
+    width: 100%;
+    height: 100px;
+    }
+    #bottom {
+    width: 100%;
+    height: 50%;
+    }
+    #title {
+    font-family: venus;
+    font-size: 20px;
+    padding-left: 4px;
+    color: #c9d5de;
+    }
+    #message {
+    text-align: center;
+    font-family: monospace;
+    font-size: 20px;
+    color: #eee;
+    padding-top: 37px;
+    }
+    #button {
+    text-align: center;
+    width: 100%;
+    }
+    #link {
+    text-decoration: none;
+    font-family: monospace;
+    color: #444;
+    border-bottom: 1px solid rgba(68,68,68,0);
+    transition: border-bottom 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+    }
+    #link:hover {
+    border-bottom: 1px solid rgba(68,68,68,1);
+    }
+#main-container.background
+  #top
+    #title MMGIS
+  #middle
+    #message Something went wrong.
+#bottom
+footer
+  script.

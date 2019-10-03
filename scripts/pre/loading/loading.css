@@ -1,0 +1,85 @@
+.LoadingPage {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    font-family: venus, sans-serif;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.LoadingPage #title {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.LoadingPage #title p {
+    color: white;
+}
+
+.LoadingPage img {
+    position: relative;
+    left: -1px;
+}
+
+/**/
+@keyframes rotate {
+    0% {
+        transform: rotate(0);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+.planet {
+    display: block;
+    position: absolute;
+    font-size: 0;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    left: calc(50% - 15px);
+    top: calc(50% - 15px);
+    width: 30px;
+    height: 30px;
+    border-radius: 30px;
+    background: white;
+    box-shadow: 0px 0px 200px 15px #ccc;
+}
+.planet:before {
+    content: '\25cf';
+    display: block;
+    position: absolute;
+    top: -21px;
+    left: -21px;
+    width: 70px;
+    height: 70px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 70px;
+    color: white;
+    font-size: 26px;
+    text-indent: 4px;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-animation: rotate 3.5s infinite linear;
+    animation: rotate 3.5s infinite linear;
+}
+.planet:after {
+    content: '\25cf';
+    display: block;
+    position: absolute;
+    top: -36px;
+    left: -36px;
+    width: 100px;
+    height: 100px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 100px;
+    color: white;
+    font-size: 22px;
+    text-indent: 12px;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-animation: rotate 5s infinite linear;
+    animation: rotate 5s infinite linear;
+}

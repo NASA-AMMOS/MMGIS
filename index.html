@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>MMGIS</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
+    />
+    <link rel="shortcut icon" href="resources/logo.png" />
+    <link
+      type="text/css"
+      rel="stylesheet"
+      href="public/fonts/materialdesignicons/css/materialdesignicons.min.css"
+    />
+    <link href="css/external/jquery-ui.css" rel="stylesheet" type="text/css" />
+    <link
+      href="scripts/external/SemanticUI/semantic.min.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="scripts/external/Leaflet/leaflet.draw.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="scripts/external/Leaflet/leaflet1.4.0.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="css/external/leaflet.label.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link href="css/external/multirange.css" rel="stylesheet" type="text/css" />
+    <link
+      href="scripts/external/MetricsGraphics/metricsgraphics.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="scripts/external/MetricsGraphics/metricsgraphics-dark.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="scripts/external/DataTables/datatables.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="scripts/essence/LandingPage/LandingPage.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link href="css/mmgis.css" rel="stylesheet" type="text/css" />
+    <link href="css/mmgisUI.css" rel="stylesheet" type="text/css" />
+    <link href="css/tools.css" rel="stylesheet" type="text/css" />
+    <link
+      href="scripts/pre/loading/loading.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+  </head>
+  <body>
+    <div id="main-container"></div>
+    <footer>
+      <script>
+        var mmgisglobal = {};
+        mmgisglobal.name = "MMGIS";
+        mmgisglobal.version = "1.0.0";
+        mmgisglobal.SERVER = "apache";
+        mmgisglobal.AUTH = "default";
+        console.info(
+          "███╗   ███╗███╗   ███╗ ██████╗ ██╗███████╗ v3.0.1\n" +
+            "████╗ ████║████╗ ████║██╔════╝ ██║██╔════╝  Leaflet 1.2.0\n" +
+            "██╔████╔██║██╔████╔██║██║  ███╗██║███████╗  THREE r89\n" +
+            "██║╚██╔╝██║██║╚██╔╝██║██║   ██║██║╚════██║  D3 v3 and v4\n" +
+            "██║ ╚═╝ ██║██║ ╚═╝ ██║╚██████╔╝██║███████║  JQuery v1.11.3\n" +
+            "╚═╝     ╚═╝╚═╝     ╚═╝ ╚═════╝ ╚═╝╚══════╝  OpenSeadragon 2.2.1"
+        );
+      </script>
+      <!--Currently not fully working because of dyanamically loaded tools-->
+      <!--<script src="scripts/require.js"></script>-->
+      <!--<script src="build/mmgis.min.js"></script>-->
+      <script src="scripts/pre/loading/loading.js"></script>
+      <script src="scripts/pre/calls.js"></script>
+      <script src="scripts/configure.js"></script>
+      <script data-main="main" src="scripts/require.js"></script>
+    </footer>
+  </body>
+</html>
