@@ -48,7 +48,7 @@ Agree to any possible postgis installions in the gui or run `CREATE EXTENSION po
 
 1. Run `install.sh` within `/`  
 `./install.sh`  
-(If you can't run install, just copy `/prepare/base/Missions` to `/Missions`)
+(If you can't run install, just copy `/prepare/base/Missions` to `/Missions` if it's not there already)
 
 1. Copy `/env.sample` to `.env`  
 `cp env.sample .env`
@@ -61,7 +61,7 @@ Agree to any possible postgis installions in the gui or run `CREATE EXTENSION po
    ```
 
 1. Within `/` run `npm start`  
-   * If you get errors, try running `npm start` again and make sure you ran `CREATE EXTENSION postgis;` on your database.
+   * If you get errors, try running `npm start` a few times. Also make sure you ran `CREATE EXTENSION postgis;` on your database.
 
 1. Setup the admin account:  
    * In your browser, navigate to `http://localhost:8888/configure`
