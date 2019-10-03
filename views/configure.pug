@@ -1,0 +1,300 @@
+doctype html
+head
+  title MMGIS Configure
+  link(rel='shortcut icon' href='resources/logo.png')
+  link(type='text/css' rel='stylesheet' href='public/fonts/materialdesignicons/css/materialdesignicons.min.css')
+  // Import materialize.css
+  link(type='text/css' rel='stylesheet' href='config/css/jquery-ui.css')
+  link(type='text/css' rel='stylesheet' href='config/css/materialize.min.css' media='screen,projection')
+  link(type='text/css' rel='stylesheet' href='config/js/codemirror/codemirror-5.19.0/lib/codemirror.css')
+  link(type='text/css' rel='stylesheet' href='config/js/codemirror/codemirror-5.19.0/theme/elegant.css')
+  link(type='text/css' rel='stylesheet' href='config/css/config.css')
+  // Let browser know website is optimized for mobile
+  meta(name='viewport' content='width=device-width, initial-scale=1.0')
+// Import jQuery before materialize.js
+script(type='text/javascript' src='config/js/jquery.min.js')
+script(type='text/javascript' src='config/js/jquery-ui.js')
+script(type='text/javascript' src='config/js/materialize.min.js')
+script(type='text/javascript' src='config/js/codemirror/codemirror-5.19.0/lib/codemirror.js')
+script(type='text/javascript' src='config/js/codemirror/codemirror-5.19.0/mode/javascript/javascript.js')
+script(type='text/javascript' src='config/js/codemirror/codemirror-5.19.0/addon/edit/matchbrackets.js')
+script(type='text/javascript' src='config/js/codemirror/codemirror-5.19.0/addon/display/autorefresh.js')
+script.
+    var mmgisglobal = {};
+    mmgisglobal.SERVER = 'node';
+    mmgisglobal.AUTH = '#{AUTH}';
+    mmgisglobal.SHOW_AUTH_TIMEOUT = true;
+    mmgisglobal.user = '#{user}';
+    mmgisglobal.NODE_ENV = '#{NODE_ENV}';
+    mmgisglobal.CONFIGCONFIG_PATH = '#{CONFIGCONFIG_PATH}';
+script(type='text/javascript' src='config/js/calls.js')
+script(type='text/javascript' src='config/js/config.js')
+script(type='text/javascript' src='scripts/pre/RefreshAuth.js')
+
+#leftPanel
+  #tbtitle
+      //i.logout#config_logout.mdi.mdi-logout.mdi-24px
+      a.logout#tbmmgis
+        img(src='../resources/mmgis.png' height='24px' style='position: relative; top: 13px;')
+      span#tbconfig  Configuration
+  a#new_mission.btn.waves-effect.waves-light.col.s12.truncate(style='background-color: rgba(255,255,255,0.12);') New Mission
+  ul#missions.mmgisScrollbar
+
+#logout
+  i.logout#config_logout.mdi.mdi-logout.mdi-24px
+
+#topbar
+  // <a href="../"><img id="c_logo" src="resources/Images/TheSnagwazzleM1_WSmall.png" alt="MMWebGIS Configuration" onclick=""></a>
+  #tbtitle
+    i.logout#config_logout.mdi.mdi-logout.mdi-24px
+    a.logout#tbmmgis
+      img(src='../resources/mmgis.png' height='24px' style='position: relative; top: 4px;')
+    span#tbconfig  Configuration
+  #divline
+#mission_bar.row.z-depth-1
+  .col.s2(style='padding: 0;')
+    a#new_mission.btn.waves-effect.waves-light.col.s12.truncate(style='background-color: rgba(255,255,255,0.12);') New Mission
+  .col.s10(style='padding: 0;')
+    ul#missions.tabs.mmgisScrollbar
+.container
+  #home_cont(style='display: none') MMGIS Configuration
+  #new_mission_cont(style='display: none; margin-top: 25vh;')
+    .row
+      .col.s12(style='padding: 0;')
+        ul.tabs(style='font-weight: bold; font-size: 18px;')
+          li.tab.col.s12
+            a.active(href='#tab_new_mission') Make a New Mission
+      #tab_new_mission.col.s12
+        ul#tab_new_mission_rows
+          li.row(style='margin-bottom: 10px;')
+            #nmmissionEl.input-field.col.s2.push-s5(style='margin-top: 0px;')
+              input#nmmission.validate(type='text' value='' style='margin-bottom: 10px;')
+              label(for='nmmission') Mission Name
+          li
+    .row
+      a#make_mission.btn.waves-effect.waves-light.light-green.darken-3.col.s2.push-s5(style='border-radius: 0px;')
+        | Make Mission
+        i.mdi.mdi-rocket.mdi-24px(style='float: right; margin-top: 1px;')
+  #existing_mission_cont(style='display: none; margin-top: 48px;')
+    div(style='height: 48px; width: 100%; background: white; position: fixed; top: 0px; z-index: 20;')
+    .row
+      .col.s6.push-s3(style='padding: 0; position: fixed; top: 0px; margin-left: 110px; z-index: 21;')
+        ul.tabs.mmgisScrollbar
+          li.tab.col.s1
+            a.active(href='#tab_overall') Overall
+          li.tab.col.s1
+            a(href='#tab_initial') Initial
+          li.tab.col.s1
+            a(href='#tab_layers') Layers
+          li.tab.col.s1
+            a(href='#tab_tools') Tools
+          li.tab.col.s1
+            a(href='#tab_projection') Projection
+          li.tab.col.s1
+            a(href='#tab_look') Look
+          li.tab.col.s1
+            a(href='#tab_panels') Panels
+      #tab_overall.col.s12
+        ul#tab_overall_rows
+          li.row
+            #overall_mission_name.col.s12
+          ul#tab_overall_versions.mmgisScrollbar(style='margin: 0px 16.7%; max-height: 50vh; overflow-y: auto;')
+          li.row
+          a#clone_mission.modal-trigger.btn.waves-effect.waves-light.purple.darken-3.col.s2.push-s2(href='#clone_modal' style='border-radius: 0px; padding: 1px 0.5rem 0 0.5rem; font-size: 12px; line-height: 35px;')
+            | Clone Mission
+            i.mdi.mdi-content-duplicate.mdi-18px(style='float: left; margin-top: -1px;')
+          a#upload_config.btn.waves-effect.waves-light.blue.darken-3.col.s4.push-s2(style='border-radius: 0px; padding: 1px 0.5rem 0 0.5rem; font-size: 12px; line-height: 35px;')
+            | Upload a config.json
+            i.mdi.mdi-upload.mdi-18px(style='float: right; margin-top: -1px;')
+            input#upload_config_input(type='file' accept='.json' style='position: absolute; left: 0; height: 36px; margin: 0; width: 100%; opacity: 0;')
+          a#delete_mission.modal-trigger.btn.waves-effect.waves-light.red.darken-3.col.s2.push-s2(href='#delete_modal' style='border-radius: 0px; padding: 1px 0.5rem 0 0.5rem; font-size: 12px; line-height: 35px;')
+            | Delete Mission
+            i.mdi.mdi-delete.mdi-18px(style='float: right; margin-top: -1px;')
+      #tab_initial.col.s12
+        ul#tab_initial_rows
+          li.row
+            #imissionEl.input-field.col.s4.push-s1
+              input#imission.validate(type='text' value='' disabled)
+              label(for='imission') Mission Name and Folder
+            #isiteEl.input-field.col.s3.push-s1
+              input#isite.validate(type='text' value='')
+              label(for='isite') Initial Site
+            #idbEl.input-field.col.s2.push-s1
+              input#idb.filled-in.checkbox-color(type='checkbox')
+              label(for='idb' style='color: black;') Master DB
+          li
+          li.row
+            #ilatEl.input-field.col.s3.push-s1
+              input#ilat.validate(type='text' value='')
+              label(for='ilat') Initial Latitude
+            #ilonEl.input-field.col.s3.push-s1
+              input#ilon.validate(type='text' value='')
+              label(for='ilon') Initial Longitude
+            #izoomEl.input-field.col.s4.push-s1
+              input#izoom.validate(type='text' value='')
+              label(for='izoom') Initial Zoom Level
+          li.row
+            #iradMajEl.input-field.col.s3.push-s3
+              input#iradMaj.validate(type='text' value='')
+              label(for='iradMaj') Planet Radius Major (meters)
+            #iradMinEl.input-field.col.s3.push-s3
+              input#iradMin.validate(type='text' value='')
+              label(for='iradMin') Planet Radius Minor (meters)
+      #tab_projection.col.s12(style='padding-bottom: 15px;')
+        ul#tab_projection_rows
+          li.row
+            a#projection_toggleCustom.btn.waves-effect.waves-light.red.darken-3.col.s12(style='border-radius: 0px; margin-top: 25px;')
+              i.mdi.mdi-close.mdi-24px(style='float: left;')
+              span Using DEFAULT Projection
+          li.row
+            #projection_epsgEl.input-field.col.s2.push-s1
+              input#projection_epsg.validate(type='text' value='')
+              label(for='projection_epsg') EPSG
+            #projection_projEl.input-field.col.s6.push-s1
+              input#projection_proj.validate(type='text' value='')
+              label(for='projection_proj') Proj4 v2.3.14 String
+            #projection_globeProjEl.input-field.col.s2.push-s1
+              select#projection_globeProj
+                option(value='webmercator' selected='') Web Mercator
+                option(value='equidistantcylindrical') Equi-Cylindrical
+                option(value='lambertazimuthalequalarea') Lambert Azimuthal
+                option(value='stereographic(N)') North Pole Sterographic
+              label(for='projection_globeProj') Globe Projection
+          li.row
+            #projection_xmlPathEl.input-field.col.s8.push-s1
+              input#projection_xmlPath.validate(type='text' value='')
+              label(for='projection_xmlPath') Path to tilemapresource.xml (from MMGIS home directory)
+            a#projection_populateFromXml.btn.waves-effect.waves-light.light-green.darken-3.col.s2.push-s1(style='border-radius: 0px; margin-top: 25px;') Populate from XML
+          .col.s10.push-s1(style='background: #f8f8f8; border: 5px solid #e0e0e0; color: #e0e0e0;')
+            li.row(style='margin-top: 15px;')
+              #projection_boundsMinXEl.input-field.col.s3
+                input#projection_boundsMinX.validate(type='text' value='')
+                label(for='projection_boundsMinX') Bounds MinX
+              #projection_boundsMinYEl.input-field.col.s3
+                input#projection_boundsMinY.validate(type='text' value='')
+                label(for='projection_boundsMinY') Bounds MinY
+              #projection_boundsMaxXEl.input-field.col.s3
+                input#projection_boundsMaxX.validate(type='text' value='')
+                label(for='projection_boundsMaxX') Bounds MaxX
+              #projection_boundsMaxYEl.input-field.col.s3
+                input#projection_boundsMaxY.validate(type='text' value='')
+                label(for='projection_boundsMaxY') Bounds MaxY
+            li.row
+              #projection_originXEl.input-field.col.s4.push-s2
+                input#projection_originX.validate(type='text' value='')
+                label(for='projection_originX') Origin X
+              #projection_originYEl.input-field.col.s4.push-s2
+                input#projection_originY.validate(type='text' value='')
+                label(for='projection_originY') Origin Y
+            li.row
+              #projection_resZEl.input-field.col.s2.push-s3
+                input#projection_resZ.validate(type='text' value='')
+                label(for='projection_resZ') At zoom level
+              #projection_resEl.input-field.col.s4.push-s3
+                input#projection_res.validate(type='text' value='')
+                label(for='projection_res') the units per pixel are
+      #tab_look.col.s12
+        ul#tab_look_rows
+          li.row
+            #look_pagenameEl.input-field.col.s2.push-s3
+              input#look_pagename.validate(type='text' value='')
+              label(for='look_pagename') Page Name
+            #look_zoomcontrolEl.input-field.col.s2.push-s3
+              input#look_zoomcontrol.filled-in.checkbox-color(type='checkbox')
+              label(for='look_zoomcontrol' style='color: black;') Zoom Control
+            #look_graticuleEl.input-field.col.s2.push-s3
+              input#look_graticule.filled-in.checkbox-color(type='checkbox')
+              label(for='look_graticule' style='color: black;') Graticule
+          li.row
+            #look_bodycolorEl.input-field.col.s2.push-s2
+              input#look_bodycolor.validate(type='text' value='')
+              label(for='look_bodycolor') Body Color
+            #look_topbarcolorEl.input-field.col.s2.push-s2
+              input#look_topbarcolor.validate(type='text' value='')
+              label(for='look_topbarcolor') TopBar Color
+            #look_toolbarcolorEl.input-field.col.s2.push-s2
+              input#look_toolbarcolor.validate(type='text' value='')
+              label(for='look_toolbarcolor') ToolBar Color
+            #look_mapcolorEl.input-field.col.s2.push-s2
+              input#look_mapcolor.validate(type='text' value='')
+              label(for='look_mapcolor') Map Color
+          li.row
+            #look_swapEl.input-field.col.s2.push-s3
+              input#look_swap.filled-in.checkbox-color(type='checkbox')
+              label(for='look_swap' style='color: black;') Swap
+            #look_copylinkEl.input-field.col.s2.push-s3
+              input#look_copylink.filled-in.checkbox-color(type='checkbox')
+              label(for='look_copylink' style='color: black;') Copy link
+            #look_screenshotEl.input-field.col.s2.push-s3
+              input#look_screenshot.filled-in.checkbox-color(type='checkbox')
+              label(for='look_screenshot' style='color: black;') Screenshot
+          li.row
+            #look_fullscreenEl.input-field.col.s2.push-s4
+              input#look_fullscreen.filled-in.checkbox-color(type='checkbox')
+              label(for='look_fullscreen' style='color: black;') Fullscreen
+            #look_helpEl.input-field.col.s2.push-s4
+              input#look_help.filled-in.checkbox-color(type='checkbox')
+              label(for='look_help' style='color: black;') Help
+      #tab_panels.col.s8.push-s2
+        p
+          input#panels_viewer.filled-in.checkbox-color(type='checkbox')
+          label(for='panels_viewer' style='color: black;') Viewer
+        p
+          input#panels_map.filled-in.checkbox-color(disabled='' type='checkbox')
+          label(for='panels_map' style='color: black;') Map (mandatory)
+        p
+          input#panels_globe.filled-in.checkbox-color(type='checkbox')
+          label(for='panels_globe' style='color: black;') Globe
+      #tab_tools.col.s12
+        ul#tab_tools_rows
+      #tab_layers.col.s12
+        ul#tab_layers_rows(style='margin-top: 20px;')
+        #add_new_layer.row
+          a.btn.waves-effect.col.s2.push-s9(style='color: black; background: white;')
+            | Add Layer
+            i.mdi.mdi-plus.mdi-24px(style='float: right; margin-top: 1px;')
+    #modal_divs
+    #clone_modal.modal(style='width: 40%;')
+      .modal-content(style='padding-bottom: 0;')
+        h4(style='color: #000; text-align: center; font-weight: bold;')
+        .row(style='margin-bottom: 0px;')
+          #cloneNameEl.input-field.col.s8.push-s2
+            input#cloneName.validate(type='text' value='')
+            label(for='cloneName') Clone name
+        .row(style='margin: 0px 0 45px 0px;')
+          #clonePasswordEl.input-field.col.s8.push-s2
+            input#clonePaths.filled-in.checkbox-color(type='checkbox')
+            label(for='clonePaths' style='color: black;') Adjust new paths so that they still point to the same data (../{mission}) 
+      .modal-footer(style='background-color: #1565c0;')
+        a#clone_mission_cancel.modal-action.modal-close.btn-flat.waves-effect.waves-light.col.s12.left(style='border-radius: 0px; color: white;') Cancel
+        a#clone_mission_clone.modal-action.modal-close.btn-flat.waves-effect.waves-light.col.s12(style='border-radius: 0px; color: white;')
+          | Clone Mission
+          i.mdi.mdi-content-duplicate.mdi-24px(style='float: right; margin-top: 1px; padding-left: 5px;')
+    #delete_modal.modal(style='width: 40%;')
+      .modal-content(style='padding-bottom: 0;')
+        h4(style='color: #000; text-align: center; font-weight: bold;')
+        .row(style='text-align: center;')
+          | Are you sure? None of the mission's data files will be deleted.
+        .row
+          #deleteMissionNameEl.input-field.col.s8.push-s2
+            input#deleteMissionName.validate(type='text' value='')
+            label(for='deleteMissionName') Confirm mission name
+      .modal-footer(style='background-color: #c62828;')
+        a#delete_mission_cancel.modal-action.modal-close.btn-flat.waves-effect.waves-light.col.s12.left(style='border-radius: 0px; color: white;') Cancel
+        a#delete_mission_delete.modal-action.modal-close.btn-flat.waves-effect.waves-light.col.s12(style='border-radius: 0px; color: white;')
+          | Delete Mission
+          i.mdi.mdi-delete.mdi-24px(style='float: right; margin-top: 1px; padding-left: 5px;')
+    #info_modal.modal
+      .modal-content(style='padding-bottom: 0;')
+        h4 Modal Header
+        #info_info(style='margin-bottom: 0;')
+            #info_title
+            hr
+            #info_content
+              pre#info_example
+      .modal-footer
+        a.modal-action.modal-close.waves-effect.waves-green.btn-flat(href='#!') Done
+    .row
+      a#save_changes.btn.waves-effect.waves-light.light-green.darken-3.col.s1.push-s9(style='text-align: left; padding: 0; padding-left: 10px; line-height: 37px; width: 220px; border-radius: 0px; position: fixed; bottom: 10px; right: 10px; z-index: 21; background: #1565C0 !important;')
+        | Save Changes
+        i.mdi.mdi-content-save.mdi-24px(style='position: absolute; right: 7px; margin-top: -2px;')

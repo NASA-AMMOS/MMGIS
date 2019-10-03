@@ -1,0 +1,69 @@
+#infoTool {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-flow: column;
+}
+
+#infoToolTitle {
+    height: 33px;
+    line-height: 30px;
+    font-size: 16px;
+    color: var(--color-mmgis);
+}
+
+#infoToolContents {
+    width: 100%;
+    flex: 1;
+    overflow-y: auto;
+    padding-left: 10px;
+    padding-top: 1px;
+}
+
+#infoTool .collapsed > ul {
+    display: none;
+}
+
+#infoTool .infoToolHeader {
+    font-weight: bold;
+    padding: 2px 0px;
+    display: flex;
+    justify-content: space-between;
+}
+#infoTool .infoToolHeader > div:last-child {
+    padding: 0px 5px;
+    cursor: pointer;
+    color: #aaa;
+    transition: color 0.1s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+#infoTool .infoToolHeader > div:last-child:hover {
+    color: white;
+}
+
+#infoTool ul {
+    list-style-type: none;
+    padding: 0px 7px 0px 0px;
+    margin: 0px 0px 0px 0px;
+}
+
+#infoTool ul li {
+    display: inline-block;
+    width: 100%;
+    line-height: 14px;
+}
+#infoTool ul li:last-child {
+    margin-bottom: 8px;
+}
+#infoTool ul li > div:first-child {
+    clear: both;
+    float: left;
+    color: #aaa;
+}
+#infoTool ul li > div:last-child {
+    float: right;
+    word-break: break-all;
+    text-align: right;
+}
+#infoTool ul li.infoToolSubheader > div:first-child {
+    color: #c8c8c8;
+}
