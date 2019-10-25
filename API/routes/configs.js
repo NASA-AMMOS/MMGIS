@@ -342,7 +342,7 @@ router.post('/destroy', function(req, res, next) {
       stdout,
       stderr
     ) {
-      res.send( { s: stdout, d: process.cwd() }  );
+      res.send( stdout );
     });
   })
   .catch( err => {
