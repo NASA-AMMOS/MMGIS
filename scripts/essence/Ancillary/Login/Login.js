@@ -399,7 +399,7 @@ define([
     }
 
     function loginSuccess(data, ignoreError) {
-        if (data.status == 'success') {
+        if (data && data.status == 'success') {
             document.cookie =
                 'MMGISUser=' +
                 JSON.stringify({

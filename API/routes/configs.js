@@ -4,14 +4,13 @@
  **********************************************************/
 const express   = require('express');
 const router    = express.Router();
-const crypto    = require('crypto');
-const bcrypt    = require('bcryptjs');
-const buf       = crypto.randomBytes(128);
 const execFile = require("child_process").execFile;
 
 const logger    = require('../logger');
 const Config      = require('../models/config');
 const config_template = require('../templates/config_template');
+
+const fs = require('fs');
 
 function get(req, res, next, cb ) {
   Config.findAll( {
@@ -88,6 +87,13 @@ function add(req, res, next, cb) {
     configTemplate = req.body.config || configTemplate;
     configTemplate.msv.mission = req.body.mission;
 
+    if( req.body.mission !== req.body.mission.replace(/[`~!@#$%^&*()|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '') &&
+      req.body.mission.length === 0 &&
+      !isNaN(req.body.mission[0]) ) {
+        res.send( { status: 'failure', message: 'Bad mission name.' } );
+        return;
+    }
+
     let newConfig = {
       mission: req.body.mission,
       config: configTemplate,
@@ -105,6 +111,19 @@ function add(req, res, next, cb) {
       if( !mission ) {
         Config.create(newConfig)
           .then(created => {
+            let dir = './Missions/' + created.mission
+            if (!fs.existsSync(dir)){
+                fs.mkdirSync(dir);
+                let dir2 = dir + '/Layers'
+                if (!fs.existsSync(dir2)){
+                  fs.mkdirSync(dir2);
+                }
+                let dir3 = dir + '/Data'
+                if (!fs.existsSync(dir3)){
+                  fs.mkdirSync(dir3);
+                }
+            }
+
             if( cb )
               cb( { status: 'success', mission: created.mission, version: created.version } );
             else
@@ -323,7 +342,7 @@ router.post('/destroy', function(req, res, next) {
       stdout,
       stderr
     ) {
-      res.send( stdout );
+      res.send( { s: stdout, d: process.cwd() }  );
     });
   })
   .catch( err => {
