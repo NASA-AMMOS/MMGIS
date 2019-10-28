@@ -50,8 +50,8 @@ Agree to any possible postgis installions in the gui or run `CREATE EXTENSION po
 `./install.sh`  
 (If you can't run install, just copy `/prepare/base/Missions` to `/Missions` if it's not there already)
 
-1. Copy `/env.sample` to `.env`  
-`cp env.sample .env`
+1. Copy `/sample.env` to `.env`  
+`cp sample.env .env`
 
 1. Open `.env` and update the following:
    ```
