@@ -519,7 +519,7 @@
     background: var(--color-a);
 }
 .drawToolMasterReview {
-    background: #2f00bd;
+    background: #258fd5;
     color: #f3f3f3;
     height: 16px;
     margin: 2px 0px 4px 0px;
@@ -531,7 +531,7 @@
     transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
 }
 .drawToolMasterReview:hover {
-    background: #22008a;
+    background: #1f74ad;
 }
 
 #drawToolDrawFilesListMaster {
@@ -1101,6 +1101,22 @@
     resize: vertical;
     box-sizing: border-box;
 }
+.drawToolContextMenuPropertiesReassignUUID {
+    height: 21px;
+    resize: vertical;
+    box-sizing: border-box;
+}
+.drawToolContextMenuPropertiesReassignUUID > div:first-child {
+    font-size: 11px;
+    line-height: 37px;
+}
+.drawToolContextMenuPropertiesReassignUUID > div:last-child {
+    font-size: 11px;
+    padding: 3px;
+    margin: 12px 0px;
+    line-height: 8px;
+    background: transparent;
+}
 
 .drawToolFileInfo {
     width: 145px;
@@ -1606,7 +1622,7 @@
     top: 0px;
     color: #ededed;
     background: var(--color-a);
-    padding-bottom: 2px;
+    padding: 4px;
 }
 #drawToolReviewTopbar {
     display: flex;
@@ -1623,8 +1639,8 @@
     color: white;
 }
 #drawToolReviewContent {
-    max-height: 125px;
-    margin-top: 5px;
+    max-height: 50vh;
+    margin-top: 0px;
     overflow-y: auto;
 }
 #drawToolReviewContent ul {
@@ -1637,35 +1653,56 @@
     color: #ededed;
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
     padding: 2px 0px;
+    line-height: 23px;
 }
 #drawToolReviewContent ul li > div {
     padding: 0px 4px;
-    border-radius: 3px;
-    width: 60px;
+    width: 70px;
     text-align: center;
     color: #ededed;
+    line-height: 19px;
 }
 #drawToolReviewContent ul li > div.error {
-    background: #ff2626;
+    border: 2px solid #bd0000;
 }
 #drawToolReviewContent ul li > div.warning {
-    background: #ff8a24;
+    border: 2px solid #bd8300;
+}
+#drawToolReviewContent ul li > div.added {
+    border: 2px solid #00bd0e;
+}
+#drawToolReviewContent ul li > div.removed {
+    border: 2px solid #bd8300;
+}
+#drawToolReviewContent ul li > div.changed {
+    border: 2px solid #009ebd;
 }
 #drawToolReviewContent ul li > span {
     padding: 0px 4px;
     cursor: pointer;
     color: #73f2bd;
+    line-height: 23px;
 }
 #drawToolReviewContent ul li > span:hover {
     color: #ebf273;
 }
+.drawToolReviewTitle {
+    justify-content: center;
+    margin: 0px 0px 4px 0px;
+    background: black;
+}
+#drawToolReviewMessage {
+    justify-content: center;
+    font-size: 11px;
+    color: #ccc !important;
+}
+
 #drawToolReviewPublish {
     text-align: center;
     width: 100%;
     color: #ededed !important;
     margin: 2px 0px 5px 0px;
-    border-radius: 4px;
-    background: #2f00bd;
+    background: #258fd5;
     cursor: pointer;
     transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
 }
@@ -1678,7 +1715,7 @@
     float: right;
 }
 #drawToolReviewPublish:hover {
-    background: #22008a;
+    background: #1f74ad;
 }
 #drawToolReviewPublish.force:hover {
     background: red;
@@ -1697,18 +1734,17 @@
 }
 #drawToolReviewRefresh {
     padding: 0px 2px 0px 4px;
-    border-radius: 3px;
     height: 16px;
     display: flex;
     margin: 5px 6px;
     font-size: 13px;
     color: #ededed;
-    background: #2f00bd;
+    background: #258fd5;
     cursor: pointer;
     transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
 }
 #drawToolReviewRefresh:hover {
-    background: #22008a;
+    background: #1f74ad;
 }
 #drawToolReviewRefresh > div {
     line-height: 14px;
@@ -2024,4 +2060,35 @@
 .drawToolContextMenuHeadedCont div.fadeDisabled {
     opacity: 0.5;
     pointer-events: none;
+}
+
+/*MTn*/
+.drawToolContextMenuMTTTTSave .dropdown_2 {
+    margin-top: 4px;
+    margin-bottom: -15px;
+}
+#drawToolContextMenuMTTTTGenerating {
+    width: calc(100% - 0px);
+    height: 3px;
+    position: absolute;
+    top: 33px;
+    left: 0px;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.1s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+#drawToolContextMenuMTTTTGenerating > div {
+    width: 30%;
+    height: 100%;
+    background: var(--color-mmgis);
+    animation: drawToolLoading1 1s ease-in-out infinite;
+}
+#drawToolContextMenuMTTTTImpassable {
+    opacity: 0;
+    pointer-events: none;
+    background: crimson;
+    color: #e1e1e1;
+    text-align: center;
+    padding: 0px 20px;
+    transition: opacity 0.1s cubic-bezier(0.47, 0, 0.745, 0.715);
 }

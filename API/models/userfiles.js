@@ -135,7 +135,8 @@ const makeMasterFiles = ( intents ) => {
             // userResult is the user instance
         
             if (created) {
-                console.log( 'Created a new Lead file!' ) 
+                // created will be true if a new user was created
+                console.log( 'Created Lead ' + intent + ' file!') 
             }
             makeMasterFile( i + 1, Table );
             return null;

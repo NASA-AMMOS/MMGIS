@@ -42,7 +42,7 @@ define([
 
     var LayersTool = {
         height: 0,
-        width: 224,
+        width: 250,
         MMGISInterface: null,
         make: function() {
             this.MMGISInterface = new interfaceWithMMGIS()
@@ -128,15 +128,16 @@ define([
                 var settings
                 switch (node[i].type) {
                     case 'vector':
+                    case 'vectortile':
                         currentOpacity = L_.getLayerOpacity(node[i].name)
-                        if (currentOpacity == null) currentOpacity = 1
+                        if (currentOpacity == null) currentOpacity = L_.opacityArray[node[i].name] 
                         // prettier-ignore
                         settings = [
                                 '<ul>',
                                     '<li>',
                                         '<div>',
                                             '<div>Opacity</div>',
-                                                '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="1">',
+                                                '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.opacityArray[node[i].name] + '">',
                                             '</div>',
                                         '</div>',
                                     '</li>',
@@ -145,7 +146,7 @@ define([
                         break
                     case 'tile':
                         currentOpacity = L_.getLayerOpacity(node[i].name)
-                        if (currentOpacity == null) currentOpacity = 1
+                        if (currentOpacity == null) currentOpacity = L_.opacityArray[node[i].name] 
 
                         let currentBrightness = 1
                         let currentContrast = 1
@@ -178,7 +179,7 @@ define([
                                 '<li>',
                                     '<div>',
                                         '<div>Opacity</div>',
-                                        '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="1">',
+                                        '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.opacityArray[node[i].name] + '">',
                                     '</div>',
                                 '</li>',
                                 '<li>',
@@ -246,7 +247,7 @@ define([
                                     '<li>',
                                         '<div>',
                                             '<div>Opacity</div>',
-                                            '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="1" default="1">',
+                                            '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="1" default="' + L_.opacityArray[node[i].name] + '">',
                                         '</div>',
                                     '</li>',
                                     '<li>',

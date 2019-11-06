@@ -50,8 +50,15 @@ define([
             $('#drawToolHistorySequenceList ul *').remove()
 
             var file = DrawTool.getFileObjectWithId(DrawTool.currentFileId)
-            if (file == null) return
-            $('#drawToolHistoryFile').text(file.file_name)
+            if (file == null) {
+                $('#drawToolHistoryFile')
+                    .css({ background: 'red' })
+                    .text('No File Selected!')
+                return
+            }
+            $('#drawToolHistoryFile')
+                .css({ background: 'var(--color-b)' })
+                .text(file.file_name)
 
             DrawTool.getHistoryFile(
                 file.id,

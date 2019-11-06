@@ -495,10 +495,7 @@ define([
                                         geojson._metadata[0].intent = 'all'
                                     }
 
-                                    console.log(DrawTool.intentNameMapping)
-                                    console.log(geojson)
-                                    console.log(geojson.features)
-
+                                    DrawTool.expandPointprops(geojson)
                                     F_.downloadObject(
                                         geojson,
                                         filename,
@@ -849,7 +846,8 @@ define([
             time,
             populateShapesAfter,
             selectedFeatureIds,
-            asPublished
+            asPublished,
+            cb
         ) {
             let parsedId =
                 typeof parseInt(id) === 'number' && !Array.isArray(id)
@@ -1075,6 +1073,10 @@ define([
                         if (indexOf != -1) {
                             DrawTool.labelsOn.splice(indexOf, 1)
                             DrawTool.toggleLabels(index + '')
+                        }
+
+                        if( typeof cb === 'function' ) {
+                            cb()
                         }
                     }
                 })(parsedId, selectedFeatureIds)

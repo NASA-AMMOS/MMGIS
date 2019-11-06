@@ -15,9 +15,9 @@
 #layersTool #searchLayers {
     display: flex;
     height: 31px;
-    justify-content: space-between;
     line-height: 30px;
 }
+
 #layersTool #filterLayers {
     display: flex;
     height: 30px;
@@ -60,6 +60,10 @@
     border: 1px solid rgba(119, 15, 189, 0.75);
     background: rgba(119, 15, 189, 0.5);
 }
+#layersTool #filterLayers div.vectortile.on {
+    border: 1px solid #bd0f8e;
+    background: #bd0f8e;
+}
 #layersTool #filterLayers div.data.on {
     border: 1px solid rgba(189, 15, 50, 0.75);
     background: rgba(189, 15, 50, 0.5);
@@ -74,14 +78,14 @@
 }
 #layersTool #searchLayers input {
     background: #111;
-    width: 164px;
+    width: 187px;
     color: #ccc;
     padding-left: 12px;
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 #layersTool #searchLayers .mdi-magnify {
     position: absolute;
-    right: 67px;
+    right: 66px;
     color: #999;
     line-height: 30px;
     pointer-events: none;
@@ -96,6 +100,14 @@
 }
 #layersTool #searchLayers > div:hover {
     color: #fff;
+}
+#layersTool #searchLayers > div#expand {
+    position: absolute;
+    right: 30px;
+}
+#layersTool #searchLayers > div#collapse {
+    position: absolute;
+    right: 0;
 }
 
 #layersTool #layersToolList {
@@ -147,6 +159,9 @@
 }
 #layersTool .settings.tile {
     border-color: rgb(119, 15, 189);
+}
+#layersTool .settings.vectortile {
+    border-color: #bd0f8e;
 }
 #layersTool .settings.data {
     border-color: rgb(189, 15, 50);
@@ -258,6 +273,9 @@
 }
 .layersToolColor.tile {
     background: rgb(119, 15, 189);
+}
+.layersToolColor.vectortile {
+    background: #bd0f8e;
 }
 .layersToolColor.data {
     background: rgb(189, 15, 50);

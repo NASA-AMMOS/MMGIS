@@ -473,6 +473,15 @@ define(['turf'], function(turf) {
             }
             return JSON.parse(JSON.stringify(result).replace(/\\r/g, ''))
         },
+        latlonzoomToTileCoords: function( lat, lon, zoom ) {
+            var xtile = parseInt(Math.floor( (lon + 180) / 360 * (1<<zoom) ));
+            var ytile = parseInt(Math.floor( (1 - Math.log(Math.tan(lat * (Math.PI/180)) + 1 / Math.cos(lat * (Math.PI/180))) / Math.PI) / 2 * (1<<zoom) ));
+            return {
+                x: xtile,
+                y: ytile,
+                z: zoom
+            }
+        },
         isEmpty: function(obj) {
             if (obj === undefined) return true
             for (var prop in obj) {
@@ -1164,6 +1173,23 @@ define(['turf'], function(turf) {
         doBoundingBoxesIntersect(a, b) {
             return a[1] <= b[3] && a[3] >= b[1] && a[0] <= b[2] && a[2] >= b[0]
         },
+        pointsInPoint(point, layers) {
+            var points = []
+
+            var l = layers._layers
+
+            if (l == null) return points
+
+            for (var i in l) {
+                if (
+                    l[i].feature.geometry.coordinates[0] == point[0] &&
+                    l[i].feature.geometry.coordinates[1] == point[1]
+                )
+                    points.push(l[i].feature)
+            }
+
+            return points
+        },
         validTextColour(stringToTest) {
             //Alter the following conditions according to your need.
             if (stringToTest === '') {
@@ -1269,7 +1295,8 @@ define(['turf'], function(turf) {
             window.location = window.location.href.split('?')[0]
         },
         toHostForceLanding() {
-            window.location = window.location.href.split('?')[0] + '?forcelanding=true' 
+            window.location =
+                window.location.href.split('?')[0] + '?forcelanding=true'
         },
         prettifyName(name) {
             if (name === '_') return name

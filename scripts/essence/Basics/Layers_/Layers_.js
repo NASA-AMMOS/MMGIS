@@ -170,6 +170,7 @@ define(['Formulae_'], function(F_) {
                 } else {
                     if (L_.layersGroup[s.name]) {
                         L_.Map_.map.addLayer(L_.layersGroup[s.name])
+                        L_.layersGroup[s.name].setZIndex(L_.layersOrdered.length + 1 - L_.layersOrdered.indexOf(s.name))
                     }
                     if (s.type == 'tile') {
                         var layerUrl = s.url
@@ -236,6 +237,7 @@ define(['Formulae_'], function(F_) {
                                     L_.Map_.map.addLayer(
                                         L_.layersGroup[r[i].name]
                                     )
+                                    L_.layersGroup[r[i].name].setZIndex(L_.layersOrdered.length + 1 - L_.layersOrdered.indexOf(r[i].name))
                                 }
                                 if (r[i].type == 'tile') {
                                     var layerUrl = r[i].url
@@ -276,7 +278,7 @@ define(['Formulae_'], function(F_) {
                 else return 0
             }
             if (!on) {
-                L_.Map_.orderedBringToFront()
+                //L_.Map_.orderedBringToFront()
             }
         },
         disableAllBut: function(name) {
@@ -367,6 +369,7 @@ define(['Formulae_'], function(F_) {
         },
         getLayerOpacity: function(name) {
             var l = L_.layersGroup[name]
+
             var opacity
             try {
                 opacity = l.options.style.opacity
@@ -612,7 +615,8 @@ define(['Formulae_'], function(F_) {
                     d[i].visibility == undefined ? true : d[i].visibility
 
                 //Create parsed opacity array
-                L_.opacityArray[d[i].name] = 1
+                let io = d[i].initialOpacity;
+                L_.opacityArray[d[i].name] = io == null || io < 0 || io > 1 ? 1 : io
 
                 //Set visibility if we have all the on layers listed in the url
                 if (urlOnLayers) {

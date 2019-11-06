@@ -72,6 +72,7 @@ define([
                             .style('width', '100%')
                             .style('margin-top', '4px')
                             .style('margin-bottom', '4px')
+                            .style('display', 'inline-block')
                         first = false
                         c.append('div')
                             .attr('class', 'row')
@@ -81,73 +82,83 @@ define([
                             .style('font-weight', 'bold')
                             .html(l)
                         for (d in L_.layersLegendsData[l]) {
-                            var r = c
-                                .append('div')
-                                .attr('class', 'row')
-                                .style('margin-left', '10px')
-                            var svg = r
-                                .append('svg')
-                                .attr('width', '19px')
-                                .attr('height', '19px')
-                                .style('float', 'left')
-                                .style('position', 'relative')
-                            switch (L_.layersLegendsData[l][d].shape) {
-                                case 'circle':
-                                    svg.append('circle')
-                                        .attr('class', l + '_legendshape')
-                                        .attr('r', 7)
-                                        .attr('cx', 8)
-                                        .attr('cy', 8)
-                                        .attr(
-                                            'fill',
-                                            L_.layersLegendsData[l][d].color
-                                        )
-                                        .attr('opacity', L_.opacityArray[l])
-                                        .attr(
-                                            'stroke',
-                                            L_.layersLegendsData[l][d]
-                                                .strokecolor
-                                        )
-                                    break
-                                case 'square':
-                                    svg.append('rect')
-                                        .attr('class', l + '_legendshape')
-                                        .attr('width', 18)
-                                        .attr('height', 18)
-                                        .attr(
-                                            'fill',
-                                            L_.layersLegendsData[l][d].color
-                                        )
-                                        .attr('opacity', L_.opacityArray[l])
-                                        .attr(
-                                            'stroke',
-                                            L_.layersLegendsData[l][d]
-                                                .strokecolor
-                                        )
-                                    break
-                                case 'rect':
-                                    svg.append('rect')
-                                        .attr('class', l + '_legendshape')
-                                        .attr('width', 18)
-                                        .attr('height', 8)
-                                        .attr('y', 5)
-                                        .attr(
-                                            'fill',
-                                            L_.layersLegendsData[l][d].color
-                                        )
-                                        .attr('opacity', L_.opacityArray[l])
-                                        .attr(
-                                            'stroke',
-                                            L_.layersLegendsData[l][d]
-                                                .strokecolor
-                                        )
-                                    break
+                            var shape = L_.layersLegendsData[l][d].shape
+                            if (
+                                shape == 'circle' ||
+                                shape == 'square' ||
+                                shape == 'rect'
+                            ) {
+                                var r = c
+                                    .append('div')
+                                    .attr('class', 'row')
+                                    .style('margin-left', '10px')
+                                var svg = r
+                                    .append('svg')
+                                    .attr('width', '19px')
+                                    .attr('height', '19px')
+                                    .style('float', 'left')
+                                    .style('position', 'relative')
+
+                                switch (shape) {
+                                    case 'circle':
+                                        svg.append('circle')
+                                            .attr('class', l + '_legendshape')
+                                            .attr('r', 7)
+                                            .attr('cx', 8)
+                                            .attr('cy', 8)
+                                            .attr(
+                                                'fill',
+                                                L_.layersLegendsData[l][d].color
+                                            )
+                                            .attr('opacity', L_.opacityArray[l])
+                                            .attr(
+                                                'stroke',
+                                                L_.layersLegendsData[l][d]
+                                                    .strokecolor
+                                            )
+                                        break
+                                    case 'square':
+                                        svg.append('rect')
+                                            .attr('class', l + '_legendshape')
+                                            .attr('width', 18)
+                                            .attr('height', 18)
+                                            .attr(
+                                                'fill',
+                                                L_.layersLegendsData[l][d].color
+                                            )
+                                            .attr('opacity', L_.opacityArray[l])
+                                            .attr(
+                                                'stroke',
+                                                L_.layersLegendsData[l][d]
+                                                    .strokecolor
+                                            )
+                                        break
+                                    case 'rect':
+                                        svg.append('rect')
+                                            .attr('class', l + '_legendshape')
+                                            .attr('width', 18)
+                                            .attr('height', 8)
+                                            .attr('y', 5)
+                                            .attr(
+                                                'fill',
+                                                L_.layersLegendsData[l][d].color
+                                            )
+                                            .attr('opacity', L_.opacityArray[l])
+                                            .attr(
+                                                'stroke',
+                                                L_.layersLegendsData[l][d]
+                                                    .strokecolor
+                                            )
+                                        break
+                                }
+                                svg.append(shape).attr(
+                                    'fill',
+                                    L_.layersLegendsData[l][d].color
+                                )
+                                r.append('p').html(
+                                    L_.layersLegendsData[l][d].value
+                                )
                             }
-                            svg.append(L_.layersLegendsData[l][d].shape).attr(
-                                'fill',
-                                L_.layersLegendsData[l][d].color
-                            )
-                            r.append('p').html(L_.layersLegendsData[l][d].value)
                         }
                     }
                 }

@@ -17,12 +17,10 @@ var require = {
         IdentifierTool: 'essence/Tools/Identifier/IdentifierTool',
         MeasureTool: 'essence/Tools/Measure/MeasureTool',
         linechart: 'essence/Tools/Measure/linechart',
-        PlanPathTool: 'essence/Tools/PlanPath/PlanPathTool',
         SearchTool: 'essence/Tools/Search/SearchTool',
         SketchTool: 'essence/Tools/Sketch/SketchTool',
         FileManagerTool: 'essence/Tools/FileManager/FileManagerTool',
         IdentifierTool: 'essence/Tools/Identifier/IdentifierTool',
-        InSightTool: 'essence/Tools/InSight/InsightTool',
         CurtainTool: 'essence/Tools/Curtain/CurtainTool',
         QueryTool: 'essence/Tools/Query/QueryTool',
 
@@ -54,7 +52,7 @@ var require = {
         jqueryUI: 'external/JQuery/jquery-ui',
         mark: 'external/JQuery/jquery.mark.min',
 
-        leaflet: 'external/Leaflet/leaflet1.4.0',
+        leaflet: 'external/Leaflet/leaflet1.5.1',
         leafletDraw: 'external/Leaflet/leaflet.draw',
         leafletGeometryUtil: 'external/Leaflet/leaflet.geometryutil',
         leafletSnap: 'external/Leaflet/leaflet.snap',
@@ -69,6 +67,7 @@ var require = {
         leafletScaleFactor: 'external/Leaflet/leaflet.scalefactor.min',
         leafletColorFilter: 'external/Leaflet/leaflet-tilelayer-colorfilter',
         leafletTileLayerGL: 'external/Leaflet/leaflet.tilelayer.gl',
+        leafletVectorGrid: 'external/Leaflet/leaflet.vectorGrid.bundled',
 
         metricsGraphics: 'external/MetricsGraphics/metricsgraphics.min',
         openSeadragon: 'external/OpenSeadragon/openseadragon.min',
@@ -140,6 +139,7 @@ var require = {
         ToolController_: 'essence/Basics/ToolController_/ToolController_',
         UserInterface_: 'essence/Basics/UserInterface_/UserInterface_',
         Test_: 'essence/Basics/Test_/Test_',
+        Kinds: 'essence/Kinds/Kinds',
 
         //ancillary
         CursorInfo: 'essence/Ancillary/CursorInfo',
@@ -177,6 +177,7 @@ var require = {
         leafletScaleFactor: { deps: ['leaflet'] },
         leafletColorFilter: { deps: ['leaflet'] },
         leafletTileLayerGL: { deps: ['leaflet'] },
+        leafletVectorGrid: { deps: ['leaflet'] },
 
         metricsGraphics: { deps: ['jquery', 'd3'] },
         dataTables: { deps: ['jquery'] },

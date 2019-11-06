@@ -112,6 +112,13 @@ define([
 
             DrawTool.compileFile({ verbose: true }, function(d) {
                 $('#drawToolReviewContent ul *').remove()
+                var liMarkup = [
+                    '<li class="drawToolReviewTitle">',
+                        'Issues',
+                    '</li>',
+                ].join('\n')
+                $('#drawToolReviewContent ul').append(liMarkup)
+
                 var noErrors = true
                 for (var i = 0; i < d.body.issues.length; i++) {
                     var s = d.body.issues[i]
@@ -159,19 +166,68 @@ define([
                     ].join('\n')
                     $('#drawToolReviewContent ul').append(liMarkup)
                 }
+
+
                 if (noErrors) {
-                    //We can show the publish button
+                    $('#drawToolReviewContent ul *').remove()
+                    //We can show the Changes and publish button
+                    var liMarkup = [
+                        '<li class="drawToolReviewTitle">',
+                            'Changes',
+                        '</li>',
+                    ].join('\n')
+                    $('#drawToolReviewContent ul').append(liMarkup)
+
+                    //Changes
+                    if( d.body.changes ) {
+                        //Added
+                        var added = d.body.changes.added;
+                        for( var i = 0; i < added.length; i++ ) {
+                            var liMarkup = [
+                                "<li class='changes'>",
+                                    "<div class='added'>added</div>",
+                                    "<span title='" + added[i].uuid + "' shape_id='" + added[i].id +"'>" + added[i].name + "</span>",
+                                '</li>',
+                            ].join('\n')
+                            $('#drawToolReviewContent ul').append(liMarkup)
+                        }
+
+                        //Removed
+                        var removed = d.body.changes.removed;
+                        for( var i = 0; i < removed.length; i++ ) {
+                            var liMarkup = [
+                                "<li class='changes'>",
+                                    "<div class='removed'>removed</div>",
+                                    "<span title='" + removed[i].uuid + "' shape_id='null'>" + removed[i].name + "</span>",
+                                '</li>',
+                            ].join('\n')
+                            $('#drawToolReviewContent ul').append(liMarkup)
+                        }
+
+                        //Changed
+                        var changed = d.body.changes.changed;
+                        for( var i = 0; i < changed.length; i++ ) {
+                            var liMarkup = [
+                                "<li class='changes'>",
+                                    "<div class='changed'>changed</div>",
+                                    "<span title='" + changed[i].uuid + "' shape_id='" + changed[i].id +"'>" + changed[i].old_name + ' &rarr; ' + changed[i].new_name + "</span>",
+                                '</li>',
+                            ].join('\n')
+                            $('#drawToolReviewContent ul').append(liMarkup)
+                        }
+                    }
+
                     var liMarkup = [
                         '<li id="drawToolReviewPublish">',
                         '<div>Publish</div>',
                         '</li>',
                     ].join('\n')
                     $('#drawToolReviewContent ul').append(liMarkup)
-                } else {
-                    //We can show the publish button
+                }
+                else {
                     var liMarkup = [
-                        '<li id="drawToolReviewPublish" class="force">',
-                        '<div>Publish Anyway</div>',
+                        '<li id="drawToolReviewMessage">',
+                            'All errors must be resolved before publishing.',
                         '</li>',
                     ].join('\n')
                     $('#drawToolReviewContent ul').append(liMarkup)

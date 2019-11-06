@@ -44,6 +44,20 @@ body {
   z-index: 1000;
 }
 
+.container_geodatasets {
+  margin-left: 220px;
+  width: 100% !important;
+  height: 100vh;
+  max-width: unset !important;
+  background: white;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 200;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
 .container {
   margin-left: 220px;
   width: 100% !important;
@@ -134,8 +148,19 @@ body {
   margin: 4px 8px;
   font-size: 14px;
 }
-
 #new_mission:hover {
+  color: #5ea1ed;
+}
+
+#manage_geodatasets {
+  height: 30px;
+  width: calc( 100% - 16px );
+  line-height: 30px;
+  margin: 4px 8px;
+  font-size: 12px;
+  color: #ddd;
+}
+#manage_geodatasets:hover {
   color: #5ea1ed;
 }
 
@@ -264,9 +289,9 @@ textarea {
 }
 
 .modal {
-    overflow: visible !important;
-    max-height: 100% !important;
-    transform: translateX(120px) !important;
+  overflow: auto !important;
+  max-height: calc( 100% - 120px ) !important;
+  transform: translateX(120px) !important;
 }
 .modal .modal-title {
   display: flex;
@@ -293,6 +318,10 @@ textarea {
   font-size: 100px;
   color: #ddd;
 
+}
+
+#vtLayerEl > .CodeMirror {
+  margin: 0;
 }
 
 .mmgisScrollbar::-webkit-scrollbar-track

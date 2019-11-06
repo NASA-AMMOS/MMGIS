@@ -56,6 +56,13 @@ router.post("/first_signup", function(req, res, next) {
 });
 
 router.post("/signup", function(req, res, next) {
+  if (process.env.AUTH === "local" && req.session.permission !== "111") {
+    res.send({
+      status: "failure",
+      message: "Currently set so only administrators may create accounts."
+    });
+    return;
+  }
   // Define a new user
   let newUser = {
     username: req.body.username,
@@ -125,11 +132,6 @@ router.post("/signup", function(req, res, next) {
   return null;
 });
 
-/* GET users listing. */
-router.get("/", function(req, res, next) {
-  res.send("respond with a resource");
-});
-
 /**
  * User login
  */
@@ -154,7 +156,10 @@ router.post("/login", function(req, res) {
       if (!user) {
         if (!req.body.useToken)
           logger.info("User: " + username + " does not exist.");
-        res.send({ status: "failure", message: "User not found. Sign up!" });
+        res.send({
+          status: "failure",
+          message: "Invalid username or password."
+        });
       } else {
         function pass(err, result, again) {
           if (result) {

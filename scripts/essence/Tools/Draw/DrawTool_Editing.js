@@ -457,6 +457,7 @@ define([
                 deleteClass = 'hide'
             }
             var description = properties.description || ''
+            var uuid = properties.uuid || ''
 
             var ownedByUser = true
             for (var i = 0; i < DrawTool.contextMenuLayers.length; i++) {
@@ -517,6 +518,10 @@ define([
             "<div class='drawToolContextMenuPropertiesDescription flexbetween'>",
               "<div>Science Intent</div>",
               "<textarea id='drawToolContextMenuPropertiesDescription' rows='5' />",
+            "</div>",
+            "<div class='drawToolContextMenuPropertiesReassignUUID flexbetween'>",
+              "<div id='drawToolContextMenuPropertiesReassignUUIDValue'>" + uuid + "</div>",
+              "<div id='drawToolContextMenuPropertiesReassignUUID' class='drawToolButton1'>Reassign</div>",
             "</div>",
           "</div>",
 
@@ -687,7 +692,6 @@ define([
               "<div>54px</div>",
             "</div>",
           "</div>",
-
     "</div>",
 
           "<div class='drawToolContextMenuSave'>",
@@ -918,6 +922,8 @@ define([
                             fileid +
                             "']"
                     ).remove()
+
+                    if (DrawTool.isReviewOpen) DrawTool.showReview()
 
                     //Remove from globe
                     var lif = DrawTool.lastContextLayerIndexFileId
@@ -2006,6 +2012,51 @@ define([
                 }
             )
 
+            //REASSIGN UUID
+            $('#drawToolContextMenuPropertiesReassignUUID').on(
+                'click',
+                function() {
+                    var reassign = prompt(
+                        'Are you sure you want to reassign this shape to a new UUID? (y/n)\n' +
+                            'If you change your mind soon afterwards, this action can be undone through history.'
+                    )
+
+                    if (
+                        reassign != null &&
+                        (reassign.toLowerCase() === 'y' ||
+                            reassign.toLowerCase() === 'yes')
+                    ) {
+                        calls.api(
+                            'draw_edit',
+                            {
+                                feature_id: properties._.id,
+                                file_id: fileid,
+                                reassignUUID: true,
+                            },
+                            function(data) {
+                                DrawTool.refreshFile(fileid, null, true, [
+                                    data.body.id,
+                                ])
+
+                                if (DrawTool.isReviewOpen) DrawTool.showReview()
+                            },
+                            function() {
+                                $('.drawToolContextMenuSave').css(
+                                    'background',
+                                    '#ff2626'
+                                )
+                                setTimeout(function() {
+                                    $('.drawToolContextMenuSave').css(
+                                        'background',
+                                        'var(--color-a)'
+                                    )
+                                }, 1500)
+                            }
+                        )
+                    }
+                }
+            )
+
             //SAVE
             $('.drawToolContextMenuSaveChanges').on('click', function() {
                 if (!grouping) {
@@ -2076,19 +2127,27 @@ define([
                                 fileid
                             ) {
                                 return function(data) {
-                                    $('.drawToolContextMenuSave').css(
-                                        'background',
-                                        '#26ff67'
+                                    DrawTool.refreshFile(
+                                        fileid,
+                                        null,
+                                        true,
+                                        [data.body.id],
+                                        null,
+                                        function() {
+                                            $('.drawToolContextMenuSave').css(
+                                                'background',
+                                                '#26ff67'
+                                            )
+                                            setTimeout(function() {
+                                                $(
+                                                    '.drawToolContextMenuSave'
+                                                ).css(
+                                                    'background',
+                                                    'var(--color-a)'
+                                                )
+                                            }, 1500)
+                                        }
                                     )
-                                    setTimeout(function() {
-                                        $('.drawToolContextMenuSave').css(
-                                            'background',
-                                            'var(--color-a)'
-                                        )
-                                    }, 1500)
-                                    DrawTool.refreshFile(fileid, null, true, [
-                                        data.body.id,
-                                    ])
 
                                     if (DrawTool.isReviewOpen)
                                         DrawTool.showReview()

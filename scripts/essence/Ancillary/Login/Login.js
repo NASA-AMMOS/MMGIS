@@ -7,7 +7,7 @@ define([
     'ToolController_',
     'semantic',
 ], function($, d3, F_, L_, ToolController_) {
-    var emailSuffix = '@jpl.nasa.gov'
+    var emailSuffix = '@domain.com'
     // prettier-ignore
     var modalFormSignIn =
   "<img src='../resources/mmgis.png' style='position: relative; left: 50%; transform: translateX(-50%);' />" +
@@ -78,8 +78,9 @@ define([
                 .style('top', '0px')
                 .style('right', '0px')
                 .style('z-index', '1090')
-                .style('padding', '2px 5px')
-                .style('background', 'rgba(31, 31, 31, 0.15)')
+                .style('margin', '4px')
+                .style('color', '#aaa')
+                .style('pointer-events', 'none')
 
             d3.select('#topBar')
                 .append('div')
@@ -238,45 +239,37 @@ define([
                             'signup',
                             values,
                             function(d) {
-                                Login.username = d.username
-                                mmgisglobal.user = Login.username
-                                mmgisglobal.groups = d.groups
-                                loginSuccess(d)
+                                //This automatically signed a new user in
+                                if (mmgisglobal.AUTH === 'local') {
+                                    //This just flashes blue to show it worked
+                                    // prettier-ignore
+                                    $('#loginErrorMessage').animate({ opacity: '0' }, 500)
+                                    // prettier-ignore
+                                    $('#loginModal').parent()
+                                        .animate({'background-color': 'rgba(46,180,255,0.6)'}, 1000,
+                                            function() {
+                                                setTimeout(function() {
+                                                    $('#loginModal').parent().css({'background-color':'rgba(0,0,0,0.6)'})
+                                                }, 2000 )
+                                            }
+                                        )
+                                } else {
+                                    Login.username = d.username
+                                    mmgisglobal.user = Login.username
+                                    mmgisglobal.groups = d.groups
+                                    loginSuccess(d)
+                                }
                             },
                             function(d) {
-                                loginSuccess(d)
+                                if (mmgisglobal.AUTH === 'local') {
+                                    $('#loginErrorMessage')
+                                        .html(d.message)
+                                        .animate({ opacity: '1' }, 80)
+                                } else {
+                                    loginSuccess(d)
+                                }
                             }
                         )
-                        /*
-                        $.ajax({
-                            type: 'POST',
-                            url: 'scripts/essence/Ancillary/Login/signup.php',
-                            data: values,
-                            success: function(data) {
-                                loginSuccess(data)
-                            },
-                        })
-
-                        // An ajax call for creating a new user record in the database for API service
-                        $.ajax({
-                            type: 'POST',
-                            url: 'http://localhost:3000/users/sign_up',
-                            dataType: 'json',
-                            contentType: 'application/json',
-                            data: JSON.stringify(values),
-                            success: function(data) {
-                                alert(data.message)
-                            },
-                            error: function(xhr, status) {
-                                console.log(
-                                    'XHR Object:',
-                                    xhr,
-                                    'Status:',
-                                    status
-                                )
-                            },
-                        })
-                        */
                     } else {
                         var errorMessage = ''
                         if (!validate.username)
@@ -301,18 +294,64 @@ define([
                 .style('text-align', 'center')
                 .style('font-size', '16px')
                 .style('font-family', 'monospace')
-                .style('color', '#fffdf5')
                 .style('cursor', 'pointer')
-                .style('padding-right', Login.loggedIn ? '5px' : '0px')
+                .style('padding-right', '8px')
+                .style('line-height', '30px')
+                .style('color', 'white')
+                .style(
+                    'text-shadow',
+                    'rgb(0, 0, 0) -1px -1px 0px, rgb(0, 0, 0) 1px -1px 0px, rgb(0, 0, 0) -1px 1px 0px, rgb(0, 0, 0) 1px 1px 0px'
+                )
                 .html(Login.loggedIn ? Login.username : '')
+
+            //Show signup for admins
+            if (
+                mmgisglobal.AUTH === 'local' &&
+                mmgisglobal.permission === '111'
+            ) {
+                Login.loginBar
+                    .append('div')
+                    .attr('id', 'forceSignupButton')
+                    .style('text-align', 'center')
+                    .style('cursor', 'pointer')
+                    .style('width', '30px')
+                    .style('height', '30px')
+                    .style('line-height', '26px')
+                    .style('border-radius', '3px')
+                    .style('margin-right', '4px')
+                    .style('border', '1px solid #555555')
+                    .style('background', 'var(--color-a)')
+                    .style('pointer-events', 'all')
+                    .on('click', function() {
+                        //Open login
+                        //default to signup
+                        Login.signUp = true
+                        $('#loginEmail').css({ display: 'inherit' })
+                        $('#loginRetypePassword').css({ display: 'inherit' })
+                        $('#loginSubmit').val('Sign Up')
+                        $('#loginInUpToggle').html('or sign in')
+                        //and open modal
+                        $('#loginModal').modal('show')
+                    })
+                    .append('i')
+                    .attr('id', 'forceSignupButtonIcon')
+                    .attr('class', 'mdi mdi-account-multiple mdi-18px')
+            }
 
             Login.loginBar
                 .append('div')
                 .attr('id', 'loginoutButton')
                 .attr('title', Login.loggedIn ? 'Logout' : 'Login')
-                .style('padding', '1px 0px 0px 0px')
                 .style('text-align', 'center')
                 .style('cursor', 'pointer')
+                .style('width', '30px')
+                .style('height', '30px')
+                .style('line-height', '26px')
+                .style('padding-left', '2px')
+                .style('border-radius', '3px')
+                .style('border', '1px solid #555555')
+                .style('background', 'var(--color-a)')
+                .style('pointer-events', 'all')
                 .on('click', function() {
                     if (Login.loggedIn) {
                         //Then Logout
@@ -330,9 +369,7 @@ define([
 
                                     Login.username = null
                                     Login.loggedIn = false
-                                    d3.select('#loginUser')
-                                        .style('padding-right', '0px')
-                                        .html('')
+                                    d3.select('#loginUser').html('')
                                     d3.select('#loginoutButton').attr(
                                         'title',
                                         'Login'
@@ -350,6 +387,10 @@ define([
                                     MMGISUser = JSON.parse(MMGISUser[1])
                                     MMGISUser.username = ''
                                     MMGISUser.token = ''
+
+                                    if (mmgisglobal.AUTH === 'local') {
+                                        location.reload()
+                                    }
                                 },
                                 function(d) {}
                             )
@@ -438,9 +479,7 @@ define([
                                 'class',
                                 'mdi mdi-logout mdi-18px'
                             )
-                            $('#loginUser')
-                                .css('padding-right', '5px')
-                                .html(Login.username)
+                            $('#loginUser').html(Login.username)
                         }, 600)
                     }
                 )
@@ -452,6 +491,9 @@ define([
                     token: '',
                 })
 
+            if (mmgisglobal.AUTH === 'local') {
+                location.reload()
+            }
             if (ignoreError) return
 
             $('#loginErrorMessage')

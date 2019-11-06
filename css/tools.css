@@ -16,3 +16,8 @@
   color: white;
   font-weight: bold;
 }
+
+/*Search Tool*/
+.searchToolSelect {
+  width: 188px;
+}

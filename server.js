@@ -7,7 +7,7 @@ var bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const express = require("express");
 var swaggerUi = require("swagger-ui-express");
-var swaggerDocument = require("./public/docs/swagger.json");
+var swaggerDocumentMain = require("./public/docs/swaggerMain.json");
 var exec = require("child_process").exec;
 var execFile = require("child_process").execFile;
 const createError = require("http-errors");
@@ -25,6 +25,7 @@ const usersRouter = require("./API/routes/users");
 const filesRouter = require("./API/routes/files");
 const drawRouter = require("./API/routes/draw").router;
 const shortenerRouter = require("./API/routes/shortener");
+const geodatasetRouter = require("./API/routes/geodatasets");
 
 //Username to use when not logged in
 const guestUsername = "guest";
@@ -85,12 +86,14 @@ app.disable("Origin");
 app.use(cookieParser());
 
 var swaggerOptions = {
-  customCss: ".swagger-ui .topbar { display: none }"
+  customCssUrl: "/public/docs/swaggerCSS.css",
+  customJs: "/public/docs/swaggerJS.js"
 };
+
 app.use(
-  "/api-docs",
+  "/api/docs/main",
   swaggerUi.serve,
-  swaggerUi.setup(swaggerDocument, swaggerOptions)
+  swaggerUi.setup(swaggerDocumentMain, swaggerOptions)
 );
 
 // This is application-level middleware, written to run for all requests.
@@ -163,18 +166,43 @@ app.use(function(err, req, res, next) {
   res.render("error");
 });
 
-app.use("/dist", express.static(path.join(__dirname, "/dist")));
+app.use("/dist", ensureUser(), express.static(path.join(__dirname, "/dist")));
 app.use("/public", express.static(path.join(__dirname, "/public")));
 //app.use("/config", express.static(path.join(__dirname, "/config")));
-app.use("/config/css", express.static(path.join(__dirname, "/config/css")));
-app.use("/config/js", express.static(path.join(__dirname, "/config/js")));
-app.use("/config/fonts", express.static(path.join(__dirname, "/config/fonts")));
-app.use("/config/configconfig.json", express.static(path.join(__dirname, "/config/configconfig.json")));
+app.use("/config/login", express.static(path.join(__dirname, "/config/login")));
+app.use(
+  "/config/css",
+  ensureUser(),
+  express.static(path.join(__dirname, "/config/css"))
+);
+app.use(
+  "/config/js",
+  ensureUser(),
+  express.static(path.join(__dirname, "/config/js"))
+);
+app.use(
+  "/config/fonts",
+  ensureUser(),
+  express.static(path.join(__dirname, "/config/fonts"))
+);
+app.use(
+  "/config/configconfig.json",
+  ensureUser(),
+  express.static(path.join(__dirname, "/config/configconfig.json"))
+);
 
-app.use("/css", express.static(path.join(__dirname, "/css")));
-app.use("/Missions", express.static(path.join(__dirname, "/Missions")));
+app.use("/css", ensureUser(), express.static(path.join(__dirname, "/css")));
+app.use(
+  "/Missions",
+  ensureUser(),
+  express.static(path.join(__dirname, "/Missions"))
+);
 app.use("/resources", express.static(path.join(__dirname, "/resources")));
-app.use("/scripts", express.static(path.join(__dirname, "/scripts")));
+app.use(
+  "/scripts",
+  ensureUser(),
+  express.static(path.join(__dirname, "/scripts"))
+);
 //app.use("/API", express.static(path.join(__dirname, "/API")));
 
 //app.use('/API', checkHeadersCodeInjection, indexRouter);
@@ -189,6 +217,7 @@ app.use(
 app.use("/API/apis", apiRouter);
 app.use(
   "/API/files",
+  ensureUser(),
   checkHeadersCodeInjection,
   setContentType,
   stopGuests,
@@ -196,6 +225,7 @@ app.use(
 );
 app.use(
   "/API/draw",
+  ensureUser(),
   checkHeadersCodeInjection,
   setContentType,
   stopGuests,
@@ -203,9 +233,17 @@ app.use(
 );
 app.use(
   "/API/shortener",
+  ensureUser(),
   checkHeadersCodeInjection,
   setContentType,
   shortenerRouter
+);
+app.use(
+  "/API/geodatasets",
+  ensureAdmin(),
+  checkHeadersCodeInjection,
+  setContentType,
+  geodatasetRouter
 );
 
 function setContentType(req, res, next) {
@@ -253,7 +291,7 @@ function checkHeadersCodeInjection(req, res, next) {
   } else {
     // Set header parameters for this request
     // res.setHeader('Access-Control-Allow-Origin', 'http://localhost:80');
-    res.setHeader("Access-Control-Allow-Origin", "http://localhost:8642");
+    res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST");
     // res.setHeader('Content-Type', 'application/json');
     res.setHeader(
@@ -347,18 +385,33 @@ function ensureGroup(allowedGroups) {
 
 function ensureAdmin(toLoginPage) {
   return (req, res, next) => {
-    let url = req.originalUrl.split("?")[0];
+    let url = req.originalUrl.split("?")[0].toLowerCase();
+
     if (
       url == "/api/configure/get" ||
       url === "/api/configure/missions" ||
+      url === "/api/geodatasets/get" ||
+      url === "/api/geodatasets/search" ||
       req.session.permission === "111"
     )
       next();
-    else if (toLoginPage) res.render("login", { user: req.user });
+    else if (toLoginPage) res.render("adminlogin", { user: req.user });
     else {
       res.send({ status: "failure", message: "Unauthorized!" });
       logger.info("Unauthorized call made and rejected: " + req.originalUrl);
     }
+    return;
+  };
+}
+function ensureUser() {
+  return (req, res, next) => {
+    if (
+      process.env.AUTH != "local" ||
+      (typeof req.session.permission === "string" &&
+        req.session.permission[req.session.permission.length - 1] === "1")
+    )
+      next();
+    else res.render("login", { user: req.user });
     return;
   };
 }
@@ -368,11 +421,18 @@ function ensureAdmin(toLoginPage) {
 // from the permissions.json file at the top of the file).
 
 // PAGES
-app.get("/", ensureGroup(permissions.users), (req, res) => {
-  const user = process.env.AUTH === "csso" ? req.user : guestUsername;
+app.get("/", ensureUser(), ensureGroup(permissions.users), (req, res) => {
+  let user = guestUsername;
+  if (process.env.AUTH === "csso" || req.user != null) user = req.user;
+
+  let permission = "000";
+  if (process.env.AUTH === "csso") permission = "001";
+  if (req.session.permission) permission = req.session.permission;
+
   const groups = req.groups ? Object.keys(req.groups) : [];
   res.render("index", {
     user: user,
+    permission: permission,
     groups: JSON.stringify(groups),
     AUTH: process.env.AUTH,
     NODE_ENV: process.env.NODE_ENV,
@@ -407,55 +467,64 @@ if (
   );
 
   //config verify
-  app.post("/api/config/verify", ensureGroup(permissions.users), ensureAdmin(), function(
-    req,
-    res
-  ) {
-    const m = encodeURIComponent(req.body.m);
-    const p = encodeURIComponent(req.body.p);
+  app.post(
+    "/api/config/verify",
+    ensureGroup(permissions.users),
+    ensureAdmin(),
+    function(req, res) {
+      const m = encodeURIComponent(req.body.m);
+      const p = encodeURIComponent(req.body.p);
 
-    execFile("php", ["private/api/verify.php", m, p], function(
-      error,
-      stdout,
-      stderr
-    ) {
-      res.send(stdout);
-    });
-  });
+      execFile("php", ["private/api/verify.php", m, p], function(
+        error,
+        stdout,
+        stderr
+      ) {
+        res.send(stdout);
+      });
+    }
+  );
 
   //config write_json
-  app.post("/api/config/write_json", ensureGroup(permissions.users), ensureAdmin(), function(
-    req,
-    res
-  ) {
-    //const filename = req.body.filename;
-    const mission = req.body.mission;
-    const json = req.body.json;
+  app.post(
+    "/api/config/write_json",
+    ensureGroup(permissions.users),
+    ensureAdmin(),
+    function(req, res) {
+      //const filename = req.body.filename;
+      const mission = req.body.mission;
+      const json = req.body.json;
 
-    fs.writeFile("Missions/" + mission + "/config.json", json, "utf8", function(
-      err
-    ) {
-      if (err) res.send("failure");
-      else res.send("success");
-    });
-  });
+      fs.writeFile(
+        "Missions/" + mission + "/config.json",
+        json,
+        "utf8",
+        function(err) {
+          if (err) res.send("failure");
+          else res.send("success");
+        }
+      );
+    }
+  );
 
   //config make_mission
-  app.post("/api/config/make_mission", ensureGroup(permissions.users), ensureAdmin(), function(
-    req,
-    res
-  ) {
-    const m = encodeURIComponent(req.body.missionname);
-    const p = encodeURIComponent(req.body.password);
+  app.post(
+    "/api/config/make_mission",
+    ensureGroup(permissions.users),
+    ensureAdmin(),
+    function(req, res) {
+      const m = encodeURIComponent(req.body.missionname);
+      const p = encodeURIComponent(req.body.password);
 
-    execFile("php", ["private/api/make_mission.php", m, p], function(
-      error,
-      stdout,
-      stderr
-    ) {
-      res.send(stdout);
-    });
-  });
+      execFile("php", ["private/api/make_mission.php", m, p], function(
+        error,
+        stdout,
+        stderr
+      ) {
+        res.send(stdout);
+      });
+    }
+  );
 
   //config delete_mission
   app.post(
@@ -516,30 +585,33 @@ if (
 }
 
 //utils getprofile
-app.post("/api/utils/getprofile", ensureGroup(permissions.users), function(
-  req,
-  res
-) {
-  const path = encodeURIComponent(req.body.path);
-  const lat1 = encodeURIComponent(req.body.lat1);
-  const lon1 = encodeURIComponent(req.body.lon1);
-  const lat2 = encodeURIComponent(req.body.lat2);
-  const lon2 = encodeURIComponent(req.body.lon2);
-  const steps = encodeURIComponent(req.body.steps);
-  const axes = encodeURIComponent(req.body.axes);
+app.post(
+  "/api/utils/getprofile",
+  ensureUser(),
+  ensureGroup(permissions.users),
+  function(req, res) {
+    const path = encodeURIComponent(req.body.path);
+    const lat1 = encodeURIComponent(req.body.lat1);
+    const lon1 = encodeURIComponent(req.body.lon1);
+    const lat2 = encodeURIComponent(req.body.lat2);
+    const lon2 = encodeURIComponent(req.body.lon2);
+    const steps = encodeURIComponent(req.body.steps);
+    const axes = encodeURIComponent(req.body.axes);
 
-  execFile(
-    "php",
-    ["private/api/getprofile.php", path, lat1, lon1, lat2, lon2, steps, axes],
-    function(error, stdout, stderr) {
-      res.send(stdout);
-    }
-  );
-});
+    execFile(
+      "php",
+      ["private/api/getprofile.php", path, lat1, lon1, lat2, lon2, steps, axes],
+      function(error, stdout, stderr) {
+        res.send(stdout);
+      }
+    );
+  }
+);
 
 //utils getpoint
 app.post(
   "/api/utils/lnglats_to_demtile_elevs",
+  ensureUser(),
   ensureGroup(permissions.users),
   function(req, res) {
     const lnglats = req.body.lnglats;
@@ -556,46 +628,51 @@ app.post(
 );
 
 //utils getpoint
-app.post("/api/utils/getpoint", ensureGroup(permissions.users), function(
-  req,
-  res
-) {
-  const path = encodeURIComponent(req.body.path);
-  const lat = encodeURIComponent(req.body.lat);
-  const lon = encodeURIComponent(req.body.lon);
+app.post(
+  "/api/utils/getpoint",
+  ensureUser(),
+  ensureGroup(permissions.users),
+  function(req, res) {
+    const path = encodeURIComponent(req.body.path);
+    const lat = encodeURIComponent(req.body.lat);
+    const lon = encodeURIComponent(req.body.lon);
 
-  execFile("php", ["private/api/getpoint.php", path, lat, lon], function(
-    error,
-    stdout,
-    stderr
-  ) {
-    res.send(stdout);
-  });
-});
+    execFile("php", ["private/api/getpoint.php", path, lat, lon], function(
+      error,
+      stdout,
+      stderr
+    ) {
+      res.send(stdout);
+    });
+  }
+);
 
 //utils getbands
-app.post("/api/utils/getbands", ensureGroup(permissions.users), function(
-  req,
-  res
-) {
-  const path = encodeURIComponent(req.body.path);
-  const x = encodeURIComponent(req.body.x);
-  const y = encodeURIComponent(req.body.y);
-  const xyorll = encodeURIComponent(req.body.xyorll);
-  const bands = encodeURIComponent(req.body.bands);
+app.post(
+  "/api/utils/getbands",
+  ensureUser(),
+  ensureGroup(permissions.users),
+  function(req, res) {
+    const path = encodeURIComponent(req.body.path);
+    const x = encodeURIComponent(req.body.x);
+    const y = encodeURIComponent(req.body.y);
+    const xyorll = encodeURIComponent(req.body.xyorll);
+    const bands = encodeURIComponent(req.body.bands);
 
-  execFile(
-    "php",
-    ["private/api/getbands.php", path, x, y, xyorll, bands],
-    function(error, stdout, stderr) {
-      res.send(stdout);
-    }
-  );
-});
+    execFile(
+      "php",
+      ["private/api/getbands.php", path, x, y, xyorll, bands],
+      function(error, stdout, stderr) {
+        res.send(stdout);
+      }
+    );
+  }
+);
 
 //draw write_to_polygon_geojson
 app.post(
   "/api/draw/write_to_polygon_geojson",
+  ensureUser(),
   ensureGroup(permissions.users),
   function(req, res) {
     const rawfilename = req.body.rawfilename;
@@ -630,25 +707,28 @@ app.post(
 );
 
 //files getfiledata
-app.post("/api/files/getfiledata", ensureGroup(permissions.users), function(
-  req,
-  res
-) {
-  const filename = req.body.filename;
-  const mission = req.body.mission || "";
+app.post(
+  "/api/files/getfiledata",
+  ensureUser(),
+  ensureGroup(permissions.users),
+  function(req, res) {
+    const filename = req.body.filename;
+    const mission = req.body.mission || "";
 
-  execFile("php", ["private/api/getfiledata.php", filename, mission], function(
-    error,
-    stdout,
-    stderr
-  ) {
-    res.send(stdout);
-  });
-});
+    execFile(
+      "php",
+      ["private/api/getfiledata.php", filename, mission],
+      function(error, stdout, stderr) {
+        res.send(stdout);
+      }
+    );
+  }
+);
 
 //files getalluserswithfiles
 app.post(
   "/api/files/getalluserswithfiles",
+  ensureUser(),
   ensureGroup(permissions.users),
   function(req, res) {
     const username = req.body.username;
@@ -665,84 +745,92 @@ app.post(
 );
 
 //files getproperties
-app.post("/api/files/getproperties", ensureGroup(permissions.users), function(
-  req,
-  res
-) {
-  const filename = req.body.filename;
-  const mission = req.body.mission || "";
+app.post(
+  "/api/files/getproperties",
+  ensureUser(),
+  ensureGroup(permissions.users),
+  function(req, res) {
+    const filename = req.body.filename;
+    const mission = req.body.mission || "";
 
-  execFile(
-    "php",
-    ["private/api/getproperties.php", filename, mission],
-    function(error, stdout, stderr) {
-      res.send(stdout);
-    }
-  );
-});
+    execFile(
+      "php",
+      ["private/api/getproperties.php", filename, mission],
+      function(error, stdout, stderr) {
+        res.send(stdout);
+      }
+    );
+  }
+);
 
 //files saveproperties
-app.post("/api/files/saveproperties", ensureGroup(permissions.users), function(
-  req,
-  res
-) {
-  const filename = req.body.filename;
-  const name = req.body.name;
-  const description = req.body.description;
-  const public = req.body.public;
-  const mission = req.body.mission || "";
+app.post(
+  "/api/files/saveproperties",
+  ensureUser(),
+  ensureGroup(permissions.users),
+  function(req, res) {
+    const filename = req.body.filename;
+    const name = req.body.name;
+    const description = req.body.description;
+    const public = req.body.public;
+    const mission = req.body.mission || "";
 
-  execFile(
-    "php",
-    [
-      "private/api/saveproperties.php",
-      filename,
-      name,
-      description,
-      public,
-      mission
-    ],
-    function(error, stdout, stderr) {
-      res.send(stdout);
-    }
-  );
-});
+    execFile(
+      "php",
+      [
+        "private/api/saveproperties.php",
+        filename,
+        name,
+        description,
+        public,
+        mission
+      ],
+      function(error, stdout, stderr) {
+        res.send(stdout);
+      }
+    );
+  }
+);
 
 //files createfile
-app.post("/api/files/createfile", ensureGroup(permissions.users), function(
-  req,
-  res
-) {
-  const username = req.body.username;
-  const name = req.body.name;
-  const filedata = req.body.filedata || "";
-  const mission = req.body.mission || "";
+app.post(
+  "/api/files/createfile",
+  ensureUser(),
+  ensureGroup(permissions.users),
+  function(req, res) {
+    const username = req.body.username;
+    const name = req.body.name;
+    const filedata = req.body.filedata || "";
+    const mission = req.body.mission || "";
 
-  execFile(
-    "php",
-    ["private/api/createfile.php", username, name, filedata, mission],
-    function(error, stdout, stderr) {
-      res.send(stdout);
-    }
-  );
-});
+    execFile(
+      "php",
+      ["private/api/createfile.php", username, name, filedata, mission],
+      function(error, stdout, stderr) {
+        res.send(stdout);
+      }
+    );
+  }
+);
 
 //files deletefile
-app.post("/api/files/deletefile", ensureGroup(permissions.users), function(
-  req,
-  res
-) {
-  const filename = req.body.filename;
-  const mission = req.body.mission || "";
+app.post(
+  "/api/files/deletefile",
+  ensureUser(),
+  ensureGroup(permissions.users),
+  function(req, res) {
+    const filename = req.body.filename;
+    const mission = req.body.mission || "";
 
-  execFile("php", ["private/api/deletefile.php", filename, mission], function(
-    error,
-    stdout,
-    stderr
-  ) {
-    res.send(stdout);
-  });
-});
+    execFile("php", ["private/api/deletefile.php", filename, mission], function(
+      error,
+      stdout,
+      stderr
+    ) {
+      res.send(stdout);
+    });
+  }
+);
 
 const httpServer = http.createServer(app);
 
@@ -752,5 +840,5 @@ httpServer.listen(port, err => {
     console.log(err);
     return err;
   }
-  logger.info("MMGIS successfully started! It's listening on port: " + port);
+  logger.info("CAMP successfully started! It's listening on port: " + port);
 });

@@ -96,6 +96,18 @@ if (mmgisglobal.SERVER == "apache") {
       type: "POST",
       url: "api/configure/versions"
     },
+    geodatasets_recreate: {
+      type: "POST",
+      url: "api/geodatasets/recreate"
+    },
+    geodatasets_entries: {
+      type: "POST",
+      url: "api/geodatasets/entries"
+    },
+    geodatasets_get: {
+      type: "GET",
+      url: "api/geodatasets/get"
+    }
   };
 } else {
   console.warn("Unknown SERVER: " + mmgisglobal.SERVER);
