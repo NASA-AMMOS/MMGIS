@@ -8,6 +8,7 @@ head
   link(type='text/css' rel='stylesheet' href='config/css/materialize.min.css' media='screen,projection')
   link(type='text/css' rel='stylesheet' href='config/js/codemirror/codemirror-5.19.0/lib/codemirror.css')
   link(type='text/css' rel='stylesheet' href='config/js/codemirror/codemirror-5.19.0/theme/elegant.css')
+  link(type='text/css' rel='stylesheet' href='config/css/geodatasets.css')
   link(type='text/css' rel='stylesheet' href='config/css/config.css')
   // Let browser know website is optimized for mobile
   meta(name='viewport' content='width=device-width, initial-scale=1.0')
@@ -28,6 +29,7 @@ script.
     mmgisglobal.NODE_ENV = '#{NODE_ENV}';
     mmgisglobal.CONFIGCONFIG_PATH = '#{CONFIGCONFIG_PATH}';
 script(type='text/javascript' src='config/js/calls.js')
+script(type='text/javascript' src='config/js/geodatasets.js')
 script(type='text/javascript' src='config/js/config.js')
 script(type='text/javascript' src='scripts/pre/RefreshAuth.js')
 
@@ -39,6 +41,7 @@ script(type='text/javascript' src='scripts/pre/RefreshAuth.js')
       span#tbconfig  Configuration
   a#new_mission.btn.waves-effect.waves-light.col.s12.truncate(style='background-color: rgba(255,255,255,0.12);') New Mission
   ul#missions.mmgisScrollbar
+  a#manage_geodatasets.btn.waves-effect.waves-light.col.s12.truncate(style='background-color: rgba(255,255,255,0.12);') Manage Geodatasets
 
 #logout
   i.logout#config_logout.mdi.mdi-logout.mdi-24px
@@ -56,6 +59,7 @@ script(type='text/javascript' src='scripts/pre/RefreshAuth.js')
     a#new_mission.btn.waves-effect.waves-light.col.s12.truncate(style='background-color: rgba(255,255,255,0.12);') New Mission
   .col.s10(style='padding: 0;')
     ul#missions.tabs.mmgisScrollbar
+.container_geodatasets
 .container
   #home_cont(style='display: none') MMGIS Configuration
   #new_mission_cont(style='display: none; margin-top: 25vh;')

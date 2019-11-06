@@ -3339,8 +3339,8 @@ define([
             .append('div')
             .attr('id', 'globeToolBarLoading')
             .style('position', 'absolute')
-            .style('top', '24px')
-            .style('right', '4px')
+            .style('top', '38px')
+            .style('right', '8px')
             .style(
                 'transition',
                 'opacity 0.5s cubic-bezier(0.445, 0.05, 0.55, 0.95)'

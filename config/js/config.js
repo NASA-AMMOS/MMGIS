@@ -5,6 +5,7 @@ var mission = "";
 var missionPath = "";
 var tData;
 var editors;
+var layerEditors;
 var usingCustomProjection;
 
 var dataOfLastUsedLayerSlot = {};
@@ -71,6 +72,11 @@ function initialize() {
       reader.readAsText(f)
     })
 
+    //Initial manage geodatasets
+    $( "#manage_geodatasets" ).on( "click", function() {
+      Geodatasets.make();
+    } );
+
     $.ajax({
       type: calls.missions.type,
       url: calls.missions.url,
@@ -92,7 +98,9 @@ function initialize() {
       function getConfigConfig() {
         $.getJSON( calls.configconfigPath + '?nocache=' + new Date().getTime(), function( ccData ) {
           tData = ccData.tools;
+          
           editors = {};
+          layerEditors = {};
 
           for( var i = 0; i < tData.length; i++ ) {
             $( "#tab_tools_rows" ).append(
@@ -148,6 +156,10 @@ function initialize() {
           $('ul.tabs#missions .indicator' ).css({'display': 'none'});
 
           $( "#missions li" ).on( "click", function() {
+            layerEditors = {};
+
+            Geodatasets.destroy();
+
             $('#missions li').removeClass('active')
             $(this).addClass('active')
 
@@ -455,76 +467,88 @@ function makeLayerBarAndModal( d, level ) {
   grandLayerCounter++;
 
   //Which form elements to hide ( based on display property )
-  var nameEl = "block", typeEl = "block", urlEl = "block", demtileurlEl = "block", legendEl = "block",
-      visEl = "block", viscutEl = "block", togwheadEl = "block", minzEl = "block",
+  var nameEl = "block", kindEl = "block", typeEl = "block", urlEl = "block", demtileurlEl = "block", legendEl = "block",
+      visEl = "block", viscutEl = "block", initOpacEl = "block", togwheadEl = "block", minzEl = "block",
       modelLonEl = "block", modelLatEl = "block", modelElevEl = "block",
       modelRotXEl = "block", modelRotYEl = "block", modelRotZEl = "block", modelScaleEl = "block",
       maxnzEl = "block", maxzEl = "block", strcolEl = "block", filcolEl = "block",
       weightEl = "block", opacityEl = "block", radiusEl = "block", variableEl = "block",
-      xmlEl = "block", bbEl = "block";
+      xmlEl = "block", bbEl = "block", vtLayerEl = "block", vtIdEl = "block", vtKeyEl = "block", vtLayerSetStylesEl = "block";
   switch( d.type ) {
     case "header":
-        nameEl = "block"; typeEl = "block"; urlEl = "none"; demtileurlEl = "none"; legendEl = "none";
-        visEl = "block"; viscutEl = "none"; togwheadEl = "none"; minzEl = "none";
+        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "none"; demtileurlEl = "none"; legendEl = "none";
+        visEl = "block"; viscutEl = "none"; initOpacEl = "none"; togwheadEl = "none"; minzEl = "none";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxnzEl = "none"; maxzEl = "none"; strcolEl = "none"; filcolEl = "none";
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "none";
-        xmlEl = "none"; bbEl = "none";
+        xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
       break;
     case "tile":
-        nameEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; legendEl = "block";
-        visEl = "block"; viscutEl = "none"; togwheadEl = "block"; minzEl = "block";
+        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; legendEl = "block";
+        visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "block";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxnzEl = "block"; maxzEl = "block"; strcolEl = "none"; filcolEl = "none";
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "none";
-        xmlEl = "block"; bbEl = "block";
+        xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
+      break;
+    case "vectortile":
+        nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; legendEl = "block";
+        visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "block";
+        modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
+        modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
+        maxnzEl = "block"; maxzEl = "block"; strcolEl = "none"; filcolEl = "none";
+        weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "none";
+        xmlEl = "none"; bbEl = "none"; vtLayerEl = "block"; vtIdEl = "block"; vtKeyEl = "block"; vtLayerSetStylesEl = "block";
       break;
     case "data":
-        nameEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; legendEl = "block";
-        visEl = "block"; viscutEl = "none"; togwheadEl = "block"; minzEl = "block";
+        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; legendEl = "block";
+        visEl = "block"; viscutEl = "none"; initOpacEl = "none"; togwheadEl = "block"; minzEl = "block";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxnzEl = "block"; maxzEl = "block"; strcolEl = "none"; filcolEl = "none";
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "none";
-        xmlEl = "block"; bbEl = "block";
+        xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none"; 
       break;
     case "point":
-        nameEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; legendEl = "block";
-        visEl = "block"; viscutEl = "block"; togwheadEl = "block"; minzEl = "none";
+        nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; legendEl = "block";
+        visEl = "block"; viscutEl = "block"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "none";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxnzEl = "none"; maxzEl = "none"; strcolEl = "block"; filcolEl = "block";
         weightEl = "block"; opacityEl = "block"; radiusEl = "block"; variableEl = "block";
-        xmlEl = "none"; bbEl = "none";
+        xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none"; 
       break;
     case "vector":
-        nameEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; legendEl = "block";
-        visEl = "block"; viscutEl = "block"; togwheadEl = "block"; minzEl = "none";
+        nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; legendEl = "block";
+        visEl = "block"; viscutEl = "block"; initOpacEl = "block"; togwheadEl = "none"; minzEl = "none";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxnzEl = "none"; maxzEl = "none"; strcolEl = "block"; filcolEl = "block";
         weightEl = "block"; opacityEl = "block"; radiusEl = "block"; variableEl = "block";
-        xmlEl = "none"; bbEl = "none";
+        xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none"; 
       break;
     case "model":
-        nameEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; legendEl = "none";
-        visEl = "block"; viscutEl = "none"; togwheadEl = "none"; minzEl = "none";
+        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; legendEl = "none";
+        visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "none"; minzEl = "none";
         modelLonEl = "block"; modelLatEl = "block"; modelElevEl = "block";
         modelRotXEl = "block"; modelRotYEl = "block"; modelRotZEl = "block"; modelScaleEl = "block";
         maxnzEl = "none"; maxzEl = "none"; strcolEl = "none"; filcolEl = "none";
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "none";
-        xmlEl = "none"; bbEl = "none";
+        xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none"; 
       break;
   }
 
   var barColor;
-  var headerSel = "", tileSel = "", dataSel = "", pointSel = "", vectorSel = "", modelSel = "";
+  var headerSel = "", tileSel = "", vectortileSel="", dataSel = "", pointSel = "", vectorSel = "", modelSel = "";
+
   switch( d.type ) {
     case "header": barColor = "#505050"; headerSel = "selected";
       break;
     case "tile": barColor = "rgb(119, 15, 189)"; tileSel = "selected";
+      break;
+    case "vectortile": barColor = "#bd0f8e"; vectortileSel = "selected";
       break;
     case "data": barColor = "rgb(189, 15, 50)"; dataSel = "selected";
       break;
@@ -574,8 +598,8 @@ function makeLayerBarAndModal( d, level ) {
     "</li>");
 
   $( "#modal_divs" ).append(
-    "<div id='layers_" + n + "' class='modal'>" +
-      "<div class='modal-content' style='padding-bottom: 0;'>" +
+    "<div id='layers_" + n + "' class='modal mmgisScrollbar' modalId='" + n + "'>" +
+      "<div class='modal-content' style='padding-bottom: 0; margin-bottom: " + ((d.type === 'header') ? '200px' : '0') + ";'>" +
         "<div class='modal-title'>" +
           "<h4 id='modal_name'>" + d.name + "</h4>" +
           "<div class='clone'><i class='mdi mdi-content-duplicate mdi-24px' title='Clone Layer'></i></div>" +
@@ -583,9 +607,17 @@ function makeLayerBarAndModal( d, level ) {
         "<p>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='nameEl' class='input-field col s5 push-s1' style='display: " + nameEl + "'>" +
+            "<div id='nameEl' class='input-field col s" + (kindEl == 'none' ? 5 : 3) + " push-s1' style='display: " + nameEl + "'>" +
               "<input id='Name" + n + "' type='text' class='validate' value='" + unescape(d.name) + "'>" +
               "<label for='Name" + n + "'>Layer Name</label>" +
+            "</div>" +
+            "<div id='kindEl' class='input-field col s2 push-s1' style='display: " + kindEl + "'>" +
+              "<select>" +
+              "<option value='none' " + (d.kind == 'none' || d.kind == null ? 'selected' : '') + ">None</option>" +
+                "<option value='waypoint' " + (d.kind == 'waypoint' ? 'selected' : '') + ">Waypoint</option>" +
+                "<option value='edl_wedge' " + (d.kind == 'edl_wedge' ? 'selected' : '') + ">EDL Wedge</option>" +
+              "</select>" +
+              "<label>Kind of Layer</label>" +
             "</div>" +
             "<div id='typeEl' class='input-field col s5 push-s1' style='display: " + typeEl + "'>" +
               "<select>" +
@@ -594,6 +626,7 @@ function makeLayerBarAndModal( d, level ) {
                 "</optgroup>" +
                 "<optgroup label='Layers'>" +
                   "<option value='tile' " + tileSel + ">Tile</option>" +
+                  "<option value='vectortile' " + vectortileSel + ">Vector Tile</option>" +
                   "<option value='data' " + dataSel + ">Data</option>" +
                   //"<option value='point' " + pointSel + ">Point</option>" +
                   "<option value='vector' " + vectorSel + ">Vector</option>" +
@@ -657,18 +690,22 @@ function makeLayerBarAndModal( d, level ) {
               "<input id='Legend" + n + "' type='text' class='validate' value='" + d.legend + "'>" +
               "<label for='Legend" + n + "'>Legend</label>" +
             "</div>" +
-            "<div id='visEl' class='input-field col s3 push-s1' style='display: " + visEl + "'>" +
+            "<div id='visEl' class='input-field col s2 push-s1' style='display: " + visEl + "'>" +
               "<select>" +
                 "<option value='true' " + visTrueSel + ">True</option>" +
                 "<option value='false' " + visFalseSel + ">False</option>" +
               "</select>" +
               "<label>Visibility</label>" +
             "</div>" +
-            "<div id='viscutEl' class='input-field col s3 push-s1' style='display: " + viscutEl + "'>" +
+            "<div id='viscutEl' class='input-field col s2 push-s1' style='display: " + viscutEl + "'>" +
               "<input id='Visibilitycutoff" + n + "' type='text' class='validate' value='" + d.visibilitycutoff + "'>" +
               "<label for='Visibilitycutoff" + n + "'>Visibility Cutoff</label>" +
             "</div>" +
-            "<div id='togwheadEl' class='input-field col s3 push-s1' style='display: " + togwheadEl + "'>" +
+            "<div id='initOpacEl' class='input-field col s2 push-s1' style='display: " + initOpacEl + "'>" +
+              "<input id='InitialOpacity" + n + "' type='text' class='validate' value='" + ( d.initialOpacity == null ? 1 : d.initialOpacity ) + "'>" +
+              "<label for='InitialOpacity" + n + "'>Initial Opacity [0 - 1]</label>" +
+            "</div>" +
+            "<div id='togwheadEl' class='input-field col s2 push-s1' style='display: " + /*togwheadEl*/ 'none' + "'>" +
               "<select>" +
                 "<option value='true' " + togwheadTrueSel + ">True</option>" +
                 "<option value='false' " + togwheadFalseSel + ">False</option>" +
@@ -699,6 +736,25 @@ function makeLayerBarAndModal( d, level ) {
             "</div>" +
           "</div>" +
 
+          //Vector tile options
+          "<div class='row' style='margin-bottom: 0px;'>" +
+            "<div id='vtIdEl' class='input-field col s5 push-s1' style='display: " + vtIdEl + "'>" +
+              "<input id='vtId" + n + "' type='text' class='validate' value='" + dStyle.vtId + "'>" +
+              "<label for='vtId" + n + "'>Vector Tile Feature Unique Id Key</label>" +
+            "</div>" +
+            "<div id='vtKeyEl' class='input-field col s5 push-s1' style='display: " + vtKeyEl + "'>" +
+              "<input id='vtKey" + n + "' type='text' class='validate' value='" + dStyle.vtKey + "'>" +
+              "<label for='vtKey" + n + "'>Use Key as Name</label>" +
+            "</div>" +
+          "</div>" +
+
+          "<div class='row' style='margin-bottom: 0px;'>" +
+            "<div id='vtLayerEl' class='input-field col s10 push-s1' style='display: " + vtLayerEl + "'>" +
+              "<textarea id='t" + n + "_var'></textarea>" +
+            "</div>" +
+          "</div>" +
+
+          //Style
           "<div class='row' style='margin-bottom: 0px;'>" +
             "<div id='strcolEl' class='input-field col s2 push-s1' style='display: " + strcolEl + "'>" +
               "<input id='Strcol" + n + "' type='text' class='validate' value='" + dStyle.color + "'>" +
@@ -735,11 +791,25 @@ function makeLayerBarAndModal( d, level ) {
       "<div class='modal-footer' style='background-color: " + barColor + "; display: flex; justify-content: space-between;'>" +
         "<a id='delete_layer' href='#!' class='modal-action modal-close waves-effect waves-red btn-flat left' style='color: white;'>Delete</a>" +
         "<div id='xmlEl' class='waves-effect btn-flat left' style='color: #111; background: #fafafa; display:" + xmlEl + ";' onclick='tilelayerPopulateFromXML(" + n + ")'>Populate from XML</div>" +
+        "<div id='vtLayerSetStylesEl' class='waves-effect btn-flat left' style='color: #111; background: #fafafa; display:" + vtLayerSetStylesEl + "; text-align: center;' onclick='vtlayerPopulateStyle(" + n + ")'>Setup Styles with Layer Names from metadata.json</div>" +
         "<a href='#!' class='modal-action modal-close waves-effect waves-green btn-flat' style='color: white;'>Done</a>" +
       "</div>" +
     "</div>"
   );
 
+  if( layerEditors[n] )
+    layerEditors[n].setValue( '' );
+  layerEditors[n] = CodeMirror.fromTextArea( document.getElementById( "t" + n + "_var" ), {
+    path: "js/codemirror/codemirror-5.19.0/",
+    mode: "javascript",
+    theme: "elegant",
+    viewportMargin: Infinity,
+    lineNumbers: true,
+    autoRefresh: true,
+    matchBrackets: true
+  } );
+  if( dStyle.vtLayer )
+    layerEditors[n].setValue( JSON.stringify(dStyle.vtLayer, null, 4) );
 }
 
 //Extend jQuery functionality to allow for an x-axis draggable that snaps with
@@ -791,67 +861,77 @@ function mmgisLinkModalsToLayersTypeChange( e ) {
   mainId = mainId.substring( mainId.indexOf("_") + 1 );
 
   var barColor = "#000"; //default black
-  var nameEl = "block", typeEl = "block", urlEl = "block", demtileurlEl = "block", legendEl = "block",
-      visEl = "block", viscutEl = "block", togwheadEl = "block", minzEl = "block",
+  var nameEl = "block", kindEl = "block", typeEl = "block", urlEl = "block", demtileurlEl = "block", legendEl = "block",
+      visEl = "block", viscutEl = "block", initOpacEl = "block", togwheadEl = "block", minzEl = "block",
       modelLonEl = "block", modelLatEl = "block", modelElevEl = "block",
       modelRotXEl = "block", modelRotYEl = "block", modelRotZEl = "block", modelScaleEl = "block",
       maxnzEl = "block", maxzEl = "block", strcolEl = "block", filcolEl = "block",
-      weightEl = "block", opacityEl = "block", radiusEl = "block"; variableEl = "block";
+      weightEl = "block", opacityEl = "block", radiusEl = "block", variableEl = "block",
+      vtLayerEl = "none", vtIdEl = "none", vtKeyEl = "none", vtLayerSetStylesEl = "none"; 
   //Kind of a repeat of above =\
-  switch( $( this ).find( "select option:selected" ).text().toLowerCase() ) {
+  switch( $( this ).find( "select option:selected" ).val().toLowerCase() ) {
     case "header": barColor = "#505050";
-        nameEl = "block"; typeEl = "block"; urlEl = "none"; demtileurlEl = "none"; legendEl = "none";
-        visEl = "block"; viscutEl = "none"; togwheadEl = "none"; minzEl = "none"; maxnzEl = "none";
+        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "none"; demtileurlEl = "none"; legendEl = "none";
+        visEl = "block"; viscutEl = "none"; initOpacEl = "none"; togwheadEl = "none"; minzEl = "none"; maxnzEl = "none";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxzEl = "none"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
         opacityEl = "none"; radiusEl = "none"; variableEl = "none";
-        xmlEl = "none"; bbEl = "none";
+        xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none"; 
       break;
     case "tile": barColor = "rgb(119, 15, 189)";
-        nameEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; legendEl = "block";
-        visEl = "block"; viscutEl = "none"; togwheadEl = "block"; minzEl = "block"; maxnzEl = "block";
+        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; legendEl = "block";
+        visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "block"; maxnzEl = "block";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxzEl = "block"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
         opacityEl = "none"; radiusEl = "none"; variableEl = "none";
-        xmlEl = "block"; bbEl = "block";
+        xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";  
+      break;
+    case "vectortile": barColor = "#bd0f8e";
+        nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; legendEl = "block";
+        visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "block"; maxnzEl = "block";
+        modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
+        modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
+        maxzEl = "block"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
+        opacityEl = "none"; radiusEl = "none"; variableEl = "none";
+        xmlEl = "none"; bbEl = "none"; vtLayerEl = "block"; vtIdEl = "block"; vtKeyEl = "block"; vtLayerSetStylesEl = "block";  
       break;
     case "data": barColor = "rgb(189, 15, 50)";
-        nameEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; legendEl = "block";
-        visEl = "block"; viscutEl = "none"; togwheadEl = "block"; minzEl = "block"; maxnzEl = "block";
+        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; legendEl = "block";
+        visEl = "block"; viscutEl = "none"; initOpacEl = "none"; togwheadEl = "block"; minzEl = "block"; maxnzEl = "block";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxzEl = "block"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
         opacityEl = "none"; radiusEl = "none"; variableEl = "none";
-        xmlEl = "block"; bbEl = "block";
+        xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";  
       break;
     case "point": barColor = "#892f45";
-        nameEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; legendEl = "block";
-        visEl = "block"; viscutEl = "block"; togwheadEl = "block"; minzEl = "none"; maxnzEl = "none";
+        nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; legendEl = "block";
+        visEl = "block"; viscutEl = "block"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "none"; maxnzEl = "none";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxzEl = "none"; strcolEl = "block"; filcolEl = "block"; weightEl = "block";
         opacityEl = "block"; radiusEl = "block"; variableEl = "block";
-        xmlEl = "none"; bbEl = "none";
+        xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";  
       break;
     case "vector": barColor = "rgb(15, 119, 189)";
-        nameEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; legendEl = "block";
-        visEl = "block"; viscutEl = "block"; togwheadEl = "block"; minzEl = "none"; maxnzEl = "none";
+        nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; legendEl = "block";
+        visEl = "block"; viscutEl = "block"; initOpacEl = "block"; togwheadEl = "none"; minzEl = "none"; maxnzEl = "none";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxzEl = "none"; strcolEl = "block"; filcolEl = "block"; weightEl = "block";
         opacityEl = "block"; radiusEl = "block"; variableEl = "block";
-        xmlEl = "none"; bbEl = "none";
+        xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";  
       break;
     case "model": barColor = "rgb(189, 189, 15)";
-        nameEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; legendEl = "none";
-        visEl = "block"; viscutEl = "none"; togwheadEl = "none"; minzEl = "none"; maxnzEl = "none"; 
+        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; legendEl = "none";
+        visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "none"; minzEl = "none"; maxnzEl = "none"; 
         modelLonEl = "block"; modelLatEl = "block"; modelElevEl = "block";
         modelRotXEl = "block"; modelRotYEl = "block"; modelRotZEl = "block"; modelScaleEl = "block";
         maxzEl = "none"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
         opacityEl = "none"; radiusEl = "none"; variableEl = "none";
-        xmlEl = "none"; bbEl = "none";
+        xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";  
       break;
     
   }
@@ -863,11 +943,15 @@ function mmgisLinkModalsToLayersTypeChange( e ) {
   //Set available fields to display
   mainThis.find( "#nameEl" ).css( "display", nameEl );
   mainThis.find( "#typeEl" ).css( "display", typeEl );
+  mainThis.find( "#kindEl" ).css( "display", kindEl );
+    if( kindEl == 'none' ) mainThis.find( "#nameEl" ).removeClass('s3').addClass('s5')
+    else mainThis.find( "#nameEl" ).removeClass('s5').addClass('s3')
   mainThis.find( "#urlEl" ).css( "display", urlEl );
   mainThis.find( "#demtileurlEl" ).css( "display", demtileurlEl );
   mainThis.find( "#legendEl" ).css( "display", legendEl );
   mainThis.find( "#visEl" ).css( "display", visEl );
   mainThis.find( "#viscutEl" ).css( "display", viscutEl );
+  mainThis.find( "#initOpacEl" ).css( "display", initOpacEl );
   mainThis.find( "#togwheadEl" ).css( "display", togwheadEl );
   mainThis.find( "#minzEl" ).css( "display", minzEl );
   mainThis.find( "#maxnzEl" ).css( "display", maxnzEl );
@@ -887,6 +971,10 @@ function mmgisLinkModalsToLayersTypeChange( e ) {
   mainThis.find( "#variableEl" ).css( "display", variableEl );
   mainThis.find( "#xmlEl" ).css( "display", xmlEl );
   mainThis.find( "#bbEl" ).css( "display", bbEl );
+  mainThis.find( "#vtLayerEl" ).css( "display", vtLayerEl );
+  mainThis.find( "#vtIdEl" ).css( "display", vtIdEl );
+  mainThis.find( "#vtKeyEl" ).css( "display", vtKeyEl );
+  mainThis.find( "#vtLayerSetStylesEl" ).css( "display", vtLayerSetStylesEl );
 }
 function mmgisLinkModalsToLayersVisChange( e ) {
   var mainThis = $(this).parent().parent().parent();
@@ -1033,8 +1121,10 @@ function save() {
       //Find corresponding modal
       var modal = $( $(this).find( "a" ).attr( "href" ) );
 
+      var modalId = modal.attr( "modalId" )
       var modalName = modal.find( "#nameEl input" ).val();
-      var modalType = modal.find( "#typeEl select option:selected" ).text().toLowerCase();
+      var modalKind = modal.find( "#kindEl select option:selected" ).val().toLowerCase();
+      var modalType = modal.find( "#typeEl select option:selected" ).val().toLowerCase();
       var modalUrl = modal.find( "#urlEl input" ).val();
       var modaldemtileUrl = modal.find( "#demtileurlEl input" ).val();
       var modalLegend = modal.find( "#legendEl input" ).val();
@@ -1042,6 +1132,7 @@ function save() {
       if( modalVis == "true") modalVis = true;
       else                    modalVis = false;
       var modalViscut = parseInt( modal.find( "#viscutEl input" ).val() );
+      var modalInitOpac = parseFloat( modal.find( "#initOpacEl input" ).val() );
       var modalTogwhead = modal.find( "#togwheadEl select option:selected" ).text().toLowerCase();
       if( modalTogwhead == "true")  modalTogwhead = true;
       else                          modalTogwhead = false;
@@ -1063,14 +1154,21 @@ function save() {
       var styleRadius = parseInt( modal.find( "#radiusEl input" ).val() );
       var modalVariable = modal.find( "#variableEl input" ).val();
       var modalBB = modal.find( "#bbEl input" ).val();
+      var modalVtLayer = (modalType == "vectortile" && layerEditors[modalId]) ? JSON.parse( layerEditors[modalId].getValue() || '{}' ) : {};
+      var modalVtId = modal.find( "#vtIdEl input" ).val();
+      var modalVtKey = modal.find( "#vtKeyEl input" ).val();
 
       layerObject.name = modalName;
+      if( modalType == 'vectortile' || modalType == 'vector' || modalType == 'point') {
+        layerObject.kind = modalKind;
+      }
       layerObject.type = modalType;
       if( modalUrl != "undefined" ) layerObject.url = modalUrl;
       if( modaldemtileUrl != "undefined" ) layerObject.demtileurl = modaldemtileUrl;
       if( modalLegend != "undefined" && modalLegend != "" ) layerObject.legend = modalLegend;
       if( modalType != "header" ) layerObject.visibility = modalVis;
       if( !isNaN( modalViscut ) ) layerObject.visibilitycutoff = modalViscut;
+      if( !isNaN( modalInitOpac ) ) layerObject.initialOpacity = modalInitOpac;
       if( modalType != "header" ) layerObject.togglesWithHeader = modalTogwhead;
       if( !isNaN( modalMinz ) ) layerObject.minZoom = modalMinz;
       if( !isNaN( modalMaxnz ) ) layerObject.maxNativeZoom = modalMaxnz;
@@ -1107,6 +1205,22 @@ function save() {
           }
           catch(e) {}
         }
+        layerObject.radius = 1;
+        if( styleRadius != '' && styleRadius != undefined && !isNaN( styleRadius ) ) {
+          layerObject.radius = styleRadius;
+        }
+      }
+      if( modalType == "vectortile" ) {
+        layerObject.style = {}
+        layerObject.style.color = styleStrcol == 'undefined' ? null : styleStrcol || null
+        layerObject.style.fillColor = styleFilcol == 'undefined' ? null : styleFilcol || null
+        layerObject.style.weight = styleWeight == 'undefined' ? null : styleWeight || null
+        layerObject.style.fillOpacity = styleOpacity == 'undefined' ? null : styleOpacity || null
+        layerObject.style.opacity = 1
+        layerObject.style.vtLayer = modalVtLayer == 'undefined' ? null : modalVtLayer || {}
+        layerObject.style.vtId = modalVtId == 'undefined' ? null : modalVtId || null
+        layerObject.style.vtKey = modalVtKey == 'undefined' ? null : modalVtKey || null
+
         layerObject.radius = 1;
         if( styleRadius != '' && styleRadius != undefined && !isNaN( styleRadius ) ) {
           layerObject.radius = styleRadius;
@@ -1153,6 +1267,40 @@ function save() {
             if( !isNaN( modalMinz ) && !isNaN( modalMaxnz ) && !isNaN( modalMaxz ) && ( ( modalMinz > modalMaxnz ) ) ) { isInvalidData = true;
               Materialize.toast( "<span id='toast_warningt8'>WARNING: " + modalName + " has minz larger than maxnz.</span>", 5000);
               $( "#toast_warningt8" ).parent().css("background-color", "#a11717");
+            }
+          break;
+        case "vectortile":
+            if( modalName == "undefined" ) { isInvalidData = true;
+              Materialize.toast( "<span id='toast_warningtv1'>WARNING: vector tile with undefined name.</span>", 5000);
+              $( "#toast_warningvt1" ).parent().css("background-color", "#a11717");
+            }
+            else if( modalName.length < 1 ) { isInvalidData = true;
+              Materialize.toast( "<span id='toast_warningvt2'>WARNING: vector tile with no name.</span>", 5000);
+              $( "#toast_warningvt2" ).parent().css("background-color", "#a11717");
+            }
+            if( modalUrl == "undefined" || modalUrl == "" ) { isInvalidData = true;
+              Materialize.toast( "<span id='toast_warningvt3'>WARNING: " + modalName + " has undefined url.</span>", 5000);
+              $( "#toast_warningvt3" ).parent().css("background-color", "#a11717");
+            }
+            if( isNaN( modalMinz ) ) { isInvalidData = true;
+              Materialize.toast( "<span id='toast_warningvt4'>WARNING: " + modalName + " has undefined minz.</span>", 5000);
+              $( "#toast_warningvt4" ).parent().css("background-color", "#a11717");
+            }
+            else if( modalMinz < 0 ) { isInvalidData = true;
+              Materialize.toast( "<span id='toast_warningvt5'>WARNING: " + modalName + " has minz under 0.</span>", 5000);
+              $( "#toast_warningvt5" ).parent().css("background-color", "#a11717");
+            }
+            if( isNaN( modalMaxnz ) ) { isInvalidData = true;
+              Materialize.toast( "<span id='toast_warningvt6'>WARNING: " + modalName + " has undefined maxnz.</span>", 5000);
+              $( "#toast_warningvt6" ).parent().css("background-color", "#a11717");
+            }
+            if( isNaN( modalMaxz ) ) { isInvalidData = true;
+              Materialize.toast( "<span id='toast_warningvt7'>WARNING: " + modalName + " has undefined maxz.</span>", 5000);
+              $( "#toast_warningvt7" ).parent().css("background-color", "#a11717");
+            }
+            if( !isNaN( modalMinz ) && !isNaN( modalMaxnz ) && !isNaN( modalMaxz ) && ( ( modalMinz > modalMaxnz ) ) ) { isInvalidData = true;
+              Materialize.toast( "<span id='toast_warningvt8'>WARNING: " + modalName + " has minz larger than maxnz.</span>", 5000);
+              $( "#toast_warningvt8" ).parent().css("background-color", "#a11717");
             }
           break;
         case "data":
@@ -1406,11 +1554,13 @@ function saveConfig( json ) {
     },
     success: function(data) {
       if( data.status == 'success' ) {
-        Materialize.toast( "<span id='toast_success'>Save Successful.</span>" , 4000);
+        Materialize.toast( "<span id='toast_success'>Save Successful.</span>" , 1600);
         $( "#toast_success" ).parent().css("background-color", "#1565C0");
+        /*
         Materialize.toast( "<span id='toast_success3'>Page will now reload...</span>" , 4000);
         $( "#toast_success3" ).parent().css("background-color", "#1565C0");
         setTimeout( function() { location.reload(); }, 4000 );
+        */
       }
       else {
         Materialize.toast( "<span id='toast_failure8'>" + data['message'] + "</span>" , 5000);
@@ -1580,6 +1730,61 @@ function tilelayerPopulateFromXML( modalId ) {
     error: function( XMLHttpRequest, textStatus, errorThrown ) {
       Materialize.toast( "<span id='toast_failure_populateXMLtilelayer'>Failed to Populate From " + xmlPath + "</span>" , 5000);
       $( "#toast_failure_populateXMLtilelayer" ).parent().css("background-color", "#a11717"); 
+    }  
+  } );
+}
+
+function vtlayerPopulateStyle( modalId ) {
+  var metadatajsonPath = $( '#Url' + modalId ).val();
+  metadatajsonPath = metadatajsonPath.replace( '{z}/{x}/{y}.pbf', 'metadata.json' );
+  metadatajsonPath = missionPath.replace( 'config.json', '' ) + metadatajsonPath;
+  $.ajax( {
+    type: 'GET',
+    url: metadatajsonPath,
+    dataType: 'json',
+    success: function( json ) {
+      var layers = JSON.parse(json.json).vector_layers
+
+      var newLayerStyles = {};
+      for( var i = 0; i < layers.length; i++ ) {
+        newLayerStyles[layers[i].id] = {
+          color: '#FFFFFF',
+          fill: true,
+          fillColor: 'rgb(0, 125, 200)',
+          fillOpacity: 0.5,
+          opacity: 1,
+          radius: 4,
+          weight: 2,
+        }
+      }
+      if( layerEditors[modalId] ) {
+        var currentLayerStyles = layerEditors[modalId].getValue()
+        if( currentLayerStyles )
+          try {
+            currentLayerStyles = JSON.parse(currentLayerStyles);
+          }
+          catch(e) {
+            Materialize.toast( "<span id='toast_failure_populatemetajsonvtlayer1'>Current styles are not valid JSON.</span>" , 5000);
+          $( "#toast_failure_populatemetajsonvtlayer1" ).parent().css("background-color", "#a11717"); 
+          return
+          }
+        else currentLayerStyles = {};
+
+        if( typeof currentLayerStyles === 'string' ) currentLayerStyles = {}
+
+        var newLayerStyleKeys = Object.keys(newLayerStyles)
+        for( var i = 0; i < newLayerStyleKeys.length; i++ ) {
+          if( currentLayerStyles[newLayerStyleKeys[i]] == null ) {
+            currentLayerStyles[newLayerStyleKeys[i]] = newLayerStyles[newLayerStyleKeys[i]]
+          }
+        }
+
+        layerEditors[modalId].setValue( JSON.stringify(currentLayerStyles, null, 4) );
+      }
+    },
+    error: function( XMLHttpRequest, textStatus, errorThrown ) {
+      Materialize.toast( "<span id='toast_failure_populatemetajsonvtlayer'>Failed to Populate From " + metadatajsonPath + "</span>" , 5000);
+      $( "#toast_failure_populatemetajsonvtlayer" ).parent().css("background-color", "#a11717"); 
     }  
   } );
 }

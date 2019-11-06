@@ -59,7 +59,6 @@ define(['d3', 'Formulae_', 'Layers_', 'Hammer', 'WebVR'], function(
                 renderer.setClearColor(0x000000)
 
                 renderer.vr.enabled = true
-
                 domEl.appendChild(WebVR.createButton(renderer))
 
                 domEl.appendChild(renderer.domElement)

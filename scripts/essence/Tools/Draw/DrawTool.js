@@ -959,6 +959,49 @@ define([
         prettyIntent: function(intent) {
             return (DrawTool.intentNameMapping[intent] || intent) + 's'
         },
+        expandPointprops(geojson) {
+            for (var i = 0; i < geojson.features.length; i++) {
+                if (
+                    geojson.features[i].geometry.type.toLowerCase() ==
+                        'linestring' &&
+                    geojson.features[i].properties.hasOwnProperty('pointprops')
+                ) {
+                    let masterI = i
+
+                    let pp = geojson.features[i].properties.pointprops
+                    delete geojson.features[i].properties.pointprops
+
+                    geojson.features[i].properties.group = masterI
+
+                    for (
+                        var j = 0;
+                        j <
+                        geojson.features[masterI].geometry.coordinates.length;
+                        j++
+                    ) {
+                        var feature = {
+                            type: 'Feature',
+                            geometry: {
+                                type: 'Point',
+                                coordinates:
+                                    geojson.features[masterI].geometry
+                                        .coordinates[j],
+                            },
+                            properties: {
+                                group: masterI,
+                            },
+                        }
+                        var len = pp.order.length
+                        for (var k = 0; k < len; k++) {
+                            feature.properties[pp.order[k]] =
+                                pp.props[j * len + k]
+                        }
+                        geojson.features.splice(i + 1, 0, feature)
+                        i++
+                    }
+                }
+            }
+        },
     }
 
     //

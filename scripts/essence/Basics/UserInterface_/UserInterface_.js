@@ -768,7 +768,7 @@ define([
                 .style('left', '0px')
                 .style('bottom', '0px')
                 //.style( 'border', '1px solid #26a8ff' )
-                .style('z-index', '1002')
+                .style('z-index', '1003')
 
             this.toolsScreen
                 .append('div')

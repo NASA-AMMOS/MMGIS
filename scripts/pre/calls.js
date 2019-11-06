@@ -122,6 +122,14 @@ if (mmgisglobal.SERVER == 'apache') {
             type: 'POST',
             url: '/API/draw/clear_test',
         },
+        geodatasets_get: {
+            type: 'POST',
+            url: '/API/geodatasets/get',
+        },
+        geodatasets_search: {
+            type: 'POST',
+            url: '/API/geodatasets/search',
+        },
     }
 } else {
     console.warn('Unknown SERVER: ' + mmgisglobal.SERVER)

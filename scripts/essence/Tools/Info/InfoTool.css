@@ -20,6 +20,26 @@
     padding-top: 1px;
 }
 
+#infoToolSelections {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+#infoToolSelections li {
+    font-size: 15px;
+    cursor: pointer;
+    text-align: center;
+    padding: 3px 0px;
+    margin: 0px;
+    width: 100% !important;
+}
+#infoToolSelections li.active {
+    background: #004d80;
+    border-radius: 2px;
+}
+
 #infoTool .collapsed > ul {
     display: none;
 }
@@ -42,7 +62,7 @@
 
 #infoTool ul {
     list-style-type: none;
-    padding: 0px 7px 0px 0px;
+    padding: 0px 7px 0px 7px;
     margin: 0px 0px 0px 0px;
 }
 

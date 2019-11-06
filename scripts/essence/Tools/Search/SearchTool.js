@@ -2,6 +2,7 @@ define([
     'jquery',
     'jqueryUI',
     'd3',
+    'Formulae_',
     'Layers_',
     'Map_',
     'ToolController_',
@@ -13,6 +14,7 @@ define([
     $,
     jqueryUI,
     d3,
+    F_,
     L_,
     Map_,
     ToolController_,
@@ -25,10 +27,10 @@ define([
     var markup = [
   "<div id='searchTool' class='flexbetween'>",
     "<div style='padding-right: 8px; color: var(--color-mmgis); line-height: 43px;'>Search</div>",
-    "<select id='searchToolType' class='ui dropdown short lower'>",
+    "<select id='searchToolType' class='ui dropdown short lower searchToolSelect'>",
     "</select>",
     "<p style='padding-left: 8px; line-height: 43px;'>for</p>",
-    "<div class='ui-widget' style='display: inline-block; padding: 8px;'>",
+    "<div class='ui-widget' style='display: inline-block; padding: 9px 8px 8px 8px;'>",
       "<input id='auto_search' style='color: #111;'></input>",
     "</div>",
     "<p style='line-height: 43px;'>and</p>",
@@ -40,12 +42,14 @@ define([
 
     var SearchTool = {
         height: 43,
-        width: 630,
+        width: 700,
         lname: null,
         arrayToSearch: null,
         MMWebGISInterface: null,
         vars: {},
         searchFields: {},
+        type: 'geojson',
+        lastGeodatasetLayerName: null,
         init: function() {
             //Get tool variables
             this.vars = L_.getToolVars('search')
@@ -81,7 +85,11 @@ define([
 
         var first = true
         for (l in SearchTool.searchFields) {
-            if (L_.layersNamed[l].type == 'vector' && L_.toggledArray[l]) {
+            if (
+                L_.layersNamed[l] &&
+                (L_.layersNamed[l].type == 'vector' || L_.layersNamed[l].type == 'vectortile') &&
+                L_.toggledArray[l]
+            ) {
                 d3.select('#searchToolType')
                     .append('option')
                     .attr('value', l)
@@ -149,29 +157,57 @@ define([
     function changeSearchField(val) {
         if (Map_ != null) {
             SearchTool.lname = val
-            var searchFile = L_.layersNamed[SearchTool.lname].url
+            
+            let urlSplit = L_.layersNamed[SearchTool.lname].url.split(':')
+            
+            if( urlSplit[0] == 'geodatasets' && urlSplit[1] != null ) {        
+                SearchTool.type = 'geodatasets'
+                SearchTool.lastGeodatasetLayerName = urlSplit[1];
+                $( '#searchToolSelect' ).css( { display: 'none' } )
+                $( '#searchToolBoth' ).css( { display: 'none' } )
+            }
+            else {
+                SearchTool.type = 'geojson'
+                $( '#searchToolSelect' ).css( { display: 'inherit' } )
+                $( '#searchToolBoth' ).css( { display: 'inherit' } )
 
-            $.getJSON(L_.missionPath + searchFile, function(data) {
-                SearchTool.arrayToSearch = []
-                var props
-                for (var i = 0; i < data.features.length; i++) {
-                    props = data.features[i].properties
-                    SearchTool.arrayToSearch.push(
-                        getSearchFieldStringForFeature(SearchTool.lname, props)
-                    )
-                }
-                if (document.getElementById('auto_search') != null) {
-                    document.getElementById(
-                        'auto_search'
-                    ).placeholder = getSearchFieldKeys(SearchTool.lname)
-                }
-            })
+                var searchFile = L_.layersNamed[SearchTool.lname].url
+
+                $.getJSON(L_.missionPath + searchFile, function(data) {
+                    SearchTool.arrayToSearch = []
+                    var props
+                    for (var i = 0; i < data.features.length; i++) {
+                        props = data.features[i].properties
+                        SearchTool.arrayToSearch.push(
+                            getSearchFieldStringForFeature(SearchTool.lname, props)
+                        )
+                    }
+                    if (SearchTool.arrayToSearch[0]) {
+                        if (!isNaN(SearchTool.arrayToSearch[0]))
+                            SearchTool.arrayToSearch.sort(function(a, b) {
+                                return a - b
+                            })
+                        else SearchTool.arrayToSearch.sort()
+                    }
+                    if (document.getElementById('auto_search') != null) {
+                        document.getElementById(
+                            'auto_search'
+                        ).placeholder = getSearchFieldKeys(SearchTool.lname)
+                    }
+                })
+            }
             initializeSearch()
         }
     }
 
     function searchGo() {
-        doWithSearch('goto', 'false', 'false', false)
+        switch( SearchTool.type ) {
+            case 'geodatasets':
+                    searchGeodatasets();
+                break;
+            default:
+                doWithSearch('goto', 'false', 'false', false)
+        }
     }
     function searchSelect() {
         doWithSearch('select', 'false', 'false', false)
@@ -179,6 +215,44 @@ define([
     function searchBoth() {
         doWithSearch('both', 'false', 'false', false)
     }
+
+
+    function searchGeodatasets() {
+        let value = document.getElementById('auto_search').value
+        let key = SearchTool.searchFields[SearchTool.lname] && SearchTool.searchFields[SearchTool.lname][0]
+                    ? SearchTool.searchFields[SearchTool.lname][0][1] : null
+        if( key == null ) return;
+  
+        calls.api(
+            'geodatasets_search',
+            {
+                layer: SearchTool.lastGeodatasetLayerName,
+                key: key,
+                value: value
+            },
+            function(d) {
+                var r = d.body[0];
+                Map_.map.setView(
+                    [r.coordinates[1], r.coordinates[0]],
+                    Map_.map.getZoom()
+                )
+                setTimeout(function() {
+                    var vts = L_.layersGroup[SearchTool.lname]._vectorTiles;
+                    for( var i in vts ) {
+                        for( var j in vts[i]._features ) {
+                            var feature = vts[i]._features[j].feature
+                            if( feature.properties[key] == value ) {
+                                L_.layersGroup[SearchTool.lname]._events.click[0].fn( { layer: feature } )
+                                break;
+                            }
+                        }
+                    }
+                }, 2000 )
+            },
+            function(d) {}
+        )
+    }
+
     //doX is either "goto", "select" or "both"
     //forceX overrides searchbar entry, "false" for default
     //forceSTS overrides dropdown, "false" for default
@@ -215,9 +289,14 @@ define([
 
                 for (var i = 0; i < x.length; i++) {
                     if (
-                        x[i].toLowerCase().indexOf(comparer.toLowerCase()) >
-                            -1 ||
-                        comparer.toLowerCase().indexOf(x[i].toLowerCase()) > -1
+                        x.length == 1
+                            ? x[i].toLowerCase() == comparer.toLowerCase()
+                            : x[i]
+                                  .toLowerCase()
+                                  .indexOf(comparer.toLowerCase()) > -1 ||
+                              comparer
+                                  .toLowerCase()
+                                  .indexOf(x[i].toLowerCase()) > -1
                     ) {
                         shouldSearch = true
                         break
@@ -313,7 +392,7 @@ define([
                         str += props[sf[i][1]].replace('_', ' ')
                         break
                 }
-                str += ' '
+                if (i != sf.length - 1) str += ' '
             }
         }
         return str

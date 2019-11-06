@@ -303,14 +303,32 @@ body {
 }
 
 .leaflet-control-zoom {
-  margin-top: 24px !important;
-  margin-right: 0px !important;
   border: none !important;
+  margin-top: 38px !important;
+  margin-right: 4px !important;
 }
 .leaflet-control-zoom a {
-  background: transparent;
-  color: white;
-  border-bottom: none !important;
+  color: #aaa;
+  padding-right: 2px;
+  width: 30px;
+  height: 30px;
+  line-height: 30px;
+  border-radius: 3px;
+  margin-bottom: 4px;
+  border: 1px solid rgb(85, 85, 85) !important;
+  background: var(--color-a) !important;
+  transition: color 0.2s ease-in 0s;
+}
+.leaflet-control-zoom a:hover {
+  color: #fff;
+}
+#loginoutButton,
+#forceSignupButton {
+  transition: color 0.2s ease-in 0s;
+}
+#loginoutButton:hover,
+#forceSignupButton:hover {
+  color: #fff;
 }
 
 .leaflet-popup-content-wrapper::-webkit-scrollbar-track {
@@ -433,4 +451,15 @@ mark {
   border-radius: 0px !important;
   margin-left: -1px;
   margin-top: 1px;
+}
+
+.leaflet-tile-pane svg.leaflet-tile {
+  pointer-events: none !important;
+}
+.leaflet-tile-pane svg.leaflet-tile path.leaflet-interactive {
+  pointer-events: auto;
+}
+
+.kindsWedgeLayer {
+  pointer-events: none !important;
 }

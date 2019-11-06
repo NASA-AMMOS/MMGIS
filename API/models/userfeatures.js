@@ -66,7 +66,7 @@ var UserfeaturesTEST = sequelize.define('user_features_tests', attributes, optio
 // create all the defined tables in the specified database.
 sequelize.sync()
     .then(() => {
-        logger.info('user_features table has been successfully created, if one doesn\'t exist')
+        logger.info('User Features table has been successfully created, if one doesn\'t exist')
     })
     .catch(error => logger.error('This error occurred' + error));
 

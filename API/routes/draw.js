@@ -2,6 +2,7 @@ const express  = require('express');
 const logger   = require('../logger');
 const database = require('../database');
 const Sequelize = require('sequelize');
+const uuidv4 = require('uuid/v4');
 const fhistories       	= require('../models/filehistories')
 const Filehistories 	= fhistories.Filehistories
 const FilehistoriesTEST	= fhistories.FilehistoriesTEST
@@ -255,6 +256,7 @@ const clipUnder = function(req, res, newFeature, time, successCallback, failureC
 		history = history.join(',');
 		history = history || 'NULL';
 
+		//Continually clip the added feature with the other features of the file
 		let q = [
 			"WITH RECURSIVE clipper (n, clippedgeom) AS (",
 				"SELECT 0 n, ST_MakeValid(ST_GeomFromGeoJSON(:geom)) clippedgeom",
@@ -307,12 +309,17 @@ const clipUnder = function(req, res, newFeature, time, successCallback, failureC
 						return null;
 					}
 					let clippedFeature = Object.assign({}, newFeature );
+					clippedFeature.properties = JSON.parse( newFeature.properties );
 					clippedFeature.geom = JSON.parse(results[i].geom);
 					clippedFeature.geom.crs = { type: 'name', properties: { name: 'EPSG:4326' } };
-					
+					clippedFeature.properties.uuid = uuidv4();
+					clippedFeature.properties = JSON.stringify( clippedFeature.properties )
+				
+
 					Features.create( clippedFeature )
 						.then( (created) => {
 							newIds.push(created.id)
+							//now update the
 							addLoop( i + 1 )
 							return null;
 						} )
@@ -327,7 +334,6 @@ const clipUnder = function(req, res, newFeature, time, successCallback, failureC
 			return null;
 		} )
 		.catch( err => {
-			console.log( 'A', err )
 			failureCallback();
 		} );
 		
@@ -437,6 +443,9 @@ const add = function( req, res, successCallback, failureCallback1, failureCallba
 					} )
 				}
 				else {
+					newFeature.properties = JSON.parse( newFeature.properties )
+					newFeature.properties.uuid = uuidv4();
+					newFeature.properties = JSON.stringify( newFeature.properties )
 					// Insert new feature into the feature table
 					Features.create( newFeature )
 						.then( (created) => {
@@ -475,7 +484,6 @@ const add = function( req, res, successCallback, failureCallback1, failureCallba
 							return null;
 						} )
 						.catch( err => {
-							console.log( err );
 							if( typeof failureCallback2 === 'function' )
 								failureCallback2();
 							
@@ -566,7 +574,6 @@ const edit = function( req, res, successCallback, failureCallback ) {
 			} )
 			.then( feature => {
 				if( !feature && !req.body.addIfNotFound ) {
-					console.log( 'No feature' )
 					failureCallback()
 				}
 				else {
@@ -586,22 +593,31 @@ const edit = function( req, res, successCallback, failureCallback ) {
 					else {
 						newAttributes.geom = JSON.parse( feature.dataValues.geojson_geom );
 					}
+					if( req.body.hasOwnProperty('reassignUUID') && req.body.reassignUUID == 'true' ) {
+						newAttributes.properties = JSON.parse( newAttributes.properties )
+						newAttributes.properties.uuid = uuidv4();
+						newAttributes.properties = JSON.stringify( newAttributes.properties )
+					}
 
 					newAttributes.geom.crs = { type: 'name', properties: { name: 'EPSG:4326' } };
 
 					Features.create( newAttributes )
 						.then( (created) => {
+							let createdId = created.id;
+							let createdUUID = JSON.parse(created.properties).uuid
+							let createdIntent = created.intent
+
 							if( req.body.to_history ) {
 								pushToHistory( Histories, req.body.file_id, created.id, req.body.feature_id, time, null, 1,
 									() => {
-										successCallback()
+										successCallback(createdId, createdUUID, createdIntent)
 									},
 									() => {
 										failureCallback()
 									} )
 							}
 							else {
-								successCallback(created.id)
+								successCallback(createdId, createdUUID, createdIntent)
 							}
 							return null;
 						} )
@@ -625,11 +641,11 @@ const edit = function( req, res, successCallback, failureCallback ) {
 
 router.post('/edit', function(req, res) {
 	edit( req, res,
-		( createdId, createdIntent) => {
+		( createdId, createdUUID, createdIntent ) => {
 			res.send( {
 				status: 'success',
 				message: 'Successfully edited feature.',
-				body: { id: createdId, intent: createdIntent }
+				body: { id: createdId, uuid: createdUUID, intent: createdIntent }
 			} );
 		},
 		() => {

@@ -5,20 +5,19 @@
 /config/Passwords.txt
 /Missions_dev/
 /Missions_rel/
-resources/CRISM_Master
-resources/Themis
+/resources/CRISM_Master
+/resources/Themis
 /documentation
 .vscode
 .DS_Store
-README.md
 node_modules/
 .env
-/API/logs/
+API/logs/*
 
-/Missions/
+/Missions
 /db/
-/config/configconfig.json
 /config/db/
 /scripts/ignore
+sessions
 
 #tools
