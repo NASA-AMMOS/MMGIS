@@ -9,12 +9,13 @@ define(['jquery', 'd3', 'Layers_', 'semantic'], function($, d3, L_, semantic) {
         activeToolName: null,
         prevHeight: 0,
         defaultColor: '#AAA',
-        hoverColor: '#FFF',
-        activeColor: '#000',
-        activeBG: '#fffdf5',
+        hoverColor: 'var(--color-mmgis)',
+        activeColor: 'var(--color-mmgis)',
+        activeBG: 'var(--color-i)',
         loaded: false,
         init: function(tools) {
             this.tools = tools
+
             var mainDiv = d3
                 .select('#toolbar')
                 .append('div')
@@ -35,21 +36,16 @@ define(['jquery', 'd3', 'Layers_', 'semantic'], function($, d3, L_, semantic) {
                 this.incToolsDiv
                     .append('div')
                     .style('transition', 'all 0.25s ease-in')
-                    .style('width', '36px')
+                    .style('width', '100%')
                     .style('height', '30px')
                     .style('display', 'inline-block')
                     .style('text-align', 'center')
                     .style('line-height', '30px')
-                    .style('border-radius', '1px')
                     //.style( 'text-shadow', '0px 1px #111' )
                     .style('vertical-align', 'middle')
-                    .append('i')
-                    .style('transition', 'all 0.2s ease-in')
-                    .attr('id', tools[i].name + 'Tool')
-                    .attr('class', 'mdi mdi-' + tools[i].icon + ' mdi-18px')
-                    .attr('title', tools[i].name)
-                    .style('color', ToolController_.defaultColor)
                     .style('cursor', 'pointer')
+                    .attr('title', tools[i].name)
+                    .style('transition', 'all 0.2s ease-in')
                     .on(
                         'click',
                         (function(i) {
@@ -65,7 +61,9 @@ define(['jquery', 'd3', 'Layers_', 'semantic'], function($, d3, L_, semantic) {
                                     color: ToolController_.defaultColor,
                                     background: 'none',
                                 })
-                                prevActive.parent().css({ background: 'none' })
+                                prevActive.parent().css({
+                                    background: 'none',
+                                })
                                 if (!hasActive) {
                                     var newActive = $(
                                         '#toolcontroller_incdiv #' +
@@ -95,6 +93,10 @@ define(['jquery', 'd3', 'Layers_', 'semantic'], function($, d3, L_, semantic) {
                             $(this).css({ color: ToolController_.defaultColor })
                         }
                     })
+                    .append('i')
+                    .attr('id', tools[i].name + 'Tool')
+                    .attr('class', 'mdi mdi-' + tools[i].icon + ' mdi-18px')
+                    .style('cursor', 'pointer')
             }
             //Only require the tools we need
             require(this.toolModuleNames, function() {
@@ -124,6 +126,7 @@ define(['jquery', 'd3', 'Layers_', 'semantic'], function($, d3, L_, semantic) {
                         $('.LoadingPage').remove()
                     }
                 )
+                L_.fullyLoaded()
             })
         },
         clear() {

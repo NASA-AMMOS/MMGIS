@@ -146,6 +146,13 @@
       "descriptionFull": "",
       "hasVars": true,
       "name": "Draw"
+    },
+    {
+      "defaultIcon": "waves",
+      "description": "Curtain views of Ground Penetrating Radar data.",
+      "descriptionFull": "{\"data\": {\"Layer name\": \"Path to Layer's data\"} }",
+      "hasVars": true,
+      "name": "Curtain"
     }
   ]
 }

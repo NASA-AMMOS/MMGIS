@@ -14,19 +14,15 @@ const cs3Format = printf(({ level, body, label, timestamp, a, b, c }) => {
     msg: body.message,
     domain: hostname,
     sessionID: "d2aaf94b-2893-42a8-b0a0-b186129d7ed3",
-    "X-Amzn-Trace-Id": "Root = 1 - 67891233 - abcdef012345678912345678",
     user: body.user || "HOST"
   });
 });
 
-const logger = winston.createLogger({
+const filelogger = winston.createLogger({
   level: "info",
   //format: cs3Format,
   defaultMeta: { user: "HOST" },
   transports: [
-    new winston.transports.Console({
-      format: winston.format.simple()
-    }),
     new winston.transports.File({
       filename: __dirname + "/logs/error.log",
       level: "error"
@@ -34,5 +30,65 @@ const logger = winston.createLogger({
     new winston.transports.File({ filename: __dirname + "/logs/combined.log" })
   ]
 });
+
+const logger = function (level, message, caller, req, err) {
+  let log = {
+    level: level,
+    ts: Date.now(),
+    caller: caller || "server",
+    msg: message,
+    domain: req && req.headers && req.headers.host ? req.headers.host : "HOST",
+    hostname: hostname,
+    sessionID: req && req.cssoSessionID ? req.cssoSessionID : "HOST",
+    internalSessionID: req && req.sessionID ? req.sessionID : "HOST",
+    user: req && req.user ? req.user : "HOST"
+  };
+
+  let crop = 512;
+  if (req && req.body) {
+    let cleanBody = JSON.parse(JSON.stringify(req.body));
+    if (cleanBody.password) {
+      cleanBody.password = "_redacted_";
+    }
+    for (let k in cleanBody) {
+      if (JSON.stringify(cleanBody[k]).length > crop)
+        cleanBody[k] = '[Too Long...]'
+    }
+    if (Object.keys(cleanBody).length > 0) {
+      log.req = log.req || {};
+      log.req.body = cleanBody;
+    }
+  }
+  if (req && req.query) {
+    let cleanQuery = JSON.parse(JSON.stringify(req.query));
+    if (cleanQuery.password) {
+      cleanQuery.password = "_redacted_";
+    }
+    for (let k in cleanQuery) {
+      if (JSON.stringify(cleanQuery[k]).length > crop)
+        cleanQuery[k] = '[Too Long...]'
+    }
+    if (Object.keys(cleanQuery).length > 0) {
+      log.req = log.req || {};
+      log.req.query = cleanQuery;
+    }
+  }
+  if (err) {
+    log.err = err;
+  }
+
+  log = JSON.stringify(log);
+
+  console.log(log);
+
+  switch (level) {
+    case "infrastructure_error":
+    case "error":
+      filelogger.error(log);
+      break;
+    default:
+      filelogger.info(log);
+  }
+};
 
 module.exports = logger;

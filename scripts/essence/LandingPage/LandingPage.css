@@ -5,7 +5,50 @@
     opacity: 0;
     display: flex;
     flex-flow: column;
-    background: #121626;
+    background: var(--color-a);
+    background-image: url(/../public/images/Twilight_Sunrise_Over_Australia.jpg);
+    background-size: cover;
+    background-position: center;
+    padding: 40px;
+}
+
+.landingPage .gradient {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    background: linear-gradient(
+        rgba(0, 0, 0, 0.8),
+        rgba(0, 0, 0, 0) 20%,
+        rgba(0, 0, 0, 0) 80%,
+        rgba(0, 0, 0, 0.8) 100%
+    );
+    z-index: -1;
+}
+
+.landingPage .imagecredit {
+    font-family: 'roboto';
+    font-size: 13px;
+    color: #777;
+    position: absolute;
+    bottom: 40px;
+    left: 40px;
+    display: flex;
+    padding-left: 10px;
+}
+.landingPage .imagecredit div {
+    padding-right: 3px;
+}
+
+.landingPage .imagecredit a,
+.landingPage .imagecredit a.visited {
+    color: #888;
+    transition: color 0.2s ease-in;
+}
+.landingPage .imagecredit a:hover {
+    color: #bbb;
 }
 
 .landingPage #title img {
@@ -15,18 +58,20 @@
 }
 
 .landingPageMission {
-    transition: color 0.2s ease-in, padding-left 0.2s ease-out;
+    transition: color 0.1s ease-in-out;
     color: #bbb;
-    font-family: 'lato';
+    font-family: 'roboto';
     opacity: 1;
     list-style-type: none;
     margin: 10px 0px;
-    font-size: 23px;
-    line-height: 23px;
+    font-size: 26px;
+    line-height: 26px;
     cursor: pointer;
+    mix-blend-mode: difference;
 }
 .landingPageMission:hover {
     color: #fff;
+    font-weight: bold;
 }
 
 .landingPageMission:first-child {
@@ -35,30 +80,44 @@
 
 #configIcon {
     position: absolute;
-    bottom: 0px;
-    left: 0px;
+    bottom: 30px;
+    right: 120px;
     padding: 10px;
     cursor: pointer;
-    color: #bbb;
+    color: #888;
     transition: color 0.2s ease-in;
     z-index: 100;
 }
 #configIcon:hover {
-    color: white;
+    color: #bbb;
+}
+
+#docsIcon {
+    position: absolute;
+    bottom: 30px;
+    right: 75px;
+    padding: 10px;
+    cursor: pointer;
+    color: #888;
+    transition: color 0.2s ease-in;
+    z-index: 100;
+}
+#docsIcon:hover {
+    color: #bbb;
 }
 
 #attributionIcon {
     position: absolute;
-    bottom: 0px;
-    right: 0px;
+    bottom: 30px;
+    right: 30px;
     padding: 10px;
     cursor: pointer;
-    color: #bbb;
+    color: #888;
     transition: color 0.2s ease-in;
     z-index: 100;
 }
 #attributionIcon:hover {
-    color: white;
+    color: #bbb;
 }
 
 #attributions {
@@ -66,9 +125,7 @@
     right: 0px;
     top: 0px;
     font-family: 'lato';
-    padding: 10px 38px 0px 38px;
     height: 100vh;
-    overflow-y: auto;
     background: white;
     opacity: 0;
     pointer-events: none;
@@ -77,6 +134,11 @@
 #attributions.active {
     opacity: 1;
     pointer-events: inherit;
+}
+#attributionsContent {
+    height: calc(100vh - 84px);
+    padding: 10px;
+    overflow-y: auto;
 }
 
 #attributionsTitle {
@@ -147,25 +209,25 @@
     color: #005fad;
 }
 
-#attributions > ul {
+#attributions ul {
     list-style-type: none;
     padding: 0;
     margin-top: 5px;
 }
-#attributions > ul > li {
+#attributions ul > li {
     display: flex;
     justify-content: space-between;
     color: #242424;
 }
-#attributions > ul > li:last-child {
+#attributions ul > li:last-child {
     text-align: center;
     display: block;
     padding: 8px 8px 0px 8px;
 }
-#attributions > ul > li > div {
+#attributions ul > li > div {
     display: flex;
 }
-#attributions > ul > li > div:last-child {
+#attributions ul > li > div:last-child {
     padding-left: 20px;
 }
 #attributions .attribution_library {

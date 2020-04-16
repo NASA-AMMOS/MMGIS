@@ -45,8 +45,16 @@ define([
             DrawTool.cmLayerUp = Editing.cmLayerUp
             DrawTool.cmLayerMove = Editing.cmLayerMove
         },
-        showContextMenu: function(x, y, layer, index, fileid, ctrl) {
-            if (!DrawTool.open) return
+        showContextMenu: function(
+            x,
+            y,
+            layer,
+            index,
+            fileid,
+            ctrl,
+            displayOnly
+        ) {
+            if (!DrawTool.open && !displayOnly) return
 
             DrawTool.lastContextLayerIndexFileId = {
                 layer: layer,
@@ -140,21 +148,26 @@ define([
                 DrawTool.contextMenuChanges.style.fontSize = false
             }
 
-            var shape = L_.layersGroup[layer][index]
+            var shape = layer
+            if (index != null) shape = L_.layersGroup[shape][index]
             //Disable editing the previous drawing layer if it was being
-            if (DrawTool.contextMenuLayer) {
-                DrawTool.contextMenuLayer.resetGeoJSON()
+            if (!displayOnly) {
+                if (DrawTool.contextMenuLayer) {
+                    DrawTool.contextMenuLayer.resetGeoJSON()
 
-                if (
-                    typeof DrawTool.contextMenuLayer.disableEdit === 'function'
-                ) {
-                    DrawTool.contextMenuLayer.disableEdit()
+                    if (
+                        typeof DrawTool.contextMenuLayer.disableEdit ===
+                        'function'
+                    ) {
+                        DrawTool.contextMenuLayer.disableEdit()
 
-                    if (DrawTool.contextMenuLayer.snapediting)
-                        DrawTool.contextMenuLayer.snapediting.disable()
-                } else DrawTool.cmLayerDragOff()
+                        if (DrawTool.contextMenuLayer.snapediting) {
+                            DrawTool.contextMenuLayer.snapediting.disable()
+                        }
+                    } else DrawTool.cmLayerDragOff()
 
-                DrawTool.isEditing = false
+                    DrawTool.isEditing = false
+                }
             }
 
             if (
@@ -277,7 +290,8 @@ define([
                 )
 
                 properties = DrawTool.contextMenuLayer.feature.properties
-                style = properties.style
+                properties.style = properties.style || {}
+                style = properties.style || {}
 
                 //Set blank styles to
                 style.color = style.color || 'black'
@@ -293,7 +307,10 @@ define([
 
                 var bbox = turf.bbox(DrawTool.contextMenuLayerOriginalGeoJSON)
 
-                var bounds = [[bbox[1], bbox[0]], [bbox[3], bbox[2]]]
+                var bounds = [
+                    [bbox[1], bbox[0]],
+                    [bbox[3], bbox[2]],
+                ]
                 var sl
                 if (
                     bounds[0][0] == bounds[1][0] &&
@@ -417,8 +434,9 @@ define([
                         'function'
                     )
                         DrawTool.contextMenuLayer.disableEdit()
-                    if (DrawTool.contextMenuLayer.snapediting)
+                    if (DrawTool.contextMenuLayer.snapediting) {
                         DrawTool.contextMenuLayer.snapediting.disable()
+                    }
                     //Yay all the lat lngs are flipped
                     //console.log( JSON.parse(JSON.stringify(coords)) )
                     //console.log( JSON.parse(JSON.stringify(DrawTool.contextMenuLayerOriginalLatLngs) ) )
@@ -460,246 +478,271 @@ define([
             var uuid = properties.uuid || ''
 
             var ownedByUser = true
-            for (var i = 0; i < DrawTool.contextMenuLayers.length; i++) {
-                if (
-                    DrawTool.contextMenuLayers[i].file.file_owner == 'master' ||
-                    (mmgisglobal.user !==
-                        DrawTool.contextMenuLayers[i].file.file_owner &&
-                        (DrawTool.contextMenuLayers[i].file.file_owner_group ==
-                            null ||
+            if (displayOnly) ownedByUser = false
+            else {
+                for (var i = 0; i < DrawTool.contextMenuLayers.length; i++) {
+                    if (
+                        DrawTool.contextMenuLayers[i].file.file_owner ==
+                            'master' ||
+                        (mmgisglobal.user !==
+                            DrawTool.contextMenuLayers[i].file.file_owner &&
                             (DrawTool.contextMenuLayers[i].file
-                                .file_owner_group &&
-                                F_.diff(
-                                    DrawTool.contextMenuLayers[i].file
-                                        .file_owner_group,
-                                    DrawTool.userGroups
-                                ).length == 0)))
-                )
-                    ownedByUser = false
+                                .file_owner_group == null ||
+                                (DrawTool.contextMenuLayers[i].file
+                                    .file_owner_group &&
+                                    F_.diff(
+                                        DrawTool.contextMenuLayers[i].file
+                                            .file_owner_group,
+                                        DrawTool.userGroups
+                                    ).length == 0)))
+                    )
+                        ownedByUser = false
+                }
             }
+
+            let isMaster =
+                DrawTool.userGroups.indexOf('mmgis-group') != -1 &&
+                DrawTool.contextMenuLayers[0].file.file_owner == 'group'
+
+            var setOperations = DrawTool.getSetOperationsUI()
 
             // prettier-ignore
             var markup = [
-        "<div class='drawToolContextMenu'>",
-          "<div class='drawToolContextMenuDragHandle'></div>",
-          "<div class='drawToolContextMenuColorGround'></div>",
-          "<div class='drawToolContextMenuHeaderColor'></div>",
-          "<div class='drawToolContextMenuBottomColor'></div>",
-          "<div class='drawToolContextMenuHeader'>",
+    "<div class='drawToolContextMenu'>",
+        "<div class='drawToolContextMenuDragHandle'></div>",
+        "<div class='drawToolContextMenuColorGround'></div>",
+        "<div class='drawToolContextMenuHeaderColor'></div>",
+        "<div class='drawToolContextMenuBottomColor'></div>",
+
+        "<div class='drawToolContextMenuHeader'>",
+        "<div class='flexbetween'>",
             "<div class='flexbetween'>",
-              "<div class='flexbetween'>",
-                "<div class='drawToolContextMenuHeaderName " + titleClass + "''>" + title + "</div>",
-                "<div class='drawToolContextMenuHeaderCount " + countClass + "'>",
-                    "<span>x" + DrawTool.contextMenuLayers.length + "</span>",
-                    "<div class='drawToolConextMenuHeaderMerge' title='Merge polygons, keeping the properties of the last selected one.'>merge</div>",    
+            "<div class='drawToolContextMenuHeaderName " + titleClass + "''>" + title + "</div>",
+            "<div class='drawToolContextMenuHeaderCount " + countClass + "'>",
+                "<span>x" + DrawTool.contextMenuLayers.length + "</span>", 
+            "</div>",
+            "</div>",
+            "<div class='drawToolContextMenuHeaderClose'>",
+            "<i class='mdi mdi-close mdi-18px'></i>",
+            "</div>",
+        "</div>",
+        "<div class='drawToolContextMenuHeader1 flexbetween'>",
+            "<div class='drawToolContextMenuHeaderOwner'>by <span>" + file.file_owner + "</span></div>",
+            "<div class='drawToolContextMenuHeaderFile'>from<span>" + file.file_name + "</span></div>",
+        "</div>",
+        "</div>",
+
+        "<div class='drawToolContextMenuTabBar'>",
+            "<div class='drawToolContextMenuTabTitle'>Properties</div>",
+            "<div class='drawToolContextMenuTabButtons'>",
+                "<div class='drawToolContextMenuTabButton' tab='drawToolContextMenuTabProperties' title='Properties'>",
+                    "<i class='mdi mdi-file-document-box mdi-24px'></i>",
                 "</div>",
-              "</div>",
-              "<div class='drawToolContextMenuHeaderClose'>",
-                "<i class='mdi mdi-close mdi-18px'></i>",
-              "</div>",
+                (!displayOnly) ? "<div class='drawToolContextMenuTabButton' tab='drawToolContextMenuTabStyle' title='Style' style='display: " + ( (hideStyle) ? 'none' : 'inherit' ) + "'><i class='mdi mdi-palette mdi-24px'></i></div>" : "",
+                (!displayOnly) ? "<div class='drawToolContextMenuTabButton'  tab='drawToolContextMenuTabSet' title='Set Operations'><i class='mdi mdi-vector-combine mdi-24px'></i></div>" : "",
             "</div>",
-            "<div class='drawToolContextMenuHeader1 flexbetween'>",
-              "<div class='drawToolContextMenuHeaderOwner'>by <span>" + file.file_owner + "</span></div>",
-              "<div class='drawToolContextMenuHeaderFile'>from<span>" + file.file_name + "</span></div>",
-            "</div>",
-          "</div>",
+        "</div>",
 
-    "<div class='drawToolContextMenuContents'>",
+        "<div class='drawToolContextMenuTabs'>",
 
-          "<div class='drawToolContextMenuHeaders drawToolContextMenuPropertiesHeader collapse flexbetween' collapse='drawToolContextMenuProperties'>",
-            "<div>Properties</div>",
-            "<i class='mdi mdi-menu-down mdi-24px' style='cursor: pointer;'></i>",
-          "</div>",
-          "<div class='drawToolContextMenuProperties collapsible'>",
-            "<div class='drawToolContextMenuPropertiesName flexbetween'>",
-              "<div>Name</div>",
-              "<input id='drawToolContextMenuPropertiesName' type='text' value='" + defaultName + "'/>",
-            "</div>",
-            "<div class='drawToolContextMenuPropertiesDescription flexbetween'>",
-              "<div>Science Intent</div>",
-              "<textarea id='drawToolContextMenuPropertiesDescription' rows='5' />",
-            "</div>",
-            "<div class='drawToolContextMenuPropertiesReassignUUID flexbetween'>",
-              "<div id='drawToolContextMenuPropertiesReassignUUIDValue'>" + uuid + "</div>",
-              "<div id='drawToolContextMenuPropertiesReassignUUID' class='drawToolButton1'>Reassign</div>",
-            "</div>",
-          "</div>",
-
-          "<div class='drawToolContextMenuHeaders drawToolContextMenuStyleHeader collapse flexbetween' collapse='drawToolContextMenuStyle' style='display: " + ( (hideStyle) ? 'none' : 'flex' ) + "'>",
-            "<div>Style</div>",
-            "<i class='mdi mdi-menu-down mdi-24px' style='cursor: pointer;'></i>",
-          "</div>",
-          "<div class='drawToolContextMenuStyle collapsible' style='display: " + ( (hideStyle) ? 'none' : 'inherit' ) + "'>",
-            
-            "<div class='styleprop flexbetween' style='display: " + ( (hasFillColor) ? 'flex' : 'none' ) + "'>",
-              "<div class='flexbetween'>Fill Color<div class='drawToolStyleHighlight'>reset</div></div>",
-              "<div class='flexbetween'>",
-                "<input id='drawToolContextMenuFillColorInput' class='styleInput' type='text' value='" + style.fillColor + "'/>",
-                "<div v='" + style.fillColor + "' pick='fillcolorpick' class='picker fillcolor stylevalue2' style='background: " + style.fillColor + "'></div>",
-              "</div>",
-            "</div>",
-            "<div class='picking tall fillcolorpick styleColorPicker' style='display: " + ( (hasFillColor) ? 'flex' : 'none' ) + "'>",
-                "<div class='fillcolorcustom'><i class='mdi mdi-water mdi-18px'></i></div>",
-                "<div></div>","<div></div>","<div></div>","<div></div>","<div></div>","<div></div>","<div></div>","<div></div>",
-                "<div></div>","<div></div>","<div></div>","<div></div>","<div></div>","<div></div>","<div></div>","<div></div>",
+            "<div class='drawToolContextMenuTab drawToolContextMenuTabProperties'>",
+                "<div class='drawToolContextMenuProperties'>",
+                    "<div class='drawToolContextMenuPropertiesName flexbetween'>",
+                        "<div>Name</div>",
+                        "<input id='drawToolContextMenuPropertiesName' type='text' value='" + defaultName + "'/>",
+                    "</div>",
+                    "<div class='drawToolContextMenuPropertiesDescription flexbetween'>",
+                        "<div>Description</div>",
+                        "<textarea id='drawToolContextMenuPropertiesDescription' rows='5' />",
+                    "</div>",
+                    (!displayOnly) ? ["<div class='drawToolContextMenuPropertiesReassignUUID flexbetween'>",
+                        "<div id='drawToolContextMenuPropertiesReassignUUIDValue'>" + uuid + "</div>",
+                        "<div id='drawToolContextMenuPropertiesReassignUUID' class='drawToolButton1'>Reassign</div>",
+                    "</div>"].join('\n') : "",
+                "</div>",
             "</div>",
 
-            "<div class='styleprop flexbetween' style='display: " + ( (hasFillOpacity) ? 'flex' : 'none' ) + "'>",
-              "<div class='flexbetween'>Fill Opacity<div class='drawToolStyleHighlight'>reset</div></div>",
-              "<div v='" + style.fillOpacity + "' pick='fillopacitypick' class='picker fillopacity stylevalue'>" + ( style.fillOpacity * 100 ) + '%' + "</div>",
-            "</div>",
-            "<div class='picking fillopacitypick styleOpacityPicker' style='display: " + ( (hasFillOpacity) ? 'flex' : 'none' ) + "'>",
-              "<div value='0'>0%</div>",
-              "<div value='0.1'>10%</div>",
-              "<div value='0.2'>20%</div>",
-              "<div value='0.4'>40%</div>",
-              "<div value='0.6'>60%</div>",
-              "<div value='0.8'>80%</div>",
-              "<div value='1'>100%</div>",
-            "</div>",
+            "<div class='drawToolContextMenuTab drawToolContextMenuTabStyle'>",
+                "<div class='drawToolContextMenuStyle'>",
+                
+                "<div class='styleprop flexbetween' style='display: " + ( (hasFillColor) ? 'flex' : 'none' ) + "'>",
+                "<div class='flexbetween'>Fill Color<div class='drawToolStyleHighlight'></div></div>",
+                "<div class='flexbetween'>",
+                    "<input id='drawToolContextMenuFillColorInput' class='styleInput' type='text' value='" + style.fillColor + "'/>",
+                    "<div v='" + style.fillColor + "' pick='fillcolorpick' class='picker fillcolor stylevalue2' style='background: " + style.fillColor + "'></div>",
+                "</div>",
+                "</div>",
+                "<div class='picking tall fillcolorpick styleColorPicker' style='display: " + ( (hasFillColor) ? 'flex' : 'none' ) + "'>",
+                    "<div class='fillcolorcustom'><i class='mdi mdi-water mdi-18px'></i></div>",
+                    "<div></div>","<div></div>","<div></div>","<div></div>","<div></div>","<div></div>","<div></div>","<div></div>",
+                    "<div></div>","<div></div>","<div></div>","<div></div>","<div></div>","<div></div>","<div></div>","<div></div>",
+                "</div>",
+
+                "<div class='styleprop flexbetween' style='display: " + ( (hasFillOpacity) ? 'flex' : 'none' ) + "'>",
+                "<div class='flexbetween'>Fill Opacity<div class='drawToolStyleHighlight'></div></div>",
+                "<div v='" + style.fillOpacity + "' pick='fillopacitypick' class='picker fillopacity stylevalue'>" + ( style.fillOpacity * 100 ) + '%' + "</div>",
+                "</div>",
+                "<div class='picking fillopacitypick styleOpacityPicker' style='display: " + ( (hasFillOpacity) ? 'flex' : 'none' ) + "'>",
+                "<div value='0'>0%</div>",
+                "<div value='0.1'>10%</div>",
+                "<div value='0.2'>20%</div>",
+                "<div value='0.4'>40%</div>",
+                "<div value='0.6'>60%</div>",
+                "<div value='0.8'>80%</div>",
+                "<div value='1'>100%</div>",
+                "</div>",
 
 
-            "<div class='styleprop flexbetween' style='display: " + ( (hasStrokeColor) ? 'flex' : 'none' ) + "'>",
-              "<div class='flexbetween'>Stroke Color<div class='drawToolStyleHighlight'>reset</div></div>",
-              "<div class='flexbetween'>",
-                "<input id='drawToolContextMenuStrokeColorInput' class='styleInput' type='text' value='" + style.color + "'/>",
-                "<div v='" + style.color + "' pick='strokecolorpick' class='picker strokecolor stylevalue2' style='background: " + style.color + "'></div>",
-              "</div>",
+                "<div class='styleprop flexbetween' style='display: " + ( (hasStrokeColor) ? 'flex' : 'none' ) + "'>",
+                "<div class='flexbetween'>Stroke Color<div class='drawToolStyleHighlight'></div></div>",
+                "<div class='flexbetween'>",
+                    "<input id='drawToolContextMenuStrokeColorInput' class='styleInput' type='text' value='" + style.color + "'/>",
+                    "<div v='" + style.color + "' pick='strokecolorpick' class='picker strokecolor stylevalue2' style='background: " + style.color + "'></div>",
+                "</div>",
+                "</div>",
+                "<div class='picking tall strokecolorpick styleColorPicker' style='display: " + ( (hasStrokeColor) ? 'flex' : 'none' ) + "'>",
+                "</div>",
+
+                "<div class='styleprop flexbetween' style='display: " + ( (hasStrokeOpacity) ? 'flex' : 'none' ) + "'>",
+                "<div class='flexbetween'>Stroke Opacity<div class='drawToolStyleHighlight'></div></div>",
+                "<div v='" + style.opacity + "' pick='strokeopacitypick' class='picker strokeopacity stylevalue'>" + ( style.opacity * 100 ) + '%' + "</div>",
+                "</div>",
+                "<div class='picking strokeopacitypick styleOpacityPicker' style='display: " + ( (hasStrokeOpacity) ? 'flex' : 'none' ) + "'>",
+                "<div value='0'>0%</div>",
+                "<div value='0.2'>20%</div>",
+                "<div value='0.4'>40%</div>",
+                "<div value='0.6'>60%</div>",
+                "<div value='0.8'>80%</div>",
+                "<div value='1'>100%</div>",
+                "</div>",
+
+                "<div class='styleprop flexbetween' style='display: " + ( (hasStrokeStyle) ? 'flex' : 'none' ) + "'>",
+                "<div class='flexbetween'>Stroke Style<div class='drawToolStyleHighlight'></div></div>",
+                "<div  v='" + style.dashArray + "' pick='strokestylepick' class='picker strokestyle stylevalue'><svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#222' stroke-width='4' stroke-dasharray='" + style.dashArray + "' /></svg></div>",
+                "</div>",
+                "<div class='picking strokestylepick strokeStylePicker column mediumsmall' style='display: " + ( (hasStrokeStyle) ? 'flex' : 'none' ) + "'>",
+                "<div value=''><svg width='100%' height='100%'><line x1='0' y1='12' x2='310' y2='12' stroke='#222' stroke-width='4' /></svg></div>",
+                "<div value='20'><svg width='100%' height='100%'><line x1='0' y1='12' x2='310' y2='12' stroke='#222' stroke-width='4' stroke-dasharray='20' /></svg></div>",
+                "<div value='1 12'><svg width='100%' height='100%'><line x1='0' y1='12' x2='310' y2='12' stroke='#222' stroke-width='4' stroke-dasharray='1 4' /></svg></div>",
+                "<div value='70 15 15 15'><svg width='100%' height='100%'><line x1='0' y1='12' x2='310' y2='12' stroke='#222' stroke-width='4' stroke-dasharray='70 15 15 15' /></svg></div>",
+                "<div value='1 20 1 20 40 20'><svg width='100%' height='100%'><line x1='0' y1='12' x2='310' y2='12' stroke='#222' stroke-width='4' stroke-dasharray='1 20 1 20 40 20' /></svg></div>",
+                "</div>",
+
+                "<div class='styleprop flexbetween' style='display: " + ( (hasStrokeWeight) ? 'flex' : 'none' ) + "'>",
+                "<div class='flexbetween'>Stroke Weight<div class='drawToolStyleHighlight'></div></div>",
+                "<div v='" + style.weight + "' pick='strokeweightpick' class='picker strokeweight stylevalue'><svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#222' stroke-width='" + style.weight + "' /></svg></div>",
+                "</div>",
+                "<div class='picking strokeweightpick strokeWeightPicker column medium' style='display: " + ( (hasStrokeWeight) ? 'flex' : 'none' ) + "'>",
+                "<div value='0'>None</div>",
+                "<div value='1'><svg width='100%' height='100%'><line x1='0' y1='10' x2='310' y2='10' stroke='#222' stroke-width='1' /></svg></div>",
+                "<div value='2' style='display: " + ( (featureType == 'note') ? 'none' : 'inline' ) + ";'><svg width='100%' height='100%'><line x1='0' y1='10' x2='310' y2='10' stroke='#222' stroke-width='2' /></svg></div>",
+                "<div value='4' style='display: " + ( (featureType == 'note') ? 'none' : 'inline' ) + ";'><svg width='100%' height='100%'><line x1='0' y1='10' x2='310' y2='10' stroke='#222' stroke-width='4' /></svg></div>",
+                "<div value='8' style='display: " + ( (featureType == 'note') ? 'none' : 'inline' ) + ";'><svg width='100%' height='100%'><line x1='0' y1='10' x2='310' y2='10' stroke='#222' stroke-width='8' /></svg></div>",
+                "<div value='12' style='display: " + ( (featureType == 'note') ? 'none' : 'inline' ) + ";'><svg width='100%' height='100%'><line x1='0' y1='10' x2='310' y2='10' stroke='#222' stroke-width='12' /></svg></div>",
+                "<div value='16' style='display: " + ( (featureType == 'note') ? 'none' : 'inline' ) + ";'><svg width='100%' height='100%'><line x1='0' y1='10' x2='310' y2='10' stroke='#222' stroke-width='16' /></svg></div>",
+                "</div>",
+
+                "<div class='styleprop flexbetween' style='display: " + ( (hasSymbol) ? 'flex' : 'none' ) + "'>",
+                "<div class='flexbetween'>Symbol<div class='drawToolStyleHighlight'></div></div>",
+                "<div v='" + style.symbol + "' pick='symbolpick' class='picker symbol stylevalue'>" + style.symbol + "</div>",
+                "</div>",
+                "<div class='picking symbolpick symbolPicker' style='display: " + ( (hasSymbol) ? 'flex' : 'none' ) + "'>",
+                "<div>Circle</div>",
+                "<div>Square</div>",
+                "<div>Triangle</div>",
+                "<div>Diamond</div>",
+                "</div>",
+
+                "<div class='styleprop flexbetween' style='display: " + ( (hasRadius) ? 'flex' : 'none' ) + "'>",
+                "<div class='flexbetween'>Radius<div class='drawToolStyleHighlight'></div></div>",
+                "<div v='" + style.radius + "' pick='radiuspick' class='picker radius stylevalue'>" + style.radius + "</div>",
+                "</div>",
+                "<div class='picking radiuspick radiusPicker' style='display: " + ( (hasRadius) ? 'flex' : 'none' ) + "'>",
+                "<div>" + ( (featureType == 'arrow') ? '5' : '4' ) + "</div>",
+                "<div>" + ( (featureType == 'arrow') ? '10' : '6' ) + "</div>",
+                "<div>" + ( (featureType == 'arrow') ? '20' : '8' ) + "</div>",
+                "<div>" + ( (featureType == 'arrow') ? '30' : '12' ) + "</div>",
+                "<div>" + ( (featureType == 'arrow') ? '40' : '16' ) + "</div>",
+                "<div>" + ( (featureType == 'arrow') ? '50' : '20' ) + "</div>",
+                "</div>",
+
+                "<div class='styleprop flexbetween' style='display: " + ( (hasWidth) ? 'flex' : 'none' ) + "'>",
+                "<div class='flexbetween'>Width<div class='drawToolStyleHighlight'></div></div>",
+                "<div v='" + style.width + "' pick='widthpick' class='picker width stylevalue'>" + style.width + "</div>",
+                "</div>",
+                "<div class='picking widthpick widthPicker' style='display: " + ( (hasWidth) ? 'flex' : 'none' ) + "'>",
+                "<div>2</div>",
+                "<div>4</div>",
+                "<div>6</div>",
+                "<div>8</div>",
+                "<div>12</div>",
+                "<div>16</div>",
+                "<div>20</div>",
+                "<div>26</div>",
+                "<div>32</div>",
+                "</div>",
+
+                "<div class='styleprop flexbetween' style='display: " + ( (hasLength) ? 'flex' : 'none' ) + "'>",
+                "<div class='flexbetween'>Length<div class='drawToolStyleHighlight'></div></div>",
+                "<div v='" + style.length + "' pick='lengthpick' class='picker length stylevalue'>" + style.length + "</div>",
+                "</div>",
+                "<div class='picking lengthpick lengthPicker' style='display: " + ( (hasLength) ? 'flex' : 'none' ) + "'>",
+                "<div>50</div>",
+                "<div>100</div>",
+                "<div>150</div>",
+                "<div>200</div>",
+                "<div>250</div>",
+                "<div>Full</div>",
+                "</div>",
+
+                "<div class='styleprop flexbetween' style='display: " + ( (hasLineCap) ? 'flex' : 'none' ) + "'>",
+                "<div class='flexbetween'>Line Cap<div class='drawToolStyleHighlight'></div></div>",
+                "<div v='" + style.lineCap + "' pick='linecappick' class='picker linecap stylevalue'>" + style.lineCap + "</div>",
+                "</div>",
+                "<div class='picking linecappick lineCapPicker' style='display: " + ( (hasLineCap) ? 'flex' : 'none' ) + "'>",
+                "<div>Round</div>",
+                "<div>Square</div>",
+                "<div>Butt</div>",
+                "</div>",
+
+                "<div class='styleprop flexbetween' style='display: " + ( (hasLineJoin) ? 'flex' : 'none' ) + "'>",
+                "<div class='flexbetween'>Line Join<div class='drawToolStyleHighlight'></div></div>",
+                "<div v='" + style.lineJoin + "' pick='linejoinpick' class='picker linejoin stylevalue'>" + style.lineJoin + "</div>",
+                "</div>",
+                "<div class='picking linejoinpick lineJoinPicker' style='display: " + ( (hasLineJoin) ? 'flex' : 'none' ) + "'>",
+                "<div>Round</div>",
+                "<div>Miter</div>",
+                "<div>Bevel</div>",
+                "</div>",
+
+                "<div class='styleprop flexbetween' style='display: " + ( (hasFontSize) ? 'flex' : 'none' ) + "'>",
+                "<div class='flexbetween'>Font Size<div class='drawToolStyleHighlight'></div></div>",
+                "<div v='" + (style.fontSize || '18px') + "' pick='fontsizepick' class='picker fontsize stylevalue'>" + (style.fontSize || '18px') + "</div>",
+                "</div>",
+                "<div class='picking fontsizepick fontSizePicker' style='display: " + ( (hasFontSize) ? 'flex' : 'none' ) + "'>",
+                "<div>14px</div>",
+                "<div>18px</div>",
+                "<div>24px</div>",
+                "<div>32px</div>",
+                "<div>42px</div>",
+                "<div>54px</div>",
+                "</div>",
             "</div>",
-            "<div class='picking tall strokecolorpick styleColorPicker' style='display: " + ( (hasStrokeColor) ? 'flex' : 'none' ) + "'>",
             "</div>",
 
-            "<div class='styleprop flexbetween' style='display: " + ( (hasStrokeOpacity) ? 'flex' : 'none' ) + "'>",
-              "<div class='flexbetween'>Stroke Opacity<div class='drawToolStyleHighlight'>reset</div></div>",
-              "<div v='" + style.opacity + "' pick='strokeopacitypick' class='picker strokeopacity stylevalue'>" + ( style.opacity * 100 ) + '%' + "</div>",
-            "</div>",
-            "<div class='picking strokeopacitypick styleOpacityPicker' style='display: " + ( (hasStrokeOpacity) ? 'flex' : 'none' ) + "'>",
-              "<div value='0'>0%</div>",
-              "<div value='0.2'>20%</div>",
-              "<div value='0.4'>40%</div>",
-              "<div value='0.6'>60%</div>",
-              "<div value='0.8'>80%</div>",
-              "<div value='1'>100%</div>",
+            "<div class='drawToolContextMenuTab drawToolContextMenuTabSet'>",
+                setOperations,
             "</div>",
 
-            "<div class='styleprop flexbetween' style='display: " + ( (hasStrokeStyle) ? 'flex' : 'none' ) + "'>",
-              "<div class='flexbetween'>Stroke Style<div class='drawToolStyleHighlight'>reset</div></div>",
-              "<div  v='" + style.dashArray + "' pick='strokestylepick' class='picker strokestyle stylevalue'><svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#e1e1e1' stroke-width='4' stroke-dasharray='" + style.dashArray + "' /></svg></div>",
-            "</div>",
-            "<div class='picking strokestylepick strokeStylePicker' style='display: " + ( (hasStrokeStyle) ? 'flex' : 'none' ) + "'>",
-              "<div value=''><svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#e1e1e1' stroke-width='4' /></svg></div>",
-              "<div value='20'><svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#e1e1e1' stroke-width='4' stroke-dasharray='20' /></svg></div>",
-              "<div value='1 20 1 20 40 20'><svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#e1e1e1' stroke-width='4' stroke-dasharray='1 20 1 20 40 20' /></svg></div>",
-              "<div value='1 12'><svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#e1e1e1' stroke-width='4' stroke-dasharray='1 4' /></svg></div>",
-            "</div>",
+        "</div>",
 
-            "<div class='styleprop flexbetween' style='display: " + ( (hasStrokeWeight) ? 'flex' : 'none' ) + "'>",
-              "<div class='flexbetween'>Stroke Weight<div class='drawToolStyleHighlight'>reset</div></div>",
-              "<div v='" + style.weight + "' pick='strokeweightpick' class='picker strokeweight stylevalue'><svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#e1e1e1' stroke-width='" + style.weight + "' /></svg></div>",
-            "</div>",
-            "<div class='picking strokeweightpick strokeWeightPicker' style='display: " + ( (hasStrokeWeight) ? 'flex' : 'none' ) + "'>",
-              "<div value='0'><svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#e1e1e1' stroke-width='0' /></svg></div>",
-              "<div value='1'><svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#e1e1e1' stroke-width='1' /></svg></div>",
-              "<div value='2' style='display: " + ( (featureType == 'note') ? 'inline' : 'none' ) + ";'><svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#e1e1e1' stroke-width='2' /></svg></div>",
-              "<div value='4' style='display: " + ( (featureType == 'note') ? 'none' : 'inline' ) + ";'><svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#e1e1e1' stroke-width='4' /></svg></div>",
-              "<div value='8' style='display: " + ( (featureType == 'note') ? 'none' : 'inline' ) + ";'><svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#e1e1e1' stroke-width='8' /></svg></div>",
-              "<div value='12' style='display: " + ( (featureType == 'note') ? 'none' : 'inline' ) + ";'><svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#e1e1e1' stroke-width='12' /></svg></div>",
-            "</div>",
-
-            "<div class='styleprop flexbetween' style='display: " + ( (hasSymbol) ? 'flex' : 'none' ) + "'>",
-              "<div class='flexbetween'>Symbol<div class='drawToolStyleHighlight'>reset</div></div>",
-              "<div v='" + style.symbol + "' pick='symbolpick' class='picker symbol stylevalue'>" + style.symbol + "</div>",
-            "</div>",
-            "<div class='picking symbolpick symbolPicker' style='display: " + ( (hasSymbol) ? 'flex' : 'none' ) + "'>",
-              "<div>Circle</div>",
-              "<div>Square</div>",
-              "<div>Triangle</div>",
-              "<div>Diamond</div>",
-            "</div>",
-
-            "<div class='styleprop flexbetween' style='display: " + ( (hasRadius) ? 'flex' : 'none' ) + "'>",
-              "<div class='flexbetween'>Radius<div class='drawToolStyleHighlight'>reset</div></div>",
-              "<div v='" + style.radius + "' pick='radiuspick' class='picker radius stylevalue'>" + style.radius + "</div>",
-            "</div>",
-            "<div class='picking radiuspick radiusPicker' style='display: " + ( (hasRadius) ? 'flex' : 'none' ) + "'>",
-              "<div>" + ( (featureType == 'arrow') ? '5' : '4' ) + "</div>",
-              "<div>" + ( (featureType == 'arrow') ? '10' : '6' ) + "</div>",
-              "<div>" + ( (featureType == 'arrow') ? '20' : '8' ) + "</div>",
-              "<div>" + ( (featureType == 'arrow') ? '30' : '12' ) + "</div>",
-              "<div>" + ( (featureType == 'arrow') ? '40' : '16' ) + "</div>",
-              "<div>" + ( (featureType == 'arrow') ? '50' : '20' ) + "</div>",
-            "</div>",
-
-            "<div class='styleprop flexbetween' style='display: " + ( (hasWidth) ? 'flex' : 'none' ) + "'>",
-              "<div class='flexbetween'>Width<div class='drawToolStyleHighlight'>reset</div></div>",
-              "<div v='" + style.width + "' pick='widthpick' class='picker width stylevalue'>" + style.width + "</div>",
-            "</div>",
-            "<div class='picking widthpick widthPicker' style='display: " + ( (hasWidth) ? 'flex' : 'none' ) + "'>",
-              "<div>2</div>",
-              "<div>4</div>",
-              "<div>6</div>",
-              "<div>8</div>",
-              "<div>12</div>",
-              "<div>16</div>",
-              "<div>20</div>",
-              "<div>26</div>",
-              "<div>32</div>",
-            "</div>",
-
-            "<div class='styleprop flexbetween' style='display: " + ( (hasLength) ? 'flex' : 'none' ) + "'>",
-              "<div class='flexbetween'>Length<div class='drawToolStyleHighlight'>reset</div></div>",
-              "<div v='" + style.length + "' pick='lengthpick' class='picker length stylevalue'>" + style.length + "</div>",
-            "</div>",
-            "<div class='picking lengthpick lengthPicker' style='display: " + ( (hasLength) ? 'flex' : 'none' ) + "'>",
-              "<div>50</div>",
-              "<div>100</div>",
-              "<div>150</div>",
-              "<div>200</div>",
-              "<div>250</div>",
-              "<div>Full</div>",
-            "</div>",
-
-            "<div class='styleprop flexbetween' style='display: " + ( (hasLineCap) ? 'flex' : 'none' ) + "'>",
-              "<div class='flexbetween'>Line Cap<div class='drawToolStyleHighlight'>reset</div></div>",
-              "<div v='" + style.lineCap + "' pick='linecappick' class='picker linecap stylevalue'>" + style.lineCap + "</div>",
-            "</div>",
-            "<div class='picking linecappick lineCapPicker' style='display: " + ( (hasLineCap) ? 'flex' : 'none' ) + "'>",
-              "<div>Round</div>",
-              "<div>Square</div>",
-              "<div>Butt</div>",
-            "</div>",
-
-            "<div class='styleprop flexbetween' style='display: " + ( (hasLineJoin) ? 'flex' : 'none' ) + "'>",
-              "<div class='flexbetween'>Line Join<div class='drawToolStyleHighlight'>reset</div></div>",
-              "<div v='" + style.lineJoin + "' pick='linejoinpick' class='picker linejoin stylevalue'>" + style.lineJoin + "</div>",
-            "</div>",
-            "<div class='picking linejoinpick lineJoinPicker' style='display: " + ( (hasLineJoin) ? 'flex' : 'none' ) + "'>",
-              "<div>Round</div>",
-              "<div>Miter</div>",
-              "<div>Bevel</div>",
-            "</div>",
-
-            "<div class='styleprop flexbetween' style='display: " + ( (hasFontSize) ? 'flex' : 'none' ) + "'>",
-              "<div class='flexbetween'>Font Size<div class='drawToolStyleHighlight'>reset</div></div>",
-              "<div v='" + (style.fontSize || '18px') + "' pick='fontsizepick' class='picker fontsize stylevalue'>" + (style.fontSize || '18px') + "</div>",
-            "</div>",
-            "<div class='picking fontsizepick fontSizePicker' style='display: " + ( (hasFontSize) ? 'flex' : 'none' ) + "'>",
-              "<div>14px</div>",
-              "<div>18px</div>",
-              "<div>24px</div>",
-              "<div>32px</div>",
-              "<div>42px</div>",
-              "<div>54px</div>",
-            "</div>",
-          "</div>",
-    "</div>",
 
           "<div class='drawToolContextMenuSave'>",
             "<div class='reg drawToolContextMenuDelete drawToolButton1 " + deleteClass + "'>",
               "<i class='mdi mdi-delete mdi-18px' style='cursor: pointer;'></i>",
             "</div>",
             "<div class='reg drawToolContextMenuReset drawToolButton1'>Reset</div>",
-            "<div class='reg drawToolContextMenuSaveChanges drawToolButton1'>Save Changes</div>",
+            "<div class='reg drawToolContextMenuSaveChanges drawToolButton1'>Save All Changes</div>",
             "<div class='sure sureq'>",
               "<div>",
                 "<i class='mdi mdi-delete mdi-24px'></i>",
@@ -713,6 +756,8 @@ define([
         "</div>"
       ].join('\n');
             $('body').append(markup)
+
+            DrawTool.addSetOperationsEvents()
 
             $('.drawToolContextMenu').css({
                 right: x + 'px',
@@ -760,11 +805,13 @@ define([
                 $('body').off('mouseup', contextStopDrag)
             }
 
-            DrawTool.contextMenuLayer.off('editable:editing')
-            DrawTool.contextMenuLayer.on(
-                'editable:editing',
-                updateSelectionLayer
-            )
+            if (!displayOnly) {
+                DrawTool.contextMenuLayer.off('editable:editing')
+                DrawTool.contextMenuLayer.on(
+                    'editable:editing',
+                    updateSelectionLayer
+                )
+            }
 
             function updateSelectionLayer() {
                 if (!DrawTool.contextMenuLayers[0].selectionLayer) return
@@ -774,7 +821,10 @@ define([
                 if (typeof DrawTool.contextMenuLayer.toGeoJSON !== 'function')
                     return
                 var bbox = turf.bbox(DrawTool.contextMenuLayer.toGeoJSON())
-                var bounds = [[bbox[1], bbox[0]], [bbox[3], bbox[2]]]
+                var bounds = [
+                    [bbox[1], bbox[0]],
+                    [bbox[3], bbox[2]],
+                ]
                 var sl
                 if (
                     bounds[0][0] == bounds[1][0] &&
@@ -800,7 +850,10 @@ define([
                         .bringToBack()
                 }
 
-                var bounds = [[bbox[1], bbox[0]], [bbox[3], bbox[2]]]
+                var bounds = [
+                    [bbox[1], bbox[0]],
+                    [bbox[3], bbox[2]],
+                ]
                 DrawTool.contextMenuLayers[0].selectionLayer = sl
             }
 
@@ -813,6 +866,7 @@ define([
                     if (justThis != null) c = justThis
                     var l = DrawTool.contextMenuLayers[c]
                     if (
+                        !displayOnly &&
                         l != null &&
                         l.hasOwnProperty('l_i_f') &&
                         L_.layersGroup[l.l_i_f.layer][l.l_i_f.index] != null
@@ -823,14 +877,14 @@ define([
                         updateStrokeOpacity(l.properties.style.opacity, l.shape)
                         updateStrokeStyle(
                             l.properties.style.dashArray,
-                            "<svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#e1e1e1' stroke-width='4' stroke-dasharray='" +
+                            "<svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#222' stroke-width='4' stroke-dasharray='" +
                                 (properties ? properties.style.dashArray : '') +
                                 "' /></svg>",
                             l.shape
                         )
                         updateStrokeWeight(
                             l.properties.style.weight,
-                            "<svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#e1e1e1' stroke-width='" +
+                            "<svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#222' stroke-width='" +
                                 (properties ? properties.style.weight : 4) +
                                 "' /></svg>",
                             l.shape,
@@ -856,6 +910,7 @@ define([
                 }
                 //Geometry
                 if (
+                    !displayOnly &&
                     l != null &&
                     l.hasOwnProperty('l_i_f') &&
                     L_.layersGroup[l.l_i_f.layer][l.l_i_f.index] != null &&
@@ -887,6 +942,39 @@ define([
                 if (DrawTool.contextMenuLayers.length == 1)
                     updateSelectionLayer()
             }
+
+            //TABS
+            $('.drawToolContextMenuTabButton').on('click', function() {
+                $('.drawToolContextMenuTabButton.active').removeClass('active')
+                $('.drawToolContextMenuTab.active').removeClass('active')
+                $(this).addClass('active')
+                $('.' + $(this).attr('tab')).addClass('active')
+                $('.drawToolContextMenuTabTitle').text($(this).attr('title'))
+                DrawTool.editPanelActiveTab = $(this).attr('tab')
+                if (
+                    DrawTool.editPanelActiveTab ===
+                    'drawToolContextMenuTabTabThatShouldBeWider'
+                ) {
+                    $('.drawToolContextMenu').css({ width: '800px' })
+                } else {
+                    $('.drawToolContextMenu').css({ width: '340px' })
+                }
+                if (
+                    DrawTool.editPanelActiveTab !== 'drawToolContextMenuTabSet'
+                ) {
+                    DrawTool.endSplitDrawing()
+                }
+            })
+
+            //Maintain active tab type across openings
+            DrawTool.editPanelActiveTab =
+                DrawTool.editPanelActiveTab ||
+                'drawToolContextMenuTabProperties'
+            $(
+                '.drawToolContextMenuTabButton[tab="' +
+                    DrawTool.editPanelActiveTab +
+                    '"]'
+            ).click()
 
             //COLLAPSE
             $('.drawToolContextMenu .collapse').on('click', function() {
@@ -934,45 +1022,6 @@ define([
                 })
             })
 
-            //MERGE
-            $('.drawToolConextMenuHeaderMerge').on('click', function() {
-                var ids = []
-                var file_id = DrawTool.contextMenuLayers[0].properties._.file_id
-                for (let i = 0; i < DrawTool.contextMenuLayers.length; i++) {
-                    ids.push(DrawTool.contextMenuLayers[i].properties._.id)
-                    if (
-                        file_id !=
-                        DrawTool.contextMenuLayers[i].properties._.file_id
-                    ) {
-                        CursorInfo.update(
-                            "Warning! Can't merge shapes from separate files.",
-                            6000,
-                            true,
-                            { x: 268, y: 6 },
-                            '#e9ff26',
-                            'black'
-                        )
-                        return
-                    }
-                }
-
-                var propertyId = ids[ids.length - 1]
-                if (propertyId == null) return
-
-                calls.api(
-                    'draw_merge',
-                    {
-                        file_id: file_id,
-                        prop_id: propertyId,
-                        ids: ids,
-                    },
-                    function(d) {
-                        DrawTool.refreshFile(file_id, null, true, d.body.ids)
-                    },
-                    function() {}
-                )
-            })
-
             //STYLES
             var badInputColor = 'rgba(255,0,0,0.5)'
 
@@ -981,14 +1030,20 @@ define([
                 function() {
                     var elm = $('.' + $(this).attr('pick'))
                     var open = elm.hasClass('open')
-                    $('.drawToolContextMenu .styleprop').removeClass('open')
-                    $('.drawToolContextMenu .picking').removeClass('open')
+                    //$('.drawToolContextMenu .styleprop').removeClass('open')
+                    //$('.drawToolContextMenu .picking').removeClass('open')
                     if (!open) {
                         $(this)
                             .parent()
                             .parent()
                             .addClass('open')
                         elm.addClass('open')
+                    } else {
+                        $(this)
+                            .parent()
+                            .parent()
+                            .removeClass('open')
+                        elm.removeClass('open')
                     }
                 }
             )
@@ -1898,7 +1953,7 @@ define([
 
             //CLOSE
             $('.drawToolContextMenuHeaderClose').on('click', function() {
-                if (DrawTool.contextMenuLayer) {
+                if (DrawTool.contextMenuLayer && !displayOnly) {
                     var elm = $(
                         '#drawToolShapeLiItem_' +
                             DrawTool.lastContextLayerIndexFileId.layer +
@@ -1912,9 +1967,9 @@ define([
                         'function'
                     )
                         DrawTool.contextMenuLayer.disableEdit()
-                    if (DrawTool.contextMenuLayer.snapediting)
+                    if (DrawTool.contextMenuLayer.snapediting) {
                         DrawTool.contextMenuLayer.snapediting.disable()
-                    else DrawTool.cmLayerDragOff()
+                    } else DrawTool.cmLayerDragOff()
                     DrawTool.isEditing = false
                     resetShape()
                 }
@@ -1935,7 +1990,7 @@ define([
             })
 
             //EDIT
-            if (!grouping) toggleEdit()
+            if (!grouping && !displayOnly) toggleEdit()
             function toggleEdit() {
                 if (DrawTool.isEditing || !ownedByUser) {
                     if (
@@ -1943,8 +1998,9 @@ define([
                         'function'
                     ) {
                         DrawTool.contextMenuLayer.disableEdit()
-                        if (DrawTool.contextMenuLayer.snapediting)
+                        if (DrawTool.contextMenuLayer.snapediting) {
                             DrawTool.contextMenuLayer.snapediting.disable()
+                        }
                     } else DrawTool.cmLayerDragOff()
 
                     DrawTool.isEditing = false
@@ -1967,8 +2023,12 @@ define([
                                     DrawTool.contextMenuLayer.snapediting.addGuideLayer(
                                         guides[g]
                                     )
+
+                                DrawTool.contextMenuLayer.snapediting._poly.options.editing = {}
+                                DrawTool.contextMenuLayer.snapediting._poly.options.original = {}
                                 DrawTool.contextMenuLayer.snapediting.enable()
                             } catch (e) {
+                                console.log(e)
                                 DrawTool.contextMenuLayer.enableEdit()
                             }
                         } else {
@@ -2095,8 +2155,17 @@ define([
                             newGeometry = DrawTool.contextMenuLayer._layers
                                 .getFirst()
                                 .toGeoJSON().geometry
-                    } else
+                    } else if (featureType == 'note') {
+                        newGeometry = {
+                            type: 'Point',
+                            coordinates: [
+                                DrawTool.contextMenuLayer._latlng.lng,
+                                DrawTool.contextMenuLayer._latlng.lat,
+                            ],
+                        }
+                    } else {
                         newGeometry = DrawTool.contextMenuLayer.feature.geometry
+                    }
 
                     if (DrawTool.vars.demtilesets) {
                         F_.lnglatsToDemtileElevs(
@@ -2354,7 +2423,6 @@ define([
                     )
                         .attr('v')
                         .toLowerCase()
-
                 return newProperties
             }
         },
@@ -2407,7 +2475,7 @@ define([
                     'mousedown',
                     DrawTool.cmLayerDown
                 )
-            } else
+            } else if (typeof DrawTool.contextMenuLayer.off === 'function')
                 DrawTool.contextMenuLayer.off('mousedown', DrawTool.cmLayerDown)
             Map_.map.off('mouseup', DrawTool.cmLayerUp)
             Map_.map.off('mousemove', DrawTool.cmLayerMove)

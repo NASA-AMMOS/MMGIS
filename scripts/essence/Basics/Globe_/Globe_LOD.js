@@ -671,7 +671,7 @@ define([
                     if (!F_.isUrlAbsolute(layerUrl))
                         layerUrl = L_.missionPath + layerUrl
                     $.getJSON(
-                        layerUrl + '?nocache=' + new Date().getTime(),
+                        layerUrl,
                         (function(l) {
                             return function(data) {
                                 data = data.features

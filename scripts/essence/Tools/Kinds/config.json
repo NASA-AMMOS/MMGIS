@@ -1,0 +1,11 @@
+{
+    "defaultIcon": "palette-swatch",
+    "description": "Not a real tool but plugin to configure different layer interactions.",
+    "descriptionFull": {},
+    "hasVars": false,
+    "name": "Kinds",
+    "kinds": ["info", "waypoint", "chemistry_tool", "draw_tool"],
+    "paths": {
+        "Kinds": "essence/Tools/Kinds/Kinds"
+    }
+}

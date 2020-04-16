@@ -5,36 +5,6 @@ var require = {
     //Some browsers suspend script loading on inactive tabs so disable script load timeouts
     waitSeconds: 0,
     paths: {
-        //tools
-        LayersTool: 'essence/Tools/Layers/LayersTool',
-        LegendTool: 'essence/Tools/Legend/LegendTool',
-        InfoTool: 'essence/Tools/Info/InfoTool',
-        SitesTool: 'essence/Tools/Sites/SitesTool',
-        ChemistryTool: 'essence/Tools/Chemistry/ChemistryTool',
-        chemistrychart: 'essence/Tools/Chemistry/chemistrychart',
-        chemistryplot: 'essence/Tools/Chemistry/chemistryplot',
-        DistanceTool: 'essence/Tools/Distance/DistanceTool',
-        IdentifierTool: 'essence/Tools/Identifier/IdentifierTool',
-        MeasureTool: 'essence/Tools/Measure/MeasureTool',
-        linechart: 'essence/Tools/Measure/linechart',
-        SearchTool: 'essence/Tools/Search/SearchTool',
-        SketchTool: 'essence/Tools/Sketch/SketchTool',
-        FileManagerTool: 'essence/Tools/FileManager/FileManagerTool',
-        IdentifierTool: 'essence/Tools/Identifier/IdentifierTool',
-        CurtainTool: 'essence/Tools/Curtain/CurtainTool',
-        QueryTool: 'essence/Tools/Query/QueryTool',
-
-        DrawTool: 'essence/Tools/Draw/DrawTool',
-        DrawTool_test: 'essence/Tools/Draw/DrawTool.test',
-        DrawTool_Drawing: 'essence/Tools/Draw/DrawTool_Drawing',
-        DrawTool_Editing: 'essence/Tools/Draw/DrawTool_Editing',
-        DrawTool_Files: 'essence/Tools/Draw/DrawTool_Files',
-        DrawTool_History: 'essence/Tools/Draw/DrawTool_History',
-        DrawTool_Publish: 'essence/Tools/Draw/DrawTool_Publish',
-        DrawTool_Shapes: 'essence/Tools/Draw/DrawTool_Shapes',
-
-        TrailTool: 'essence/Tools/Trail/TrailTool',
-
         //core
         loading: 'pre/loading/loading',
         landingPage: 'essence/LandingPage/LandingPage',
@@ -76,6 +46,8 @@ var require = {
         dataTables: 'external/DataTables/datatables.min',
         nipple: 'external/NippleJS/nipplejs.min',
         multiRange: 'external/MultiRange/multirange',
+        jsonViewer: 'external/JSONViewer/jquery.json-viewer',
+        fileSaver: 'external/FileSaver/FileSaver.min',
 
         Hammer: 'external/Hammer/hammer.min',
 
@@ -91,7 +63,7 @@ var require = {
 
         three: 'external/THREE/three',
         threeWindow: 'external/THREE/threeWindow',
-        threeCore: 'external/THREE/three89.min',
+        threeCore: 'external/THREE/three112.min',
         OrbitControls: 'external/THREE/OrbitControls',
         PointerLockControls: 'external/THREE/PointerLockControls',
         DeviceOrientationControls: 'external/THREE/DeviceOrientationControls',
@@ -110,7 +82,7 @@ var require = {
 
         turf: 'external/Turf/turf5.1.6.min',
         turfLegacy: 'external/Turf/turf.min',
-
+        highcharts: 'external/Highcharts',
         //essences
         //basics
         Layers_: 'essence/Basics/Layers_/Layers_',
@@ -139,7 +111,6 @@ var require = {
         ToolController_: 'essence/Basics/ToolController_/ToolController_',
         UserInterface_: 'essence/Basics/UserInterface_/UserInterface_',
         Test_: 'essence/Basics/Test_/Test_',
-        Kinds: 'essence/Kinds/Kinds',
 
         //ancillary
         CursorInfo: 'essence/Ancillary/CursorInfo',
@@ -152,6 +123,7 @@ var require = {
         ScaleBar: 'essence/Ancillary/ScaleBar',
         ScaleBox: 'essence/Ancillary/ScaleBox',
         Swap: 'essence/Ancillary/Swap',
+        Search: 'essence/Ancillary/Search',
         QueryURL: 'essence/Ancillary/QueryURL',
         SiteChanger: 'essence/Ancillary/SiteChanger',
         Sprites: 'essence/Ancillary/Sprites',
@@ -206,11 +178,7 @@ var require = {
         VRController: { deps: ['threeCore'], exports: 'THREE' },
         VRControls: { deps: ['threeCore'], exports: 'THREE' },
         ThreeAR: { deps: ['threeCore'], exports: 'THREE' },
-
-        //essences
-        //tools
-        MeasureTool: { deps: ['linechart'] },
-        ChemistryTool: { deps: ['chemistrychart', 'chemistryplot'] },
+        'highcharts': { deps: ['jquery'], exports: 'Highcharts'},
     },
     wrapShim: true,
     map: {
@@ -219,4 +187,38 @@ var require = {
         },
     },
     findNestedDependencies: false,
+    packages: [{
+        name: 'highcharts',
+        main: 'highcharts'
+    }]
+}
+
+if (!mmgisglobal.toolConfigs.hasOwnProperty('Kinds')) {
+    console.warn('Error: Kinds tool not found. Are you missing a config.js?')
+}
+
+//Now add toolConfigs
+for (let c in mmgisglobal.toolConfigs) {
+    //First add paths
+    for (let p in mmgisglobal.toolConfigs[c].paths) {
+        if (!require.paths.hasOwnProperty(p)) {
+            require.paths[p] = mmgisglobal.toolConfigs[c].paths[p]
+        } else {
+            console.warn(
+                'Failed to add tool to configuration as path already exists: ' +
+                    p
+            )
+        }
+    }
+    //Then add shim
+    for (let s in mmgisglobal.toolConfigs[c].shim) {
+        if (!require.shim.hasOwnProperty(s)) {
+            require.shim[s] = mmgisglobal.toolConfigs[c].shim[s]
+        } else {
+            console.warn(
+                'Failed to add tool to configuration as shim already exists: ' +
+                    s
+            )
+        }
+    }
 }

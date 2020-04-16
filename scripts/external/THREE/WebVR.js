@@ -128,15 +128,15 @@ define([], function() {
             } else {
                 var message = document.createElement('a')
                 /*
-			message.href = 'https://webvr.info';
-			message.innerHTML = 'WEBVR NOT SUPPORTED';
+                    message.href = 'https://webvr.info';
+                    message.innerHTML = 'WEBVR NOT SUPPORTED';
 
-			message.style.width = '180px';
-			message.style.textDecoration = 'none';
+                    message.style.width = '180px';
+                    message.style.textDecoration = 'none';
 
-			stylizeElement( message );
-			*/
-                console.warn('WEBVR NOT SUPPORTED')
+                    stylizeElement( message );
+                    console.warn('WEBVR NOT SUPPORTED')
+                */
                 return message
             }
         },

@@ -1,6 +1,6 @@
 //Holds a bunch of reusable mathy formulas and variables
 // often referred to as F_
-define(['turf'], function(turf) {
+define(['turf', 'fileSaver'], function(turf) {
     var temp = new Float32Array(1)
 
     Object.defineProperty(Object.prototype, 'getFirst', {
@@ -312,6 +312,21 @@ define(['turf'], function(turf) {
                 a: data[position + 3],
             }
         },
+        /**
+         * Traverses an object with an array of keys
+         * @param {*} obj
+         * @param {*} keyArray
+         */
+        getIn: function(obj, keyArray) {
+            if (keyArray == null) return null
+            let object = Object.assign({}, obj)
+            for (let i = 0; i < keyArray.length; i++) {
+                if (object.hasOwnProperty(keyArray[i]))
+                    object = object[keyArray[i]]
+                else return null
+            }
+            return object
+        },
         getKeyByValue: function(obj, value) {
             return Object.keys(obj).filter(function(key) {
                 return obj[key] === value
@@ -324,6 +339,21 @@ define(['turf'], function(turf) {
                     return obj[p]
                 }
             }
+        },
+        removeDuplicatesInArrayOfObjects(arr) {
+            let stringedArr = arr
+            stringedArr.forEach((el, i) => {
+                stringedArr[i] = JSON.stringify(el)
+            })
+            let uniqueArr = []
+            for (let i = stringedArr.length - 1; i >= 0; i--) {
+                if (uniqueArr.indexOf(stringedArr[i]) == -1)
+                    uniqueArr.push(stringedArr[i])
+            }
+            uniqueArr.forEach((el, i) => {
+                uniqueArr[i] = JSON.parse(el)
+            })
+            return uniqueArr
         },
         //Get index of array of objects with key value pair (-1 if not found)
         objectArrayIndexOfKeyWithValue(objectArray, key, value) {
@@ -473,14 +503,30 @@ define(['turf'], function(turf) {
             }
             return JSON.parse(JSON.stringify(result).replace(/\\r/g, ''))
         },
-        latlonzoomToTileCoords: function( lat, lon, zoom ) {
-            var xtile = parseInt(Math.floor( (lon + 180) / 360 * (1<<zoom) ));
-            var ytile = parseInt(Math.floor( (1 - Math.log(Math.tan(lat * (Math.PI/180)) + 1 / Math.cos(lat * (Math.PI/180))) / Math.PI) / 2 * (1<<zoom) ));
+        latlonzoomToTileCoords: function(lat, lon, zoom) {
+            var xtile = parseInt(Math.floor(((lon + 180) / 360) * (1 << zoom)))
+            var ytile = parseInt(
+                Math.floor(
+                    ((1 -
+                        Math.log(
+                            Math.tan(lat * (Math.PI / 180)) +
+                                1 / Math.cos(lat * (Math.PI / 180))
+                        ) /
+                            Math.PI) /
+                        2) *
+                        (1 << zoom)
+                )
+            )
             return {
                 x: xtile,
                 y: ytile,
-                z: zoom
+                z: zoom,
             }
+        },
+        noNullLength: function(arr) {
+            let len = 0
+            for (let i = 0; i < arr.length; i++) if (arr[i] != null) len++
+            return len
         },
         isEmpty: function(obj) {
             if (obj === undefined) return true
@@ -497,6 +543,9 @@ define(['turf'], function(turf) {
                 if (elm !== arr[i]) return false
             }
             return true
+        },
+        cleanString(str) {
+            return str.replace(/[`~!@#$%^&*|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '')
         },
         invertGeoJSONLatLngs(geojson) {
             geojson = this.clone(geojson)
@@ -1108,7 +1157,6 @@ define(['turf'], function(turf) {
         download: function(filepath) {
             window.open(filepath + '?nocache=' + new Date().getTime())
         },
-        //https://stackoverflow.com/questions/19721439/download-json-object-as-a-file-from-browser#answer-30800715
         downloadObject(exportObj, exportName, exportExt) {
             var strung
             if (exportExt && exportExt == '.geojson') {
@@ -1121,17 +1169,28 @@ define(['turf'], function(turf) {
                 strung = JSON.stringify(exportObj, null, 2)
                 strung = strung.replace('"__FEATURES_PLACEHOLDER__"', features)
             } else strung = JSON.stringify(exportObj)
-            var dataStr =
-                'data:text/json;charset=utf-8,' + encodeURIComponent(strung)
-            var downloadAnchorNode = document.createElement('a')
-            downloadAnchorNode.setAttribute('href', dataStr)
-            downloadAnchorNode.setAttribute(
-                'download',
-                exportName + (exportExt || '.json')
-            )
-            document.body.appendChild(downloadAnchorNode) // required for firefox
-            downloadAnchorNode.click()
-            downloadAnchorNode.remove()
+
+            var fileName = exportName + (exportExt || '.json')
+
+            try {
+                // Create a blob of the data
+                var fileToSave = new Blob([strung], {
+                    type: 'application/json',
+                    name: fileName,
+                })
+                // Save the file //from FileSaver
+                saveAs(fileToSave, fileName)
+            } catch (err) {
+                //https://stackoverflow.com/questions/19721439/download-json-object-as-a-file-from-browser#answer-30800715
+                var dataStr =
+                    'data:text/json;charset=utf-8,' + encodeURIComponent(strung)
+                var downloadAnchorNode = document.createElement('a')
+                downloadAnchorNode.setAttribute('href', dataStr)
+                downloadAnchorNode.setAttribute('download', fileName)
+                document.body.appendChild(downloadAnchorNode) // required for firefox
+                downloadAnchorNode.click()
+                downloadAnchorNode.remove()
+            }
         },
         //headers: ['x','y','z']
         //array: [[0,1,2],[3,4,5],...]
@@ -1414,7 +1473,7 @@ define(['turf'], function(turf) {
                         '%);' +
                         'width: ' +
                         100 / (x - 1) +
-                        '%; height: 12px; margin: 1px;"></div>'
+                        '%; height: 16px; margin: 1px;"></div>'
                 )
             }
             colorgrid.push('</div>')
@@ -1431,12 +1490,44 @@ define(['turf'], function(turf) {
                             '%);' +
                             'width: ' +
                             100 / (x - 1) +
-                            '%; height: 12px; margin: 1px;"></div>'
+                            '%; height: 16px; margin: 1px;"></div>'
                     )
                 }
                 colorgrid.push('</div>')
             }
             return colorgrid.join('\n')
+        },
+        getColorScale(i, s, l) {
+            i = parseInt(i)
+            s = s || '60%'
+            l = l || '25%'
+            // prettier-ignore
+            const colorScaleA = [15,40,65,90,115,140,165,190,215,240,265,290,315,340]
+            //prettier-ignore
+            return 'hsl(' + colorScaleA[i % colorScaleA.length] + ', ' + s + ', ' + l + ')'
+        },
+        ASCIIProduct(str) {
+            if (str == null) return 0
+            let product = 1
+            for (let i = 0; i < str.length; i++) product += str.charCodeAt(i)
+            return product
+        },
+        everyOtherChar(str) {
+            let newStr = ''
+            for (let i = 0; i < str.length; i += 2) newStr += str[i]
+            return newStr
+        },
+        bracketReplace(str, obj) {
+            if (str === null) return ''
+            let matches = str.match(/\{.*?\}/gi)
+
+            matches.forEach(v => {
+                str = str.replace(
+                    new RegExp(v, 'g'),
+                    Formulae_.getIn(obj, v.replace(/[\{\}]/g, '').split('.'))
+                )
+            })
+            return str
         },
         getCookieValue(a) {
             var b = document.cookie.match(

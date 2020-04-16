@@ -1,11 +1,11 @@
-define(['d3', 'Formulae_', 'Layers_', 'Hammer', 'WebVR'], function(
+define(['d3', 'Formulae_', 'Layers_', 'Hammer', 'WebVR'], function (
     d3,
     F_,
     L_,
     Hammer,
     WebVR
 ) {
-    THREE.ModelViewer = function(domEl, lookupPath, options) {
+    THREE.ModelViewer = function (domEl, lookupPath, options) {
         options = options || {}
 
         var camera,
@@ -26,7 +26,7 @@ define(['d3', 'Formulae_', 'Layers_', 'Hammer', 'WebVR'], function(
         var lastPinchScale
         var model
 
-        var webglSupport = (function() {
+        var webglSupport = (function () {
             try {
                 var canvas = document.createElement('canvas')
                 return !!(
@@ -125,36 +125,41 @@ define(['d3', 'Formulae_', 'Layers_', 'Hammer', 'WebVR'], function(
             animate()
         }
 
-        function changeModel(modelFile, allFiles, callback, progressCalback) {
+        function changeModel(
+            modelFile,
+            textureFile,
+            callback,
+            progressCalback
+        ) {
             //Remove old model
             scene.remove(model)
 
             //Texture
-            var ext = F_.getExtension( modelFile ).toLowerCase();
-            if( ext === 'obj' ) {
-                var textureFile = findTexture(modelFile, allFiles)
+            var ext = F_.getExtension(modelFile).toLowerCase()
+            if (ext === 'obj') {
+                var textureFile = textureFile //findTexture(modelFile, allFiles)
 
                 var manager = new THREE.LoadingManager()
-                manager.onProgress = function(item, loaded, total) {
+                manager.onProgress = function (item, loaded, total) {
                     return
                     console.log(item, loaded, total)
                 }
                 var textureLoader = new THREE.TextureLoader(manager)
                 var texture = textureLoader.load(textureFile)
                 //Model
-                var onProgress = function(xhr) {
+                var onProgress = function (xhr) {
                     if (xhr.lengthComputable) {
                         var percentComplete = (xhr.loaded / xhr.total) * 100
                         progressCalback(Math.round(percentComplete, 2))
                     }
                 }
-                var onError = function(xhr) {}
+                var onError = function (xhr) {}
                 var loader = new THREE.OBJLoader(manager)
                 loader.load(
                     modelFile,
-                    function(object) {
+                    function (object) {
                         var model = object
-                        model.traverse(function(child) {
+                        model.traverse(function (child) {
                             if (child instanceof THREE.Mesh) {
                                 child.material.map = texture
                             }
@@ -166,22 +171,21 @@ define(['d3', 'Formulae_', 'Layers_', 'Hammer', 'WebVR'], function(
                     onProgress,
                     onError
                 )
-
-            }
-            else if( ext == 'dae' ) {
+            } else if (ext == 'dae') {
                 var daeLoader = new THREE.ColladaLoader()
                 daeLoader.load(
                     modelFile,
-                    function(mesh) { //Done
+                    function (mesh) {
+                        //Done
                         scene.add(mesh.scene)
                         //ugly as it waits for image to load
-                        setTimeout( function() {
+                        setTimeout(function () {
                             progressCalback(100)
                             animate()
-                        }, 2000 )
+                        }, 2000)
                     },
                     onProgress,
-                    function(error) {
+                    function (error) {
                         //Error
                         console.log('Failed to load .dae at: ' + modelFile)
                     }

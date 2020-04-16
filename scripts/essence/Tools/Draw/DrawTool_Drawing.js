@@ -265,15 +265,6 @@ define([
         drawOverThroughUnder: function(d) {
             var tier = $('#drawToolDrawSettingsTier > div.active').attr('value')
             DrawTool.drawOver(d, tier)
-            /*
-            if (tier == 'over') {
-                DrawTool.drawThrough(d)
-            } else if (tier == 'under') {
-                DrawTool.drawUnder(d)
-            } else if (tier == 'off') {
-                DrawTool.drawOver(d)
-            }
-            */
         },
         endDrawing: function() {
             DrawTool.drawing.polygon.end()
@@ -718,7 +709,7 @@ define([
             shape: {},
         },
         line: {
-            begin: function(intent) {
+            begin: function(intent, overrideStyle, overrideFinishCallback) {
                 var d = drawing.line
 
                 //Overwrite Leaflet.Draw esc key to restart drawing
@@ -745,6 +736,9 @@ define([
                     d.intent = intent
                     d.style = DrawTool.categoryStyles[intent]
                 }
+                if (overrideStyle) {
+                    d.style = overrideStyle
+                }
 
                 d.drawing = new L.Draw.Polyline(Map_.map, {
                     icon: new L.DivIcon({
@@ -758,7 +752,20 @@ define([
                 d.shape = d.drawing
 
                 Map_.map.on('click', d.start)
-                Map_.map.on('draw:drawstop', d.stop)
+                if (typeof overrideFinishCallback === 'function') {
+                    d.overstop = function() {
+                        if (typeof d.shape.toGeoJSON === 'function') {
+                            let s = d.shape.toGeoJSON()
+                            s.geometry.type = 'LineString'
+                            s.properties.style = d.style
+                            overrideFinishCallback(s)
+                        }
+                    }
+                    Map_.map.on('draw:drawstop', d.overstop)
+                } else {
+                    d.overstop = null
+                    Map_.map.on('draw:drawstop', d.stop)
+                }
                 $('body').on('keydown', d.keydown)
                 $('body').on('keyup', d.keyup)
             },
@@ -770,6 +777,7 @@ define([
                 Map_.map.off('click', d.start)
                 Map_.map.off('mousemove', d.move)
                 Map_.map.off('draw:drawstop', d.stop)
+                if (d.overstop) Map_.map.off('draw:drawstop', d.overstop)
                 $('body').off('keydown', d.keydown)
                 $('body').off('keyup', d.keyup)
                 if (typeof d.drawing.disable === 'function') d.drawing.disable()
@@ -795,7 +803,6 @@ define([
             },
             complete: function() {
                 var d = drawing.line
-
                 d.drawing.completeShape()
                 Map_.map.off('click', d.complete)
             },
@@ -883,57 +890,13 @@ define([
                     },
                     (function(shape) {
                         return function(data) {
-                            var lk = 'DrawTool_' + DrawTool.currentFileId
-
-                            L_.layersGroup[lk].push(
-                                L.geoJson(
-                                    {
-                                        type: 'FeatureCollection',
-                                        features: [shape],
-                                    },
-                                    {
-                                        style: function(feature) {
-                                            return feature.properties.style
-                                        },
-                                    }
-                                ).addTo(Map_.map)
+                            DrawTool.refreshFile(
+                                DrawTool.currentFileId,
+                                null,
+                                true
                             )
 
-                            var l =
-                                L_.layersGroup[lk][
-                                    L_.layersGroup[lk].length - 1
-                                ]
-                            l.properties = shape.properties
-                            l.properties._ = l.properties._ || {}
-                            l.properties._.id = data.id
-                            l.properties._.intent = data.intent
-
-                            d.end()
                             d.begin()
-
-                            //Add to Globe_
-                            var last = L_.layersGroup[lk].length - 1
-                            var llast = L_.layersGroup[lk][last]
-                            var layer
-
-                            if (llast.hasOwnProperty('_layers'))
-                                layer =
-                                    llast._layers[Object.keys(llast._layers)[0]]
-                            else {
-                                layer = Object.assign({}, llast)
-                                layer.feature.geometry.coordinates = [
-                                    layer.feature.geometry.coordinates[1],
-                                    layer.feature.geometry.coordinates[0],
-                                ]
-                            }
-
-                            Globe_.addVectorTileLayer({
-                                id: 'camptool_' + lk + '_' + last,
-                                on: true,
-                                layers: [layer],
-                            })
-
-                            DrawTool.populateShapes()
                         }
                     })(JSON.parse(JSON.stringify(d.shape))),
                     function() {
@@ -944,6 +907,7 @@ define([
                     }
                 )
             },
+            overstop: null,
             stopclick: false,
             intent: null,
             movemode: false,
@@ -1063,53 +1027,13 @@ define([
                     },
                     (function(shape) {
                         return function(data) {
-                            var lk = 'DrawTool_' + DrawTool.currentFileId
-
-                            coords = [coords[1], coords[0]]
-
-                            L_.layersGroup[lk].push(
-                                L.circleMarker(coords, d.style).addTo(Map_.map)
+                            DrawTool.refreshFile(
+                                DrawTool.currentFileId,
+                                null,
+                                true
                             )
-                            L_.layersGroup[lk][
-                                L_.layersGroup[lk].length - 1
-                            ].feature = shape
 
-                            var l =
-                                L_.layersGroup[lk][
-                                    L_.layersGroup[lk].length - 1
-                                ]
-
-                            l.properties = shape.properties
-                            l.properties._ = l.properties._ || {}
-                            l.properties._.id = data.id
-                            l.properties._.intent = data.intent
-
-                            d.end()
                             d.begin()
-
-                            //Add to Globe_
-                            var last = L_.layersGroup[lk].length - 1
-                            var llast = L_.layersGroup[lk][last]
-                            var layer
-
-                            if (llast.hasOwnProperty('_layers'))
-                                layer =
-                                    llast._layers[Object.keys(llast._layers)[0]]
-                            else {
-                                layer = Object.assign({}, llast)
-                                layer.feature.geometry.coordinates = [
-                                    layer.feature.geometry.coordinates[1],
-                                    layer.feature.geometry.coordinates[0],
-                                ]
-                            }
-
-                            Globe_.addVectorTileLayer({
-                                id: 'camptool_' + lk + '_' + last,
-                                on: true,
-                                layers: [layer],
-                            })
-
-                            DrawTool.populateShapes()
                         }
                     })(JSON.parse(JSON.stringify(d.shape))),
                     function() {
@@ -1298,112 +1222,14 @@ define([
                     (function(shape) {
                         return function(data) {
                             Map_.rmNotNull(DrawTool.activeAnnotation)
-                            var popup = L.popup({
-                                className: 'leaflet-popup-annotation',
-                                closeButton: false,
-                                autoClose: false,
-                                closeOnEscapeKey: false,
-                                closeOnClick: false,
-                                autoPan: false,
-                                offset: new L.point(0, 3),
-                            })
-                                .setLatLng([coords[1], coords[0]])
-                                .setContent(
-                                    '<div>' +
-                                        "<div id='DrawToolAnnotation_" +
-                                        DrawTool.currentFileId +
-                                        '_' +
-                                        data.id +
-                                        "' class='drawToolAnnotation DrawToolAnnotation_" +
-                                        DrawTool.currentFileId +
-                                        "  blackTextBorder' layer='" +
-                                        DrawTool.currentFileId +
-                                        "' index='" +
-                                        L_.layersGroup[
-                                            'DrawTool_' + DrawTool.currentFileId
-                                        ].length +
-                                        "'></div>" +
-                                        '</div>'
-                                )
-                                .addTo(Map_.map)
 
-                            $(
-                                '#DrawToolAnnotation_' +
-                                    DrawTool.currentFileId +
-                                    '_' +
-                                    data.id
-                            ).text(shape.properties.name)
-
-                            L_.layersGroup[
-                                'DrawTool_' + DrawTool.currentFileId
-                            ].push(popup)
-
-                            $('.drawToolAnnotation').off('mouseover')
-                            $('.drawToolAnnotation').on(
-                                'mouseover',
-                                function() {
-                                    var layer =
-                                        'DrawTool_' + $(this).attr('layer')
-                                    var index = $(this).attr('index')
-                                    $('.drawToolShapeLi').removeClass('hovered')
-                                    $(
-                                        '.drawToolShapeLi .drawToolShapeLiItem'
-                                    ).mouseleave()
-                                    $(
-                                        '#drawToolShapeLiItem_' +
-                                            layer +
-                                            '_' +
-                                            index
-                                    ).addClass('hovered')
-                                    $(
-                                        '#drawToolShapeLiItem_' +
-                                            layer +
-                                            '_' +
-                                            index +
-                                            ' .drawToolShapeLiItem'
-                                    ).mouseenter()
-                                }
+                            DrawTool.refreshFile(
+                                DrawTool.currentFileId,
+                                null,
+                                true
                             )
-                            $('.drawToolAnnotation').off('mouseout')
-                            $('.drawToolAnnotation').on('mouseout', function() {
-                                $('.drawToolShapeLi').removeClass('hovered')
-                                $(
-                                    '.drawToolShapeLi .drawToolShapeLiItem'
-                                ).mouseleave()
-                            })
-                            $('.drawToolAnnotation').off('click')
-                            $('.drawToolAnnotation').on('click', function() {
-                                var layer = 'DrawTool_' + $(this).attr('layer')
-                                var index = $(this).attr('index')
-                                var shape = L_.layersGroup[layer][index]
-                                if (!mmgisglobal.shiftDown) {
-                                    if (typeof shape.getBounds === 'function')
-                                        Map_.map.fitBounds(shape.getBounds())
-                                    else Map_.map.panTo(shape._latlng)
-                                }
-
-                                shape.fireEvent('click')
-                            })
-
-                            var l =
-                                L_.layersGroup[
-                                    'DrawTool_' + DrawTool.currentFileId
-                                ][
-                                    L_.layersGroup[
-                                        'DrawTool_' + DrawTool.currentFileId
-                                    ].length - 1
-                                ]
-
-                            l.feature = shape
-                            l.properties = shape.properties
-                            l.properties._ = l.properties._ || {}
-                            l.properties._.file_id = DrawTool.currentFileId
-                            l.properties._.id = data.id
-                            l.properties._.intent = data.intent
 
                             d.begin()
-
-                            DrawTool.populateShapes()
                         }
                     })(JSON.parse(JSON.stringify(d.shape))),
                     function() {
@@ -1570,43 +1396,13 @@ define([
                     },
                     (function(shape, start, end) {
                         return function(data) {
-                            var lk = 'DrawTool_' + DrawTool.currentFileId
+                            DrawTool.refreshFile(
+                                DrawTool.currentFileId,
+                                null,
+                                true
+                            )
 
-                            var style = shape.properties.style
-
-                            DrawTool.addArrowToMap(lk, start, end, style, shape)
-
-                            var l =
-                                L_.layersGroup[lk][
-                                    L_.layersGroup[lk].length - 1
-                                ]
-                            l.properties = shape.properties
-                            l.properties._ = l.properties._ || {}
-                            l.properties._.id = data.id
-                            l.properties._.intent = data.intent
-
-                            d.end()
                             d.begin()
-
-                            //Add to Globe_
-                            /*
-              var last = L_.layersGroup[ lk ].length - 1;
-              var llast = L_.layersGroup[ lk ][last];
-              var layer;
-    
-              if( llast.hasOwnProperty( '_layers' ) )
-                layer = llast._layers[ Object.keys(llast._layers)[0] ];
-              else {
-                layer = Object.assign( {}, llast );
-                layer.feature.geometry.coordinates = [ layer.feature.geometry.coordinates[1], layer.feature.geometry.coordinates[0] ];
-              }
-    
-              Globe_.addVectorTileLayer( { id: 'camptool_' + lk + '_' + last,
-                on: true,
-                layers: [layer] } );
-              */
-
-                            //DrawTool.populateShapes();
                         }
                     })(
                         JSON.parse(JSON.stringify(d.shape)),

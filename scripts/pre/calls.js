@@ -56,86 +56,102 @@ if (mmgisglobal.SERVER == 'apache') {
         },
         draw_add: {
             type: 'POST',
-            url: '/API/draw/add',
+            url: 'API/draw/add',
         },
         draw_edit: {
             type: 'POST',
-            url: '/API/draw/edit',
+            url: 'API/draw/edit',
         },
         draw_remove: {
             type: 'POST',
-            url: '/API/draw/remove',
+            url: 'API/draw/remove',
         },
         draw_undo: {
             type: 'POST',
-            url: '/API/draw/undo',
+            url: 'API/draw/undo',
         },
         draw_merge: {
             type: 'POST',
-            url: '/API/draw/merge',
+            url: 'API/draw/merge',
+        },
+        draw_split: {
+            type: 'POST',
+            url: 'API/draw/split',
         },
         files_getfiles: {
             type: 'POST',
-            url: '/API/files/getfiles',
+            url: 'API/files/getfiles',
         },
         files_getfile: {
             type: 'POST',
-            url: '/API/files/getfile',
+            url: 'API/files/getfile',
         },
         files_make: {
             type: 'POST',
-            url: '/API/files/make',
+            url: 'API/files/make',
         },
         files_remove: {
             type: 'POST',
-            url: '/API/files/remove',
+            url: 'API/files/remove',
         },
         files_restore: {
             type: 'POST',
-            url: '/API/files/restore',
+            url: 'API/files/restore',
         },
         files_change: {
             type: 'POST',
-            url: '/API/files/change',
+            url: 'API/files/change',
         },
         files_compile: {
             type: 'GET',
-            url: '/API/files/compile',
+            url: 'API/files/compile',
         },
         files_publish: {
             type: 'POST',
-            url: '/API/files/publish',
+            url: 'API/files/publish',
         },
         files_gethistory: {
             type: 'POST',
-            url: '/API/files/gethistory',
+            url: 'API/files/gethistory',
         },
         shortener_shorten: {
             type: 'POST',
-            url: '/API/shortener/shorten',
+            url: 'API/shortener/shorten',
         },
         shortener_expand: {
             type: 'POST',
-            url: '/API/shortener/expand',
+            url: 'API/shortener/expand',
         },
         clear_test: {
             type: 'POST',
-            url: '/API/draw/clear_test',
+            url: 'API/draw/clear_test',
+        },
+        tactical_targets: {
+            type: 'GET',
+            url: 'API/tactical/targets',
+        },
+        datasets_get: {
+            type: 'POST',
+            url: 'API/datasets/get',
         },
         geodatasets_get: {
             type: 'POST',
-            url: '/API/geodatasets/get',
+            url: 'API/geodatasets/get',
         },
         geodatasets_search: {
             type: 'POST',
-            url: '/API/geodatasets/search',
+            url: 'API/geodatasets/search',
+        },
+        spatial_published: {
+            type: 'POST',
+            url: 'API/spatial/published',
         },
     }
 } else {
     console.warn('Unknown SERVER: ' + mmgisglobal.SERVER)
 }
 
-calls.api = function(call, data, success, error) {
+calls.api = function (call, data, success, error) {
     if (mmgisglobal.SERVER != 'node') {
         console.warn('calls.api is only for node servers')
         if (typeof error === 'function') error()
@@ -153,7 +169,10 @@ calls.api = function(call, data, success, error) {
         type: calls[call].type,
         url: calls[call].url,
         data: data,
-        success: function(data) {
+        xhrFields: {
+            withCredentials: true,
+        },
+        success: function (data) {
             if (
                 !data.hasOwnProperty('status') ||
                 (data.hasOwnProperty('status') && data.status == 'success')
@@ -165,7 +184,7 @@ calls.api = function(call, data, success, error) {
                 else if (typeof error === 'function') error(data)
             }
         },
-        error: function() {
+        error: function () {
             console.warn('error')
             if (typeof error === 'function') error()
         },

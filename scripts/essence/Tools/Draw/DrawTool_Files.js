@@ -264,10 +264,10 @@ define([
 
                     if (show) {
                         $(this).css('opacity', 1)
-                        $(this).css('height', '22px')
+                        $(this).css('height', '30px')
                         $(this).css(
                             'border-bottom',
-                            '1px solid rgba(0,0,0,0.1)'
+                            '1px solid rgba(171, 171, 171, 0.25);'
                         )
                         on++
                     } else {
@@ -305,7 +305,7 @@ define([
 
                 // prettier-ignore
                 var markup = [
-                    "<div class='flexbetween'>",
+                    "<div class='flexbetween' style='height: 30px; line-height: 30px;'>",
                         "<div class='drawToolFileSelector flexbetween' file_id='" + file.id + "' file_owner='" + file.file_owner + "' file_intent='" + file.intent + "'>",
                         "<div class='drawToolIntentColor' style='height: 100%; width: 7px; background: " + DrawTool.categoryStyles[file.intent].color + "'></div>",
                         "<div class='drawToolFileInfo flexbetween'>",
@@ -1075,7 +1075,7 @@ define([
                             DrawTool.toggleLabels(index + '')
                         }
 
-                        if( typeof cb === 'function' ) {
+                        if (typeof cb === 'function') {
                             cb()
                         }
                     }

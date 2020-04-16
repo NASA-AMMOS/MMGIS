@@ -21,7 +21,7 @@ define([
     'Description',
     'QueryURL',
     'DataShaders',
-], function(
+], function (
     L_,
     F_,
     L,
@@ -45,7 +45,7 @@ define([
     QueryURL,
     DataShaders
 ) {
-    essenceFina = function() {}
+    essenceFina = function () {}
 
     var Map_ = {
         //Our main leaflet map variable
@@ -55,9 +55,8 @@ define([
         activeLayer: null,
         allLayersLoadedPassed: false,
         player: { arrow: null, lookat: null },
-        mapScaleZoom: 16, //15.0186,
         //Initialize a map based on a config file
-        init: function(essenceFinal) {
+        init: function (essenceFinal) {
             essenceFina = essenceFinal
 
             //Repair Leaflet and plugin incongruities
@@ -101,13 +100,15 @@ define([
             if (L_.configData.look && L_.configData.look.zoomcontrol)
                 hasZoomControl = true
 
+            Map_.mapScaleZoom = L_.configData.msv.mapscale || null
+
             if (this.map != null) this.map.remove()
             if (
                 L_.configData.projection &&
                 L_.configData.projection.custom == true
             ) {
                 var cp = L_.configData.projection
-                //console.log( cp );
+                //console.log(cp)
                 var crs = new L.Proj.CRS(
                     'EPSG:' + cp.epsg,
                     cp.proj,
@@ -127,6 +128,7 @@ define([
                     },
                     L_.configData.msv.radius.major
                 )
+
                 this.map = L.map('map', {
                     zoomControl: hasZoomControl,
                     editable: true,
@@ -135,6 +137,8 @@ define([
                     zoomSnap: 0,
                     //wheelPxPerZoomLevel: 500,
                 })
+
+                mmgisglobal.customCRS = crs
             } else {
                 /*
                 //Set up leaflet for planet radius only
@@ -189,12 +193,14 @@ define([
             if (this.map.zoomControl)
                 this.map.zoomControl.setPosition('topright')
 
-            L.control
-                .scalefactor({
-                    radius: parseInt(L_.configData.msv.radius.major),
-                    mapScaleZoom: Map_.mapScaleZoom,
-                })
-                .addTo(this.map)
+            if (Map_.mapScaleZoom) {
+                L.control
+                    .scalefactor({
+                        radius: parseInt(L_.configData.msv.radius.major),
+                        mapScaleZoom: Map_.mapScaleZoom,
+                    })
+                    .addTo(this.map)
+            }
 
             //Initialize the view to that set in config
             if (L_.FUTURES.mapView != null) {
@@ -208,7 +214,7 @@ define([
             //Make our layers
             makeLayers(L_.layersData)
 
-            //Just in case wehave no layers
+            //Just in case we have no layers
             allLayersLoaded()
 
             /*
@@ -234,11 +240,11 @@ define([
             */
 
             //When done zooming, hide the things you're too far out to see/reveal the things you're close enough to see
-            this.map.on('zoomend', function() {
+            this.map.on('zoomend', function () {
                 enforceVisibilityCutoffs()
             })
 
-            Map_.map.on('move', function(e) {
+            Map_.map.on('move', function (e) {
                 if (L_.mapAndGlobeLinked || mmgisglobal.ctrlDown) {
                     if (L_.Globe_ != null) {
                         var c = Map_.map.getCenter()
@@ -246,20 +252,20 @@ define([
                     }
                 }
             })
-            Map_.map.on('mousemove', function(e) {
+            Map_.map.on('mousemove', function (e) {
                 if (L_.mapAndGlobeLinked || mmgisglobal.ctrlDown) {
                     if (L_.Globe_ != null) L_.Globe_.setLink(e.latlng)
                 }
             })
-            Map_.map.on('mouseout', function(e) {
+            Map_.map.on('mouseout', function (e) {
                 if (L_.Globe_ != null) L_.Globe_.setLink('off')
             })
 
             //Build the toolbar
             buildToolBar()
         },
-        clear: function() {
-            this.map.eachLayer(function(layer) {
+        clear: function () {
+            this.map.eachLayer(function (layer) {
                 Map_.map.removeLayer(layer)
             })
 
@@ -273,7 +279,7 @@ define([
             this.map.setZoom(this.mapScaleZoom)
         },
         //Focuses the map on [lat, lon, zoom]
-        resetView: function(latlonzoom, stopNextMove) {
+        resetView: function (latlonzoom, stopNextMove) {
             //Uses Leaflet's setView
             var lat = parseFloat(latlonzoom[0])
             if (isNaN(lat)) lat = 0
@@ -285,7 +291,7 @@ define([
             this.map.invalidateSize()
         },
         //returns true if the map has the layer
-        hasLayer: function(layername) {
+        hasLayer: function (layername) {
             if (L_.layersGroup[layername]) {
                 return Map_.map.hasLayer(L_.layersGroup[layername])
             }
@@ -293,36 +299,43 @@ define([
         },
         //adds a temp tile layer to the map
         tempTileLayer: null,
-        changeTempTileLayer: function(url) {
+        changeTempTileLayer: function (url) {
             this.removeTempTileLayer()
             this.tempTileLayer = L.tileLayer(url, {
                 minZoom: 0,
                 maxZoom: 25,
                 maxNativeZoom: 25,
-                tms: true,
+                tms: typeof layerObj.tms === 'undefined' ? true : layerObj.tms,
                 noWrap: true,
                 continuousWorld: true,
                 reuseTiles: true,
             }).addTo(this.map)
         },
         //removes that layer
-        removeTempTileLayer: function() {
+        removeTempTileLayer: function () {
             this.rmNotNull(this.tempTileLayer)
         },
         //Removes the map layer if it isnt null
-        rmNotNull: function(layer) {
+        rmNotNull: function (layer) {
             if (layer != null) {
                 this.map.removeLayer(layer)
                 layer = null
             }
         },
         //Redraws all layers, starting with the bottom one
-        orderedBringToFront: function() {
+        orderedBringToFront: function () {
             var hasIndex = []
             for (var i = L_.layersOrdered.length - 1; i >= 0; i--) {
                 if (Map_.hasLayer(L_.layersOrdered[i])) {
-                    Map_.map.removeLayer(L_.layersGroup[L_.layersOrdered[i]])
-                    hasIndex.push(i)
+                    if (
+                        L_.layersNamed[L_.layersOrdered[i]] &&
+                        L_.layersNamed[L_.layersOrdered[i]].type == 'vector'
+                    ) {
+                        Map_.map.removeLayer(
+                            L_.layersGroup[L_.layersOrdered[i]]
+                        )
+                        hasIndex.push(i)
+                    }
                 }
             }
             for (var i = 0; i < hasIndex.length; i++) {
@@ -420,7 +433,6 @@ define([
                 }
             }
         }
-
         return { name: propertyName, value: propertyValue }
     }
 
@@ -473,12 +485,16 @@ define([
             ) {
                 L_.layersNamed[layer.options.layerName].useKeyAsName = pv.name
             }
-            if (pv.hasOwnProperty('name')) {
+            if (
+                pv.hasOwnProperty('name') &&
+                pv.name != null &&
+                typeof pv.name === 'string'
+            ) {
                 var propertyName = pv.name.capitalizeFirstLetter()
                 var propertyValue = pv.value
 
                 //Add a mouseover event to the layer
-                layer.on('mouseover', function() {
+                layer.on('mouseover', function () {
                     //Make it turn on CursorInfo and show name and value
                     CursorInfo.update(
                         propertyName + ': ' + propertyValue,
@@ -487,7 +503,7 @@ define([
                     )
                 })
                 //Add a mouseout event
-                layer.on('mouseout', function() {
+                layer.on('mouseout', function () {
                     //Make it turn off CursorInfo
                     CursorInfo.hide()
                 })
@@ -501,132 +517,186 @@ define([
                 )
             ) {
                 //Add a click event to send the data to the info tab
-                layer.on('click', function(e) {
-                    L_.setLastActivePoint(layer)
-                    L_.resetLayerFills()
-                    layer.setStyle({ fillColor: 'red' })
-                    layer.bringToFront()
-                    Map_.activeLayer = layer
-                    Description.updatePoint(Map_.activeLayer)
-
-                    Kinds.use(
-                        L_.layersNamed[layerObj.name].kind,
-                        Map_,
-                        feature,
-                        layer
+                layer.on('click', function (e) {
+                    if (
+                        ToolController_.activeTool &&
+                        ToolController_.activeTool.disableLayerInteractions ===
+                            true
                     )
-
-                    var features = leafletPip
-                        .pointInLayer(
-                            [e.latlng.lng, e.latlng.lat],
-                            L_.layersGroup[layerObj.name]
-                        )
-                        .concat(
-                            F_.pointsInPoint(
-                                [e.latlng.lng, e.latlng.lat],
-                                L_.layersGroup[layerObj.name]
+                        return
+                    //Query dataset links if possible and add that data to the feature's properties
+                    if (
+                        layer.options.layerName &&
+                        L_.layersNamed[layer.options.layerName] &&
+                        L_.layersNamed[layer.options.layerName].variables &&
+                        L_.layersNamed[layer.options.layerName].variables
+                            .datasetLinks
+                    ) {
+                        const dl =
+                            L_.layersNamed[layer.options.layerName].variables
+                                .datasetLinks
+                        let dlFilled = dl
+                        for (let i = 0; i < dlFilled.length; i++) {
+                            dlFilled[i].search = F_.getIn(
+                                layer.feature.properties,
+                                dlFilled[i].prop.split('.')
                             )
-                        )
-                        .reverse()
-
-                    ToolController_.getTool('InfoTool').use(
-                        layer,
-                        layerObj.name,
-                        features,
-                        {
-                            useKeyAsName: layer.useKeyAsName,
                         }
-                    )
-                    ToolController_.getTool('ChemistryTool').use(layer)
-                    Globe_.highlight(
-                        Globe_.findSpriteObject(
-                            layer.options.layerName,
-                            layer.feature.properties[layer.useKeyAsName]
-                        ),
-                        false
-                    )
-                    Viewer_.highlight(layer)
 
-                    //update url
-                    if (layer != null && layer.hasOwnProperty('options')) {
-                        var keyAsName
-                        if (layer.hasOwnProperty('useKeyAsName')) {
-                            keyAsName =
-                                layer.feature.properties[layer.useKeyAsName]
-                        } else {
-                            keyAsName = layer.feature.properties[0]
-                        }
-                    }
-
-                    //View images
-                    var propImages = propertiesToImages(
-                        feature.properties,
-                        layer.options.metadata
-                            ? layer.options.metadata.base_url || ''
-                            : ''
-                    )
-                    Viewer_.changeImages(propImages)
-                    for (var i in propImages) {
-                        if (propImages[i].type == 'radargram') {
-                            //Globe_.radargram( layer.options.layerName, feature.geometry, propImages[i].url, propImages[i].length, propImages[i].depth );
-                            break
-                        }
-                    }
-
-                    //figure out how to construct searchStr in URL. For example: a ChemCam target can sometime
-                    //be searched by "target sol", or it can be searched by "sol target" depending on config file.
-                    var searchToolVars = L_.getToolVars('search')
-                    var searchfields = {}
-                    if (searchToolVars.hasOwnProperty('searchfields')) {
-                        for (var layerfield in searchToolVars.searchfields) {
-                            var fieldString =
-                                searchToolVars.searchfields[layerfield]
-                            fieldString = fieldString.split(')')
-                            for (var i = 0; i < fieldString.length; i++) {
-                                fieldString[i] = fieldString[i].split('(')
-                                var li = fieldString[i][0].lastIndexOf(' ')
-                                if (li != -1) {
-                                    fieldString[i][0] = fieldString[
-                                        i
-                                    ][0].substring(li + 1)
+                        calls.api(
+                            'datasets_get',
+                            {
+                                queries: JSON.stringify(dlFilled),
+                            },
+                            function (data) {
+                                const d = data.body
+                                for (let i = 0; i < d.length; i++) {
+                                    if (d[i].type == 'images') {
+                                        layer.feature.properties.images =
+                                            layer.feature.properties.images ||
+                                            []
+                                        for (
+                                            let j = 0;
+                                            j < d[i].results.length;
+                                            j++
+                                        ) {
+                                            layer.feature.properties.images.push(
+                                                d[i].results[j]
+                                            )
+                                        }
+                                        //remove duplicates
+                                        layer.feature.properties.images = F_.removeDuplicatesInArrayOfObjects(
+                                            layer.feature.properties.images
+                                        )
+                                    } else {
+                                        layer.feature.properties._data =
+                                            d[i].results
+                                    }
                                 }
+                                keepGoing()
+                            },
+                            function (data) {
+                                keepGoing()
                             }
-                            fieldString.pop()
-                            //0 is function, 1 is parameter
-                            searchfields[layerfield] = fieldString
-                        }
+                        )
+                    } else {
+                        keepGoing()
                     }
 
-                    var str = ''
-                    if (searchfields.hasOwnProperty(layer.options.layerName)) {
-                        var sf = searchfields[layer.options.layerName] //sf for search field
-                        for (var i = 0; i < sf.length; i++) {
-                            str += sf[i][1]
-                            str += ' '
+                    function keepGoing() {
+                        L_.setLastActivePoint(layer)
+                        L_.resetLayerFills()
+                        layer.setStyle({ fillColor: 'red' })
+                        Map_.activeLayer = layer
+                        Description.updatePoint(Map_.activeLayer)
+
+                        //View images
+                        var propImages = propertiesToImages(
+                            feature.properties,
+                            layer.options.metadata
+                                ? layer.options.metadata.base_url || ''
+                                : ''
+                        )
+
+                        Kinds.use(
+                            L_.layersNamed[layerObj.name].kind,
+                            Map_,
+                            feature,
+                            layer,
+                            layer.options.layerName,
+                            propImages,
+                            e
+                        )
+
+                        Globe_.highlight(
+                            Globe_.findSpriteObject(
+                                layer.options.layerName,
+                                layer.feature.properties[layer.useKeyAsName]
+                            ),
+                            false
+                        )
+                        Viewer_.highlight(layer)
+
+                        //update url
+                        if (layer != null && layer.hasOwnProperty('options')) {
+                            var keyAsName
+                            if (layer.hasOwnProperty('useKeyAsName')) {
+                                keyAsName =
+                                    layer.feature.properties[layer.useKeyAsName]
+                            } else {
+                                keyAsName = layer.feature.properties[0]
+                            }
                         }
-                    }
-                    str = str.substring(0, str.length - 1)
 
-                    var searchFieldTokens = str.split(' ')
-                    var searchStr
+                        Viewer_.changeImages(propImages, feature)
+                        for (var i in propImages) {
+                            if (propImages[i].type == 'radargram') {
+                                //Globe_.radargram( layer.options.layerName, feature.geometry, propImages[i].url, propImages[i].length, propImages[i].depth );
+                                break
+                            }
+                        }
 
-                    if (searchFieldTokens.length == 2) {
+                        //figure out how to construct searchStr in URL. For example: a ChemCam target can sometime
+                        //be searched by "target sol", or it can be searched by "sol target" depending on config file.
+                        var searchToolVars = L_.getToolVars('search')
+                        var searchfields = {}
+                        if (searchToolVars.hasOwnProperty('searchfields')) {
+                            for (var layerfield in searchToolVars.searchfields) {
+                                var fieldString =
+                                    searchToolVars.searchfields[layerfield]
+                                fieldString = fieldString.split(')')
+                                for (var i = 0; i < fieldString.length; i++) {
+                                    fieldString[i] = fieldString[i].split('(')
+                                    var li = fieldString[i][0].lastIndexOf(' ')
+                                    if (li != -1) {
+                                        fieldString[i][0] = fieldString[
+                                            i
+                                        ][0].substring(li + 1)
+                                    }
+                                }
+                                fieldString.pop()
+                                //0 is function, 1 is parameter
+                                searchfields[layerfield] = fieldString
+                            }
+                        }
+
+                        var str = ''
                         if (
-                            searchFieldTokens[0].toLowerCase() ==
-                            layer.useKeyAsName.toLowerCase()
+                            searchfields.hasOwnProperty(layer.options.layerName)
                         ) {
-                            searchStr =
-                                keyAsName + ' ' + layer.feature.properties.Sol
-                        } else {
-                            searchStr =
-                                layer.feature.properties.Sol + ' ' + keyAsName
+                            var sf = searchfields[layer.options.layerName] //sf for search field
+                            for (var i = 0; i < sf.length; i++) {
+                                str += sf[i][1]
+                                str += ' '
+                            }
                         }
-                    }
+                        str = str.substring(0, str.length - 1)
 
-                    QueryURL.writeSearchURL(
-                        [searchStr],
-                        layer.options.layerName
-                    )
+                        var searchFieldTokens = str.split(' ')
+                        var searchStr
+
+                        if (searchFieldTokens.length == 2) {
+                            if (
+                                searchFieldTokens[0].toLowerCase() ==
+                                layer.useKeyAsName.toLowerCase()
+                            ) {
+                                searchStr =
+                                    keyAsName +
+                                    ' ' +
+                                    layer.feature.properties.Sol
+                            } else {
+                                searchStr =
+                                    layer.feature.properties.Sol +
+                                    ' ' +
+                                    keyAsName
+                            }
+                        }
+
+                        QueryURL.writeSearchURL(
+                            [searchStr],
+                            layer.options.layerName
+                        )
+                    }
                 })
             }
         }
@@ -648,10 +718,47 @@ define([
                         layer: urlSplit[1],
                         type: 'geojson',
                     },
-                    function(data) {
+                    function (data) {
                         add(data.body)
                     },
-                    function(data) {
+                    function (data) {
+                        console.warn(
+                            'ERROR! ' +
+                                data.status +
+                                ' in ' +
+                                layerObj.url +
+                                ' /// ' +
+                                data.message
+                        )
+                        add(null)
+                    }
+                )
+            } else if (layerObj.url.substr(0, 16) == 'api:publishedall') {
+                calls.api(
+                    'files_getfile',
+                    {
+                        id: JSON.stringify([1, 2, 3, 4, 5]),
+                        quick_published: true,
+                    },
+                    function (data) {
+                        data.body.features.sort((a, b) => {
+                            let intentOrder = [
+                                'all',
+                                'roi',
+                                'campaign',
+                                'campsite',
+                                'trail',
+                                'signpost',
+                                'note',
+                                'master',
+                            ]
+                            let ai = intentOrder.indexOf(a.properties._.intent)
+                            let bi = intentOrder.indexOf(b.properties._.intent)
+                            return ai - bi
+                        })
+                        add(data.body)
+                    },
+                    function (data) {
                         console.warn(
                             'ERROR! ' +
                                 data.status +
@@ -670,10 +777,29 @@ define([
                         intent: layerObj.url.split(':')[2],
                         quick_published: true,
                     },
-                    function(data) {
+                    function (data) {
                         add(data.body)
                     },
-                    function(data) {
+                    function (data) {
+                        console.warn(
+                            'ERROR! ' +
+                                data.status +
+                                ' in ' +
+                                layerObj.url +
+                                ' /// ' +
+                                data.message
+                        )
+                        add(null)
+                    }
+                )
+            } else if (layerObj.url.substr(0, 19) == 'api:tacticaltargets') {
+                calls.api(
+                    'tactical_targets',
+                    {},
+                    function (data) {
+                        add(data.body)
+                    },
+                    function (data) {
                         console.warn(
                             'ERROR! ' +
                                 data.status +
@@ -686,12 +812,9 @@ define([
                     }
                 )
             } else {
-                $.getJSON(
-                    layerUrl + '?nocache=' + new Date().getTime(),
-                    function(data) {
-                        add(data)
-                    }
-                ).error(function(jqXHR, textStatus, errorThrown) {
+                $.getJSON(layerUrl, function (data) {
+                    add(data)
+                }).error(function (jqXHR, textStatus, errorThrown) {
                     //Tell the console council about what happened
                     console.warn(
                         'ERROR! ' +
@@ -718,7 +841,6 @@ define([
                     allLayersLoaded()
                     return
                 }
-
                 layerObj.style.layerName = layerObj.name
 
                 layerObj.style.opacity = L_.opacityArray[layerObj.name]
@@ -731,64 +853,81 @@ define([
                 var fiO = String(layerObj.style.fillOpacity)
 
                 var leafletLayerObject = {
-                    style: function(feature) {
-                        if (feature.properties.hasOwnProperty('style'))
-                            return feature.properties.style
-                        // Priority to prop, prop.color, then style color.
-                        var finalCol =
-                            col.toLowerCase().substring(0, 4) == 'prop'
-                                ? feature.properties[col.substring(5)] || '#FFF'
-                                : feature.style && feature.style.stroke != null
-                                ? feature.style.stroke
-                                : col
-                        var finalOpa =
-                            opa.toLowerCase().substring(0, 4) == 'prop'
-                                ? feature.properties[opa.substring(5)] || '1'
-                                : feature.style && feature.style.opacity != null
-                                ? feature.style.opacity
-                                : opa
-                        var finalWei =
-                            wei.toLowerCase().substring(0, 4) == 'prop'
-                                ? feature.properties[wei.substring(5)] || '1'
-                                : feature.style && feature.style.weight != null
-                                ? feature.style.weight
-                                : wei
-                        var finalFiC =
-                            fiC.toLowerCase().substring(0, 4) == 'prop'
-                                ? feature.properties[fiC.substring(5)] || '#000'
-                                : feature.style && feature.style.fill != null
-                                ? feature.style.fill
-                                : fiC
-                        var finalFiO =
-                            fiO.toLowerCase().substring(0, 4) == 'prop'
-                                ? feature.properties[fiO.substring(5)] || '1'
-                                : feature.style &&
-                                  feature.style.fillopacity != null
-                                ? feature.style.fillopacity
-                                : fiO
+                    style: function (feature) {
+                        if (feature.properties.hasOwnProperty('style')) {
+                            let className = layerObj.style.className
+                            let layerName = layerObj.style.layerName
+                            layerObj.style = JSON.parse(
+                                JSON.stringify(feature.properties.style)
+                            )
+                            layerObj.style.className = className
+                            layerObj.style.layerName = layerName
+                        } else {
+                            // Priority to prop, prop.color, then style color.
+                            var finalCol =
+                                col.toLowerCase().substring(0, 4) == 'prop'
+                                    ? feature.properties[col.substring(5)] ||
+                                      '#FFF'
+                                    : feature.style &&
+                                      feature.style.stroke != null
+                                    ? feature.style.stroke
+                                    : col
+                            var finalOpa =
+                                opa.toLowerCase().substring(0, 4) == 'prop'
+                                    ? feature.properties[opa.substring(5)] ||
+                                      '1'
+                                    : feature.style &&
+                                      feature.style.opacity != null
+                                    ? feature.style.opacity
+                                    : opa
+                            var finalWei =
+                                wei.toLowerCase().substring(0, 4) == 'prop'
+                                    ? feature.properties[wei.substring(5)] ||
+                                      '1'
+                                    : feature.style &&
+                                      feature.style.weight != null
+                                    ? feature.style.weight
+                                    : wei
+                            if (!isNaN(parseInt(wei))) finalWei = parseInt(wei)
+                            var finalFiC =
+                                fiC.toLowerCase().substring(0, 4) == 'prop'
+                                    ? feature.properties[fiC.substring(5)] ||
+                                      '#000'
+                                    : feature.style &&
+                                      feature.style.fill != null
+                                    ? feature.style.fill
+                                    : fiC
+                            var finalFiO =
+                                fiO.toLowerCase().substring(0, 4) == 'prop'
+                                    ? feature.properties[fiO.substring(5)] ||
+                                      '1'
+                                    : feature.style &&
+                                      feature.style.fillopacity != null
+                                    ? feature.style.fillopacity
+                                    : fiO
 
-                        var noPointerEventsClass =
-                            feature.style && feature.style.nointeraction
-                                ? ' noPointerEvents'
-                                : ''
+                            var noPointerEventsClass =
+                                feature.style && feature.style.nointeraction
+                                    ? ' noPointerEvents'
+                                    : ''
 
-                        layerObj.style.color = finalCol
-                        layerObj.style.opacity = finalOpa
-                        layerObj.style.weight = finalWei
-                        layerObj.style.fillColor = finalFiC
-                        layerObj.style.fillOpacity = finalFiO
+                            layerObj.style.color = finalCol
+                            layerObj.style.opacity = finalOpa
+                            layerObj.style.weight = finalWei
+                            layerObj.style.fillColor = finalFiC
+                            layerObj.style.fillOpacity = finalFiO
+                        }
                         layerObj.style.className =
                             layerObj.style.className + noPointerEventsClass
                         layerObj.style.metadata = data.metadata || {}
-
                         return layerObj.style
                     },
-                    onEachFeature: (function(layerObjName) {
+                    onEachFeature: (function (layerObjName) {
                         return onEachFeatureDefault
                     })(layerObj.name),
                 }
                 if (layerObj.hasOwnProperty('radius')) {
-                    leafletLayerObject.pointToLayer = function(
+                    leafletLayerObject.pointToLayer = function (
                         feature,
                         latlong
                     ) {
@@ -800,342 +939,12 @@ define([
                     }
                 }
 
-                //Set up any custom layer interactions
-                //Currently MSL specific
-                switch (layerObj.name) {
-                    //If it's Waypoints
-                    case 'Waypoints':
-                        //Use this custom layer object
-                        leafletLayerObject = {
-                            //Same style
-                            style: layerObj.style,
-                            //Different onEachFeature
-                            onEachFeature: (function(layerObjName) {
-                                return function(feature, layer) {
-                                    var pv = getLayersChosenNamePropVal(
-                                        feature,
-                                        layer
-                                    )
-                                    layer['useKeyAsName'] = pv.name
-                                    if (
-                                        layer.hasOwnProperty('options') &&
-                                        layer.options.hasOwnProperty(
-                                            'layerName'
-                                        )
-                                    ) {
-                                        L_.layersNamed[
-                                            layer.options.layerName
-                                        ].useKeyAsName = pv.name
-                                    }
-                                    var propertyName = pv.name.capitalizeFirstLetter()
-                                    var propertyValue = pv.value
-
-                                    //Add a mouseover event to the layer
-                                    layer.on('mouseover', function() {
-                                        //Make it turn on CursorInfo and show name and value
-                                        CursorInfo.update(
-                                            propertyName + ': ' + propertyValue,
-                                            null,
-                                            false
-                                        )
-                                    })
-                                    layer.on('mouseout', function() {
-                                        CursorInfo.hide()
-                                    })
-                                    //Add a click event to send the data to the info tab
-                                    layer.on('click', function(e) {
-                                        L_.setLastActivePoint(layer)
-                                        //highlight
-                                        L_.resetLayerFills()
-                                        layer.setStyle({ fillColor: 'red' })
-
-                                        //Make rover image curiosity
-                                        Map_.rmNotNull(Map_.tempOverlayImage)
-                                        //256 x 338, 256 is 2.8m
-                                        var wm = 2.8
-                                        var w = 256
-                                        var h = 338
-                                        var lngM = F_.metersToDegrees(wm) / 2
-                                        var latM = lngM * (h / w)
-                                        var center = [
-                                            layer._latlng.lng,
-                                            layer._latlng.lat,
-                                        ]
-                                        var angle = -layer.feature.properties
-                                            .yaw_rad
-                                        var topLeft = F_.rotatePoint(
-                                            {
-                                                y: layer._latlng.lat + latM,
-                                                x: layer._latlng.lng - lngM,
-                                            },
-                                            center,
-                                            angle
-                                        )
-                                        var topRight = F_.rotatePoint(
-                                            {
-                                                y: layer._latlng.lat + latM,
-                                                x: layer._latlng.lng + lngM,
-                                            },
-                                            center,
-                                            angle
-                                        )
-                                        var bottomRight = F_.rotatePoint(
-                                            {
-                                                y: layer._latlng.lat - latM,
-                                                x: layer._latlng.lng + lngM,
-                                            },
-                                            center,
-                                            angle
-                                        )
-                                        var bottomLeft = F_.rotatePoint(
-                                            {
-                                                y: layer._latlng.lat - latM,
-                                                x: layer._latlng.lng - lngM,
-                                            },
-                                            center,
-                                            angle
-                                        )
-
-                                        var anchors = [
-                                            [topLeft.y, topLeft.x],
-                                            [topRight.y, topRight.x],
-                                            [bottomRight.y, bottomRight.x],
-                                            [bottomLeft.y, bottomLeft.x],
-                                        ]
-                                        Map_.tempOverlayImage = L.imageTransform(
-                                            'resources/RoverImages/CuriosityTopDownOrthoSmall.png',
-                                            anchors,
-                                            { opacity: 1, clip: anchors }
-                                        )
-                                        Map_.tempOverlayImage
-                                            .addTo(Map_.map)
-                                            .bringToBack()
-
-                                        //View images
-                                        var propImages = propertiesToImages(
-                                            feature.properties,
-                                            ''
-                                        )
-                                        //Add mosaic to imageViewer
-                                        var d = feature.properties
-                                        var ivSol = '0000' + parseInt(d.sol)
-                                        ivSol = ivSol.substr(ivSol.length - 4)
-                                        var ivSite = '0000' + parseInt(d.site)
-                                        ivSite = ivSite.substr(
-                                            ivSite.length - 3
-                                        )
-                                        var ivPos = '0000' + parseInt(d.pos)
-                                        ivPos = ivPos.substr(ivPos.length - 4)
-                                        propImages.unshift({
-                                            url:
-                                                'Missions/' +
-                                                L_.mission +
-                                                '/' +
-                                                'Data/Mosaics/N_L000_' +
-                                                ivSol +
-                                                '_ILT' +
-                                                ivSite +
-                                                'CYL_S_' +
-                                                ivPos +
-                                                '_UNCORM1.jpg',
-                                            name:
-                                                ivSol +
-                                                '_' +
-                                                ivSite +
-                                                '_' +
-                                                ivPos,
-                                            isPanoramic: true,
-                                        })
-
-                                        Viewer_.changeImages(propImages)
-                                        //Viewer_.changeImages( propertiesToImages( feature.properties ) );
-                                        Map_.activeLayer = layer
-                                        var features = leafletPip
-                                            .pointInLayer(
-                                                [e.latlng.lng, e.latlng.lat],
-                                                L_.layersGroup[layerObjName]
-                                            )
-                                            .concat(
-                                                F_.pointsInPoint(
-                                                    [
-                                                        e.latlng.lng,
-                                                        e.latlng.lat,
-                                                    ],
-                                                    L_.layersGroup[layerObjName]
-                                                )
-                                            )
-                                            .reverse()
-                                        Description.updatePoint(
-                                            Map_.activeLayer
-                                        )
-                                        ToolController_.getTool('InfoTool').use(
-                                            layer,
-                                            layerObjName,
-                                            features,
-                                            {
-                                                useKeyAsName:
-                                                    layer.useKeyAsName,
-                                            }
-                                        )
-                                        Globe_.highlight(
-                                            Globe_.findSpriteObject(
-                                                layer.options.layerName,
-                                                layer.feature.properties[
-                                                    layer.useKeyAsName
-                                                ]
-                                            ),
-                                            false
-                                        )
-
-                                        //update url
-                                        if (
-                                            layer != null &&
-                                            layer.hasOwnProperty('options')
-                                        ) {
-                                            var keyAsName
-                                            if (
-                                                layer.hasOwnProperty(
-                                                    'useKeyAsName'
-                                                )
-                                            ) {
-                                                keyAsName =
-                                                    layer.feature.properties[
-                                                        layer.useKeyAsName
-                                                    ]
-                                            } else {
-                                                keyAsName =
-                                                    layer.feature.properties[0]
-                                            }
-                                        }
-
-                                        if (
-                                            typeof keyAsName == 'string' &&
-                                            keyAsName.indexOf('_') > -1
-                                        ) {
-                                            var nameTokens = keyAsName.split(
-                                                '_'
-                                            )
-                                            var tmpStr = ''
-                                            for (
-                                                var i = 0;
-                                                i < nameTokens.length;
-                                                i++
-                                            ) {
-                                                tmpStr += nameTokens[i] + ' '
-                                            }
-
-                                            keyAsName = tmpStr
-                                        }
-
-                                        QueryURL.writeSearchURL(
-                                            [keyAsName],
-                                            layer.options.layerName
-                                        )
-                                    })
-                                }
-                            })(layerObj.name),
-                            //Same point to layer
-                            pointToLayer: function(feature, latlong) {
-                                return L.circleMarker(
-                                    latlong,
-                                    layerObj.style
-                                ).setRadius(layerObj.radius || 0)
-                            },
-                        }
-                        break
-                    case 'HiRISE':
-                    case 'THEMIS':
-                        leafletLayerObject = {
-                            //Same style
-                            style: layerObj.style,
-                            //Different onEachFeature
-                            onEachFeature: (function(layerObj) {
-                                return function(feature, layer) {
-                                    //Show Sol instead of first property
-                                    layer.on('mouseover', function() {
-                                        CursorInfo.update(
-                                            'Path: ' + feature.properties.path,
-                                            null,
-                                            false
-                                        )
-                                    })
-                                    layer.on('mouseout', function() {
-                                        CursorInfo.hide()
-                                    })
-                                    //Add a click event to send the data to the info tab
-                                    layer.on('click', function(e) {
-                                        var features = leafletPip
-                                            .pointInLayer(
-                                                [e.latlng.lng, e.latlng.lat],
-                                                L_.layersGroup[layerObjName]
-                                            )
-                                            .concat(
-                                                F_.pointsInPoint(
-                                                    [
-                                                        e.latlng.lng,
-                                                        e.latlng.lat,
-                                                    ],
-                                                    L_.layersGroup[layerObjName]
-                                                )
-                                            )
-                                            .reverse()
-                                        var variables = null
-                                        if (
-                                            layerObj.hasOwnProperty('variables')
-                                        )
-                                            variables = layerObj.variables
-                                        Map_.activeLayer = layer
-                                        Description.updatePoint(
-                                            Map_.activeLayer
-                                        )
-                                        ToolController_.getTool('InfoTool').use(
-                                            layer,
-                                            layerObjName,
-                                            features,
-                                            {
-                                                useKeyAsName:
-                                                    layer.useKeyAsName,
-                                            }
-                                        )
-
-                                        //update url
-                                        if (
-                                            layer != null &&
-                                            layer.hasOwnProperty('options')
-                                        ) {
-                                            var keyAsName
-                                            if (
-                                                layer.hasOwnProperty(
-                                                    'useKeyAsName'
-                                                )
-                                            ) {
-                                                keyAsName =
-                                                    layer.feature.properties[
-                                                        layer.useKeyAsName
-                                                    ]
-                                            } else {
-                                                keyAsName =
-                                                    layer.feature.properties[0]
-                                            }
-                                        }
-
-                                        QueryURL.writeSearchURL(
-                                            [keyAsName],
-                                            layer.options.layerName
-                                        )
-                                    })
-                                }
-                            })(layerObj),
-                        }
-                        break
-                }
-
                 //If it's a drawing layer
                 if (layerObj.name.toLowerCase().indexOf('draw') != -1) {
                     F_.sortGeoJSONFeatures(data)
 
                     leafletLayerObject = {
-                        style: function(feature) {
+                        style: function (feature) {
                             return {
                                 color: 'black',
                                 radius: 6,
@@ -1147,7 +956,7 @@ define([
                                 className: 'spePolygonLayer',
                             }
                         },
-                        pointToLayer: function(feature, latlng) {
+                        pointToLayer: function (feature, latlng) {
                             return L.circleMarker(latlng)
                         },
                         /*
@@ -1161,7 +970,7 @@ define([
                                 className: "spePolygonLayer"
                             };
                         },*/
-                        onEachFeature: function(feature, layer) {
+                        onEachFeature: function (feature, layer) {
                             var desc = feature.properties.description
                             if (desc) desc = desc.replace(/\n/g, '<br />')
                             var list =
@@ -1202,8 +1011,8 @@ define([
                 minZoom: layerObj.minZoom,
                 maxZoom: layerObj.maxZoom,
                 maxNativeZoom: layerObj.maxNativeZoom,
-                tms: true,
-                noWrap: true,
+                tms: typeof layerObj.tms === 'undefined' ? true : layerObj.tms,
+                //noWrap: true,
                 continuousWorld: true,
                 reuseTiles: true,
                 bounds: bb,
@@ -1240,47 +1049,65 @@ define([
                 )
             }
 
-            var clearHighlight = function(layerName) {
-                var highlight = L_.layersGroup[layerName].highlight
-                if (highlight) {
-                    L_.layersGroup[layerName].resetFeatureStyle(highlight)
+            var clearHighlight = function () {
+                for (let l of Object.keys(L_.layersNamed)) {
+                    if (L_.layersGroup[l]) {
+                        var highlight = L_.layersGroup[l].highlight
+                        if (highlight) {
+                            L_.layersGroup[l].resetFeatureStyle(highlight)
+                        }
+                        L_.layersGroup[l].highlight = null
+                    }
                 }
-                L_.layersGroup[layerName].highlight = null
             }
             var timedSelectTimeout = null
-            var timedSelect = function(layer, layerName) {
+            var timedSelect = function (layer, layerName, e) {
                 clearTimeout(timedSelectTimeout)
                 timedSelectTimeout = setTimeout(
-                    (function(layer, layerName) {
-                        return function() {
+                    (function (layer, layerName, e) {
+                        return function () {
+                            let ell = { latlng: null }
+                            if (e.latlng != null)
+                                ell.latlng = JSON.parse(
+                                    JSON.stringify(e.latlng)
+                                )
+
                             Kinds.use(
                                 L_.layersNamed[layerName].kind,
                                 Map_,
                                 L_.layersGroup[layerName].activeFeatures[0],
-                                layer
+                                layer,
+                                layerName,
+                                null,
+                                ell
                             )
 
                             ToolController_.getTool('InfoTool').use(
                                 layer,
                                 layerName,
-                                L_.layersGroup[layerName].activeFeatures
+                                L_.layersGroup[layerName].activeFeatures,
+                                null,
+                                null,
+                                null,
+                                ell
                             )
                             L_.layersGroup[layerName].activeFeatures = []
                         }
-                    })(layer, layerName),
+                    })(layer, layerName, e),
                     100
                 )
             }
 
             var vectorTileOptions = {
+                layerName: layerObj.name,
                 rendererFactory: L.canvas.tile,
                 vectorTileLayerStyles: layerObj.style.vtLayer || {},
                 interactive: true,
                 minZoom: layerObj.minZoom,
                 maxZoom: layerObj.maxZoom,
                 maxNativeZoom: layerObj.maxNativeZoom,
-                getFeatureId: (function(vtId) {
-                    return function(f) {
+                getFeatureId: (function (vtId) {
+                    return function (f) {
                         if (
                             f.properties.properties &&
                             typeof f.properties.properties === 'string'
@@ -1294,67 +1121,65 @@ define([
 
             L_.layersGroup[layerObj.name] = L.vectorGrid
                 .protobuf(layerUrl, vectorTileOptions)
-                .on(
-                    'click',
-                    (function(vtId) {
-                        return function(e) {
-                            clearHighlight(layerObj.name)
-                            L_.layersGroup[layerObj.name].highlight =
-                                e.layer.properties[vtId]
-                            L_.layersGroup[layerObj.name].setFeatureStyle(
-                                e.layer.properties[vtId],
-                                {
-                                    weight: 2,
-                                    color: 'red',
-                                    opacity: 1,
-                                    fillColor: 'red',
-                                    fill: true,
-                                    radius: 4,
-                                    fillOpacity: 1,
-                                }
-                            )
-                            L_.layersGroup[layerObj.name].activeFeatures =
-                                L_.layersGroup[layerObj.name].activeFeatures ||
-                                []
-                            L_.layersGroup[layerObj.name].activeFeatures.push({
+                .on('click', function (e) {
+                    let layerName = e.sourceTarget._layerName
+                    let vtId = L_.layersGroup[layerName].vtId
+                    clearHighlight()
+                    L_.layersGroup[layerName].highlight =
+                        e.layer.properties[vtId]
+                    L_.layersGroup[layerName].setFeatureStyle(
+                        e.layer.properties[vtId],
+                        {
+                            weight: 2,
+                            color: 'red',
+                            opacity: 1,
+                            fillColor: 'red',
+                            fill: true,
+                            radius: 4,
+                            fillOpacity: 1,
+                        }
+                    )
+                    L_.layersGroup[layerName].activeFeatures =
+                        L_.layersGroup[layerName].activeFeatures || []
+                    L_.layersGroup[layerName].activeFeatures.push({
+                        type: 'Feature',
+                        properties: e.layer.properties,
+                        geometry: {},
+                    })
+                    Map_.activeLayer = e.sourceTarget._layer
+                    let p = e.sourceTarget._point
+
+                    for (var i in e.layer._renderer._features) {
+                        if (
+                            e.layer._renderer._features[i].feature._pxBounds.min
+                                .x <= p.x &&
+                            e.layer._renderer._features[i].feature._pxBounds.max
+                                .x >= p.x &&
+                            e.layer._renderer._features[i].feature._pxBounds.min
+                                .y <= p.y &&
+                            e.layer._renderer._features[i].feature._pxBounds.max
+                                .y >= p.y &&
+                            e.layer._renderer._features[i].feature.properties[
+                                vtId
+                            ] !== e.layer.properties[vtId]
+                        ) {
+                            L_.layersGroup[layerName].activeFeatures.push({
                                 type: 'Feature',
-                                properties: e.layer.properties,
+                                properties:
+                                    e.layer._renderer._features[i].feature
+                                        .properties,
                                 geometry: {},
                             })
-                            Map_.activeLayer = e.layer
-                            let p = e.layer._point
-
-                            for (var i in e.layer._renderer._features) {
-                                if (
-                                    e.layer._renderer._features[i].feature
-                                        ._point.x == p.x &&
-                                    e.layer._renderer._features[i].feature
-                                        ._point.y == p.y &&
-                                    e.layer._renderer._features[i].feature
-                                        .properties[vtId] !==
-                                        e.layer.properties[vtId]
-                                ) {
-                                    L_.layersGroup[
-                                        layerObj.name
-                                    ].activeFeatures.push({
-                                        type: 'Feature',
-                                        properties:
-                                            e.layer._renderer._features[i]
-                                                .feature.properties,
-                                        geometry: {},
-                                    })
-                                }
-                            }
-                            timedSelect(e.layer, layerObj.name)
-
-                            //L.DomEvent.stop(e)
                         }
-                    })(layerObj.style.vtId)
-                )
+                    }
+                    timedSelect(e.sourceTarget._layer, layerName, e)
+
+                    //L.DomEvent.stop(e)
+                })
                 .on(
                     'mouseover',
-                    (function(vtKey) {
-                        return function(e) {
+                    (function (vtKey) {
+                        return function (e, a, b, c) {
                             if (vtKey != null)
                                 CursorInfo.update(
                                     vtKey + ': ' + e.layer.properties[vtKey],
@@ -1364,9 +1189,12 @@ define([
                         }
                     })(layerObj.style.vtKey)
                 )
-                .on('mouseout', function() {
+                .on('mouseout', function () {
                     CursorInfo.hide()
                 })
+
+            L_.layersGroup[layerObj.name].vtId = layerObj.style.vtId
+            L_.layersGroup[layerObj.name].vtKey = layerObj.style.vtKey
 
             L_.setLayerOpacity(layerObj.name, L_.opacityArray[layerObj.name])
 
@@ -1475,28 +1303,50 @@ define([
                 if (props.images[i].url) {
                     var url = baseUrl + props.images[i].url
                     if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
-                    if (props.images[i].type == 'photosphere') {
+                    if (props.images[i].isModel) {
+                        images.push({
+                            url: url,
+                            texture: props.images[i].texture,
+                            name:
+                                (props.images[i].name ||
+                                    props.images[i].url.match(
+                                        /([^\/]*)\/*$/
+                                    )[1]) + ' [Model]',
+                            type: 'model',
+                            isPanoramic: false,
+                            isModel: true,
+                            values: props.images[i].values || {},
+                            master: props.images[i].master,
+                        })
+                    } else {
+                        if (props.images[i].isPanoramic) {
+                            images.push({
+                                ...props.images[i],
+                                url: url,
+                                name:
+                                    (props.images[i].name ||
+                                        props.images[i].url.match(
+                                            /([^\/]*)\/*$/
+                                        )[1]) + ' [Panoramic]',
+                                type: 'photosphere',
+                                isPanoramic: true,
+                                isModel: false,
+                                values: props.images[i].values || {},
+                                master: props.images[i].master,
+                            })
+                        }
                         images.push({
                             url: url,
                             name:
-                                props.images[i].url.match(/([^\/]*)\/*$/)[1] +
-                                '[Panoramic]',
+                                props.images[i].name ||
+                                props.images[i].url.match(/([^\/]*)\/*$/)[1],
                             type: props.images[i].type || 'image',
-                            isPanoramic: true,
+                            isPanoramic: false,
                             isModel: false,
                             values: props.images[i].values || {},
                             master: props.images[i].master,
                         })
                     }
-                    images.push({
-                        url: url,
-                        name: props.images[i].url.match(/([^\/]*)\/*$/)[1],
-                        type: props.images[i].type || 'image',
-                        isPanoramic: false,
-                        isModel: false,
-                        values: props.images[i].values || {},
-                        master: props.images[i].master,
-                    })
                 }
             }
         }

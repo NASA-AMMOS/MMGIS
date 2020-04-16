@@ -1,11 +1,11 @@
 var Geodatasets = {
-    geojson: null,
-    init: function() {
-        // prettier-ignore
-        var markup = [
+  geojson: null,
+  init: function() {
+    // prettier-ignore
+    var markup = [
             "<div class='geodatasets'>",
                 "<div class='existing'>",
-                    "<div class='title'>GeoDATASETS</div>",
+                    "<div class='title'>GeoDatasets</div>",
                     "<div class='help'>Link to them with <span>geodatasets:{name}</span> as the layer URL</div>",
                     "<ul class='mmgisScrollbar'>",
                     "</ul>",
@@ -28,134 +28,146 @@ var Geodatasets = {
             "</div>"
         ].join('\n');
 
-        $('.container_geodatasets').html( markup );
+    $(".container_geodatasets").html(markup);
 
-        Geodatasets.refreshNames()
+    Geodatasets.refreshNames();
 
-        //Upload
-        $('#geodatasetUploadButton > input').on('change', function(evt) {
+    //Upload
+    $(".container_geodatasets #geodatasetUploadButton > input").on(
+      "change",
+      function(evt) {
+        var files = evt.target.files; // FileList object
 
-            var files = evt.target.files // FileList object
+        // use the 1st file from the list
+        var f = files[0];
+        var ext = Geodatasets.getExtension(f.name).toLowerCase();
 
-            // use the 1st file from the list
-            var f = files[0]
-            var ext = Geodatasets.getExtension(f.name).toLowerCase()
+        $(".container_geodatasets .geodatasetName input").val(
+          f.name
+            .split("." + ext)[0]
+            .replace(/[`~!@#$%^&*()|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, "")
+        );
 
-            $('.geodatasetName input').val( f.name.split( '.' + ext )[0].replace(/[`~!@#$%^&*()|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '') )
+        switch (ext) {
+          case "json":
+          case "geojson":
+            var reader = new FileReader();
+            // Closure to capture the file information.
+            reader.onload = (function(file) {
+              return function(e) {
+                $(".container_geodatasets .geodatasetUploadFilename").text(
+                  file.name
+                );
+                Geodatasets.geojson = e.target.result;
+              };
+            })(f);
 
-            switch (ext) {
-                case 'json':
-                case 'geojson':
-                    var reader = new FileReader()
-                    // Closure to capture the file information.
-                    reader.onload = (function(file) {
-                        return function(e) {
-                            $('.geodatasetUploadFilename').text(file.name)
-                            Geodatasets.geojson = e.target.result
-                        }
-                    })(f)
+            reader.readAsText(f);
+            break;
+          default:
+            alert("Only .json and .geojson files may be uploaded.");
+        }
+      }
+    );
 
-                    reader.readAsText(f)
-                    break
-                default:
-                    alert(
-                        'Only .json and .geojson files may be uploaded.'
-                    )
-            }
-        })
-
-        //Re/create
-        $('.geodatasetRecreate > a').on('click', function(evt) {
-            let name = $('.geodatasetName input').val()
-            if( Geodatasets.geojson == null ) {
-                alert( 'Please upload a .geojson file.' )
-                return
-            }
-            if( name == null ) {
-                alert( 'Please enter a name.' )
-                return
-            }
-
-            $.ajax({
-                type: calls.geodatasets_recreate.type,
-                url: calls.geodatasets_recreate.url,
-                data: {
-                    name: name,
-                    geojson: Geodatasets.geojson
-                },
-                success: function(data) {
-                    Geodatasets.refreshNames()
-                    $.ajax({
-                        type: calls.geodatasets_get.type,
-                        url: calls.geodatasets_get.url + '?layer=' + name,
-                        success: function(data) {
-                            console.log( data )
-                        }
-                    })
-                }
-            })
-        } )
-    },
-    make: function() {
-        $('.container_geodatasets').css({
-            opacity: 1,
-            pointerEvents: 'inherit'
-        })
-        $('#missions li.active').removeClass('active')
-    },
-    destroy: function(){
-        $('.container_geodatasets').css({
-            opacity: 0,
-            pointerEvents: 'none'
-        })
-    },
-    getExtension: function(string) {
-        var ex = /(?:\.([^.]+))?$/.exec(string)[1]
-        return ex || ''
-    },
-    sortArrayOfObjectsByKeyValue: function(
-        arr,
-        key,
-        ascending,
-        stringify
+    //Re/create
+    $(".container_geodatasets .geodatasetRecreate > a").on("click", function(
+      evt
     ) {
-        if (arr.constructor !== Array) return arr
-        const side = ascending ? 1 : -1
-        let compareKey = function(a, b) {
-            if (a[key] < b[key]) return -1 * side
-            if (a[key] > b[key]) return side
-            return 0
-        }
-        if (stringify) {
-            compareKey = function(a, b) {
-                if (JSON.stringify(a[key]) < JSON.stringify(b[key]))
-                    return -1 * side
-                if (JSON.stringify(a[key]) > JSON.stringify(b[key])) return side
-                return 0
-            }
-        }
-    
-        return arr.sort(compareKey)
-    },
-    refreshNames: function() {
-        $.ajax({
-            type: calls.geodatasets_entries.type,
-            url: calls.geodatasets_entries.url,
-            data: {},
-            success: function(data) {
-                if( data.status == 'success' ) {
-                    $('.existing ul').html('')
-                    let entries = Geodatasets.sortArrayOfObjectsByKeyValue( data.body.entries, 'updated', false )
-                    for( let i = 0; i < entries.length; i++ )
-                        $('.existing ul').append(
-                            "<li><div>" + entries[i].name + "</div><div>" + entries[i].updated + "</div></li>"
-                        )
-                }
-            }
-        })
-    }
-}
+      let name = $(".geodatasetName input").val();
+      if (Geodatasets.geojson == null) {
+        alert("Please upload a .geojson file.");
+        return;
+      }
+      if (name == null) {
+        alert("Please enter a name.");
+        return;
+      }
 
-$( document ).ready(function() {
-    Geodatasets.init()
+      $.ajax({
+        type: calls.geodatasets_recreate.type,
+        url: calls.geodatasets_recreate.url,
+        data: {
+          name: name,
+          geojson: Geodatasets.geojson
+        },
+        success: function(data) {
+          Geodatasets.refreshNames();
+          $.ajax({
+            type: calls.geodatasets_get.type,
+            url: calls.geodatasets_get.url + "?layer=" + name,
+            success: function(data) {
+              console.log(data);
+            }
+          });
+        }
+      });
+    });
+  },
+  make: function() {
+    $(".container_geodatasets").css({
+      opacity: 1,
+      pointerEvents: "inherit"
+    });
+    Keys.destroy();
+    Datasets.destroy();
+    $("#missions li.active").removeClass("active");
+  },
+  destroy: function() {
+    $(".container_geodatasets").css({
+      opacity: 0,
+      pointerEvents: "none"
+    });
+  },
+  getExtension: function(string) {
+    var ex = /(?:\.([^.]+))?$/.exec(string)[1];
+    return ex || "";
+  },
+  sortArrayOfObjectsByKeyValue: function(arr, key, ascending, stringify) {
+    if (arr.constructor !== Array) return arr;
+    const side = ascending ? 1 : -1;
+    let compareKey = function(a, b) {
+      if (a[key] < b[key]) return -1 * side;
+      if (a[key] > b[key]) return side;
+      return 0;
+    };
+    if (stringify) {
+      compareKey = function(a, b) {
+        if (JSON.stringify(a[key]) < JSON.stringify(b[key])) return -1 * side;
+        if (JSON.stringify(a[key]) > JSON.stringify(b[key])) return side;
+        return 0;
+      };
+    }
+
+    return arr.sort(compareKey);
+  },
+  refreshNames: function() {
+    $.ajax({
+      type: calls.geodatasets_entries.type,
+      url: calls.geodatasets_entries.url,
+      data: {},
+      success: function(data) {
+        if (data.status == "success") {
+          $(".container_geodatasets .existing ul").html("");
+          let entries = Geodatasets.sortArrayOfObjectsByKeyValue(
+            data.body.entries,
+            "updated",
+            false
+          );
+          for (let i = 0; i < entries.length; i++)
+            $(".container_geodatasets .existing ul").append(
+              "<li><div>" +
+                entries[i].name +
+                "</div><div>" +
+                entries[i].updated +
+                "</div></li>"
+            );
+        }
+      }
+    });
+  }
+};
+
+$(document).ready(function() {
+  Geodatasets.init();
 });

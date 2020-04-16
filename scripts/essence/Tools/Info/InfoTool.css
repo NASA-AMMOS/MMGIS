@@ -9,6 +9,7 @@
     height: 33px;
     line-height: 30px;
     font-size: 16px;
+    padding-left: 6px;
     color: var(--color-mmgis);
 }
 
@@ -16,15 +17,14 @@
     width: 100%;
     flex: 1;
     overflow-y: auto;
-    padding-left: 10px;
-    padding-top: 1px;
+    font-size: 12px;
 }
 
 #infoToolSelections {
     list-style-type: none;
     margin: 0;
     padding: 0;
-    max-height: 300px;
+    max-height: 150px;
     overflow-y: auto;
 }
 #infoToolSelections li {
@@ -36,7 +36,7 @@
     width: 100% !important;
 }
 #infoToolSelections li.active {
-    background: #004d80;
+    background: var(--color-e);
     border-radius: 2px;
 }
 
@@ -60,6 +60,26 @@
     color: white;
 }
 
+#infoTool #json-renderer {
+    border: none !important;
+    padding: 0.5em 1.5em;
+}
+
+#infoTool #json-renderer .json-dict {
+    padding-left: 0.5em !important;
+}
+#infoTool #json-renderer .json-dict > li {
+    white-space: initial;
+}
+
+#infoTool #json-renderer .json-string {
+    color: #5cd2ff;
+}
+#infoTool #json-renderer .json-literal {
+    color: var(--color-mh);
+    font-weight: unset !important;
+}
+/*
 #infoTool ul {
     list-style-type: none;
     padding: 0px 7px 0px 7px;
@@ -87,3 +107,4 @@
 #infoTool ul li.infoToolSubheader > div:first-child {
     color: #c8c8c8;
 }
+*/

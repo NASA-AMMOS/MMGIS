@@ -1707,7 +1707,7 @@ define([
         function writetpg() {
             $.ajax({
                 type: 'POST',
-                url: 'scripts/essence/Tools/Draw/write_to_polygon_geojson.php',
+                url:  '/api/draw/write_to_polygon_geojson',
                 data: {
                     mode: mode,
                     feature: JSON.stringify(feature),
@@ -1716,7 +1716,7 @@ define([
                     replacer: JSON.stringify(replacer),
                     moving: JSON.stringify(moving),
                     movingTo: movingTo,
-                    filename: '../../../../' + SketchTool.speGeojsonPolygonFile,
+                    filename: '../../' + SketchTool.speGeojsonPolygonFile,
                     rawfilename: SketchTool.speGeojsonPolygonFile,
                     mission: L_.mission,
                     isDBFile: SketchTool.isDBfile,

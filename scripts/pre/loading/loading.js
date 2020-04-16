@@ -9,6 +9,14 @@ function startLoading() {
     planet.className = 'planet'
     loadingPage.appendChild(planet)
 
+    var planet2 = document.createElement('div')
+    planet2.className = 'planet2'
+    loadingPage.appendChild(planet2)
+
+    var planet3 = document.createElement('div')
+    planet3.className = 'planet3'
+    loadingPage.appendChild(planet3)
+
     var mmgisLogoURL =
         mmgisglobal.SERVER === 'node'
             ? '../resources/mmgis.png'
@@ -18,11 +26,19 @@ function startLoading() {
     loading.id = 'title'
     var loadingp = document.createElement('p')
     loading.appendChild(loadingp)
-    loadingp.innerHTML = "<img src='" + mmgisLogoURL + "' height='26px' />"
-    loadingp.style.fontSize = '26px'
-    loadingp.style.margin = '58px 0'
-    loadingp.style.opacity = '1'
-    loadingp.style.textAlign = 'center'
-    loadingp.style.cursor = 'default'
+    loadingp.innerHTML = "<img src='" + mmgisLogoURL + "' />"
     loadingPage.appendChild(loading)
+
+    var loading2 = document.createElement('div')
+    loading2.id = 'loading2'
+    loading2.appendChild(document.createElement('span'))
+    loading2.appendChild(document.createElement('span'))
+    loading2.appendChild(document.createElement('span'))
+    loading2.appendChild(document.createElement('span'))
+    loading2.appendChild(document.createElement('span'))
+    loading2.appendChild(document.createElement('span'))
+    loading2.appendChild(document.createElement('span'))
+    loading2.appendChild(document.createElement('span'))
+    loading2.appendChild(document.createElement('span'))
+    loadingPage.appendChild(loading2)
 }

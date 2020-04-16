@@ -33,15 +33,20 @@ if (mmgisglobal.SERVER == "apache") {
   };
 } else if (mmgisglobal.SERVER == "node") {
   calls = {
-    configconfigPath: mmgisglobal.CONFIGCONFIG_PATH || "config/configconfig.json",
+    configconfigPath:
+      mmgisglobal.CONFIGCONFIG_PATH || "config/configconfig.json",
     missionPath: "Missions/",
     logout: {
-      type: 'POST',
-      url: 'api/users/logout',
+      type: "POST",
+      url: "api/users/logout"
     },
     verify: {
       type: "POST",
       url: "api/config/verify"
+    },
+    getToolConfig: {
+      type: "GET",
+      url: "api/tools/get"
     },
     write_json: {
       type: "POST",
@@ -107,6 +112,22 @@ if (mmgisglobal.SERVER == "apache") {
     geodatasets_get: {
       type: "GET",
       url: "api/geodatasets/get"
+    },
+    datasets_recreate: {
+      type: "POST",
+      url: "api/datasets/recreate"
+    },
+    datasets_entries: {
+      type: "POST",
+      url: "api/datasets/entries"
+    },
+    datasets_get: {
+      type: "GET",
+      url: "api/datasets/get"
+    },
+    longtermtoken_generate: {
+      type: "POST",
+      url: "api/longtermtoken/generate"
     }
   };
 } else {

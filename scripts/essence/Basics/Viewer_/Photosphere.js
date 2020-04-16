@@ -6,7 +6,7 @@ define(['d3', 'Formulae_', 'Layers_', 'Sprites', 'Hammer', 'WebVR'], function(
     Hammer,
     WebVR
 ) {
-    THREE.Photosphere = function(domEl, lookupPath, options) {
+    THREE.Photosphere = function(domEl, lookupPath, options, Map_) {
         options = options || {}
 
         var camera,
@@ -30,6 +30,12 @@ define(['d3', 'Formulae_', 'Layers_', 'Sprites', 'Hammer', 'WebVR'], function(
         var elCircle, elCircleP
         var azIndicator, elIndicator
         var advancedAzElOn = false
+
+        var lastAz = null
+        var lastEl = null
+        var lastFov = null
+
+        var geometry = null
 
         var webglSupport = (function() {
             try {
@@ -165,70 +171,44 @@ define(['d3', 'Formulae_', 'Layers_', 'Sprites', 'Hammer', 'WebVR'], function(
             }
         }
 
-        function changeImage(image, callback) {
+        function changeImage(imageObj, feature, callback) {
             if (!wasInitialized) {
                 if (typeof callback === 'function' && !calledBack)
                     callback(
                         "<div style='letter-spacing: 0px; font-size: 18px; text-align: center; font-family: roboto; color: #CCC;'><div style='margin-bottom: 5px;'>Seems like <a target='_blank' href='https://www.khronos.org/webgl/wiki/Getting_a_WebGL_Implementation'>WebGL</a> isn't supported for you.</div><div>Find out how to get it <a target='_blank' href='https://get.webgl.org/'>here</a>.</div></div>"
                     )
             }
-            var calledBack = true
-            if (callback) calledBack = false
-            d3.csv(lookupPath, function(d) {
-                if (d == null) {
-                    console.warn(
-                        'Warning: Photosphere image data not found in ' +
-                            lookupPath
-                    )
-                    return
-                }
-                //crop out directory path and extension from image name
-                var croppedName = image
-                    .substring(0, image.length - 4)
-                    .split('/')
-                croppedName = croppedName[croppedName.length - 1]
-                var croppedNameSol = croppedName.split('_')[2]
-                for (var i = 0; i < d.length; i++) {
-                    //matches csv name to image name
-                    if (d[i].mos_name == croppedName) {
-                        //assemble ranges
-                        var azR = [
-                            parseFloat(d[i].azmin),
-                            parseFloat(d[i].azmax),
-                        ]
-                        var elR = [
-                            parseFloat(d[i].elmin),
-                            parseFloat(d[i].elmax),
-                        ]
-                        var xyR = [parseInt(d[i].columns), parseInt(d[i].rows)]
+            geometry = feature.geometry
 
-                        clearLayers()
-                        calledBack = true
-                        makeModifiedTexture(image, azR, elR, xyR, function() {
-                            addPointLayer(
-                                'ChemCam',
-                                'Missions/' +
-                                    L_.mission +
-                                    '/Data/Mosaics/azel_mosaic_targets/azel_targets_' +
-                                    croppedName +
-                                    '_sol' +
-                                    croppedNameSol +
-                                    '.csv'
-                            )
-                            if (typeof callback === 'function') {
-                                callback()
-                            }
-                        })
-                        break
-                    }
+            var url = imageObj.url
+            //crop out directory path and extension from image name
+            var croppedName = url.substring(0, url.length - 4).split('/')
+            croppedName = croppedName[croppedName.length - 1]
+            var croppedNameSol = croppedName.split('_')[2]
+            //assemble ranges
+            var azR = [parseFloat(imageObj.azmin), parseFloat(imageObj.azmax)]
+            var elR = [parseFloat(imageObj.elmin), parseFloat(imageObj.elmax)]
+            var xyR = [parseInt(imageObj.columns), parseInt(imageObj.rows)]
+
+            clearLayers()
+            makeModifiedTexture(url, azR, elR, xyR, function() {
+                addPointLayer(
+                    'ChemCam',
+                    'Missions/' +
+                        L_.mission +
+                        '/Data/Mosaics/azel_mosaic_targets/azel_targets_' +
+                        croppedName +
+                        '_sol' +
+                        croppedNameSol +
+                        '.csv'
+                )
+                if (typeof callback === 'function') {
+                    callback()
                 }
-                if (typeof callback === 'function' && !calledBack)
-                    callback('Not Found')
             })
         }
 
         function toggleControls() {
-            console.log(isOrbitControls)
             isOrbitControls = !isOrbitControls
             if (isOrbitControls) controls = orbitControls
             else controls = orientationControls
@@ -342,24 +322,123 @@ define(['d3', 'Formulae_', 'Layers_', 'Sprites', 'Hammer', 'WebVR'], function(
             var az = Math.abs(camera.rotation.y * (180 / Math.PI) - 270)
             if (az > 360) az -= 360
 
+            let currentAz = az.toFixed(2)
+            let currentEl = (camera.rotation.x * (180 / Math.PI)).toFixed(2)
+            let currentFov = camera.fov
+
             if (advancedAzElOn) {
                 azCircle.visible = true
                 elCircleP.visible = true
-                azIndicator.innerHTML = az.toFixed(2) + '&deg;'
-                elIndicator.innerHTML =
-                    (camera.rotation.x * (180 / Math.PI)).toFixed(2) + '&deg;'
+                azIndicator.innerHTML = currentAz + '&deg;'
+                elIndicator.innerHTML = currentEl + '&deg;'
             } else {
                 azCircle.visible = false
                 elCircleP.visible = false
                 azIndicator.innerHTML =
-                    'Az: ' +
-                    az.toFixed(2) +
-                    '&deg;, El: ' +
-                    (camera.rotation.x * (180 / Math.PI)).toFixed(2) +
-                    '&deg;'
+                    'Az: ' + currentAz + '&deg;, El: ' + currentEl + '&deg;'
                 elIndicator.innerHTML = ''
             }
-            //console.log( 'az: ' + Math.abs( ( camera.rotation.y * (180/Math.PI) ) - 270 ) + ' el: ' + ( camera.rotation.x * (180/Math.PI) ) );
+
+            if (
+                currentAz != lastAz ||
+                currentEl != lastEl ||
+                currentFov != lastFov ||
+                geometry == null
+            ) {
+                lastAz = currentAz
+                lastEl = currentEl
+                lastFov = currentFov
+
+                if (geometry) {
+                    Map_.rmNotNull(Map_.tempPhotosphereWedge)
+
+                    //console.log( geometry )
+                    let start = [
+                        geometry.coordinates[1],
+                        geometry.coordinates[0],
+                    ]
+                    let end
+                    let rp
+                    let line
+                    let lineLength = (parseFloat(currentEl) + 90) * 1.6 + 10
+
+                    rp = F_.rotatePoint(
+                        { x: 0, y: 1 },
+                        [0, 0],
+                        -(parseFloat(lastAz) - parseFloat(lastFov) / 2) *
+                            (Math.PI / 180)
+                    )
+
+                    end = [
+                        geometry.coordinates[1] + rp.y,
+                        geometry.coordinates[0] + rp.x,
+                    ]
+
+                    line = new L.Polyline([start, end], {
+                        color: 'orange',
+                        weight: 5,
+                    })
+
+                    let minLine = L.polylineDecorator(line, {
+                        patterns: [
+                            {
+                                offset: lineLength / 2,
+                                repeat: 0,
+                                symbol: L.Symbol.dash({
+                                    pixelSize: lineLength,
+                                    pathOptions: {
+                                        stroke: true,
+                                        color: 'lime',
+                                        weight: 3,
+                                        lineCap: 'square',
+                                    },
+                                }),
+                            },
+                        ],
+                    })
+
+                    rp = F_.rotatePoint(
+                        { x: 0, y: 1 },
+                        [0, 0],
+                        -(parseFloat(lastAz) + parseFloat(lastFov) / 2) *
+                            (Math.PI / 180)
+                    )
+
+                    end = [
+                        geometry.coordinates[1] + rp.y,
+                        geometry.coordinates[0] + rp.x,
+                    ]
+
+                    line = new L.Polyline([start, end], {
+                        color: 'orange',
+                        weight: 5,
+                    })
+
+                    let maxLine = L.polylineDecorator(line, {
+                        patterns: [
+                            {
+                                offset: lineLength / 2,
+                                repeat: 0,
+                                symbol: L.Symbol.dash({
+                                    pixelSize: lineLength,
+                                    pathOptions: {
+                                        stroke: true,
+                                        color: 'lime',
+                                        weight: 3,
+                                        lineCap: 'square',
+                                    },
+                                }),
+                            },
+                        ],
+                    })
+
+                    Map_.tempPhotosphereWedge = L.layerGroup([
+                        minLine,
+                        maxLine,
+                    ]).addTo(Map_.map)
+                }
+            }
+
             render()
         }
 

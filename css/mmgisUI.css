@@ -57,7 +57,7 @@
   -webkit-transition: all 0.15s ease-in;
   transition: all 0.15s ease-in;
   color: #bbb;
-  background-color: rgba(0, 0, 0, 0.56);
+  background-color: var(--color-a);
   width: auto;
   display: inline-block;
   border-radius: 2px;
@@ -66,7 +66,7 @@
   height: 28px;
   font-size: 14px;
   line-height: 28px;
-  margin: 8px;
+  margin: 4px 6px;
   cursor: pointer;
   word-wrap: break-word;
   vertical-align: middle;
@@ -362,12 +362,18 @@
 .ui.dropdown.selection.alittlelonger {
   width: 200px;
 }
+.ui.dropdown.selection.afourthlonger {
+  width: 25%;
+  min-width: 400px !important;
+}
 .ui.dropdown.selection.short {
   padding: 0.5em 0.6em 0.5em 0.6em;
   min-height: 0;
   height: 30px !important;
   min-width: 0;
-  background: rgba(0, 0, 0, 0.7);
+  border-radius: 0px;
+  border: 1px solid var(--color-e);
+  background: var(--color-i);
   color: rgba(255, 255, 255, 0.87);
 }
 .ui.dropdown.selection.short.lower {
@@ -380,7 +386,7 @@
   color: rgba(255, 255, 255, 0.87) !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
-  width: 90% !important;
+  width: calc(100% - 5px) !important;
   overflow: hidden;
 }
 .ui.dropdown.selection.short .dropdown.icon {
@@ -389,6 +395,35 @@
 .ui.dropdown.selection.short div .item {
   padding: 0.5em 0.6em 0.5em 0.6em !important;
   min-height: 0;
+}
+.ui.selection.active.dropdown, .ui.selection.active.dropdown .menu {
+  border-color: var(--color-mmgis) !important;
+}
+
+.ui.dropdown.searchSelect {
+  font-size: 14px;
+  width: 160px;
+} 
+.ui.dropdown.searchSelect .menu {
+  background: var(--color-a);
+  color: white;
+}
+.ui.dropdown.searchSelect .menu .item {
+  color: rgba(255, 255, 255, 0.87);
+  border-top: 1px solid var(--color-b);
+  transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95),
+    color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+.ui.dropdown.searchSelect .menu .item.selected {
+  color: white;
+}
+.ui.dropdown.searchSelect .menu .item:hover {
+  background: var(--color-g);
+  color: white;
+}
+
+.ui.selection.dropdown:focus {
+  border: 1px solid var(--color-e);
 }
 
 .ui.dropdown.selection.short2 {
@@ -900,7 +935,7 @@ blink {
   animation-timing-function: linear;
   height: 22px;
   width: 22px;
-  border: 6px solid #ffffff;
+  border: 3px solid var(--color-c);
   border-right-color: transparent;
   border-radius: 50%;
   display: inline-block;

@@ -17,10 +17,10 @@ Spatial Data Infrastructure for Planetary Missions
 
 ### System Requirements
 
-1. Install the latest version of [Node.js](https://nodejs.org/en/download/)
+1. Install the latest version of [Node.js v10.10+](https://nodejs.org/en/download/).
 
-1. Install [PostgreSQL v9+](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads)
-1. And do so with the [PostGIS](https://postgis.net/install/) extension enabled.
+1. Install [PostgreSQL v9.6+](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads)
+1. And do so with the [PostGIS 2.5+](https://postgis.net/install/) extension enabled.
    Agree to any possible postgis installions in the gui or run `CREATE EXTENSION postgis;` afterwards.
 1. Make a new PostgreSQL database and remember the user, password and database name.
 
@@ -49,7 +49,7 @@ Spatial Data Infrastructure for Planetary Missions
 
 1. Run `install.sh` within `/`  
    `./install.sh`  
-   (If you can't run install, just copy `/prepare/base/Missions` to `/Missions` and copy `/prepare/base/config/configconfig.json` to `/config/configconfig.json`)
+   (If you can't run install, just copy `/prepare/base/Missions` to `/Missions`)
 
 1. Copy `/sample.env` to `.env`  
    `cp sample.env .env`
@@ -79,7 +79,9 @@ Spatial Data Infrastructure for Planetary Missions
 
 Go to `http://localhost:8888` to see the `Test` mission
 
-Further mission configuration can be found in the [Configure Wiki](https://github.com/NASA-AMMOS/MMGIS/wiki/Configure).
+## Documentation
+
+Documentation pages are served at `http://localhost:8888/docs` or immediately within the `docs/pages/markdowns` directory.
 
 ## Installing with Docker
 
@@ -92,7 +94,7 @@ To run MMGIS in a container, you need to create a directory on the host machine 
 
 If using `docker-compose`, map the volume and set all the env variables.
 
-## License: Apache 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
+## License: Apache 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
 
 License Terms
 

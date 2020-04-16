@@ -59,11 +59,10 @@ if (mmgisglobal.SERVER == 'node' && mmgisglobal.AUTH == 'csso') {
                     }
                     elm.id = 'AUTH_TIMEOUT'
                     elm.style.cssText =
-                        'display:flex;position:absolute;left:225px;bottom:0px;z-index:11000;font-family:monospace;font-size:11px;color:#121626;'
+                        'position:fixed;left:225px;bottom:0px;z-index:11000;font-family:monospace;font-size:11px;color:#121626;'
                     elm.innerHTML =
                         'Authentication expiring in ' +
                         (result.exp - now).toString().toHHMMSS() +
-                        ' |&nbsp;' +
                         '<div onclick="ssologin()" style="cursor:pointer;">Login again to renew</div>'
 
                     if (append) document.body.appendChild(elm)

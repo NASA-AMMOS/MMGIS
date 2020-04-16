@@ -306,6 +306,77 @@ function(    $    ,  THREE ) {
           fragmentShader: baseShaderFrag,
           transparent: true,
         });
+    },
+    atmosphere: function(color) {
+      //From: https://github.com/jeromeetienne/threex.planets/blob/master/threex.atmospherematerial.js
+
+      // prettier-ignore
+      var vertexShader = [
+        'varying vec3	vVertexWorldPosition;',
+        'varying vec3	vVertexNormal;',
+
+        'void main(){',
+        '	vVertexNormal = normalize(normalMatrix * normal);',
+
+        '	vVertexWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;',
+
+        '	// set gl_Position',
+        '	gl_Position	= projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+        '}',
+
+        ].join('\n')
+
+      // prettier-ignore
+      var fragmentShader = [
+        "#ifdef GL_ES",
+        "precision highp float;",
+        "#endif",
+
+        'uniform vec3	glowColor;',
+        'uniform float coeficient;',
+        'uniform float opacity;',
+        'uniform float power;',
+
+        'varying vec3	vVertexNormal;',
+        'varying vec3	vVertexWorldPosition;',
+
+        'void main(){',
+        '	vec3 worldCameraToVertex = vVertexWorldPosition - cameraPosition;',
+        '	vec3 viewCameraToVertex	= (viewMatrix * vec4(worldCameraToVertex, 0.0)).xyz;',
+        '	viewCameraToVertex = normalize(viewCameraToVertex);',
+        '	float intensity = pow(coeficient + dot(vVertexNormal, viewCameraToVertex), power);',
+        '	gl_FragColor = vec4(glowColor * intensity * opacity, 1.0);',
+        ' if (intensity > 0.4) { gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); }',
+        '}',
+      ].join('\n')
+
+      // create custom material from the shader code above
+      //   that is within specially labeled script tags
+      return new THREE.ShaderMaterial({
+        uniforms: { 
+          coeficient: {
+            type: "f", 
+            value: 0.1
+          },
+          power: {
+            type: "f",
+            value: 6.0
+          },
+          opacity: {
+            type: "f",
+            value: 1.0
+          },
+          glowColor	: {
+            type: "c",
+            value: new THREE.Color(color || '#444444')
+          },
+        },
+        vertexShader: vertexShader,
+        fragmentShader: fragmentShader,
+        blending: THREE.AdditiveBlending,
+        transparent: true,
+        depthWrite: false,
+      });
     }
   };
 
