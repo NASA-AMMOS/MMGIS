@@ -24,6 +24,8 @@ define(['Layers_', 'ToolController_'], function(L_, T_) {
             var viewerImg = this.getSingleQueryVariable('viewerImg')
             var viewerLoc = this.getSingleQueryVariable('viewerLoc')
 
+            var rmcxyzoom = this.getSingleQueryVariable('rmcxyzoom')
+
             if (urlSite !== false) {
                 L_.FUTURES.site = urlSite
             }
@@ -87,10 +89,25 @@ define(['Layers_', 'ToolController_'], function(L_, T_) {
 
             if (selected !== false) {
                 var s = selected.split(',')
-                L_.FUTURES.activePoint = {
-                    layerName: s[0],
-                    lat: parseFloat(s[1]),
-                    lon: parseFloat(s[2]),
+                //1 and 2 could be either lat, lng or key, value
+                let isKeyValue =
+                    isNaN(parseFloat(s[1])) || isNaN(parseFloat(s[2]))
+                if (isKeyValue) {
+                    L_.FUTURES.activePoint = {
+                        layerName: s[0],
+                        key: s[1],
+                        value: s[2],
+                        view: s[3],
+                        zoom: s[4],
+                    }
+                } else {
+                    L_.FUTURES.activePoint = {
+                        layerName: s[0],
+                        lat: parseFloat(s[1]),
+                        lon: parseFloat(s[2]),
+                        view: s[3],
+                        zoom: s[4],
+                    }
                 }
             }
 
@@ -104,19 +121,57 @@ define(['Layers_', 'ToolController_'], function(L_, T_) {
                 L_.FUTURES.viewerLoc = l
             }
 
-            if (layersOn !== false) {
+            if (rmcxyzoom) {
+                let s = rmcxyzoom.split(',')
+                if (s.length == 5) {
+                    calls.api(
+                        'spatial_published',
+                        {
+                            rmc: s[0] + ',' + s[1],
+                            x: s[2],
+                            y: s[3],
+                            query: 'self',
+                        },
+                        function(d) {
+                            console.log(d)
+                        },
+                        function(d) {
+                            console.warn(d)
+                        }
+                    )
+                }
+            }
+
+            if (layersOn !== false || selected !== false) {
+                L_.FUTURES.customOn = true
                 // lists all the on layers
                 // if the url has the on parameter and a layer is not listed in that url, the layer is off
                 // on layers are split into <layername>$<layeropacity>, <layername>$<layeropacity>, ...
-                L_.initialLayersOn = layersOn
                 var onLayers = {}
-                var arr = layersOn.split(',')
-                for (var l of arr) {
-                    var s = l.split('$')
-                    onLayers[s[0]] = { opacity: parseFloat(s[1]) }
+                //'replace' makes it so that onLayers are the only ones on,
+                //'add' makes it so that onLayers and union of default are on
+                var method = 'replace'
+
+                if (layersOn !== false) {
+                    L_.initialLayersOn = layersOn
+                    var arr = layersOn.split(',')
+                    for (var l of arr) {
+                        let s = l.split('$')
+                        onLayers[s[0]] = { opacity: parseFloat(s[1]) }
+                    }
                 }
-                return onLayers
+                //Turn the selected layer on too
+                if (selected !== false) {
+                    let s = selected.split(',')
+                    onLayers[s[0]] = { opacity: 1 }
+                }
+
+                //This is so that when preselecting data the layer can turn on along with all default layers
+                if (layersOn === false && selected !== false) method = 'add'
+
+                return { onLayers: onLayers, method: method }
             }
+
             return null
         },
         getSingleQueryVariable: function(variable) {

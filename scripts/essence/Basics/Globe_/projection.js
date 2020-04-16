@@ -1,4 +1,4 @@
-define([], function() {
+define(['Formulae_'], function(F_) {
     var projection = {
         radiusOfPlanetMajor: 3396190, //(m)
         radiusOfPlanetMinor: 3396190, //semi-minor axis
@@ -41,7 +41,6 @@ define([], function() {
                 this.tmrOriginMod[0] = this.tmr.origin[0]
                 this.tmrOriginMod[1] = this.tmr.origin[1]
                 this.tmr.projSplit = this.tmr.proj.split(' ')
-
                 //find params
                 // default to 0
                 this.tmr.lon_0 = 0
@@ -86,111 +85,111 @@ define([], function() {
             var latt = 0
             var zoom = 0
             /*
-      var x = this.long2tile( [lont, latt], zoom );
-      var y = this.lat2tile( [lont, latt], zoom );
-      console.log( lont, latt );
-      console.log( x, y );
-      console.log( this.tile2long( x, zoom ), this.tile2lat( y, zoom ) );
-      console.log( this.sphereXToTileXYZ( -180 * (Math.PI/180), zoom ) )
-      */
+            var x = this.long2tile( [lont, latt], zoom );
+            var y = this.lat2tile( [lont, latt], zoom );
+            console.log( lont, latt );
+            console.log( x, y );
+            console.log( this.tile2long( x, zoom ), this.tile2lat( y, zoom ) );
+            console.log( this.sphereXToTileXYZ( -180 * (Math.PI/180), zoom ) )
+            */
             /*
-     console.log( '---------' );
-     
-     var tx = 0;
-     var ty = 20;
-     var z = 5;
-     
-     console.log( tx );
-     var long = this.tile2long( tx, ty, z );
-     console.log( long );
-     console.log( this.long2tile( [long, 0], z ) );
+            console.log( '---------' );
+            
+            var tx = 0;
+            var ty = 20;
+            var z = 5;
+            
+            console.log( tx );
+            var long = this.tile2long( tx, ty, z );
+            console.log( long );
+            console.log( this.long2tile( [long, 0], z ) );
 
-     console.log( ty );
-     var lat = this.tile2lat( ty, z );
-     console.log( lat );
-     console.log( this.lat2tile( [0, lat], z ) );
-     */
+            console.log( ty );
+            var lat = this.tile2lat( ty, z );
+            console.log( lat );
+            console.log( this.lat2tile( [0, lat], z ) );
+            */
             /*
-     console.log( this.tile2lat( 0, 1 ) )
-     console.log( this.tile2lat( 0.31, 1 ) )
-     console.log( this.tile2lat( 0.62, 1 ) )
-     */
+            console.log( this.tile2lat( 0, 1 ) )
+            console.log( this.tile2lat( 0.31, 1 ) )
+            console.log( this.tile2lat( 0.62, 1 ) )
+            */
 
             //console.log( this.invertY( 0, 3 ) );
             /*
-      var lont = 0;
-      var latt = 90;
-      var zt = 3;
-      
-      var yt = 3;
-      var xt = 4;
-      for( var i = 0; i < 5; i++ ) {
-        console.log( '---' );
-        console.log( zt + '_' + xt + '_' + i, this.tile2lat( i, zt, { x: xt } ) );
-        console.log( zt + '_' + xt + '_' + i, this.tile2long( xt, zt, { y: i } ) );
-      }
-      */
+            var lont = 0;
+            var latt = 90;
+            var zt = 3;
+            
+            var yt = 3;
+            var xt = 4;
+            for( var i = 0; i < 5; i++ ) {
+                console.log( '---' );
+                console.log( zt + '_' + xt + '_' + i, this.tile2lat( i, zt, { x: xt } ) );
+                console.log( zt + '_' + xt + '_' + i, this.tile2long( xt, zt, { y: i } ) );
+            }
+            */
             /*
-      var tt = 2;
+            var tt = 2;
 
-      var yt = this.lat2tile( [lont, latt], zt );
-      var xt = this.long2tile( [lont, latt], zt );
-      zt = 2; xt = 1.864; yt = 1.864;
-      var lat = this.tile2lat( yt, zt, { x: xt } );
-      var lon = this.tile2long( xt, zt, { y: yt } );
+            var yt = this.lat2tile( [lont, latt], zt );
+            var xt = this.long2tile( [lont, latt], zt );
+            zt = 2; xt = 1.864; yt = 1.864;
+            var lat = this.tile2lat( yt, zt, { x: xt } );
+            var lon = this.tile2long( xt, zt, { y: yt } );
 
-      console.log( xt, yt, lat, lon );
+            console.log( xt, yt, lat, lon );
 
-      zt = 2; xt = tt + 0.99; yt = tt;
-      var lat = this.tile2lat( yt, zt, { x: xt } );
-      var lon = this.tile2long( xt, zt, { y: yt } );
+            zt = 2; xt = tt + 0.99; yt = tt;
+            var lat = this.tile2lat( yt, zt, { x: xt } );
+            var lon = this.tile2long( xt, zt, { y: yt } );
 
-      console.log( xt, yt, lat, lon );
+            console.log( xt, yt, lat, lon );
 
-      zt = 2; xt = tt; yt = tt + 0.99;
-      var lat = this.tile2lat( yt, zt, { x: xt } );
-      var lon = this.tile2long( xt, zt, { y: yt } );
+            zt = 2; xt = tt; yt = tt + 0.99;
+            var lat = this.tile2lat( yt, zt, { x: xt } );
+            var lon = this.tile2long( xt, zt, { y: yt } );
 
-      console.log( xt, yt, lat, lon );
+            console.log( xt, yt, lat, lon );
 
-      zt = 2; xt = tt + 0.99; yt = tt + 0.99;
-      var lat = this.tile2lat( yt, zt, { x: xt } );
-      var lon = this.tile2long( xt, zt, { y: yt } );
+            zt = 2; xt = tt + 0.99; yt = tt + 0.99;
+            var lat = this.tile2lat( yt, zt, { x: xt } );
+            var lon = this.tile2long( xt, zt, { y: yt } );
 
-      console.log( xt, yt, lat, lon );
-      */
+            console.log( xt, yt, lat, lon );
+            */
             /*
-      for( var i = 0; i < 5; i++ ) {
-        console.log( '--------' );
-        console.log( i, this.tileYToSphereY( i, 2 ) );
-      }
-      */
+            for( var i = 0; i < 5; i++ ) {
+                console.log( '--------' );
+                console.log( i, this.tileYToSphereY( i, 2 ) );
+            }
+            */
 
             /*
-      var zt = 2;
-      var xt = 0;
-      var yt = 1.5;
-      console.log( xt, yt, zt );
-      var lattt = this.tile2lat( yt, zt, { x: xt } );
-      var lontt = this.tile2long( xt, zt, { y: yt } );
-      console.log( lattt, lontt );
-      var ytt = this.lat2tile( [lontt, lattt], zt );
-      var xtt = this.long2tile( [lontt, lattt], zt );
-      console.log( xtt, ytt );
-      */
+            var zt = 2;
+            var xt = 0;
+            var yt = 1.5;
+            console.log( xt, yt, zt );
+            var lattt = this.tile2lat( yt, zt, { x: xt } );
+            var lontt = this.tile2long( xt, zt, { y: yt } );
+            console.log( lattt, lontt );
+            var ytt = this.lat2tile( [lontt, lattt], zt );
+            var xtt = this.long2tile( [lontt, lattt], zt );
+            console.log( xtt, ytt );
+            */
             //
             /*
-      var yt = 0.93
-      var zt = 0;
-      var xt = 0.465;
-      console.log( xt, yt, zt );
-      var lattt = this.tile2lat( yt, zt, { x: xt } );
-      var lontt = this.tile2long( xt, zt, { y: yt } );
-      console.log( lattt, lontt );
-      var ytt = this.lat2tile( [lontt, lattt], zt );
-      var xtt = this.long2tile( [lontt, lattt], zt );
-      console.log( xtt, ytt );
-      */
+            var yt = 0.93
+            var zt = 0;
+            var xt = 0.465;
+            console.log( xt, yt, zt );
+            var lattt = this.tile2lat( yt, zt, { x: xt } );
+            var lontt = this.tile2long( xt, zt, { y: yt } );
+            console.log( lattt, lontt );
+            var ytt = this.lat2tile( [lontt, lattt], zt );
+            var xtt = this.long2tile( [lontt, lattt], zt );
+            console.log( xtt, ytt );
+            */
             //var tysy = this.tileYToSphereY( yt, zt );
             //console.log( tysy );
             //console.log( this.tile2long( xt, zt, { lat: lattt } ) );
@@ -209,34 +208,105 @@ define([], function() {
             }
         },
         /*
-    tile2long: function( x, z ) {
-      let easting = ( x * ( 256 * this.tmr.res[z] ) ) + this.tmr.origin[0];
-      //lon = lon_0 + easting/(R*cos(lat_ts))
-      let long = this.tmr.lon_0 + ( easting / ( this.radiusOfPlanetMajor * Math.cos( this.tmr.lat_ts ) ) );
-      return long * (180/Math.PI);
-    },
-    long2tile: function( lonlat, z ) {
-      lonlat[0] = lonlat[0] * (Math.PI/180);
-      //x = R(lon - lon_0)cos(lat_ts)
-      let lonDif = (lonlat[0] - this.tmr.lon_0);
-      while( lonDif > 180 ) lonDif -= 360;
-      while( lonDif < -180 ) lonDif += 360;
-      let easting = this.radiusOfPlanetMajor * lonDif * Math.cos( this.tmr.lat_ts );
-      return ( easting - this.tmr.origin[0] ) / ( 256 * this.tmr.res[z] );//as tile x
-    },
-    tile2lat: function( y, z ) {
-      let northing = ( y * ( 256 * this.tmr.res[z] ) ) + this.tmr.origin[1];
-      //lat = y/R
-      let lat = northing / this.radiusOfPlanetMajor * (180/Math.PI);
-      return lat;
-    },
-    lat2tile: function( lonlat, z ) {
-      lonlat[1] = lonlat[1] * (Math.PI/180);
-      //y = R*lat
-      let northing = this.radiusOfPlanetMajor * lonlat[1];
-      return ( northing - this.tmr.origin[1] ) / ( 256 * this.tmr.res[z] );//as tile y
-    },
-    */
+        tile2long: function( x, z ) {
+        let easting = ( x * ( 256 * this.tmr.res[z] ) ) + this.tmr.origin[0];
+        //lon = lon_0 + easting/(R*cos(lat_ts))
+        let long = this.tmr.lon_0 + ( easting / ( this.radiusOfPlanetMajor * Math.cos( this.tmr.lat_ts ) ) );
+        return long * (180/Math.PI);
+        },
+        long2tile: function( lonlat, z ) {
+        lonlat[0] = lonlat[0] * (Math.PI/180);
+        //x = R(lon - lon_0)cos(lat_ts)
+        let lonDif = (lonlat[0] - this.tmr.lon_0);
+        while( lonDif > 180 ) lonDif -= 360;
+        while( lonDif < -180 ) lonDif += 360;
+        let easting = this.radiusOfPlanetMajor * lonDif * Math.cos( this.tmr.lat_ts );
+        return ( easting - this.tmr.origin[0] ) / ( 256 * this.tmr.res[z] );//as tile x
+        },
+        tile2lat: function( y, z ) {
+        let northing = ( y * ( 256 * this.tmr.res[z] ) ) + this.tmr.origin[1];
+        //lat = y/R
+        let lat = northing / this.radiusOfPlanetMajor * (180/Math.PI);
+        return lat;
+        },
+        lat2tile: function( lonlat, z ) {
+        lonlat[1] = lonlat[1] * (Math.PI/180);
+        //y = R*lat
+        let northing = this.radiusOfPlanetMajor * lonlat[1];
+        return ( northing - this.tmr.origin[1] ) / ( 256 * this.tmr.res[z] );//as tile y
+        },
+        */
+        tileXYZ2LatLng: function(x, y, z, flatXYZ) {
+            if (
+                mmgisglobal.customCRS == null ||
+                this.projection == 'webmercator'
+            ) {
+                let lng = (x / Math.pow(2, z)) * 360 - 180
+                let n = Math.PI - (2 * Math.PI * y) / Math.pow(2, z)
+                let lat =
+                    (180 / Math.PI) *
+                    Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)))
+                return { lat: lat, lng: lng }
+            } else {
+                //In these projections the origin is bottom left instead of top left
+                //So flip the decimal value
+                let dec = y % 1
+                if (dec != 0) y = Math.floor(y) + (1 - dec)
+                else if (flatXYZ) {
+                    if (y == flatXYZ.y) y = flatXYZ.y + 1
+                    else y = flatXYZ.y
+                }
+
+                let proj = mmgisglobal.customCRS.projection._proj
+
+                let easting = 256 * x * this.tmr.res[z] + this.tmrOriginMod[0]
+                let northing = 256 * y * this.tmr.res[z] + this.tmrOriginMod[1]
+
+                let p = proj.inverse([easting, northing])
+
+                return {
+                    lat: p[1],
+                    lng: p[0],
+                }
+            }
+        },
+        latLngZ2TileXYZ: function(lat, lng, z) {
+            if (
+                mmgisglobal.customCRS == null ||
+                this.projection == 'webmercator'
+            ) {
+                let x = Math.floor(((lng + 180) / 360) * Math.pow(2, z))
+                let y = Math.floor(
+                    ((1 -
+                        Math.log(
+                            Math.tan(lat * (Math.PI / 180)) +
+                                1 / Math.cos(lat * (Math.PI / 180))
+                        ) /
+                            Math.PI) /
+                        2) *
+                        Math.pow(2, z)
+                )
+
+                return { x: x, y: y, z: z }
+            } else {
+                let proj = mmgisglobal.customCRS.projection._proj
+
+                let p = proj.forward([lng, lat])
+                let easting = p[0]
+                let northing = p[1]
+
+                let x =
+                    (easting - this.tmrOriginMod[0]) / (256 * this.tmr.res[z])
+                let y =
+                    (northing - this.tmrOriginMod[1]) / (256 * this.tmr.res[z])
+
+                //In these projections the origin is bottom left instead of top left
+                //So flip the decimal value back
+                y = Math.floor(y) + (1 - (y % 1))
+
+                return { x: x, y: y, z: z }
+            }
+        },
         tile2long: function(x, z, parms) {
             parms = parms || {}
             switch (parms.projection || this.projection) {
@@ -252,9 +322,10 @@ define([], function() {
                     )
                 case 'equidistantcylindrical':
                     return (
-                        this.tmr.lon_0 +
-                        (this.tileXToSphereX(x, z) * (180 / Math.PI)) /
-                            Math.cos(this.tmr.lat_ts)
+                        (this.tmr.lon_0 * (Math.PI / 180) +
+                            (this.tileXToLong(x, z) * (Math.PI / 180)) /
+                                Math.cos(this.tmr.lat_ts)) *
+                        (180 / Math.PI)
                     )
                 case 'lambertazimuthalequalarea':
                     var sx = this.tileXToSphereX(x, z)
@@ -299,7 +370,7 @@ define([], function() {
                     var c = 2 * Math.atan2(p, 2)
                     return Math.asin(Math.cos(c)) * (180 / Math.PI)
                 case 'equidistantcylindrical':
-                    return this.tileYToSphereY(y, z) * (180 / Math.PI) // - this.tmr.lat_ts;// - 13.5; //+ 29; //Figure this 29 out
+                    return this.tileYToLat(y, z) // - this.tmr.lat_ts;// - 13.5; //+ 29; //Figure this 29 out
                 case 'lambertazimuthalequalarea':
                     var sx = this.tileXToSphereX(parms.x, z)
                     var sy = this.tileYToSphereY(y, z)
@@ -405,6 +476,16 @@ define([], function() {
                 default:
                     console.warn('Unknown projection: ' + projection)
             }
+        },
+        tileXToLong: function(x, z) {
+            //easting = (tilesize(256) x tilecolumn x Zoomlevel(unit/pixel)) + (numXpixels x Zoomlevel(unit/pixel)) + minX
+            let easting = 256 * x * this.tmr.res[z] + this.tmrBoundsMod[0]
+            return easting
+        },
+        tileYToLat: function(y, z) {
+            //northing = (tilesize(256) x tilerow x Zoomlevel(unit/pixel)) + (numYpixels x Zoomlevel(unit/pixel)) + minY
+            let northing = 256 * y * this.tmr.res[z] + this.tmrOriginMod[1]
+            return northing
         },
         tileXToSphereX: function(x, z) {
             var v = [1, 1]
@@ -586,6 +667,17 @@ define([], function() {
         },
     }
 
+    /*
+     * domain - [start, end]
+     * range - [newStart, newEnd]
+     * value - some value to map from the domain to the range
+     * example - ([0, 10], [0, 20], 10) returns 20
+     * example - ([0, 10], [0, 20], 5) returns 10
+     * example - ([0, 10], [10, 20], 0) returns 10
+     * example - ([0, 1], [0, 100], -1) returns -100
+     * example - ([0, 1], [90, 100], -1) returns 80
+     * example - ([1, 0], [90, 100], -1) returns 110
+     */
     function linearScale(domain, range, value) {
         return (
             ((range[1] - range[0]) * (value - domain[0])) /

@@ -1,9 +1,11 @@
-#use like: 2ptsToProfile.py raster lat1 lon1 lat2 lon2 steps band
+#use like: 2ptsToProfile.py raster lat1 lon1 lat2 lon2 steps axes band
 
 #returns an array of band value for step between (inclusive) [lat1, lon1] and [lat2, lon2]
 
-#example: 2ptsToProfile.py MSL_DEM_v3_webgis.tif -4.66086473 137.36935616 -4.67053145 137.36515045 10 1
-#2ptsToProfile.py MSL_DEM_v3_webgis.tif -4.67053145 137.36515045 -4.66086473 137.36935616 10 1
+#example: 2ptsToProfile.py MSL_DEM_v3_webgis.tif -4.66086473 137.36935616 -4.67053145 137.36515045 10 z 1
+#2ptsToProfile.py MSL_DEM_v3_webgis.tif -4.67053145 137.36515045 -4.66086473 137.36935616 10 z 1
+
+# Setting axes to "xyz" will return image coordinates instead of lat lons
 
 #pip install numpy
 import os, sys, gdal, osr, numpy

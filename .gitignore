@@ -1,23 +1,24 @@
-/config/configconfig_dev.json
-/config/configconfig_rel.json
-/config/db/config_dev.sqlite3
-/config/db/config_rel.sqlite3
-/config/Passwords.txt
-/Missions_dev/
-/Missions_rel/
-/resources/CRISM_Master
-/resources/Themis
-/documentation
 .vscode
 .DS_Store
-node_modules/
 .env
+/Missions_dev/
+/Missions_rel/
+/documentation
 API/logs/*
+
+node_modules/
 
 /Missions
 /db/
 /config/db/
+/dist/*
 /scripts/ignore
+
+#Nested repo where private backend might reside
+/API/MMGIS-Private-Backend
+#Nested repo where private tools might reside
+/scripts/essence/MMGIS-Private-Tools
+/scripts/pre/toolConfigs.js
 sessions
 
 #tools

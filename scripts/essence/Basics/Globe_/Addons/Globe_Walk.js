@@ -18,13 +18,13 @@ define(['three', 'Formulae_', 'Layers_'], function(THREE, F_, Layers_) {
             // prettier-ignore
             var markup = [
                 "<div id='Globe_WalkToolbar'>",
-                    "<div id='Globe_WalkWalk' title='First Person' class='mmgisButton3' style='border-left: 1px solid #26a8ff; margin-right: 0; padding-right: 0px; border-radius: 0;'>",
+                    "<div id='Globe_WalkWalk' title='First Person' class='mmgisButton3' style='margin-right: 0; padding-right: 0px; border-radius: 0;'>",
                         "<i class='mdi mdi-walk mdi-18px'></i>",
                     "</div>",
                     "<div id='Globe_WalkSettings' class='mmgisButton3' style='margin-left: 0; padding: 0px; border-radius: 0;'>",
                         "<i class='mdi mdi-menu-down mdi-18px'></i>",
                     "</div>",
-                    "<div id='Globe_WalkSettingsPanel' style='border-left: 1px solid #26a8ff; display: none; padding: 8px; position: absolute; top: 36px; background: #001; width: 216px; margin-left: 8px;'>",
+                    "<div id='Globe_WalkSettingsPanel' style='display: none; padding: 8px; position: absolute; top: 32px; background: var(--color-a); width: 215px; margin-left: 6px;'>",
                         "<ul style='list-style-type: none; padding: 0; margin: 0; font-size: 13px;'>",
                             "<li id='Globe_WalkSettingsFov' style='display: flex; justify-content: space-between; margin-bottom: 3px;'>",
                                 "<div style='float: left; padding-right: 5px;'>Field of View</div>",
@@ -66,8 +66,8 @@ define(['three', 'Formulae_', 'Layers_'], function(THREE, F_, Layers_) {
                             "</li>",
                         "</ul>",
                         "<div style='padding-top: 6px; display: flex; justify-content: space-between;'>",
-                            "<div id='Globe_WalkWalkHere' style='padding: 0px 6px; background: #4071dd; cursor: pointer;'>Walk Here</div>",
-                            "<div id='Globe_WalkStand' style='padding: 0px 6px; background: #4071dd; cursor: pointer;'>Stand Here</div>",
+                            "<div id='Globe_WalkWalkHere' style='padding: 0px 6px; background: var(--color-a); cursor: pointer;'>Walk Here</div>",
+                            "<div id='Globe_WalkStand' style='padding: 0px 6px; background: var(--color-a); cursor: pointer;'>Stand Here</div>",
                         "</div>",
                     "</div>",
                 "</div>"

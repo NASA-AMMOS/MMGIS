@@ -124,13 +124,33 @@ define([
         function depthTraversal(node, parent, depth) {
             for (var i = 0; i < node.length; i++) {
                 let currentOpacity
+                //Build layerExport
+                var layerExport
+                switch (node[i].type) {
+                    case 'vector':
+                        // prettier-ignore
+                        layerExport = [
+                            '<ul>',
+                                '<li>',
+                                    '<div class="layersToolExportGeoJSON">',
+                                        '<div>Export as GeoJSON</div>',
+                                    '</div>',
+                                '</li>',
+                            '</ul>',
+                        ].join('\n')
+                        break
+                    default:
+                        layerExport = ''
+                }
+
                 //Build settings object
                 var settings
                 switch (node[i].type) {
                     case 'vector':
                     case 'vectortile':
                         currentOpacity = L_.getLayerOpacity(node[i].name)
-                        if (currentOpacity == null) currentOpacity = L_.opacityArray[node[i].name] 
+                        if (currentOpacity == null)
+                            currentOpacity = L_.opacityArray[node[i].name]
                         // prettier-ignore
                         settings = [
                                 '<ul>',
@@ -146,7 +166,8 @@ define([
                         break
                     case 'tile':
                         currentOpacity = L_.getLayerOpacity(node[i].name)
-                        if (currentOpacity == null) currentOpacity = L_.opacityArray[node[i].name] 
+                        if (currentOpacity == null)
+                            currentOpacity = L_.opacityArray[node[i].name]
 
                         let currentBrightness = 1
                         let currentContrast = 1
@@ -298,7 +319,7 @@ define([
                         // prettier-ignore
                         $('#layersToolList').append(
                         [
-                            '<li id="LayersTool' + node[i].name.replace(/\s/g, "") + '" type="' + node[i].type + '" on="true" depth="' + depth + '" name="' + node[i].name + '" parent="' + parent.name + '" style="margin-left: ' + (depth * 16) + 'px;">',
+                            '<li id="LayersTool' + node[i].name.replace(/\s/g, "") + '" class="' + ((L_.layersGroup[node[i].name] == null) ? 'layernotfound' : '') + '" type="' + node[i].type + '" on="true" depth="' + depth + '" name="' + node[i].name + '" parent="' + parent.name + '" style="margin-left: ' + (depth * 16) + 'px;">',
                                 '<div class="title" id="layerstart' + node[i].name.replace(/\s/g, "") + '">',
                                     '<div class="layersToolColor ' + node[i].type + '"></div>',
                                     '<div class="checkboxcont">',
@@ -310,9 +331,15 @@ define([
                                     '<div class="reset">',
                                         '<i class="mdi mdi-refresh mdi-18px"></i>',
                                     '</div>',
+                                    (layerExport != '') ? ['<div class="layerDownload" id="layerexport' + node[i].name.replace(/\s/g, "") + '" stype="' + node[i].type + '" layername="' + node[i].name.replace(/\s/g, "") + '">',
+                                        '<i class="mdi mdi-download mdi-18px" name="layerexport"></i>',
+                                    '</div>'].join('\n') : '',
                                     '<div class="gears" id="layersettings' + node[i].name.replace(/\s/g, "") + '" stype="' + node[i].type + '" layername="' + node[i].name.replace(/\s/g, "") + '">',
                                         '<i class="mdi mdi-tune mdi-18px" name="layersettings"></i>',
                                     '</div>',
+                                '</div>',
+                                '<div class="layerExport ' + node[i].type + '">',
+                                    layerExport,
                                 '</div>',
                                 '<div class="settings ' + node[i].type + '">',
                                     settings,
@@ -345,19 +372,57 @@ define([
             LayersTool.toggleHeader($(this).attr('id'))
         })
 
+        //Enables the export dialogue box
+        $('.layerName, .layerDownload').on('click', function() {
+            var li = $(this)
+                .parent()
+                .parent()
+            if (li.attr('type') == 'header') return
+            var wasOn = li.hasClass('download_on')
+            $('.layerDownload')
+                .parent()
+                .parent()
+                .removeClass('download_on')
+            $('.gears')
+                .parent()
+                .parent()
+                .removeClass('gears_on')
+            if (!wasOn) li.addClass('download_on')
+        })
         //Enables the setting dialogue box
         $('.layerName, .gears').on('click', function() {
             var li = $(this)
                 .parent()
                 .parent()
             if (li.attr('type') == 'header') return
-            var wasOn = li.hasClass('on')
+            var wasOn = li.hasClass('gears_on')
+            $('.layerDownload')
+                .parent()
+                .parent()
+                .removeClass('download_on')
             $('.gears')
                 .parent()
                 .parent()
-                .removeClass('on')
-            if (!wasOn) li.addClass('on')
+                .removeClass('gears_on')
+            if (!wasOn) li.addClass('gears_on')
         })
+
+        //Export GeoJSON
+        $('.layersToolExportGeoJSON').on('click', function() {
+            var li = $(this)
+                .parent()
+                .parent()
+                .parent()
+                .parent()
+
+            let layerName = li.attr('name')
+            F_.downloadObject(
+                L_.layersGroup[layerName].toGeoJSON(),
+                layerName,
+                '.geojson'
+            )
+        })
+
         //Refresh settings
         $('.reset').on('click', function() {
             var li = $(this)

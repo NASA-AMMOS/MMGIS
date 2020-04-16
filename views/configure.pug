@@ -8,6 +8,8 @@ head
   link(type='text/css' rel='stylesheet' href='config/css/materialize.min.css' media='screen,projection')
   link(type='text/css' rel='stylesheet' href='config/js/codemirror/codemirror-5.19.0/lib/codemirror.css')
   link(type='text/css' rel='stylesheet' href='config/js/codemirror/codemirror-5.19.0/theme/elegant.css')
+  link(type='text/css' rel='stylesheet' href='config/css/keys.css')
+  link(type='text/css' rel='stylesheet' href='config/css/datasets.css')
   link(type='text/css' rel='stylesheet' href='config/css/geodatasets.css')
   link(type='text/css' rel='stylesheet' href='config/css/config.css')
   // Let browser know website is optimized for mobile
@@ -15,6 +17,7 @@ head
 // Import jQuery before materialize.js
 script(type='text/javascript' src='config/js/jquery.min.js')
 script(type='text/javascript' src='config/js/jquery-ui.js')
+script(type='text/javascript' src='config/js/papaparse.min.js')
 script(type='text/javascript' src='config/js/materialize.min.js')
 script(type='text/javascript' src='config/js/codemirror/codemirror-5.19.0/lib/codemirror.js')
 script(type='text/javascript' src='config/js/codemirror/codemirror-5.19.0/mode/javascript/javascript.js')
@@ -29,6 +32,8 @@ script.
     mmgisglobal.NODE_ENV = '#{NODE_ENV}';
     mmgisglobal.CONFIGCONFIG_PATH = '#{CONFIGCONFIG_PATH}';
 script(type='text/javascript' src='config/js/calls.js')
+script(type='text/javascript' src='config/js/keys.js')
+script(type='text/javascript' src='config/js/datasets.js')
 script(type='text/javascript' src='config/js/geodatasets.js')
 script(type='text/javascript' src='config/js/config.js')
 script(type='text/javascript' src='scripts/pre/RefreshAuth.js')
@@ -41,13 +46,14 @@ script(type='text/javascript' src='scripts/pre/RefreshAuth.js')
       span#tbconfig  Configuration
   a#new_mission.btn.waves-effect.waves-light.col.s12.truncate(style='background-color: rgba(255,255,255,0.12);') New Mission
   ul#missions.mmgisScrollbar
+  a#manage_keys.btn.waves-effect.waves-light.col.s12.truncate(style='background-color: rgba(255,255,255,0.12);') Keys
+  a#manage_datasets.btn.waves-effect.waves-light.col.s12.truncate(style='background-color: rgba(255,255,255,0.12);') Manage Datasets
   a#manage_geodatasets.btn.waves-effect.waves-light.col.s12.truncate(style='background-color: rgba(255,255,255,0.12);') Manage Geodatasets
 
 #logout
   i.logout#config_logout.mdi.mdi-logout.mdi-24px
 
 #topbar
-  // <a href="../"><img id="c_logo" src="resources/Images/TheSnagwazzleM1_WSmall.png" alt="MMWebGIS Configuration" onclick=""></a>
   #tbtitle
     i.logout#config_logout.mdi.mdi-logout.mdi-24px
     a.logout#tbmmgis
@@ -59,11 +65,13 @@ script(type='text/javascript' src='scripts/pre/RefreshAuth.js')
     a#new_mission.btn.waves-effect.waves-light.col.s12.truncate(style='background-color: rgba(255,255,255,0.12);') New Mission
   .col.s10(style='padding: 0;')
     ul#missions.tabs.mmgisScrollbar
+.container_keys
+.container_datasets
 .container_geodatasets
 .container
   #home_cont(style='display: none') MMGIS Configuration
   #new_mission_cont(style='display: none; margin-top: 25vh;')
-    .row
+    .row(style='margin-bottom: 0;')
       .col.s12(style='padding: 0;')
         ul.tabs(style='font-weight: bold; font-size: 18px;')
           li.tab.col.s12
@@ -75,6 +83,10 @@ script(type='text/javascript' src='scripts/pre/RefreshAuth.js')
               input#nmmission.validate(type='text' value='' style='margin-bottom: 10px;')
               label(for='nmmission') Mission Name
           li
+    .row(style='margin: 0px 0 50px 0px;')
+        #new_mission_makedirEl.input-field.col.s2.push-s5
+          input#new_mission_makedir.filled-in.checkbox-color(type='checkbox' checked='checked')
+          label(for='new_mission_makedir' style='color: black;') Create the directory /Missions/{mission} too. All non-absolute URLs in a mission's configuration will be relative to this folder regardless.
     .row
       a#make_mission.btn.waves-effect.waves-light.light-green.darken-3.col.s2.push-s5(style='border-radius: 0px;')
         | Make Mission
@@ -144,6 +156,10 @@ script(type='text/javascript' src='scripts/pre/RefreshAuth.js')
             #iradMinEl.input-field.col.s3.push-s3
               input#iradMin.validate(type='text' value='')
               label(for='iradMin') Planet Radius Minor (meters)
+          li.row
+            #imapScaleEl.input-field.col.s2.push-s5
+              input#imapScale.validate(type='text' value='')
+              label(for='imapScale') Zoom Level of Map Scale
       #tab_projection.col.s12(style='padding-bottom: 15px;')
         ul#tab_projection_rows
           li.row
@@ -169,7 +185,7 @@ script(type='text/javascript' src='scripts/pre/RefreshAuth.js')
               input#projection_xmlPath.validate(type='text' value='')
               label(for='projection_xmlPath') Path to tilemapresource.xml (from MMGIS home directory)
             a#projection_populateFromXml.btn.waves-effect.waves-light.light-green.darken-3.col.s2.push-s1(style='border-radius: 0px; margin-top: 25px;') Populate from XML
-          .col.s10.push-s1(style='background: #f8f8f8; border: 5px solid #e0e0e0; color: #e0e0e0;')
+          .col.s10.push-s1(style='background: #f8f8f8; border: 5px solid #e0e0e0; color: #000000;')
             li.row(style='margin-top: 15px;')
               #projection_boundsMinXEl.input-field.col.s3
                 input#projection_boundsMinX.validate(type='text' value='')
@@ -200,13 +216,16 @@ script(type='text/javascript' src='scripts/pre/RefreshAuth.js')
       #tab_look.col.s12
         ul#tab_look_rows
           li.row
-            #look_pagenameEl.input-field.col.s2.push-s3
+            #look_pagenameEl.input-field.col.s2.push-s2
               input#look_pagename.validate(type='text' value='')
               label(for='look_pagename') Page Name
-            #look_zoomcontrolEl.input-field.col.s2.push-s3
+            #look_minimalistEl.input-field.col.s2.push-s2
+              input#look_minimalist.filled-in.checkbox-color(type='checkbox')
+              label(for='look_minimalist' style='color: black;') Minimalist UI
+            #look_zoomcontrolEl.input-field.col.s2.push-s2
               input#look_zoomcontrol.filled-in.checkbox-color(type='checkbox')
               label(for='look_zoomcontrol' style='color: black;') Zoom Control
-            #look_graticuleEl.input-field.col.s2.push-s3
+            #look_graticuleEl.input-field.col.s2.push-s2
               input#look_graticule.filled-in.checkbox-color(type='checkbox')
               label(for='look_graticule' style='color: black;') Graticule
           li.row
@@ -239,6 +258,13 @@ script(type='text/javascript' src='scripts/pre/RefreshAuth.js')
             #look_helpEl.input-field.col.s2.push-s4
               input#look_help.filled-in.checkbox-color(type='checkbox')
               label(for='look_help' style='color: black;') Help
+          li.row
+            #look_logourlEl.input-field.col.s4.push-s2
+              input#look_logourl.validate(type='text' value='')
+              label(for='look_logourl') Square Logo Image URL
+            #look_helpurlEl.input-field.col.s4.push-s2
+              input#look_helpurl.validate(type='text' value='')
+              label(for='look_helpurl') Help URL
       #tab_panels.col.s8.push-s2
         p
           input#panels_viewer.filled-in.checkbox-color(type='checkbox')

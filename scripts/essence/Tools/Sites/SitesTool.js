@@ -16,13 +16,24 @@ define([
             this.vars = L_.getToolVars('sites')
             this.sitesVar = this.vars.sites
 
-            //Use url site or first site in list
+            //Don't set a default site if custom on layers were passed
+            // in the url since setting the site would immediately override
             if (L_.FUTURES.site != null) {
-                SitesTool.setSite(L_.FUTURES.site, L_.FUTURES.mapView, true)
+                SitesTool.setSite(
+                    L_.FUTURES.site,
+                    L_.FUTURES.mapView,
+                    true,
+                    L_.FUTURES.customOn
+                )
                 L_.FUTURES.site = null
             } else {
                 if (this.sitesVar != null)
-                    SitesTool.setSite(this.sitesVar[0].code, L_.FUTURES.mapView)
+                    SitesTool.setSite(
+                        this.sitesVar[0].code,
+                        L_.FUTURES.mapView,
+                        false,
+                        L_.FUTURES.customOn
+                    )
             }
 
             Description.descSite.on('click', function() {
@@ -40,6 +51,7 @@ define([
                 .style('line-height', '30px')
                 .style('font-size', '16px')
                 .style('color', 'var(--color-mmgis)')
+                .style('padding-left', '6px')
                 .html('Sites')
 
             tools = tools
@@ -89,7 +101,7 @@ define([
                 }
             }
         },
-        setSite: function(newSiteCode, newView, dontSetGlobe) {
+        setSite: function(newSiteCode, newView, dontSetGlobe, aggregate) {
             var siteView = newView
             if (siteView == null) {
                 for (s in this.sitesVar) {
@@ -104,7 +116,7 @@ define([
             //Update site
             Description.updateSite(newSiteCode)
             L_.setSite(newSiteCode, siteView, dontSetGlobe)
-            L_.disableAllBut(newSiteCode)
+            L_.disableAllBut(newSiteCode, aggregate)
             //Update Layers to begin in site directory
             LayersTool.setHeader(newSiteCode)
         },

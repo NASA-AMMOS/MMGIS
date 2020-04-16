@@ -46,6 +46,9 @@ define(['d3', 'Formulae_', 'three', 'container'], function(
             this.orbit.controls.enabled = true
             this.orbit.controls.enableDamping = true
             this.orbit.controls.dampingFactor = 0.2
+            this.orbit.controls.target.y = 1
+            this.orbit.controls.mouseButtons.ORBIT = THREE.MOUSE.RIGHT
+            this.orbit.controls.mouseButtons.PAN = THREE.MOUSE.LEFT
 
             this.firstPerson.camera = new THREE.PerspectiveCamera(
                 60,
@@ -66,6 +69,8 @@ define(['d3', 'Formulae_', 'three', 'container'], function(
 
             updateSize()
             setupEvents()
+
+            this.orbit.controls.update()
         },
         setAsFirstPerson: function() {
             this.isFirstPerson = true
@@ -157,7 +162,7 @@ define(['d3', 'Formulae_', 'three', 'container'], function(
             if (farther) {
                 if (!Cameras.keepNear)
                     Cameras.orbit.camera.near = Cameras.orbit.near * 10000
-                Cameras.orbit.camera.far = Cameras.orbit.far / 100
+                //Cameras.orbit.camera.far = Cameras.orbit.far / 100
             } else {
                 if (!Cameras.keepNear)
                     Cameras.orbit.camera.near = Cameras.orbit.near

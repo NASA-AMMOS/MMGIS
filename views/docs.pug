@@ -1,0 +1,30 @@
+doctype html
+head
+  title MMGIS Docs
+  meta(charset='utf-8')
+  meta(name='viewport' content='width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0')
+  link(type='text/css' rel='stylesheet' href='../public/fonts/materialdesignicons/css/materialdesignicons.min.css')
+  link(rel='shortcut icon' href='../resources/logo.png')
+  link(href='../docs/github.css' type='text/css' rel='stylesheet')
+  link(href='../docs/docs.css' rel='stylesheet' type='text/css')
+#main
+  #leftPanel
+    #tbtitle
+        a.logout#tbmmgis
+          img(src='../resources/mmgis.png' height='24px' style='position: relative; top: 4px;')
+        span#tbsubtitle Documentation
+    #list
+      #cat PAGES
+      ul#nav
+      #cat CONFIGURE
+      ul#navconfigure
+      #cat TOOLS
+      ul#navtools
+      #cat APIS
+      ul#navapi
+  #content 
+    #markdown.mmgisScrolbar
+footer
+  script(src='../docs/highlight.pack.js')
+  script(src='../docs/marked.js')
+  script(src='../docs/docs.js')

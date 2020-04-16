@@ -37,6 +37,7 @@ define([
     Globe_VectorsAsTiles,
     Globe_Radargrams
 ) {
+    THREE.Cache.enabled = true
     //Globe_AR = null;
     //array of current drawn xyz's of tiles
     var tilesDrawn = []
@@ -52,6 +53,7 @@ define([
     var start, end
 
     var frameCounter = 0
+    var updateCounter = 0
 
     //These are so that if someone zooms in a lot, only the tiles at the zoom they
     // end on are loaded and not all of those in between
@@ -59,6 +61,7 @@ define([
     var zoomedSince = 0
     //frames to wait between zoomend and zoom tile generation
     var zoomWait = 30
+    var lastZoomDelta = 1
     var desiredZoom = null
 
     var Coordinates
@@ -72,6 +75,8 @@ define([
     var raycaster = new THREE.Raycaster()
     var mouse = new THREE.Vector2()
     var loader = new THREE.TextureLoader()
+    THREE.XHRLoader.prototype.withCredentials = true
+    //loader.setWithCredentials(true)
     var intersectsZero = {}
     var lastIntersectsZero = {}
     //This is for comparing drags while panning the globe
@@ -99,7 +104,8 @@ define([
         wasInitialized: false,
         wasOpened: false,
         sceneBack: new THREE.Scene(),
-        scene2: new THREE.Scene(),
+        scenesLOD: [new THREE.Scene(), new THREE.Scene(), new THREE.Scene()],
+        sceneFront: new THREE.Scene(),
         //globe div
         globe: $('#globeScreen'),
         globeD3: d3.select('#globeScreen'),
@@ -122,11 +128,19 @@ define([
         rotation: null, //THREE.Vector3
         mouseLngLat: { Lng: null, Lat: null },
         toolbar: null,
+        toolbarControls: null,
         //Screen coordinates for center of globe div
         globeCenterPos: { x: null, y: null },
         centerTileXYZ: { x: null, y: null, z: null },
-        LOD: { use: false, radiusOfTiles: 7, zoomsUp: 4 },
+        radiusOfTiles: 4,
+        useLOD: true,
+        LOD: [
+            { radiusOfTiles: 4, zoomsUp: 3 },
+            { radiusOfTiles: 2, zoomsUp: 7 },
+            { radiusOfTiles: 2, zoomsUp: 11 },
+        ],
         zOff: 0, //-( projection.radiusOfPlanetMajor / projection.radiusScale ),
+        zCutOff: 3, //The zoom level at which to behave differently
         shouldRaycastSprites: true,
         lastGoodCenterElevation: 0,
         link: {},
@@ -139,6 +153,7 @@ define([
         firstFullLoad: false,
         firstUpdate: true,
         allVectorLayersLoaded: false,
+        wireframeMode: false,
         init: function() {
             if (renderer) {
                 Globe_.wasInitialized = true
@@ -157,15 +172,16 @@ define([
             scene.add(light)
 
             //Set Sky
+            /*
             var sky = new THREE.Sky()
             sky.scale.setScalar(450000)
-            //this.sceneBack.add( sky );
+            this.sceneBack.add(sky)
             // Add Sun Helper
             var sunSphere = new THREE.Mesh(
                 new THREE.SphereBufferGeometry(20000, 16, 8),
                 new THREE.MeshBasicMaterial({ color: 0xffffff })
             )
-            //this.sceneBack.add( sunSphere );
+            this.sceneBack.add(sunSphere)
 
             var effectController = {
                 turbidity: 10,
@@ -191,12 +207,15 @@ define([
             sunSphere.position.z = distance * Math.sin(phi) * Math.cos(theta)
             sunSphere.visible = effectController.sun
             uniforms.sunPosition.value.copy(sunSphere.position)
+            */
 
             //Cameras
             Cameras.init()
             scene.add(Cameras.firstPerson.controls.getObject())
             //Cameras.firstPerson.controls.getObject().position.set( 0, -3000, 0 );
             Cameras.orbit.camera.up = new THREE.Vector3(0, -1, 0)
+            Cameras.orbit.controls.maxDistance =
+                projection.radiusOfPlanetMajor * 4
 
             Cameras.firstPerson.controls
                 .getObject()
@@ -214,14 +233,11 @@ define([
             Cameras.orbit.controls.maxPolarAngle = Math.PI / 2
             Cameras.orbit.controls.enablePan = false
 
-            this.radiusOfTiles = 8
-
             this.planetCenter = new THREE.Vector3(
                 0,
                 -(projection.radiusOfPlanetMajor / projection.radiusScale),
                 0
             )
-            //this.planetCenter = new THREE.Vector3( 0, 0, 0 );
 
             if (Globe_AR) {
                 Globe_AR.setup(this, renderer, scene)
@@ -277,13 +293,6 @@ define([
             })
 
             ////////////////
-            //var geometry;
-            //var material;
-
-            //geometry = new THREE.BoxBufferGeometry( 1, 1, 1 );
-            //material = new THREE.MeshNormalMaterial();
-            //this.planet = new THREE.Mesh( geometry, material );
-            //this.planetHeld = new THREE.Object3D();
             this.planet = new THREE.Object3D()
             this.planet.position.set(
                 this.planetCenter.x,
@@ -292,32 +301,79 @@ define([
             )
             scene.add(this.planet)
 
-            this.planetLOD = new THREE.Object3D()
-            matchPlanetLODToPlanet()
-            this.sceneBack.add(this.planetLOD)
+            this.planetsLOD = [
+                new THREE.Object3D(),
+                new THREE.Object3D(),
+                new THREE.Object3D(),
+            ]
 
+            this.scenesLOD[0].add(this.planetsLOD[0])
+            this.scenesLOD[1].add(this.planetsLOD[1])
+            this.scenesLOD[2].add(this.planetsLOD[2])
+
+            //Make the starsphere
+            var starsphereGeometry = new THREE.SphereBufferGeometry(
+                this.planetCenter.y * 1000,
+                64,
+                64
+            )
+            var starsphereMaterial = new THREE.MeshBasicMaterial({
+                color: 0xaaaaaa,
+            })
+            starsphereMaterial.map = loader.load('public/images/eso0932a.jpg')
+            starsphereMaterial.opacity = 1
+            Globe_.starsphere = new THREE.Mesh(
+                starsphereGeometry,
+                starsphereMaterial
+            )
+            this.sceneBack.add(Globe_.starsphere)
+
+            //Basic planetary sphere behind everything
+            Globe_.planetShell = new THREE.Mesh(
+                new THREE.SphereBufferGeometry(
+                    this.planetCenter.y * 1.5,
+                    128,
+                    128
+                ),
+                shaders.atmosphere()
+            )
+            this.sceneBack.add(Globe_.planetShell)
             //AXES - Uncomment for
             /*
-      var materiall = new THREE.LineBasicMaterial({ color: 0xff0000 });
-      var geometryl = new THREE.Geometry();
-      geometryl.vertices.push(new THREE.Vector3(-projection.radiusOfPlanetMajor * 2, 0, 0));
-      geometryl.vertices.push(new THREE.Vector3(projection.radiusOfPlanetMajor * 2, 0, 0));
-      var line = new THREE.Line(geometryl, materiall);
-      scene.add(line);
-      var materiall = new THREE.LineBasicMaterial({ color: 0x00ff00 });
-      var geometryl = new THREE.Geometry();
-      geometryl.vertices.push(new THREE.Vector3(0, -projection.radiusOfPlanetMajor * 2, 0));
-      geometryl.vertices.push(new THREE.Vector3(0, projection.radiusOfPlanetMajor * 2, 0));
-      var line = new THREE.Line(geometryl, materiall);
-      scene.add(line);
-      var materiall = new THREE.LineBasicMaterial({ color: 0x0000ff });
-      var geometryl = new THREE.Geometry();
-      geometryl.vertices.push(new THREE.Vector3(0, 0, -projection.radiusOfPlanetMajor * 2));
-      geometryl.vertices.push(new THREE.Vector3(0, 0, projection.radiusOfPlanetMajor * 2));
-      var line = new THREE.Line(geometryl, materiall);
-      scene.add(line);
-      */
+            var materiall = new THREE.LineBasicMaterial({ color: 0xff0000 })
+            var geometryl = new THREE.Geometry()
+            geometryl.vertices.push(
+                new THREE.Vector3(-projection.radiusOfPlanetMajor * 2, 0, 0)
+            )
+            geometryl.vertices.push(
+                new THREE.Vector3(projection.radiusOfPlanetMajor * 2, 0, 0)
+            )
+            var line = new THREE.Line(geometryl, materiall)
+            this.sceneBack.add(line)
+            var materiall = new THREE.LineBasicMaterial({ color: 0x00ff00 })
+            var geometryl = new THREE.Geometry()
+            geometryl.vertices.push(
+                new THREE.Vector3(0, -projection.radiusOfPlanetMajor * 2, 0)
+            )
+            geometryl.vertices.push(
+                new THREE.Vector3(0, projection.radiusOfPlanetMajor * 2, 0)
+            )
+            var line = new THREE.Line(geometryl, materiall)
+            this.sceneBack.add(line)
+            var materiall = new THREE.LineBasicMaterial({ color: 0x0000ff })
+            var geometryl = new THREE.Geometry()
+            geometryl.vertices.push(
+                new THREE.Vector3(0, 0, -projection.radiusOfPlanetMajor * 2)
+            )
+            geometryl.vertices.push(
+                new THREE.Vector3(0, 0, projection.radiusOfPlanetMajor * 2)
+            )
+            var line = new THREE.Line(geometryl, materiall)
+            this.sceneBack.add(line)
+            */
             //END AXES
+
+            matchPlanetsLODToPlanet()
 
             //Set default view
             if (L_.FUTURES.globeView != null) {
@@ -328,7 +384,6 @@ define([
                 this.setCenter(L_.view)
             }
 
-            //document.getElementById( "zoomLevelIndicator" ).innerHTML = Globe_.zoom;
             this.globe = $('#globeScreen')
             //Event Listeners
             this.globe.on('mousewheel', onZoom)
@@ -343,8 +398,6 @@ define([
                 mouseIsInDiv = false
                 L_.Map_.hidePlayer()
             })
-            //document.getElementById( "zoomLevelInc" ).addEventListener( "click", zoomIn );
-            //document.getElementById( "zoomLevelDec" ).addEventListener( "click", zoomOut );
             container.addEventListener(
                 'mousedown',
                 rotateGlobe_MouseDown,
@@ -376,22 +429,22 @@ define([
                 scene.add(lineGroup[0])
 
                 lineGroup[1].position.set(0, -Globe_.planetCenter.y, 0)
-                this.scene2.add(lineGroup[1])
+                this.sceneFront.add(lineGroup[1])
 
                 spriteGroup[0].position.set(0, -Globe_.planetCenter.y, 0)
                 scene.add(spriteGroup[0])
 
                 spriteGroup[1].position.set(0, -Globe_.planetCenter.y, 0)
-                this.scene2.add(spriteGroup[1])
+                this.sceneFront.add(spriteGroup[1])
 
                 addonMeshGroup[0].position.set(0, -Globe_.planetCenter.y, 0)
                 scene.add(addonMeshGroup[0])
 
                 addonMeshGroup[1].position.set(0, -Globe_.planetCenter.y, 0)
-                this.scene2.add(addonMeshGroup[1])
+                this.sceneFront.add(addonMeshGroup[1])
 
                 overlayGroup[0].position.set(0, -Globe_.planetCenter.y, 0)
-                this.scene2.add(overlayGroup[0])
+                this.sceneFront.add(overlayGroup[0])
 
                 refreshVectorRotation()
 
@@ -417,16 +470,26 @@ define([
         },
         render: function() {
             renderer.clear()
-            Globe_.update()
+
+            updateCounter = (updateCounter + 1) % 3
+            if (updateCounter === 0) Globe_.update()
+            else if (!Cameras.isFirstPerson) Cameras.orbit.controls.update()
+
             renderer.render(Globe_.sceneBack, Cameras.camera)
+            renderer.clearDepth()
+            renderer.render(Globe_.scenesLOD[2], Cameras.camera)
+            renderer.clearDepth()
+            renderer.render(Globe_.scenesLOD[1], Cameras.camera)
+            renderer.clearDepth()
+            renderer.render(Globe_.scenesLOD[0], Cameras.camera)
             renderer.clearDepth()
             renderer.render(scene, Cameras.camera)
             renderer.clearDepth()
-            renderer.render(Globe_.scene2, Cameras.camera)
+            renderer.render(Globe_.sceneFront, Cameras.camera)
         },
         update: function() {
             if (!Globe_.wasInitialized) return
-            frameCounter = (frameCounter + 1) % 5
+            frameCounter = (frameCounter + 1) % 4
             Globe_.wasOpened = true
             scene.rotation.x = 0
             scene.position.y = 0
@@ -458,9 +521,17 @@ define([
                 L_.Map_.hidePlayer()
                 this.lastCameraWasFirst = false
             }
-            //console.log( tilesDrawn.length );
+
             //Snap Cameras.camera lookat to Globe_
-            if (tilesBeingDrawn.length == 0 && tilesToBeDrawn.length == 0) {
+            if (Globe_.zoom <= Globe_.zCutOff) {
+                Cameras.orbit.controls.target.x = 0
+                Cameras.orbit.controls.target.y = -Globe_.planetCenter.y
+                Cameras.orbit.controls.target.z = 0
+                Cameras.orbit.controls.update()
+            } else if (
+                tilesBeingDrawn.length == 0 &&
+                tilesToBeDrawn.length == 0
+            ) {
                 var elevRaw = Globe_.getCenterElevationRaw()
                 if (elevRaw != false) {
                     var newLookAtY = -(elevRaw + Globe_.planetCenter.y)
@@ -472,7 +543,7 @@ define([
                     }
                 }
             }
-            //console.log( Cameras.orbit.controls.target.y );
+
             if (
                 frameCounter == 0 &&
                 mouseIsInDiv &&
@@ -493,7 +564,6 @@ define([
             //set default camera from url if there is one
             if (L_.FUTURES.globeCamera != null) {
                 var c = L_.FUTURES.globeCamera
-                //console.log( c );
                 Cameras.orbit.camera.position.set(c[0], c[1], c[2])
                 Cameras.orbit.controls.target.x = c[3]
                 Cameras.orbit.controls.target.y = c[4]
@@ -524,17 +594,10 @@ define([
             }
         },
         vrTurnedOn(navi) {
-            console.log('vr on')
             Globe_.inVR = true
-            if (navi.getGamePads) {
-                console.log(navi.getGamePads)
-            }
-            console.log(navi)
-            console.log(scene)
         },
         vrTurnedOff(navi) {
             Globe_.inVR = false
-            console.log('vr off')
         },
         setCenter: function(latlonzoom, ignoreZoom) {
             if (!Globe_.wasInitialized) return
@@ -546,15 +609,18 @@ define([
             Globe_.planet.rotation.x = (90 - latlonzoom[0]) * (Math.PI / 180)
             //lon is a rotation around y axis
             Globe_.planet.rotation.y = latlonzoom[1] * (Math.PI / 180)
-            matchPlanetLODToPlanet()
+            matchPlanetsLODToPlanet()
+
             //Change zoom
             if (latlonzoom[2] && ignoreZoom != true) {
                 Globe_.zoom = latlonzoom[2]
+                Globe_.updateZoomDependents()
+
                 //Zoom globe
                 Cameras.orbit.camera.position.y = -(
-                    28000000 /
+                    40000000 /
                     projection.radiusScale /
-                    Math.pow(2, Globe_.zoom - 1)
+                    Math.pow(2, Globe_.zoom + 1)
                 )
                 Cameras.firstPerson.controls.getObject().position.y = -(
                     40000000 /
@@ -571,7 +637,6 @@ define([
             if (Globe_.link.target != null)
                 overlayGroup[0].remove(Globe_.link.target)
             if (latlng == 'off') return
-            //var geometry = new THREE.SphereBufferGeometry( 0.01, 32, 32 );
             var geometry = new THREE.BufferGeometry()
             var material = new THREE.MeshBasicMaterial({ color: 0x00ff00 })
             Globe_.link.target = new THREE.Mesh(geometry, material)
@@ -764,18 +829,15 @@ define([
             var mvpRTE = new THREE.Matrix4()
             mvpRTE.copy(t.matrixWorld)
             mvpRTE.multiply(Cameras.camera.matrixWorld)
-            //console.log( mvpRTE.elements );
             mvpRTE.elements[12] = 0
             mvpRTE.elements[13] = 0
             mvpRTE.elements[14] = 0
-            //console.log( mvpRTE.elements );
             mvpRTE = mvpRTE.multiply(Cameras.camera.projectionMatrix)
-            //console.log( mvpRTE.elements );
             t.material.uniforms['mvpRTE'].value = mvpRTE
         },
         makeModelLayers: function(layerObj) {
             if (!Globe_.wasInitialized) return
-            //Make each layer (backwards to mantain draw order)
+            //Make each layer (backwards to maintain draw order)
             for (var i = 0; i < layerObj.length; i++) {
                 if (layerObj[i].type == 'model') {
                     var layerUrl = layerObj[i].url
@@ -820,109 +882,183 @@ define([
                 //Headers do not need to be made
                 if (layerObj[i].type == 'vector') {
                     var layerUrl = layerObj[i].url
-                    if (layerUrl.substr(0, 4) != 'api:') {
-                        if (!F_.isUrlAbsolute(layerUrl))
-                            layerUrl = L_.missionPath + layerUrl
-                        $.getJSON(
-                            layerUrl + '?nocache=' + new Date().getTime(),
+                    if (!F_.isUrlAbsolute(layerUrl))
+                        layerUrl = L_.missionPath + layerUrl
+                    let urlSplit = layerObj[i].url.split(':')
+
+                    if (
+                        urlSplit[0].toLowerCase() === 'geodatasets' &&
+                        urlSplit[1] != null
+                    ) {
+                        calls.api(
+                            'geodatasets_get',
+                            {
+                                layer: urlSplit[1],
+                                type: 'geojson',
+                            },
                             (function(l) {
                                 return function(data) {
-                                    data = data.features
-                                    if (!data) {
-                                        loaded++
-                                        return
-                                    }
-                                    var sI = 0,
-                                        canAdd = false
-                                    for (var j = 0; j < data.length; j++) {
-                                        if (!data[j].hasOwnProperty('geometry'))
-                                            continue
-                                        if (l.type == 'vector') {
-                                            canAdd = false
-                                            sI = 0
-
-                                            //if( l.name == 'Traverse' ) console.log(data[j].geometry.coordinates[0]);
-                                            if (
-                                                !isNaN(
-                                                    data[j].geometry
-                                                        .coordinates[0]
-                                                )
-                                            ) {
-                                                if (
-                                                    data[j].geometry
-                                                        .coordinates[0] < 180 &&
-                                                    data[j].geometry
-                                                        .coordinates[0] >
-                                                        -180 &&
-                                                    data[j].geometry
-                                                        .coordinates[1] < 90 &&
-                                                    data[j].geometry
-                                                        .coordinates[1] > -90
-                                                ) {
-                                                    data[
-                                                        j
-                                                    ].geometry.coordinates = [
-                                                        data[j].geometry
-                                                            .coordinates,
-                                                    ]
-                                                    sI = 0
-                                                    canAdd = true
-                                                } else {
-                                                    console.warn(
-                                                        'Warning: Out of range latlngs for cector layer ' +
-                                                            l.name
-                                                    )
-                                                }
-                                            } else {
-                                                canAdd = true
-                                            }
-                                            if (canAdd) {
-                                                l.style.radius = l.radius
-                                                Globe_.addLayer(
-                                                    {
-                                                        layers: data,
-                                                        layerName: l.name,
-                                                        type: l.type,
-                                                        index: j,
-                                                        name:
-                                                            data[j].properties[
-                                                                L_.layersNamed[
-                                                                    l.name
-                                                                ].useKeyAsName
-                                                            ],
-                                                        useKeyAsName:
-                                                            L_.layersNamed[
-                                                                l.name
-                                                            ].useKeyAsName,
-                                                        on:
-                                                            L_.toggledArray[
-                                                                l.name
-                                                            ],
-                                                        id: l.name + '_' + j,
-                                                        geometry:
-                                                            data[j].geometry,
-                                                        style: l.style,
-                                                        swapLL: true,
-                                                    },
-                                                    l.type,
-                                                    sI
-                                                )
-                                                loaded++
-                                                if (loaded == totalNumber)
-                                                    Globe_.allVectorLayersLoaded = true
-                                            }
-                                        }
-                                    }
-                                    attenuate()
+                                    makeFromVectorData(data.body, l)
+                                }
+                            })(layerObj[i]),
+                            function(data) {
+                                makeFromVectorDataPass()
+                            }
+                        )
+                    } else if (
+                        layerObj[i].url.substr(0, 16) == 'api:publishedall'
+                    ) {
+                        calls.api(
+                            'files_getfile',
+                            {
+                                id: JSON.stringify([1, 2, 3, 4, 5]),
+                                quick_published: true,
+                            },
+                            (function(l) {
+                                return function(data) {
+                                    data.body.features.sort((a, b) => {
+                                        let intentOrder = [
+                                            'all',
+                                            'roi',
+                                            'campaign',
+                                            'campsite',
+                                            'trail',
+                                            'signpost',
+                                            'note',
+                                            'master',
+                                        ]
+                                        let ai = intentOrder.indexOf(
+                                            a.properties._.intent
+                                        )
+                                        let bi = intentOrder.indexOf(
+                                            b.properties._.intent
+                                        )
+                                        return ai - bi
+                                    })
+                                    makeFromVectorData(data.body, l)
+                                }
+                            })(layerObj[i]),
+                            function(data) {
+                                makeFromVectorDataPass()
+                            }
+                        )
+                    } else if (
+                        layerObj[i].url.substr(0, 13) == 'api:published'
+                    ) {
+                        calls.api(
+                            'files_getfile',
+                            {
+                                intent: layerObj[i].url.split(':')[2],
+                                quick_published: true,
+                            },
+                            (function(l) {
+                                return function(data) {
+                                    makeFromVectorData(data.body, l)
+                                }
+                            })(layerObj[i]),
+                            function(data) {
+                                makeFromVectorDataPass()
+                            }
+                        )
+                    } else if (
+                        layerObj[i].url.substr(0, 19) == 'api:tacticaltargets'
+                    ) {
+                        calls.api(
+                            'tactical_targets',
+                            {},
+                            (function(l) {
+                                return function(data) {
+                                    makeFromVectorData(data.body, l)
+                                }
+                            })(layerObj[i]),
+                            function(data) {
+                                makeFromVectorDataPass()
+                            }
+                        )
+                    } else if (layerUrl.substr(0, 4) != 'api:') {
+                        $.getJSON(
+                            layerUrl,
+                            (function(l) {
+                                return function(data) {
+                                    makeFromVectorData(data, l)
                                 }
                             })(layerObj[i])
-                        )
+                        ).error(function() {
+                            makeFromVectorDataPass()
+                        })
                     } else {
-                        loaded++
-                        if (loaded == totalNumber)
-                            Globe_.allVectorLayersLoaded = true
+                        makeFromVectorDataPass()
                     }
                 }
+            }
+
+            function makeFromVectorDataPass() {
+                loaded++
+                if (loaded == totalNumber) Globe_.allVectorLayersLoaded = true
+            }
+            function makeFromVectorData(data, l) {
+                data = data.features
+                if (!data) {
+                    makeFromVectorDataPass()
+                    return
+                }
+                var sI = 0,
+                    canAdd = false
+                for (var j = 0; j < data.length; j++) {
+                    if (!data[j].hasOwnProperty('geometry')) continue
+                    if (l.type == 'vector') {
+                        canAdd = false
+                        sI = 0
+
+                        if (!isNaN(data[j].geometry.coordinates[0])) {
+                            if (
+                                data[j].geometry.coordinates[0] < 180 &&
+                                data[j].geometry.coordinates[0] > -180 &&
+                                data[j].geometry.coordinates[1] < 90 &&
+                                data[j].geometry.coordinates[1] > -90
+                            ) {
+                                data[j].geometry.coordinates = [
+                                    data[j].geometry.coordinates,
+                                ]
+                                sI = 0
+                                canAdd = true
+                            } else {
+                                console.warn(
+                                    'Warning: Out of range latlngs for vector layer ' +
+                                        l.name
+                                )
+                            }
+                        } else {
+                            canAdd = true
+                        }
+                        if (canAdd) {
+                            l.style.radius = l.radius
+                            Globe_.addLayer(
+                                {
+                                    layers: data,
+                                    layerName: l.name,
+                                    type: l.type,
+                                    index: j,
+                                    name:
+                                        data[j].properties[
+                                            L_.layersNamed[l.name].useKeyAsName
+                                        ],
+                                    useKeyAsName:
+                                        L_.layersNamed[l.name].useKeyAsName,
+                                    on: L_.toggledArray[l.name],
+                                    id: l.name + '_' + j,
+                                    geometry: data[j].geometry,
+                                    style: l.style,
+                                    swapLL: true,
+                                },
+                                l.type,
+                                sI
+                            )
+                        }
+                    }
+                }
+                makeFromVectorDataPass()
+                attenuate()
             }
         },
         addVectorTileLayer: function(layerObj, skip) {
@@ -1038,7 +1174,6 @@ define([
                                     layerObj.geometry.coordinates.length > 0) ||
                                 layerObj.geometry.length > 0
                             ) {
-                                console.log('A b')
                                 spriteGroup[sI].remove(vectorLayers[i].mesh)
                                 if (layerObj.geometry.coordinates)
                                     layerObj.mesh = geometryToSubbedSprite(
@@ -1124,10 +1259,7 @@ define([
                 })
                 var mesh = new THREE.Mesh(lineGeometry.geometry, material)
                 mesh.frustumCulled = false
-                //mesh.position.set( 0, -Globe_.planetCenter.y, 0 );
-                //mesh.rotation.set( Globe_.planet.rotation.x,
-                //Globe_.planet.rotation.y,
-                //Globe_.planet.rotation.z );
+
                 mesh.geometry.attributes.position.needsUpdate = true
                 mesh.geometry.verticesNeedUpdate = true
                 mesh.geometry.computeFaceNormals()
@@ -1267,10 +1399,7 @@ define([
                 )
                 var mz = findHighestMaxZoom()
                 var sf = 1
-                /*
-        if( mZ <= 16 )
-          sf = ( ( ( 16 - mZ ) * 30) + 1 );
-        */
+
                 lastPointTranslate = -2.6 * sf * 0.65
                 geometry.translate(0, -1.7, 0)
                 var material = new THREE.MeshPhongMaterial({
@@ -1542,10 +1671,11 @@ define([
                     new THREE.Vector3(0, this.planetCenter.y, 0),
                     new THREE.Vector3(0, 1, 0)
                 )
-                //raycaster.setFromCamera( mouse, Cameras.camera );
+
                 var planeArr = []
                 for (var i = 0; i < tilesDrawn.length; i++) {
-                    if (!tilesDrawn[i].t.isLOD) planeArr.push(tilesDrawn[i].t)
+                    if (!tilesDrawn[i].t.isLODTile)
+                        planeArr.push(tilesDrawn[i].t)
                 }
                 var intersects = raycaster.intersectObjects(planeArr)
                 if (intersects.length > 0) {
@@ -1633,7 +1763,7 @@ define([
 
             var planeArr = []
             for (var i = 0; i < tilesDrawn.length; i++) {
-                if (!tilesDrawn[i].t.isLOD) planeArr.push(tilesDrawn[i].t)
+                if (!tilesDrawn[i].t.isLODTile) planeArr.push(tilesDrawn[i].t)
             }
             var intersects = raycaster.intersectObjects(planeArr)
             if (intersects.length > 0) {
@@ -1652,38 +1782,62 @@ define([
             //% Math.pow( 2, topLeft.z ) because of wrapping
             var tx = (topLeft.x + this.numXPlanes / 2) % Math.pow(2, topLeft.z)
             var ty = (topLeft.y + this.numYPlanes / 2) % Math.pow(2, topLeft.z)
-            var tlat = projection.tile2lat(ty, topLeft.z, { x: tx })
-            var tlon = projection.tile2long(tx, topLeft.z, { y: ty })
+            let projectedLL = projection.tileXYZ2LatLng(tx, ty, topLeft.z)
+            var tlat = projectedLL.lat
+            var tlon = projectedLL.lng
 
             return { lon: tlon, lat: tlat }
         },
         //return x y z of current center tile
         getCenterTile: function() {
             var centerll = Globe_.getCenter()
-            return {
-                x: projection.long2tile(
-                    [centerll.lon, centerll.lat],
-                    Globe_.zoom
-                ),
-                y: projection.lat2tile(
-                    [centerll.lon, centerll.lat],
-                    Globe_.zoom
-                ),
-                z: Globe_.zoom,
-            }
+            return projection.latLngZ2TileXYZ(
+                centerll.lat,
+                centerll.lon,
+                Globe_.zoom
+            )
         },
         //Useful for zoom
         getRadiansPerPixel: function() {
             return ((360 / Math.pow(2, Globe_.zoom)) * (Math.PI / 180)) / 256
         },
         setZoom: function(newZoom) {
+            let zoomSave = Globe_.zoom
             Globe_.zoom = newZoom
             if (Globe_.zoom < 0) Globe_.zoom = 0
             if (Globe_.zoom < Globe_.minNativeZoom)
                 Globe_.zoom = Globe.minNativeZoom
             if (Globe_.zoom > Globe_.maxZoom) Globe_.zoom = Globe_.maxZoom
-            //console.log( Globe_.zoom );
-            //document.getElementById( "zoomLevelIndicator" ).innerHTML = Globe_.zoom;
+
+            Globe_.lastZoomDelta = Math.abs(Globe_.zoom - zoomSave)
+
+            Globe_.updateZoomDependents()
+        },
+        updateZoomDependents: function() {
+            if (Globe_.zoom <= Globe_.zCutOff) {
+                Globe_.radiusOfTilesSAVED = Globe_.radiusOfTiles
+                Globe_.radiusOfTiles = 8
+                Globe_.useLODSAVED = Globe_.useLOD
+                Globe_.useLOD = false
+            } else {
+                Globe_.radiusOfTiles =
+                    Globe_.radiusOfTilesSAVED || Globe_.radiusOfTiles
+                Globe_.useLOD = Globe_.useLODSAVED || Globe_.useLOD
+            }
+
+            var shellOpacity = Math.min(1, 5 / Globe_.zoom)
+            //Change the starsphere brightness based on zoom
+            if (Globe_.zoom > 10) {
+                Globe_.starsphere.material.color.setHex(0x444444)
+                shellOpacity = 0
+            } else if (Globe_.zoom > 7) {
+                Globe_.starsphere.material.color.setHex(0x666666)
+            } else if (Globe_.zoom > 4) {
+                Globe_.starsphere.material.color.setHex(0x888888)
+            } else {
+                Globe_.starsphere.material.color.setHex(0xaaaaaa)
+            }
+            Globe_.planetShell.material.uniforms['opacity'].value = shellOpacity
         },
         toggleLayer: function(layerName, on) {
             for (s in spriteGroup) {
@@ -1786,6 +1940,12 @@ define([
                 Cameras.orbit.controls.target.y - zoomDist,
                 Cameras.orbit.camera.position.z
             )
+
+            if (Globe_.zoom <= Globe_.zCutOff) {
+                Cameras.orbit.controls.target.x = 0
+                Cameras.orbit.controls.target.y = -Globe_.planetCenter.y
+                Cameras.orbit.controls.target.z = 0
+            }
             Cameras.orbit.controls.update()
 
             this.exaggeration = x
@@ -1882,8 +2042,8 @@ define([
                     addTile(tilesToBeDrawn.pop(), failCallback)
                 }
             }
-            //addTile( tilesToBeDrawn.pop(), failCallback );
             addTile(tilesToBeDrawn.pop(), failCallback)
+            //addTile(tilesToBeDrawn.pop(), failCallback)
         }
 
         //See what tiles we need to remove and remove them
@@ -1924,11 +2084,13 @@ define([
     function updateDesiredTiles() {
         tilesWanted = []
         var center = Globe_.getCenter()
-        var xCenter = projection.long2tile(
-            [center.lon, center.lat],
+        let projectedXYZ = projection.latLngZ2TileXYZ(
+            center.lat,
+            center.lon,
             Globe_.zoom
         )
-        var yCenter = projection.lat2tile([center.lon, center.lat], Globe_.zoom)
+        var xCenter = projectedXYZ.x
+        var yCenter = projectedXYZ.y
 
         var r = Globe_.radiusOfTiles
         //sqrt(d) = tile distance from center
@@ -1946,43 +2108,55 @@ define([
                         z: Globe_.zoom,
                         d: d,
                         make: true,
-                        isLOD: false,
+                        isLODTile: false,
                     })
                 }
             }
         }
-        //Now sort them based on distance
-        tilesWanted.sort(function(a, b) {
-            return b.d - a.d
-        })
 
         //And now LOD tiles
         //LOD is simple -- it just renders a higher(lower in number) zoom layer on a lower scene
-        if (Globe_.LOD.use) {
-            var lr = Globe_.LOD.radiusOfTiles //LOD radius
-            var zuZ = Math.max(
-                Globe_.minNativeZoom,
-                Globe_.zoom - Globe_.LOD.zoomsUp
-            ) //zooms up zoom
-            if (Math.abs(zuZ - Globe_.zoom) <= 1) return
-            xCenter = projection.long2tile([center.lon, center.lat], zuZ)
-            yCenter = projection.lat2tile([center.lon, center.lat], zuZ)
-            for (var x = xCenter - lr + 1; x < xCenter + lr; x++) {
-                for (var y = yCenter - lr + 1; y < yCenter + lr; y++) {
-                    d = Math.pow(x - xCenter, 2) + Math.pow(y - yCenter, 2)
-                    if (d <= lr * lr) {
-                        tilesWanted.push({
-                            x: mod(x, Math.pow(2, zuZ)),
-                            y: mod(y, Math.pow(2, zuZ)),
-                            z: zuZ,
-                            d: d,
-                            make: true,
-                            isLOD: true,
-                        })
+        var lastZ = null
+        if (Globe_.useLOD) {
+            for (var i = 0; i < Globe_.LOD.length; i++) {
+                var lr = Globe_.LOD[i].radiusOfTiles //LOD radius
+                var z = Math.max(
+                    Globe_.minNativeZoom,
+                    Globe_.zoom - Globe_.LOD[i].zoomsUp
+                ) //zooms up zoom
+                if (z == lastZ) return
+                lastZ = z
+                if (Math.abs(z - Globe_.zoom) <= 1) continue
+                projectedXYZ = projection.latLngZ2TileXYZ(
+                    center.lat,
+                    center.lon,
+                    z
+                )
+                xCenter = projectedXYZ.x
+                yCenter = projectedXYZ.y
+                for (var x = xCenter - lr + 1; x < xCenter + lr; x++) {
+                    for (var y = yCenter - lr + 1; y < yCenter + lr; y++) {
+                        d = Math.pow(x - xCenter, 2) + Math.pow(y - yCenter, 2)
+                        if (d <= lr * lr) {
+                            tilesWanted.push({
+                                x: mod(x, Math.pow(2, z)),
+                                y: mod(y, Math.pow(2, z)),
+                                z: z,
+                                d: d,
+                                make: true,
+                                isLODTile: true,
+                                LODLevel: i,
+                            })
+                        }
                     }
                 }
             }
         }
+
+        //Now sort them based on distance
+        tilesWanted.sort(function(a, b) {
+            return b.d - a.d
+        })
     }
     function addTile(xyz, failCallback) {
         if (xyz === undefined) return
@@ -2005,22 +2179,13 @@ define([
         tilesDrawn.push({ x: xyz.x, y: xyz.y, z: xyz.z, t: t, contents: [] })
         t.xyz = { x: xyz.x, y: xyz.y, z: xyz.z }
         t.name = 'tile_' + xyz.x + '_' + xyz.y + '_' + xyz.z
-        t.isLOD = xyz.isLOD
+        t.isLODTile = xyz.isLODTile
+        if (t.isLODTile) t.LODLevel = xyz.LODLevel
 
-        /*
-    var positionHigh = new Float32Array( t.geometry.attributes.position.count * 3 );
-    t.geometry.addAttribute( 'positionHigh', new THREE.BufferAttribute( positionHigh, 3 ) );
-    var positionLow = new Float32Array( t.geometry.attributes.position.count * 3 );
-    t.geometry.addAttribute( 'positionLow', new THREE.BufferAttribute( positionLow, 3 ) );
-    */
-        //Set position and add to scene
-        //( projection.radiusOfPlanetMajor / projection.radiusScale ) offsets the whole
-        // planet back so that the Cameras.camera lookat point is now longer at the center but on the surface
-        //t.position.set( 0, -Globe_.planetCenter.y, 0 );
         //Invert y is needed
         var yI = xyz.y
-        if (Globe_.yInvert) yI = projection.invertY(xyz.y, xyz.z) //Math.pow( 2, xyz.z ) - 1 - xyz.y;
-        //console.log( xyz.y, yI );
+        if (Globe_.yInvert && mmgisglobal.customCRS == null)
+            yI = projection.invertY(xyz.y, xyz.z)
 
         var textures = []
         var tileLayersComplete = []
@@ -2115,12 +2280,13 @@ define([
                 }
                 t['texturesOrdered'] = F_.clone(texturesOrdered)
                 t.material = shaders.multiTexture(texturesOrdered)
-                /*
-        t.material = new THREE.MeshBasicMaterial({
-           color: 0xffffff,
-           wireframe: true
-        });
-        */
+
+                if (Globe_.wireframeMode) {
+                    t.material = new THREE.MeshBasicMaterial({
+                        color: 0xffffff,
+                        wireframe: true,
+                    })
+                }
 
                 t.material.needsUpdate = true
             }
@@ -2155,6 +2321,7 @@ define([
                 var oReq = new XMLHttpRequest()
                 oReq.open('GET', filledDemPath, true)
                 oReq.responseType = 'arraybuffer'
+                oReq.withCredentials = true
 
                 oReq.onload = function(oEvent) {
                     if (oReq.status == 200) {
@@ -2188,12 +2355,14 @@ define([
                                     xyz.y +
                                     parseInt(p / 3 / Globe_.tileResolution) /
                                         (Globe_.tileResolution - 1)
-                                var tlat = projection.tile2lat(ty, xyz.z, {
-                                    x: tx,
-                                })
-                                var tlon = projection.tile2long(tx, xyz.z, {
-                                    y: ty,
-                                })
+                                let projectedLL = projection.tileXYZ2LatLng(
+                                    tx,
+                                    ty,
+                                    topLeft.z,
+                                    xyz
+                                )
+                                var tlat = projectedLL.lat
+                                var tlon = projectedLL.lng
 
                                 xyzPos = projection.lonLatToVector3(
                                     tlon,
@@ -2208,19 +2377,6 @@ define([
                                 t.geometry.attributes.position.array[p + 2] =
                                     xyzPos.z + Globe_.zOff
 
-                                //High Low
-                                /*
-                var twoFloatX = F_.doubleToTwoFloats( xyzPos.x );
-                var twoFloatY = F_.doubleToTwoFloats( xyzPos.y );
-                var twoFloatZ = F_.doubleToTwoFloats( xyzPos.z );
-                positionHigh[p] = twoFloatX[0];
-                positionHigh[p + 1] = twoFloatY[0];
-                positionHigh[p + 2] = twoFloatZ[0];
-                positionLow[p] = twoFloatX[1];
-                positionLow[p + 1] = twoFloatY[1];
-                positionLow[p + 2] = twoFloatZ[1];
-                */
-                                //move to next R value
                                 cnt += 4
                             }
 
@@ -2230,7 +2386,7 @@ define([
                             t.geometry.computeFaceNormals()
                             t.geometry.computeVertexNormals()
                             t.geometry.computeBoundingSphere()
-                            t.geometry.addAttribute(
+                            t.geometry.setAttribute(
                                 'customColor',
                                 new THREE.BufferAttribute(colors, 3)
                             )
@@ -2239,7 +2395,6 @@ define([
                     tileLoaded[1] = true
                     onceTileLoaded()
                     overallTimer += window.performance.now() - start
-                    //console.log( overallTimer );
                 }
                 start = window.performance.now()
                 oReq.send()
@@ -2247,9 +2402,13 @@ define([
                 start = window.performance.now()
                 if (filledDemPath == L_.missionPath)
                     filledDemPath += 'undefined'
-                PNG.load(filledDemPath, function(img) {
-                    tileGeometry(img)
-                })
+                PNG.load(
+                    filledDemPath,
+                    function(img) {
+                        tileGeometry(img)
+                    },
+                    true
+                )
             }
         } else {
             //Make a flat tile
@@ -2265,8 +2424,7 @@ define([
                 rgbaArr = img.decode()
             }
             var cnt = 0
-            var w = Globe_.trueTileResolution
-            var verts = Math.pow(Globe_.trueTileResolution, 2)
+            var verts = Math.pow(Globe_.tileResolution, 2)
             var colors = new Float32Array(verts * 3)
 
             //Keep picking heights until we get one that isn't an obvious no data value
@@ -2308,8 +2466,11 @@ define([
                 xyz.y +
                 parseInt(centerP / 3 / Globe_.tileResolution) /
                     (Globe_.tileResolution - 1)
-            var tlat = projection.tile2lat(ty, xyz.z, { x: tx })
-            var tlon = projection.tile2long(tx, xyz.z, { y: ty })
+            let projectedLL = projection.tileXYZ2LatLng(tx, ty, xyz.z)
+            var tlat = projectedLL.lat
+            var tlon = projectedLL.lng
+
+            var centerLat = tlat
 
             var centerPos = projection.lonLatToVector3(
                 tlon,
@@ -2330,30 +2491,19 @@ define([
                 ) {
                     height = 0
                     if (rgbaArr != null) {
-                        //console.time( 'R ' + xyz.x + ' ' + xyz.y + ' ' + xyz.z + ' ' + p );
                         height = RGBAto32({
                             r: rgbaArr[cnt],
                             g: rgbaArr[cnt + 1],
                             b: rgbaArr[cnt + 2],
                             a: rgbaArr[cnt + 3],
                         })
-                        //console.timeEnd( 'R ' + xyz.x + ' ' + xyz.y + ' ' + xyz.z + ' ' + p );
                         colors[p] = 0
                         colors[p + 1] = 0
                         colors[p + 2] = 0
                         if (height < -100000) {
                             height = -100000
                         }
-                        //if( logThis ) console.log( height );
-                        /*
-            if( height < -4950 ) {
-              colors[p] = 0;
-              colors[p + 1] = 0;
-              colors[p + 2] = 0.5;
-            }*/
                     }
-
-                    //console.time( 'L ' + xyz.x + ' ' + xyz.y + ' ' + xyz.z + ' ' + p );
                     var tx =
                         xyz.x +
                         ((p / 3) % Globe_.tileResolution) /
@@ -2362,10 +2512,23 @@ define([
                         xyz.y +
                         parseInt(p / 3 / Globe_.tileResolution) /
                             (Globe_.tileResolution - 1)
-                    var tlat = projection.tile2lat(ty, xyz.z, { x: tx })
-                    var tlon = projection.tile2long(tx, xyz.z, { y: ty })
+                    let projectedLL = projection.tileXYZ2LatLng(
+                        tx,
+                        ty,
+                        xyz.z,
+                        xyz
+                    )
+                    var tlat = projectedLL.lat
+                    var tlon = projectedLL.lng
 
-                    //if( tlat > 90 || tlat < -90 || tlon > 180 || tlon < -180 ) height = 0;
+                    //Prevent pole wrapping
+                    if (Globe_.zoom <= Globe_.zCutOff) {
+                        if (centerLat > 75 && tlat < -88) {
+                            tlat = 90
+                        } else if (centerLat < -75 && tlat > 88) {
+                            tlat = -90
+                        }
+                    }
 
                     xyzPos = projection.lonLatToVector3(
                         tlon,
@@ -2373,7 +2536,6 @@ define([
                         height * Globe_.exaggeration
                     )
 
-                    //console.timeEnd( 'L ' + xyz.x + ' ' + xyz.y + ' ' + xyz.z + ' ' + p );
                     t.geometry.attributes.position.array[p] =
                         xyzPos.x - centerPos.x
                     t.geometry.attributes.position.array[p + 1] =
@@ -2381,35 +2543,21 @@ define([
                     t.geometry.attributes.position.array[p + 2] =
                         xyzPos.z - centerPos.z
 
-                    //High Low
-                    /*
-          var twoFloatX = F_.doubleToTwoFloats( xyzPos.x - centerPos.x );
-          var twoFloatY = F_.doubleToTwoFloats( xyzPos.y - centerPos.z );
-          var twoFloatZ = F_.doubleToTwoFloats( xyzPos.z - centerPos.x );
-          positionHigh[p] = twoFloatX[0];
-          positionHigh[p + 1] = twoFloatY[0];
-          positionHigh[p + 2] = twoFloatZ[0];
-          positionLow[p] = twoFloatX[1];
-          positionLow[p + 1] = twoFloatY[1];
-          positionLow[p + 2] = twoFloatZ[1];
-          */
-                    //move to next R value
-                    cnt += 4
+                    cnt +=
+                        4 *
+                        parseInt(
+                            Globe_.trueTileResolution / Globe_.tileResolution
+                        )
                 }
 
                 //Tell THREE that these verts need updating
                 t.geometry.attributes.position.needsUpdate = true
-                //t.geometry.attributes.positionHigh.needsUpdate = true;
-                //t.geometry.attributes.positionLow.needsUpdate = true;
                 t.geometry.verticesNeedUpdate = true
                 t.geometry.computeFaceNormals()
                 t.geometry.computeVertexNormals()
                 t.geometry.computeBoundingSphere()
-                //t.rotation.set( Globe_.planet.rotation.x,
-                //                Globe_.planet.rotation.y,
-                //                Globe_.planet.rotation.z );
 
-                t.geometry.addAttribute(
+                t.geometry.setAttribute(
                     'customColor',
                     new THREE.BufferAttribute(colors, 3)
                 )
@@ -2418,7 +2566,6 @@ define([
                 onceTileLoaded()
 
                 overallTimer += window.performance.now() - start
-                //console.log( overallTimer );
             }
         }
 
@@ -2432,51 +2579,61 @@ define([
             if (tileLoaded[0] && tileLoaded[1]) {
                 var lowerZoomTileIRemove
                 //If a lower zoom tile exists that this one covers, remove it
-                for (var i = tilesDrawn.length - 1; i >= 0; i--) {
-                    if (xyz.z < tilesDrawn[i].z) {
+                if (Globe_.lastZoomDelta <= 2) {
+                    for (var i = tilesDrawn.length - 1; i >= 0; i--) {
                         if (
-                            F_.tileIsContained(
-                                [xyz.x, xyz.y, xyz.z],
-                                [
-                                    tilesDrawn[i].x,
-                                    tilesDrawn[i].y,
-                                    tilesDrawn[i].z,
-                                ],
-                                true
-                            )
+                            xyz.isLODTile == tilesDrawn[i].t.isLODTile &&
+                            xyz.LODLevel == tilesDrawn[i].t.LODLevel
                         ) {
-                            removeTile(i)
-                        }
-                    } else if (xyz.z > tilesDrawn[i].z) {
-                        if (
-                            F_.tileIsContained(
-                                [
-                                    tilesDrawn[i].x,
-                                    tilesDrawn[i].y,
-                                    tilesDrawn[i].z,
-                                ],
-                                [xyz.x, xyz.y, xyz.z]
-                            )
-                        ) {
-                            tilesDrawn[i].contents.push([xyz.x, xyz.y, xyz.z])
-                            if (
-                                tilesDrawn[i].contents.length >=
-                                F_.tileContains(
-                                    [
-                                        tilesDrawn[i].x,
-                                        tilesDrawn[i].y,
-                                        tilesDrawn[i].z,
-                                    ],
-                                    xyz.z
-                                ).length
-                            ) {
-                                lowerZoomTileIRemove = i
+                            if (xyz.z < tilesDrawn[i].z) {
+                                if (
+                                    F_.tileIsContained(
+                                        [xyz.x, xyz.y, xyz.z],
+                                        [
+                                            tilesDrawn[i].x,
+                                            tilesDrawn[i].y,
+                                            tilesDrawn[i].z,
+                                        ],
+                                        true
+                                    )
+                                ) {
+                                    removeTile(i)
+                                }
+                            } else if (xyz.z > tilesDrawn[i].z) {
+                                if (
+                                    F_.tileIsContained(
+                                        [
+                                            tilesDrawn[i].x,
+                                            tilesDrawn[i].y,
+                                            tilesDrawn[i].z,
+                                        ],
+                                        [xyz.x, xyz.y, xyz.z]
+                                    )
+                                ) {
+                                    tilesDrawn[i].contents.push([
+                                        xyz.x,
+                                        xyz.y,
+                                        xyz.z,
+                                    ])
+                                    if (
+                                        tilesDrawn[i].contents.length >=
+                                        F_.tileContains(
+                                            [
+                                                tilesDrawn[i].x,
+                                                tilesDrawn[i].y,
+                                                tilesDrawn[i].z,
+                                            ],
+                                            xyz.z
+                                        ).length
+                                    ) {
+                                        lowerZoomTileIRemove = i
+                                    }
+                                }
                             }
                         }
                     }
                 }
 
-                //Globe_.updateTileShaderVar( t );
                 for (var i = 0; i < tilesBeingDrawn.length; i++) {
                     if (
                         tilesBeingDrawn[i].x == xyz.x &&
@@ -2484,7 +2641,8 @@ define([
                         tilesBeingDrawn[i].z == xyz.z
                     ) {
                         if (tilesBeingDrawn[i].make) {
-                            if (t.isLOD) Globe_.planetLOD.add(t)
+                            if (t.isLODTile)
+                                Globe_.planetsLOD[t.LODLevel].add(t)
                             else Globe_.planet.add(t)
                             if (lowerZoomTileIRemove != undefined) {
                                 removeTile(lowerZoomTileIRemove)
@@ -2513,7 +2671,8 @@ define([
     function removeTile(i) {
         tilesDrawn[i].t.geometry.dispose()
         tilesDrawn[i].t.material.dispose()
-        if (tilesDrawn[i].t.isLOD) Globe_.planetLOD.remove(tilesDrawn[i].t)
+        if (tilesDrawn[i].t.isLODTile)
+            Globe_.planetsLOD[tilesDrawn[i].t.LODLevel].remove(tilesDrawn[i].t)
         else Globe_.planet.remove(tilesDrawn[i].t)
         tilesDrawn.splice(i, 1)
     }
@@ -2527,8 +2686,10 @@ define([
             ) {
                 tilesDrawn[t].t.geometry.dispose()
                 tilesDrawn[t].t.material.dispose()
-                if (tilesDrawn[i].t.isLOD)
-                    Globe_.planetLOD.remove(tilesDrawn[i].t)
+                if (tilesDrawn[i].t.isLODTile)
+                    Globe_.planetsLOD[tilesDrawn[i].t.LODLevel].remove(
+                        tilesDrawn[i].t
+                    )
                 else Globe_.planet.remove(tilesDrawn[i].t)
                 tilesDrawn.splice(t, 1)
             }
@@ -2548,7 +2709,6 @@ define([
     function checkDesiredZoom() {
         zoomedSince++
         if (desiredZoom != null) {
-            //document.getElementById( "zoomLevelIndicator" ).innerHTML = desiredZoom;
             Cameras.setNearFarPlane(desiredZoom < 14)
             if (zoomedSince > zoomWait) {
                 if (desiredZoom >= Globe_.minNativeZoom)
@@ -2588,8 +2748,6 @@ define([
     function attenuate() {
         var mZ = findHighestMaxZoom()
         mZ = Globe_.zoom
-        //16 1
-        //10 -2.5
         var sf = 0.5
         if (mZ <= 16) sf = (16 - mZ) * 2 + 1
 
@@ -2627,13 +2785,11 @@ define([
         for (s in spriteGroup) {
             for (i in spriteGroup[s].children) {
                 if (spriteGroup[s].children[i].visible) {
-                    //spriteGroup[s].children[i].children[0].geometry.translate(0, -2.6 * sf * 0.65, 0);
                     spriteGroup[s].children[i].children[0].scale.set(
                         attentuationFactorSphere,
                         sf,
                         attentuationFactorSphere
                     )
-                    //attentuationFactorSprite = 1000;
                     spriteGroup[s].children[i].children[1].scale.set(
                         attentuationFactorSprite,
                         attentuationFactorSprite,
@@ -2721,8 +2877,9 @@ define([
     }
 
     function rotateGlobe_MouseDown(e) {
-        if (e.which === 3 || e.button === 2) {
-            //Right click
+        //if (e.which === 3 || e.button === 2) { //Right click
+        if (e.which === 1 || e.button === 0) {
+            //Left click
             prevMouse.x = e.pageX
             prevMouse.y = e.pageY
             container.addEventListener('mousemove', rotateGlobe_, false)
@@ -2808,14 +2965,21 @@ define([
         prevMouse.x = e.pageX
         prevMouse.y = e.pageY
         //Snap Cameras.camera lookat to Globe_
-        var elevRaw = Globe_.getCenterElevationRaw()
-        if (elevRaw != false) {
-            var newLookAtY = -(elevRaw + Globe_.planetCenter.y)
-            if (newLookAtY != 0 && newLookAtY != -10000)
-                Cameras.orbit.controls.target.y =
-                    newLookAtY - Globe_.targetYOffset
+        if (Globe_.zoom <= Globe_.zCutOff) {
+            Cameras.orbit.controls.target.x = 0
+            Cameras.orbit.controls.target.y = -Globe_.planetCenter.y
+            Cameras.orbit.controls.target.z = 0
+            Cameras.orbit.controls.update()
+        } else {
+            var elevRaw = Globe_.getCenterElevationRaw()
+            if (elevRaw != false) {
+                var newLookAtY = -(elevRaw + Globe_.planetCenter.y)
+                if (newLookAtY != 0 && newLookAtY != -10000)
+                    Cameras.orbit.controls.target.y =
+                        newLookAtY - Globe_.targetYOffset
+            }
+            if (L_.mapAndGlobeLinked || mmgisglobal.ctrlDown) panEvent()
         }
-        if (L_.mapAndGlobeLinked || mmgisglobal.ctrlDown) panEvent()
     }
     Globe_.rotateGlobe = rotateGlobe_
     // Rotate the globe around an axis in world space (the axis passes through the object's position)
@@ -2826,7 +2990,7 @@ define([
             rotationMatrix.multiply(Globe_.planet.matrix) // pre-multiply
         Globe_.planet.matrix = rotationMatrix
         Globe_.planet.rotation.setFromRotationMatrix(Globe_.planet.matrix)
-        matchPlanetLODToPlanet()
+        matchPlanetsLODToPlanet()
         for (var i = 0; false && i < vectorLayers.length; i++) {
             vectorLayers[i].mesh.rotation.set(
                 Globe_.planet.rotation.x,
@@ -2898,7 +3062,7 @@ define([
 
         var planeArr = []
         for (var i = 0; i < tilesDrawn.length; i++) {
-            if (!tilesDrawn[i].t.isLOD) planeArr.push(tilesDrawn[i].t)
+            if (!tilesDrawn[i].t.isLODTile) planeArr.push(tilesDrawn[i].t)
         }
         var intersects = raycaster.intersectObjects(planeArr)
 
@@ -2994,8 +3158,9 @@ define([
         if (bb) {
             var tx_ext = xyz.x + 0
             var ty_ext = xyz.y + 0
-            var tlat_ext = projection.tile2lat(ty_ext, xyz.z, { x: tx_ext })
-            var tlon_ext = projection.tile2long(tx_ext, xyz.z, { y: ty_ext })
+            let projectedLL = projection.tileXYZ2LatLng(tx_ext, ty_ext, xyz.z)
+            var tlat_ext = projectedLL.lat
+            var tlon_ext = projectedLL.lng
 
             inExtent =
                 tlat_ext < bb[3] &&
@@ -3005,8 +3170,9 @@ define([
 
             tx_ext = xyz.x + 1
             ty_ext = xyz.y + 0
-            tlat_ext = projection.tile2lat(ty_ext, xyz.z, { x: tx_ext })
-            tlon_ext = projection.tile2long(tx_ext, xyz.z, { y: ty_ext })
+            projectedLL = projection.tileXYZ2LatLng(tx_ext, ty_ext, xyz.z)
+            tlat_ext = projectedLL.lat
+            tlon_ext = projectedLL.lng
 
             inExtent =
                 inExtent ||
@@ -3017,8 +3183,9 @@ define([
 
             tx_ext = xyz.x + 1
             ty_ext = xyz.y + 1
-            tlat_ext = projection.tile2lat(ty_ext, xyz.z, { x: tx_ext })
-            tlon_ext = projection.tile2long(tx_ext, xyz.z, { y: ty_ext })
+            projectedLL = projection.tileXYZ2LatLng(tx_ext, ty_ext, xyz.z)
+            tlat_ext = projectedLL.lat
+            tlon_ext = projectedLL.lng
 
             inExtent =
                 inExtent ||
@@ -3029,8 +3196,9 @@ define([
 
             tx_ext = xyz.x + 0
             ty_ext = xyz.y + 1
-            tlat_ext = projection.tile2lat(ty_ext, xyz.z, { x: tx_ext })
-            tlon_ext = projection.tile2long(tx_ext, xyz.z, { y: ty_ext })
+            projectedLL = projection.tileXYZ2LatLng(tx_ext, ty_ext, xyz.z)
+            tlat_ext = projectedLL.lat
+            tlon_ext = projectedLL.lng
 
             inExtent =
                 inExtent ||
@@ -3044,13 +3212,23 @@ define([
 
     function buildToolBar() {
         d3.select('#globeToolBar').html('')
-        Globe_.toolBar = d3
+        let toolbarWrapper = d3
             .select('#globeToolBar')
             .append('div')
             .attr('class', 'ui padded grid')
+            .style('display', 'flex')
+            .style('justify-content', 'space-between')
             .style('height', '100%')
+        Globe_.toolBar = toolbarWrapper
             .append('div')
-            .attr('class', 'row childpointerevents')
+            .attr('class', 'childpointerevents')
+            .style('display', 'flex')
+            .style('padding', '0px')
+
+        Globe_.toolBarControls = toolbarWrapper
+            .append('div')
+            .attr('class', 'childpointerevents')
+            .style('display', 'flex')
             .style('padding', '0px')
 
         //HOME=============
@@ -3060,7 +3238,7 @@ define([
             .html(
                 [
                     '<div>',
-                    "<div id='Globe_HomeHome' class='mmgisButton3' title='Link' style='margin-right: 0; padding-right: 5px; border-radius: 0; border-left: 1px solid #26a8ff;'>",
+                    "<div id='Globe_HomeHome' class='mmgisButton3' title='Link' style='margin-right: 0; padding-right: 5px; border-radius: 0;'>",
                     "<i class='mdi mdi-home mdi-18px'></i>",
                     '</div>',
                     '<div>',
@@ -3079,13 +3257,13 @@ define([
             .html(
                 [
                     '<div>',
-                    "<div id='Globe_LinkLink' class='mmgisButton3' title='Link' style='margin-right: 0; padding-right: 0px; border-radius: 0; border-left: 1px solid #26a8ff;'>",
+                    "<div id='Globe_LinkLink' class='mmgisButton3' title='Link' style='margin-right: 0; padding-right: 0px; border-radius: 0;'>",
                     "<i class='mdi mdi-link-variant-off mdi-18px'></i>",
                     '</div>',
                     "<div id='Globe_LinkSettings' class='mmgisButton3' style='margin-left: 0; padding: 0px; border-radius: 0;'>",
                     "<i class='mdi mdi-menu-down mdi-18px'></i>",
                     '</div>',
-                    "<div id='Globe_LinkSettingsPanel' style='display: none; position: absolute; top: 36px; background: #001; width: 42px; margin-left: 8px; border-left: 1px solid #26a8ff;'>",
+                    "<div id='Globe_LinkSettingsPanel' style='display: none; position: absolute; top: 32px; background: var(--color-a); width: 42px; margin-left: 6px;'>",
                     "<ul style='list-style-type: none; padding: 0; margin: 0; font-size: 13px; text-align: center;'>",
                     "<li class='globeToolBarLinkOption' value='on' style='cursor: pointer;'>On</li>",
                     "<li class='globeToolBarLinkOption' value='off' style='cursor: pointer; background: #26a8ff; color: white;'>Off</li>",
@@ -3135,8 +3313,8 @@ define([
             Globe_.globeD3
                 .append('div')
                 .style('position', 'absolute')
-                .style('bottom', '2px')
-                .style('left', '2px')
+                .style('bottom', '10px')
+                .style('left', '10px')
                 .html(Globe_Compass.getElement())
             Globe_Compass.attachEvents()
         }
@@ -3153,24 +3331,24 @@ define([
         //EXAG===================
         // prettier-ignore
         Globe_.toolBar.append( 'div' )
-      .attr( 'id', 'globeToolBarExaggeration' )
-      .html(
-        ["<div style='margin-left: -7px;'>",
-          "<div id='Globe_ExagExag' class='mmgisButton3' title='Exaggeration'style='margin-right: 0; padding-right: 0px; border-radius: 0; border-left: 1px solid #26a8ff;'>",
-            "<i class='mdi mdi-debug-step-out mdi-18px'></i>",
-          "</div>",
-          "<div id='Globe_ExagSettings' class='mmgisButton3' style='margin-left: 0; padding: 0px; border-radius: 0;'>",
-              "<i class='mdi mdi-menu-down mdi-18px'></i>",
-          "</div>",
-          "<div id='Globe_ExagSettingsPanel' style='display: none; position: absolute; top: 36px; background: #001; width: 42px; margin-left: 8px; border-left: 1px solid #26a8ff;'>",
-              "<ul style='list-style-type: none; padding: 0; margin: 0; font-size: 13px; text-align: center;'>",
-                  "<li class='globeToolBarExaggerationOption' value='1' style='cursor: pointer; background: #26a8ff; color: white;'>1x</li>",
-                  "<li class='globeToolBarExaggerationOption' value='2' style='cursor: pointer;'>2x</li>",
-                  "<li class='globeToolBarExaggerationOption' value='5' style='cursor: pointer;'>5x</li>",
-              "</ul>",
-          "</div>",
-        "<div>"].join('')
-      );
+            .attr( 'id', 'globeToolBarExaggeration' )
+            .html(
+                ["<div style='margin-left: -7px;'>",
+                "<div id='Globe_ExagExag' class='mmgisButton3' title='Exaggeration'style='margin-right: 0; padding-right: 0px; border-radius: 0;'>",
+                    "<i class='mdi mdi-debug-step-out mdi-18px'></i>",
+                "</div>",
+                "<div id='Globe_ExagSettings' class='mmgisButton3' style='margin-left: 0; padding: 0px; border-radius: 0;'>",
+                    "<i class='mdi mdi-menu-down mdi-18px'></i>",
+                "</div>",
+                "<div id='Globe_ExagSettingsPanel' style='display: none; position: absolute; top: 32px; background: var(--color-a); width: 42px; margin-left: 6px;'>",
+                    "<ul style='list-style-type: none; padding: 0; margin: 0; font-size: 13px; text-align: center;'>",
+                        "<li class='globeToolBarExaggerationOption' value='1' style='cursor: pointer; background: #26a8ff; color: white;'>1x</li>",
+                        "<li class='globeToolBarExaggerationOption' value='2' style='cursor: pointer;'>2x</li>",
+                        "<li class='globeToolBarExaggerationOption' value='5' style='cursor: pointer;'>5x</li>",
+                    "</ul>",
+                "</div>",
+                "<div>"].join('')
+            );
 
         $('#Globe_ExagSettings').click(function() {
             var display = $('#Globe_ExagSettingsPanel').css('display')
@@ -3205,13 +3383,13 @@ define([
       .style( 'margin-left', '-7px' )
       .html(
         ["<div>",
-          "<div id='Globe_NearNear' class='mmgisButton3' title='Adjust Near Plane' style='margin-right: 0; padding-right: 0px; border-radius: 0; border-left: 1px solid #26a8ff;'>",
+          "<div id='Globe_NearNear' class='mmgisButton3' title='Adjust Near Plane' style='margin-right: 0; padding-right: 0px; border-radius: 0;'>",
             "<i class='mdi mdi-crop mdi-18px'></i>",
           "</div>",
           "<div id='Globe_NearSettings' class='mmgisButton3' style='margin-left: 0; padding: 0px; border-radius: 0;'>",
               "<i class='mdi mdi-menu-down mdi-18px'></i>",
           "</div>",
-          "<div id='Globe_NearSettingsPanel' style='display: none; position: absolute; top: 36px; background: #001; width: 42px; margin-left: 8px; border-left: 1px solid #26a8ff;'>",
+          "<div id='Globe_NearSettingsPanel' style='display: none; position: absolute; top: 32px; background: var(--color-a); width: 42px; margin-left: 6px;'>",
               "<ul style='list-style-type: none; padding: 0; margin: 0; font-size: 13px; text-align: center;'>",
                   "<li class='globeToolBarNearOption' value='on' style='cursor: pointer;'>On</li>",
                   "<li class='globeToolBarNearOption' value='off' style='cursor: pointer; background: #26a8ff; color: white;'>Off</li>",
@@ -3273,21 +3451,21 @@ define([
         //Altitude====================
         // prettier-ignore
         Globe_.toolBar.append( 'div' )
-    .attr( 'id', 'globeToolBarAltitude' )
-    .style( 'margin-left', '-7px' )
-    .html(
-      ["<div>",
-        "<div id='Globe_AltitudeAltitude' class='mmgisButton3' title='Adjust Near Plane' style='margin-right: 0; padding-right: 0px; border-radius: 0; border-left: 1px solid #26a8ff;'>",
-          "<i class='mdi mdi-elevator mdi-18px'></i>",
-        "</div>",
-        "<div id='Globe_AltitudeSettings' class='mmgisButton3' style='margin-left: 0; padding: 0px; border-radius: 0;'>",
-            "<i class='mdi mdi-menu-down mdi-18px'></i>",
-        "</div>",
-        "<div id='Globe_AltitudeSettingsPanel' style='display: none; position: absolute; top: 36px; background: #001; width: 42px; height: 100px; margin-left: 8px; border-left: 1px solid #26a8ff;'>",
-            "<div id='Globe_AltitudeSettingsInputValue' style='position: absolute; width: 41px; text-align: center; font-size: 12px; top: 41px;'>+0</div>",
-        "</div>",
-      "<div>"].join('')
-    );
+            .attr( 'id', 'globeToolBarAltitude' )
+            .style( 'margin-left', '-7px' )
+            .html(
+            ["<div>",
+                "<div id='Globe_AltitudeAltitude' class='mmgisButton3' title='Adjust Altitude' style='margin-right: 0; padding-right: 0px; border-radius: 0;'>",
+                "<i class='mdi mdi-elevator mdi-18px'></i>",
+                "</div>",
+                "<div id='Globe_AltitudeSettings' class='mmgisButton3' style='margin-left: 0; padding: 0px; border-radius: 0;'>",
+                    "<i class='mdi mdi-menu-down mdi-18px'></i>",
+                "</div>",
+                "<div id='Globe_AltitudeSettingsPanel' style='display: none; position: absolute; top: 32px; background: var(--color-a); width: 41px; height: 100px; margin-left: 6px;'>",
+                    "<div id='Globe_AltitudeSettingsInputValue' style='position: absolute; width: 41px; text-align: center; font-size: 12px; top: 41px;'>+0</div>",
+                "</div>",
+            "<div>"].join('')
+            );
         d3.select('#Globe_AltitudeSettingsPanel')
             .append('div')
             .attr('id', 'Globe_AltitudeSettingsInput')
@@ -3334,13 +3512,180 @@ define([
             Globe_.targetYOffset = v
         })
 
+        //Controls====================
+        // prettier-ignore
+        Globe_.toolBarControls.append( 'div' )
+            .attr( 'id', 'globeToolBarControlsYaw' )
+            .attr( 'class', 'hoverOpensPanel' )
+            .style('width', '80px')
+            .html(
+                ["<div>",
+                    "<div id='Globe_Yaw' class='mmgisButton3' style='padding: 0px 5px 0px 12px; user-select: none; margin-right: 0; display: flex; border-radius: 0;'>",
+                        "<i class='mdi mdi-axis-z-rotate-counterclockwise mdi-18px'></i>",
+                        "<div style='padding-left: 4px;'>spin</div>",
+                    "</div>",
+                    "<div id='Globe_YawPanel' class='hoverOpeningPanel' style='color: #bbb; display: flex; position: absolute; top: 32px; width: 74px; line-height: 25px; background: var(--color-a); margin-left: 6px;'>",
+                        "<div id='Globe_YawLeft' style='width: 50%; text-align: center; line-height: 25px;'>",
+                            "<i class='mdi mdi-chevron-left mdi-18px'></i>",
+                        "</div>",
+                        "<div id='Globe_YawRight' style='width: 50%; text-align: center; line-height: 25px;'>",
+                            "<i class='mdi mdi-chevron-right mdi-18px'></i>",
+                        "</div>",
+                    "</div>",
+                "<div>"].join('')
+            );
+
+        $('#Globe_YawLeft').on('click', function() {
+            Cameras.orbit.controls.rotateLeft(3 * (Math.PI / 180))
+        })
+        $('#Globe_YawRight').on('click', function() {
+            Cameras.orbit.controls.rotateLeft(-3 * (Math.PI / 180))
+        })
+
+        // prettier-ignore
+        Globe_.toolBarControls.append( 'div' )
+            .attr( 'id', 'globeToolBarControlsPitch' )
+            .attr( 'class', 'hoverOpensPanel' )
+            .style('width', '80px')
+            .html(
+                ["<div>",
+                    "<div id='Globe_Pitch' class='mmgisButton3' style='padding: 0px 5px 0px 16px; user-select: none; margin-right: 0; display: flex; border-radius: 0;'>",
+                        "<i class='mdi mdi-horizontal-rotate-counterclockwise mdi-18px'></i>",
+                        "<div style='padding-left: 4px;'>tilt</div>",
+                    "</div>",
+                    "<div id='Globe_PitchPanel' class='hoverOpeningPanel' style='color: #bbb; display: flex; flex-flow: column; position: absolute; top: 32px; width: 74px; background: var(--color-a); margin-left: 6px;'>",
+                        "<div id='Globe_PitchUp' style='width: 100%; text-align: center; line-height: 25px;'>",
+                            "<i class='mdi mdi-chevron-up mdi-18px'></i>",
+                        "</div>",
+                        "<div id='Globe_PitchDown' style='width: 100%; text-align: center; line-height: 25px;'>",
+                            "<i class='mdi mdi-chevron-down mdi-18px'></i>",
+                        "</div>",
+                    "</div>",
+                "<div>"].join('')
+            );
+
+        $('#Globe_PitchUp').on('click', function() {
+            Cameras.orbit.controls.rotateUp(1.3 * (Math.PI / 180))
+        })
+        $('#Globe_PitchDown').on('click', function() {
+            Cameras.orbit.controls.rotateUp(-1.3 * (Math.PI / 180))
+        })
+
+        // prettier-ignore
+        Globe_.toolBarControls.append( 'div' )
+            .attr( 'id', 'globeToolBarControlsPan' )
+            .attr( 'class', 'hoverOpensPanel' )
+            .style('width', '80px')
+            .html(
+                ["<div>",
+                    "<div id='Globe_Pan' class='mmgisButton3' style='padding: 0px 5px 0px 13px; user-select: none; margin-right: 0; display: flex; border-radius: 0;'>",
+                        "<i class='mdi mdi-pan mdi-18px'></i>",
+                        "<div style='padding-left: 4px;'>pan</div>",
+                    "</div>",
+                    "<div id='Globe_PanPanel' class='hoverOpeningPanel' style='color: #bbb; display: flex; flex-flow: column; position: absolute; top: 32px; width: 74px; background: var(--color-a); margin-left: 6px;'>",
+                        "<div id='Globe_PanUp' style='width: 100%; text-align: center;'>",
+                            "<i class='mdi mdi-pan-up mdi-18px'></i>",
+                        "</div>",
+                        "<span style='display: flex;'>",
+                            "<div id='Globe_PanLeft' style='width: 50%; text-align: center;'>",
+                                "<i class='mdi mdi-pan-left mdi-18px'></i>",
+                            "</div>",
+                            "<div id='Globe_PanRight' style='width: 50%; text-align: center;'>",
+                                "<i class='mdi mdi-pan-right mdi-18px'></i>",
+                            "</div>",
+                        "</span>",
+                        "<div id='Globe_PanDown' style='width: 100%; text-align: center;'>",
+                            "<i class='mdi mdi-pan-down mdi-18px'></i>",
+                        "</div>",
+                    "</div>",
+                "<div>"].join('')
+            );
+
+        $('#Globe_PanUp').on('click', function() {
+            rotateGlobe_({ pageX: 0, pageY: 0 }, { x: 0, y: -200 })
+        })
+        $('#Globe_PanLeft').on('click', function() {
+            rotateGlobe_({ pageX: 0, pageY: 0 }, { x: -200, y: 0 })
+        })
+        $('#Globe_PanRight').on('click', function() {
+            rotateGlobe_({ pageX: 0, pageY: 0 }, { x: 200, y: 0 })
+        })
+        $('#Globe_PanDown').on('click', function() {
+            rotateGlobe_({ pageX: 0, pageY: 0 }, { x: 0, y: 200 })
+        })
+
+        // prettier-ignore
+        Globe_.toolBarControls
+            .append('div')
+            .attr('id', 'globeToolBarControlsZoom')
+            .attr('class', 'hoverOpensPanel')
+            .style('margin-right', '6px')
+            .style('width', '80px')
+            .html(
+                [
+                    '<div>',
+                        "<div id='Globe_Zoom' class='mmgisButton3' style='user-select: none; margin-right: 0; display: flex; border-radius: 0;'>",
+                            "<i class='mdi mdi-magnify mdi-18px'></i>",
+                            "<div style='padding-left: 4px;'>zoom</iv>",
+                        '</div>',
+                        "<div id='Globe_ZoomPanel' class='hoverOpeningPanel' style='color: #bbb; display: flex; flex-flow: column; position: absolute; top: 32px; width: 74px; background: var(--color-a); margin-left: -5px;'>",
+                            "<div id='Globe_ZoomIn' style='width: 100%; text-align: center; line-height: 25px;'>",
+                                "<i class='mdi mdi-plus mdi-18px'></i>",
+                            "</div>",
+                            "<div id='Globe_ZoomOut' style='width: 100%; text-align: center; line-height: 25px;'>",
+                                "<i class='mdi mdi-minus mdi-18px'></i>",
+                            "</div>",
+                        "</div>",
+                    '<div>',
+                ].join('')
+            )
+
+        $('#Globe_ZoomIn').on('click', function() {
+            Cameras.orbit.controls.handleMouseWheel({ deltaY: -200 })
+            onZoom()
+        })
+        $('#Globe_ZoomOut').on('click', function() {
+            Cameras.orbit.controls.handleMouseWheel({ deltaY: 200 })
+            onZoom()
+        })
+
+        //Attribution====================
+        /*
+        // prettier-ignore
+        Globe_.toolBar.append( 'div' )
+            .attr( 'id', 'globeToolBarAttribution' )
+            .style( 'margin-left', '-7px' )
+            .html(
+            ["<div>",
+                "<div id='Globe_AttributionAttribution' class='mmgisButton3' title='Attributions' style='margin-right: 0; padding-right: 0px; border-radius: 0;'>",
+                "<i class='mdi mdi-dna mdi-18px'></i>",
+                "</div>",
+                "<div id='Globe_AttributionSettings' class='mmgisButton3' style='margin-left: 0; padding: 0px; border-radius: 0;'>",
+                    "<i class='mdi mdi-menu-down mdi-18px'></i>",
+                "</div>",
+                "<div id='Globe_AttributionAttributionPanel' style='display: none; position: absolute; top: 32px; background: var(--color-a); padding: 4px 6px; margin-left: 6px;'>",
+                    "<div>Skysphere - <a href='https://www.eso.org/public/usa/images/eso0932a/' target='_blank'>ESO/S. Brunier</a></div>",
+                "</div>",
+            "<div>"].join('')
+            );
+
+        $('#Globe_AttributionSettings').click(function() {
+            var display = $('#Globe_AttributionAttributionPanel').css('display')
+            if (display == 'none')
+                $('#Globe_AttributionAttributionPanel').css(
+                    'display',
+                    'inherit'
+                )
+            else $('#Globe_AttributionAttributionPanel').css('display', 'none')
+        })
+        */
+
         //Loading
         var loadingToolbar = Globe_.toolBar
             .append('div')
             .attr('id', 'globeToolBarLoading')
-            .style('position', 'absolute')
-            .style('top', '38px')
-            .style('right', '8px')
+            .style('display', 'flex')
+            .style('margin-top', '3px')
             .style(
                 'transition',
                 'opacity 0.5s cubic-bezier(0.445, 0.05, 0.55, 0.95)'
@@ -3356,21 +3701,39 @@ define([
             .append('div')
             .attr('id', 'globeToolBarLoadingText')
             .style('font-size', '12px')
-            .style('line-height', '13px')
+            .style('line-height', '30px')
+            .style('margin-left', '3px')
+            .style('color', '#eee')
+
         loaderTextToolbar
             .append('div')
             .attr('id', 'globeToolBarLoadingTextAdding')
             .style('text-align', 'center')
     }
 
-    function matchPlanetLODToPlanet() {
-        Globe_.planetLOD.matrix = Globe_.planet.matrix
-        Globe_.planetLOD.position.set(
+    function matchPlanetsLODToPlanet() {
+        for (var i = 0; i < Globe_.planetsLOD.length; i++) {
+            Globe_.planetsLOD[i].matrix = Globe_.planet.matrix
+            Globe_.planetsLOD[i].position.set(
+                Globe_.planet.position.x,
+                Globe_.planet.position.y,
+                Globe_.planet.position.z
+            )
+            Globe_.planetsLOD[i].rotation.set(
+                Globe_.planet.rotation.x,
+                Globe_.planet.rotation.y,
+                Globe_.planet.rotation.z
+            )
+        }
+
+        //And the shell too
+        Globe_.planetShell.matrix = Globe_.planet.matrix
+        Globe_.planetShell.position.set(
             Globe_.planet.position.x,
             Globe_.planet.position.y,
             Globe_.planet.position.z
         )
-        Globe_.planetLOD.rotation.set(
+        Globe_.planetShell.rotation.set(
             Globe_.planet.rotation.x,
             Globe_.planet.rotation.y,
             Globe_.planet.rotation.z

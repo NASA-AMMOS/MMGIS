@@ -75,6 +75,17 @@ define([
             console.warn('User groups failed to parse.')
         }
     }
+    if (typeof mmgisglobal.HOSTS === 'string') {
+        try {
+            mmgisglobal.HOSTS = JSON.parse(
+                mmgisglobal.HOSTS.replace(/&quot;/gi, '"')
+            )
+        } catch (err) {
+            mmgisglobal.HOSTS = {}
+        }
+    } else {
+        mmgisglobal.HOSTS = {}
+    }
 
     mmgisglobal.lastInteraction = Date.now()
     $('body').on('mousemove', function() {
@@ -184,7 +195,7 @@ define([
             ContextMenu.init()
 
             if (!swapping) {
-                Description.init(L_.mission, L_.site, Map_)
+                Description.init(L_.mission, L_.site, Map_, L_)
 
                 ScaleBar.init(ScaleBox)
             } else {
@@ -290,6 +301,8 @@ define([
             L_.fina(Viewer_, Map_, Globe_, UserInterface_)
             //Finalize the interface
             UserInterface_.fina(L_, Viewer_, Map_, Globe_)
+            //Finalize the Viewer
+            Viewer_.fina(Map_)
 
             stylize()
         },
@@ -300,6 +313,9 @@ define([
     //Move this somewhere else later
     function stylize() {
         if (L_.configData.look) {
+            if( L_.configData.look.pagename &&
+                L_.configData.look.pagename != '')
+                d3.select('title').html(L_.configData.look.pagename + ' - ' + L_.mission)
             if (
                 L_.configData.look.bodycolor &&
                 L_.configData.look.bodycolor != ''
@@ -335,6 +351,18 @@ define([
                 L_.configData.look.mapcolor != ''
             )
                 $('#map').css({ background: L_.configData.look.mapcolor })
+            if( L_.configData.look.logourl &&
+                L_.configData.look.logourl != '' ) {
+                d3.select('#mmgislogo img').attr('src', L_.configData.look.logourl)
+                $('#favicon').attr('href', L_.configData.look.logourl);
+            }
+            if( L_.configData.look.helpurl &&
+                L_.configData.look.helpurl != '' ) {
+                $('#topBarHelp').on('click', function() {
+                    let win = window.open(L_.configData.look.helpurl, '_mmgishelp');
+                    win.focus();
+                })
+            }
         }
     }
 })

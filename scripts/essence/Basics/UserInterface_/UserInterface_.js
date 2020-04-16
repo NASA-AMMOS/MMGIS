@@ -15,7 +15,7 @@ define([
     var UserInterface = {
         splitterSize: 0,
         splitterSizeHidden: 17,
-        topSize: 24,
+        topSize: 40,
         pxIsViewer: null,
         pxIsMap: null,
         pxIsGlobe: null,
@@ -48,6 +48,10 @@ define([
         helpOn: true,
         init: function() {
             //Other stylings in mmgis.css
+            var logoURL =
+                mmgisglobal.SERVER === 'node'
+                    ? '../resources/logo.png'
+                    : 'resources/logo.png'
 
             //TopBar
             this.topBar = d3
@@ -59,36 +63,80 @@ define([
                 .style('justify-content', 'space-between')
                 .style('position', 'absolute')
                 .style('top', '0px')
-                .style('width', '100%')
-                .style('height', '0px')
+                .style('width', 'calc( 100% - 74px )')
+                .style('height', this.topSize + 'px')
                 .style('left', '0px')
-                .style('font-family', 'venus')
+                .style('padding', '5px 3px')
+                .style('background', 'var(--color-a)')
+                .style('font-family', 'sans-serif')
                 .style('font-size', '24px')
                 .style('z-index', '2005')
+                .style('box-shadow', '0 4px 16px rgba(0,0,0,.25)')
 
-            var tbt = this.topBar
+            this.topBarLeft = this.topBar.append('div').style('display', 'flex')
+            this.topBarRight = this.topBar
                 .append('div')
-                .attr('id', 'topBarTitle')
-                .style('cursor', 'pointer')
                 .style('display', 'flex')
-                .style('padding-top', '3px')
-                .style('z-index', '1')
-                .style('visibility', 'hidden')
-                .style('padding-left', '3px')
-            tbt.append('div')
-                .attr('id', 'topBarTitleName')
-                .html(mmgisglobal.name)
-            //.on( 'click', function(){ document.location.href = window.location.href.split('?')[0]; } );
-            tbt.append('div').attr('id', 'topBarTitleIcon')
 
-            /*
-      this.topBarRight = this.topBar.append( 'div' )
-        .attr( 'id', 'topBarRight' )
-        .style( 'height', this.topSize + 'px' )
-        .style( 'display', 'inline-flex' )
-        .style( 'padding', '0px 0px 0px 4px' )
-        .style( 'background', '#001' );
-      */
+            if (this.topSize > 0) {
+                this.topBarLeft
+                    .append('div')
+                    .attr('id', 'mmgislogo')
+                    .style('padding', '0px 1px')
+                    .style('color', 'var(--color-b)')
+                    .style('font-size', '18px')
+                    .style('cursor', 'pointer')
+                    .style('height', '32px')
+                    .style('margin-top', '-2px')
+                    .style('image-rendering', 'pixelated')
+                    .html("<img src='" + logoURL + "' width='32px' />")
+                    .on('click', F_.toHostForceLanding)
+
+                var tbt = this.topBarLeft
+                    .append('div')
+                    .attr('id', 'topBarTitle')
+                    .style('cursor', 'pointer')
+                    .style('display', 'flex')
+                    .style('z-index', '1')
+                tbt.append('div')
+                    .attr('id', 'topBarTitleName')
+                    .style('font-size', '16px')
+                    .style('font-weight', 'bold')
+                    .style('line-height', '14px')
+                    .style('letter-spacing', '2.21429px')
+                    .style('font-family', 'lato')
+                    .style('padding', '8px 0px 8px 14px')
+                    .html(mmgisglobal.name)
+                tbt.append('div').attr('id', 'topBarTitleIcon')
+
+                this.topBarLeft
+                    .append('div')
+                    .attr('class', 'mainInfo')
+                    .style('display', 'none')
+                    .style('position', 'relative')
+                    .style('height', '30px')
+                    .style('margin', '0')
+                    .style('margin-left', '8px')
+                    .style('z-index', '20')
+                    .style('opacity', 0)
+                    .style('transition', 'opacity 0.2s ease-out')
+
+                this.topBarLeft
+                    .append('div')
+                    .attr('class', 'mainDescription')
+                    .style('display', 'none')
+                    .style('position', 'relative')
+                    .style('height', '30px')
+                    .style('margin', '0')
+                    .style('margin-left', '8px')
+                    .style('z-index', '20')
+                    .style('padding-left', '8px')
+                    .style('border', '1px solid var(--color-m1)')
+                    .style('opacity', 0)
+                    .style('transition', 'opacity 0.2s ease-out')
+
+                this.topBarRight.append('div').attr('class', 'Search')
+            }
 
             this.rightPanel = d3
                 .select('body')
@@ -109,7 +157,7 @@ define([
                 .append('div')
                 .attr('id', 'barBottom')
                 .style('position', 'absolute')
-                .style('width', '36px')
+                .style('width', '40px')
                 .style('bottom', '0px')
                 .style('left', '0px')
                 .style('display', 'flex')
@@ -125,7 +173,7 @@ define([
                     'mdi mdi-checkbox-multiple-blank-outline mdi-18px'
                 )
                 .style('padding', '5px 10px')
-                .style('width', '36px')
+                .style('width', '40px')
                 .style('height', '36px')
                 .style('line-height', '26px')
                 .style('color', 'rgb(0, 182,210)')
@@ -138,7 +186,7 @@ define([
                 .attr('title', 'Copy Link')
                 .attr('class', 'mdi mdi-open-in-new mdi-18px')
                 .style('padding', '5px 10px')
-                .style('width', '36px')
+                .style('width', '40px')
                 .style('height', '36px')
                 .style('line-height', '26px')
                 //.style( 'color', '#00b5d2' )
@@ -180,10 +228,10 @@ define([
                 .style('display', 'none')
                 .style('position', 'absolute')
                 .style('width', '0px')
-                .style('left', '36px')
-                .style('bottom', '112px')
-                .style('height', '26px')
-                .style('line-height', '26px')
+                .style('left', '40px')
+                .style('bottom', '107px')
+                .style('height', '36px')
+                .style('line-height', '36px')
                 .style('padding', '0px 12px 0px 10px')
                 .style('font-size', '12px')
                 .style('background', '#001')
@@ -200,7 +248,7 @@ define([
                 .attr('title', 'Screenshot')
                 .attr('class', 'mdi mdi-camera mdi-18px')
                 .style('padding', '5px 10px')
-                .style('width', '36px')
+                .style('width', '40px')
                 .style('height', '36px')
                 .style('line-height', '26px')
                 .style('color', '#d2b800')
@@ -212,6 +260,7 @@ define([
                     $('#mapScreen #map .leaflet-tile-pane')
                         .children()
                         .each(function(i, elm) {
+                            console.log(i, elm)
                             zIndices.push($(elm).css('z-index'))
                             $(elm).css('z-index', i + 1)
                         })
@@ -237,7 +286,6 @@ define([
                             )
                         }
                     )
-
                     $('#mapScreen #map .leaflet-tile-pane')
                         .children()
                         .each(function(i, elm) {
@@ -257,7 +305,7 @@ define([
                 .style('border-right-color', 'transparent')
                 .style('border-left-color', 'transparent')
                 .style('position', 'absolute')
-                .style('top', '44px')
+                .style('top', '80px')
                 .style('left', '9px')
                 .style('width', '20px')
                 .style('height', '20px')
@@ -275,7 +323,7 @@ define([
                 .attr('title', 'Fullscreen')
                 .attr('class', 'mdi mdi-fullscreen mdi-18px')
                 .style('padding', '5px 10px')
-                .style('width', '36px')
+                .style('width', '40px')
                 .style('height', '36px')
                 .style('line-height', '26px')
                 //.style( 'color', 'rgb(0, 210, 0)' )
@@ -302,7 +350,7 @@ define([
                 .attr('title', 'Hide UI')
                 .attr('class', 'mdi mdi-power mdi-18px')
                 .style('padding', '5px 10px')
-                .style('width', '36px')
+                .style('width', '40px')
                 .style('height', '36px')
                 .style('line-height', '26px')
                 .style('color', '#d2b800')
@@ -353,7 +401,7 @@ define([
                 .attr('title', 'Help')
                 .attr('class', 'mdi mdi-help mdi-18px')
                 .style('padding', '5px 10px')
-                .style('width', '36px')
+                .style('width', '40px')
                 .style('height', '36px')
                 .style('line-height', '26px')
                 .style('color', '#d26100')
@@ -361,7 +409,7 @@ define([
                 .on('click', function() {
                     this.helpOn = !this.helpOn
                     if (this.helpOn) {
-                        d3.select('#viewer_Help').style('display', 'inherit')
+                        //d3.select('#viewer_Help').style('display', 'inherit')
                     } else {
                         d3.select('#viewer_Help').style('display', 'none')
                     }
@@ -372,13 +420,13 @@ define([
                 .append('div')
                 .attr('id', 'toolPanel')
                 .style('position', 'absolute')
-                .style('height', '100%')
                 .style('width', '0px')
-                .style('top', '0px')
-                .style('left', 36 + 'px')
+                .style('top', this.topSize + 'px')
+                .style('height', 'calc( 100% - ' + this.topSize + 'px )')
+                .style('left', this.topSize + 'px')
                 .style('background', 'var(--color-a)')
                 //.style( 'border-left', '1px solid #26a8ff' )
-                .style('box-shadow', '5px 0px 3px rgba(0,0,0,0.2)')
+                //.style('box-shadow', '5px 0px 3px rgba(0,0,0,0.2)')
                 .style('transition', 'width 0.2s ease-out')
                 .style('overflow', 'hidden')
                 .style('z-index', '1400')
@@ -388,9 +436,10 @@ define([
                 .append('div')
                 .attr('id', 'splitscreens')
                 .style('position', 'absolute')
-                .style('top', '0px')
-                .style('width', 'calc( 100% - ' + 36 + 'px )')
-                .style('left', 36 + 'px')
+                .style('top', this.topSize + 'px')
+                .style('width', 'calc( 100% - ' + 40 + 'px )')
+                .style('height', 'calc( 100% - ' + this.topSize + 'px )')
+                .style('left', 40 + 'px')
 
             this.hide()
             this.mainWidth = $('#splitscreens').width()
@@ -416,7 +465,7 @@ define([
                 .style('width', this.pxIsViewer + 'px')
                 .style('height', this.mainHeight + 'px')
                 .style('top', '0px')
-                .style('box-shadow', '0px 0px 10px rgba(6,6,6,0.6)')
+                //.style('box-shadow', '0px 0px 10px rgba(6,6,6,0.6)')
                 .style('overflow', 'hidden')
                 .style('left', 0 + 'px')
 
@@ -465,7 +514,7 @@ define([
                 .style('height', this.mainHeight + 'px')
                 .style('overflow', 'hidden')
                 .style('top', '0px')
-                .style('box-shadow', '0px 0px 10px rgba(6,6,6,0.6)')
+                //.style('box-shadow', '0px 0px 10px rgba(6,6,6,0.6)')
                 .style('left', this.pxIsViewer + this.splitterSize + 'px')
             this.mapScreen
                 .append('div')
@@ -504,21 +553,19 @@ define([
 
             this.mapSplitInner
                 .append('div')
-                .style('background', '#001')
-                //.style('box-shadow', '0px 0px 5px 0px rgba(0,0,17,0.6)')
-                .style('border', '1px solid #555')
-                .style('background', 'rgba(0, 0, 17, 0.75)')
-                .style('border-radius', '3px')
-                .style('width', '24px')
-                .style('height', '28px')
+                .style('background', 'var(--color-a)')
+                .style('width', '30px')
+                .style('height', '30px')
                 .style('position', 'absolute')
-                .style('left', '-13px')
+                .style('left', '-21px')
                 .style('z-index', '-1')
+                .style('border-radius', '3px')
             this.mapSplitInner
                 .append('i')
                 .style('transition', 'all 0.2s ease-in')
                 .attr('id', 'mapSplitInnerLeft')
-                .attr('class', 'mdi mdi-chevron-left mdi-36px')
+                .attr('class', 'mdi mdi-chevron-double-left mdi-24px')
+                .style('margin-right', '14px')
                 .on('click touchstart', function() {
                     var pp = UserInterface.getPanelPercents()
                     if (pp.map == 0) {
@@ -534,21 +581,19 @@ define([
 
             this.mapSplitInner
                 .append('div')
-                .style('background', '#001')
-                //.style('box-shadow', '0px 0px 5px 0px rgba(0,0,17,0.6)')
-                .style('border', '1px solid #555')
-                .style('background', 'rgba(0, 0, 17, 0.75)')
-                .style('border-radius', '3px')
-                .style('width', '24px')
-                .style('height', '28px')
+                .style('background', 'var(--color-a)')
+                .style('width', '30px')
+                .style('height', '30px')
                 .style('position', 'absolute')
-                .style('left', '23px')
+                .style('left', '24px')
+                .style('border-radius', '3px')
                 .style('z-index', '-1')
             this.mapSplitInner
                 .append('i')
                 .style('transition', 'all 0.2s ease-in')
                 .attr('id', 'mapSplitInnerRight')
-                .attr('class', 'mdi mdi-chevron-right mdi-36px')
+                .attr('class', 'mdi mdi-chevron-double-right mdi-24px')
+                .style('margin-left', '8px')
                 .on('click touchstart', function() {
                     var pp = UserInterface.getPanelPercents()
                     if (pp.map == 0) {
@@ -565,6 +610,11 @@ define([
                         )
                     }
                 })
+
+            this.mapSplitInner
+                .append('div')
+                .attr('id', 'mapSplitInnerViewerInfo')
+                .html('Viewer')
 
             //thumb lines
             /*
@@ -604,7 +654,7 @@ define([
                 .style('width', this.pxIsGlobe + 'px')
                 .style('height', this.mainHeight + 'px')
                 .style('top', '0px')
-                .style('box-shadow', '0px 0px 10px rgba(6,6,6,0.6)')
+                //.style('box-shadow', '0px 0px 10px rgba(6,6,6,0.6)')
                 .style('overflow', 'hidden')
                 .style('left', this.pxIsViewer + this.pxIsMap + 'px')
                 .style('z-index', '400')
@@ -646,21 +696,19 @@ define([
                 .style('width', this.splitterSizeHidden * 2 + 'px')
             this.globeSplitInner
                 .append('div')
-                .style('background', '#001')
-                //.style('box-shadow', '0px 0px 5px 0px rgba(0,0,17,0.6)')
-                .style('border', '1px solid #555')
-                .style('background', 'rgba(0, 0, 17, 0.75)')
-                .style('border-radius', '3px')
-                .style('width', '24px')
-                .style('height', '28px')
+                .style('background', 'var(--color-a)')
+                .style('width', '30px')
+                .style('height', '30px')
                 .style('position', 'absolute')
-                .style('left', '-13px')
+                .style('left', '-21px')
+                .style('border-radius', '3px')
                 .style('z-index', '-1')
             this.globeSplitInner
                 .append('i')
                 .style('transition', 'all 0.2s ease-in')
                 .attr('id', 'globeSplitInnerLeft')
-                .attr('class', 'mdi mdi-chevron-left mdi-36px')
+                .attr('class', 'mdi mdi-chevron-double-left mdi-24px')
+                .style('margin-right', '18px')
                 .on('click touchstart', function() {
                     var pp = UserInterface.getPanelPercents()
                     if (pp.map == 0) {
@@ -680,21 +728,19 @@ define([
 
             this.globeSplitInner
                 .append('div')
-                .style('background', '#001')
-                //.style('box-shadow', '0px 0px 5px 0px rgba(0,0,17,0.6)')
-                .style('border', '1px solid #555')
-                .style('background', 'rgba(0, 0, 17, 0.75)')
-                .style('border-radius', '3px')
-                .style('width', '24px')
-                .style('height', '28px')
+                .style('background', 'var(--color-a)')
+                .style('width', '30px')
+                .style('height', '30px')
                 .style('position', 'absolute')
-                .style('left', '23px')
+                .style('left', '24px')
+                .style('border-radius', '3px')
                 .style('z-index', '-1')
             this.globeSplitInner
                 .append('i')
                 .style('transition', 'all 0.2s ease-in')
                 .attr('id', 'globeSplitInnerRight')
-                .attr('class', 'mdi mdi-chevron-right mdi-36px')
+                .attr('class', 'mdi mdi-chevron-double-right mdi-24px')
+                .style('margin-left', '4px')
                 .on('click touchstart', function() {
                     var pp = UserInterface.getPanelPercents()
                     if (pp.map == 0) {
@@ -708,35 +754,40 @@ define([
                     }
                 })
 
+            this.globeSplitInner
+                .append('div')
+                .attr('id', 'mapSplitInnerGlobeInfo')
+                .html('Globe')
+
             //thumb lines
             /*
-      this.globeSplit.append( 'div' )
-            .style( 'position', 'absolute' )
-            .style( 'top', '50%' )
-            .style( 'left', this.splitterSize/2.8 + 'px' )
-            .style( 'height', '20px' )
-            .style( 'border-left', '1px solid #444' );
-      this.globeSplit.append( 'div' )
-            .style( 'position', 'absolute' )
-            .style( 'top', 'calc(50% - 5px)' )
-            .style( 'left', this.splitterSize/2 + 'px' )
-            .style( 'height', '30px' )
-            .style( 'border-left', '1px solid #444' );
-      this.globeSplit.append( 'div' )
-            .style( 'position', 'absolute' )
-            .style( 'top', '50%' )
-            .style( 'left', this.splitterSize - this.splitterSize/2.8 + 'px' )
-            .style( 'height', '20px' )
-            .style( 'border-left', '1px solid #444' );
-      */
+            this.globeSplit.append( 'div' )
+                    .style( 'position', 'absolute' )
+                    .style( 'top', '50%' )
+                    .style( 'left', this.splitterSize/2.8 + 'px' )
+                    .style( 'height', '20px' )
+                    .style( 'border-left', '1px solid #444' );
+            this.globeSplit.append( 'div' )
+                    .style( 'position', 'absolute' )
+                    .style( 'top', 'calc(50% - 5px)' )
+                    .style( 'left', this.splitterSize/2 + 'px' )
+                    .style( 'height', '30px' )
+                    .style( 'border-left', '1px solid #444' );
+            this.globeSplit.append( 'div' )
+                    .style( 'position', 'absolute' )
+                    .style( 'top', '50%' )
+                    .style( 'left', this.splitterSize - this.splitterSize/2.8 + 'px' )
+                    .style( 'height', '20px' )
+                    .style( 'border-left', '1px solid #444' );
+            */
             /*
-      this.globeSplit.append( 'div' )
-            .attr( 'id', 'globeSplitText' )
-            .attr( 'class', 'splitterText' )
-            .style( 'font-size', this.splitterSize - 6 + 'px' )
-            .style( 'line-height', this.splitterSize + 'px' )
-            .html( 'Globe' );
-      */
+                this.globeSplit.append( 'div' )
+                        .attr( 'id', 'globeSplitText' )
+                        .attr( 'class', 'splitterText' )
+                        .style( 'font-size', this.splitterSize - 6 + 'px' )
+                        .style( 'line-height', this.splitterSize + 'px' )
+                        .html( 'Globe' );
+                */
 
             //The 'bottom' tools panel
             this.tScreen = this.splitscreens.append('div').attr('id', 'tScreen')
@@ -757,12 +808,9 @@ define([
                 .style('background', c + ', 1)')
                 //.style( 'background', 'linear-gradient( 45deg, rgba(0,0,0,0.8), rgba(0,0,0,0.53)' )
                 //.style('background', 'var(--color-a)')
-                .style(
-                    'background',
-                    'linear-gradient(to right, var(--color-a), rgba(34, 34, 34, 0.50))'
-                )
+                .style('background', 'var(--color-a)')
                 .style('border-right', '1px solid #3f3f3f')
-                .style('box-shadow', '2px 5px 4px 0px rgba(0, 0, 0, 0.3)')
+                //.style('box-shadow', '2px 5px 4px 0px rgba(0, 0, 0, 0.3)')
                 .style('left', '-' + this.splitterSize + 'px')
                 .style('bottom', this.topSize + 'px')
                 .style('left', '0px')
@@ -796,25 +844,26 @@ define([
                 //.style( 'background-color', bodyHEX )
                 //.style( 'box-shadow', 'inset 0px 2px 7px black' )
                 //.style( 'box-shadow', '7px 0px 7px rgba(0,0,0,0.2)' )
-                .style('width', '36px')
-                .style('top', '0px')
-                .style('height', '100%')
+                .style('width', this.topSize + 'px')
+                .style('top', this.topSize + 'px')
+                .style('height', 'calc( 100% - ' + this.topSize + 'px )')
                 .style('z-index', '1004')
 
-            var logoURL =
-                mmgisglobal.SERVER === 'node'
-                    ? '../resources/logo.png'
-                    : 'resources/logo.png'
-            this.toolbar
+            this.toolbarLogo = this.toolbar
                 .append('div')
                 .attr('id', 'mmgislogo')
+                .style('display', this.topSize == 0 ? 'inherit' : 'none')
                 .style('font-family', 'venus')
-                .style('padding', '0px 5px')
+                .style('padding', '8px 3px')
                 .style('color', 'var(--color-b)')
                 .style('font-size', '18px')
                 .style('cursor', 'pointer')
-                .html("<img src='" + logoURL + "' width='26px' />")
+                .style('height', '40px')
+                .style('margin-top', '-8px')
+                .style('image-rendering', 'pixelated')
+                .html("<img src='" + logoURL + "' width='32px' />")
                 .on('click', F_.toHostForceLanding)
+
             //ViewerSplit is immovable
             //$( '#viewerSplit' ).mousedown( viewerSplitOnMouseDown );
             $('#mapSplit').mousedown(mapSplitOnMouseDown)
@@ -875,10 +924,12 @@ define([
             UserInterface.toolPanel.selectAll('*').remove()
             UserInterface.toolPanel.style('width', width + 'px')
             //UserInterface.toolPanel.style( 'border-left', '0px solid rgb(38, 168, 255)' );
+            /*
             UserInterface.toolbar.style(
                 'box-shadow',
                 'rgba(0, 0, 0, 0.2) 7px 0px 7px'
             )
+            */
             UserInterface.splitscreens.style(
                 'width',
                 'calc(100% - ' + (width + 36) + 'px)'
@@ -894,8 +945,8 @@ define([
             UserInterface.toolPanel.style('width', '0')
             //UserInterface.toolPanel.style( 'border-left', '1px solid rgb(38, 168, 255)' );
             UserInterface.toolbar.style('box-shadow', 'none')
-            UserInterface.splitscreens.style('width', 'calc(100% - 36px)')
-            UserInterface.splitscreens.style('left', '36px')
+            UserInterface.splitscreens.style('width', 'calc(100% - 40px)')
+            UserInterface.splitscreens.style('left', '40px')
             UserInterface.mainWidth = $('#splitscreens').width()
             UserInterface.mainHeight = $('#splitscreens').height()
             var pp = UserInterface.getPanelPercents()
@@ -1116,6 +1167,18 @@ define([
 
             resize()
         },
+        minimalist(is) {
+            if (is) {
+                this.topBar.style('display', 'none')
+                this.toolbarLogo.style('display', 'inherit')
+                this.toolbar.style('top', '0px')
+                this.toolbar.style('height', '100%')
+                this.toolPanel.style('top', '0px')
+                this.toolPanel.style('height', '100%')
+                this.splitscreens.style('top', '0px')
+                this.splitscreens.style('height', '100%')
+            }
+        },
         fullHide(is) {
             if (is) {
                 UserInterface.topBar.style('display', 'none')
@@ -1143,12 +1206,18 @@ define([
             this.hasViewer = l_.hasViewer
             this.hasGlobe = l_.hasGlobe
 
+            $('#topBarTitleName').on('click', L_.home)
+
             if (l_.FUTURES.panelPercents != null)
                 UserInterface.setPanelPercents(
                     l_.FUTURES.panelPercents[0],
                     l_.FUTURES.panelPercents[1],
                     l_.FUTURES.panelPercents[2]
                 )
+
+            if (l_.configData.look && l_.configData.look.minimalist == true) {
+                UserInterface.minimalist(true)
+            }
 
             clearUnwantedPanels(this.hasViewer, true, this.hasGlobe)
             if (l_.configData.look && l_.configData.look.pagename) {
