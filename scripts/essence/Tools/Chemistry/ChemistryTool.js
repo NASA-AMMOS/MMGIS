@@ -27,6 +27,9 @@ define([
     //Add the tool markup if you want to do it this way
     // prettier-ignore
     var markup = [
+    "<div id='chemistryToolPanel' style='padding-top: 2px; display: flex; position: absolute; width: 100%; height: 100%;'>",
+      "<div id='chemistry_panel' style='width: 100%; height: 100%; display: flex; text-shadow: none;'></div>",
+    "</div>",
     "<div id='chemistryToolOptions' style='padding-top: 2px; margin-bottom: 8px; display: flex; justify-content: space-between;'>",
       "<p id='chemistryToolName' style='margin: 0; margin-left: 8px; font-size: 20px;'>Place Name</p>",
       "<div id='chemistryToolSingleMulti' class='mmgisRadioBar' style='margin-left: 0;'>",
@@ -34,14 +37,11 @@ define([
         "<div id='chemistryToolMultiMode'>Multi</div>",
       "</div>",
     "</div>",
-    "<div id='chemistryToolPanel' style='padding-top: 2px; display: flex;'>",
-      "<div id='chemistry_panel' style='width: 100%; height: 173px; display: flex; text-shadow: none;'></div>",
-    "</div>"
-  ].join('\n');
+    ].join('\n');
 
     var ChemistryTool = {
         height: 220,
-        width: 1200,
+        width: 'full',
         heights: [220, 360],
         widths: [1200, 470],
         on: false,
@@ -189,76 +189,48 @@ define([
             return
         }
 
-        var p = layer.feature.properties
-        var name
-        var search
+        d3.select('#chemistryToolName').html(
+            layer.useKeyAsName && layer.feature.properties[layer.useKeyAsName]
+                ? layer.feature.properties[layer.useKeyAsName]
+                : 'Chemistry Target'
+        )
 
-        var file = ''
-        //find correct file
-        if (layerName == 'ChemCam') {
-            name = p.TARGET
-            var s = p.Sol
-            file = 'Missions/' + L_.mission + '/Layers/ChemCam/Chemistry/'
-            if (s <= 179) file += 'ccam_MOC_single_shots_0000-0179.csv'
-            else if (s <= 269) file += 'ccam_MOC_single_shots_0180-0269.csv'
-            else if (s <= 359) file += 'ccam_MOC_single_shots_0270-0359.csv'
-            else if (s <= 449) file += 'ccam_MOC_single_shots_0360-0449.csv'
-            else if (s <= 583) file += 'ccam_MOC_single_shots_0450-0583.csv'
-            else if (s <= 707) file += 'ccam_MOC_single_shots_0584-0707.csv'
-            else if (s <= 804) file += 'ccam_MOC_single_shots_0708-0804.csv'
-            else if (s <= 938) file += 'ccam_MOC_single_shots_0805-0938.csv'
-            else if (s <= 1041) file += 'ccam_MOC_single_shots_0939-1041.csv'
-            else if (s <= 1127) file += 'ccam_MOC_single_shots_1042-1127.csv'
-            else if (s <= 1319) file += 'ccam_MOC_single_shots_1128-1319.csv'
-            else if (s <= 1446) file += 'ccam_MOC_single_shots_1320-1446.csv'
-            else if (s <= 1493) file += 'ccam_MOC_single_shots_1447-1493.csv'
-            search = 'Target'
-        } else if (layerName == 'APXS') {
-            name = p.TARGET_NOR
-            file =
-                'Missions/' +
-                L_.mission +
-                '/Layers/APXS/Chemistry/MSL_APXS_chemistry_sol1503.csv'
-            search = 'Target'
-        }
-
-        d3.select('#chemistryToolName').html(name)
+        let chemData = d.feature.properties._data
 
         //parse data
-        if (ChemistryTool.chemsNames.indexOf(name) == -1 || !cPSelectorOn) {
+        if (
+            (chemData && ChemistryTool.chemsNames.indexOf(name) == -1) ||
+            !cPSelectorOn
+        ) {
             //don't duplicate data if we don't have to
-            d3.csv(file, function(d) {
-                var chems = new Object()
-                var chemI = 0
-                for (var i = 0; i < d.length; i++) {
-                    if (d[i][search] == name) {
-                        if (cPSelectorOn) {
-                            ChemistryTool.chemsArray.push(d[i])
-                            if (ChemistryTool.chemsNames.indexOf(name) == -1)
-                                ChemistryTool.chemsNames.push(name)
-                        } else {
-                            chems[chemI.toString()] = d[i]
-                            chemI++
-                        }
-                    }
+            var chems = new Object()
+            var chemI = 0
+            for (var i = 0; i < chemData.length; i++) {
+                if (cPSelectorOn) {
+                    ChemistryTool.chemsArray.push(chemData[i])
+                    if (ChemistryTool.chemsNames.indexOf(name) == -1)
+                        ChemistryTool.chemsNames.push(name)
+                } else {
+                    chems[chemI.toString()] = chemData[i]
+                    chemI++
                 }
-                if (cPSelectorOn)
-                    chemistryplot.make(
-                        ChemistryTool.chemsArray,
-                        ChemistryTool.chemsNames,
-                        0,
-                        function() {
-                            ChemistryTool.chemsArray = []
-                            ChemistryTool.chemsNames = []
-                        }
-                    )
-                else
-                    chemistrychart.make(
-                        chems,
-                        L_.layersNamed[layerName].variables.chemistry,
-                        'chemistry_panel'
-                    )
-            })
+            }
+            if (cPSelectorOn)
+                chemistryplot.make(
+                    ChemistryTool.chemsArray,
+                    ChemistryTool.chemsNames,
+                    0,
+                    function() {
+                        ChemistryTool.chemsArray = []
+                        ChemistryTool.chemsNames = []
+                    }
+                )
+            else
+                chemistrychart.make(
+                    chems,
+                    L_.layersNamed[layerName].variables.chemistry,
+                    'chemistry_panel'
+                )
         }
     }
 

@@ -35,6 +35,8 @@ define([
 
     var MeasureTool = {
         height: 150,
+        width: 'full',
+        disableLayerInteractions: true,
         vars: {},
         lastData: [],
         init: function() {
@@ -72,6 +74,7 @@ define([
                 .style('line-height', '30px')
                 .style('font-size', '16px')
                 .style('color', 'var(--color-mmgis)')
+                .style('padding-left', '6px')
                 .html('Measure')
             var buttons1 = buttonsDiv
                 .append('div')

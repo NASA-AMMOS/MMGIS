@@ -3,6 +3,7 @@ define([
     'DrawTool_Editing',
     'DrawTool_Files',
     'DrawTool_History',
+    'DrawTool_SetOperations',
     'DrawTool_Publish',
     'DrawTool_Shapes',
     'jquery',
@@ -27,6 +28,7 @@ define([
     DrawTool_Editing,
     DrawTool_Files,
     DrawTool_History,
+    DrawTool_SetOperations,
     DrawTool_Publish,
     DrawTool_Shapes,
     $,
@@ -147,7 +149,7 @@ define([
                         "<div class='drawToolMasterHeaderLeft'>",
                             "<div class='drawToolMasterHeaderLeftLeft'>",
                                 "<div class='drawToolMasterHeaderIntent'></div>",
-                                "<div><i class='mdi mdi-chevron-right mdi-18px'></i></div>",
+                                "<div class='drawToolMasterHeaderChevron'><i class='mdi mdi-chevron-right mdi-24px'></i></div>",
                                 "<div>Lead Maps</div>",
                             "</div>",
                             "<div class='drawToolMasterHeaderLeftRight'>",
@@ -166,22 +168,6 @@ define([
           "</div>",
           "<div id='drawToolDrawSettings'>",
             "<div id='drawToolDrawSettingsBody'>",
-                /*
-              "<div class='flexbetween'>",
-                "<div id='drawToolDrawSettingsTier'>",
-                    "<div id='drawToolDrawSettingTierSwitcher' class='append' tier='append'>",
-                      "<div></div>",
-                    "</div>",
-                    "<div id='drawToolDrawSettingTierLabel'>Clip Under</div>",
-                "</div>",
-                "<div id='drawToolDrawSnapMode' title='Edit with snapping'>",
-                  "<div>off</div>",
-                "</div>",
-                "<div id='drawToolDrawSettingsMode' class='click' mode='click'>",
-                  "<div>Click</div>",
-                "</div>",
-              "</div>",
-              */
                 "<ul>",
                     "<li>",
                         "<div title='Clip drawing or existing shapes'>Draw Clipping</div>",
@@ -206,22 +192,16 @@ define([
                         "</div>",
                     "</li>",
                 "</ul>",
-              /*
-              "<div id='drawToolDrawFeaturesNewNameDiv'>",
-                "<input id='drawToolDrawFeaturesNewName' type='text' placeholder='ROI' />",
-              "</div>",
-              */
-              /*
-              "<div id='drawToolDrawSettingsRes'>",
-                "<input id='drawToolRes' type='number'/>",
-                "<label for='drawToolRes'>Res</label>",
-              "</div>",
-              */
             "</div>",
           "</div>",
         "</div>",
 
         "<div id='drawToolShapes'>",
+          "<div id='drawToolShapesFilterDiv'>",
+            "<input id='drawToolShapesFilter' type='text' placeholder='Filter Shapes' />",
+            "<div id='drawToolShapesFilterClear'><i id='drawToolDrawFilesNew' class='mdi mdi-close mdi-18px'></i></div>",
+            "<div id='drawToolShapesFilterCount'></div>",
+          "</div>",
           "<div id='drawToolDrawShapesList' class='mmgisScrollbar'>",
             "<ul id='drawToolShapesFeaturesList' class='unselectable'>",
             "</ul>",
@@ -232,11 +212,6 @@ define([
             "<div id='drawToolShapesCopyGo'>Go</div>",
           "</div>",
           "<div id='drawToolShapesCopyMessageDiv'></div>",
-          "<div id='drawToolShapesFilterDiv'>",
-            "<input id='drawToolShapesFilter' type='text' placeholder='Filter Shapes' />",
-            "<div id='drawToolShapesFilterClear'><i id='drawToolDrawFilesNew' class='mdi mdi-close mdi-18px'></i></div>",
-            "<div id='drawToolShapesFilterCount'></div>",
-          "</div>",
         "</div>",
         
         "<div id='drawToolHistory'>",
@@ -457,7 +432,7 @@ define([
                 lineJoin: 'miter', //'bevel' | 'bevel' | 'miter'
             },
             master: {
-                color: '#001',
+                color: '#fff',
             },
         },
         initialize: function() {
@@ -483,6 +458,7 @@ define([
             DrawTool_Editing.init(DrawTool)
             DrawTool_Files.init(DrawTool)
             DrawTool_History.init(DrawTool)
+            DrawTool_SetOperations.init(DrawTool)
             DrawTool_Publish.init(DrawTool)
             DrawTool_Shapes.init(DrawTool)
 
@@ -508,6 +484,9 @@ define([
             DrawTool.currentFileId = null
             //DrawTool.filesOn = [];
             DrawTool.isEditing = false
+
+            $('.drawToolContextMenuHeaderClose').click()
+
             DrawTool.contextMenuLayers = []
             DrawTool.copyFileId = null
             DrawTool.copyFilename = null
@@ -579,7 +558,6 @@ define([
                 $('#drawToolDrawFilesNewLoading').css('opacity', '1')
                 $('#drawToolFileUpload > i').css('color', '#1169d3')
 
-                var maxFeatures = 1100
                 var files = evt.target.files // FileList object
 
                 // use the 1st file from the list
@@ -635,25 +613,13 @@ define([
                                                             geojsonResult
                                                         ),
                                                     }
-                                                    if (
-                                                        featureArray.length <=
-                                                        maxFeatures
-                                                    ) {
-                                                        DrawTool.makeFile(
-                                                            body,
-                                                            function() {
-                                                                DrawTool.populateFiles()
-                                                                endLoad()
-                                                            }
-                                                        )
-                                                    } else {
-                                                        CIU(
-                                                            'Too many features! Has: ' +
-                                                                featureArray.length +
-                                                                ', Max: ' +
-                                                                maxFeatures
-                                                        )
-                                                    }
+                                                    DrawTool.makeFile(
+                                                        body,
+                                                        function() {
+                                                            DrawTool.populateFiles()
+                                                            endLoad()
+                                                        }
+                                                    )
                                                     return
                                                 }
 
@@ -684,23 +650,10 @@ define([
                                     intent: 'all',
                                     geojson: e.target.result,
                                 }
-
-                                if (
-                                    JSON.parse(e.target.result).features
-                                        .length <= maxFeatures
-                                ) {
-                                    DrawTool.makeFile(body, function() {
-                                        DrawTool.populateFiles()
-                                        endLoad()
-                                    })
-                                } else {
-                                    CIU(
-                                        'Too many features! Has: ' +
-                                            e.target.result.length +
-                                            ', Max: ' +
-                                            maxFeatures
-                                    )
-                                }
+                                DrawTool.makeFile(body, function() {
+                                    DrawTool.populateFiles()
+                                    endLoad()
+                                })
                             }
                         })(f)
 
@@ -1012,7 +965,7 @@ define([
 
         //MMGIS should always have a div with id 'tools'
         var tools = d3.select('#toolPanel')
-        tools.style('background', '#f7f7f7')
+        tools.style('background', 'var(--color-g)')
         //Clear it
         tools.selectAll('*').remove()
         //Add a semantic container
@@ -1064,7 +1017,17 @@ define([
             $(this).addClass('active')
         })
 
-        //Add event functions and whatnot
+        //Set master checkbox on if all the master files are on
+        if (
+            DrawTool.filesOn.indexOf(1) != -1 &&
+            DrawTool.filesOn.indexOf(2) != -1 &&
+            DrawTool.filesOn.indexOf(3) != -1 &&
+            DrawTool.filesOn.indexOf(4) != -1 &&
+            DrawTool.filesOn.indexOf(5) != -1
+        ) {
+            $('.drawToolFileMasterCheckbox').addClass('on')
+        }
+
         //Switching Nav tabs
         $('.drawToolNavButton').on('click', function() {
             DrawTool.showContent($(this).attr('type'))

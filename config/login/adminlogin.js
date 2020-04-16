@@ -17,12 +17,12 @@ function login() {
 
   $.ajax({
     type: "POST",
-    url: "/API/users/login",
+    url: "API/users/login",
     data: {
       username: document.getElementById("username").value,
-      password: document.getElementById("pwd").value
+      password: document.getElementById("pwd").value,
     },
-    success: function(data) {
+    success: function (data) {
       if (
         !data.hasOwnProperty("status") ||
         (data.hasOwnProperty("status") && data.status == "success")
@@ -32,7 +32,7 @@ function login() {
           "MMGISUser=" +
           JSON.stringify({
             username: data.username,
-            token: data.token
+            token: data.token,
           });
         location.reload();
       } else {
@@ -42,11 +42,11 @@ function login() {
         document.getElementById("msg").style.opacity = 1;
       }
     },
-    error: function() {
+    error: function () {
       //error
       document.getElementById("msg").innerHTML = "Server error.";
       document.getElementById("msg").style.opacity = 1;
-    }
+    },
   });
 }
 
@@ -72,12 +72,12 @@ function setupLogin() {
 
   $.ajax({
     type: "POST",
-    url: "/API/users/first_signup",
+    url: "API/users/first_signup",
     data: {
       username: document.getElementById("username").value,
-      password: document.getElementById("pwd").value
+      password: document.getElementById("pwd").value,
     },
-    success: function(data) {
+    success: function (data) {
       if (
         !data.hasOwnProperty("status") ||
         (data.hasOwnProperty("status") && data.status == "success")
@@ -90,11 +90,11 @@ function setupLogin() {
         document.getElementById("msg").style.opacity = 1;
       }
     },
-    error: function() {
+    error: function () {
       //error
       document.getElementById("msg").innerHTML = "Server error.";
       document.getElementById("msg").style.opacity = 1;
-    }
+    },
   });
 }
 
@@ -102,8 +102,8 @@ function back() {
   window.location = "/";
 }
 
-$(document).ready(function() {
-  $(document).on("keypress", function(e) {
+$(document).ready(function () {
+  $(document).on("keypress", function (e) {
     if (e.which == 13) {
       login();
     }
@@ -113,7 +113,7 @@ $(document).ready(function() {
     type: "POST",
     url: "api/users/has",
     data: {},
-    success: function(data) {
+    success: function (data) {
       if (data.status == "success") {
         if (data.has == false) {
           setup = true;
@@ -124,10 +124,10 @@ $(document).ready(function() {
           $(".btn1").text("Create Administrator Account");
         }
       }
-    }
+    },
   });
 
-  $("#backIcon").on("click", function() {
+  $("#backIcon").on("click", function () {
     window.location.href = "/";
   });
 });

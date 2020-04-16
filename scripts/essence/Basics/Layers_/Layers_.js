@@ -1,5 +1,9 @@
 //Holds all layer data
-define(['Formulae_'], function(F_) {
+define(['Formulae_', 'Description', 'Search'], function (
+    F_,
+    Description,
+    Search
+) {
     var L_ = {
         url: window.location.href,
         mission: null,
@@ -46,7 +50,7 @@ define(['Formulae_'], function(F_) {
         //Index -> level (0, 1, 2 ... )
         indentArray: [],
         //Name -> is toggled (T/F)
-        toggledArray: [],
+        toggledArray: {},
         //Name -> layer visible because header expanded (T/F)
         expanded: {},
         //Name -> layer opacity ( 0 to 1 )
@@ -76,11 +80,11 @@ define(['Formulae_'], function(F_) {
             lon: null,
         },
         mapAndGlobeLinked: false,
-        init: function(configData, missionsList, urlOnLayers) {
+        init: function (configData, missionsList, urlOnLayers) {
             parseConfig(configData, urlOnLayers)
             L_.missionsList = missionsList
         },
-        clear: function() {
+        clear: function () {
             L_.mission = null
             L_.missionPath = null
             L_.missionsList = []
@@ -108,7 +112,7 @@ define(['Formulae_'], function(F_) {
             L_.layersData = []
             L_.layersDataByName = {}
             L_.indentArray = []
-            L_.toggledArray = []
+            L_.toggledArray = {}
             L_.expanded = {}
             L_.opacityArray = {}
             L_.layerFilters = {}
@@ -130,19 +134,24 @@ define(['Formulae_'], function(F_) {
                 lon: null,
             }
         },
-        fina: function(viewer_, map_, globe_, userinterface_) {
+        fina: function (viewer_, map_, globe_, userinterface_) {
             this.Viewer_ = viewer_
             this.Map_ = map_
             this.Globe_ = globe_
             this.UserInterface_ = userinterface_
-
-            this.selectPoint(this.FUTURES.activePoint)
         },
-        setSite: function(newSite, newView, dontSetGlobe) {
+        fullyLoaded: function () {
+            this.selectPoint(this.FUTURES.activePoint)
+
+            Search.init('.Search', L_, this.Viewer_, this.Map_, this.Globe_)
+            Description.updateInfo()
+        },
+        setSite: function (newSite, newView, dontSetGlobe) {
             if (newSite != undefined && newSite != null) {
                 this.site = newSite
                 if (newView != null) {
                     this.view = newView
+
                     L_.Map_.resetView(newView)
                     if (!dontSetGlobe && L_.hasGlobe) {
                         L_.Globe_.setCenter(newView)
@@ -153,7 +162,7 @@ define(['Formulae_'], function(F_) {
         //Takes in config layer obj
         //Toggles a layer on and off and accounts for sublayers
         //Takes in a config layer object
-        toggleLayer: function(s) {
+        toggleLayer: function (s) {
             var on //if on -> turn off //if off -> turn on
             if (L_.toggledArray[s.name] == true) on = true
             else on = false
@@ -170,7 +179,11 @@ define(['Formulae_'], function(F_) {
                 } else {
                     if (L_.layersGroup[s.name]) {
                         L_.Map_.map.addLayer(L_.layersGroup[s.name])
-                        L_.layersGroup[s.name].setZIndex(L_.layersOrdered.length + 1 - L_.layersOrdered.indexOf(s.name))
+                        L_.layersGroup[s.name].setZIndex(
+                            L_.layersOrdered.length +
+                                1 -
+                                L_.layersOrdered.indexOf(s.name)
+                        )
                     }
                     if (s.type == 'tile') {
                         var layerUrl = s.url
@@ -209,7 +222,7 @@ define(['Formulae_'], function(F_) {
 
             function toggleSubRecur(r, on) {
                 for (var i = 0; i < r.length; i++) {
-                    //( if it doesnt have it ) or ( if it has it and it's true )
+                    //( if it doesn't have it ) or ( if it has it and it's true )
                     if (
                         !r[i].hasOwnProperty('togglesWithHeader') ||
                         (r[i].hasOwnProperty('togglesWithHeader') &&
@@ -237,7 +250,14 @@ define(['Formulae_'], function(F_) {
                                     L_.Map_.map.addLayer(
                                         L_.layersGroup[r[i].name]
                                     )
-                                    L_.layersGroup[r[i].name].setZIndex(L_.layersOrdered.length + 1 - L_.layersOrdered.indexOf(r[i].name))
+                                    if (r[i].type == 'vector') {
+                                        L_.Map_.orderedBringToFront()
+                                    }
+                                    L_.layersGroup[r[i].name].setZIndex(
+                                        L_.layersOrdered.length +
+                                            1 -
+                                            L_.layersOrdered.indexOf(r[i].name)
+                                    )
                                 }
                                 if (r[i].type == 'tile') {
                                     var layerUrl = r[i].url
@@ -277,29 +297,35 @@ define(['Formulae_'], function(F_) {
                 if (d.hasOwnProperty('sublayers')) return d.sublayers
                 else return 0
             }
-            if (!on) {
-                //L_.Map_.orderedBringToFront()
+            if (!on && s.type == 'vector') {
+                L_.Map_.orderedBringToFront()
             }
         },
-        disableAllBut: function(name) {
+        disableAllBut: function (name, skipDisabling) {
             if (L_.layersNamed.hasOwnProperty(name)) {
                 var l
-                for (var i = 0; i < L_.layersData.length; i++) {
-                    l = L_.layersData[i]
-                    if (L_.toggledArray[l.name] == true) {
-                        L_.toggleLayer(l)
+                if (skipDisabling !== true) {
+                    for (var i = 0; i < L_.layersData.length; i++) {
+                        l = L_.layersData[i]
+                        if (L_.toggledArray[l.name] == true) {
+                            L_.toggleLayer(l)
+                        }
                     }
                 }
                 for (var i = 0; i < L_.layersData.length; i++) {
                     l = L_.layersData[i]
-                    if (l.name == name) L_.toggleLayer(l)
-                    if (l.name == 'Mars Overview') L_.toggleLayer(l)
+                    if (L_.toggledArray[l.name] == false) {
+                        if (l.name == name) L_.toggleLayer(l)
+                    }
+                    if (L_.toggledArray['Mars Overview'] == false) {
+                        if (l.name == 'Mars Overview') L_.toggleLayer(l)
+                    }
                 }
             }
         },
         //Simply if visibility was set as true in the json,
         // add the layer
-        addVisible: function(map_) {
+        addVisible: function (map_) {
             var map = map_
             if (map == null) {
                 if (L_.Map_ == null) {
@@ -346,7 +372,7 @@ define(['Formulae_'], function(F_) {
                 }
             }
         },
-        setLayerOpacity: function(name, newOpacity) {
+        setLayerOpacity: function (name, newOpacity) {
             if (L_.Globe_) L_.Globe_.setLayerOpacity(name, newOpacity)
             var l = L_.layersGroup[name]
             if (l) {
@@ -367,8 +393,10 @@ define(['Formulae_'], function(F_) {
             }
             L_.opacityArray[name] = newOpacity
         },
-        getLayerOpacity: function(name) {
+        getLayerOpacity: function (name) {
             var l = L_.layersGroup[name]
+
+            if (l == null) return 0
 
             var opacity
             try {
@@ -378,7 +406,7 @@ define(['Formulae_'], function(F_) {
             }
             return opacity
         },
-        setLayerFilter: function(name, filter, value) {
+        setLayerFilter: function (name, filter, value) {
             if (filter == 'clear') L_.layerFilters[name] = {}
             L_.layerFilters[name] = L_.layerFilters[name] || {}
             L_.layerFilters[name][filter] = value
@@ -390,7 +418,7 @@ define(['Formulae_'], function(F_) {
                 L_.layersGroup[name].updateFilter(filterArray)
             }
         },
-        resetLayerFills: function() {
+        resetLayerFills: function () {
             for (key in this.layersGroup) {
                 if (
                     this.layersNamed[key] &&
@@ -405,20 +433,28 @@ define(['Formulae_'], function(F_) {
                         this.layersStyles[key] != undefined &&
                         this.layersStyles[key].hasOwnProperty('fillColor')
                     ) {
-                        this.layersGroup[key].eachLayer(function(layer) {
+                        var fillColor = this.layersStyles[key].fillColor
+                        this.layersGroup[key].eachLayer(function (layer) {
                             var opacity = layer.options.opacity
                             var fillOpacity = layer.options.fillOpacity
+                            var weight = layer.options.weight
                             L_.layersGroup[key].resetStyle(layer)
                             layer.setStyle({
                                 opacity: opacity,
                                 fillOpacity: fillOpacity,
+                                fillColor: layer.options.fillColor || fillColor,
+                                weight: weight,
                             })
                         })
                     }
                 }
             }
         },
-        getToolVars: function(toolName) {
+        home() {
+            L_.Map_.resetView(L_.configData.msv.view)
+            L_.Globe_.setCenter(L_.configData.msv.view)
+        },
+        getToolVars: function (toolName) {
             for (var i = 0; i < L_.tools.length; i++) {
                 if (
                     L_.tools[i].hasOwnProperty('name') &&
@@ -438,7 +474,7 @@ define(['Formulae_'], function(F_) {
         /**
          * @param {object} layer - leaflet layer object
          */
-        setLastActivePoint: function(layer) {
+        setLastActivePoint: function (layer) {
             var layerName = layer.hasOwnProperty('options')
                 ? layer.options.layerName
                 : null
@@ -471,14 +507,102 @@ define(['Formulae_'], function(F_) {
                 activePoint.lon != null
             ) {
                 if (L_.layersGroup.hasOwnProperty(activePoint.layerName)) {
-                    var g = L_.layersGroup[activePoint.layerName]._layers
-                    for (var l in g) {
+                    let g = L_.layersGroup[activePoint.layerName]._layers
+                    for (let l in g) {
                         if (
                             g[l]._latlng.lat == activePoint.lat &&
                             g[l]._latlng.lng == activePoint.lon
                         ) {
                             g[l].fireEvent('click')
+                            if (activePoint.view == 'go') {
+                                let newView = []
+                                if (g[l]._latlng) {
+                                    newView = [
+                                        g[l]._latlng.lat,
+                                        g[l]._latlng.lng,
+                                        activePoint.zoom ||
+                                            L_.Map_.mapScaleZoom ||
+                                            L_.Map_.map.getZoom(),
+                                    ]
+                                } else if (g[l]._latlngs) {
+                                    let lat = 0,
+                                        lng = 0
+                                    let llflat = g[l]._latlngs.flat(Infinity)
+                                    for (let ll of llflat) {
+                                        lat += ll.lat
+                                        lng += ll.lng
+                                    }
+                                    newView = [
+                                        lat / llflat.length,
+                                        lng / llflat.length,
+                                        activePoint.zoom ||
+                                            L_.Map_.mapScaleZoom ||
+                                            L_.Map_.map.getZoom(),
+                                    ]
+                                }
+
+                                L_.Map_.resetView(newView)
+                                if (L_.hasGlobe) {
+                                    L_.Globe_.setCenter(newView)
+                                }
+                            }
                             return true
+                        }
+                    }
+                }
+            } else if (
+                activePoint &&
+                activePoint.layerName != null &&
+                activePoint.key != null &&
+                activePoint.value != null
+            ) {
+                if (L_.layersGroup.hasOwnProperty(activePoint.layerName)) {
+                    let g = L_.layersGroup[activePoint.layerName]._layers
+                    for (let l in g) {
+                        if (g[l] && g[l].feature && g[l].feature.properties) {
+                            if (
+                                F_.getIn(
+                                    g[l].feature.properties,
+                                    activePoint.key.split('.')
+                                ) == activePoint.value
+                            ) {
+                                g[l].fireEvent('click')
+                                if (activePoint.view == 'go') {
+                                    let newView = []
+                                    if (g[l]._latlng) {
+                                        newView = [
+                                            g[l]._latlng.lat,
+                                            g[l]._latlng.lng,
+                                            activePoint.zoom ||
+                                                L_.Map_.mapScaleZoom ||
+                                                L_.Map_.map.getZoom(),
+                                        ]
+                                    } else if (g[l]._latlngs) {
+                                        let lat = 0,
+                                            lng = 0
+                                        let llflat = g[l]._latlngs.flat(
+                                            Infinity
+                                        )
+                                        for (let ll of llflat) {
+                                            lat += ll.lat
+                                            lng += ll.lng
+                                        }
+                                        newView = [
+                                            lat / llflat.length,
+                                            lng / llflat.length,
+                                            activePoint.zoom ||
+                                                L_.Map_.mapScaleZoom ||
+                                                L_.Map_.map.getZoom(),
+                                        ]
+                                    }
+
+                                    L_.Map_.resetView(newView)
+                                    if (L_.hasGlobe) {
+                                        L_.Globe_.setCenter(newView)
+                                    }
+                                }
+                                return true
+                            }
                         }
                     }
                 }
@@ -583,9 +707,9 @@ define(['Formulae_'], function(F_) {
                         if (!F_.isUrlAbsolute(legendPath))
                             legendPath = L_.missionPath + legendPath
                         $.get(
-                            legendPath + '?nocache=' + new Date().getTime(),
-                            (function(name) {
-                                return function(data) {
+                            legendPath,
+                            (function (name) {
+                                return function (data) {
                                     data = F_.csvToJSON(data)
                                     L_.layersLegendsData[name] = data
                                 }
@@ -615,19 +739,20 @@ define(['Formulae_'], function(F_) {
                     d[i].visibility == undefined ? true : d[i].visibility
 
                 //Create parsed opacity array
-                let io = d[i].initialOpacity;
-                L_.opacityArray[d[i].name] = io == null || io < 0 || io > 1 ? 1 : io
+                let io = d[i].initialOpacity
+                L_.opacityArray[d[i].name] =
+                    io == null || io < 0 || io > 1 ? 1 : io
 
                 //Set visibility if we have all the on layers listed in the url
                 if (urlOnLayers) {
                     //this is null if we've no url layers
-                    if (urlOnLayers.hasOwnProperty(d[i].name)) {
+                    if (urlOnLayers.onLayers.hasOwnProperty(d[i].name)) {
                         L_.toggledArray[d[i].name] = true
                         L_.opacityArray[d[i].name] =
-                            urlOnLayers[d[i].name].opacity || 1
-                    } else L_.toggledArray[d[i].name] = false
+                            urlOnLayers.onLayers[d[i].name].opacity || 1
+                    } else if (urlOnLayers === 'replace')
+                        L_.toggledArray[d[i].name] = false
                 }
-
                 //Get the current layers sublayers (returns 0 if none)
                 var dNext = getSublayers(d[i])
                 //If they are sublayers, call this function again and move up a level

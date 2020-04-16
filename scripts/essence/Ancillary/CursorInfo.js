@@ -22,7 +22,8 @@ define(['jquery', 'd3'], function($, d3) {
                 .style('top', 0)
                 .style('padding', '6px 9px 6px 9px')
                 .style('border', '1px solid #17586E')
-                .style('background-color', '#161616')
+                .style('border-radius', '3px')
+                .style('background-color', 'var(--color-a)')
                 .style('color', '#DCDCDC')
                 .style('font-weight', 'bold')
                 .style('font-size', '16px')
@@ -66,14 +67,14 @@ define(['jquery', 'd3'], function($, d3) {
             CursorInfo.cursorInfoDiv
                 .style('background-color', function() {
                     if (forceColor != null) return forceColor
-                    return isError ? '#cd0437' : '#161616'
+                    return isError ? '#cd0437' : 'var(--color-a)'
                 })
                 .style('color', function() {
                     if (forceFontColor != null) return forceFontColor
                     return '#DCDCDC'
                 })
                 .style('border', function() {
-                    return isError ? '1px solid #161616' : 'none'
+                    return isError ? '1px solid var(--color-a)' : 'none'
                 })
                 .style('display', 'block')
                 .html(message)

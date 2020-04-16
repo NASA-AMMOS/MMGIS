@@ -42,6 +42,16 @@ mmgisglobal.attributions = [
         githublink: 'https://github.com/DataTables/DataTables',
     },
     {
+        library: 'Highcharts JS',
+        librarylink: 'https://www.highcharts.com/',
+        version: '7.1.1',
+        author: 'Torstein Honsi',
+        authorlink: 'https://github.com/highcharts',
+        license: 'CC BY-NC 3.0',
+        licenselink: 'https://creativecommons.org/licenses/by-nc/3.0/',
+        githublink: 'https://github.com/highcharts/highcharts',
+    },
+    {
         library: 'Hammer.JS',
         librarylink: 'https://hammerjs.github.io/',
         version: '2.0.8',
@@ -416,5 +426,26 @@ mmgisglobal.attributions = [
         license: 'Custom (no embedding)',
         licenselink: 'http://typodermicfonts.com/license/',
         githublink: 'https://www.dafont.com/venus-rising.font',
+    },
+    {
+        library: 'Globe Skysphere (Image)',
+        librarylink: 'https://www.eso.org/public/usa/images/eso0932a/',
+        version: '1',
+        author: 'ESO/S. Brunier',
+        authorlink: 'https://www.eso.org/public/',
+        license: 'Creative Commons Attribution 4.0 International License',
+        licenselink: 'https://www.eso.org/public/outreach/copyright/',
+        githublink: 'https://www.eso.org/public/usa/images/eso0932a/',
+    },
+    {
+        library: 'Marked',
+        librarylink: 'https://marked.js.org/#/README.md#README.md',
+        version: '0.8.0',
+        author: 'markedjs',
+        authorlink: 'https://github.com/markedjs',
+        license: 'Custom',
+        licenselink:
+            'https://github.com/markedjs/marked/blob/master/LICENSE.md',
+        githublink: 'https://github.com/markedjs/marked',
     },
 ]

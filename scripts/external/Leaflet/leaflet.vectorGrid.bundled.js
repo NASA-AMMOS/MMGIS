@@ -2472,17 +2472,36 @@ L.Canvas.Tile = L.Canvas.extend({
 	},
 
 	_onClick: function (e) {
-		var point = this._map.mouseEventToLayerPoint(e).subtract(this.getOffset()), layer, clickedLayer;
+		var point = this._map.mouseEventToLayerPoint(e).subtract(this.getOffset()), layer, layerName, clickedLayer;
 
-		for (var id in this._layers) {
-			layer = this._layers[id];
-			if (layer.options.interactive && layer._containsPoint(point) && !this._map._draggableMoved(layer)) {
-				clickedLayer = layer;
-			}
-		}
+    var keys = Object.keys(this._map._layers);
+    for(var i = keys.length - 1; i >= 0; i--) {
+      var id = keys[i];
+      if( this._map._layers[id]._vectorTiles && this._map._layers[id].options.interactive ) {
+        for(var vid in this._map._layers[id]._vectorTiles) {
+          for( var lvid in this._map._layers[id]._vectorTiles[vid]._layers ) {
+            layer = this._map._layers[id]._vectorTiles[vid]._layers[lvid];
+            if (layer._pxBounds.min.x <= point.x &&
+                layer._pxBounds.max.x >= point.x &&
+                layer._pxBounds.min.y <= point.y &&
+                layer._pxBounds.max.y >= point.y &&
+                !this._map._draggableMoved(layer)) {
+              clickedLayer = layer;
+              layerName = this._map._layers[id].options.layerName;
+            }
+          }
+        }
+      }
+    }
+
 		if (clickedLayer)  {
 			L.DomEvent.fakeStop(e);
-			this._fireEvent([clickedLayer], e);
+      point.x = (clickedLayer._pxBounds.min.x + clickedLayer._pxBounds.max.x) / 2;
+      point.y = (clickedLayer._pxBounds.min.y + clickedLayer._pxBounds.max.y) / 2;
+      clickedLayer._point = point;
+      clickedLayer._layer = layer;
+      clickedLayer._layerName = layerName;
+      this._fireEvent([clickedLayer], e);
 		}
 	},
 

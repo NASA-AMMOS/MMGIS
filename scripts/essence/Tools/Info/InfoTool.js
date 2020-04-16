@@ -10,8 +10,9 @@ define([
     'Map_',
     'Viewer_',
     'Kinds',
+    'jsonViewer',
     'css!InfoTool',
-], function($, d3, F_, L_, Globe_, Map_, Viewer_, Kinds) {
+], function($, d3, F_, L_, Globe_, Map_, Viewer_, Kinds, jsonViewer) {
     //Add the tool markup if you want to do it this way
     // prettier-ignore
     // prettier-ignore
@@ -21,29 +22,13 @@ define([
             "<ul id='infoToolSelections'>",
             "</ul>",
             "<div id='infoToolContents'>",
-                "<div id='infoToolProperties' class='infoToolList'>",
-                    "<div class='infoToolHeader'>",
-                        "<div>Properties</div>",
-                        "<div><i class='mdi mdi-minus mdi-18px'></i></div>",
-                    "</div>",
-                    "<ul>",
-                    "</ul>",
-                "</div>",
-                "<div id='infoToolGeometry' class='infoToolList collapsed'>",
-                    "<div class='infoToolHeader'>",
-                        "<div>Geometry</div>",
-                        "<div><i class='mdi mdi-plus mdi-18px'></i></div>",
-                    "</div>",
-                    "<ul>",
-                    "</ul>",
-                "</div>",
-            "</div>",
+            "<pre id='json-renderer'></pre>",
         "</div>"
     ].join('\n');
 
     var InfoTool = {
         height: 0,
-        width: 250,
+        width: 300,
         currentLayer: null,
         currentLayerName: null,
         info: null,
@@ -62,16 +47,37 @@ define([
             return ''
         },
         //We might get multiple features if vector layers overlap
-        use: function(currentLayer, currentLayerName, features, variables, activeI) {
+        use: function(
+            currentLayer,
+            currentLayerName,
+            features,
+            variables,
+            activeI,
+            open,
+            initialEvent,
+            additional
+        ) {
+            let toolActive = $('#InfoTool').hasClass('active')
+
+            if (!open && toolActive) open = true
+
             //In the very least, update the info
-            if (!$('#InfoTool').hasClass('active')) $('#InfoTool').click()
+            if (open && !toolActive) {
+                $('#InfoTool').click()
+            }
 
-            this.currentLayer = currentLayer
-            this.currentLayerName = currentLayerName
-            this.info = features
-            this.variables = variables
-            this.activeFeatureI = activeI || 0
+            if (additional && additional.idx) activeI = additional.idx
 
+            if (currentLayer != null && currentLayerName != null) {
+                this.currentLayer = currentLayer
+                this.currentLayerName = currentLayerName
+                this.info = features
+                this.variables = variables
+                this.activeFeatureI = activeI || 0
+                this.initialEvent = initialEvent
+            }
+
+            if (open != true) return
             //MMGIS should always have a div with id 'tools'
             var tools = d3.select('#toolPanel')
             tools.style('background', 'var(--color-a')
@@ -88,6 +94,10 @@ define([
                 .selectAll('*')
                 .remove()
             for (var i = 0; i < this.info.length; i++) {
+                if (!this.info[i].properties) {
+                    if (this.info[i].feature)
+                        this.info[i] = this.info[i].feature
+                }
                 var name = this.info[i].properties[
                     Object.keys(this.info[i].properties)[0]
                 ]
@@ -107,18 +117,20 @@ define([
                         'click',
                         (function(idx) {
                             return function() {
+                                let e = JSON.parse(
+                                    JSON.stringify(InfoTool.initialEvent)
+                                )
                                 Kinds.use(
-                                    L_.layersNamed[InfoTool.currentLayerName].kind,
+                                    L_.layersNamed[InfoTool.currentLayerName]
+                                        .kind,
                                     Map_,
                                     InfoTool.info[idx],
-                                    InfoTool.currentLayer
-                                )
-                                InfoTool.use(
                                     InfoTool.currentLayer,
                                     InfoTool.currentLayerName,
-                                    InfoTool.info,
-                                    InfoTool.variables,
-                                    idx
+                                    null,
+                                    e,
+                                    { idx: idx },
+                                    InfoTool.info
                                 )
                             }
                         })(i)
@@ -126,73 +138,10 @@ define([
                     .html(name)
             }
 
-            var propertiesLis = []
-            var geometryLis = []
-            depthTraversal(
-                this.info[this.activeFeatureI].properties,
-                0,
-                'properties'
-            )
-            depthTraversal(
-                this.info[this.activeFeatureI].geometry,
-                0,
-                'geometry'
-            )
-            function depthTraversal(node, depth, type) {
-                let iter = Object.keys(node)
-                for (var i = 0; i < iter.length; i++) {
-                    //Add other feature information while we're at it
-                    if (
-                        typeof node[iter[i]] === 'object' &&
-                        node[iter[i]] != null
-                    ) {
-                        var li =
-                            '<li class="infoToolSubheader" style="padding-left: ' +
-                            depth * 10 +
-                            'px;"><div>' +
-                            iter[i] +
-                            ':</div><div>' +
-                            '</div></li>'
-                        if (type === 'properties') propertiesLis.push(li)
-                        else if (type === 'geometry') geometryLis.push(li)
-                        depthTraversal(node[iter[i]], depth + 1, type)
-                    } else {
-                        var li =
-                            '<li style="padding-left: ' +
-                            depth * 10 +
-                            'px;"><div>' +
-                            iter[i] +
-                            '</div><div>' +
-                            node[iter[i]] +
-                            '</div></li>'
-                        if (type === 'properties') propertiesLis.push(li)
-                        else if (type === 'geometry') geometryLis.push(li)
-                    }
-                }
-            }
-
-            $('#infoToolProperties ul').html(propertiesLis.join('\n'))
-            $('#infoToolGeometry ul').html(geometryLis.join('\n'))
-
-            if (this.geoOpen) {
-                var h = $('#infoToolGeometry .infoToolHeader i')
-                h.toggleClass('mdi-plus')
-                h.toggleClass('mdi-minus')
-                h.parent()
-                    .parent()
-                    .parent()
-                    .toggleClass('collapsed')
-            }
-
-            $('.infoToolHeader i').on('click', function() {
-                $(this).toggleClass('mdi-plus')
-                $(this).toggleClass('mdi-minus')
-                $(this)
-                    .parent()
-                    .parent()
-                    .parent()
-                    .toggleClass('collapsed')
-                InfoTool.geoOpen = !InfoTool.geoOpen
+            $('#json-renderer').jsonViewer(this.info[this.activeFeatureI], {
+                collapsed: false,
+                withQuotes: false,
+                withLinks: true,
             })
         },
     }
@@ -204,7 +153,15 @@ define([
         }
 
         //Add event functions and whatnot
-        InfoTool.use(null, null, InfoTool.info)
+        InfoTool.use(
+            null,
+            null,
+            InfoTool.info,
+            InfoTool.variables,
+            null,
+            true,
+            null
+        )
 
         //Share everything. Don't take things that aren't yours.
         // Put things back where you found them.

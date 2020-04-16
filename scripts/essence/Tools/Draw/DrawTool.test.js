@@ -1,5 +1,6 @@
-define(['jquery', 'ToolController_', 'Test_', 'Layers_'], function(
+define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
     $,
+    F_,
     TC_,
     Test_,
     L_
@@ -305,7 +306,9 @@ define(['jquery', 'ToolController_', 'Test_', 'Layers_'], function(
                         $('.drawToolDrawingTypeLine').hasClass('active')
                     )
 
-                    var oldLength = L_.layersGroup['DrawTool_7'].length
+                    var oldLength = F_.noNullLength(
+                        L_.layersGroup['DrawTool_7']
+                    )
                     Test_.mapEvent('click')
                     Test_.fireEvent('mousemove', 300, 300)
                     Test.tool.drawing.line.shape._latlngs = [
@@ -317,7 +320,8 @@ define(['jquery', 'ToolController_', 'Test_', 'Layers_'], function(
                     setTimeout(function() {
                         c(
                             'Draws and saves a line',
-                            L_.layersGroup['DrawTool_7'].length == oldLength + 1
+                            F_.noNullLength(L_.layersGroup['DrawTool_7']) ==
+                                oldLength + 1
                         )
                     }, Test.timeout)
                 },
@@ -332,13 +336,16 @@ define(['jquery', 'ToolController_', 'Test_', 'Layers_'], function(
                         $('.drawToolDrawingTypePoint').hasClass('active')
                     )
 
-                    var oldLength = L_.layersGroup['DrawTool_7'].length
+                    var oldLength = F_.noNullLength(
+                        L_.layersGroup['DrawTool_7']
+                    )
                     Test.tool.drawing.point.shape = { lat: -5, lng: 138 }
                     Test_.mapEvent('draw:drawstop')
                     setTimeout(function() {
                         c(
                             'Draws and saves a point',
-                            L_.layersGroup['DrawTool_7'].length == oldLength + 1
+                            F_.noNullLength(L_.layersGroup['DrawTool_7']) ==
+                                oldLength + 1
                         )
                     }, Test.timeout)
                 },
@@ -353,7 +360,9 @@ define(['jquery', 'ToolController_', 'Test_', 'Layers_'], function(
                         $('.drawToolDrawingTypeText').hasClass('active')
                     )
 
-                    var oldLength = L_.layersGroup['DrawTool_7'].length
+                    var oldLength = F_.noNullLength(
+                        L_.layersGroup['DrawTool_7']
+                    )
                     Test.tool.drawing.annotation.shape = {
                         lat: -4.5,
                         lng: 137.5,
@@ -364,7 +373,8 @@ define(['jquery', 'ToolController_', 'Test_', 'Layers_'], function(
                     setTimeout(function() {
                         c(
                             'Draws and saves text',
-                            L_.layersGroup['DrawTool_7'].length == oldLength + 1
+                            F_.noNullLength(L_.layersGroup['DrawTool_7']) ==
+                                oldLength + 1
                         )
                     }, Test.timeout)
                 },
@@ -379,7 +389,9 @@ define(['jquery', 'ToolController_', 'Test_', 'Layers_'], function(
                         $('.drawToolDrawingTypeArrow').hasClass('active')
                     )
 
-                    var oldLength = L_.layersGroup['DrawTool_7'].length
+                    var oldLength = F_.noNullLength(
+                        L_.layersGroup['DrawTool_7']
+                    )
                     Test.tool.drawing.arrow.start({
                         latlng: { lat: -4.5, lng: 137.5 },
                     })
@@ -389,7 +401,8 @@ define(['jquery', 'ToolController_', 'Test_', 'Layers_'], function(
                     setTimeout(function() {
                         c(
                             'Draws and saves arrows',
-                            L_.layersGroup['DrawTool_7'].length == oldLength + 1
+                            F_.noNullLength(L_.layersGroup['DrawTool_7']) ==
+                                oldLength + 1
                         )
                     }, Test.timeout)
                 },
@@ -431,8 +444,9 @@ define(['jquery', 'ToolController_', 'Test_', 'Layers_'], function(
                     $('.drawToolContextMenu .fillcolor').attr('v', 'rgb(0,0,0)')
                     $('.drawToolContextMenu .fillopacity').attr('v', '0.5')
                     //$( '.drawToolContextMenu .radius' ).attr( 'v', '10' )
-                    Test.tool.contextMenuLayer.feature.geometry.coordinates[0][1][1] = 136
-                    //Test.tool.contextMenuLayer._latlngs[0][0].lng = 136
+                    //Test.tool.contextMenuLayer.feature.geometry.coordinates[0][1][1] = 136
+                    Test.tool.contextMenuLayer._latlngs[0][1].lng = 136
+
                     $('.drawToolContextMenuSaveChanges').click()
                     $('.drawToolContextMenuHeaderClose').click()
 
@@ -457,7 +471,7 @@ define(['jquery', 'ToolController_', 'Test_', 'Layers_'], function(
                             p.style.fillColor === 'rgb(0,0,0)'
                         )
                         c('Edits fill opacity', p.style.fillOpacity === 0.5)
-                        c('Edits geometry', coords[0][1][1] === 136)
+                        c('Edits geometry', coords[0][1][0] === 136)
 
                         $(
                             '#drawToolShapesFeaturesList > li:nth-child(1) > div'
@@ -511,8 +525,8 @@ define(['jquery', 'ToolController_', 'Test_', 'Layers_'], function(
                     $('.drawToolContextMenu .strokestyle').attr('v', '20')
                     $('.drawToolContextMenu .strokeweight').attr('v', '8')
 
-                    Test.tool.contextMenuLayer.feature.geometry.coordinates[0][0] = 136
-                    //Test.tool.contextMenuLayer._latlngs[0].lng = 136
+                    //Test.tool.contextMenuLayer.feature.geometry.coordinates[0][0] = 136
+                    Test.tool.contextMenuLayer._latlngs[0].lng = 136
                     $('.drawToolContextMenuSaveChanges').click()
                     $('.drawToolContextMenuHeaderClose').click()
 
@@ -590,13 +604,10 @@ define(['jquery', 'ToolController_', 'Test_', 'Layers_'], function(
                     $('.drawToolContextMenu .fillopacity').attr('v', 0.5)
                     $('.drawToolContextMenu .radius').attr('v', 10)
 
-                    Test.tool.contextMenuLayer.feature.geometry.coordinates = [
-                        -5,
-                        136,
-                    ]
-                    //We flip these just because
-                    //Test.tool.contextMenuLayer._latlng.lat = -5
-                    //Test.tool.contextMenuLayer._latlng.lng = 136
+                    //Test.tool.contextMenuLayer.feature.geometry.coordinates = [-5,136]
+                    Test.tool.contextMenuLayer._latlng.lat = -5
+                    Test.tool.contextMenuLayer._latlng.lng = 136
+
                     $('.drawToolContextMenuSaveChanges').click()
                     $('.drawToolContextMenuHeaderClose').click()
 
@@ -679,17 +690,21 @@ define(['jquery', 'ToolController_', 'Test_', 'Layers_'], function(
                     $('.drawToolContextMenu .fillcolor').attr('v', 'rgb(0,0,0)')
                     $('.drawToolContextMenu .fillopacity').attr('v', 0.5)
                     $('.drawToolContextMenu .fontsize').attr('v', '24px')
-
-                    //Test.tool.contextMenuLayer.feature.geometry.coordinates = [
-                    //    -4.5,
-                    //    136,
-                    //]
+                    Test.tool.contextMenuChanges.style.fontSize = true
+                    /*Test.tool.contextMenuLayer.feature.geometry.coordinates = [
+                        -4.5,
+                        136,
+                    ]*/
                     Test.tool.contextMenuLayer._latlng.lng = 136
+                    Test.tool.contextMenuLayer._latlng.lat = -4.5
                     $('.drawToolContextMenuSaveChanges').click()
                     $('.drawToolContextMenuHeaderClose').click()
 
                     setTimeout(function() {
-                        var coords = Test.tool.contextMenuLayer._latlng
+                        //var coords = Test.tool.contextMenuLayer._latlng
+                        var f = Test.tool.contextMenuLayer.feature
+                        var coords = f.geometry.coordinates
+
                         var p = Test.tool.contextMenuLayer.feature.properties
                         c('Edits name', p.name === 'Text Changed')
                         c(
@@ -712,7 +727,7 @@ define(['jquery', 'ToolController_', 'Test_', 'Layers_'], function(
 
                         c(
                             'Edits geometry',
-                            coords.lat === -4.5 && coords.lng === 136
+                            coords[1] === -4.5 && coords[0] === 136
                         )
 
                         $(
@@ -1734,8 +1749,10 @@ define(['jquery', 'ToolController_', 'Test_', 'Layers_'], function(
                                     ).text() === 'x2'
                                 )
                                 mmgisglobal.ctrlDown = false
-
-                                $('.drawToolConextMenuHeaderMerge').click()
+                                $(
+                                    '.drawToolContextMenuTabSOMerge > ul > li:last-child > div:last-child'
+                                ).addClass('on')
+                                $('.drawToolContextMenuTabSOMergeMerge').click()
                                 setTimeout(function() {
                                     c(
                                         'Merged to one polygon',
@@ -1955,9 +1972,9 @@ define(['jquery', 'ToolController_', 'Test_', 'Layers_'], function(
 
                     setTimeout(function() {
                         c(
-                            'Finds three errors',
+                            'Finds seven errors',
                             $('#drawToolReviewContent li > div.error')
-                                .length === 3
+                                .length === 7
                         )
                     }, Test.timeout * 3)
                 },
@@ -1990,9 +2007,9 @@ define(['jquery', 'ToolController_', 'Test_', 'Layers_'], function(
 
                     setTimeout(function() {
                         c(
-                            'Finds just one error',
+                            'Finds five errors',
                             $('#drawToolReviewContent li > div.error')
-                                .length === 1
+                                .length === 5
                         )
                     }, Test.timeout)
                 },
@@ -2022,10 +2039,70 @@ define(['jquery', 'ToolController_', 'Test_', 'Layers_'], function(
 
                     setTimeout(function() {
                         c(
-                            'No mores errors',
+                            'Finds four errors',
                             $('#drawToolReviewContent li > div.error')
-                                .length === 0
+                                .length === 4
                         )
+                    }, Test.timeout)
+                },
+            },
+            {
+                name: 'Lead Review fixes errors (part 3)',
+                subtests: 1,
+                test: function(c) {
+                    $(
+                        '#drawToolShapesFeaturesList > li:nth-child(1) > div'
+                    ).click()
+
+                    $('#drawToolContextMenuPropertiesName').val('Polygon 1')
+
+                    $('.drawToolContextMenuSaveChanges').click()
+                    $('.drawToolContextMenuHeaderClose').click()
+
+                    setTimeout(function() {
+                        $(
+                            '#drawToolShapesFeaturesList > li:nth-child(2) > div'
+                        ).click()
+
+                        $('#drawToolContextMenuPropertiesName').val('Polygon 2')
+
+                        $('.drawToolContextMenuSaveChanges').click()
+                        $('.drawToolContextMenuHeaderClose').click()
+
+                        setTimeout(function() {
+                            $(
+                                '#drawToolShapesFeaturesList > li:nth-child(3) > div'
+                            ).click()
+
+                            $('#drawToolContextMenuPropertiesName').val(
+                                'Polygon 3'
+                            )
+
+                            $('.drawToolContextMenuSaveChanges').click()
+                            $('.drawToolContextMenuHeaderClose').click()
+
+                            setTimeout(function() {
+                                $(
+                                    '#drawToolShapesFeaturesList > li:nth-child(6) > div'
+                                ).click()
+
+                                $('#drawToolContextMenuPropertiesName').val(
+                                    'Point 6'
+                                )
+
+                                $('.drawToolContextMenuSaveChanges').click()
+                                $('.drawToolContextMenuHeaderClose').click()
+
+                                setTimeout(function() {
+                                    c(
+                                        'Finds no errors',
+                                        $(
+                                            '#drawToolReviewContent li > div.error'
+                                        ).length === 0
+                                    )
+                                }, Test.timeout)
+                            }, Test.timeout)
+                        }, Test.timeout)
                     }, Test.timeout)
                 },
             },

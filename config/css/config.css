@@ -1,6 +1,6 @@
 @font-face {
-    font-family: venus;
-    src: url(../../public/fonts/taxidriver/TaxiDriver.ttf);
+  font-family: venus;
+  src: url(../../public/fonts/taxidriver/TaxiDriver.ttf);
 }
 
 html {
@@ -8,20 +8,20 @@ html {
   background-color: white;
 }
 body {
-    background-color: white;
-    /*background: linear-gradient(to top, #0e3443, #1E2021);*/
-    background-repeat: no-repeat;
-    width: 100%;
-    color: black;
-    overflow-x: hidden;
-    display: flex;
+  background-color: white;
+  /*background: linear-gradient(to top, #0e3443, #1E2021);*/
+  background-repeat: no-repeat;
+  width: 100%;
+  color: black;
+  overflow-x: hidden;
+  display: flex;
 }
 
 #leftPanel {
   width: 220px;
   position: fixed;
   height: 100%;
-  background: linear-gradient(to right, #121626 85%, #0b0e18 100%);
+  background: #1a1a1a;
   display: flex;
   flex-flow: column;
 }
@@ -44,6 +44,34 @@ body {
   z-index: 1000;
 }
 
+.container_keys {
+  margin-left: 220px;
+  width: calc(100% - 220px) !important;
+  height: 100vh;
+  max-width: unset !important;
+  background: white;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 200;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+.container_datasets {
+  margin-left: 220px;
+  width: 100% !important;
+  height: 100vh;
+  max-width: unset !important;
+  background: white;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 200;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
 .container_geodatasets {
   margin-left: 220px;
   width: 100% !important;
@@ -64,6 +92,10 @@ body {
   max-width: unset !important;
 }
 .container .row {
+  margin-left: 5%;
+  margin-right: 5%;
+}
+.container #tab_layers_rows .row {
   margin-left: 150px;
   margin-right: 150px;
 }
@@ -72,29 +104,30 @@ body {
   margin-right: 0px;
 }
 
-
 #topbar {
   text-align: center;
   padding: 4px;
 }
 #tbtitle {
   font-size: 24px;
-  color: #CCC;
+  color: #ccc;
   margin: 0;
   padding: 0;
   display: flex;
   flex-flow: column;
+  margin-top: 20px;
+  cursor: pointer;
 }
 #tbtitle a {
   font-size: 24px;
-  color: #CCC;
+  color: #ccc;
   margin: 0;
   padding: 0;
   text-align: center;
 }
 #tbmmgis {
   -webkit-transition: all 0.2s ease-in;
-    transition: all 0.2s ease-in;
+  transition: all 0.2s ease-in;
   font-family: venus;
 }
 #tbmmgis:hover {
@@ -104,18 +137,38 @@ body {
   font-family: roboto;
   cursor: default;
   text-align: center;
-  font-size: 19px;
+  font-size: 16px;
   line-height: 7px;
-  margin: 4px 0px 16px;
+  margin: 4px 0px 28px;
 }
 #divline {
   width: 100%;
   height: 1px;
   background-color: #000;
-  background: -webkit-radial-gradient(circle, transparent, transparent, #999); /* Safari */
-  background: -o-radial-gradient(circle, transparent, transparent, #999); /* Opera 11.6 to 12.0 */
-  background: -moz-radial-gradient(circle, transparent, transparent, #999); /* Firefox 3.6 to 15 */
-  background: radial-gradient(circle, transparent, transparent, #999); /* Standard syntax */
+  background: -webkit-radial-gradient(
+    circle,
+    transparent,
+    transparent,
+    #999
+  ); /* Safari */
+  background: -o-radial-gradient(
+    circle,
+    transparent,
+    transparent,
+    #999
+  ); /* Opera 11.6 to 12.0 */
+  background: -moz-radial-gradient(
+    circle,
+    transparent,
+    transparent,
+    #999
+  ); /* Firefox 3.6 to 15 */
+  background: radial-gradient(
+    circle,
+    transparent,
+    transparent,
+    #999
+  ); /* Standard syntax */
   position: absolute;
   top: 22px;
   left: 0;
@@ -143,7 +196,7 @@ body {
 
 #new_mission {
   height: 30px;
-  width: calc( 100% - 16px );
+  width: calc(100% - 16px);
   line-height: 30px;
   margin: 4px 8px;
   font-size: 14px;
@@ -152,9 +205,31 @@ body {
   color: #5ea1ed;
 }
 
+#manage_keys {
+  height: 30px;
+  width: calc(100% - 16px);
+  line-height: 30px;
+  margin: 4px 8px;
+  font-size: 12px;
+  color: #ddd;
+}
+#manage_keys:hover {
+  color: #5ea1ed;
+}
+#manage_datasets {
+  height: 30px;
+  width: calc(100% - 16px);
+  line-height: 30px;
+  margin: 4px 8px;
+  font-size: 12px;
+  color: #ddd;
+}
+#manage_datasets:hover {
+  color: #5ea1ed;
+}
 #manage_geodatasets {
   height: 30px;
-  width: calc( 100% - 16px );
+  width: calc(100% - 16px);
   line-height: 30px;
   margin: 4px 8px;
   font-size: 12px;
@@ -172,7 +247,7 @@ textarea {
   border: 1px solid #eee;
   height: auto;
   margin: 0px 161px 0px 173px;
-  border-bottom: 2px solid #1565C0 !important;
+  border-bottom: 2px solid #1565c0 !important;
 }
 
 #missions {
@@ -204,7 +279,7 @@ textarea {
 }
 
 #tab_overall_versions li:nth-child(even) {
-  background: rgba(0,0,0,0.03);
+  background: rgba(0, 0, 0, 0.03);
 }
 #tab_overall_versions li {
   padding: 5px 20px;
@@ -219,7 +294,7 @@ textarea {
 }
 #tab_overall_versions .version_set {
   color: white;
-  background: #1565C0;
+  background: #1565c0;
   padding: 0px 8px;
   border-radius: 3px;
   margin: 0px 10px;
@@ -250,7 +325,7 @@ textarea {
   text-align: center;
   margin: 0px 3px;
   color: white;
-  background: rgba(0,0,0,0.15);
+  background: rgba(0, 0, 0, 0.15);
 }
 
 .tabs {
@@ -272,12 +347,17 @@ textarea {
   background-color: transparent;
 }
 
-#tab_new_mission, #tab_initial, #tab_projection, #tab_look, #tab_panels, #tab_tools, #tab_layers {
-
+#tab_new_mission,
+#tab_initial,
+#tab_projection,
+#tab_look,
+#tab_panels,
+#tab_tools,
+#tab_layers {
 }
 .checkbox-color[type="checkbox"].filled-in:checked + label:after {
-     border: 2px solid #1565C0;
-     background-color: #1565C0;
+  border: 2px solid #1565c0;
+  background-color: #1565c0;
 }
 
 #home_cont {
@@ -290,7 +370,7 @@ textarea {
 
 .modal {
   overflow: auto !important;
-  max-height: calc( 100% - 120px ) !important;
+  max-height: calc(100% - 120px) !important;
   transform: translateX(120px) !important;
 }
 .modal .modal-title {
@@ -308,36 +388,32 @@ textarea {
 }
 
 #toast-container {
-    pointer-events: none;
-    top: 110px !important;
-    right: 6px !important;
+  pointer-events: none;
+  top: 110px !important;
+  right: 6px !important;
 }
 
 #overall_mission_name {
   text-align: center;
   font-size: 100px;
   color: #ddd;
-
 }
 
 #vtLayerEl > .CodeMirror {
   margin: 0;
 }
 
-.mmgisScrollbar::-webkit-scrollbar-track
-{
-	background-color: Transparent;
+.mmgisScrollbar::-webkit-scrollbar-track {
+  background-color: Transparent;
 }
 
-.mmgisScrollbar::-webkit-scrollbar
-{
-	width: 6px;
+.mmgisScrollbar::-webkit-scrollbar {
+  width: 6px;
   height: 6px;
-	background-color: transparent;
+  background-color: transparent;
 }
 
-.mmgisScrollbar::-webkit-scrollbar-thumb
-{
+.mmgisScrollbar::-webkit-scrollbar-thumb {
   border-radius: 2px;
-	background-color: rgba(0,0,0,0.25);
+  background-color: rgba(0, 0, 0, 0.25);
 }

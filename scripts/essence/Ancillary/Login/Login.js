@@ -77,10 +77,9 @@ define([
                 .style('position', 'absolute')
                 .style('top', '0px')
                 .style('right', '0px')
-                .style('z-index', '1090')
-                .style('margin', '4px')
+                .style('z-index', '2006')
+                .style('margin', '5px')
                 .style('color', '#aaa')
-                .style('pointer-events', 'none')
 
             d3.select('#topBar')
                 .append('div')
@@ -291,18 +290,30 @@ define([
             Login.loginBar
                 .append('div')
                 .attr('id', 'loginUser')
+                .attr('title', Login.loggedIn ? Login.username : '')
                 .style('text-align', 'center')
-                .style('font-size', '16px')
-                .style('font-family', 'monospace')
+                .style('font-size', '12px')
+                .style('font-weight', 'bold')
+                .style('font-family', 'sans-serif')
+                .style('margin-right', '5px')
                 .style('cursor', 'pointer')
-                .style('padding-right', '8px')
+                .style('width', '30px')
+                .style('height', '30px')
                 .style('line-height', '30px')
                 .style('color', 'white')
                 .style(
-                    'text-shadow',
-                    'rgb(0, 0, 0) -1px -1px 0px, rgb(0, 0, 0) 1px -1px 0px, rgb(0, 0, 0) -1px 1px 0px, rgb(0, 0, 0) 1px 1px 0px'
+                    'background',
+                    Login.loggedIn
+                        ? F_.getColorScale(
+                              F_.ASCIIProduct(Login.username) /
+                                  Login.username.length
+                          )
+                        : 'transparent'
                 )
-                .html(Login.loggedIn ? Login.username : '')
+                .style('opacity', Login.loggedIn ? 1 : 0)
+                .style('text-transform', 'uppercase')
+                .style('transition', 'opacity 0.2s ease-out')
+                .html(Login.loggedIn ? Login.username[0] : '')
 
             //Show signup for admins
             if (
@@ -317,9 +328,7 @@ define([
                     .style('width', '30px')
                     .style('height', '30px')
                     .style('line-height', '26px')
-                    .style('border-radius', '3px')
                     .style('margin-right', '4px')
-                    .style('border', '1px solid #555555')
                     .style('background', 'var(--color-a)')
                     .style('pointer-events', 'all')
                     .on('click', function() {
@@ -346,11 +355,10 @@ define([
                 .style('cursor', 'pointer')
                 .style('width', '30px')
                 .style('height', '30px')
-                .style('line-height', '26px')
+                .style('line-height', '27px')
                 .style('padding-left', '2px')
-                .style('border-radius', '3px')
-                .style('border', '1px solid #555555')
-                .style('background', 'var(--color-a)')
+                .style('border', '1px solid var(--color-e)')
+                .style('background', 'var(--color-i)')
                 .style('pointer-events', 'all')
                 .on('click', function() {
                     if (Login.loggedIn) {
@@ -369,7 +377,9 @@ define([
 
                                     Login.username = null
                                     Login.loggedIn = false
-                                    d3.select('#loginUser').html('')
+                                    d3.select('#loginUser')
+                                        .style('opacity', 0)
+                                        .html('')
                                     d3.select('#loginoutButton').attr(
                                         'title',
                                         'Login'
@@ -421,21 +431,23 @@ define([
             })
 
             //Sign in at page load from cookie if possible
-            calls.api(
-                'login',
-                {
-                    useToken: true,
-                },
-                function(d) {
-                    Login.username = d.username
-                    mmgisglobal.user = Login.username
-                    mmgisglobal.groups = d.groups
-                    loginSuccess(d)
-                },
-                function(d) {
-                    loginSuccess(d, true)
-                }
-            )
+            if (mmgisglobal.AUTH !== 'csso') {
+                calls.api(
+                    'login',
+                    {
+                        useToken: true,
+                    },
+                    function(d) {
+                        Login.username = d.username
+                        mmgisglobal.user = Login.username
+                        mmgisglobal.groups = d.groups
+                        loginSuccess(d)
+                    },
+                    function(d) {
+                        loginSuccess(d, true)
+                    }
+                )
+            }
         },
     }
 
@@ -479,7 +491,23 @@ define([
                                 'class',
                                 'mdi mdi-logout mdi-18px'
                             )
-                            $('#loginUser').html(Login.username)
+
+                            d3.select('#loginUser').attr(
+                                'title',
+                                Login.loggedIn ? Login.username : ''
+                            )
+
+                            $('#loginUser')
+                                .css({
+                                    opacity: 1,
+                                    background: Login.loggedIn
+                                        ? F_.getColorScale(
+                                              F_.ASCIIProduct(Login.username) /
+                                                  Login.username.length
+                                          )
+                                        : 'transparent',
+                                })
+                                .html(Login.username[0])
                         }, 600)
                     }
                 )

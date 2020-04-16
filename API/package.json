@@ -21,7 +21,7 @@
     "node-kmeans": "^1.1.8",
     "pg-promise": "^8.4.4",
     "pug": "^2.0.3",
-    "sequelize": "^4.44.3",
+    "sequelize": "^5.21.2",
     "session-file-store": "^1.2.0",
     "winston": "^3.0.0"
   },

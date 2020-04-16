@@ -420,6 +420,9 @@ class GlobalGeodetic(object):
         b = self.TileBounds(tx, ty, zoom)
         return (b[1],b[0],b[3],b[2])
 
+
+def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
+    return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 #---------------------
 # TODO: Finish Zoomify implemtentation!!!
 class Zoomify(object):
@@ -524,8 +527,8 @@ class GDAL2Tiles(object):
 
         # Tile format
         self.tilesize = 32 #64
-        self.tiledriver = 'PNG'
-        self.tileext = 'png'
+        self.tiledriver = 'PNG' #Irrelevant
+        self.tileext = 'demt'
 
         # Should we read bigger window of the input raster and scale it down?
         # Note: Modified leter by open_input()
@@ -1194,6 +1197,8 @@ gdal2tiles temp.vrt""" % self.input )
         #print tcount
         ti = 0
 
+        noDataValue = ds.GetRasterBand(1).GetNoDataValue()
+
         for ty in range(tmaxy, tminy-1, -1): #range(tminy, tmaxy+1):
             for tx in range(tminx, tmaxx+1):
 
@@ -1274,7 +1279,7 @@ gdal2tiles temp.vrt""" % self.input )
                 # We scale down the query to the tilesize by supplied algorithm.
 
                 # Tile dataset in memory
-                dstile = self.mem_drv.Create('', self.tilesize, self.tilesize, tilebands, gdal.GDT_Byte) ####################1bto4b
+                #dstile = self.mem_drv.Create('', self.tilesize, self.tilesize, tilebands, gdal.GDT_Byte) ####################1bto4b
                 data = None
                 ##data = ds.ReadRaster(rx, ry, rxsize, rysize, wxsize, wysize, band_list=list(range(1,self.dataBandsCount+1)))###########################1bto4b
                 ##alpha = self.alphaband.ReadRaster(rx, ry, rxsize, rysize, wxsize, wysize)
@@ -1306,7 +1311,7 @@ gdal2tiles temp.vrt""" % self.input )
                             sW = dataPad[i+(wxsize+2)]
                             sE = dataPad[i+(wxsize+2)+1]
                             dataIn.append((nW + nE + sW + sE)/float(4))
-
+                    
                     #Get the surrounding eight tiles
                     #Get NW
                     if tx - 1 >= tminx and ty + 1 <= tmaxy:
@@ -1519,89 +1524,20 @@ gdal2tiles temp.vrt""" % self.input )
                         for i in range(1, wysize):
                             dataIn[(i)*(wxsize+1)] = (dataIn[(i)*(wxsize+1)]*4)/float(2)
 
-                    data1 = []
-                    data2 = []
-                    data3 = []
-                    data4 = []
-                    for f in dataIn:
-                        f = str(binary(f))
-                        data1.append(int(f[:8], 2))
-                        data2.append(int(f[8:16], 2))
-                        data3.append(int(f[16:24], 2))
-                        data4.append(int(f[24:], 2))
+                    dataFit = [0] * ( self.tilesize**2 );
+                    # Fit partial data into full array
+                    i = 0;
+                    for y in range(wysize+1):
+                        for x in range(wxsize+1):
+                            dataFit[(wx + x)+( (wy + y) * self.tilesize ) ] = dataIn[i]
+                            i = i + 1
 
-                    data1s = ''
-                    data2s = ''
-                    data3s = ''
-                    data4s = ''
-                    indx = 0;
-                    for v in data1:
-                        data1s += struct.pack('B', data1[indx])
-                        data2s += struct.pack('B', data2[indx])
-                        data3s += struct.pack('B', data3[indx])
-                        data4s += struct.pack('B', data4[indx])
-                        indx += 1
-
-                    dstile.GetRasterBand(1).WriteRaster(wx, wy, wxsize + 1, wysize + 1, data1s, buf_type=gdal.GDT_Byte)
-                    dstile.GetRasterBand(2).WriteRaster(wx, wy, wxsize + 1, wysize + 1, data2s, buf_type=gdal.GDT_Byte)
-                    dstile.GetRasterBand(3).WriteRaster(wx, wy, wxsize + 1, wysize + 1, data3s, buf_type=gdal.GDT_Byte)
-                    dstile.GetRasterBand(4).WriteRaster(wx, wy, wxsize + 1, wysize + 1, data4s, buf_type=gdal.GDT_Byte)
-                    # Note: For source drivers based on WaveLet compression (JPEG2000, ECW, MrSID)
-                    # the ReadRaster function returns high-quality raster (not ugly nearest neighbour)
-                    # TODO: Use directly 'near' for WaveLet files
-                elif wxsize != 0 and wysize != 0:
-                    # Big ReadRaster query in memory scaled to the tilesize - all but 'near' algo
-                    dsquery = self.mem_drv.Create('', querysize, querysize, tilebands, gdal.GDT_Byte) ######1bto4b
-                    # TODO: fill the null value in case a tile without alpha is produced (now only png tiles are supported)
-                    #for i in range(1, tilebands+1):
-                    #   dsquery.GetRasterBand(1).Fill(tilenodata)
-                    ##dsquery.WriteRaster(wx, wy, wxsize, wysize, data, band_list=list(range(1,self.dataBandsCount+1)))###############1bto4b
-                    ##dsquery.WriteRaster(wx, wy, wxsize, wysize, alpha, band_list=[tilebands])###############################1bto4b
-
-                    ####1bto4b
-                    data = ds.GetRasterBand(1).ReadRaster(rx, ry, rxsize, rysize, wxsize, wysize, buf_type=gdal.GDT_Float32)
-
-                    data = struct.unpack('f' * wxsize * wysize, data)
-                    data1 = []
-                    data2 = []
-                    data3 = []
-                    data4 = []
-                    for f in data:
-                        f = str(binary(f))
-                        data1.append(int(f[:8], 2))
-                        data2.append(int(f[8:16], 2))
-                        data3.append(int(f[16:24], 2))
-                        data4.append(int(f[24:], 2))
-
-                    data1s = ''
-                    data2s = ''
-                    data3s = ''
-                    data4s = ''
-                    indx = 0;
-                    for v in data1:
-                        data1s += struct.pack('B', data1[indx])
-                        data2s += struct.pack('B', data2[indx])
-                        data3s += struct.pack('B', data3[indx])
-                        data4s += struct.pack('B', data4[indx])
-                        indx += 1
-                    print self.in_nodata
-                    dsquery.GetRasterBand(1).WriteRaster(wx, wy, wxsize, wysize, data1s, buf_type=gdal.GDT_Byte)
-                    dsquery.GetRasterBand(2).WriteRaster(wx, wy, wxsize, wysize, data2s, buf_type=gdal.GDT_Byte)
-                    dsquery.GetRasterBand(3).WriteRaster(wx, wy, wxsize, wysize, data3s, buf_type=gdal.GDT_Byte)
-                    dsquery.GetRasterBand(4).WriteRaster(wx, wy, wxsize, wysize, data4s, buf_type=gdal.GDT_Byte)
-                    #sys.exit('done')
-                    ##1bto4b
-
-                    self.scale_query_to_tile(dsquery, dstile, tilefilename)
-                    del dsquery
+                    outputStruct = struct.pack('f'*len(dataFit), *dataFit)
+                    outputFile = open(tilefilename,'wb')
+                    outputFile.write(outputStruct)
+                    outputFile.close()        
 
                 del data
-
-                if self.options.resampling != 'antialias':
-                    # Write a copy of tile to png/jpg
-                    self.out_drv.CreateCopy(tilefilename, dstile, strict=0)
-
-                del dstile
 
                 # Create a KML file for this tile.
                 if self.kml:

@@ -52,12 +52,12 @@ define([
             var file = DrawTool.getFileObjectWithId(DrawTool.currentFileId)
             if (file == null) {
                 $('#drawToolHistoryFile')
-                    .css({ background: 'red' })
+                    .css({ background: '#ac0404', color: 'white' })
                     .text('No File Selected!')
                 return
             }
             $('#drawToolHistoryFile')
-                .css({ background: 'var(--color-b)' })
+                .css({ background: 'white', color: 'black' })
                 .text(file.file_name)
 
             DrawTool.getHistoryFile(

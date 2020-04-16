@@ -171,7 +171,7 @@ define([
                     file.id + "' layer='" + layer + "' index='" + index + "'>",
                     "<div class='flexbetween'>",
                     "<div style='height: 100%; width: 7px; background: " + DrawTool.categoryStyles[file.intent].color + "'></div>",
-                    "<div class='flexbetween' style='padding-left: 3px;'>",
+                    "<div class='flexbetween' style='padding-left: 8px;'>",
                         "<div class='drawToolShapeLiItemB'>" + properties.name + "</div>",
                     "</div>",
                     "</div>",

@@ -96,23 +96,32 @@ define(['jquery', 'd3', 'Formulae_', 'Layers_', 'CursorInfo'], function(
             var bp = d3.select('#' + divId)
             bp.selectAll('*').remove()
 
+            const headerHeight = 35
+
             //Make chart if there is data
             if (chems[0] != undefined) {
                 chemsNameArr = chemLayerVar
                 var chemsBarredH = barChems(chems)
                 var newCBH = chemsBarredH
 
-                var cmargin = { top: 0, right: 35, bottom: 5, left: 35 },
+                var cmargin = {
+                        top: 0,
+                        right: 35,
+                        bottom: 10,
+                        left: 35,
+                    },
                     cwidth =
-                        bp.style('width').replace('px', '') -
+                        $('#' + divId)[0].getBoundingClientRect().width -
                         cmargin.left -
                         cmargin.right,
                     cheight =
-                        bp.style('height').replace('px', '') -
+                        $('#' + divId)[0].getBoundingClientRect().height -
                         cmargin.top -
-                        cmargin.bottom
+                        cmargin.bottom +
+                        headerHeight
                 var xScaleFactor = cwidth / 100 //streches the bars horizontally
                 var pheight = cheight * 0.8 //percent svg bars take up vertically
+
                 var chemChartH = bp
                     .append('svg')
                     .attr('id', 'chemistry_chart_h')
@@ -126,7 +135,7 @@ define(['jquery', 'd3', 'Formulae_', 'Layers_', 'CursorInfo'], function(
                 var y = d3
                     .scaleLinear()
                     .domain([0, c - 1])
-                    .range([0, pheight])
+                    .range([headerHeight, pheight])
                 if (c - 1 == 1)
                     y = function() {
                         return pheight / 4
@@ -150,7 +159,7 @@ define(['jquery', 'd3', 'Formulae_', 'Layers_', 'CursorInfo'], function(
                             .append('rect')
                             .attr('class', 'chemBarRectH')
                             .attr('width', d[chemsNameArr[i]] * xScaleFactor)
-                            .attr('height', pheight / c)
+                            .attr('height', (pheight - headerHeight) / c)
                             .attr('x', xPos * xScaleFactor)
                             .attr('fill', colorScale(i))
                             .style('cursor', 'pointer')
@@ -164,7 +173,7 @@ define(['jquery', 'd3', 'Formulae_', 'Layers_', 'CursorInfo'], function(
                             'width',
                             Math.max(0, cwidth - xPos * xScaleFactor)
                         )
-                        .attr('height', pheight / c)
+                        .attr('height', (pheight - headerHeight) / c)
                         .attr('x', xPos * xScaleFactor)
                         .attr('fill', 'gray')
                 })
@@ -210,7 +219,8 @@ define(['jquery', 'd3', 'Formulae_', 'Layers_', 'CursorInfo'], function(
                             .scaleLinear()
                             .domain([1, c - 1])
                             .range([
-                                pheight / (c - 1) / 2,
+                                (pheight - headerHeight) / (c - 1) / 2 +
+                                    headerHeight,
                                 pheight - pheight / (c - 1) / 2,
                             ])
                     )
@@ -221,7 +231,7 @@ define(['jquery', 'd3', 'Formulae_', 'Layers_', 'CursorInfo'], function(
                     .append('g')
                     .attr('id', 'chem_y_axis_h')
                     .style('fill', '#DCDCDC')
-                    .style('font-size', 0.7 * (pheight / c))
+                    .style('font-size', 0.7 * ((pheight - headerHeight) / c))
                     .attr('transform', 'translate(0, 0)')
                     .call(yAxis)
                 d3.selectAll('#chem_y_axis_h line')
@@ -236,7 +246,11 @@ define(['jquery', 'd3', 'Formulae_', 'Layers_', 'CursorInfo'], function(
                 var chemLegend = chemChartH
                     .append('g')
                     .attr('transform', function() {
-                        return 'translate(0,' + (cheight - cheight * 0.08) + ')'
+                        return (
+                            'translate(' +
+                            (cwidth / 2 - (numOfChems * 60) / 2) +
+                            ',10)'
+                        )
                     })
                 for (var i = 0; i <= numOfChems; i++) {
                     if (i == numOfChems) {
@@ -287,22 +301,20 @@ define(['jquery', 'd3', 'Formulae_', 'Layers_', 'CursorInfo'], function(
                     .attr('transform', function() {
                         return (
                             'translate(' +
-                            (100 * xScaleFactor - chemRefreshWidth) +
-                            ',' +
-                            (cheight - cheight * 0.08) +
-                            ')'
+                            (100 * xScaleFactor - chemRefreshWidth - 130) +
+                            ',10)'
                         )
                     })
                 chemRefresh
                     .append('rect')
                     .attr('width', chemRefreshWidth)
-                    .attr('height', 12)
+                    .attr('height', 16)
                     .attr('fill', 'none')
                     .attr('stroke', '#DCDCDC')
                 chemRefresh
                     .append('text')
                     .attr('x', 4)
-                    .attr('y', 11)
+                    .attr('y', 12)
                     .attr('font-size', 12)
                     .attr('fill', '#DCDCDC')
                     .style('cursor', 'pointer')
@@ -350,8 +362,64 @@ define(['jquery', 'd3', 'Formulae_', 'Layers_', 'CursorInfo'], function(
                                             'y',
                                             d3.mouse(this)[1] + y(i0) + 25
                                         )
-                                        .attr('font-size', 25)
+                                        .attr('font-size', 26)
                                         .attr('fill', 'black')
+                                        .style('fill', 'black')
+                                        .style('font-weight', 'bold')
+                                        .html(
+                                            chemsNameArr[i] +
+                                                ': ' +
+                                                d2[chemsNameArr[i]] +
+                                                '%'
+                                        )
+                                    chemChartH
+                                        .append('text')
+                                        .attr('class', 'chem_hover_focus')
+                                        .attr('x', d3.mouse(this)[0] + 14)
+                                        .attr(
+                                            'y',
+                                            d3.mouse(this)[1] + y(i0) + 25
+                                        )
+                                        .attr('font-size', 26)
+                                        .attr('fill', 'black')
+                                        .style('fill', 'black')
+                                        .style('font-weight', 'bold')
+                                        .html(
+                                            chemsNameArr[i] +
+                                                ': ' +
+                                                d2[chemsNameArr[i]] +
+                                                '%'
+                                        )
+                                    chemChartH
+                                        .append('text')
+                                        .attr('class', 'chem_hover_focus')
+                                        .attr('x', d3.mouse(this)[0] + 15)
+                                        .attr(
+                                            'y',
+                                            d3.mouse(this)[1] + y(i0) + 26
+                                        )
+                                        .attr('font-size', 26)
+                                        .attr('fill', 'black')
+                                        .style('fill', 'black')
+                                        .style('font-weight', 'bold')
+                                        .html(
+                                            chemsNameArr[i] +
+                                                ': ' +
+                                                d2[chemsNameArr[i]] +
+                                                '%'
+                                        )
+                                    chemChartH
+                                        .append('text')
+                                        .attr('class', 'chem_hover_focus')
+                                        .attr('x', d3.mouse(this)[0] + 15)
+                                        .attr(
+                                            'y',
+                                            d3.mouse(this)[1] + y(i0) + 24
+                                        )
+                                        .attr('font-size', 26)
+                                        .attr('fill', 'black')
+                                        .style('fill', 'black')
+                                        .style('font-weight', 'bold')
                                         .html(
                                             chemsNameArr[i] +
                                                 ': ' +
@@ -366,8 +434,8 @@ define(['jquery', 'd3', 'Formulae_', 'Layers_', 'CursorInfo'], function(
                                             'y',
                                             d3.mouse(this)[1] + y(i0) + 25
                                         )
-                                        .attr('font-size', 25)
-                                        .attr('fill', '#DCDCDC')
+                                        .attr('font-size', 26)
+                                        .style('font-weight', 'bold')
                                         .html(
                                             chemsNameArr[i] +
                                                 ': ' +

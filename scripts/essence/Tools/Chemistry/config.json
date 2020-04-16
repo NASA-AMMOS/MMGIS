@@ -1,0 +1,15 @@
+{
+    "defaultIcon": "flask",
+    "description": "Display chemistry percentages via graphs of a clicked point.",
+    "descriptionFull": {},
+    "hasVars": false,
+    "name": "Chemistry",
+    "paths": {
+        "ChemistryTool": "essence/Tools/Chemistry/ChemistryTool",
+        "chemistrychart": "essence/Tools/Chemistry/chemistrychart",
+        "chemistryplot": "essence/Tools/Chemistry/chemistryplot"
+    },
+    "shim": {
+        "ChemistryTool": { "deps": ["chemistrychart", "chemistryplot"] }
+    }
+}
