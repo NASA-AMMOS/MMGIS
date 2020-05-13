@@ -262,6 +262,7 @@ function ensureAdmin(toLoginPage, denyLongTermTokens) {
       req.session.permission === "111"
     )
       next();
+    else if (toLoginPage) res.render("adminlogin", { user: req.user });
     else if (!denyLongTermTokens && req.headers.authorization) {
       validateLongTermToken(
         req.headers.authorization,
@@ -279,8 +280,7 @@ function ensureAdmin(toLoginPage, denyLongTermTokens) {
           );
         }
       );
-    } else if (toLoginPage) res.render("adminlogin", { user: req.user });
-    else {
+    } else {
       res.send({ status: "failure", message: "Unauthorized!" });
       logger(
         "info",
