@@ -1,4 +1,4 @@
-define([], function() {
+define([], function () {
     /*
     var rgba = { r: 92, g: 244, b: 12, a: 247 }
 
@@ -32,6 +32,17 @@ define([], function() {
     console.log(encodeRGBA(d))
     */
     return (DataShaders = {
+        image: {
+            // prettier-ignore
+            frag: [
+                'void main(void) {',
+                    // Fetch color from texture
+                    'highp vec4 texelColour = texture2D(uTexture0, vec2(vTextureCoords.s, vTextureCoords.t));',     
+                    'gl_FragColor = texelColour;',
+                '}'
+            ].join('\n'),
+            settings: [],
+        },
         flood: {
             // prettier-ignore
             frag: [

@@ -7,7 +7,7 @@ define([
     'Login',
     'QueryURL',
     'HTML2Canvas',
-], function($, d3, F_, L_, ToolController_, Login, QueryURL, HTML2Canvas) {
+], function ($, d3, F_, L_, ToolController_, Login, QueryURL, HTML2Canvas) {
     var Viewer_ = null
     var Map_ = null
     var Globe_ = null
@@ -16,6 +16,7 @@ define([
         splitterSize: 0,
         splitterSizeHidden: 17,
         topSize: 40,
+        fullSizeViews: false, //Experimental!!!
         pxIsViewer: null,
         pxIsMap: null,
         pxIsGlobe: null,
@@ -33,6 +34,7 @@ define([
         hasViewer: true,
         mapScreen: null,
         mapToolBar: null,
+        mapTopBar: null,
         mapSplit: null,
         mapSplitInner: null,
         hasMap: true,
@@ -46,7 +48,7 @@ define([
         toolsSplit: null,
         toolbar: null,
         helpOn: true,
-        init: function() {
+        init: function () {
             //Other stylings in mmgis.css
             var logoURL =
                 mmgisglobal.SERVER === 'node'
@@ -63,7 +65,7 @@ define([
                 .style('justify-content', 'space-between')
                 .style('position', 'absolute')
                 .style('top', '0px')
-                .style('width', 'calc( 100% - 74px )')
+                .style('width', 'auto')
                 .style('height', this.topSize + 'px')
                 .style('left', '0px')
                 .style('padding', '5px 3px')
@@ -71,7 +73,7 @@ define([
                 .style('font-family', 'sans-serif')
                 .style('font-size', '24px')
                 .style('z-index', '2005')
-                .style('box-shadow', '0 4px 16px rgba(0,0,0,.25)')
+            //.style('box-shadow', '0 4px 16px rgba(0,0,0,.25)')
 
             this.topBarLeft = this.topBar.append('div').style('display', 'flex')
             this.topBarRight = this.topBar
@@ -103,39 +105,11 @@ define([
                     .style('font-size', '16px')
                     .style('font-weight', 'bold')
                     .style('line-height', '14px')
-                    .style('letter-spacing', '2.21429px')
+                    .style('letter-spacing', '3.21429px')
                     .style('font-family', 'lato')
-                    .style('padding', '8px 0px 8px 14px')
+                    .style('padding', '8px 10px 8px 14px')
                     .html(mmgisglobal.name)
                 tbt.append('div').attr('id', 'topBarTitleIcon')
-
-                this.topBarLeft
-                    .append('div')
-                    .attr('class', 'mainInfo')
-                    .style('display', 'none')
-                    .style('position', 'relative')
-                    .style('height', '30px')
-                    .style('margin', '0')
-                    .style('margin-left', '8px')
-                    .style('z-index', '20')
-                    .style('opacity', 0)
-                    .style('transition', 'opacity 0.2s ease-out')
-
-                this.topBarLeft
-                    .append('div')
-                    .attr('class', 'mainDescription')
-                    .style('display', 'none')
-                    .style('position', 'relative')
-                    .style('height', '30px')
-                    .style('margin', '0')
-                    .style('margin-left', '8px')
-                    .style('z-index', '20')
-                    .style('padding-left', '8px')
-                    .style('border', '1px solid var(--color-m1)')
-                    .style('opacity', 0)
-                    .style('transition', 'opacity 0.2s ease-out')
-
-                this.topBarRight.append('div').attr('class', 'Search')
             }
 
             this.rightPanel = d3
@@ -192,8 +166,8 @@ define([
                 //.style( 'color', '#00b5d2' )
                 .style('color', 'rgb(0, 210, 0)')
                 .style('cursor', 'pointer')
-                .on('click', function() {
-                    QueryURL.writeCoordinateURL(function() {
+                .on('click', function () {
+                    QueryURL.writeCoordinateURL(function () {
                         F_.copyToClipboard(L_.url)
                         $('#copyLinkCopied').css('display', 'inherit')
                         $('#copyLinkCopied').css('width', '64px')
@@ -202,15 +176,15 @@ define([
                                 opacity: 1,
                             },
                             150,
-                            function() {
-                                setTimeout(function() {
+                            function () {
+                                setTimeout(function () {
                                     $('#copyLinkCopied').animate(
                                         {
                                             opacity: 0,
                                             width: '0px',
                                         },
                                         500,
-                                        function() {
+                                        function () {
                                             $('#copyLinkCopied').css(
                                                 'display',
                                                 'none'
@@ -254,13 +228,12 @@ define([
                 .style('color', '#d2b800')
                 .style('cursor', 'pointer')
                 .style('opacity', '0.8')
-                .on('click', function() {
+                .on('click', function () {
                     //We need to manually order leaflet z-indices for this to work
                     let zIndices = []
                     $('#mapScreen #map .leaflet-tile-pane')
                         .children()
-                        .each(function(i, elm) {
-                            console.log(i, elm)
+                        .each(function (i, elm) {
                             zIndices.push($(elm).css('z-index'))
                             $(elm).css('z-index', i + 1)
                         })
@@ -268,15 +241,15 @@ define([
                     $('.leaflet-control-zoom').css('display', 'none')
                     $('#topBarScreenshotLoading').css('display', 'block')
                     HTML2Canvas(document.getElementById('mapScreen')).then(
-                        function(canvas) {
+                        function (canvas) {
                             canvas.id = 'mmgisScreenshot'
                             document.body.appendChild(canvas)
                             F_.downloadCanvas(
                                 canvas.id,
                                 'camp-screenshot',
-                                function() {
+                                function () {
                                     canvas.remove()
-                                    setTimeout(function() {
+                                    setTimeout(function () {
                                         $('#topBarScreenshotLoading').css(
                                             'display',
                                             'none'
@@ -288,7 +261,7 @@ define([
                     )
                     $('#mapScreen #map .leaflet-tile-pane')
                         .children()
-                        .each(function(i, elm) {
+                        .each(function (i, elm) {
                             $(elm).css('z-index', zIndices[i])
                         })
                     $('.leaflet-control-scalefactor').css('display', 'flex')
@@ -329,7 +302,7 @@ define([
                 //.style( 'color', 'rgb(0, 210, 0)' )
                 .style('color', '#d2b800')
                 .style('cursor', 'pointer')
-                .on('click', function() {
+                .on('click', function () {
                     fullscreen()
                     if (
                         d3.select(this).attr('class') ==
@@ -355,7 +328,7 @@ define([
                 .style('line-height', '26px')
                 .style('color', '#d2b800')
                 .style('display', 'none') //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!======
-                .on('click', function() {
+                .on('click', function () {
                     if (d3.select(this).style('color') == 'rgb(0, 210, 0)') {
                         d3.select('#topBarRight #loginButton').style(
                             'display',
@@ -406,7 +379,7 @@ define([
                 .style('line-height', '26px')
                 .style('color', '#d26100')
                 .style('cursor', 'pointer')
-                .on('click', function() {
+                .on('click', function () {
                     this.helpOn = !this.helpOn
                     if (this.helpOn) {
                         //d3.select('#viewer_Help').style('display', 'inherit')
@@ -436,9 +409,14 @@ define([
                 .append('div')
                 .attr('id', 'splitscreens')
                 .style('position', 'absolute')
-                .style('top', this.topSize + 'px')
+                .style('top', (this.fullSizeViews ? '0' : this.topSize) + 'px')
                 .style('width', 'calc( 100% - ' + 40 + 'px )')
-                .style('height', 'calc( 100% - ' + this.topSize + 'px )')
+                .style(
+                    'height',
+                    'calc( 100% - ' +
+                        (this.fullSizeViews ? '0' : this.topSize) +
+                        'px )'
+                )
                 .style('left', 40 + 'px')
 
             this.hide()
@@ -512,7 +490,6 @@ define([
                 .style('position', 'absolute')
                 .style('width', this.pxIsMap - this.splitterSize * 2 + 'px')
                 .style('height', this.mainHeight + 'px')
-                .style('overflow', 'hidden')
                 .style('top', '0px')
                 //.style('box-shadow', '0px 0px 10px rgba(6,6,6,0.6)')
                 .style('left', this.pxIsViewer + this.splitterSize + 'px')
@@ -528,11 +505,76 @@ define([
                 .append('div')
                 .attr('id', 'mapToolBar')
                 .style('position', 'absolute')
-                .style('bottom', /*this.topSize +*/ '0px')
+                .style('bottom', '0px')
                 .style('width', '100%')
                 .style('height', '36px')
                 .style('pointer-events', 'none')
+                .style('overflow', 'hidden')
                 .style('z-index', '1003')
+
+            this.mapTopBar = this.mapScreen
+                .append('div')
+                .attr('id', 'mapTopBar')
+                .style('z-index', '400')
+                .style('display', 'flex')
+                .style('justify-content', 'space-between')
+                .style('position', this.fullSizeViews ? 'absolute' : 'fixed')
+                .style('top', '0px')
+                .style('pointer-events', 'none')
+                .style('width', this.fullSizeViews ? '100%' : '100vw')
+                .style(
+                    'padding',
+                    '5px 76px 5px ' +
+                        document
+                            .getElementById('topBar')
+                            .getBoundingClientRect().width +
+                        'px'
+                )
+                .style('height', this.topSize + 'px')
+                .style('left', '0px')
+                .style('background', 'transparent')
+                .style('font-family', 'sans-serif')
+                .style('font-size', '24px')
+                .style('mix-blend-mode', 'luminosity')
+
+            if (this.topSize > 0) {
+                let mapTopBarLeft = this.mapTopBar
+                    .append('div')
+                    .style('display', 'flex')
+                let mapTopBarRight = this.mapTopBar
+                    .append('div')
+                    .style('display', 'flex')
+                mapTopBarLeft
+                    .append('div')
+                    .attr('class', 'mainInfo')
+                    .style('display', 'none')
+                    .style('position', 'relative')
+                    .style('height', '30px')
+                    .style('margin', '0')
+                    .style('margin-left', '8px')
+                    .style('z-index', '20')
+                    .style('opacity', 0)
+                    .style('pointer-events', 'auto')
+                    .style('transition', 'opacity 0.2s ease-out')
+
+                mapTopBarLeft
+                    .append('div')
+                    .attr('class', 'mainDescription')
+                    .style('display', 'none')
+                    .style('position', 'relative')
+                    .style('height', '30px')
+                    .style('margin', '0')
+                    .style('margin-left', '8px')
+                    .style('z-index', '20')
+                    .style('padding-left', '8px')
+                    .style('border', '1px solid var(--color-m1)')
+                    .style('background', 'var(--color-a)')
+                    .style('opacity', 0)
+                    .style('pointer-events', 'auto')
+                    .style('transition', 'opacity 0.2s ease-out')
+
+                mapTopBarRight.append('div').attr('class', 'Search')
+            }
             //The map slider
             this.mapSplit = this.vmgScreen
                 .append('div')
@@ -566,7 +608,7 @@ define([
                 .attr('id', 'mapSplitInnerLeft')
                 .attr('class', 'mdi mdi-chevron-double-left mdi-24px')
                 .style('margin-right', '14px')
-                .on('click touchstart', function() {
+                .on('click touchstart', function () {
                     var pp = UserInterface.getPanelPercents()
                     if (pp.map == 0) {
                         UserInterface.setPanelPercents(0, 0, 100)
@@ -594,7 +636,7 @@ define([
                 .attr('id', 'mapSplitInnerRight')
                 .attr('class', 'mdi mdi-chevron-double-right mdi-24px')
                 .style('margin-left', '8px')
-                .on('click touchstart', function() {
+                .on('click touchstart', function () {
                     var pp = UserInterface.getPanelPercents()
                     if (pp.map == 0) {
                         UserInterface.setPanelPercents(
@@ -657,7 +699,7 @@ define([
                 //.style('box-shadow', '0px 0px 10px rgba(6,6,6,0.6)')
                 .style('overflow', 'hidden')
                 .style('left', this.pxIsViewer + this.pxIsMap + 'px')
-                .style('z-index', '400')
+                .style('z-index', '401')
             this.globeScreen
                 .append('div')
                 .attr('id', 'globe')
@@ -669,9 +711,10 @@ define([
                 .append('div')
                 .attr('id', 'globeToolBar')
                 .style('position', 'absolute')
-                .style('top', /*this.topSize +*/ '0px')
+                .style('top', '0px')
                 .style('width', '100%')
-                .style('height', '48px')
+                .style('padding-right', this.fullSizeViews ? '70px' : '0px')
+                .style('height', '40px')
                 .style('pointer-events', 'none')
                 .style('z-index', '5')
 
@@ -709,7 +752,7 @@ define([
                 .attr('id', 'globeSplitInnerLeft')
                 .attr('class', 'mdi mdi-chevron-double-left mdi-24px')
                 .style('margin-right', '18px')
-                .on('click touchstart', function() {
+                .on('click touchstart', function () {
                     var pp = UserInterface.getPanelPercents()
                     if (pp.map == 0) {
                         UserInterface.setPanelPercents(
@@ -741,7 +784,7 @@ define([
                 .attr('id', 'globeSplitInnerRight')
                 .attr('class', 'mdi mdi-chevron-double-right mdi-24px')
                 .style('margin-left', '4px')
-                .on('click touchstart', function() {
+                .on('click touchstart', function () {
                     var pp = UserInterface.getPanelPercents()
                     if (pp.map == 0) {
                         UserInterface.setPanelPercents(100, 0, 0)
@@ -813,7 +856,7 @@ define([
                 //.style('box-shadow', '2px 5px 4px 0px rgba(0, 0, 0, 0.3)')
                 .style('left', '-' + this.splitterSize + 'px')
                 .style('bottom', this.topSize + 'px')
-                .style('left', '0px')
+                .style('left', 0 + 'px')
                 .style('bottom', '0px')
                 //.style( 'border', '1px solid #26a8ff' )
                 .style('z-index', '1003')
@@ -845,8 +888,10 @@ define([
                 //.style( 'box-shadow', 'inset 0px 2px 7px black' )
                 //.style( 'box-shadow', '7px 0px 7px rgba(0,0,0,0.2)' )
                 .style('width', this.topSize + 'px')
-                .style('top', this.topSize + 'px')
-                .style('height', 'calc( 100% - ' + this.topSize + 'px )')
+                .style('padding-top', this.topSize + 'px')
+                .style('background', 'var(--color-a)')
+                .style('top', '0px')
+                .style('height', '100%')
                 .style('z-index', '1004')
 
             this.toolbarLogo = this.toolbar
@@ -878,10 +923,10 @@ define([
 
             shouldRotateSplitterText()
         },
-        hide: function() {
+        hide: function () {
             d3.select('#main-container').style('opacity', '0')
         },
-        show: function() {
+        show: function () {
             $('#main-container').animate(
                 {
                     opacity: 1,
@@ -889,7 +934,7 @@ define([
                 1000
             )
         },
-        openRightPanel: function(width) {
+        openRightPanel: function (width) {
             if (UserInterface.rightPanelOpen != null) return
             var oldWidth = parseInt(
                 UserInterface.splitscreens.style('width').replace('px', '')
@@ -905,7 +950,7 @@ define([
 
             UserInterface.rightPanelOpen = oldWidth
         },
-        closeRightPanel: function() {
+        closeRightPanel: function () {
             if (UserInterface.rightPanelOpen == null) return
             $('#loginDiv').css('right', '0px')
             $('.mouseLngLat').css('right', '0px')
@@ -920,7 +965,7 @@ define([
 
             UserInterface.rightPanelOpen = null
         },
-        openToolPanel: function(width) {
+        openToolPanel: function (width) {
             UserInterface.toolPanel.selectAll('*').remove()
             UserInterface.toolPanel.style('width', width + 'px')
             //UserInterface.toolPanel.style( 'border-left', '0px solid rgb(38, 168, 255)' );
@@ -932,28 +977,31 @@ define([
             */
             UserInterface.splitscreens.style(
                 'width',
-                'calc(100% - ' + (width + 36) + 'px)'
+                'calc(100% - ' + (width + 40) + 'px)'
             )
-            UserInterface.splitscreens.style('left', width + 36 + 'px')
+            UserInterface.splitscreens.style('left', width + 40 + 'px')
             UserInterface.mainWidth = $('#splitscreens').width()
             UserInterface.mainHeight = $('#splitscreens').height()
             var pp = UserInterface.getPanelPercents()
             UserInterface.setPanelPercents(pp.viewer, pp.map, pp.globe)
         },
-        closeToolPanel: function() {
+        closeToolPanel: function () {
             UserInterface.toolPanel.selectAll('*').remove()
             UserInterface.toolPanel.style('width', '0')
             //UserInterface.toolPanel.style( 'border-left', '1px solid rgb(38, 168, 255)' );
             UserInterface.toolbar.style('box-shadow', 'none')
-            UserInterface.splitscreens.style('width', 'calc(100% - 40px)')
-            UserInterface.splitscreens.style('left', '40px')
+            UserInterface.splitscreens.style(
+                'width',
+                'calc(100% - ' + 40 + 'px)'
+            )
+            UserInterface.splitscreens.style('left', 40 + 'px')
             UserInterface.mainWidth = $('#splitscreens').width()
             UserInterface.mainHeight = $('#splitscreens').height()
             var pp = UserInterface.getPanelPercents()
             UserInterface.setPanelPercents(pp.viewer, pp.map, pp.globe)
         },
         // can also be 'full'
-        setToolHeight: function(pxHeight, shouldntAnimate) {
+        setToolHeight: function (pxHeight, shouldntAnimate) {
             if (pxHeight == 'full') {
                 UserInterface.pxIsTools =
                     this.mainHeight - this.splitterSize - this.topSize
@@ -1081,11 +1129,7 @@ define([
             if (newWidth == 'full') {
                 newWidth = Math.max(
                     0,
-                    parseInt(
-                        $('#toolsWrapper')
-                            .parent()
-                            .width()
-                    )
+                    parseInt($('#toolsWrapper').parent().width())
                 )
             }
             newWidth += 'px'
@@ -1094,7 +1138,7 @@ define([
                 width: newWidth,
             })
         },
-        getPanelPercents: function() {
+        getPanelPercents: function () {
             var vp = (UserInterface.pxIsViewer / UserInterface.mainWidth) * 100
             var gp = (UserInterface.pxIsGlobe / UserInterface.mainWidth) * 100
             var mp = 100 - vp - gp
@@ -1104,7 +1148,7 @@ define([
                 globe: gp,
             }
         },
-        setPanelPercents: function(viewerPercent, mapPercent, globePercent) {
+        setPanelPercents: function (viewerPercent, mapPercent, globePercent) {
             //normalize input
             viewerPercent = parseFloat(viewerPercent)
             mapPercent = parseFloat(mapPercent)
@@ -1197,7 +1241,7 @@ define([
             }
         },
         //finalize so we can get the resize function
-        fina: function(l_, viewer_, map_, globe_) {
+        fina: function (l_, viewer_, map_, globe_) {
             ToolController_.init(l_.tools)
             ToolController_.fina(this)
             Viewer_ = viewer_
@@ -1252,6 +1296,11 @@ define([
                 $('#topBarHelp').css({
                     display: l_.configData.look.help ? 'inherit' : 'none',
                 })
+
+            d3.select('#mapTopBar').style(
+                'padding',
+                '5px 76px 5px ' + $('#topBar').width() + 'px'
+            )
 
             UserInterface.show()
         },
@@ -1344,7 +1393,9 @@ define([
 
             e.clientX -= UserInterface.splitterSize
 
-            e.clientX -= 36 //Left toolbar
+            e.clientX -= 40 //Left toolbar
+
+            e.clientX -= $('#toolPanel').width()
 
             if (e.clientX >= UserInterface.mainWidth - 5) {
                 e.clientX = UserInterface.mainWidth
@@ -1447,7 +1498,9 @@ define([
             if (!e.clientX && e.originalEvent && e.originalEvent.touches)
                 e.clientX = e.originalEvent.touches[0].clientX
 
-            e.clientX -= 36 //Left toolbar
+            e.clientX -= 40 //Left toolbar
+
+            e.clientX -= $('#toolPanel').width()
 
             if (UserInterface.hasViewer !== false) {
                 e.clientX -= UserInterface.splitterSize
@@ -1764,9 +1817,7 @@ define([
         if (!hasViewer && !hasGlobe) {
             $('#mapSplit').off('mousedown', mapSplitOnMouseDown)
             $('#mapSplit').off('touchstart', mapSplitOnMouseDown)
-            d3.select('#viewerSplit')
-                .selectAll('*')
-                .remove()
+            d3.select('#viewerSplit').selectAll('*').remove()
             d3.select('#viewerSplit').style('width', 0)
             $('#mapSplit div:not(#mapSplitText)').remove()
             d3.select('#mapSplit')
@@ -1774,25 +1825,19 @@ define([
                 .style('box-shadow', 'none')
             $('#globeSplit').off('mousedown', globeSplitOnMouseDown)
             $('#globeSplit').off('touchstart', globeSplitOnMouseDown)
-            d3.select('#globeSplit')
-                .selectAll('*')
-                .remove()
+            d3.select('#globeSplit').selectAll('*').remove()
             d3.select('#globeSplit')
                 .style('width', '0')
                 .style('cursor', 'default')
                 .style('box-shadow', 'none')
-            d3.select('#mapSplit')
-                .selectAll('*')
-                .remove()
+            d3.select('#mapSplit').selectAll('*').remove()
             d3.select('#mapSplit').style('width', '0')
             d3.select('#mapScreen').style('top', '0')
             UserInterface.splitterSize = 0
         } else if (!hasViewer) {
             $('#mapSplit').off('mousedown', mapSplitOnMouseDown)
             $('#mapSplit').off('touchstart', mapSplitOnMouseDown)
-            d3.select('#viewerSplit')
-                .selectAll('*')
-                .remove()
+            d3.select('#viewerSplit').selectAll('*').remove()
             d3.select('#viewerSplit').style('width', 0)
             $('#mapSplit div:not(#mapSplitText)').remove()
             d3.select('#mapSplit')
@@ -1801,9 +1846,7 @@ define([
         } else if (!hasGlobe) {
             $('#globeSplit').off('mousedown', globeSplitOnMouseDown)
             $('#globeSplit').off('touchstart', globeSplitOnMouseDown)
-            d3.select('#globeSplit')
-                .selectAll('*')
-                .remove()
+            d3.select('#globeSplit').selectAll('*').remove()
             d3.select('#globeSplit')
                 .style('width', '0')
                 .style('cursor', 'default')

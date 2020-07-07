@@ -49,7 +49,7 @@ Spatial Data Infrastructure for Planetary Missions
 
 1. Run `install.sh` within `/`  
    `./install.sh`  
-   (If you can't run install, just copy `/prepare/base/Missions` to `/Missions`)
+   (If you can't run install, just copy `/prepare/base/Missions` to `/Missions` and copy `/prepare/base/config/configconfig.json` to `/config/configconfig.json`)
 
 1. Copy `/sample.env` to `.env`  
    `cp sample.env .env`

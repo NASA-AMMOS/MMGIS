@@ -1,4 +1,4 @@
-define(['d3', 'Formulae_', 'three', 'container'], function(
+define(['d3', 'Formulae_', 'three', 'container'], function (
     d3,
     F_,
     THREE,
@@ -31,7 +31,7 @@ define(['d3', 'Formulae_', 'three', 'container'], function(
         isFirstPerson: false, //false is orbit
         keepNear: false,
         crosshair: null,
-        init: function() {
+        init: function () {
             this.orbit.camera = new THREE.PerspectiveCamera(
                 60,
                 container.offsetWidth / container.offsetHeight,
@@ -72,22 +72,25 @@ define(['d3', 'Formulae_', 'three', 'container'], function(
 
             this.orbit.controls.update()
         },
-        setAsFirstPerson: function() {
+        setAsFirstPerson: function () {
             this.isFirstPerson = true
             this.firstPerson.lockControls = lockControls || false
             requestPointerLocking()
         },
-        swap: function(lockControls) {
+        swap: function (lockControls, skipLock) {
             this.isFirstPerson = !this.isFirstPerson
             if (this.isFirstPerson) {
                 this.firstPerson.lockControls = lockControls || false
-                requestPointerLocking()
+                if (skipLock) {
+                    inToFirstPerson()
+                } else requestPointerLocking()
             } else {
+                outFromFirstPerson()
                 this.camera = this.orbit.camera
                 this.controls = this.orbit.controls
             }
         },
-        update: function() {
+        update: function () {
             if (this.isFirstPerson) {
                 var time = performance.now()
                 var delta = (time - prevTime) / 1000
@@ -116,7 +119,7 @@ define(['d3', 'Formulae_', 'three', 'container'], function(
             }
             return false
         },
-        toggleCrosshair: function(on) {
+        toggleCrosshair: function (on) {
             //Make it if it's unmade
             if (Cameras.crosshair == null) {
                 Cameras.crosshair = d3.select('#globeScreen').append('div')
@@ -146,8 +149,15 @@ define(['d3', 'Formulae_', 'three', 'container'], function(
             Cameras.firstPerson.camera.fov = fov
             Cameras.firstPerson.camera.updateProjectionMatrix()
         },
+        setFirstPersonAspect(aspect) {
+            Cameras.firstPerson.camera.aspect = aspect
+            Cameras.firstPerson.camera.updateProjectionMatrix()
+        },
         getFirstPersonFOV() {
             return Cameras.firstPerson.camera.fov
+        },
+        getFirstPersonAspect() {
+            return Cameras.firstPerson.camera.aspect
         },
         setFirstPersonFocalLength(focalLength) {
             Cameras.firstPerson.camera.setFocalLength(focalLength)
@@ -175,6 +185,22 @@ define(['d3', 'Formulae_', 'three', 'container'], function(
         },
     }
 
+    function inToFirstPerson() {
+        Cameras.isFirstPerson = true
+        Cameras.toggleCrosshair(true)
+        Cameras.camera = Cameras.firstPerson.camera
+        Cameras.firstPerson.controls.enabled = !Cameras.firstPerson.lockControls
+        Cameras.controls = Cameras.firstPerson.controls
+        Cameras.orbit.controls.resetPosition()
+    }
+    function outFromFirstPerson() {
+        Cameras.isFirstPerson = false
+        Cameras.toggleCrosshair(false)
+        Cameras.firstPerson.controls.enabled = false
+        Cameras.camera = Cameras.orbit.camera
+        Cameras.controls = Cameras.orbit.controls
+    }
+
     function requestPointerLocking() {
         var havePointerLock =
             'pointerLockElement' in document ||
@@ -183,28 +209,18 @@ define(['d3', 'Formulae_', 'three', 'container'], function(
 
         if (havePointerLock) {
             var element = document.body
-            var pointerlockchange = function(event) {
+            var pointerlockchange = function (event) {
                 if (
                     document.pointerLockElement === element ||
                     document.mozPointerLockElement === element ||
                     document.webkitPointerLockElement === element
                 ) {
-                    Cameras.isFirstPerson = true
-                    Cameras.toggleCrosshair(true)
-                    Cameras.camera = Cameras.firstPerson.camera
-                    Cameras.firstPerson.controls.enabled = !Cameras.firstPerson
-                        .lockControls
-                    Cameras.controls = Cameras.firstPerson.controls
-                    Cameras.orbit.controls.resetPosition()
+                    inToFirstPerson()
                 } else {
-                    Cameras.isFirstPerson = false
-                    Cameras.toggleCrosshair(false)
-                    Cameras.firstPerson.controls.enabled = false
-                    Cameras.camera = Cameras.orbit.camera
-                    Cameras.controls = Cameras.orbit.controls
+                    outFromFirstPerson()
                 }
             }
-            var pointerlockerror = function(event) {
+            var pointerlockerror = function (event) {
                 alert('Pointer Lock Error')
             }
 
@@ -248,7 +264,7 @@ define(['d3', 'Formulae_', 'three', 'container'], function(
                 element.webkitRequestPointerLock
 
             if (/Firefox/i.test(navigator.userAgent)) {
-                var fullscreenchange = function(event) {
+                var fullscreenchange = function (event) {
                     if (
                         document.fullscreenElement === element ||
                         document.mozFullscreenElement === element ||
@@ -303,7 +319,7 @@ define(['d3', 'Formulae_', 'three', 'container'], function(
         prevTime = performance.now()
         velocity = new THREE.Vector3()
 
-        var onKeyDown = function(event) {
+        var onKeyDown = function (event) {
             if (Cameras.firstPerson.lockControls) return
 
             isShift = event.shiftKey
@@ -330,7 +346,7 @@ define(['d3', 'Formulae_', 'three', 'container'], function(
                     break
             }
         }
-        var onKeyUp = function(event) {
+        var onKeyUp = function (event) {
             if (Cameras.firstPerson.lockControls) return
 
             isShift = event.shiftKey
@@ -359,7 +375,7 @@ define(['d3', 'Formulae_', 'three', 'container'], function(
         window.addEventListener('resize', updateSize, false)
     }
 
-    var updateSize = function() {
+    var updateSize = function () {
         Cameras.orbit.camera.aspect =
             container.offsetWidth / container.offsetHeight
         Cameras.orbit.camera.updateProjectionMatrix()

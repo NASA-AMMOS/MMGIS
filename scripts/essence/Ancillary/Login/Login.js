@@ -6,7 +6,7 @@ define([
     'Layers_',
     'ToolController_',
     'semantic',
-], function($, d3, F_, L_, ToolController_) {
+], function ($, d3, F_, L_, ToolController_) {
     var emailSuffix = '@domain.com'
     // prettier-ignore
     var modalFormSignIn =
@@ -59,7 +59,7 @@ define([
         username: null,
         signUp: false,
         beganLoggedIn: false,
-        init: function() {
+        init: function () {
             if (
                 mmgisglobal.AUTH == 'csso' &&
                 mmgisglobal.hasOwnProperty('user')
@@ -80,6 +80,7 @@ define([
                 .style('z-index', '2006')
                 .style('margin', '5px')
                 .style('color', '#aaa')
+                .style('mix-blend-mode', 'luminosity')
 
             d3.select('#topBar')
                 .append('div')
@@ -88,7 +89,7 @@ define([
                 .style('width', '300px')
                 .style('margin', '0 0 0 -150px')
                 .html(modalFormSignIn)
-            $('#loginModal #loginInUpToggle').on('click', function() {
+            $('#loginModal #loginInUpToggle').on('click', function () {
                 $('#loginErrorMessage').animate({ opacity: '0' }, 500)
                 if (!Login.signUp) {
                     Login.signUp = true
@@ -105,7 +106,7 @@ define([
                 }
             })
 
-            $('#loginUsernameInput').on('change paste keyup', function() {
+            $('#loginUsernameInput').on('change paste keyup', function () {
                 $('#loginUsernameInput').css({ 'background-color': 'white' })
                 var value = $(this).val()
                 if (value.length > 0) {
@@ -120,7 +121,7 @@ define([
                 $('#loginEmailInput').val(value + emailSuffix)
             })
 
-            $('#loginEmailInput').on('change paste keyup', function() {
+            $('#loginEmailInput').on('change paste keyup', function () {
                 var value = $(this).val()
                 if (value.length > 0) {
                     $('#loginEmailInputIcon').animate({ opacity: '1' }, 80)
@@ -131,7 +132,7 @@ define([
                 }
             })
 
-            $('#loginPasswordInput').on('change paste keyup', function() {
+            $('#loginPasswordInput').on('change paste keyup', function () {
                 var value = $(this).val()
                 var retypePass = $('#loginRetypePasswordInput').val()
                 if (value.length > 0) {
@@ -158,44 +159,47 @@ define([
                 }
             })
 
-            $('#loginRetypePasswordInput').on('change paste keyup', function() {
-                var value = $(this).val()
-                var actualPass = $('#loginPasswordInput').val()
-                if (value.length > 0) {
-                    $('#loginRetypePasswordInputIcon').animate(
-                        { opacity: '1' },
-                        80
-                    )
-                    if (actualPass == value) {
-                        $('#loginRetypePasswordInputIcon')
-                            .removeClass('red')
-                            .removeClass('remove')
-                        $('#loginRetypePasswordInputIcon')
-                            .addClass('blue')
-                            .addClass('checkmark')
-                        validate.retypepassword = true
+            $('#loginRetypePasswordInput').on(
+                'change paste keyup',
+                function () {
+                    var value = $(this).val()
+                    var actualPass = $('#loginPasswordInput').val()
+                    if (value.length > 0) {
+                        $('#loginRetypePasswordInputIcon').animate(
+                            { opacity: '1' },
+                            80
+                        )
+                        if (actualPass == value) {
+                            $('#loginRetypePasswordInputIcon')
+                                .removeClass('red')
+                                .removeClass('remove')
+                            $('#loginRetypePasswordInputIcon')
+                                .addClass('blue')
+                                .addClass('checkmark')
+                            validate.retypepassword = true
+                        } else {
+                            $('#loginRetypePasswordInputIcon')
+                                .removeClass('blue')
+                                .removeClass('checkmark')
+                            $('#loginRetypePasswordInputIcon')
+                                .addClass('red')
+                                .addClass('remove')
+                            validate.retypepassword = false
+                        }
                     } else {
-                        $('#loginRetypePasswordInputIcon')
-                            .removeClass('blue')
-                            .removeClass('checkmark')
-                        $('#loginRetypePasswordInputIcon')
-                            .addClass('red')
-                            .addClass('remove')
+                        $('#loginRetypePasswordInputIcon').animate(
+                            { opacity: '0' },
+                            80
+                        )
                         validate.retypepassword = false
                     }
-                } else {
-                    $('#loginRetypePasswordInputIcon').animate(
-                        { opacity: '0' },
-                        80
-                    )
-                    validate.retypepassword = false
                 }
-            })
+            )
 
-            $('#loginForm').submit(function(e) {
+            $('#loginForm').submit(function (e) {
                 e.preventDefault()
                 var values = {}
-                $.each($(this).serializeArray(), function(i, field) {
+                $.each($(this).serializeArray(), function (i, field) {
                     values[field.name] = field.value
                 })
 
@@ -207,13 +211,13 @@ define([
                         calls.api(
                             'login',
                             values,
-                            function(d) {
+                            function (d) {
                                 Login.username = values.username
                                 mmgisglobal.user = Login.username
                                 mmgisglobal.groups = d.groups
                                 loginSuccess(d)
                             },
-                            function(d) {
+                            function (d) {
                                 alert(d.message)
                             }
                         )
@@ -237,7 +241,7 @@ define([
                         calls.api(
                             'signup',
                             values,
-                            function(d) {
+                            function (d) {
                                 //This automatically signed a new user in
                                 if (mmgisglobal.AUTH === 'local') {
                                     //This just flashes blue to show it worked
@@ -259,7 +263,7 @@ define([
                                     loginSuccess(d)
                                 }
                             },
-                            function(d) {
+                            function (d) {
                                 if (mmgisglobal.AUTH === 'local') {
                                     $('#loginErrorMessage')
                                         .html(d.message)
@@ -303,12 +307,7 @@ define([
                 .style('color', 'white')
                 .style(
                     'background',
-                    Login.loggedIn
-                        ? F_.getColorScale(
-                              F_.ASCIIProduct(Login.username) /
-                                  Login.username.length
-                          )
-                        : 'transparent'
+                    Login.loggedIn ? 'var(--color-i)' : 'transparent'
                 )
                 .style('opacity', Login.loggedIn ? 1 : 0)
                 .style('text-transform', 'uppercase')
@@ -331,7 +330,7 @@ define([
                     .style('margin-right', '4px')
                     .style('background', 'var(--color-a)')
                     .style('pointer-events', 'all')
-                    .on('click', function() {
+                    .on('click', function () {
                         //Open login
                         //default to signup
                         Login.signUp = true
@@ -358,9 +357,9 @@ define([
                 .style('line-height', '27px')
                 .style('padding-left', '2px')
                 .style('border', '1px solid var(--color-e)')
-                .style('background', 'var(--color-i)')
+                .style('background', 'var(--color-a)')
                 .style('pointer-events', 'all')
-                .on('click', function() {
+                .on('click', function () {
                     if (Login.loggedIn) {
                         //Then Logout
                         if (Login.beganLoggedIn) {
@@ -370,7 +369,7 @@ define([
                             calls.api(
                                 'logout',
                                 { username: Login.username },
-                                function(d) {
+                                function (d) {
                                     ToolController_.closeActiveTool()
                                     mmgisglobal.user = 'guest'
                                     mmgisglobal.groups = []
@@ -402,7 +401,7 @@ define([
                                         location.reload()
                                     }
                                 },
-                                function(d) {}
+                                function (d) {}
                             )
                         }
                     } else {
@@ -437,13 +436,13 @@ define([
                     {
                         useToken: true,
                     },
-                    function(d) {
+                    function (d) {
                         Login.username = d.username
                         mmgisglobal.user = Login.username
                         mmgisglobal.groups = d.groups
                         loginSuccess(d)
                     },
-                    function(d) {
+                    function (d) {
                         loginSuccess(d, true)
                     }
                 )
@@ -467,9 +466,9 @@ define([
                 .animate(
                     { 'background-color': 'rgba(46,180,255,0.6)' },
                     1000,
-                    function() {
+                    function () {
                         ToolController_.closeActiveTool()
-                        setTimeout(function() {
+                        setTimeout(function () {
                             $('#loginModal').modal('hide')
                             $('#loginForm').trigger('reset')
                             $('#loginModal')
@@ -501,10 +500,7 @@ define([
                                 .css({
                                     opacity: 1,
                                     background: Login.loggedIn
-                                        ? F_.getColorScale(
-                                              F_.ASCIIProduct(Login.username) /
-                                                  Login.username.length
-                                          )
+                                        ? 'var(--color-i)'
                                         : 'transparent',
                                 })
                                 .html(Login.username[0])

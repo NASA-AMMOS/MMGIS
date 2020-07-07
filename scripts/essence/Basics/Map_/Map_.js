@@ -103,6 +103,10 @@ define([
             Map_.mapScaleZoom = L_.configData.msv.mapscale || null
 
             if (this.map != null) this.map.remove()
+
+            let shouldFade = true
+            if (L_.hasTool('viewshed')) shouldFade = false
+
             if (
                 L_.configData.projection &&
                 L_.configData.projection.custom == true
@@ -135,6 +139,7 @@ define([
                     crs: crs,
                     zoomDelta: 0.05,
                     zoomSnap: 0,
+                    fadeAnimation: shouldFade,
                     //wheelPxPerZoomLevel: 500,
                 })
 
@@ -180,10 +185,12 @@ define([
                     }
                 )
                 */
+
                 //Make the empty map and turn off zoom controls
                 this.map = L.map('map', {
                     zoomControl: hasZoomControl,
                     editable: true,
+                    fadeAnimation: shouldFade,
                     //crs: crs,
                     //zoomDelta: 0.05,
                     //zoomSnap: 0,
@@ -397,6 +404,20 @@ define([
             if (hideLookat !== false && Map_.map.hasLayer(Map_.player.lookat))
                 Map_.map.removeLayer(Map_.player.lookat)
         },
+        getScreenDiagonalInMeters() {
+            let bb = document.getElementById('map').getBoundingClientRect()
+            let nwLatLng = Map_.map.containerPointToLatLng([0, 0])
+            let seLatLng = Map_.map.containerPointToLatLng([
+                bb.width,
+                bb.height,
+            ])
+            return F_.lngLatDistBetween(
+                nwLatLng.lng,
+                nwLatLng.lat,
+                seLatLng.lng,
+                seLatLng.lat
+            )
+        },
     }
 
     //Specific internal functions likely only to be used once
@@ -524,6 +545,7 @@ define([
                             true
                     )
                         return
+
                     //Query dataset links if possible and add that data to the feature's properties
                     if (
                         layer.options.layerName &&
@@ -844,7 +866,7 @@ define([
                 layerObj.style.layerName = layerObj.name
 
                 layerObj.style.opacity = L_.opacityArray[layerObj.name]
-                layerObj.style.fillOpacity = L_.opacityArray[layerObj.name]
+                //layerObj.style.fillOpacity = L_.opacityArray[layerObj.name]
 
                 var col = layerObj.style.color
                 var opa = String(layerObj.style.opacity)
@@ -866,8 +888,9 @@ define([
                             // Priority to prop, prop.color, then style color.
                             var finalCol =
                                 col.toLowerCase().substring(0, 4) == 'prop'
-                                    ? feature.properties[col.substring(5)] ||
-                                      '#FFF'
+                                    ? F_.parseColor(
+                                          feature.properties[col.substring(5)]
+                                      ) || '#FFF'
                                     : feature.style &&
                                       feature.style.stroke != null
                                     ? feature.style.stroke
@@ -891,8 +914,9 @@ define([
                             if (!isNaN(parseInt(wei))) finalWei = parseInt(wei)
                             var finalFiC =
                                 fiC.toLowerCase().substring(0, 4) == 'prop'
-                                    ? feature.properties[fiC.substring(5)] ||
-                                      '#000'
+                                    ? F_.parseColor(
+                                          feature.properties[fiC.substring(5)]
+                                      ) || '#000'
                                     : feature.style &&
                                       feature.style.fill != null
                                     ? feature.style.fill
@@ -1127,8 +1151,9 @@ define([
                     clearHighlight()
                     L_.layersGroup[layerName].highlight =
                         e.layer.properties[vtId]
+
                     L_.layersGroup[layerName].setFeatureStyle(
-                        e.layer.properties[vtId],
+                        L_.layersGroup[layerName].highlight,
                         {
                             weight: 2,
                             color: 'red',
@@ -1146,6 +1171,7 @@ define([
                         properties: e.layer.properties,
                         geometry: {},
                     })
+
                     Map_.activeLayer = e.sourceTarget._layer
                     let p = e.sourceTarget._point
 
@@ -1161,7 +1187,7 @@ define([
                                 .y >= p.y &&
                             e.layer._renderer._features[i].feature.properties[
                                 vtId
-                            ] !== e.layer.properties[vtId]
+                            ] != e.layer.properties[vtId]
                         ) {
                             L_.layersGroup[layerName].activeFeatures.push({
                                 type: 'Feature',
@@ -1172,9 +1198,10 @@ define([
                             })
                         }
                     }
+
                     timedSelect(e.sourceTarget._layer, layerName, e)
 
-                    //L.DomEvent.stop(e)
+                    L.DomEvent.stop(e)
                 })
                 .on(
                     'mouseover',

@@ -1,4 +1,4 @@
-define(['Formulae_'], function(F_) {
+define(['Formulae_'], function (F_) {
     var projection = {
         radiusOfPlanetMajor: 3396190, //(m)
         radiusOfPlanetMinor: 3396190, //semi-minor axis
@@ -18,13 +18,13 @@ define(['Formulae_'], function(F_) {
         sphereBoundsX: [-Math.PI, Math.PI],
         sphereBoundsY: [-Math.PI / 2, Math.PI / 2],
         stereNOffset: [1.37, 1.195],
-        setRadius: function(which, radius) {
+        setRadius: function (which, radius) {
             if (which.toLowerCase() == 'major')
                 this.radiusOfPlanetMajor = parseFloat(radius)
             else if (which.toLowerCase() == 'minor')
                 this.radiusOfPlanetMinor = parseFloat(radius)
         },
-        setTilemapResource: function(tmr) {
+        setTilemapResource: function (tmr) {
             this.stereNOffset = [0, (6371000 / this.radiusOfPlanetMajor) * 2]
 
             this.tmr = tmr
@@ -199,7 +199,7 @@ define(['Formulae_'], function(F_) {
         ep: 0, // eprime
         flatteningFactor: 0, //perfect sphere
         radiusScale: 1, //1 unit is radiusScale meters
-        invertY: function(y, z) {
+        invertY: function (y, z) {
             switch (this.projection) {
                 case 'placeholder':
                     return Math.floor(this.lat2tile([0, 90], z) + 1) - 1 - y
@@ -236,7 +236,7 @@ define(['Formulae_'], function(F_) {
         return ( northing - this.tmr.origin[1] ) / ( 256 * this.tmr.res[z] );//as tile y
         },
         */
-        tileXYZ2LatLng: function(x, y, z, flatXYZ) {
+        tileXYZ2LatLng: function (x, y, z, flatXYZ) {
             if (
                 mmgisglobal.customCRS == null ||
                 this.projection == 'webmercator'
@@ -270,13 +270,13 @@ define(['Formulae_'], function(F_) {
                 }
             }
         },
-        latLngZ2TileXYZ: function(lat, lng, z) {
+        latLngZ2TileXYZ: function (lat, lng, z, dontFloor) {
             if (
                 mmgisglobal.customCRS == null ||
                 this.projection == 'webmercator'
             ) {
-                let x = Math.floor(((lng + 180) / 360) * Math.pow(2, z))
-                let y = Math.floor(
+                let x = ((lng + 180) / 360) * Math.pow(2, z)
+                let y =
                     ((1 -
                         Math.log(
                             Math.tan(lat * (Math.PI / 180)) +
@@ -284,8 +284,11 @@ define(['Formulae_'], function(F_) {
                         ) /
                             Math.PI) /
                         2) *
-                        Math.pow(2, z)
-                )
+                    Math.pow(2, z)
+                if (dontFloor == null) {
+                    x = Math.floor(x)
+                    y = Math.floor(y)
+                }
 
                 return { x: x, y: y, z: z }
             } else {
@@ -307,7 +310,7 @@ define(['Formulae_'], function(F_) {
                 return { x: x, y: y, z: z }
             }
         },
-        tile2long: function(x, z, parms) {
+        tile2long: function (x, z, parms) {
             parms = parms || {}
             switch (parms.projection || this.projection) {
                 case 'webmercator':
@@ -353,7 +356,7 @@ define(['Formulae_'], function(F_) {
                     console.warn('Unknown projection: ' + projection)
             }
         },
-        tile2lat: function(y, z, parms) {
+        tile2lat: function (y, z, parms) {
             parms = parms || {}
             switch (parms.projection || this.projection) {
                 case 'webmercator':
@@ -385,7 +388,7 @@ define(['Formulae_'], function(F_) {
                     console.warn('Unknown projection: ' + projection)
             }
         },
-        long2tile: function(lonlat, zoom, projection) {
+        long2tile: function (lonlat, zoom, projection) {
             lonlat[0] = lonlat[0] * (Math.PI / 180)
             lonlat[1] = lonlat[1] * (Math.PI / 180)
             switch (projection || this.projection) {
@@ -427,7 +430,7 @@ define(['Formulae_'], function(F_) {
                     console.warn('Unknown projection: ' + projection)
             }
         },
-        lat2tile: function(lonlat, zoom, projection) {
+        lat2tile: function (lonlat, zoom, projection) {
             lonlat[0] = lonlat[0] * (Math.PI / 180)
             lonlat[1] = lonlat[1] * (Math.PI / 180)
             switch (projection || this.projection) {
@@ -477,17 +480,17 @@ define(['Formulae_'], function(F_) {
                     console.warn('Unknown projection: ' + projection)
             }
         },
-        tileXToLong: function(x, z) {
+        tileXToLong: function (x, z) {
             //easting = (tilesize(256) x tilecolumn x Zoomlevel(unit/pixel)) + (numXpixels x Zoomlevel(unit/pixel)) + minX
             let easting = 256 * x * this.tmr.res[z] + this.tmrBoundsMod[0]
             return easting
         },
-        tileYToLat: function(y, z) {
+        tileYToLat: function (y, z) {
             //northing = (tilesize(256) x tilerow x Zoomlevel(unit/pixel)) + (numYpixels x Zoomlevel(unit/pixel)) + minY
             let northing = 256 * y * this.tmr.res[z] + this.tmrOriginMod[1]
             return northing
         },
-        tileXToSphereX: function(x, z) {
+        tileXToSphereX: function (x, z) {
             var v = [1, 1]
             //v[0] = (256 * this.tmr.res[0]) / (this.tmr.bounds[2] - this.tmr.bounds[0]);
             //v[1] = (this.tmr.bounds[2] - this.tmr.bounds[0]) / (256 * this.tmr.res[0]);
@@ -503,7 +506,7 @@ define(['Formulae_'], function(F_) {
                 x * (256 * this.tmr.res[z]) + this.tmrOriginMod[0]
             )
         },
-        tileYToSphereY: function(y, z) {
+        tileYToSphereY: function (y, z) {
             var v = [1, 1]
             //v[0] = (256 * this.tmr.res[0]) / (this.tmr.bounds[3] - this.tmr.bounds[1]);
             //v[1] = (this.tmr.bounds[3] - this.tmr.bounds[1]) / (256 * this.tmr.res[0]);
@@ -519,7 +522,7 @@ define(['Formulae_'], function(F_) {
                     this.tmrOriginMod[1] * v[0]
             )
         },
-        sphereXToTileXYZ: function(x, z) {
+        sphereXToTileXYZ: function (x, z) {
             //console.log( 'x', x );
             //var x2 = x * ( ( this.tmr.bounds[2] - this.tmr.bounds[0] ) / ( 256 * this.tmr.res[z] * Math.pow( 2, z ) ) );
             return (
@@ -532,7 +535,7 @@ define(['Formulae_'], function(F_) {
                 (256 * this.tmr.res[z])
             )
         },
-        sphereYToTileXYZ: function(y, z) {
+        sphereYToTileXYZ: function (y, z) {
             //May need to invert y
             //var y2 = y * ( ( this.tmr.bounds[3] - this.tmr.bounds[1] ) / ( 256 * this.tmr.res[z] * Math.pow( 2, z ) ) );
             var ty =
@@ -545,7 +548,7 @@ define(['Formulae_'], function(F_) {
                 (256 * this.tmr.res[z])
             return ty //parseInt( ty ) + ( 1- ( ty % 1 ) );
         },
-        lonLatDistBetween: function(lon1, lat1, lon2, lat2) {
+        lonLatDistBetween: function (lon1, lat1, lon2, lat2) {
             //Haversine
             var R = this.radiusOfPlanetMajor //radius of Mars(m)
             var φ1 = lat1 * (Math.PI / 180)
@@ -563,7 +566,7 @@ define(['Formulae_'], function(F_) {
 
             return R * c
         },
-        lonLatToVector3: function(lon, lat, height) {
+        lonLatToVector3: function (lon, lat, height) {
             var phi = lat * (Math.PI / 180)
             var theta = (lon - 180) * (Math.PI / 180)
 
@@ -581,7 +584,7 @@ define(['Formulae_'], function(F_) {
 
             return { x: x, y: y, z: z }
         },
-        vector3ToLonLatOLD: function(xyz) {
+        vector3ToLonLatOLD: function (xyz) {
             //the 90, 180, 270, 360 subtractions/additions/mods are just to match my coordinate system
             var phi = Math.atan2(xyz.z, xyz.x) * (180 / Math.PI) - 90
             if (phi < -180) phi += 360
@@ -593,7 +596,7 @@ define(['Formulae_'], function(F_) {
                 90
             return { lon: phi, lat: theta }
         },
-        vector3ToLonLat: function(xyz) {
+        vector3ToLonLat: function (xyz) {
             var y = xyz.y
             var z = xyz.z
             xyz.y = -z
@@ -637,7 +640,7 @@ define(['Formulae_'], function(F_) {
         //all are of form {x: , y: , z: }
         //angle is in radians
         //if center undefined, then 0 0 0
-        rotatePoint3D: function(pt, angle, center) {
+        rotatePoint3D: function (pt, angle, center) {
             if (center == undefined) center = { x: 0, y: 0, z: 0 }
             //Offset
             var dx = pt.x - center.x

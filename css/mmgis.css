@@ -37,7 +37,8 @@ body {
 /*Color variables*/
 :root {
   --color-mmgis: #26a8ff;
-  --color-a: #1f1f1f;
+  --color-a: #0f0f0f; /*#1f1f1f;*/
+  --color-a1: #1f1f1f;
   --color-b: #555555;
   --color-c: #009eff;
   --color-d: #2a2a2a;
@@ -341,7 +342,8 @@ body {
 .mainInfo > div {
   display: flex;
   padding: 0px 8px;
-  border: 1px solid var(--color-m1);
+  border: 1px solid var(--color-b);
+  background: var(--color-i);
   color: var(--color-mw2);
   margin-left: 8px;
   opacity: 0.8;
@@ -607,8 +609,8 @@ body {
 }
 /*Clear white highlighting*/
 ::selection {
-  background-color: Transparent;
-  color: #888;
+  background-color: rgb(0, 158, 255) !important;
+  color: rgb(255, 255, 255) !important;
 }
 
 .flexbetween {
@@ -659,6 +661,11 @@ body {
   pointer-events: auto;
 }
 
+.leaflet-tile-256 {
+  width: 256px !important;
+  height: 256px !important;
+}
+
 .kindsWedgeLayer {
   pointer-events: none !important;
 }
@@ -700,4 +707,23 @@ body {
 .hoverOpensPanel:hover .hoverOpeningPanel {
   opacity: 1;
   pointer-events: initial;
+}
+
+.highlightAnim1 {
+  animation-name: highlightAnim1;
+  animation-duration: 1.2s;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+  color: white;
+}
+@-webkit-keyframes highlightAnim1 {
+  0% {
+    background-color: #008321;
+  }
+  50% {
+    background-color: #00c932;
+  }
+  100% {
+    background-color: #008321;
+  }
 }

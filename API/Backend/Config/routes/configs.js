@@ -15,10 +15,10 @@ const fs = require("fs");
 function get(req, res, next, cb) {
   Config.findAll({
     where: {
-      mission: req.query.mission
-    }
+      mission: req.query.mission,
+    },
   })
-    .then(missions => {
+    .then((missions) => {
       let maxVersion = -Infinity;
       if (missions && missions.length > 0) {
         for (let i = 0; i < missions.length; i++) {
@@ -27,7 +27,7 @@ function get(req, res, next, cb) {
         return maxVersion;
       } else return 0;
     })
-    .then(version => {
+    .then((version) => {
       if (req.query.version) version = req.query.version;
 
       if (version < 0) {
@@ -39,29 +39,29 @@ function get(req, res, next, cb) {
         Config.findOne({
           where: {
             mission: req.query.mission,
-            version: version
-          }
+            version: version,
+          },
         })
-          .then(mission => {
+          .then((mission) => {
             if (req.query.full) {
               if (cb)
                 cb({
                   status: "success",
                   mission: mission.mission,
                   config: mission.config,
-                  version: mission.version
+                  version: mission.version,
                 });
               else
                 res.send({
                   status: "success",
                   mission: mission.mission,
                   config: mission.config,
-                  version: mission.version
+                  version: mission.version,
                 });
             } else res.send(mission.config);
             return null;
           })
-          .catch(err => {
+          .catch((err) => {
             if (cb) cb({ status: "failure", message: "Mission not found." });
             else res.send({ status: "failure", message: "Mission not found." });
             return null;
@@ -69,14 +69,14 @@ function get(req, res, next, cb) {
       }
       return null;
     })
-    .catch(err => {
+    .catch((err) => {
       if (cb) cb({ status: "failure", message: "Mission not found." });
       else res.send({ status: "failure", message: "Mission not found." });
       return null;
     });
   return null;
 }
-router.get("/get", function(req, res, next) {
+router.get("/get", function (req, res, next) {
   get(req, res, next);
 });
 
@@ -102,19 +102,19 @@ function add(req, res, next, cb) {
   let newConfig = {
     mission: req.body.mission,
     config: configTemplate,
-    version: 0
+    version: 0,
   };
 
   //Make sure the mission doesn't already exist
   Config.findOne({
     where: {
-      mission: req.body.mission
-    }
+      mission: req.body.mission,
+    },
   })
-    .then(mission => {
+    .then((mission) => {
       if (!mission) {
         Config.create(newConfig)
-          .then(created => {
+          .then((created) => {
             if (req.body.makedir === "true") {
               let dir = "./Missions/" + created.mission;
               if (!fs.existsSync(dir)) {
@@ -140,17 +140,17 @@ function add(req, res, next, cb) {
               cb({
                 status: "success",
                 mission: created.mission,
-                version: created.version
+                version: created.version,
               });
             else
               res.send({
                 status: "success",
                 mission: created.mission,
-                version: created.version
+                version: created.version,
               });
             return null;
           })
-          .catch(err => {
+          .catch((err) => {
             logger(
               "error",
               "Failed to create new mission.",
@@ -161,12 +161,12 @@ function add(req, res, next, cb) {
             if (cb)
               cb({
                 status: "failure",
-                message: "Failed to create new mission."
+                message: "Failed to create new mission.",
               });
             else
               res.send({
                 status: "failure",
-                message: "Failed to create new mission."
+                message: "Failed to create new mission.",
               });
             return null;
           });
@@ -178,7 +178,7 @@ function add(req, res, next, cb) {
       }
       return null;
     })
-    .catch(err => {
+    .catch((err) => {
       logger(
         "error",
         "Failed to check if mission already exists.",
@@ -189,18 +189,18 @@ function add(req, res, next, cb) {
       if (cb)
         cb({
           status: "failure",
-          message: "Failed to check if mission already exists."
+          message: "Failed to check if mission already exists.",
         });
       else
         res.send({
           status: "failure",
-          message: "Failed to check if mission already exists."
+          message: "Failed to check if mission already exists.",
         });
       return null;
     });
   return null;
 }
-router.post("/add", function(req, res, next) {
+router.post("/add", function (req, res, next) {
   add(req, res, next);
 });
 
@@ -211,10 +211,10 @@ function upsert(req, res, next, cb) {
 
   Config.findAll({
     where: {
-      mission: req.body.mission
-    }
+      mission: req.body.mission,
+    },
   })
-    .then(missions => {
+    .then((missions) => {
       let maxVersion = -Infinity;
       if (missions && missions.length > 0) {
         for (let i = 0; i < missions.length; i++) {
@@ -225,13 +225,13 @@ function upsert(req, res, next, cb) {
         return maxVersion;
       } else return -1; //will get incremented to 0
     })
-    .then(version => {
+    .then((version) => {
       Config.create({
         mission: req.body.mission,
         config: versionConfig || JSON.parse(req.body.config),
-        version: version + 1
+        version: version + 1,
       })
-        .then(created => {
+        .then((created) => {
           logger(
             "info",
             "Successfully updated mission: " +
@@ -245,17 +245,17 @@ function upsert(req, res, next, cb) {
             cb({
               status: "success",
               mission: created.mission,
-              version: created.version
+              version: created.version,
             });
           else
             res.send({
               status: "success",
               mission: created.mission,
-              version: created.version
+              version: created.version,
             });
           return null;
         })
-        .catch(err => {
+        .catch((err) => {
           logger(
             "error",
             "Failed to update mission.",
@@ -268,13 +268,13 @@ function upsert(req, res, next, cb) {
           else
             res.send({
               status: "failure",
-              message: "Failed to update mission."
+              message: "Failed to update mission.",
             });
           return null;
         });
       return null;
     })
-    .catch(err => {
+    .catch((err) => {
       logger("error", "Failed to update mission.", req.originalUrl, req, err);
       if (cb) cb({ status: "failure", message: "Failed to update mission." });
       else res.send({ status: "failure", message: "Failed to find mission." });
@@ -282,13 +282,13 @@ function upsert(req, res, next, cb) {
     });
   return null;
 }
-router.post("/upsert", function(req, res, next) {
+router.post("/upsert", function (req, res, next) {
   upsert(req, res, next);
 });
 
-router.post("/missions", function(req, res, next) {
+router.post("/missions", function (req, res, next) {
   Config.aggregate("mission", "DISTINCT", { plain: false })
-    .then(missions => {
+    .then((missions) => {
       let allMissions = [];
       for (let i = 0; i < missions.length; i++)
         allMissions.push(missions[i].DISTINCT);
@@ -296,7 +296,7 @@ router.post("/missions", function(req, res, next) {
       res.send({ status: "success", missions: allMissions });
       return null;
     })
-    .catch(err => {
+    .catch((err) => {
       logger("error", "Failed to find missions.", req.originalUrl, req, err);
       res.send({ status: "failure", message: "Failed to find missions." });
       return null;
@@ -304,18 +304,18 @@ router.post("/missions", function(req, res, next) {
   return null;
 });
 
-router.post("/versions", function(req, res, next) {
+router.post("/versions", function (req, res, next) {
   Config.findAll({
     where: {
-      mission: req.body.mission
+      mission: req.body.mission,
     },
-    attributes: ["mission", "version", "createdAt"]
+    attributes: ["mission", "version", "createdAt"],
   })
-    .then(missions => {
+    .then((missions) => {
       res.send({ status: "success", versions: missions });
       return null;
     })
-    .catch(err => {
+    .catch((err) => {
       logger("error", "Failed to find versions.", req.originalUrl, req, err);
       res.send({ status: "failure", message: "Failed to find versions." });
       return null;
@@ -352,11 +352,11 @@ function relativizePaths(config, mission) {
 //existingMission
 //cloneMission
 //hasPaths
-router.post("/clone", function(req, res, next) {
+router.post("/clone", function (req, res, next) {
   req.query.full = true;
   req.query.mission = req.body.existingMission;
 
-  get(req, res, next, function(r) {
+  get(req, res, next, function (r) {
     if (r.status == "success") {
       r.config.msv.mission = req.body.cloneMission;
       req.body.config =
@@ -368,12 +368,12 @@ router.post("/clone", function(req, res, next) {
         "php",
         [
           "private/api/create_mission.php",
-          encodeURIComponent(req.body.cloneMission)
+          encodeURIComponent(req.body.cloneMission),
         ],
-        function(error, stdout, stderr) {
+        function (error, stdout, stderr) {
           stdout = JSON.parse(stdout);
           if (stdout.status == "success") {
-            add(req, res, next, function(r2) {
+            add(req, res, next, function (r2) {
               if (r2.status == "success") {
                 res.send(r2);
               } else {
@@ -389,14 +389,14 @@ router.post("/clone", function(req, res, next) {
   });
 });
 
-router.post("/rename", function(req, res, next) {});
-router.post("/destroy", function(req, res, next) {
+router.post("/rename", function (req, res, next) {});
+router.post("/destroy", function (req, res, next) {
   Config.destroy({
     where: {
-      mission: req.body.mission
-    }
+      mission: req.body.mission,
+    },
   })
-    .then(mission => {
+    .then((mission) => {
       logger(
         "info",
         "Deleted Mission: " + req.body.mission,
@@ -406,29 +406,29 @@ router.post("/destroy", function(req, res, next) {
 
       const dir = "./Missions/" + req.body.mission;
       if (fs.existsSync(dir)) {
-        fs.rename(dir, dir + "_deleted_", err => {
+        fs.rename(dir, dir + "_deleted_", (err) => {
           if (err)
             res.send({
               status: "success",
               message:
                 "Successfully Deleted Mission: " +
                 req.body.mission +
-                " but couldn't rename its Missions directory."
+                " but couldn't rename its Missions directory.",
             });
           else
             res.send({
               status: "success",
-              message: "Successfully Deleted Mission: " + req.body.mission
+              message: "Successfully Deleted Mission: " + req.body.mission,
             });
         });
       } else {
         res.send({
           status: "success",
-          message: "Successfully Deleted Mission: " + req.body.mission
+          message: "Successfully Deleted Mission: " + req.body.mission,
         });
       }
     })
-    .catch(err => {
+    .catch((err) => {
       logger(
         "error",
         "Failed to delete mission: " + req.body.mission,
@@ -438,7 +438,7 @@ router.post("/destroy", function(req, res, next) {
       );
       res.send({
         status: "failure",
-        message: "Failed to delete mission " + req.body.mission + "."
+        message: "Failed to delete mission " + req.body.mission + ".",
       });
       return null;
     });

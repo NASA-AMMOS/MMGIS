@@ -11,28 +11,28 @@ var availableKinds = [];
 
 var dataOfLastUsedLayerSlot = {};
 
-setInterval(function() {
+setInterval(function () {
   mmgisglobal.lastInteraction = Date.now();
 }, 60000 * 5);
 //$( 'body' ).on( 'mousemove', function() { mmgisglobal.lastInteraction = Date.now(); } );
 
-$(document).ready(function() {
+$(document).ready(function () {
   initialize();
 });
-        
+
 function initialize() {
-  $(".logout").on("click", function() {
+  $(".logout").on("click", function () {
     $.ajax({
       type: calls.logout.type,
       url: calls.logout.url,
       data: {},
-      success: function(data) {
+      success: function (data) {
         window.location = "/";
-      }
+      },
     });
   });
   //initialize new mission button
-  $("#new_mission").on("click", function() {
+  $("#new_mission").on("click", function () {
     $("#missions li").removeClass("active");
     $("#new_mission").css({ "background-color": "#1565C0" });
     $(".container #existing_mission_cont").css({ display: "none" });
@@ -44,15 +44,15 @@ function initialize() {
 
   $("body").attr("class", "mmgisScrollbar");
 
-  $("#upload_config_input").on("change", function(evt) {
+  $("#upload_config_input").on("change", function (evt) {
     var files = evt.target.files; // FileList object
     // use the 1st file from the list
     var f = files[0];
     var reader = new FileReader();
     // Closure to capture the file information.
 
-    reader.onload = (function(file) {
-      return function(e) {
+    reader.onload = (function (file) {
+      return function (e) {
         let config;
         try {
           config = JSON.parse(e.target.result);
@@ -61,9 +61,7 @@ function initialize() {
             "<span id='toast_failure80'>Bad JSON.</span>",
             4000
           );
-          $("#toast_failure80")
-            .parent()
-            .css("background-color", "#a11717");
+          $("#toast_failure80").parent().css("background-color", "#a11717");
           return;
         }
         if (
@@ -77,9 +75,7 @@ function initialize() {
             "<span id='toast_failure81'>Bad config.</span>",
             4000
           );
-          $("#toast_failure81")
-            .parent()
-            .css("background-color", "#a11717");
+          $("#toast_failure81").parent().css("background-color", "#a11717");
         }
       };
     })(f);
@@ -89,15 +85,15 @@ function initialize() {
   });
 
   //Initial keys
-  $("#manage_keys").on("click", function() {
+  $("#manage_keys").on("click", function () {
     Keys.make();
   });
   //Initial manage datasets
-  $("#manage_datasets").on("click", function() {
+  $("#manage_datasets").on("click", function () {
     Datasets.make();
   });
   //Initial manage geodatasets
-  $("#manage_geodatasets").on("click", function() {
+  $("#manage_geodatasets").on("click", function () {
     Geodatasets.make();
   });
 
@@ -105,7 +101,7 @@ function initialize() {
     type: calls.missions.type,
     url: calls.missions.url,
     data: {},
-    success: function(data) {
+    success: function (data) {
       if (data.status == "success") {
         var mData = data.missions;
         for (var i = 0; i < mData.length; i++) {
@@ -117,11 +113,9 @@ function initialize() {
           "<span id='toast_failure8'>Error loading available mission.</span>",
           500000
         );
-        $("#toast_failure8")
-          .parent()
-          .css("background-color", "#a11717");
+        $("#toast_failure8").parent().css("background-color", "#a11717");
       }
-    }
+    },
   });
 
   function getConfigConfig() {
@@ -129,22 +123,22 @@ function initialize() {
       type: calls.getToolConfig.type,
       url: calls.getToolConfig.url,
       data: {},
-      success: function(ccData) {
+      success: function (ccData) {
         if (ccData.status != "success") {
           console.warn("Failure getting tools configurations.");
           return;
         }
 
-        tData = Object.keys(ccData.tools).map(function(key) {
+        tData = Object.keys(ccData.tools).map(function (key) {
           return ccData.tools[key];
         });
 
         //Populate available Kinds
-        let kinds = tData.filter(t => t.name === "Kinds");
+        let kinds = tData.filter((t) => t.name === "Kinds");
         if (kinds[0]) {
           availableKinds = kinds[0].kinds;
           //then remove Kinds
-          tData = tData.filter(t => t.name !== "Kinds");
+          tData = tData.filter((t) => t.name !== "Kinds");
         }
 
         editors = {};
@@ -171,8 +165,8 @@ function initialize() {
             );
           $("#t" + tData[i].name + "_info").on(
             "click",
-            (function(name, descriptionFull) {
-              return function() {
+            (function (name, descriptionFull) {
+              return function () {
                 if (descriptionFull == "")
                   descriptionFull = { title: "No further description." };
                 $("#info_modal div.modal-content h4").html(name);
@@ -186,10 +180,8 @@ function initialize() {
             })(tData[i].name, tData[i].descriptionFull)
           );
 
-          $("#t" + tData[i].name + "_icon").on("input", function() {
-            var newIcon = $(this)
-              .val()
-              .replace(/ /g, "_");
+          $("#t" + tData[i].name + "_icon").on("input", function () {
+            var newIcon = $(this).val().replace(/ /g, "_");
             $(this)
               .parent()
               .find("i")
@@ -211,7 +203,7 @@ function initialize() {
                 viewportMargin: Infinity,
                 lineNumbers: true,
                 autoRefresh: true,
-                matchBrackets: true
+                matchBrackets: true,
               }
             );
             editors[tData[i].name] = codeeditor;
@@ -223,7 +215,7 @@ function initialize() {
 
         $("ul.tabs#missions .indicator").css({ display: "none" });
 
-        $("#missions li").on("click", function() {
+        $("#missions li").on("click", function () {
           layerEditors = {};
 
           Keys.destroy();
@@ -240,15 +232,13 @@ function initialize() {
           $("#tab_layers_rows").empty();
 
           $("#new_mission").css({
-            "background-color": "rgba(255,255,255,0.12)"
+            "background-color": "rgba(255,255,255,0.12)",
           });
           $(".container #existing_mission_cont").css({ display: "inherit" });
           $(".container #new_mission_cont").css({ display: "none" });
           $("ul.tabs .indicator").css({ "background-color": "#1565C0" });
 
-          mission = $(this)
-            .find("a")
-            .html();
+          mission = $(this).find("a").html();
           missionPath = calls.missionPath + mission + "/config.json";
 
           $.ajax({
@@ -256,9 +246,9 @@ function initialize() {
             url: calls.get.url,
             data: {
               mission: mission,
-              full: true
+              full: true,
             },
-            success: function(data) {
+            success: function (data) {
               if (data.status == "success") {
                 var cData = data.config;
 
@@ -412,9 +402,7 @@ function initialize() {
 
                 //tools
                 //uncheck all tools
-                $("#tab_tools")
-                  .find(":checkbox")
-                  .prop("checked", false);
+                $("#tab_tools").find(":checkbox").prop("checked", false);
                 //clear all editors
                 for (var e in editors) {
                   editors[e].setValue("");
@@ -456,13 +444,13 @@ function initialize() {
                   type: calls.versions.type,
                   url: calls.versions.url,
                   data: {
-                    mission: mission
+                    mission: mission,
                   },
-                  success: function(data) {
+                  success: function (data) {
                     if (data.status == "success") {
                       populateVersions(data.versions);
                     }
-                  }
+                  },
                 });
               } else {
                 Materialize.toast(
@@ -475,25 +463,25 @@ function initialize() {
                   .parent()
                   .css("background-color", "#a11717");
               }
-            }
+            },
           });
         });
       },
-      error: function(jqXHR, textStatus, error) {
+      error: function (jqXHR, textStatus, error) {
         console.warn("Error getting tools configurations.");
-      }
+      },
     });
   }
 
   //Add layer button
-  $("#add_new_layer").on("click", function() {
+  $("#add_new_layer").on("click", function () {
     var madeUpData = { name: "New Layer", type: "header", visibility: "false" };
     makeLayerBarAndModal(madeUpData, 0);
     refresh();
   });
 
   //Clone Button and Modal
-  $("#clone_mission").on("click", function() {
+  $("#clone_mission").on("click", function () {
     //Clear passwords
     $("#cloneName").val("");
     $("#clonePassword").val("");
@@ -505,14 +493,14 @@ function initialize() {
         mission +
         "</span>"
     );
-    setTimeout(function() {
+    setTimeout(function () {
       $(".lean-overlay").css({
         transition: "background-color 0.5s",
-        "background-color": "#1565c0"
+        "background-color": "#1565c0",
       });
     }, 150);
   });
-  $("#clone_modal #clone_mission_clone").on("click", function() {
+  $("#clone_modal #clone_mission_clone").on("click", function () {
     let cName = $("#cloneName").val();
     let hasPaths = $("#clonePaths").prop("checked");
 
@@ -522,17 +510,15 @@ function initialize() {
       data: {
         existingMission: mission,
         cloneMission: cName,
-        hasPaths: hasPaths
+        hasPaths: hasPaths,
       },
-      success: function(data) {
+      success: function (data) {
         if (data.status == "success") {
           Materialize.toast(
             "<span id='toast_success_clone'>Mission Clone Successful.</span>",
             3000
           );
-          $("#toast_success_clone")
-            .parent()
-            .css("background-color", "#1565C0");
+          $("#toast_success_clone").parent().css("background-color", "#1565C0");
           Materialize.toast(
             "<span id='toast_success_cloner'>Page will now reload...</span>",
             3000
@@ -540,7 +526,7 @@ function initialize() {
           $("#toast_success_cloner")
             .parent()
             .css("background-color", "#1565C0");
-          setTimeout(function() {
+          setTimeout(function () {
             location.reload();
           }, 3000);
         } else {
@@ -548,11 +534,9 @@ function initialize() {
             "<span id='toast_bad_clone'>" + data.message + "</span>",
             5000
           );
-          $("#toast_bad_clone")
-            .parent()
-            .css("background-color", "#a11717");
+          $("#toast_bad_clone").parent().css("background-color", "#a11717");
         }
-      }
+      },
     });
 
     //Clear again
@@ -560,7 +544,7 @@ function initialize() {
   });
 
   //Delete Button and Modal
-  $("#delete_mission").on("click", function() {
+  $("#delete_mission").on("click", function () {
     //Clear passwords
     $("#deleteMissionName").val("");
 
@@ -571,14 +555,14 @@ function initialize() {
         mission +
         "</span>"
     );
-    setTimeout(function() {
+    setTimeout(function () {
       $(".lean-overlay").css({
         transition: "background-color 0.5s",
-        "background-color": "red"
+        "background-color": "red",
       });
     }, 150);
   });
-  $("#delete_modal #delete_mission_delete").on("click", function() {
+  $("#delete_modal #delete_mission_delete").on("click", function () {
     var name = $("#deleteMissionName").val();
 
     if (name != mission) {
@@ -586,9 +570,7 @@ function initialize() {
         "<span id='toast_delete_failure2'>Confirmation mission name didn't match.</span>",
         7000
       );
-      $("#toast_delete_failure2")
-        .parent()
-        .css("background-color", "#a11717");
+      $("#toast_delete_failure2").parent().css("background-color", "#a11717");
       return;
     }
 
@@ -596,25 +578,21 @@ function initialize() {
       type: calls.destroy.type,
       url: calls.destroy.url,
       data: {
-        mission: mission
+        mission: mission,
       },
-      success: function(data) {
+      success: function (data) {
         if (data.status == "success") {
           Materialize.toast(
             "<span id='toast_success4'>Mission Removal Successful.</span>",
             4000
           );
-          $("#toast_success4")
-            .parent()
-            .css("background-color", "#1565C0");
+          $("#toast_success4").parent().css("background-color", "#1565C0");
           Materialize.toast(
             "<span id='toast_success5'>Page will now reload...</span>",
             4000
           );
-          $("#toast_success5")
-            .parent()
-            .css("background-color", "#1565C0");
-          setTimeout(function() {
+          $("#toast_success5").parent().css("background-color", "#1565C0");
+          setTimeout(function () {
             location.reload();
           }, 4000);
         } else {
@@ -626,7 +604,7 @@ function initialize() {
             .parent()
             .css("background-color", "#a11717");
         }
-      }
+      },
     });
 
     $("#deleteMissionName").val("");
@@ -677,12 +655,32 @@ function makeLayerBarAndModal(d, level) {
   // prettier-ignore
   var nameEl = "block", kindEl = "block", typeEl = "block", urlEl = "block", demtileurlEl = "block", legendEl = "block",
       visEl = "block", viscutEl = "block", initOpacEl = "block", togwheadEl = "block", minzEl = "block",
-      tmsEl = "none"; visEl = "block", viscutEl = "block", togwheadEl = "block", minzEl = "block",
-      modelLonEl = "block", modelLatEl = "block", modelElevEl = "block",
-      modelRotXEl = "block", modelRotYEl = "block", modelRotZEl = "block", modelScaleEl = "block",
-      maxnzEl = "block", maxzEl = "block", strcolEl = "block", filcolEl = "block",
-      weightEl = "block", opacityEl = "block", radiusEl = "block", variableEl = "block",
-      xmlEl = "block", bbEl = "block", vtLayerEl = "block", vtIdEl = "block", vtKeyEl = "block", vtLayerSetStylesEl = "block";
+      tmsEl = "none",
+    visEl = "block",
+    viscutEl = "block",
+    togwheadEl = "block",
+    minzEl = "block",
+    modelLonEl = "block",
+    modelLatEl = "block",
+    modelElevEl = "block",
+    modelRotXEl = "block",
+    modelRotYEl = "block",
+    modelRotZEl = "block",
+    modelScaleEl = "block",
+    maxnzEl = "block",
+    maxzEl = "block",
+    strcolEl = "block",
+    filcolEl = "block",
+    weightEl = "block",
+    opacityEl = "block",
+    radiusEl = "block",
+    variableEl = "block",
+    xmlEl = "block",
+    bbEl = "block",
+    vtLayerEl = "block",
+    vtIdEl = "block",
+    vtKeyEl = "block",
+    vtLayerSetStylesEl = "block";
 
   // prettier-ignore
   switch( d.type ) {
@@ -713,11 +711,11 @@ function makeLayerBarAndModal(d, level) {
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxnzEl = "block"; maxzEl = "block"; strcolEl = "none"; filcolEl = "none";
-        weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "none";
+        weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "block"; vtIdEl = "block"; vtKeyEl = "block"; vtLayerSetStylesEl = "block";
       break;
     case "data":
-        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; legendEl = "block";
+        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "black"; legendEl = "block";
         visEl = "block"; viscutEl = "none"; initOpacEl = "none"; togwheadEl = "block"; minzEl = "block";
         tmsEl = "none";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
@@ -797,16 +795,19 @@ function makeLayerBarAndModal(d, level) {
       modelSel = "selected";
   }
 
-  var tmsTrueSel = "", tmsFalseSel = "";
-  switch( d.tms ) {
+  var tmsTrueSel = "",
+    tmsFalseSel = "";
+  switch (d.tms) {
     case true:
-    case "true": tmsTrueSel = "selected";
+    case "true":
+      tmsTrueSel = "selected";
       break;
     case false:
-    case "false": tmsFalseSel = "selected";
+    case "false":
+      tmsFalseSel = "selected";
       break;
   }
-  
+
   var visTrueSel = "",
     visFalseSel = "";
   var visIcon = "inherit";
@@ -1030,6 +1031,7 @@ function makeLayerBarAndModal(d, level) {
 
           "<div class='row' style='margin-bottom: 0px;'>" +
             "<div id='vtLayerEl' class='input-field col s10 push-s1' style='display: " + vtLayerEl + "'>" +
+              "<span>Vector Tile Stylings:</span>" +
               "<textarea id='t" + n + "_var'></textarea>" +
             "</div>" +
           "</div>" +
@@ -1059,7 +1061,8 @@ function makeLayerBarAndModal(d, level) {
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='variableEl' class='input-field col s12 push-s0' style='display: " + variableEl + "'>" +
+            "<div id='variableEl' class='input-field col s10 push-s1' style='display: " + variableEl + "'>" +
+              "<span>Raw Variables:</span>" + 
               "<textarea id='Variable" + n + "'></textarea>" +
             "</div>" +
           "</div>" +
@@ -1087,7 +1090,7 @@ function makeLayerBarAndModal(d, level) {
       viewportMargin: Infinity,
       lineNumbers: true,
       autoRefresh: true,
-      matchBrackets: true
+      matchBrackets: true,
     }
   );
   if (dStyle.vtLayer)
@@ -1103,7 +1106,7 @@ function makeLayerBarAndModal(d, level) {
       viewportMargin: Infinity,
       lineNumbers: true,
       autoRefresh: true,
-      matchBrackets: true
+      matchBrackets: true,
     }
   );
   if (d.variables)
@@ -1113,33 +1116,25 @@ function makeLayerBarAndModal(d, level) {
 //Extend jQuery functionality to allow for an x-axis draggable that snaps with
 // materialize rows // offs to avoid duplicates
 $.fn.extend({
-  mmgisLinkModalsToLayers: function() {
+  mmgisLinkModalsToLayers: function () {
     $(this)
       .children(".modal")
-      .each(function() {
+      .each(function () {
         //Link Name
         $(this)
           .find("#nameEl")
           .off("change", mmgisLinkModalsToLayersNameChange);
-        $(this)
-          .find("#nameEl")
-          .on("change", mmgisLinkModalsToLayersNameChange);
+        $(this).find("#nameEl").on("change", mmgisLinkModalsToLayersNameChange);
 
         //Link Type with color and available fields
         $(this)
           .find("#typeEl")
           .off("change", mmgisLinkModalsToLayersTypeChange);
-        $(this)
-          .find("#typeEl")
-          .on("change", mmgisLinkModalsToLayersTypeChange);
+        $(this).find("#typeEl").on("change", mmgisLinkModalsToLayersTypeChange);
 
         //Link visibility with icon
-        $(this)
-          .find("#visEl")
-          .off("change", mmgisLinkModalsToLayersVisChange);
-        $(this)
-          .find("#visEl")
-          .on("change", mmgisLinkModalsToLayersVisChange);
+        $(this).find("#visEl").off("change", mmgisLinkModalsToLayersVisChange);
+        $(this).find("#visEl").on("change", mmgisLinkModalsToLayersVisChange);
 
         //Make delete delete
         $(this)
@@ -1149,53 +1144,33 @@ $.fn.extend({
           .find("#delete_layer")
           .on("click", mmgisLinkModalsToLayersDeleteClick);
 
-        $(this)
-          .find(".clone")
-          .off("click", mmgisLinkModalsToLayersCloneClick);
-        $(this)
-          .find(".clone")
-          .on("click", mmgisLinkModalsToLayersCloneClick);
+        $(this).find(".clone").off("click", mmgisLinkModalsToLayersCloneClick);
+        $(this).find(".clone").on("click", mmgisLinkModalsToLayersCloneClick);
       });
   },
-  materializeDraggable: function() {
+  materializeDraggable: function () {
     $(this)
       .children("li")
-      .each(function() {
-        $(this)
-          .children("a")
-          .off("mouseup", materializeDraggableMouseUp);
-        $(this)
-          .children("a")
-          .on("mouseup", materializeDraggableMouseUp);
+      .each(function () {
+        $(this).children("a").off("mouseup", materializeDraggableMouseUp);
+        $(this).children("a").on("mouseup", materializeDraggableMouseUp);
       });
-  }
+  },
 });
 
 function mmgisLinkModalsToLayersNameChange(e) {
-  var mainThis = $(this)
-    .parent()
-    .parent()
-    .parent();
+  var mainThis = $(this).parent().parent().parent();
   var mainId = mainThis.attr("id");
   mainId = mainId.substring(mainId.indexOf("_") + 1);
   //Change modal title name
-  mainThis.find("#modal_name").html(
-    $(this)
-      .children("input")
-      .val()
-  );
+  mainThis.find("#modal_name").html($(this).children("input").val());
   //Change layer bar name
   $("#layers_rows_" + mainId + " .l_title").html(
-    $(this)
-      .children("input")
-      .val()
+    $(this).children("input").val()
   );
 }
 function mmgisLinkModalsToLayersTypeChange(e) {
-  var mainThis = $(this)
-    .parent()
-    .parent()
-    .parent();
+  var mainThis = $(this).parent().parent().parent();
   var mainId = mainThis.attr("id");
   mainId = mainId.substring(mainId.indexOf("_") + 1);
 
@@ -1237,11 +1212,11 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxzEl = "block"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
-        opacityEl = "none"; radiusEl = "none"; variableEl = "none";
+        opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "block"; vtIdEl = "block"; vtKeyEl = "block"; vtLayerSetStylesEl = "block";  
       break;
     case "data": barColor = "rgb(189, 15, 50)";
-        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; legendEl = "block";
+        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; legendEl = "block";
         tmsEl = "none"; visEl = "block"; viscutEl = "none"; initOpacEl = "none"; togwheadEl = "block"; minzEl = "block"; maxnzEl = "block";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
@@ -1288,19 +1263,12 @@ function mmgisLinkModalsToLayersTypeChange(e) {
   mainThis.find("#typeEl").css("display", typeEl);
   mainThis.find("#kindEl").css("display", kindEl);
   if (kindEl == "none")
-    mainThis
-      .find("#nameEl")
-      .removeClass("s3")
-      .addClass("s5");
-  else
-    mainThis
-      .find("#nameEl")
-      .removeClass("s5")
-      .addClass("s3");
+    mainThis.find("#nameEl").removeClass("s3").addClass("s5");
+  else mainThis.find("#nameEl").removeClass("s5").addClass("s3");
   mainThis.find("#urlEl").css("display", urlEl);
   mainThis.find("#demtileurlEl").css("display", demtileurlEl);
   mainThis.find("#legendEl").css("display", legendEl);
-  mainThis.find("#tmsEl").css( "display", tmsEl );
+  mainThis.find("#tmsEl").css("display", tmsEl);
   mainThis.find("#visEl").css("display", visEl);
   mainThis.find("#viscutEl").css("display", viscutEl);
   mainThis.find("#initOpacEl").css("display", initOpacEl);
@@ -1329,28 +1297,18 @@ function mmgisLinkModalsToLayersTypeChange(e) {
   mainThis.find("#vtLayerSetStylesEl").css("display", vtLayerSetStylesEl);
 }
 function mmgisLinkModalsToLayersVisChange(e) {
-  var mainThis = $(this)
-    .parent()
-    .parent()
-    .parent();
+  var mainThis = $(this).parent().parent().parent();
   var mainId = mainThis.attr("id");
   mainId = mainId.substring(mainId.indexOf("_") + 1);
 
-  if (
-    $(this)
-      .find("select option:selected")
-      .text()
-      .toLowerCase() == "true"
-  ) {
+  if ($(this).find("select option:selected").text().toLowerCase() == "true") {
     $("#layers_rows_" + mainId + " .l_icon").css({ display: "inherit" });
   } else {
     $("#layers_rows_" + mainId + " .l_icon").css({ display: "none" });
   }
 }
 function mmgisLinkModalsToLayersDeleteClick(e) {
-  var mainThis = $(this)
-    .parent()
-    .parent();
+  var mainThis = $(this).parent().parent();
   var mainId = mainThis.attr("id");
   mainId = mainId.substring(mainId.indexOf("_") + 1);
 
@@ -1362,10 +1320,7 @@ function mmgisLinkModalsToLayersDeleteClick(e) {
 }
 
 function mmgisLinkModalsToLayersCloneClick(e) {
-  var mainThis = $(this)
-    .parent()
-    .parent()
-    .parent();
+  var mainThis = $(this).parent().parent().parent();
   var mainId = mainThis.attr("id");
   mainId = mainId.substring(mainId.indexOf("_") + 1);
   makeLayerBarAndModal(
@@ -1380,28 +1335,15 @@ function materializeDraggableMouseUp(e) {
   //Find out where the left edge of the bar lands relative to the layer tab
   //12 because materialize uses a 12 col system
   //console.log( $(this).parent().parent().width() )
-  var colWidth =
-    ($(this)
-      .parent()
-      .parent()
-      .width() -
-      304) /
-    12;
+  var colWidth = ($(this).parent().parent().width() - 304) / 12;
 
   var layerBarLoc =
-    $(this).offset().left -
-    150 -
-    $(this)
-      .parent()
-      .parent()
-      .offset().left;
+    $(this).offset().left - 150 - $(this).parent().parent().offset().left;
   var bestColumn = parseInt(layerBarLoc / colWidth);
   if (bestColumn < 1) bestColumn = 1;
   if (bestColumn > 10) bestColumn = 10;
 
-  var classString = $(this)
-    .attr("class")
-    .split(" ");
+  var classString = $(this).attr("class").split(" ");
   var classS = classString[classString.length - 2];
   var classPush = classString[classString.length - 1];
   $(this).removeClass(classS);
@@ -1420,7 +1362,7 @@ function save() {
       look: {},
       panels: [],
       tools: [],
-      layers: []
+      layers: [],
     };
     var prevIndentations = [];
     var prevLayerObjects = [];
@@ -1437,7 +1379,7 @@ function save() {
     json.msv["view"] = [
       $("#tab_initial_rows #ilat").val(),
       $("#tab_initial_rows #ilon").val(),
-      $("#tab_initial_rows #izoom").val()
+      $("#tab_initial_rows #izoom").val(),
     ];
     json.msv["radius"] = {};
     json.msv["radius"]["major"] = $("#tab_initial_rows #iradMaj").val();
@@ -1455,11 +1397,11 @@ function save() {
       $("#tab_projection #projection_boundsMinX").val(),
       $("#tab_projection #projection_boundsMinY").val(),
       $("#tab_projection #projection_boundsMaxX").val(),
-      $("#tab_projection #projection_boundsMaxY").val()
+      $("#tab_projection #projection_boundsMaxY").val(),
     ];
     json.projection["origin"] = [
       $("#tab_projection #projection_originX").val(),
-      $("#tab_projection #projection_originY").val()
+      $("#tab_projection #projection_originY").val(),
     ];
     json.projection["reszoomlevel"] = $(
       "#tab_projection #projection_resZ"
@@ -1527,7 +1469,7 @@ function save() {
     // because modals aren't ordered.
     $("#tab_layers_rows")
       .children("li")
-      .each(function() {
+      .each(function () {
         var layerObject = {};
         //Get layer row identation
         var layerRow = $(this).find("a");
@@ -1535,11 +1477,7 @@ function save() {
         indentation = indentation[indentation.length - 1];
         indentation = parseInt(indentation.substring(6));
         //Find corresponding modal
-        var modal = $(
-          $(this)
-            .find("a")
-            .attr("href")
-        );
+        var modal = $($(this).find("a").attr("href"));
 
         var modalId = modal.attr("modalId");
         var modalName = modal.find("#nameEl input").val();
@@ -1554,11 +1492,12 @@ function save() {
         var modalUrl = modal.find("#urlEl input").val();
         var modaldemtileUrl = modal.find("#demtileurlEl input").val();
         var modalLegend = modal.find("#legendEl input").val();
-        var modalTms = modal.find( "#tmsEl select option:selected" ).text().toLowerCase();
-        if( modalTms == "true") 
-        	modalTms = true;
-        else                    
-        	modalTms = false;
+        var modalTms = modal
+          .find("#tmsEl select option:selected")
+          .text()
+          .toLowerCase();
+        if (modalTms == "true") modalTms = true;
+        else modalTms = false;
         var modalVis = modal
           .find("#visEl select option:selected")
           .text()
@@ -1616,7 +1555,7 @@ function save() {
           layerObject.demtileurl = modaldemtileUrl;
         if (modalLegend != "undefined" && modalLegend != "")
           layerObject.legend = modalLegend;
-        if( modalType != "header" ) layerObject.tms = modalTms;
+        if (modalType != "header") layerObject.tms = modalTms;
         if (modalType != "header") layerObject.visibility = modalVis;
         if (!isNaN(modalViscut)) layerObject.visibilitycutoff = modalViscut;
         if (!isNaN(modalInitOpac)) layerObject.initialOpacity = modalInitOpac;
@@ -1647,14 +1586,18 @@ function save() {
           layerObject.rotation.z = !isNaN(modalModelRotZ) ? modalModelRotZ : 0;
           layerObject.scale = !isNaN(modalModelScale) ? modalModelScale : 1;
         }
-        if (modalType == "point" || modalType == "vector") {
+        if (
+          modalType == "point" ||
+          modalType == "vector" ||
+          modalType == "vectortile"
+        ) {
           layerObject.style = {
             className: styleName,
             color: styleStrcol,
             fillColor: styleFilcol,
             weight: styleWeight,
             fillOpacity: styleOpacity,
-            opacity: 1
+            opacity: 1,
           };
           if (modalVariable != "undefined") {
             try {
@@ -1698,16 +1641,15 @@ function save() {
           }
         }
 
-        
-        if( !validName(modalName) ) {
+        if (!validName(modalName)) {
           isInvalidData = true;
           Materialize.toast(
-                "<span id='toast_warningov1'>WARNING: Invalid layer name - " + modalName + "</span>",
-                5000
-              );
-              $("#toast_warningov1")
-                .parent()
-                .css("background-color", "#a11717");
+            "<span id='toast_warningov1'>WARNING: Invalid layer name - " +
+              modalName +
+              "</span>",
+            5000
+          );
+          $("#toast_warningov1").parent().css("background-color", "#a11717");
         }
 
         //Check if data is properly filled out
@@ -1719,9 +1661,7 @@ function save() {
                 "<span id='toast_warningh1'>WARNING: header with no name.</span>",
                 5000
               );
-              $("#toast_warningh1")
-                .parent()
-                .css("background-color", "#a11717");
+              $("#toast_warningh1").parent().css("background-color", "#a11717");
             }
             break;
           case "tile":
@@ -1731,18 +1671,14 @@ function save() {
                 "<span id='toast_warningt1'>WARNING: tile with undefined name.</span>",
                 5000
               );
-              $("#toast_warningt1")
-                .parent()
-                .css("background-color", "#a11717");
+              $("#toast_warningt1").parent().css("background-color", "#a11717");
             } else if (modalName.length < 1) {
               isInvalidData = true;
               Materialize.toast(
                 "<span id='toast_warningt2'>WARNING: tile with no name.</span>",
                 5000
               );
-              $("#toast_warningt2")
-                .parent()
-                .css("background-color", "#a11717");
+              $("#toast_warningt2").parent().css("background-color", "#a11717");
             }
             if (modalUrl == "undefined" || modalUrl == "") {
               isInvalidData = true;
@@ -1752,9 +1688,7 @@ function save() {
                   " has undefined url.</span>",
                 5000
               );
-              $("#toast_warningt3")
-                .parent()
-                .css("background-color", "#a11717");
+              $("#toast_warningt3").parent().css("background-color", "#a11717");
             }
             if (isNaN(modalMinz)) {
               isInvalidData = true;
@@ -1764,9 +1698,7 @@ function save() {
                   " has undefined minz.</span>",
                 5000
               );
-              $("#toast_warningt4")
-                .parent()
-                .css("background-color", "#a11717");
+              $("#toast_warningt4").parent().css("background-color", "#a11717");
             } else if (modalMinz < 0) {
               isInvalidData = true;
               Materialize.toast(
@@ -1775,9 +1707,7 @@ function save() {
                   " has minz under 0.</span>",
                 5000
               );
-              $("#toast_warningt5")
-                .parent()
-                .css("background-color", "#a11717");
+              $("#toast_warningt5").parent().css("background-color", "#a11717");
             }
             if (isNaN(modalMaxnz)) {
               isInvalidData = true;
@@ -1787,9 +1717,7 @@ function save() {
                   " has undefined maxnz.</span>",
                 5000
               );
-              $("#toast_warningt6")
-                .parent()
-                .css("background-color", "#a11717");
+              $("#toast_warningt6").parent().css("background-color", "#a11717");
             }
             if (isNaN(modalMaxz)) {
               isInvalidData = true;
@@ -1799,9 +1727,7 @@ function save() {
                   " has undefined maxz.</span>",
                 5000
               );
-              $("#toast_warningt7")
-                .parent()
-                .css("background-color", "#a11717");
+              $("#toast_warningt7").parent().css("background-color", "#a11717");
             }
             if (
               !isNaN(modalMinz) &&
@@ -1816,9 +1742,7 @@ function save() {
                   " has minz larger than maxnz.</span>",
                 5000
               );
-              $("#toast_warningt8")
-                .parent()
-                .css("background-color", "#a11717");
+              $("#toast_warningt8").parent().css("background-color", "#a11717");
             }
             break;
           case "vectortile":
@@ -1925,9 +1849,7 @@ function save() {
                 "<span id='toast_warningt1'>WARNING: data with undefined name.</span>",
                 5000
               );
-              $("#toast_warningt1")
-                .parent()
-                .css("background-color", "#a11717");
+              $("#toast_warningt1").parent().css("background-color", "#a11717");
             } else if (modalName.length < 1) {
               isInvalidData = true;
               Materialize.toast(
@@ -2022,18 +1944,14 @@ function save() {
                 "<span id='toast_warningp1'>WARNING: point with undefined name.</span>",
                 5000
               );
-              $("#toast_warningp1")
-                .parent()
-                .css("background-color", "#a11717");
+              $("#toast_warningp1").parent().css("background-color", "#a11717");
             } else if (modalName.length < 1) {
               isInvalidData = true;
               Materialize.toast(
                 "<span id='toast_warningp2'>WARNING: point with no name.</span>",
                 5000
               );
-              $("#toast_warningp2")
-                .parent()
-                .css("background-color", "#a11717");
+              $("#toast_warningp2").parent().css("background-color", "#a11717");
             }
             if (modalUrl == "undefined" || modalUrl == "") {
               isInvalidData = true;
@@ -2043,9 +1961,7 @@ function save() {
                   " has undefined url.</span>",
                 5000
               );
-              $("#toast_warningp3")
-                .parent()
-                .css("background-color", "#a11717");
+              $("#toast_warningp3").parent().css("background-color", "#a11717");
             }
             break;
           case "vector":
@@ -2055,18 +1971,14 @@ function save() {
                 "<span id='toast_warningv1'>WARNING: vector with undefined name.</span>",
                 5000
               );
-              $("#toast_warningv1")
-                .parent()
-                .css("background-color", "#a11717");
+              $("#toast_warningv1").parent().css("background-color", "#a11717");
             } else if (modalName.length < 1) {
               isInvalidData = true;
               Materialize.toast(
                 "<span id='toast_warningv2'>WARNING: vector with no name.</span>",
                 5000
               );
-              $("#toast_warningv2")
-                .parent()
-                .css("background-color", "#a11717");
+              $("#toast_warningv2").parent().css("background-color", "#a11717");
             }
             if (modalUrl == "undefined" || modalUrl == "") {
               isInvalidData = true;
@@ -2076,9 +1988,7 @@ function save() {
                   " has undefined url.</span>",
                 5000
               );
-              $("#toast_warningv3")
-                .parent()
-                .css("background-color", "#a11717");
+              $("#toast_warningv3").parent().css("background-color", "#a11717");
             }
             break;
           case "model":
@@ -2088,18 +1998,14 @@ function save() {
                 "<span id='toast_warningm1'>WARNING: model with undefined name.</span>",
                 5000
               );
-              $("#toast_warningm1")
-                .parent()
-                .css("background-color", "#a11717");
+              $("#toast_warningm1").parent().css("background-color", "#a11717");
             } else if (modalName.length < 1) {
               isInvalidData = true;
               Materialize.toast(
                 "<span id='toast_warningv2'>WARNING: model with no name.</span>",
                 5000
               );
-              $("#toast_warningm2")
-                .parent()
-                .css("background-color", "#a11717");
+              $("#toast_warningm2").parent().css("background-color", "#a11717");
             }
             if (modalUrl == "undefined" || modalUrl == "") {
               isInvalidData = true;
@@ -2109,9 +2015,7 @@ function save() {
                   " has undefined url.</span>",
                 5000
               );
-              $("#toast_warningm3")
-                .parent()
-                .css("background-color", "#a11717");
+              $("#toast_warningm3").parent().css("background-color", "#a11717");
             }
             if (
               isNaN(modalModelLon) ||
@@ -2124,9 +2028,7 @@ function save() {
                   " has invalid Lon, Lat, or Elev. Defaulting to 0.</span>",
                 5000
               );
-              $("#toast_warningm4")
-                .parent()
-                .css("background-color", "#aeae09");
+              $("#toast_warningm4").parent().css("background-color", "#aeae09");
             }
             if (
               isNaN(modalModelRotX) ||
@@ -2139,9 +2041,7 @@ function save() {
                   " has invalid Rotation X, Y or Z. Defaulting to 0.</span>",
                 5000
               );
-              $("#toast_warningm5")
-                .parent()
-                .css("background-color", "#aeae09");
+              $("#toast_warningm5").parent().css("background-color", "#aeae09");
             }
             if (isNaN(modalModelScale)) {
               Materialize.toast(
@@ -2150,9 +2050,7 @@ function save() {
                   " has invalid Scale. Defaulting to 0.</span>",
                 5000
               );
-              $("#toast_warningm6")
-                .parent()
-                .css("background-color", "#aeae09");
+              $("#toast_warningm6").parent().css("background-color", "#aeae09");
             }
             break;
         }
@@ -2194,9 +2092,7 @@ function save() {
         "<span id='toast_warning'>WARNING: non-header(s).</span>",
         5000
       );
-      $("#toast_warning")
-        .parent()
-        .css("background-color", "#a11717");
+      $("#toast_warning").parent().css("background-color", "#a11717");
     }
 
     //SAVE HERE
@@ -2205,18 +2101,14 @@ function save() {
       saveConfig(json);
     } else {
       Materialize.toast("<span id='toast_failure'>Save Failed.</span>", 5000);
-      $("#toast_failure")
-        .parent()
-        .css("background-color", "#a11717");
+      $("#toast_failure").parent().css("background-color", "#a11717");
     }
   } else {
     Materialize.toast(
       "<span id='toast_warning'>No mission selected.</span>",
       5000
     );
-    $("#toast_warning")
-      .parent()
-      .css("background-color", "#aeae09");
+    $("#toast_warning").parent().css("background-color", "#aeae09");
   }
 }
 
@@ -2227,9 +2119,9 @@ function passwordMakeMission() {
     url: calls.verify.url,
     data: {
       m: "ADMIN",
-      p: pass
+      p: pass,
     },
-    success: function(data) {
+    success: function (data) {
       if (data == "success") {
         var missionname = $("#tab_new_mission_rows #nmmission").val();
         var missionpassword = $("#tab_new_mission_rows #nmpassword").val();
@@ -2243,9 +2135,7 @@ function passwordMakeMission() {
               "<span id='toast_failure6'>Don't use special characters in the mission name.</span>",
               5000
             );
-            $("#toast_failure6")
-              .parent()
-              .css("background-color", "#a11717");
+            $("#toast_failure6").parent().css("background-color", "#a11717");
             return;
           }
           if (missionpassword == missionretypepassword) {
@@ -2255,36 +2145,28 @@ function passwordMakeMission() {
               "<span id='toast_failure3'>Mission passwords don't match.</span>",
               5000
             );
-            $("#toast_failure3")
-              .parent()
-              .css("background-color", "#a11717");
+            $("#toast_failure3").parent().css("background-color", "#a11717");
           }
         } else {
           Materialize.toast(
             "<span id='toast_failure4'>At least one field is empty.</span>",
             5000
           );
-          $("#toast_failure4")
-            .parent()
-            .css("background-color", "#a11717");
+          $("#toast_failure4").parent().css("background-color", "#a11717");
         }
       } else {
         Materialize.toast(
           "<span id='toast_bad_password2'>Invalid Password</span>",
           5000
         );
-        $("#toast_bad_password2")
-          .parent()
-          .css("background-color", "#a11717");
+        $("#toast_bad_password2").parent().css("background-color", "#a11717");
         Materialize.toast(
           "<span id='toast_failure5'>Launch Failed.</span>",
           5000
         );
-        $("#toast_failure5")
-          .parent()
-          .css("background-color", "#a11717");
+        $("#toast_failure5").parent().css("background-color", "#a11717");
       }
-    }
+    },
   });
 }
 
@@ -2294,9 +2176,9 @@ function makeMission(missionname, missionpassword) {
     url: calls.make_mission.url,
     data: {
       missionname: missionname,
-      password: missionpassword
+      password: missionpassword,
     },
-    success: function(data) {
+    success: function (data) {
       data = JSON.parse(data);
       if (data["status"] == "success") {
         Materialize.toast(
@@ -2305,10 +2187,8 @@ function makeMission(missionname, missionpassword) {
             " Created. Page will now reload...</span>",
           5000
         );
-        $("#toast_success1")
-          .parent()
-          .css("background-color", "#1565C0");
-        setTimeout(function() {
+        $("#toast_success1").parent().css("background-color", "#1565C0");
+        setTimeout(function () {
           location.reload();
         }, 3000);
       } else {
@@ -2316,11 +2196,9 @@ function makeMission(missionname, missionpassword) {
           "<span id='toast_failure7'>" + data["message"] + "</span>",
           5000
         );
-        $("#toast_failure7")
-          .parent()
-          .css("background-color", "#a11717");
+        $("#toast_failure7").parent().css("background-color", "#a11717");
       }
-    }
+    },
   });
 }
 
@@ -2333,9 +2211,7 @@ function addMission() {
         "<span id='toast_failure6'>Don't use special characters in the mission name.</span>",
         5000
       );
-      $("#toast_failure6")
-        .parent()
-        .css("background-color", "#a11717");
+      $("#toast_failure6").parent().css("background-color", "#a11717");
       return;
     }
 
@@ -2346,9 +2222,9 @@ function addMission() {
       url: calls.add.url,
       data: {
         mission: missionname,
-        makedir: makedir
+        makedir: makedir,
       },
-      success: function(data) {
+      success: function (data) {
         if (data.status == "success") {
           Materialize.toast(
             "<span id='toast_success1'>Mission: " +
@@ -2356,10 +2232,8 @@ function addMission() {
               " Created. Page will now reload...</span>",
             4000
           );
-          $("#toast_success1")
-            .parent()
-            .css("background-color", "#1565C0");
-          setTimeout(function() {
+          $("#toast_success1").parent().css("background-color", "#1565C0");
+          setTimeout(function () {
             location.reload();
           }, 4000);
         } else {
@@ -2367,20 +2241,16 @@ function addMission() {
             "<span id='toast_failure7'>" + data["message"] + "</span>",
             5000
           );
-          $("#toast_failure7")
-            .parent()
-            .css("background-color", "#a11717");
+          $("#toast_failure7").parent().css("background-color", "#a11717");
         }
-      }
+      },
     });
   } else {
     Materialize.toast(
       "<span id='toast_failure4'>Please enter a new mission name.</span>",
       5000
     );
-    $("#toast_failure4")
-      .parent()
-      .css("background-color", "#a11717");
+    $("#toast_failure4").parent().css("background-color", "#a11717");
   }
 }
 
@@ -2390,17 +2260,15 @@ function saveConfig(json) {
     url: calls.upsert.url,
     data: {
       mission: mission,
-      config: JSON.stringify(json)
+      config: JSON.stringify(json),
     },
-    success: function(data) {
+    success: function (data) {
       if (data.status == "success") {
         Materialize.toast(
           "<span id='toast_success'>Save Successful.</span>",
           1600
         );
-        $("#toast_success")
-          .parent()
-          .css("background-color", "#1565C0");
+        $("#toast_success").parent().css("background-color", "#1565C0");
         /*
         Materialize.toast( "<span id='toast_success3'>Page will now reload...</span>" , 4000);
         $( "#toast_success3" ).parent().css("background-color", "#1565C0");
@@ -2411,11 +2279,9 @@ function saveConfig(json) {
           "<span id='toast_failure8'>" + data["message"] + "</span>",
           5000
         );
-        $("#toast_failure8")
-          .parent()
-          .css("background-color", "#a11717");
+        $("#toast_failure8").parent().css("background-color", "#a11717");
       }
-    }
+    },
   });
 }
 
@@ -2426,9 +2292,9 @@ function passwordWriteJSON(filename, json) {
     url: calls.verify.url,
     data: {
       m: mission.toLowerCase(),
-      p: pass
+      p: pass,
     },
-    success: function(data) {
+    success: function (data) {
       if (data == "success") {
         //Try changing the mission name if it was changed
         if (mission.toLowerCase() != json.msv.mission.toLowerCase()) {
@@ -2437,9 +2303,9 @@ function passwordWriteJSON(filename, json) {
             url: calls.rename_mission.url,
             data: {
               mission: mission.toLowerCase(),
-              tomission: json.msv.mission
+              tomission: json.msv.mission,
             },
-            success: function(data) {
+            success: function (data) {
               data = JSON.parse(data);
               if (data["status"] == "success") {
                 Materialize.toast(
@@ -2453,7 +2319,7 @@ function passwordWriteJSON(filename, json) {
                 filename =
                   calls.missionPath + "" + json.msv.mission + "/config.json";
 
-                writeJSON(filename, json, function() {
+                writeJSON(filename, json, function () {
                   Materialize.toast(
                     "<span id='toast_success3'>Page will now reload...</span>",
                     3000
@@ -2461,7 +2327,7 @@ function passwordWriteJSON(filename, json) {
                   $("#toast_success3")
                     .parent()
                     .css("background-color", "#1565C0");
-                  setTimeout(function() {
+                  setTimeout(function () {
                     location.reload();
                   }, 3000);
                 });
@@ -2474,7 +2340,7 @@ function passwordWriteJSON(filename, json) {
                   .parent()
                   .css("background-color", "#a11717");
               }
-            }
+            },
           });
         } else {
           writeJSON(filename, json);
@@ -2484,18 +2350,14 @@ function passwordWriteJSON(filename, json) {
           "<span id='toast_bad_password'>Invalid Password</span>",
           5000
         );
-        $("#toast_bad_password")
-          .parent()
-          .css("background-color", "#a11717");
+        $("#toast_bad_password").parent().css("background-color", "#a11717");
         Materialize.toast(
           "<span id='toast_failure2'>Save Failed.</span>",
           5000
         );
-        $("#toast_failure2")
-          .parent()
-          .css("background-color", "#a11717");
+        $("#toast_failure2").parent().css("background-color", "#a11717");
       }
-    }
+    },
   });
 }
 function writeJSON(filename, json, callback) {
@@ -2508,19 +2370,17 @@ function writeJSON(filename, json, callback) {
     data: {
       filename: calls.write_json.pathprefix + filename,
       mission: mission,
-      json: json
+      json: json,
     },
-    success: function(data) {
+    success: function (data) {
       Materialize.toast(
         "<span id='toast_success'>Save Successful.</span>",
         5000
       );
-      $("#toast_success")
-        .parent()
-        .css("background-color", "#1565C0");
+      $("#toast_success").parent().css("background-color", "#1565C0");
 
       if (typeof callback === "function") callback();
-    }
+    },
   });
 }
 
@@ -2530,7 +2390,7 @@ function projectionPopulateFromXML() {
     type: "GET",
     url: xmlPath,
     dataType: "xml",
-    success: function(xml) {
+    success: function (xml) {
       try {
         $("#tab_projection #projection_boundsMinX").val(
           $(xml).find("BoundingBox")[0].attributes["minx"].value
@@ -2565,7 +2425,7 @@ function projectionPopulateFromXML() {
       }
       Materialize.updateTextFields();
     },
-    error: function(XMLHttpRequest, textStatus, errorThrown) {
+    error: function (XMLHttpRequest, textStatus, errorThrown) {
       Materialize.toast(
         "<span id='toast_failure_populateXML'>Failed to Populate From XML</span>",
         5000
@@ -2573,7 +2433,7 @@ function projectionPopulateFromXML() {
       $("#toast_failure_populateXML")
         .parent()
         .css("background-color", "#a11717");
-    }
+    },
   });
 }
 function projectionToggleCustom(force) {
@@ -2615,7 +2475,7 @@ function tilelayerPopulateFromXML(modalId) {
     type: "GET",
     url: xmlPath,
     dataType: "xml",
-    success: function(xml) {
+    success: function (xml) {
       try {
         var tLen = $(xml).find("TileSet").length;
         var minzValue = $(xml).find("TileSet")[0].attributes["order"].value;
@@ -2642,7 +2502,7 @@ function tilelayerPopulateFromXML(modalId) {
       }
       Materialize.updateTextFields();
     },
-    error: function(XMLHttpRequest, textStatus, errorThrown) {
+    error: function (XMLHttpRequest, textStatus, errorThrown) {
       Materialize.toast(
         "<span id='toast_failure_populateXMLtilelayer'>Failed to Populate From " +
           xmlPath +
@@ -2652,7 +2512,7 @@ function tilelayerPopulateFromXML(modalId) {
       $("#toast_failure_populateXMLtilelayer")
         .parent()
         .css("background-color", "#a11717");
-    }
+    },
   });
 }
 
@@ -2667,25 +2527,26 @@ function layerPopulateVariable(modalId) {
         prop: "{prop}",
         dataset: "{dataset}",
         column: "{column}",
-        type: "{none || images}"
-      }
+        type: "{none || images}",
+      },
     ];
 
     currentLayerVars.links = currentLayerVars.links || [
       {
         name: "example",
-        link: "url/?param={prop}"
-      }
+        link: "url/?param={prop}",
+      },
     ];
 
     currentLayerVars.info = currentLayerVars.info || [
       {
         which: "last",
         icon: "material design icon",
-        value: "Prop: {prop}"
-      }
+        value: "Prop: {prop}",
+      },
     ];
-    currentLayerVars.search = currentLayerVars.search || "(prop1) round(prop2.1) rmunder(prop_3)"
+    currentLayerVars.search =
+      currentLayerVars.search || "(prop1) round(prop2.1) rmunder(prop_3)";
 
     layerEditors[modalId].setValue(JSON.stringify(currentLayerVars, null, 4));
   }
@@ -2701,7 +2562,7 @@ function vtlayerPopulateStyle(modalId) {
     type: "GET",
     url: metadatajsonPath,
     dataType: "json",
-    success: function(json) {
+    success: function (json) {
       var layers = JSON.parse(json.json).vector_layers;
 
       var newLayerStyles = {};
@@ -2713,7 +2574,7 @@ function vtlayerPopulateStyle(modalId) {
           fillOpacity: 0.5,
           opacity: 1,
           radius: 4,
-          weight: 2
+          weight: 2,
         };
       }
       if (layerEditors[modalId]) {
@@ -2748,7 +2609,7 @@ function vtlayerPopulateStyle(modalId) {
         );
       }
     },
-    error: function(XMLHttpRequest, textStatus, errorThrown) {
+    error: function (XMLHttpRequest, textStatus, errorThrown) {
       Materialize.toast(
         "<span id='toast_failure_populatemetajsonvtlayer'>Failed to Populate From " +
           metadatajsonPath +
@@ -2758,7 +2619,7 @@ function vtlayerPopulateStyle(modalId) {
       $("#toast_failure_populatemetajsonvtlayer")
         .parent()
         .css("background-color", "#a11717");
-    }
+    },
   });
 }
 
@@ -2786,31 +2647,27 @@ function populateVersions(versions) {
     $("#tab_overall_versions").append(li);
   }
 
-  $(".version_set").on("click", function() {
+  $(".version_set").on("click", function () {
     $.ajax({
       type: calls.upsert.type,
       url: calls.upsert.url,
       data: {
         mission: $(this).attr("mission"),
-        version: $(this).attr("version")
+        version: $(this).attr("version"),
       },
-      success: function(data) {
+      success: function (data) {
         if (data.status == "success") {
           Materialize.toast(
             "<span id='toast_success'>Save Successful.</span>",
             4000
           );
-          $("#toast_success")
-            .parent()
-            .css("background-color", "#1565C0");
+          $("#toast_success").parent().css("background-color", "#1565C0");
           Materialize.toast(
             "<span id='toast_success3'>Page will now reload...</span>",
             4000
           );
-          $("#toast_success3")
-            .parent()
-            .css("background-color", "#1565C0");
-          setTimeout(function() {
+          $("#toast_success3").parent().css("background-color", "#1565C0");
+          setTimeout(function () {
             location.reload();
           }, 4000);
         } else {
@@ -2818,15 +2675,13 @@ function populateVersions(versions) {
             "<span id='toast_failure8'>" + data["message"] + "</span>",
             5000
           );
-          $("#toast_failure8")
-            .parent()
-            .css("background-color", "#a11717");
+          $("#toast_failure8").parent().css("background-color", "#a11717");
         }
-      }
+      },
     });
   });
 
-  $(".version_download").on("click", function() {
+  $(".version_download").on("click", function () {
     let downloadMission = $(this).attr("mission");
     let downloadVersion = $(this).attr("version");
 
@@ -2836,9 +2691,9 @@ function populateVersions(versions) {
       data: {
         mission: downloadMission,
         version: downloadVersion,
-        full: true
+        full: true,
       },
-      success: function(data) {
+      success: function (data) {
         if (data.status == "success") {
           downloadObject(
             data.config,
@@ -2850,19 +2705,15 @@ function populateVersions(versions) {
             "<span id='toast_success'>Download Successful.</span>",
             4000
           );
-          $("#toast_success")
-            .parent()
-            .css("background-color", "#1565C0");
+          $("#toast_success").parent().css("background-color", "#1565C0");
         } else {
           Materialize.toast(
             "<span id='toast_failure8'>" + data["message"] + "</span>",
             5000
           );
-          $("#toast_failure8")
-            .parent()
-            .css("background-color", "#a11717");
+          $("#toast_failure8").parent().css("background-color", "#a11717");
         }
-      }
+      },
     });
   });
 }
@@ -2893,18 +2744,22 @@ function downloadObject(exportObj, exportName, exportExt, prettify) {
 }
 
 function toTitleCase(str) {
-  return str.replace(/\w\S*/g, function(txt) {
+  return str.replace(/\w\S*/g, function (txt) {
     return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
   });
 }
 
 function validName(name) {
-  if( name.length > 0 && name.length == name.replace(/[`~!@#$%^&*|+\=?;:'",.<>\{\}\[\]\\\/]/gi, "").length && /^\d+$/.test(name[0]) == false ) {
+  if (
+    name.length > 0 &&
+    name.length ==
+      name.replace(/[`~!@#$%^&*|+\=?;:'",.<>\{\}\[\]\\\/]/gi, "").length &&
+    /^\d+$/.test(name[0]) == false
+  ) {
     try {
-        $( '.' + name.replace(/\s/g, '').toLowerCase() );
-        return true;
-    }
-    catch (e) {
+      $("." + name.replace(/\s/g, "").toLowerCase());
+      return true;
+    } catch (e) {
       return false;
     }
   }

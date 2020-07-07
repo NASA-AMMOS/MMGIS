@@ -317,6 +317,7 @@ The border color of each feature. If the feature is a line, this field is the co
   - hsl(130, 26%, 34%)
 - Based on a feature's color property
   - `prop:geojson_property_key` will set the feature's color to the values of `features[i].properties.geojson_property_key`
+  - If that property is not a valid CSS color and is a string, it will use a random and consistent color based on its hash.
 
 #### Fill Color
 

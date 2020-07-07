@@ -1,4 +1,4 @@
-define(['jquery', 'd3', 'Layers_', 'ToolController_', 'Map_'], function(
+define(['jquery', 'd3', 'Layers_', 'ToolController_', 'Map_'], function (
     $,
     d3,
     L_,
@@ -7,7 +7,7 @@ define(['jquery', 'd3', 'Layers_', 'ToolController_', 'Map_'], function(
 ) {
     // prettier-ignore
     var markup = [
-    "<div id='Test_' style='position: absolute; bottom: 0px; right: 0px; width: 55%; height: 100%; font-family: monospace; padding: 0px 0px 0px 8px; background: rgba(0, 19, 31, 0.8); box-shadow: -5px 0px 10px rgba(0,0,0,0.3); border-left: 1px solid rgba(255,255,255,0.4);'>",
+    "<div id='Test_' style='position: absolute; bottom: 0px; right: 0px; width: 55%; height: 100%; font-family: monospace; padding: 0px 0px 0px 8px; background: rgba(15, 15, 15, 0.67); box-shadow: -5px 0px 10px rgba(0,0,0,0.3); border-left: 1px solid rgba(255,255,255,0.4);'>",
       "<ul id='Test_Messages' class='mmgisScrollbar' style='list-style-type: none; margin: 0px; padding: 0px; padding-bottom: 18px; height: calc( 100% - 35px ); overflow-y: auto;'></ul>",
       "<div id='Test_Results' style='display: inline-flex; padding-top: 5px; width: 100%; border-top: 1px solid rgba(255,255,255,0.4);'>",
         "<div id='Test_Start' style='display: inline-flex; font-weight: bold; color: white; border: 1px solid white; background: black; cursor: pointer; border-radius: 3px; padding: 1px 4px; margin-right: 5px;'>Start Test</div>",
@@ -30,27 +30,27 @@ define(['jquery', 'd3', 'Layers_', 'ToolController_', 'Map_'], function(
             finished: 0,
             total: 0,
         },
-        init: function(thenStart) {
+        init: function (thenStart) {
             this.testModuleNames = Object.assign([], TC_.toolModuleNames)
             for (var i = 0; i < this.testModuleNames.length; i++) {
                 this.testModuleNames[i] += '_test'
             }
             //$( '#Test_Start' ).on( 'click', this.start );
             this.testModuleNames = ['DrawTool_test']
-            require(this.testModuleNames, function() {
+            require(this.testModuleNames, function () {
                 Test_.testModules = arguments
                 Test_.testsInitialized = true
                 if (thenStart === true) Test_.start()
             })
         },
-        toggle: function() {
+        toggle: function () {
             if (this.isOpen) {
                 this.close()
             } else {
                 this.open()
             }
         },
-        open: function() {
+        open: function () {
             this.isOpen = true
             $('body').append(markup)
             $('#Test_').css('height', '35px')
@@ -67,7 +67,7 @@ define(['jquery', 'd3', 'Layers_', 'ToolController_', 'Map_'], function(
             })
             this.start()
         },
-        start: function() {
+        start: function () {
             if (this.testsInitialized) {
                 $('#Test_Messages > li').remove()
                 this.results = {
@@ -160,12 +160,12 @@ define(['jquery', 'd3', 'Layers_', 'ToolController_', 'Map_'], function(
                 )
             }
         },
-        close: function() {
+        close: function () {
             this.isOpen = false
             $('#Test_').remove()
         },
         //From: https://stackoverflow.com/questions/3277369/how-to-simulate-a-click-by-using-x-y-coordinates-in-javascript
-        fireEvent: function(event, x, y) {
+        fireEvent: function (event, x, y) {
             x = x || 0
             y = y || 0
             var ev = document.createEvent('MouseEvent')
@@ -189,7 +189,7 @@ define(['jquery', 'd3', 'Layers_', 'ToolController_', 'Map_'], function(
             )
             el.dispatchEvent(ev)
         },
-        mapEvent: function(event, lat, lng, offsetFromCenter) {
+        mapEvent: function (event, lat, lng, offsetFromCenter) {
             lat = lat || 0
             lng = lng || 0
             if (offsetFromCenter) {

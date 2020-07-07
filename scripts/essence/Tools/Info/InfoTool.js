@@ -12,13 +12,14 @@ define([
     'Kinds',
     'jsonViewer',
     'css!InfoTool',
-], function($, d3, F_, L_, Globe_, Map_, Viewer_, Kinds, jsonViewer) {
+], function ($, d3, F_, L_, Globe_, Map_, Viewer_, Kinds, jsonViewer) {
     //Add the tool markup if you want to do it this way
     // prettier-ignore
     // prettier-ignore
     var markup = [
         "<div id='infoTool'>",
             "<div id='infoToolTitle'>Info</div>",
+            "<div id='infoToolOverlaps'></div>",
             "<ul id='infoToolSelections'>",
             "</ul>",
             "<div id='infoToolContents'>",
@@ -37,17 +38,17 @@ define([
         geoOpen: false,
         vars: {},
         MMGISInterface: null,
-        make: function() {
+        make: function () {
             this.MMGISInterface = new interfaceWithMMGIS()
         },
-        destroy: function() {
+        destroy: function () {
             this.MMGISInterface.separateFromMMGIS()
         },
-        getUrlString: function() {
+        getUrlString: function () {
             return ''
         },
         //We might get multiple features if vector layers overlap
-        use: function(
+        use: function (
             currentLayer,
             currentLayerName,
             features,
@@ -73,7 +74,12 @@ define([
                 this.currentLayerName = currentLayerName
                 this.info = features
                 this.variables = variables
-                this.activeFeatureI = activeI || 0
+                let activeIndex = activeI
+                if (activeI == null) {
+                    let foundI = this.findFeature(currentLayer, features)
+                    activeIndex = foundI != -1 ? foundI : 0
+                }
+                this.activeFeatureI = activeIndex
                 this.initialEvent = initialEvent
             }
 
@@ -90,9 +96,13 @@ define([
 
             if (this.info == null || this.info.length == 0) return
 
-            d3.select('#infoToolSelections')
-                .selectAll('*')
-                .remove()
+            d3.select('#infoToolSelections').selectAll('*').remove()
+            if (this.info.length > 1) {
+                $('#infoToolOverlaps').text(
+                    this.info.length + ' Features Overlap'
+                )
+                $('#infoToolOverlaps').css({ display: 'block' })
+            } else $('#infoToolOverlaps').css({ display: 'none' })
             for (var i = 0; i < this.info.length; i++) {
                 if (!this.info[i].properties) {
                     if (this.info[i].feature)
@@ -115,8 +125,8 @@ define([
                     .attr('class', i == this.activeFeatureI ? 'active' : '')
                     .on(
                         'click',
-                        (function(idx) {
-                            return function() {
+                        (function (idx) {
+                            return function () {
                                 let e = JSON.parse(
                                     JSON.stringify(InfoTool.initialEvent)
                                 )
@@ -138,17 +148,30 @@ define([
                     .html(name)
             }
 
+            $('#infoToolSelections').scrollTop((this.activeFeatureI - 1) * 24)
+
             $('#json-renderer').jsonViewer(this.info[this.activeFeatureI], {
                 collapsed: false,
                 withQuotes: false,
                 withLinks: true,
             })
         },
+        findFeature: function (l, featureArray) {
+            if (l.feature && featureArray) {
+                let f = JSON.stringify(l.feature)
+                for (let i = 0; i < featureArray.length; i++) {
+                    if (JSON.stringify(featureArray[i]) == f) {
+                        return i
+                    }
+                }
+            }
+            return -1
+        },
     }
 
     //
     function interfaceWithMMGIS() {
-        this.separateFromMMGIS = function() {
+        this.separateFromMMGIS = function () {
             separateFromMMGIS()
         }
 

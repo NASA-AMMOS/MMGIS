@@ -17,7 +17,7 @@ define([
     'Globe_Walk',
     'Globe_VectorsAsTiles',
     'Globe_Radargrams',
-], function(
+], function (
     d3,
     THREE,
     F_,
@@ -129,6 +129,8 @@ define([
         mouseLngLat: { Lng: null, Lat: null },
         toolbar: null,
         toolbarControls: null,
+        //Other components can set this to [lat,lon,zoom] so that it opens to that view
+        firstViewOverride: null,
         //Screen coordinates for center of globe div
         globeCenterPos: { x: null, y: null },
         centerTileXYZ: { x: null, y: null, z: null },
@@ -154,7 +156,7 @@ define([
         firstUpdate: true,
         allVectorLayersLoaded: false,
         wireframeMode: false,
-        init: function() {
+        init: function () {
             if (renderer) {
                 Globe_.wasInitialized = true
                 renderer.listenVrTurnedOn(Globe_.vrTurnedOn)
@@ -244,7 +246,9 @@ define([
             }
 
             //VR/////////////////
-            window.addEventListener('vr controller connected', function(event) {
+            window.addEventListener('vr controller connected', function (
+                event
+            ) {
                 return
 
                 //  Here it is, your VR controller instance.
@@ -274,12 +278,12 @@ define([
                 //  Check out the THREE.VRController.supported{} object to see
                 //  all the named buttons we’ve already mapped for you!
 
-                controller.addEventListener('primary press began', function(
+                controller.addEventListener('primary press began', function (
                     event
                 ) {
                     document.getElementById('topBarTitle').innerHtml = event
                 })
-                controller.addEventListener('primary press ended', function(
+                controller.addEventListener('primary press ended', function (
                     event
                 ) {
                     document.getElementById('topBarTitle').innerHtml = event
@@ -287,7 +291,7 @@ define([
 
                 //  Remove controller on disconnect
 
-                controller.addEventListener('disconnected', function(event) {
+                controller.addEventListener('disconnected', function (event) {
                     controller.parent.remove(controller)
                 })
             })
@@ -391,10 +395,10 @@ define([
             this.globe.on('wheel', onZoom)
             this.globe[0].addEventListener('touchend', onTouchZoom)
 
-            this.globe.on('mouseenter', function() {
+            this.globe.on('mouseenter', function () {
                 mouseIsInDiv = true
             })
-            this.globe.on('mouseleave', function() {
+            this.globe.on('mouseleave', function () {
                 mouseIsInDiv = false
                 L_.Map_.hidePlayer()
             })
@@ -421,7 +425,7 @@ define([
 
             Globe_.animate()
         },
-        fina: function(coordinates) {
+        fina: function (coordinates) {
             if (Globe_.wasInitialized) {
                 Coordinates = coordinates
 
@@ -452,7 +456,7 @@ define([
             }
         },
         //MAIN RENDER LOOP
-        animate: function() {
+        animate: function () {
             if (!Globe_.inAR) {
                 window.requestAnimationFrame(Globe_.animate)
                 if (L_.toolsLoaded) {
@@ -468,7 +472,7 @@ define([
                 }
             }
         },
-        render: function() {
+        render: function () {
             renderer.clear()
 
             updateCounter = (updateCounter + 1) % 3
@@ -487,7 +491,7 @@ define([
             renderer.clearDepth()
             renderer.render(Globe_.sceneFront, Cameras.camera)
         },
-        update: function() {
+        update: function () {
             if (!Globe_.wasInitialized) return
             frameCounter = (frameCounter + 1) % 4
             Globe_.wasOpened = true
@@ -574,12 +578,16 @@ define([
 
             if (Globe_.firstUpdate && Globe_.allVectorLayersLoaded) {
                 //Set default view
-                if (L_.FUTURES.globeView != null) {
-                    this.setCenter(L_.FUTURES.globeView, true)
-                } else if (L_.FUTURES.mapView != null) {
-                    this.setCenter(L_.FUTURES.mapView, true)
-                } else {
-                    this.setCenter(L_.view, true)
+                if (Globe_.firstViewOverride != null)
+                    this.setCenter(Globe_.firstViewOverride)
+                else {
+                    if (L_.FUTURES.globeView != null) {
+                        this.setCenter(L_.FUTURES.globeView, true)
+                    } else if (L_.FUTURES.mapView != null) {
+                        this.setCenter(L_.FUTURES.mapView, true)
+                    } else {
+                        this.setCenter(L_.view, true)
+                    }
                 }
 
                 var o = Globe_.getCameras().orbit
@@ -599,9 +607,10 @@ define([
         vrTurnedOff(navi) {
             Globe_.inVR = false
         },
-        setCenter: function(latlonzoom, ignoreZoom) {
+        setCenter: function (latlonzoom, ignoreZoom) {
             if (!Globe_.wasInitialized) return
             if (Globe_.linkPanned) return
+
             //Rotate globe
             //reset to 0, though its really only setting z to 0
             Globe_.planet.rotation.set(0, 0, 0)
@@ -615,7 +624,6 @@ define([
             if (latlonzoom[2] && ignoreZoom != true) {
                 Globe_.zoom = latlonzoom[2]
                 Globe_.updateZoomDependents()
-
                 //Zoom globe
                 Cameras.orbit.camera.position.y = -(
                     40000000 /
@@ -631,7 +639,7 @@ define([
 
             refreshVectorRotation()
         },
-        setLink: function(latlng, style, spriteId) {
+        setLink: function (latlng, style, spriteId) {
             if (!Globe_.wasInitialized) return
 
             if (Globe_.link.target != null)
@@ -664,7 +672,7 @@ define([
             refreshVectorRotation()
             attenuate()
         },
-        addTileLayer: function(layerObj) {
+        addTileLayer: function (layerObj) {
             if (!Globe_.wasInitialized) return
 
             killDrawingTiles()
@@ -688,7 +696,7 @@ define([
                 }
                 if (!alreadyExists) {
                     tileLayers.push(layerObj)
-                    tileLayers.sort(function(a, b) {
+                    tileLayers.sort(function (a, b) {
                         return b.order - a.order
                     })
                 }
@@ -706,7 +714,7 @@ define([
             }
         },
         //sI is scene Index
-        addLayer: function(layerObj, type, sI) {
+        addLayer: function (layerObj, type, sI) {
             if (!Globe_.wasInitialized) return
 
             if (sI == undefined) sI = 0
@@ -716,7 +724,7 @@ define([
                 this.addVectorLayer(layerObj, 1)
             }
         },
-        removeLayer: function(name, type) {
+        removeLayer: function (name, type) {
             if (!Globe_.wasInitialized) return
 
             if (type == 'tile') {
@@ -725,7 +733,7 @@ define([
                 this.removeVectorLayer(name)
             }
         },
-        removeTileLayer: function(name) {
+        removeTileLayer: function (name) {
             if (!Globe_.wasInitialized) return
 
             killDrawingTiles()
@@ -749,7 +757,7 @@ define([
                 }
             }
         },
-        reset: function() {
+        reset: function () {
             this.removeAllLayers()
 
             texturesOrdered = []
@@ -761,7 +769,7 @@ define([
             lineGroup = [new THREE.Object3D(), new THREE.Object3D()]
             vectorLayersMade = false
         },
-        removeAllTiles: function() {
+        removeAllTiles: function () {
             if (!Globe_.wasInitialized) return
             killDrawingTiles()
             //Remove all tiles so that they'll be recreated
@@ -770,7 +778,7 @@ define([
                 removeTile(0)
             }
         },
-        removeAllLayers: function() {
+        removeAllLayers: function () {
             this.setCenter(L_.view)
             this.removeAllTiles()
             for (var i in tileLayers) {
@@ -780,7 +788,7 @@ define([
                 this.removeLayer(vectorLayers[i].name, 'vector')
             }
         },
-        setLayerOpacity: function(name, opacity) {
+        setLayerOpacity: function (name, opacity) {
             if (!Globe_.wasInitialized) return
 
             for (t in tileLayers) {
@@ -835,7 +843,7 @@ define([
             mvpRTE = mvpRTE.multiply(Cameras.camera.projectionMatrix)
             t.material.uniforms['mvpRTE'].value = mvpRTE
         },
-        makeModelLayers: function(layerObj) {
+        makeModelLayers: function (layerObj) {
             if (!Globe_.wasInitialized) return
             //Make each layer (backwards to maintain draw order)
             for (var i = 0; i < layerObj.length; i++) {
@@ -846,8 +854,8 @@ define([
                         layerUrl = L_.missionPath + layerUrl
                     Globe_.anyToMesh(
                         layerUrl,
-                        (function(i, layerUrl) {
-                            return function(mesh) {
+                        (function (i, layerUrl) {
+                            return function (mesh) {
                                 if (mesh)
                                     Globe_.addAddonMesh(layerObj[i], 0, mesh)
                                 else
@@ -862,7 +870,7 @@ define([
                 }
             }
         },
-        makeVectorLayers: function(layerObj) {
+        makeVectorLayers: function (layerObj) {
             if (!Globe_.wasInitialized) return
 
             var totalNumber = 0
@@ -896,12 +904,12 @@ define([
                                 layer: urlSplit[1],
                                 type: 'geojson',
                             },
-                            (function(l) {
-                                return function(data) {
+                            (function (l) {
+                                return function (data) {
                                     makeFromVectorData(data.body, l)
                                 }
                             })(layerObj[i]),
-                            function(data) {
+                            function (data) {
                                 makeFromVectorDataPass()
                             }
                         )
@@ -914,8 +922,8 @@ define([
                                 id: JSON.stringify([1, 2, 3, 4, 5]),
                                 quick_published: true,
                             },
-                            (function(l) {
-                                return function(data) {
+                            (function (l) {
+                                return function (data) {
                                     data.body.features.sort((a, b) => {
                                         let intentOrder = [
                                             'all',
@@ -938,7 +946,7 @@ define([
                                     makeFromVectorData(data.body, l)
                                 }
                             })(layerObj[i]),
-                            function(data) {
+                            function (data) {
                                 makeFromVectorDataPass()
                             }
                         )
@@ -951,12 +959,12 @@ define([
                                 intent: layerObj[i].url.split(':')[2],
                                 quick_published: true,
                             },
-                            (function(l) {
-                                return function(data) {
+                            (function (l) {
+                                return function (data) {
                                     makeFromVectorData(data.body, l)
                                 }
                             })(layerObj[i]),
-                            function(data) {
+                            function (data) {
                                 makeFromVectorDataPass()
                             }
                         )
@@ -966,24 +974,24 @@ define([
                         calls.api(
                             'tactical_targets',
                             {},
-                            (function(l) {
-                                return function(data) {
+                            (function (l) {
+                                return function (data) {
                                     makeFromVectorData(data.body, l)
                                 }
                             })(layerObj[i]),
-                            function(data) {
+                            function (data) {
                                 makeFromVectorDataPass()
                             }
                         )
                     } else if (layerUrl.substr(0, 4) != 'api:') {
                         $.getJSON(
                             layerUrl,
-                            (function(l) {
-                                return function(data) {
+                            (function (l) {
+                                return function (data) {
                                     makeFromVectorData(data, l)
                                 }
                             })(layerObj[i])
-                        ).error(function() {
+                        ).error(function () {
                             makeFromVectorDataPass()
                         })
                     } else {
@@ -1061,7 +1069,7 @@ define([
                 attenuate()
             }
         },
-        addVectorTileLayer: function(layerObj, skip) {
+        addVectorTileLayer: function (layerObj, skip) {
             if (layerObj.id) {
                 for (var i = 0; i < vectorTileLayers.length; i++)
                     if (vectorTileLayers[i].hasOwnProperty('id'))
@@ -1108,7 +1116,7 @@ define([
                     'WARNING: Tried to add a Globe_ vector tile layer without an id.'
                 )
         },
-        removeVectorTileLayer: function(id) {
+        removeVectorTileLayer: function (id) {
             if (!Globe_.wasInitialized) return
 
             if (id) {
@@ -1126,7 +1134,7 @@ define([
         //(optional) bool key swapLL uses geometry as lng,lat
         //if geometry length is one, adds a point (cylinder) else a line
         //sI is scene index, sI = 1 is on top of tiles
-        addVectorLayer: function(layerObj, sI) {
+        addVectorLayer: function (layerObj, sI) {
             if (!Globe_.wasInitialized) return
             //Ignore these for now
             if (
@@ -1515,7 +1523,7 @@ define([
             }
         },
         //substringed true would remove any layer with id as a substring of its id
-        removeVectorLayer: function(id, substringed) {
+        removeVectorLayer: function (id, substringed) {
             if (!Globe_.wasInitialized) return
 
             if (id) {
@@ -1545,7 +1553,7 @@ define([
         //lonlatelev, rotation, and scale optional
         //lonlatelev { lon:,lat:,elev: }
         //rotation and scale {x:,y:,z:}
-        addAddonMesh: function(layerObj, sI, mesh) {
+        addAddonMesh: function (layerObj, sI, mesh) {
             layerObj = layerObj || {}
 
             var parentMesh = new THREE.Object3D()
@@ -1584,10 +1592,10 @@ define([
             addonMeshGroup[sI].add(parentMesh)
             return parentMesh
         },
-        removeAddonMesh: function(sI, mesh) {
+        removeAddonMesh: function (sI, mesh) {
             addonMeshGroup[sI].remove(mesh)
         },
-        anyToMesh: function(modelPath, callback, opacity) {
+        anyToMesh: function (modelPath, callback, opacity) {
             var ext = F_.getExtension(modelPath).toLowerCase()
             switch (ext) {
                 case 'obj':
@@ -1602,28 +1610,28 @@ define([
                     )
             }
         },
-        objToMesh: function(objPath, callback) {
+        objToMesh: function (objPath, callback) {
             objLoader.load(
                 objPath,
-                function(mesh) {
+                function (mesh) {
                     //Done
                     console.log(mesh)
                     callback(mesh)
                 },
-                function(xhr) {
+                function (xhr) {
                     //Progress
                     console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
                 },
-                function(error) {
+                function (error) {
                     //Error
                     console.log('Failed to load .obj at: ' + objPath)
                 }
             )
         },
-        daeToMesh: function(daePath, callback, inAParent, opacity) {
+        daeToMesh: function (daePath, callback, inAParent, opacity) {
             daeLoader.load(
                 daePath,
-                function(mesh) {
+                function (mesh) {
                     //Done
                     //care alphatest
                     if (!isNaN(opacity) && opacity >= 0 && opacity <= 1) {
@@ -1650,21 +1658,21 @@ define([
                         callback(mesh.scene)
                     }
                 },
-                function(xhr) {},
-                function(error) {
+                function (xhr) {},
+                function (error) {
                     //Error
                     console.log('Failed to load .dae at: ' + daePath)
                 }
             )
         },
-        getCameras: function() {
+        getCameras: function () {
             return Cameras
         },
-        getContainer: function() {
+        getContainer: function () {
             return container
         },
         //raycasted can be left blank
-        getCenterXYZ: function(raycasted) {
+        getCenterXYZ: function (raycasted) {
             if (raycasted) {
                 //Between planet center and straight up
                 raycaster.set(
@@ -1719,22 +1727,22 @@ define([
                 )
             }
         },
-        getCenter: function() {
+        getCenter: function () {
             return projection.vector3ToLonLat(this.getCenterXYZ())
         },
-        getCenterElevation: function() {
+        getCenterElevation: function () {
             return (
                 this.getCenterXYZ(true).length() * projection.radiusScale -
                 projection.radiusOfPlanetMajor
             )
         },
-        getCenterElevationRaw: function() {
+        getCenterElevationRaw: function () {
             var elev = this.getCenterXYZ(true).length()
             //If the height data hasn't loaded yet, we'll get a 0
             if (elev <= 0.1 && elev >= -0.1) return false //elev = projection.radiusOfPlanetMajor / projection.radiusScale;
             return elev
         },
-        getElevationAtLngLat: function(lng, lat) {
+        getElevationAtLngLat: function (lng, lat) {
             var v = projection.lonLatToVector3(
                 lng,
                 lat,
@@ -1778,7 +1786,7 @@ define([
             return 0
         },
         //Gets the lonlat of center tile
-        getTileCenter: function() {
+        getTileCenter: function () {
             //% Math.pow( 2, topLeft.z ) because of wrapping
             var tx = (topLeft.x + this.numXPlanes / 2) % Math.pow(2, topLeft.z)
             var ty = (topLeft.y + this.numYPlanes / 2) % Math.pow(2, topLeft.z)
@@ -1789,7 +1797,7 @@ define([
             return { lon: tlon, lat: tlat }
         },
         //return x y z of current center tile
-        getCenterTile: function() {
+        getCenterTile: function () {
             var centerll = Globe_.getCenter()
             return projection.latLngZ2TileXYZ(
                 centerll.lat,
@@ -1798,10 +1806,10 @@ define([
             )
         },
         //Useful for zoom
-        getRadiansPerPixel: function() {
+        getRadiansPerPixel: function () {
             return ((360 / Math.pow(2, Globe_.zoom)) * (Math.PI / 180)) / 256
         },
-        setZoom: function(newZoom) {
+        setZoom: function (newZoom) {
             let zoomSave = Globe_.zoom
             Globe_.zoom = newZoom
             if (Globe_.zoom < 0) Globe_.zoom = 0
@@ -1813,7 +1821,7 @@ define([
 
             Globe_.updateZoomDependents()
         },
-        updateZoomDependents: function() {
+        updateZoomDependents: function () {
             if (Globe_.zoom <= Globe_.zCutOff) {
                 Globe_.radiusOfTilesSAVED = Globe_.radiusOfTiles
                 Globe_.radiusOfTiles = 8
@@ -1839,7 +1847,7 @@ define([
             }
             Globe_.planetShell.material.uniforms['opacity'].value = shellOpacity
         },
-        toggleLayer: function(layerName, on) {
+        toggleLayer: function (layerName, on) {
             for (s in spriteGroup) {
                 for (i in spriteGroup[s].children) {
                     if (layerName == spriteGroup[s].children[i].layerName) {
@@ -1873,7 +1881,7 @@ define([
             }
             if (vectorTileHit) this.removeAllTiles()
         },
-        findSpriteObject: function(layerName, name) {
+        findSpriteObject: function (layerName, name) {
             for (s in spriteGroup) {
                 for (i in spriteGroup[s].children) {
                     if (layerName == spriteGroup[s].children[i].layerName) {
@@ -1884,11 +1892,11 @@ define([
                 }
             }
         },
-        highlight: function(intersectsZeroObj, click) {
+        highlight: function (intersectsZeroObj, click) {
             if (!F_.isEmpty(intersectsZeroObj)) {
                 var markers = L_.layersGroup[intersectsZeroObj.layerName]
                 if (markers != undefined) {
-                    markers.eachLayer(function(layer) {
+                    markers.eachLayer(function (layer) {
                         if (
                             intersectsZeroObj.name ==
                             layer.feature.properties[
@@ -1926,7 +1934,7 @@ define([
                 }
             }
         },
-        changeExaggeration: function(x) {
+        changeExaggeration: function (x) {
             this.removeAllTiles()
             //save the zoom distance
             var zoomDist = Cameras.orbit.camera.position.distanceTo(
@@ -1951,7 +1959,7 @@ define([
             this.exaggeration = x
             vectorLayersMade = false
         },
-        invalidateSize: function() {
+        invalidateSize: function () {
             if (Globe_.wasInitialized) {
                 renderer.setSize(container.offsetWidth, container.offsetHeight)
                 Cameras.orbit.camera.aspect =
@@ -1963,10 +1971,10 @@ define([
                 updateGlobeCenterPos()
             }
         },
-        getScene: function() {
+        getScene: function () {
             return scene
         },
-        getVectorLayers: function() {
+        getVectorLayers: function () {
             return vectorLayers
         },
         getVectorLayerWithNameAndGeometry(name, geometry) {
@@ -1978,11 +1986,11 @@ define([
         getVectorTileLayers() {
             return vectorTileLayers
         },
-        getProjection: function() {
+        getProjection: function () {
             return projection
         },
         //Addons
-        radargram: function(layerName, geometry, url, length, depth) {
+        radargram: function (layerName, geometry, url, length, depth) {
             Globe_Radargrams.radargram(
                 Globe_,
                 layerName,
@@ -2037,7 +2045,7 @@ define([
         }
         if (tilesToBeDrawn.length > 0) {
             //Should be wanted at time of pop
-            let failCallback = function() {
+            let failCallback = function () {
                 if (tilesToBeDrawn.length > 0) {
                     addTile(tilesToBeDrawn.pop(), failCallback)
                 }
@@ -2154,7 +2162,7 @@ define([
         }
 
         //Now sort them based on distance
-        tilesWanted.sort(function(a, b) {
+        tilesWanted.sort(function (a, b) {
             return b.d - a.d
         })
     }
@@ -2219,10 +2227,10 @@ define([
                     filledPath = filledPath.replace('{x}', xyz.x)
                     filledPath = filledPath.replace('{y}', yI)
                 }
-                ;(function(i) {
+                ;(function (i) {
                     loader.load(
                         filledPath,
-                        function(texture) {
+                        function (texture) {
                             //on success
                             texture.magFilter = THREE.NearestFilter
                             texture.minFilter = THREE.NearestFilter
@@ -2238,8 +2246,8 @@ define([
                             tileLayersComplete[i] = true
                             onceTexturesLoaded()
                         },
-                        function() {}, //in progress
-                        function() {
+                        function () {}, //in progress
+                        function () {
                             //on error
                             tileLayersComplete[i] = true
                             onceTexturesLoaded()
@@ -2265,7 +2273,7 @@ define([
                 return
             } else {
                 //Sort them by index attached
-                textures.sort(function(a, b) {
+                textures.sort(function (a, b) {
                     return a.i - b.i
                 })
                 texturesOrdered = []
@@ -2323,7 +2331,7 @@ define([
                 oReq.responseType = 'arraybuffer'
                 oReq.withCredentials = true
 
-                oReq.onload = function(oEvent) {
+                oReq.onload = function (oEvent) {
                     if (oReq.status == 200) {
                         var arrayBuffer = oReq.response
                         var elevArray = new Float32Array(arrayBuffer)
@@ -2404,7 +2412,7 @@ define([
                     filledDemPath += 'undefined'
                 PNG.load(
                     filledDemPath,
-                    function(img) {
+                    function (img) {
                         tileGeometry(img)
                     },
                     true
@@ -3245,10 +3253,18 @@ define([
                 ].join('')
             )
 
-        $('#Globe_HomeHome').click(function() {
+        $('#Globe_HomeHome').click(function () {
             Globe_.setCenter(L_.view)
             L_.FUTURES.globeCamera = Globe_.globeCamera
         })
+
+        //WALK==============
+        if (Globe_Walk) {
+            var walkToolbar = Globe_.toolBar
+                .append('div')
+                .html(Globe_Walk.getElement())
+            Globe_Walk.attachEvents()
+        }
 
         //LINK===============
         Globe_.toolBar
@@ -3273,13 +3289,13 @@ define([
                 ].join('')
             )
 
-        $('#Globe_LinkSettings').click(function() {
+        $('#Globe_LinkSettings').click(function () {
             var display = $('#Globe_LinkSettingsPanel').css('display')
             if (display == 'none')
                 $('#Globe_LinkSettingsPanel').css('display', 'inherit')
             else $('#Globe_LinkSettingsPanel').css('display', 'none')
         })
-        $('#Globe_LinkLink').click(function() {
+        $('#Globe_LinkLink').click(function () {
             $('.globeToolBarLinkOption').css({
                 background: 'none',
                 color: '#cfcfcf',
@@ -3288,7 +3304,7 @@ define([
                 $('.globeToolBarLinkOption:last-child').click()
             else $('.globeToolBarLinkOption:first-child').click()
         })
-        $('.globeToolBarLinkOption').click(function() {
+        $('.globeToolBarLinkOption').click(function () {
             $('.globeToolBarLinkOption').css({
                 background: 'none',
                 color: '#cfcfcf',
@@ -3319,15 +3335,6 @@ define([
             Globe_Compass.attachEvents()
         }
 
-        //WALK==============
-        if (Globe_Walk) {
-            var walkToolbar = Globe_.toolBar
-                .append('div')
-                .style('margin-left', '-7px')
-                .html(Globe_Walk.getElement())
-            Globe_Walk.attachEvents()
-        }
-
         //EXAG===================
         // prettier-ignore
         Globe_.toolBar.append( 'div' )
@@ -3350,13 +3357,13 @@ define([
                 "<div>"].join('')
             );
 
-        $('#Globe_ExagSettings').click(function() {
+        $('#Globe_ExagSettings').click(function () {
             var display = $('#Globe_ExagSettingsPanel').css('display')
             if (display == 'none')
                 $('#Globe_ExagSettingsPanel').css('display', 'inherit')
             else $('#Globe_ExagSettingsPanel').css('display', 'none')
         })
-        $('#Globe_ExagExag').click(function() {
+        $('#Globe_ExagExag').click(function () {
             $('.globeToolBarExaggerationOption').css({
                 background: 'none',
                 color: '#cfcfcf',
@@ -3367,7 +3374,7 @@ define([
             })
             Globe_.changeExaggeration(1)
         })
-        $('.globeToolBarExaggerationOption').click(function() {
+        $('.globeToolBarExaggerationOption').click(function () {
             $('.globeToolBarExaggerationOption').css({
                 background: 'none',
                 color: '#cfcfcf',
@@ -3402,13 +3409,13 @@ define([
       );
 
         $('#globeToolbarNearNearness').val(20)
-        $('#Globe_NearSettings').click(function() {
+        $('#Globe_NearSettings').click(function () {
             var display = $('#Globe_NearSettingsPanel').css('display')
             if (display == 'none')
                 $('#Globe_NearSettingsPanel').css('display', 'inherit')
             else $('#Globe_NearSettingsPanel').css('display', 'none')
         })
-        $('#Globe_NearNear').click(function() {
+        $('#Globe_NearNear').click(function () {
             $('.globeToolBarNearOption').css({
                 background: 'none',
                 color: '#cfcfcf',
@@ -3417,14 +3424,14 @@ define([
                 $('.globeToolBarNearOption:nth-child(2)').click()
             else $('.globeToolBarNearOption:nth-child(1)').click()
         })
-        $('#globeToolbarNearNearness').on('input', function() {
+        $('#globeToolbarNearNearness').on('input', function () {
             var near = parseInt($(this).val())
 
             if (Globe_.nearPlaning) {
                 Cameras.setNearFarPlane(null, near)
             }
         })
-        $('.globeToolBarNearOption').click(function() {
+        $('.globeToolBarNearOption').click(function () {
             $('.globeToolBarNearOption').css({
                 background: 'none',
                 color: '#cfcfcf',
@@ -3479,14 +3486,14 @@ define([
             .attr('class', 'verticalSlider')
             .attr('type', 'range')
 
-        $('#Globe_AltitudeSettings').click(function() {
+        $('#Globe_AltitudeSettings').click(function () {
             var display = $('#Globe_AltitudeSettingsPanel').css('display')
             if (display == 'none')
                 $('#Globe_AltitudeSettingsPanel').css('display', 'inherit')
             else $('#Globe_AltitudeSettingsPanel').css('display', 'none')
         })
 
-        $('#Globe_AltitudeSettingsInput input').on('input', function() {
+        $('#Globe_AltitudeSettingsInput input').on('input', function () {
             var v = $(this).val()
             $('#Globe_AltitudeSettingsInputValue').css(
                 'top',
@@ -3498,7 +3505,7 @@ define([
             Cameras.orbit.camera.position.y -= v - Globe_.targetYOffset
             Globe_.targetYOffset = v
         })
-        $('#Globe_AltitudeSettingsInput input').on('dblclick', function() {
+        $('#Globe_AltitudeSettingsInput input').on('dblclick', function () {
             var v = 50
             $(this).val(v)
             $('#Globe_AltitudeSettingsInputValue').css(
@@ -3535,10 +3542,10 @@ define([
                 "<div>"].join('')
             );
 
-        $('#Globe_YawLeft').on('click', function() {
+        $('#Globe_YawLeft').on('click', function () {
             Cameras.orbit.controls.rotateLeft(3 * (Math.PI / 180))
         })
-        $('#Globe_YawRight').on('click', function() {
+        $('#Globe_YawRight').on('click', function () {
             Cameras.orbit.controls.rotateLeft(-3 * (Math.PI / 180))
         })
 
@@ -3564,10 +3571,10 @@ define([
                 "<div>"].join('')
             );
 
-        $('#Globe_PitchUp').on('click', function() {
+        $('#Globe_PitchUp').on('click', function () {
             Cameras.orbit.controls.rotateUp(1.3 * (Math.PI / 180))
         })
-        $('#Globe_PitchDown').on('click', function() {
+        $('#Globe_PitchDown').on('click', function () {
             Cameras.orbit.controls.rotateUp(-1.3 * (Math.PI / 180))
         })
 
@@ -3601,16 +3608,16 @@ define([
                 "<div>"].join('')
             );
 
-        $('#Globe_PanUp').on('click', function() {
+        $('#Globe_PanUp').on('click', function () {
             rotateGlobe_({ pageX: 0, pageY: 0 }, { x: 0, y: -200 })
         })
-        $('#Globe_PanLeft').on('click', function() {
+        $('#Globe_PanLeft').on('click', function () {
             rotateGlobe_({ pageX: 0, pageY: 0 }, { x: -200, y: 0 })
         })
-        $('#Globe_PanRight').on('click', function() {
+        $('#Globe_PanRight').on('click', function () {
             rotateGlobe_({ pageX: 0, pageY: 0 }, { x: 200, y: 0 })
         })
-        $('#Globe_PanDown').on('click', function() {
+        $('#Globe_PanDown').on('click', function () {
             rotateGlobe_({ pageX: 0, pageY: 0 }, { x: 0, y: 200 })
         })
 
@@ -3640,11 +3647,11 @@ define([
                 ].join('')
             )
 
-        $('#Globe_ZoomIn').on('click', function() {
+        $('#Globe_ZoomIn').on('click', function () {
             Cameras.orbit.controls.handleMouseWheel({ deltaY: -200 })
             onZoom()
         })
-        $('#Globe_ZoomOut').on('click', function() {
+        $('#Globe_ZoomOut').on('click', function () {
             Cameras.orbit.controls.handleMouseWheel({ deltaY: 200 })
             onZoom()
         })
@@ -3855,7 +3862,7 @@ define([
         var c = Globe_.getCenter()
         L_.Map_.resetView([c.lat, c.lon], true)
         clearTimeout(Globe_.linkPannedTimeout)
-        Globe_.linkPannedTimeout = setTimeout(function() {
+        Globe_.linkPannedTimeout = setTimeout(function () {
             Globe_.linkPanned = false
         }, 500)
     }
