@@ -1,10 +1,10 @@
 //Holds a bunch of reusable mathy formulas and variables
 // often referred to as F_
-define(['turf', 'fileSaver'], function(turf) {
+define(['turf', 'fileSaver'], function (turf) {
     var temp = new Float32Array(1)
 
     Object.defineProperty(Object.prototype, 'getFirst', {
-        value: function() {
+        value: function () {
             return this[Object.keys(this)[0]]
         },
         writable: true,
@@ -18,7 +18,7 @@ define(['turf', 'fileSaver'], function(turf) {
         radiusOfEarth: 6371000,
         dam: false, //degrees as meters
         metersInOneDegree: null,
-        getBaseGeoJSON: function() {
+        getBaseGeoJSON: function () {
             return {
                 type: 'FeatureCollection',
                 crs: {
@@ -28,23 +28,27 @@ define(['turf', 'fileSaver'], function(turf) {
                 features: [],
             }
         },
-        getExtension: function(string) {
+        getExtension: function (string) {
             var ex = /(?:\.([^.]+))?$/.exec(string)[1]
             return ex || ''
         },
-        setRadius: function(which, radius) {
+        pad: function (num, size) {
+            let s = '000000000000000000000000000000' + num
+            return s.substr(s.length - size)
+        },
+        setRadius: function (which, radius) {
             if (which.toLowerCase() == 'major')
                 this.radiusOfPlanetMajor = parseFloat(radius)
             else if (which.toLowerCase() == 'minor')
                 this.radiusOfPlanetMinor = parseFloat(radius)
         },
-        useDegreesAsMeters: function(use) {
+        useDegreesAsMeters: function (use) {
             if (use === true || use === false) Formulae_.dam = use
         },
-        getEarthToPlanetRatio: function() {
+        getEarthToPlanetRatio: function () {
             return this.radiusOfEarth / this.radiusOfPlanetMajor
         },
-        linearScale: function(domain, range, value) {
+        linearScale: function (domain, range, value) {
             return (
                 ((range[1] - range[0]) * (value - domain[0])) /
                     (domain[1] - domain[0]) +
@@ -52,7 +56,7 @@ define(['turf', 'fileSaver'], function(turf) {
             )
         },
         //Uses haversine to calculate distances over arcs
-        lngLatDistBetween: function(lon1, lat1, lon2, lat2) {
+        lngLatDistBetween: function (lon1, lat1, lon2, lat2) {
             var R = this.radiusOfPlanetMajor
             var φ1 = lat1 * (Math.PI / 180)
             var φ2 = lat2 * (Math.PI / 180)
@@ -69,18 +73,18 @@ define(['turf', 'fileSaver'], function(turf) {
 
             return R * c
         },
-        metersToDegrees: function(meters) {
+        metersToDegrees: function (meters) {
             return (meters / this.radiusOfPlanetMajor) * (180 / Math.PI)
         },
-        degreesToMeters: function(degrees) {
+        degreesToMeters: function (degrees) {
             return degrees * (Math.PI / 180) * this.radiusOfPlanetMajor
         },
         //2D
-        distanceFormula: function(x1, y1, x2, y2) {
+        distanceFormula: function (x1, y1, x2, y2) {
             return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2))
         },
         //2D
-        areaOfTriangle: function(aX, aY, bX, bY, cX, cY) {
+        areaOfTriangle: function (aX, aY, bX, bY, cX, cY) {
             return Math.abs(
                 (aX * (bY - cY) + bX * (cY - aY) + cX * (aY - bY)) / 2
             )
@@ -92,7 +96,7 @@ define(['turf', 'fileSaver'], function(turf) {
         //var testPts = [[[0, 5], [1, 2], [4, 4]], [[8, 17], [7, 14]]];
         //var clP = closestPoint({x: 0, y: 2}, testPts);
         //console.log(testPts[clP[0]][clP[1]]);
-        closestPoint: function(p, pts) {
+        closestPoint: function (p, pts) {
             var closestI = 0
             var closestJ = 0
             var closestIDist = Infinity
@@ -115,13 +119,13 @@ define(['turf', 'fileSaver'], function(turf) {
             return [closestI, closestJ]
         },
         //a mod that works with negatives. a true modulo and not remainder
-        mod: function(n, m) {
+        mod: function (n, m) {
             var remain = n % m
             return Math.floor(remain >= 0 ? remain : remain + m)
         },
         //2D rotate a point about another point a certain angle
         //pt is {x: ,y: }  center is [x,y]  angle in radians
-        rotatePoint: function(pt, center, angle) {
+        rotatePoint: function (pt, center, angle) {
             var cosAngle = Math.cos(angle)
             var sinAngle = Math.sin(angle)
             var dx = pt.x - center[0]
@@ -136,7 +140,7 @@ define(['turf', 'fileSaver'], function(turf) {
         //all are of form {x: , y: , z: }
         //angle is in radians
         //if center undefined, then 0 0 0
-        rotatePoint3D: function(pt, angle, center) {
+        rotatePoint3D: function (pt, angle, center) {
             if (center == undefined) center = { x: 0, y: 0, z: 0 }
             //Offset
             var dx = pt.x - center.x
@@ -164,7 +168,52 @@ define(['turf', 'fileSaver'], function(turf) {
 
             return { x: x, y: y, z: z }
         },
-        bearingBetweenTwoLatLngs: function(lat1, lng1, lat2, lng2) {
+        round: function (number, decimals = 0) {
+            if (decimals == 0) return Math.round(number)
+            var multiplier = Math.pow(10, decimals)
+            return Math.round(number * multiplier) / multiplier
+        },
+        // From: https://github.com/nuclearsecrecy/Leaflet.greatCircle/blob/master/Leaflet.greatCircle.js#L160
+        // returns destination lat/lon from a start point lat/lon of a giving bearing (degrees) and distance (km).
+        destinationFromBearing: function (
+            lat,
+            lng,
+            bearing,
+            distance,
+            round_off = undefined
+        ) {
+            var R = Formulae_.radiusOfPlanetMajor * 0.001 // km
+            var d = distance
+            var deg2rad = Math.PI / 180
+            var rad2deg = 180 / Math.PI
+            var lat1 = deg2rad * lat
+            var lng1 = deg2rad * lng
+            var brng = deg2rad * bearing
+            //kind of a sad attempt at optimization of these costly trig functions
+            var sinLat1 = Math.sin(lat1)
+            var cosLat1 = Math.cos(lat1)
+            var cosdR = Math.cos(d / R)
+            var sindR = Math.sin(d / R)
+            var lat2 = Math.asin(
+                sinLat1 * cosdR + cosLat1 * sindR * Math.cos(brng)
+            )
+            var lng2 =
+                lng1 +
+                Math.atan2(
+                    Math.sin(brng) * sindR * cosLat1,
+                    cosdR - sinLat1 * Math.sin(lat2)
+                )
+
+            if (typeof round_off != 'undefined') {
+                return [
+                    Formulae_._round(rad2deg * lat2, round_off),
+                    Formulae_._round(rad2deg * lng2, round_off),
+                ]
+            } else {
+                return [rad2deg * lat2, rad2deg * lng2]
+            }
+        },
+        bearingBetweenTwoLatLngs: function (lat1, lng1, lat2, lng2) {
             lat1 *= Math.PI / 180
             lng1 *= Math.PI / 180
             lat2 *= Math.PI / 180
@@ -177,7 +226,7 @@ define(['turf', 'fileSaver'], function(turf) {
 
             return (Math.atan2(y, x) * (180 / Math.PI) + 360) % 360
         },
-        inclinationBetweenTwoLatLngs: function(
+        inclinationBetweenTwoLatLngs: function (
             lat1,
             lng1,
             elev1,
@@ -198,7 +247,7 @@ define(['turf', 'fileSaver'], function(turf) {
         //returns:
         // [closest point on line to point, closest distance from point to line]
         // as [{x: X, y: Y}, float]
-        closestToSegment: function(p, v, w) {
+        closestToSegment: function (p, v, w) {
             function dist2(v, w) {
                 return Math.pow(v.x - w.x, 2) + Math.pow(v.y - w.y, 2)
             }
@@ -211,7 +260,7 @@ define(['turf', 'fileSaver'], function(turf) {
         },
         //lines of form [[[x1, y1], [x2, y2]], [[x1, y1],[x2, y2]], ... ]
         //returns only point {x: X, y: Y}
-        closestToSegments: function(p, lines) {
+        closestToSegments: function (p, lines) {
             var shortestDist = Infinity
             var nearestPoint = { x: 0, y: 0 }
             var v
@@ -230,7 +279,42 @@ define(['turf', 'fileSaver'], function(turf) {
             }
             return nearestPoint
         },
-        rgb2hex: function(rgb) {
+        parseColor: function (color) {
+            if (Formulae_.isColor(color) || color == null) return color
+            return Formulae_.stringToColor(color)
+        },
+        isColor: function (strColor) {
+            let s = new Option().style
+            s.color = strColor
+            const is = s.color !== ''
+            s = undefined
+            return is
+        },
+        // See https://stackoverflow.com/a/16348977
+        stringToColor: function (str) {
+            var hash = 0
+            for (var i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash)
+            }
+            var colour = '#'
+            for (var i = 0; i < 3; i++) {
+                var value = (hash >> (i * 8)) & 0xff
+                colour += ('00' + value.toString(16)).substr(-2)
+            }
+            return colour
+        },
+        intToRGB: function (i) {
+            var c = (i & 0x00ffffff).toString(16).toUpperCase()
+
+            return '#00000'.substring(0, 6 - c.length) + c
+        },
+        rgbObjToStr: function (rgb, hasAlpha) {
+            if (hasAlpha && rgb.a != null)
+                // prettier-ignore
+                return 'rgb(' + rgb.r + ', ' + rgb.g + ', ' + rgb.b + ', ' + rgb.a + ')'
+            return 'rgb(' + rgb.r + ', ' + rgb.g + ', ' + rgb.b + ')'
+        },
+        rgb2hex: function (rgb) {
             if (rgb.search('rgb') == -1) {
                 return rgb
             } else {
@@ -244,10 +328,10 @@ define(['turf', 'fileSaver'], function(turf) {
             }
         },
         //From: http://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb Tim Down
-        hexToRGB: function(hex) {
+        hexToRGB: function (hex) {
             // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
             var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i
-            hex = hex.replace(shorthandRegex, function(m, r, g, b) {
+            hex = hex.replace(shorthandRegex, function (m, r, g, b) {
                 return r + r + g + g + b + b
             })
 
@@ -260,14 +344,14 @@ define(['turf', 'fileSaver'], function(turf) {
                   }
                 : null
         },
-        rgbToArray: function(rgb) {
+        rgbToArray: function (rgb) {
             return rgb.match(/\d+/g)
         },
         //From: http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#ECMAScript_.28JavaScript.2FActionScript.2C_etc..29
-        lon2tileUnfloored: function(lon, zoom) {
+        lon2tileUnfloored: function (lon, zoom) {
             return ((lon + 180) / 360) * Math.pow(2, zoom)
         },
-        lat2tileUnfloored: function(lat, zoom) {
+        lat2tileUnfloored: function (lat, zoom) {
             return (
                 ((1 -
                     Math.log(
@@ -280,7 +364,7 @@ define(['turf', 'fileSaver'], function(turf) {
             )
         },
         //no radius
-        lonLatToVector3nr: function(lon, lat, height) {
+        lonLatToVector3nr: function (lon, lat, height) {
             var phi = lat * (Math.PI / 180)
             var theta = (lon - 180) * (Math.PI / 180)
 
@@ -291,7 +375,7 @@ define(['turf', 'fileSaver'], function(turf) {
             return { x: x, y: y, z: z }
         },
         //From: https://github.com/mrdoob/three.js/issues/758 mrdoob
-        getImageData: function(image) {
+        getImageData: function (image) {
             if (image.width == 0) return
             var canvas = document.createElement('canvas')
             canvas.width = image.width
@@ -302,7 +386,7 @@ define(['turf', 'fileSaver'], function(turf) {
 
             return context.getImageData(0, 0, image.width, image.height)
         },
-        getPixel: function(imagedata, x, y) {
+        getPixel: function (imagedata, x, y) {
             var position = (x + imagedata.width * y) * 4,
                 data = imagedata.data
             return {
@@ -317,7 +401,7 @@ define(['turf', 'fileSaver'], function(turf) {
          * @param {*} obj
          * @param {*} keyArray
          */
-        getIn: function(obj, keyArray) {
+        getIn: function (obj, keyArray) {
             if (keyArray == null) return null
             let object = Object.assign({}, obj)
             for (let i = 0; i < keyArray.length; i++) {
@@ -327,12 +411,12 @@ define(['turf', 'fileSaver'], function(turf) {
             }
             return object
         },
-        getKeyByValue: function(obj, value) {
-            return Object.keys(obj).filter(function(key) {
+        getKeyByValue: function (obj, value) {
+            return Object.keys(obj).filter(function (key) {
                 return obj[key] === value
             })[0]
         },
-        getValueByKeyCaseInsensitive: function(key, obj) {
+        getValueByKeyCaseInsensitive: function (key, obj) {
             key = (key + '').toLowerCase()
             for (var p in obj) {
                 if (obj.hasOwnProperty(p) && key == (p + '').toLowerCase()) {
@@ -397,7 +481,7 @@ define(['turf', 'fileSaver'], function(turf) {
             return subdividedLine
         },
         //Helper to make an array or object an enumerated array
-        enumerate: function(obj) {
+        enumerate: function (obj) {
             var arr = []
             var keys = Object.keys(obj)
             for (var k = 0; k < keys.length; k++) {
@@ -406,7 +490,7 @@ define(['turf', 'fileSaver'], function(turf) {
             return arr
         },
         //Return a clone of the object to avoid pass by reference issues
-        clone: function(obj) {
+        clone: function (obj) {
             var copy
             // Handle the 3 simple types, and null or undefined
             if (null == obj || 'object' != typeof obj) return obj
@@ -439,14 +523,14 @@ define(['turf', 'fileSaver'], function(turf) {
             throw new Error("Unable to copy obj! Its type isn't supported.")
         },
         //Returns an array of ints from a to b inclusively
-        range: function(a, b) {
+        range: function (a, b) {
             a = b - a + 1
             var c = []
             while (a--) c[a] = b--
             return c
         },
         //simple and only works from 0 to 16
-        numberToWords: function(n) {
+        numberToWords: function (n) {
             switch (n) {
                 case 0:
                     return 'zero'
@@ -485,11 +569,20 @@ define(['turf', 'fileSaver'], function(turf) {
             }
             return 'zero'
         },
-        isUrlAbsolute: function(url) {
+        isUrlAbsolute: function (url) {
             var r = new RegExp('^(?:[a-z]+:)?//', 'i')
             return r.test(url)
         },
-        csvToJSON: function(csv) {
+        populateUrl: function (url, xyz, invertY) {
+            url = url.replace('{x}', xyz.x)
+            url = url.replace(
+                '{y}',
+                invertY === true ? Math.pow(2, xyz.z) - 1 - xyz.y : xyz.y
+            )
+            url = url.replace('{z}', xyz.z)
+            return url
+        },
+        csvToJSON: function (csv) {
             var lines = csv.split('\n')
             var result = []
             var headers = lines[0].split(',')
@@ -503,7 +596,7 @@ define(['turf', 'fileSaver'], function(turf) {
             }
             return JSON.parse(JSON.stringify(result).replace(/\\r/g, ''))
         },
-        latlonzoomToTileCoords: function(lat, lon, zoom) {
+        latlonzoomToTileCoords: function (lat, lon, zoom) {
             var xtile = parseInt(Math.floor(((lon + 180) / 360) * (1 << zoom)))
             var ytile = parseInt(
                 Math.floor(
@@ -523,12 +616,12 @@ define(['turf', 'fileSaver'], function(turf) {
                 z: zoom,
             }
         },
-        noNullLength: function(arr) {
+        noNullLength: function (arr) {
             let len = 0
             for (let i = 0; i < arr.length; i++) if (arr[i] != null) len++
             return len
         },
-        isEmpty: function(obj) {
+        isEmpty: function (obj) {
             if (obj === undefined) return true
             for (var prop in obj) {
                 if (obj.hasOwnProperty(prop)) return false
@@ -772,7 +865,7 @@ define(['turf', 'fileSaver'], function(turf) {
                     lnglats: JSON.stringify(lnglats),
                     demtilesets: JSON.stringify(demtilesets),
                 },
-                success: function(data) {
+                success: function (data) {
                     if (typeof callback == 'function')
                         callback(JSON.parse(data))
                 },
@@ -835,7 +928,7 @@ define(['turf', 'fileSaver'], function(turf) {
                 property = property.substr(1)
             }
 
-            return function(a, b) {
+            return function (a, b) {
                 if (sortOrder == -1) {
                     return b[property].localeCompare(a[property])
                 } else {
@@ -1030,6 +1123,31 @@ define(['turf', 'fileSaver'], function(turf) {
             string += ']}'
             return string
         },
+        // Gets all tiles with tile xyz at zoom z
+        tilesWithin(xyz, z) {
+            let tiles = []
+
+            const dif = z - xyz.z
+
+            const difDim = Math.pow(2, dif)
+
+            if (dif == 0) {
+                tiles.push(xyz)
+            } else if (dif > 0) {
+                let topLeft = { x: xyz.x * difDim, y: xyz.y * difDim, z: z }
+                for (let j = 0; j < difDim; j++) {
+                    for (let i = 0; i < difDim; i++) {
+                        tiles.push({
+                            x: topLeft.x + i,
+                            y: topLeft.y + j,
+                            z: z,
+                        })
+                    }
+                }
+            }
+
+            return tiles
+        },
         /**
          * Given an xyz and z, gets all tiles on zoom level z that are contained in xyz
          * @param {[x,y,z]} xyz - the tile to get the contents of
@@ -1093,6 +1211,17 @@ define(['turf', 'fileSaver'], function(turf) {
             }
             return false
         },
+        arrayUnique(array) {
+            var a = array.concat()
+            for (var i = 0; i < a.length; ++i) {
+                for (var j = i + 1; j < a.length; ++j) {
+                    if (a[i] === a[j]) a.splice(j--, 1)
+                }
+            }
+
+            return a
+        },
+
         scaleImageInHalf(image, width, height) {
             var newWidth = Math.floor(width / 2)
             var newHeight = Math.floor(height / 2)
@@ -1154,22 +1283,28 @@ define(['turf', 'fileSaver'], function(turf) {
             return cv.toDataURL()
         },
         //A out of little place
-        download: function(filepath) {
+        download: function (filepath) {
             window.open(filepath + '?nocache=' + new Date().getTime())
         },
         downloadObject(exportObj, exportName, exportExt) {
             var strung
-            if (exportExt && exportExt == '.geojson') {
-                //pretty print geojson
-                let features = []
-                for (var i = 0; i < exportObj.features.length; i++)
-                    features.push(JSON.stringify(exportObj.features[i]))
-                features = '[\n' + features.join(',\n') + '\n]'
-                exportObj.features = '__FEATURES_PLACEHOLDER__'
-                strung = JSON.stringify(exportObj, null, 2)
-                strung = strung.replace('"__FEATURES_PLACEHOLDER__"', features)
-            } else strung = JSON.stringify(exportObj)
-
+            if (typeof exportObj === 'string') {
+                strung = exportObj
+            } else {
+                if (exportExt && exportExt == '.geojson') {
+                    //pretty print geojson
+                    let features = []
+                    for (var i = 0; i < exportObj.features.length; i++)
+                        features.push(JSON.stringify(exportObj.features[i]))
+                    features = '[\n' + features.join(',\n') + '\n]'
+                    exportObj.features = '__FEATURES_PLACEHOLDER__'
+                    strung = JSON.stringify(exportObj, null, 2)
+                    strung = strung.replace(
+                        '"__FEATURES_PLACEHOLDER__"',
+                        features
+                    )
+                } else strung = JSON.stringify(exportObj)
+            }
             var fileName = exportName + (exportExt || '.json')
 
             try {
@@ -1213,7 +1348,7 @@ define(['turf', 'fileSaver'], function(turf) {
             var link = document.createElement('a')
             name = name ? name + '.png' : 'mmgis.png'
             link.setAttribute('download', name)
-            document.getElementById(canvasId).toBlob(function(blob) {
+            document.getElementById(canvasId).toBlob(function (blob) {
                 var objUrl = URL.createObjectURL(blob)
                 link.setAttribute('href', objUrl)
                 document.body.appendChild(link)
@@ -1323,7 +1458,7 @@ define(['turf', 'fileSaver'], function(turf) {
          */
         diff(arr1, arr2) {
             if (arr1 == null || arr2 == null) return []
-            return arr1.filter(e => arr2.indexOf(e) !== -1)
+            return arr1.filter((e) => arr2.indexOf(e) !== -1)
         },
         /**
          * Copies input to user's clipboard
@@ -1361,7 +1496,7 @@ define(['turf', 'fileSaver'], function(turf) {
             if (name === '_') return name
             try {
                 let prettyName = name.replace(/_/g, ' ')
-                return prettyName.replace(/\w\S*/g, function(txt) {
+                return prettyName.replace(/\w\S*/g, function (txt) {
                     return (
                         txt.charAt(0).toUpperCase() +
                         txt.substr(1).toLowerCase()
@@ -1421,6 +1556,50 @@ define(['turf', 'fileSaver'], function(turf) {
         },
         getPtSomeDistBetween2OtherPts(x0, y0, x1, y1, d) {
             return { x: (1 - d) * x0 + d * x1, y: (1 - d) * y0 + d * y1 }
+        },
+        RGBAto32(rgba) {
+            return Formulae_.decodeFloat(
+                Formulae_.asByteString(rgba.r.toString(2)) +
+                    Formulae_.asByteString(rgba.g.toString(2)) +
+                    Formulae_.asByteString(rgba.b.toString(2)) +
+                    Formulae_.asByteString(rgba.a.toString(2))
+            )
+        },
+        asByteString(byte) {
+            byteString = byte
+            while (byteString.length < 8) {
+                byteString = '0' + byteString
+            }
+            return byteString
+        },
+        decodeFloat(binary) {
+            if (binary.length < 32)
+                binary = ('00000000000000000000000000000000' + binary).substr(
+                    binary.length
+                )
+            var sign = binary.charAt(0) == '1' ? -1 : 1
+            var exponent = parseInt(binary.substr(1, 8), 2) - 127
+            var significandBase = binary.substr(9)
+            var significandBin = '1' + significandBase
+            var i = 0
+            var val = 1
+            var significand = 0
+
+            if (exponent == -127) {
+                if (significandBase.indexOf('1') == -1) return 0
+                else {
+                    exponent = -126
+                    significandBin = '0' + significandBase
+                }
+            }
+
+            while (i < significandBin.length) {
+                significand += val * parseInt(significandBin.charAt(i))
+                val = val / 2
+                i++
+            }
+
+            return sign * significand * Math.pow(2, exponent)
         },
         getTextShadowString(color, opacity, weight) {
             if (weight === 0) return 'unset'
@@ -1517,11 +1696,26 @@ define(['turf', 'fileSaver'], function(turf) {
             for (let i = 0; i < str.length; i += 2) newStr += str[i]
             return newStr
         },
+        cloneCanvas(oldCanvas) {
+            //create a new canvas
+            var newCanvas = document.createElement('canvas')
+            var context = newCanvas.getContext('2d')
+
+            //set dimensions
+            newCanvas.width = oldCanvas.width
+            newCanvas.height = oldCanvas.height
+
+            //apply the old canvas to the new one
+            context.drawImage(oldCanvas, 0, 0)
+
+            //return the new canvas
+            return newCanvas
+        },
         bracketReplace(str, obj) {
             if (str === null) return ''
             let matches = str.match(/\{.*?\}/gi)
 
-            matches.forEach(v => {
+            matches.forEach((v) => {
                 str = str.replace(
                     new RegExp(v, 'g'),
                     Formulae_.getIn(obj, v.replace(/[\{\}]/g, '').split('.'))
@@ -1563,7 +1757,7 @@ define(['turf', 'fileSaver'], function(turf) {
     }
 
     //Prototypes
-    String.prototype.capitalizeFirstLetter = function() {
+    String.prototype.capitalizeFirstLetter = function () {
         return this.charAt(0).toUpperCase() + this.slice(1)
     }
     //console.log( Formulae_.lngLatDistBetween( 137, -4, 138, -3 ) );
@@ -1575,43 +1769,43 @@ define(['turf', 'fileSaver'], function(turf) {
 
 //Globals
 const isMobile = {
-    getUserAgent: function() {
+    getUserAgent: function () {
         return navigator.userAgent
     },
-    Android: function() {
+    Android: function () {
         return /Android/i.test(isMobile.getUserAgent()) && !isMobile.Windows()
     },
-    BlackBerry: function() {
+    BlackBerry: function () {
         return /BlackBerry|BB10|PlayBook/i.test(isMobile.getUserAgent())
     },
-    iPhone: function() {
+    iPhone: function () {
         return (
             /iPhone/i.test(isMobile.getUserAgent()) &&
             !isMobile.iPad() &&
             !isMobile.Windows()
         )
     },
-    iPod: function() {
+    iPod: function () {
         return /iPod/i.test(isMobile.getUserAgent())
     },
-    iPad: function() {
+    iPad: function () {
         return /iPad/i.test(isMobile.getUserAgent())
     },
-    iOS: function() {
+    iOS: function () {
         return isMobile.iPad() || isMobile.iPod() || isMobile.iPhone()
     },
-    Opera: function() {
+    Opera: function () {
         return /Opera Mini/i.test(isMobile.getUserAgent())
     },
-    Windows: function() {
+    Windows: function () {
         return /Windows Phone|IEMobile|WPDesktop/i.test(isMobile.getUserAgent())
     },
-    KindleFire: function() {
+    KindleFire: function () {
         return /Kindle Fire|Silk|KFAPWA|KFSOWI|KFJWA|KFJWI|KFAPWI|KFAPWI|KFOT|KFTT|KFTHWI|KFTHWA|KFASWI|KFTBWI|KFMEWI|KFFOWI|KFSAWA|KFSAWI|KFARWI/i.test(
             isMobile.getUserAgent()
         )
     },
-    any: function() {
+    any: function () {
         return (
             isMobile.Android() ||
             isMobile.BlackBerry() ||

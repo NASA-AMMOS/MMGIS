@@ -15,7 +15,7 @@ define([
     'colorPicker',
     'shp',
     'shpwrite',
-], function(
+], function (
     $,
     d3,
     F_,
@@ -35,7 +35,7 @@ define([
 ) {
     var DrawTool = null
     var Files = {
-        init: function(tool) {
+        init: function (tool) {
             DrawTool = tool
             DrawTool.populateFiles = Files.populateFiles
             DrawTool.refreshFile = Files.refreshFile
@@ -46,7 +46,7 @@ define([
             DrawTool.refreshNoteEvents = Files.refreshNoteEvents
             DrawTool.refreshMasterCheckbox = Files.refreshMasterCheckbox
         },
-        populateFiles: function() {
+        populateFiles: function () {
             $('#drawToolDrawFilesListMaster *').remove()
             $('#drawToolDrawFilesList *').remove()
 
@@ -56,7 +56,7 @@ define([
 
             //Master Header
             $('.drawToolMasterHeaderLeftLeft').off('click')
-            $('.drawToolMasterHeaderLeftLeft').on('click', function() {
+            $('.drawToolMasterHeaderLeftLeft').on('click', function () {
                 $('#drawToolDrawFilesListMaster').toggleClass('active')
                 var isActive = $('#drawToolDrawFilesListMaster').hasClass(
                     'active'
@@ -78,7 +78,7 @@ define([
                 }
             })
             $('.drawToolFileMasterCheckbox').off('click')
-            $('.drawToolFileMasterCheckbox').on('click', function() {
+            $('.drawToolFileMasterCheckbox').on('click', function () {
                 $('.drawToolFileMasterCheckbox').toggleClass('on')
                 var isActive = $('.drawToolFileMasterCheckbox').hasClass('on')
                 if (isActive) {
@@ -114,7 +114,7 @@ define([
 
             //Draw type
             $('#drawToolDrawingTypeDiv > div').off('click')
-            $('#drawToolDrawingTypeDiv > div').on('click', function(e) {
+            $('#drawToolDrawingTypeDiv > div').on('click', function (e) {
                 if (DrawTool.intentType == 'all') {
                     $('#drawToolDrawingTypeDiv > div').removeClass('active')
                     $('#drawToolDrawingTypeDiv > div').css('border-radius', 0)
@@ -127,18 +127,14 @@ define([
                         'background',
                         $('#drawToolDrawingTypeDiv').css('background')
                     )
-                    $(this)
-                        .prev()
-                        .css({
-                            'border-top-right-radius': '10px',
-                            'border-bottom-right-radius': '10px',
-                        })
-                    $(this)
-                        .next()
-                        .css({
-                            'border-top-left-radius': '10px',
-                            'border-bottom-left-radius': '10px',
-                        })
+                    $(this).prev().css({
+                        'border-top-right-radius': '10px',
+                        'border-bottom-right-radius': '10px',
+                    })
+                    $(this).next().css({
+                        'border-top-left-radius': '10px',
+                        'border-bottom-left-radius': '10px',
+                    })
 
                     DrawTool.setDrawingType($(this).attr('draw'))
                 }
@@ -146,32 +142,30 @@ define([
 
             //Filter
             $('#drawToolDrawFilterClear').off('click')
-            $('#drawToolDrawFilterClear').on('click', function() {
+            $('#drawToolDrawFilterClear').on('click', function () {
                 $('#drawToolDrawFilter').val('')
                 fileFilter()
             })
             $('#drawToolDrawFilter').off('input')
             $('#drawToolDrawFilter').on('input', fileFilter)
             $('#drawToolDrawSortDiv > div').off('click')
-            $('#drawToolDrawSortDiv > div').on('click', function() {
+            $('#drawToolDrawSortDiv > div').on('click', function () {
                 $(this).toggleClass('active')
                 fileFilter()
             })
             $('.drawToolFilterDropdown li').off('click')
-            $('.drawToolFilterDropdown li').on('click', function() {
+            $('.drawToolFilterDropdown li').on('click', function () {
                 $(this).toggleClass('active')
-                $(this)
-                    .find('.drawToolFilterCheckbox')
-                    .toggleClass('on')
+                $(this).find('.drawToolFilterCheckbox').toggleClass('on')
                 fileFilter()
             })
             $('#drawToolDrawIntentFilterDiv > div').off('mouseenter')
             $('#drawToolDrawIntentFilterDiv > div').on(
                 'mouseenter',
-                function() {
+                function () {
                     var that = this
                     clearTimeout(DrawTool.tooltipTimeout1)
-                    DrawTool.tooltipTimeout1 = setTimeout(function() {
+                    DrawTool.tooltipTimeout1 = setTimeout(function () {
                         $('#drawToolDrawFilterDivToolTip').css(
                             'background',
                             DrawTool.categoryStyles[$(that).attr('intent')]
@@ -187,7 +181,7 @@ define([
             $('#drawToolDrawIntentFilterDiv > div').off('mouseleave')
             $('#drawToolDrawIntentFilterDiv > div').on(
                 'mouseleave',
-                function() {
+                function () {
                     clearTimeout(DrawTool.tooltipTimeout1)
                     $('#drawToolDrawFilterDivToolTip').css(
                         'background',
@@ -217,16 +211,16 @@ define([
                 */
 
                 var intents = []
-                $('.drawToolFilterDropdown .active').each(function() {
+                $('.drawToolFilterDropdown .active').each(function () {
                     intents.push($(this).attr('intent'))
                 })
 
                 var sorts = []
-                $('#drawToolDrawSortDiv .active').each(function() {
+                $('#drawToolDrawSortDiv .active').each(function () {
                     sorts.push($(this).attr('type'))
                 })
 
-                $('.drawToolDrawFilesListElem').each(function() {
+                $('.drawToolDrawFilesListElem').each(function () {
                     var fileId = parseInt($(this).attr('file_id'))
                     var file = F_.objectArrayIndexOfKeyWithValue(
                         DrawTool.files,
@@ -242,11 +236,11 @@ define([
                                 .attr('file_name')
                                 .toLowerCase()
                                 .indexOf(string) != -1 ||
-                            (string == null ||
-                                $(this)
-                                    .attr('file_owner')
-                                    .toLowerCase()
-                                    .indexOf(string) != -1)) &&
+                            string == null ||
+                            $(this)
+                                .attr('file_owner')
+                                .toLowerCase()
+                                .indexOf(string) != -1) &&
                         (sorts.indexOf('on') == -1 ||
                             DrawTool.filesOn.indexOf(fileId) != -1) &&
                         (sorts.indexOf('owned') == -1 ||
@@ -377,23 +371,23 @@ define([
                 }
             }
 
-            $('.drawToolDrawFilesListElem').on('mouseover', function() {
+            $('.drawToolDrawFilesListElem').on('mouseover', function () {
                 var that = this
                 clearTimeout(DrawTool.fileTooltipTimeout)
-                DrawTool.fileTooltipTimeout = setTimeout(function() {
+                DrawTool.fileTooltipTimeout = setTimeout(function () {
                     $('.drawToolFileTooltip').removeClass('active')
                     var tt = $(that).find('.drawToolFileTooltip')
                     tt.addClass('active')
                     tt.css('top', $(that).offset().top + 'px')
                     clearTimeout(DrawTool.fileTooltipTimeout2)
-                    DrawTool.fileTooltipTimeout2 = setTimeout(function() {
+                    DrawTool.fileTooltipTimeout2 = setTimeout(function () {
                         $(that)
                             .find('.drawToolFileDescriptionTooltip')
                             .addClass('active')
                     }, 1000)
                 }, 400)
             })
-            $('.drawToolDrawFilesListElem').on('mouseout', function() {
+            $('.drawToolDrawFilesListElem').on('mouseout', function () {
                 clearTimeout(DrawTool.fileTooltipTimeout)
                 clearTimeout(DrawTool.fileTooltipTimeout2)
                 $('.drawToolFileTooltip').removeClass('active')
@@ -404,7 +398,7 @@ define([
             $('#drawToolDrawPublished').off('contextmenu')
             $('.drawToolDrawFilesListElem, #drawToolDrawPublished').on(
                 'contextmenu',
-                function(e) {
+                function (e) {
                     e.preventDefault()
                     var elm = $(this)
                     var isPub = elm.attr('id') === 'drawToolDrawPublished'
@@ -413,9 +407,7 @@ define([
                     elm.find('.drawToolIntentColor').css({
                         width: '17px',
                     })
-                    var rect = $(this)
-                        .get(0)
-                        .getBoundingClientRect()
+                    var rect = $(this).get(0).getBoundingClientRect()
 
                     var markup = [
                         "<div id='drawToolDrawFilesListElemContextMenu' style='top: " +
@@ -448,9 +440,9 @@ define([
                     }
                     $('#cmExportGeoJSON').on(
                         'click',
-                        (function(body, isPub) {
-                            return function() {
-                                DrawTool.getFile(body, function(d) {
+                        (function (body, isPub) {
+                            return function () {
+                                DrawTool.getFile(body, function (d) {
                                     let geojson = d.geojson
                                     let filename = ''
                                     if (isPub) {
@@ -508,9 +500,9 @@ define([
 
                     $('#cmExportShp').on(
                         'click',
-                        (function(body, isPub) {
-                            return function() {
-                                DrawTool.getFile(body, function(d) {
+                        (function (body, isPub) {
+                            return function () {
+                                DrawTool.getFile(body, function (d) {
                                     let geojson = d.geojson
                                     ///geojson._metadata = d.file[0];
                                     shpwrite.download(geojson, {
@@ -531,8 +523,8 @@ define([
                         '#drawToolDrawFilesListElemContextMenu #cmToggleLabels'
                     ).on(
                         'click',
-                        (function(isPub) {
-                            return function() {
+                        (function (isPub) {
+                            return function () {
                                 if (isPub) return
                                 DrawTool.toggleLabels(elm.attr('file_id'))
                             }
@@ -542,15 +534,15 @@ define([
                     var count = 1 //It has to start in one
                     $('#drawToolDrawFilesListElemContextMenu').on(
                         'mouseenter',
-                        function() {
+                        function () {
                             count++
                         }
                     )
                     $('#drawToolDrawFilesListElemContextMenu').on(
                         'mouseleave',
-                        function() {
+                        function () {
                             count--
-                            setTimeout(function() {
+                            setTimeout(function () {
                                 if (count <= 0) hideContextMenu()
                             }, 50)
                         }
@@ -560,7 +552,7 @@ define([
                     }
                     function leave() {
                         count--
-                        setTimeout(function() {
+                        setTimeout(function () {
                             if (count <= 0) {
                                 hideContextMenu()
                                 elm.off('mouseenter', enter)
@@ -584,7 +576,7 @@ define([
                                     opacity: 0,
                                 },
                                 250,
-                                function() {
+                                function () {
                                     $(
                                         '#drawToolDrawFilesListElemContextMenu'
                                     ).remove()
@@ -594,11 +586,8 @@ define([
                 }
             )
 
-            $('.drawToolFileSave').on('click', function() {
-                var elm = $(this)
-                    .parent()
-                    .parent()
-                    .parent()
+            $('.drawToolFileSave').on('click', function () {
+                var elm = $(this).parent().parent().parent()
 
                 //Only select files you own
                 if (mmgisglobal.user !== elm.attr('file_owner')) return
@@ -618,7 +607,7 @@ define([
                             : 0,
                 }
 
-                DrawTool.changeFile(body, function(d) {
+                DrawTool.changeFile(body, function (d) {
                     elm.find('.drawToolFileName').text(filename)
                     var files_i = F_.objectArrayIndexOfKeyWithValue(
                         DrawTool.files,
@@ -628,35 +617,31 @@ define([
                     if (files_i !== -1)
                         DrawTool.files[files_i].file_name = filename
 
-                    DrawTool.getFiles(function() {
+                    DrawTool.getFiles(function () {
                         DrawTool.populateFiles()
                     })
                 })
             })
 
             $('.drawToolFilePublic').off('click')
-            $('.drawToolFilePublic').on('click', function() {
+            $('.drawToolFilePublic').on('click', function () {
                 var icon = $(this).find('i')
                 var public = icon.attr('public')
                 if (public == '0') {
                     icon.removeClass('mdi-shield')
                     icon.addClass('mdi-shield-outline')
                     icon.attr('public', '1')
-                    $(this)
-                        .find('.drawToolFilePublicName')
-                        .text('Public')
+                    $(this).find('.drawToolFilePublicName').text('Public')
                 } else {
                     icon.removeClass('mdi-shield-outline')
                     icon.addClass('mdi-shield')
                     icon.attr('public', '0')
-                    $(this)
-                        .find('.drawToolFilePublicName')
-                        .text('Private')
+                    $(this).find('.drawToolFilePublicName').text('Private')
                 }
             })
 
             $('.drawToolFileDelete').off('click')
-            $('.drawToolFileDelete').on('click', function() {
+            $('.drawToolFileDelete').on('click', function () {
                 var filenameToDelete = $(this)
                     .parent()
                     .parent()
@@ -671,18 +656,14 @@ define([
                 if (!(response == 'yes' || response == 'y')) return
 
                 var body = {
-                    id: $(this)
-                        .parent()
-                        .parent()
-                        .parent()
-                        .attr('file_id'),
+                    id: $(this).parent().parent().parent().attr('file_id'),
                 }
                 var layerId = 'DrawTool_' + body.id
 
                 DrawTool.removeFile(
                     body,
-                    (function(layerId, id) {
-                        return function(d) {
+                    (function (layerId, id) {
+                        return function (d) {
                             //Remove each feature in its group
                             if (L_.layersGroup.hasOwnProperty(layerId)) {
                                 for (
@@ -704,19 +685,12 @@ define([
                     })(layerId, body.id)
                 )
 
-                $(this)
-                    .parent()
-                    .parent()
-                    .parent()
-                    .remove()
+                $(this).parent().parent().parent().remove()
             })
 
             $('.drawToolFileEdit').off('click')
-            $('.drawToolFileEdit').on('click', function() {
-                var elm = $(this)
-                    .parent()
-                    .parent()
-                    .parent()
+            $('.drawToolFileEdit').on('click', function () {
+                var elm = $(this).parent().parent().parent()
 
                 //Only select files you own
                 if (mmgisglobal.user !== elm.attr('file_owner')) return
@@ -732,10 +706,8 @@ define([
 
             //Highlight layer if on
             $('.drawToolDrawFilesListElem').off('mouseenter')
-            $('.drawToolDrawFilesListElem').on('mouseenter', function() {
-                $(this)
-                    .find('.drawToolFileEdit')
-                    .addClass('shown')
+            $('.drawToolDrawFilesListElem').on('mouseenter', function () {
+                $(this).find('.drawToolFileEdit').addClass('shown')
                 var fileId = parseInt($(this).attr('file_id'))
                 var l = L_.layersGroup['DrawTool_' + fileId]
                 if (!l) return
@@ -760,10 +732,8 @@ define([
                 }
             })
             $('.drawToolDrawFilesListElem').off('mouseleave')
-            $('.drawToolDrawFilesListElem').on('mouseleave', function() {
-                $(this)
-                    .find('.drawToolFileEdit')
-                    .removeClass('shown')
+            $('.drawToolDrawFilesListElem').on('mouseleave', function () {
+                $(this).find('.drawToolFileEdit').removeClass('shown')
                 var fileId = parseInt($(this).attr('file_id'))
                 var l = L_.layersGroup['DrawTool_' + fileId]
                 if (!l) return
@@ -799,32 +769,24 @@ define([
             })
             //Select file
             $('.drawToolFileSelector').off('click')
-            $('.drawToolFileSelector').on('click', function() {
+            $('.drawToolFileSelector').on('click', function () {
                 //Only select files you own
                 var fileFromId = DrawTool.getFileObjectWithId(
                     $(this).attr('file_id')
                 )
                 if (
                     mmgisglobal.user !== $(this).attr('file_owner') &&
-                    (fileFromId &&
-                        F_.diff(
-                            fileFromId.file_owner_group,
-                            DrawTool.userGroups
-                        ).length == 0)
+                    fileFromId &&
+                    F_.diff(fileFromId.file_owner_group, DrawTool.userGroups)
+                        .length == 0
                 )
                     return
 
-                var checkbox = $(this)
-                    .parent()
-                    .find('.drawToolFileCheckbox')
+                var checkbox = $(this).parent().find('.drawToolFileCheckbox')
                 $('.drawToolFileCheckbox').removeClass('checked')
                 $('.drawToolDrawFilesListElem').removeClass('checked')
                 checkbox.addClass('checked')
-                checkbox
-                    .parent()
-                    .parent()
-                    .parent()
-                    .addClass('checked')
+                checkbox.parent().parent().parent().addClass('checked')
 
                 var intent = $(this).attr('file_intent')
                 if (DrawTool.intentType != intent) {
@@ -841,7 +803,7 @@ define([
             $('.drawToolFileCheckbox').off('click')
             $('.drawToolFileCheckbox').on('click', DrawTool.toggleFile)
         },
-        refreshFile: function(
+        refreshFile: function (
             id,
             time,
             populateShapesAfter,
@@ -868,8 +830,8 @@ define([
 
             DrawTool.getFile(
                 body,
-                (function(index, selectedFeatureIds) {
-                    return function(data) {
+                (function (index, selectedFeatureIds) {
+                    return function (data) {
                         var layerId = 'DrawTool_' + index
                         //Remove it first
                         if (L_.layersGroup.hasOwnProperty(layerId)) {
@@ -1022,7 +984,7 @@ define([
                                             features: [features[i]],
                                         },
                                         {
-                                            style: function(feature) {
+                                            style: function (feature) {
                                                 return feature.properties.style
                                             },
                                         }
@@ -1088,7 +1050,7 @@ define([
          * @param {int} fileId *optional*
          * @param {'on' || 'off'} forceToggle *optional*
          */
-        toggleFile: function(
+        toggleFile: function (
             fileId,
             forceToggle,
             populateShapesAfter,
@@ -1106,7 +1068,10 @@ define([
                 (forceToggle != 'on' && DrawTool.filesOn.indexOf(id) != -1)
             ) {
                 //OFF
-                DrawTool.filesOn = DrawTool.filesOn.filter(function(v) {
+                // Don't allow turning files off that are being drawn in
+                if (DrawTool.currentFileId == id) return
+
+                DrawTool.filesOn = DrawTool.filesOn.filter(function (v) {
                     return v !== id
                 })
 
@@ -1114,11 +1079,7 @@ define([
                     DrawTool.populateShapes()
                     //Change icon
                     $(this).removeClass('on')
-                    $(this)
-                        .parent()
-                        .parent()
-                        .parent()
-                        .removeClass('on')
+                    $(this).parent().parent().parent().removeClass('on')
                 }
                 //Remove each feature in its group
                 if (L_.layersGroup.hasOwnProperty(layerId)) {
@@ -1139,11 +1100,7 @@ define([
                 if (!argumented) {
                     //Change icon
                     $(this).addClass('on')
-                    $(this)
-                        .parent()
-                        .parent()
-                        .parent()
-                        .addClass('on')
+                    $(this).parent().parent().parent().addClass('on')
                 }
                 //Get the file if we don't already have it
                 L_.layersGroup[layerId] = []
@@ -1158,7 +1115,7 @@ define([
                 )
             }
         },
-        toggleLabels: function(file_id) {
+        toggleLabels: function (file_id) {
             var l = L_.layersGroup['DrawTool_' + file_id]
             let indexOf = DrawTool.labelsOn.indexOf(file_id)
             var isOn = indexOf != -1
@@ -1181,7 +1138,7 @@ define([
                 }
             }
         },
-        maintainLayerOrder: function() {
+        maintainLayerOrder: function () {
             for (var i = 0; i < DrawTool.intentOrder.length; i++) {
                 for (var j = 0; j < DrawTool.filesOn.length; j++) {
                     var file = DrawTool.getFileObjectWithId(DrawTool.filesOn[j])
@@ -1198,7 +1155,7 @@ define([
                 }
             }
         },
-        removePopupsFromLayer: function(popupLayer) {
+        removePopupsFromLayer: function (popupLayer) {
             if (popupLayer != null) {
                 if (popupLayer._layers) {
                     var p =
@@ -1224,7 +1181,7 @@ define([
         },
         refreshNoteEvents() {
             $('.drawToolAnnotation').off('mouseover')
-            $('.drawToolAnnotation').on('mouseover', function() {
+            $('.drawToolAnnotation').on('mouseover', function () {
                 var layer = 'DrawTool_' + $(this).attr('layer')
                 var index = $(this).attr('index')
                 $('.drawToolShapeLi').removeClass('hovered')
@@ -1241,12 +1198,12 @@ define([
                 ).mouseenter()
             })
             $('.drawToolAnnotation').off('mouseout')
-            $('.drawToolAnnotation').on('mouseout', function() {
+            $('.drawToolAnnotation').on('mouseout', function () {
                 $('.drawToolShapeLi').removeClass('hovered')
                 $('.drawToolShapeLi .drawToolShapeLiItem').mouseleave()
             })
             $('.drawToolAnnotation').off('click')
-            $('.drawToolAnnotation').on('click', function() {
+            $('.drawToolAnnotation').on('click', function () {
                 var layer = 'DrawTool_' + $(this).attr('layer')
                 var index = $(this).attr('index')
                 var shape = L_.layersGroup[layer][index]
@@ -1259,7 +1216,7 @@ define([
                 shape.fireEvent('click')
             })
         },
-        refreshMasterCheckbox: function() {
+        refreshMasterCheckbox: function () {
             //Have master file checkbox on only when all master files are on too
             var masterCheckShouldBeOn = true
             for (var f in DrawTool.files) {

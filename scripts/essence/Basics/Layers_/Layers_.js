@@ -454,6 +454,16 @@ define(['Formulae_', 'Description', 'Search'], function (
             L_.Map_.resetView(L_.configData.msv.view)
             L_.Globe_.setCenter(L_.configData.msv.view)
         },
+        hasTool: function (toolName) {
+            for (var i = 0; i < L_.tools.length; i++) {
+                if (
+                    L_.tools[i].hasOwnProperty('name') &&
+                    L_.tools[i].name.toLowerCase() == toolName
+                )
+                    return true
+            }
+            return false
+        },
         getToolVars: function (toolName) {
             for (var i = 0; i < L_.tools.length; i++) {
                 if (
@@ -750,7 +760,7 @@ define(['Formulae_', 'Description', 'Search'], function (
                         L_.toggledArray[d[i].name] = true
                         L_.opacityArray[d[i].name] =
                             urlOnLayers.onLayers[d[i].name].opacity || 1
-                    } else if (urlOnLayers === 'replace')
+                    } else if (urlOnLayers.method == 'replace')
                         L_.toggledArray[d[i].name] = false
                 }
                 //Get the current layers sublayers (returns 0 if none)

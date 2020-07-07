@@ -1,9 +1,9 @@
-define(['Layers_', 'ToolController_'], function(L_, T_) {
+define(['Layers_', 'ToolController_'], function (L_, T_) {
     var QueryURL = {
-        checkIfMission: function() {
+        checkIfMission: function () {
             return this.getSingleQueryVariable('mission')
         },
-        queryURL: function() {
+        queryURL: function () {
             //Set the site and view if specified in the url
             var urlSite = this.getSingleQueryVariable('site')
             var urlMapLat = this.getSingleQueryVariable('mapLat')
@@ -132,10 +132,10 @@ define(['Layers_', 'ToolController_'], function(L_, T_) {
                             y: s[3],
                             query: 'self',
                         },
-                        function(d) {
+                        function (d) {
                             console.log(d)
                         },
-                        function(d) {
+                        function (d) {
                             console.warn(d)
                         }
                     )
@@ -167,14 +167,17 @@ define(['Layers_', 'ToolController_'], function(L_, T_) {
                 }
 
                 //This is so that when preselecting data the layer can turn on along with all default layers
-                if (layersOn === false && selected !== false) method = 'add'
+                if (layersOn == false && selected != false) method = 'add'
 
-                return { onLayers: onLayers, method: method }
+                return {
+                    onLayers: onLayers,
+                    method: method,
+                }
             }
 
             return null
         },
-        getSingleQueryVariable: function(variable) {
+        getSingleQueryVariable: function (variable) {
             var query = window.location.search.substring(1)
             var vars = query.split('&')
             for (var i = 0; i < vars.length; i++) {
@@ -186,7 +189,7 @@ define(['Layers_', 'ToolController_'], function(L_, T_) {
 
             return false
         },
-        getMultipleQueryVariable: function(variable) {
+        getMultipleQueryVariable: function (variable) {
             var parameterList = []
             var query = window.location.search.substring(1)
             var vars = query.split('&')
@@ -224,7 +227,7 @@ define(['Layers_', 'ToolController_'], function(L_, T_) {
     tools
       "tools=camp$1.3.4,"
     */
-        writeCoordinateURL: function(
+        writeCoordinateURL: function (
             mapLon,
             mapLat,
             mapZoom,
@@ -351,14 +354,14 @@ define(['Layers_', 'ToolController_'], function(L_, T_) {
                 {
                     url: url,
                 },
-                function(s) {
+                function (s) {
                     //Set and update the short url
                     L_.url =
                         window.location.href.split('?')[0] + '?s=' + s.body.url
                     window.history.replaceState('', '', L_.url)
                     if (typeof callback === 'function') callback()
                 },
-                function(e) {
+                function (e) {
                     //Set and update the full url
                     L_.url = window.location.href.split('?')[0] + url
                     window.history.replaceState('', '', L_.url)
@@ -366,7 +369,7 @@ define(['Layers_', 'ToolController_'], function(L_, T_) {
                 }
             )
         },
-        writeSearchURL: function(searchStrs, searchFile) {
+        writeSearchURL: function (searchStrs, searchFile) {
             return //!!!!!!!!!!!!!!!!
             var url =
                 window.location.href.split('?')[0] +

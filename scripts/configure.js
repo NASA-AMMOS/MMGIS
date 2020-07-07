@@ -13,6 +13,8 @@ var require = {
         //externals
         attributions: 'external/attributions',
 
+        arc: 'external/Arc/arc',
+
         colorPicker: 'external/ColorPicker/jqColorPicker.min',
 
         d3: 'external/D3/d3.v4.min',
@@ -178,7 +180,7 @@ var require = {
         VRController: { deps: ['threeCore'], exports: 'THREE' },
         VRControls: { deps: ['threeCore'], exports: 'THREE' },
         ThreeAR: { deps: ['threeCore'], exports: 'THREE' },
-        'highcharts': { deps: ['jquery'], exports: 'Highcharts'},
+        highcharts: { deps: ['jquery'], exports: 'Highcharts' },
     },
     wrapShim: true,
     map: {
@@ -187,10 +189,12 @@ var require = {
         },
     },
     findNestedDependencies: false,
-    packages: [{
-        name: 'highcharts',
-        main: 'highcharts'
-    }]
+    packages: [
+        {
+            name: 'highcharts',
+            main: 'highcharts',
+        },
+    ],
 }
 
 if (!mmgisglobal.toolConfigs.hasOwnProperty('Kinds')) {

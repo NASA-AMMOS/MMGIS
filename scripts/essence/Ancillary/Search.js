@@ -1,4 +1,4 @@
-define(['jquery', 'jqueryUI', 'd3', 'Formulae_', 'Description'], function(
+define(['jquery', 'jqueryUI', 'd3', 'Formulae_', 'Description'], function (
     $,
     jqueryUI,
     d3,
@@ -7,13 +7,13 @@ define(['jquery', 'jqueryUI', 'd3', 'Formulae_', 'Description'], function(
 ) {
     // prettier-ignore
     var markup = [
-  "<div id='Search' class='flexbetween' style='height: 100%;'>",
+  "<div id='Search' class='flexbetween' style='height: 100%; pointer-events: auto; position: relative;'>",
     "<select id='SearchType' class='ui dropdown short searchSelect'></select>",
     "<div>",
         "<input id='auto_search' class='topBarSearch' type='text' placeholder='Search...'></input>",
     "</div>",
-    "<div id='SearchClear' style='margin-left: 0;'><i class='mdi mdi-close mdi-18px'></i></div>",
-    "<div id='SearchBoth' style='margin-left: 0;'><i class='mdi mdi-magnify mdi-18px'></i></div>",
+    "<div id='SearchClear' style='margin-left: 0; mix-blend-mode: difference;'><i class='mdi mdi-close mdi-18px'></i></div>",
+    "<div id='SearchBoth' style='margin-left: 0; mix-blend-mode: difference;'><i class='mdi mdi-magnify mdi-18px'></i></div>",
     /*
     "<div id='SearchGo' class='mmgisButton' style='margin-right: 0;'>Go</div>",
     "<div id='SearchSelect' class='mmgisButton' style='margin-left: 0; margin-right: 0;'>Select</div>",
@@ -36,7 +36,7 @@ define(['jquery', 'jqueryUI', 'd3', 'Formulae_', 'Description'], function(
         searchFields: {},
         type: 'geojson',
         lastGeodatasetLayerName: null,
-        init: function(classSel, l_, v_, m_, g_) {
+        init: function (classSel, l_, v_, m_, g_) {
             L_ = l_
             Viewer_ = v_
             Map_ = m_
@@ -68,7 +68,7 @@ define(['jquery', 'jqueryUI', 'd3', 'Formulae_', 'Description'], function(
     }
 
     function interfaceWithMMWebGIS(classSel) {
-        this.separateFromMMWebGIS = function() {
+        this.separateFromMMWebGIS = function () {
             separateFromMMWebGIS()
         }
 
@@ -98,14 +98,14 @@ define(['jquery', 'jqueryUI', 'd3', 'Formulae_', 'Description'], function(
             }
         }
         $('#SearchType').dropdown({
-            onChange: function(val) {
+            onChange: function (val) {
                 changeSearchField(val)
             },
         })
 
         d3.select('#SearchGo').on('click', searchGo)
         d3.select('#SearchSelect').on('click', searchSelect)
-        d3.select('#SearchClear').on('click', function() {
+        d3.select('#SearchClear').on('click', function () {
             $('#auto_search').val('')
         })
         d3.select('#SearchBoth').on('click', searchBoth)
@@ -121,20 +121,27 @@ define(['jquery', 'jqueryUI', 'd3', 'Formulae_', 'Description'], function(
     }
 
     function initializeSearch() {
-        $(function() {
+        $(function () {
             $('#auto_search').autocomplete({
-                source: function(request, response) {
+                source: function (request, response) {
                     var re = $.ui.autocomplete.escapeRegex(request.term)
                     var matcher = new RegExp('\\b' + re, 'i')
-                    var a = $.grep(Search.arrayToSearch, function(item, index) {
+                    var a = $.grep(Search.arrayToSearch, function (
+                        item,
+                        index
+                    ) {
                         return matcher.test(item)
                     })
                     response(a)
                 },
-                select: function(event, ui) {
+                select: function (event, ui) {
                     searchBoth(ui.item.value)
                 },
             })
+            $('#auto_search').on('keydown', function (e) {
+                if (e.keyCode == 13) searchBoth()
+            })
+
             $('.ui-autocomplete')
                 .css({
                     'max-height': '60vh',
@@ -154,11 +161,17 @@ define(['jquery', 'jqueryUI', 'd3', 'Formulae_', 'Description'], function(
 
             let urlSplit = L_.layersNamed[Search.lname].url.split(':')
 
+            Search.layerType = L_.layersNamed[Search.lname].type
             if (urlSplit[0] == 'geodatasets' && urlSplit[1] != null) {
                 Search.type = 'geodatasets'
                 Search.lastGeodatasetLayerName = urlSplit[1]
-                $('#SearchSelect').css({ display: 'none' })
-                $('#SearchBoth').css({ display: 'none' })
+                $('#SearchSelect').css({ display: 'inherit' })
+                $('#SearchBoth').css({ display: 'inherit' })
+                if (document.getElementById('auto_search') != null) {
+                    document.getElementById(
+                        'auto_search'
+                    ).placeholder = getSearchFieldKeys(Search.lname)
+                }
             } else {
                 Search.type = 'geojson'
                 $('#SearchSelect').css({ display: 'inherit' })
@@ -166,7 +179,7 @@ define(['jquery', 'jqueryUI', 'd3', 'Formulae_', 'Description'], function(
 
                 var searchFile = L_.layersNamed[Search.lname].url
 
-                $.getJSON(L_.missionPath + searchFile, function(data) {
+                $.getJSON(L_.missionPath + searchFile, function (data) {
                     Search.arrayToSearch = []
                     var props
                     for (var i = 0; i < data.features.length; i++) {
@@ -177,7 +190,7 @@ define(['jquery', 'jqueryUI', 'd3', 'Formulae_', 'Description'], function(
                     }
                     if (Search.arrayToSearch[0]) {
                         if (!isNaN(Search.arrayToSearch[0]))
-                            Search.arrayToSearch.sort(function(a, b) {
+                            Search.arrayToSearch.sort(function (a, b) {
                                 return a - b
                             })
                         else Search.arrayToSearch.sort()
@@ -189,6 +202,7 @@ define(['jquery', 'jqueryUI', 'd3', 'Formulae_', 'Description'], function(
                     }
                 })
             }
+
             initializeSearch()
         }
     }
@@ -206,17 +220,27 @@ define(['jquery', 'jqueryUI', 'd3', 'Formulae_', 'Description'], function(
         doWithSearch('select', 'false', 'false', false)
     }
     function searchBoth(value) {
-        doWithSearch('both', 'false', 'false', false, value)
+        switch (Search.layerType) {
+            case 'vectortile':
+                searchGeodatasets()
+                break
+            default:
+                doWithSearch('both', 'false', 'false', false, value)
+        }
     }
 
     function searchGeodatasets() {
         let value = document.getElementById('auto_search').value
+
         let key =
             Search.searchFields[Search.lname] &&
             Search.searchFields[Search.lname][0]
                 ? Search.searchFields[Search.lname][0][1]
                 : null
         if (key == null) return
+
+        let wasOff = false
+        // Turn the layer on if it's off
 
         calls.api(
             'geodatasets_search',
@@ -225,28 +249,49 @@ define(['jquery', 'jqueryUI', 'd3', 'Formulae_', 'Description'], function(
                 key: key,
                 value: value,
             },
-            function(d) {
+            function (d) {
                 var r = d.body[0]
+
+                let selectTimeout = setTimeout(() => {
+                    L_.layersGroup[Search.lname].off('load')
+                    selectFeature()
+                }, 1500)
+
+                L_.layersGroup[Search.lname].on('load', function (event) {
+                    L_.layersGroup[Search.lname].off('load')
+                    clearTimeout(selectTimeout)
+                    selectFeature()
+                })
                 Map_.map.setView(
                     [r.coordinates[1], r.coordinates[0]],
-                    Map_.map.getZoom()
+                    Map_.mapScaleZoom || Map_.map.getZoom()
                 )
-                setTimeout(function() {
+                if (!L_.toggledArray[Search.lname]) {
+                    wasOff = true
+                    L_.toggleLayer(L_.layersNamed[Search.lname])
+                }
+
+                function selectFeature() {
                     var vts = L_.layersGroup[Search.lname]._vectorTiles
                     for (var i in vts) {
                         for (var j in vts[i]._features) {
                             var feature = vts[i]._features[j].feature
                             if (feature.properties[key] == value) {
+                                feature._layerName = vts[i].options.layerName
+                                feature._layer = feature
                                 L_.layersGroup[
                                     Search.lname
-                                ]._events.click[0].fn({ layer: feature })
-                                break
+                                ]._events.click[0].fn({
+                                    layer: feature,
+                                    sourceTarget: feature,
+                                })
+                                return
                             }
                         }
                     }
-                }, 2000)
+                }
             },
-            function(d) {}
+            function (d) {}
         )
     }
 
@@ -282,8 +327,9 @@ define(['jquery', 'jqueryUI', 'd3', 'Formulae_', 'Description'], function(
         if (doX == 'both' || doX == 'select') {
             L_.resetLayerFills()
         }
-        if (markers != undefined) {
-            markers.eachLayer(function(layer) {
+
+        if (markers != undefined && typeof markers.eachLayer === 'function') {
+            markers.eachLayer(function (layer) {
                 var props = layer.feature.properties
                 var clickI = 0
                 var shouldSearch = false
@@ -319,7 +365,9 @@ define(['jquery', 'jqueryUI', 'd3', 'Formulae_', 'Description'], function(
             })
 
             if (selectLayers.length == 1) {
+                selectLayers[0].setStyle({ fillColor: 'red' })
                 selectLayers[0].fireEvent('click')
+                selectLayers[0].bringToFront()
             } else if (selectLayers.length > 1) {
                 for (var i = 0; i < selectLayers.length; i++) {
                     selectLayers[i].setStyle({ fillColor: 'red' })
@@ -331,7 +379,7 @@ define(['jquery', 'jqueryUI', 'd3', 'Formulae_', 'Description'], function(
                 var coordinate = getMapZoomCoordinate(gotoLayers)
                 Map_.map.setView(
                     [coordinate.latitude, coordinate.longitude],
-                    coordinate.zoomLevel
+                    Map_.mapScaleZoom || Map_.map.getZoom()
                 )
             }
         }

@@ -15,7 +15,7 @@ define([
     'colorPicker',
     'shp',
     'shpwrite',
-], function(
+], function (
     $,
     d3,
     F_,
@@ -35,12 +35,12 @@ define([
 ) {
     var DrawTool = null
     var Shapes = {
-        init: function(tool) {
+        init: function (tool) {
             DrawTool = tool
             DrawTool.populateShapes = Shapes.populateShapes
             DrawTool.updateCopyTo = Shapes.updateCopyTo
         },
-        populateShapes: function(fileId, selectedFeatureIds) {
+        populateShapes: function (fileId, selectedFeatureIds) {
             //If we get an array of fileIds, split them
             if (Array.isArray(fileId)) {
                 /*
@@ -55,7 +55,7 @@ define([
             //Find all the active shapes on the last list so that repopulating doesn't change this
             var stillActive = []
             $('#drawToolShapesFeaturesList .drawToolShapeLi.active').each(
-                function() {
+                function () {
                     stillActive.push($(this).attr('id'))
                 }
             )
@@ -69,15 +69,35 @@ define([
                     s[0] == 'DrawTool' &&
                     DrawTool.filesOn.indexOf(onId) != -1
                 ) {
+                    var file = DrawTool.getFileObjectWithId(s[1])
+                    if (L_.layersGroup[l].length > 0)
+                        d3.select('#drawToolShapesFeaturesList')
+                            .append('li')
+                            .attr(
+                                'class',
+                                'drawToolShapesFeaturesListFileHeader'
+                            )
+                            .style(
+                                'background',
+                                DrawTool.categoryStyles[file.intent].color
+                            )
+                            .style(
+                                'color',
+                                file.intent == 'campaign' ||
+                                    file.intent == 'campsite' ||
+                                    file.intent == 'trail'
+                                    ? 'black'
+                                    : 'white'
+                            )
+                            .html(file.file_name)
                     for (var i = 0; i < L_.layersGroup[l].length; i++) {
-                        var file = DrawTool.getFileObjectWithId(s[1])
                         addShapeToList(L_.layersGroup[l][i], file, l, i, s[1])
                     }
                 }
             }
 
             $('#drawToolShapesFilterClear').off('click')
-            $('#drawToolShapesFilterClear').on('click', function() {
+            $('#drawToolShapesFilterClear').on('click', function () {
                 $('#drawToolShapesFilter').val('')
                 shapeFilter()
             })
@@ -99,7 +119,7 @@ define([
                     return
                 }
 
-                $('.drawToolShapeLi').each(function() {
+                $('.drawToolShapeLi').each(function () {
                     var l =
                         L_.layersGroup[$(this).attr('layer')][
                             $(this).attr('index')
@@ -121,6 +141,16 @@ define([
                     )
                         show = true
                     if (l.feature.properties._.id.toString().indexOf(v) != -1)
+                        show = true
+
+                    const fileObj = DrawTool.getFileObjectWithId(
+                        l.feature.properties._.file_id
+                    )
+                    if (
+                        fileObj &&
+                        fileObj.file_name != null &&
+                        fileObj.file_name.toLowerCase().indexOf(v) != -1
+                    )
                         show = true
 
                     if (show) {
@@ -234,8 +264,8 @@ define([
                     e.off('mousemove')
                     e.on(
                         'mousemove',
-                        (function(layer, index) {
-                            return function(event) {
+                        (function (layer, index) {
+                            return function (event) {
                                 if (
                                     DrawTool.contextMenuLayer &&
                                     DrawTool.contextMenuLayer.dragging
@@ -265,8 +295,8 @@ define([
                     e.off('mouseover')
                     e.on(
                         'mouseover',
-                        (function(layer, index) {
-                            return function() {
+                        (function (layer, index) {
+                            return function () {
                                 if (
                                     DrawTool.contextMenuLayer &&
                                     DrawTool.contextMenuLayer.dragging
@@ -293,7 +323,7 @@ define([
                         })(layer, index)
                     )
                     e.off('mouseout')
-                    e.on('mouseout', function() {
+                    e.on('mouseout', function () {
                         if (
                             DrawTool.contextMenuLayer &&
                             DrawTool.contextMenuLayer.dragging
@@ -306,8 +336,8 @@ define([
                     e.off('click')
                     e.on(
                         'click',
-                        (function(layer, index, fileid) {
-                            return function(event) {
+                        (function (layer, index, fileid) {
+                            return function (event) {
                                 if (DrawTool.activeContent != 'shapes')
                                     DrawTool.showContent('shapes')
 
@@ -441,14 +471,10 @@ define([
             }
 
             //Hover li item to highlight shape
-            $('.drawToolShapeLi').on('mouseenter', function() {
+            $('.drawToolShapeLi').on('mouseenter', function () {
                 if (DrawTool.activeContent === 'history') return
-                var layer = $(this)
-                    .find('.drawToolShapeLiItem')
-                    .attr('layer')
-                var index = $(this)
-                    .find('.drawToolShapeLiItem')
-                    .attr('index')
+                var layer = $(this).find('.drawToolShapeLiItem').attr('layer')
+                var index = $(this).find('.drawToolShapeLiItem').attr('index')
 
                 if (typeof L_.layersGroup[layer][index].setStyle === 'function')
                     L_.layersGroup[layer][index].setStyle({ color: '#7fff00' })
@@ -472,14 +498,10 @@ define([
                     ).addClass('highlight')
                 }
             })
-            $('.drawToolShapeLi').on('mouseleave', function() {
+            $('.drawToolShapeLi').on('mouseleave', function () {
                 if (DrawTool.activeContent === 'history') return
-                var layer = $(this)
-                    .find('.drawToolShapeLiItem')
-                    .attr('layer')
-                var index = $(this)
-                    .find('.drawToolShapeLiItem')
-                    .attr('index')
+                var layer = $(this).find('.drawToolShapeLiItem').attr('layer')
+                var index = $(this).find('.drawToolShapeLiItem').attr('index')
                 var shapeId = $(this).attr('shape_id')
                 var shape = L_.layersGroup[layer][index]
 
@@ -513,7 +535,7 @@ define([
                             $(this).attr('shape_id')
                     ).removeClass('highlight')
             })
-            $('.drawToolShapeLiItem').on('click', function(e) {
+            $('.drawToolShapeLiItem').on('click', function (e) {
                 var layer = $(this).attr('layer')
                 var index = $(this).attr('index')
                 var shape = L_.layersGroup[layer][index]
@@ -576,7 +598,7 @@ define([
                 mmgisglobal.ctrlDown = false
             }
         },
-        updateCopyTo: function(intent, subintent) {
+        updateCopyTo: function (intent, subintent) {
             //if( intent === DrawTool.lastShapeIntent ) return;
             //Update copy to dropdown
             var defaultOpt = 'File...'
@@ -593,7 +615,7 @@ define([
             if (intent) {
                 //Don't allow copies to same file
                 var filenames = []
-                $('.drawToolShapeLi').each(function(i, elm) {
+                $('.drawToolShapeLi').each(function (i, elm) {
                     if ($(elm).hasClass('active')) {
                         filenames.push($(elm).attr('file_name'))
                     }
@@ -616,7 +638,8 @@ define([
                                 DrawTool.files[i].intent == 'trail') ||
                             (intent == 'all' &&
                                 subintent == 'point' &&
-                                DrawTool.files[i].intent == 'signpost'))
+                                DrawTool.files[i].intent == 'signpost') ||
+                            intent == DrawTool.files[i].intent)
                     ) {
                         d3.select('#drawToolShapesCopySelect')
                             .append('option')
@@ -638,7 +661,7 @@ define([
 
             DrawTool.copyFileId = null
             $('#drawToolShapesCopySelect').dropdown({
-                onChange: function(val, name) {
+                onChange: function (val, name) {
                     DrawTool.copyFileId = val
                     DrawTool.copyFilename = name
                 },

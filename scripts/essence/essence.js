@@ -37,7 +37,7 @@ define([
     'QueryURL',
     'three',
     'Globe_',
-], function(
+], function (
     $,
     d3,
     F_,
@@ -88,7 +88,7 @@ define([
     }
 
     mmgisglobal.lastInteraction = Date.now()
-    $('body').on('mousemove', function() {
+    $('body').on('mousemove', function () {
         mmgisglobal.lastInteraction = Math.floor(Date.now() / 1000)
     })
 
@@ -96,7 +96,7 @@ define([
     mmgisglobal.shiftDown = false
     // Check whether control button and shift is pressed
     //17 is ctrl, 91, 93, and 224 are MAC metakeys
-    $(document).keydown(function(e) {
+    $(document).keydown(function (e) {
         if (
             e.which == '17' ||
             e.which == '91' ||
@@ -106,7 +106,7 @@ define([
             mmgisglobal.ctrlDown = true
         if (e.which == '16') mmgisglobal.shiftDown = true
     })
-    $(document).keyup(function(e) {
+    $(document).keyup(function (e) {
         if (
             e.which == '17' ||
             e.which == '91' ||
@@ -117,10 +117,11 @@ define([
         if (e.which == '16') mmgisglobal.shiftDown = false
     })
 
-    $(document.body).keydown(function(e) {
+    $(document.body).keydown(function (e) {
         if (
             ToolController_.activeTool == null &&
             !$('#loginModal').hasClass('active') &&
+            UserInterface_.getPanelPercents().globe == 0 &&
             e.shiftKey &&
             e.keyCode === 84
         ) {
@@ -131,7 +132,7 @@ define([
     var essence = {
         configData: null,
         hasSwapped: false,
-        init: function(config, missionsList, swapping, hasDAMTool) {
+        init: function (config, missionsList, swapping, hasDAMTool) {
             //Save the config data
             this.configData = config
 
@@ -223,10 +224,10 @@ define([
                     {
                         mission: to,
                     },
-                    function(data) {
+                    function (data) {
                         makeMission(data)
                     },
-                    function(e) {
+                    function (e) {
                         console.log(
                             "Warning: Couldn't load: " +
                                 missionName +
@@ -243,10 +244,10 @@ define([
                         'config.json' +
                         '?nocache=' +
                         new Date().getTime(),
-                    function(data) {
+                    function (data) {
                         makeMission(data)
                     }
-                ).error(function() {
+                ).error(function () {
                     console.log(
                         "Warning: Couldn't load: " +
                             'Missions/' +
@@ -292,7 +293,7 @@ define([
                 essence.init(data, L_.missionsList, true, hasDAMTool)
             }
         },
-        fina: function() {
+        fina: function () {
             if (essence.hasSwapped) Globe_.reset()
 
             //FinalizeGlobe
@@ -313,9 +314,13 @@ define([
     //Move this somewhere else later
     function stylize() {
         if (L_.configData.look) {
-            if( L_.configData.look.pagename &&
-                L_.configData.look.pagename != '')
-                d3.select('title').html(L_.configData.look.pagename + ' - ' + L_.mission)
+            if (
+                L_.configData.look.pagename &&
+                L_.configData.look.pagename != ''
+            )
+                d3.select('title').html(
+                    L_.configData.look.pagename + ' - ' + L_.mission
+                )
             if (
                 L_.configData.look.bodycolor &&
                 L_.configData.look.bodycolor != ''
@@ -351,16 +356,26 @@ define([
                 L_.configData.look.mapcolor != ''
             )
                 $('#map').css({ background: L_.configData.look.mapcolor })
-            if( L_.configData.look.logourl &&
-                L_.configData.look.logourl != '' ) {
-                d3.select('#mmgislogo img').attr('src', L_.configData.look.logourl)
-                $('#favicon').attr('href', L_.configData.look.logourl);
+            if (
+                L_.configData.look.logourl &&
+                L_.configData.look.logourl != ''
+            ) {
+                d3.select('#mmgislogo img').attr(
+                    'src',
+                    L_.configData.look.logourl
+                )
+                $('#favicon').attr('href', L_.configData.look.logourl)
             }
-            if( L_.configData.look.helpurl &&
-                L_.configData.look.helpurl != '' ) {
-                $('#topBarHelp').on('click', function() {
-                    let win = window.open(L_.configData.look.helpurl, '_mmgishelp');
-                    win.focus();
+            if (
+                L_.configData.look.helpurl &&
+                L_.configData.look.helpurl != ''
+            ) {
+                $('#topBarHelp').on('click', function () {
+                    let win = window.open(
+                        L_.configData.look.helpurl,
+                        '_mmgishelp'
+                    )
+                    win.focus()
                 })
             }
         }

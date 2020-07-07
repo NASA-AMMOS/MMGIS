@@ -399,6 +399,7 @@ textarea {
   color: #ddd;
 }
 
+#variableEl > .CodeMirror,
 #vtLayerEl > .CodeMirror {
   margin: 0;
 }

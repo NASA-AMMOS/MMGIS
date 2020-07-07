@@ -22,6 +22,10 @@ L.TileLayer.GL = L.GridLayer.extend({
         // Array of tile URL templates (as in `L.TileLayer`), between zero and 8 elements. Each URL template will be converted into a plain `L.TileLayer` and pushed in the `tileLayers` option.
         tileUrls: [],
 
+        // @option tileUrlsAsDataUrls: Boolean
+        // Boolean that if true treats tileUrls as an array of image objects with data urls. { <z>: { <x>: { <y>: dataURL }, <x>: {} } }
+        tileUrlsAsDataUrls: false,
+
         // @option tileLayers: Array
         // Array of instances of `L.TileLayer` (or its subclasses, like `L.TileLayer.WMS`), between zero and 8 elements.
         tileLayers: [],
@@ -45,7 +49,7 @@ L.TileLayer.GL = L.GridLayer.extend({
     // On instantiating the layer, it will initialize all the GL context
     //   and upload the shaders to the GPU, along with the vertex buffer
     //   (the vertices will stay the same for all tiles).
-    initialize: function(options) {
+    initialize: function (options) {
         options = L.setOptions(this, options)
 
         this._renderer = L.DomUtil.create('canvas')
@@ -65,9 +69,17 @@ L.TileLayer.GL = L.GridLayer.extend({
         // Create `TileLayer`s from the tileUrls option.
         this._tileLayers = Array.from(options.tileLayers)
         for (var i = 0; i < options.tileUrls.length && i < 8; i++) {
-            this._tileLayers.push(
-                L.tileLayer(options.tileUrls[i], options.options || {})
-            )
+            if (options.tileUrlsAsDataUrls) {
+                this._tileLayers.push(
+                    L.tileLayer('{z},{x},{y}', options.options || {})
+                )
+                this._tileLayers[this._tileLayers.length - 1].dataUrls =
+                    options.tileUrls[i]
+            } else {
+                this._tileLayers.push(
+                    L.tileLayer(options.tileUrls[i], options.options || {})
+                )
+            }
         }
 
         this._loadGLProgram()
@@ -86,11 +98,11 @@ L.TileLayer.GL = L.GridLayer.extend({
     // @method getGlError(): String|undefined
     // If there was any error compiling/linking the shaders, returns a string
     // with information about that error. If there was no error, returns `undefined`.
-    getGlError: function() {
+    getGlError: function () {
         return this._glError
     },
 
-    _loadGLProgram: function() {
+    _loadGLProgram: function () {
         var gl = this._gl
 
         // Force using this vertex shader.
@@ -301,7 +313,7 @@ L.TileLayer.GL = L.GridLayer.extend({
     //   render a tile, passing the complex space coordinates to the
     //   GPU, and asking to render the vertexes (as triangles) again.
     // Every pixel will be opaque, so there is no need to clear the scene.
-    _render: function(coords) {
+    _render: function (coords) {
         var gl = this._gl
         gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight)
         gl.clearColor(0, 0, 0, 0)
@@ -369,7 +381,7 @@ L.TileLayer.GL = L.GridLayer.extend({
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
     },
 
-    _bindTexture: function(index, imageData) {
+    _bindTexture: function (index, imageData) {
         // Helper function. Binds a ImageData (HTMLImageElement, HTMLCanvasElement or
         // ImageBitmap) to a texture, given its index (0 to 7).
         // The image data is assumed to be in RGBA format.
@@ -390,7 +402,7 @@ L.TileLayer.GL = L.GridLayer.extend({
             gl.TEXTURE_MIN_FILTER,
             gl.LINEAR_MIPMAP_NEAREST
         )
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
         gl.generateMipmap(gl.TEXTURE_2D)
@@ -404,12 +416,14 @@ L.TileLayer.GL = L.GridLayer.extend({
         L.GridLayer.prototype._addTile.call(this, coords, container)
     },
 
-    createTile: function(coords, done) {
+    createTile: function (coords, done) {
         var tile = L.DomUtil.create('canvas', 'leaflet-tile')
         tile.width = tile.height = this.options.tileSize
         tile.onselectstart = tile.onmousemove = L.Util.falseFn
 
         var ctx = tile.getContext('2d')
+        ctx.imageSmoothingEnabled = false
+
         var unwrappedKey = this._unwrappedKey
         var texFetches = []
         for (var i = 0; i < this._tileLayers.length && i < 8; i++) {
@@ -418,7 +432,7 @@ L.TileLayer.GL = L.GridLayer.extend({
         }
 
         Promise.all(texFetches).then(
-            function(textureImages) {
+            function (textureImages) {
                 if (!this._map) {
                     return
                 }
@@ -436,10 +450,11 @@ L.TileLayer.GL = L.GridLayer.extend({
                 }
 
                 this._render(coords)
+
                 ctx.drawImage(this._renderer, 0, 0)
                 done()
             }.bind(this),
-            function(err) {
+            function (err) {
                 L.TileLayer.prototype._tileOnError.call(this, done, tile, err)
             }.bind(this)
         )
@@ -447,7 +462,7 @@ L.TileLayer.GL = L.GridLayer.extend({
         return tile
     },
 
-    _removeTile: function(key) {
+    _removeTile: function (key) {
         if (this._isReRenderable) {
             delete this._fetchedTextures[key]
             delete this._2dContexts[key]
@@ -455,7 +470,7 @@ L.TileLayer.GL = L.GridLayer.extend({
         L.TileLayer.prototype._removeTile.call(this, key)
     },
 
-    onAdd: function() {
+    onAdd: function () {
         // If the shader is time-dependent (i.e. animated), start an animation loop.
         if (this._uNowPosition) {
             L.Util.cancelAnimFrame(this._animFrame)
@@ -464,13 +479,13 @@ L.TileLayer.GL = L.GridLayer.extend({
         L.TileLayer.prototype.onAdd.call(this)
     },
 
-    onRemove: function(map) {
+    onRemove: function (map) {
         // Stop the animation loop, if any.
         L.Util.cancelAnimFrame(this._animFrame)
         L.TileLayer.prototype.onRemove.call(this, map)
     },
 
-    _onFrame: function() {
+    _onFrame: function () {
         if (this._uNowPosition && this._map) {
             this.reRender()
             this._animFrame = L.Util.requestAnimFrame(
@@ -480,12 +495,12 @@ L.TileLayer.GL = L.GridLayer.extend({
             )
         }
     },
-    clear: function() {
+    clear: function () {
         var gl = this._gl
         gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT)
     },
     // Runs the shader (again) on all tiles
-    reRender: function() {
+    reRender: function () {
         if (!this._isReRenderable) {
             return
         }
@@ -538,7 +553,7 @@ L.TileLayer.GL = L.GridLayer.extend({
 
     // Gets the tile for the Nth `TileLayer` in `this._tileLayers`,
     // for the given tile coords, returns a promise to the tile.
-    _getNthTile: function(n, coords) {
+    _getNthTile: function (n, coords) {
         var layer = this._tileLayers[n]
         // Monkey-patch a few things, both for TileLayer and TileLayer.WMS
         layer._tileZoom = this._tileZoom
@@ -546,17 +561,30 @@ L.TileLayer.GL = L.GridLayer.extend({
         layer._crs = this._map.options.crs
         layer._globalTileRange = this._globalTileRange
         return new Promise(
-            function(resolve, reject) {
+            function (resolve, reject) {
                 var tile = document.createElement('img')
                 tile.crossOrigin = ''
-                tile.src = layer.getTileUrl(coords)
-                L.DomEvent.on(tile, 'load', resolve.bind(this, tile))
-                L.DomEvent.on(tile, 'error', reject.bind(this, tile))
+                if (this.options.tileUrlsAsDataUrls) {
+                    if (
+                        layer.dataUrls[coords.z] &&
+                        layer.dataUrls[coords.z][coords.x] &&
+                        layer.dataUrls[coords.z][coords.x][coords.y]
+                    ) {
+                        tile.src = layer.dataUrls[coords.z][coords.x][coords.y]
+                        resolve(tile)
+                    } else {
+                        reject(tile)
+                    }
+                } else {
+                    tile.src = layer.getTileUrl(coords)
+                    L.DomEvent.on(tile, 'load', resolve.bind(this, tile))
+                    L.DomEvent.on(tile, 'error', reject.bind(this, tile))
+                }
             }.bind(this)
         )
     },
 })
 
-L.tileLayer.gl = function(opts) {
+L.tileLayer.gl = function (opts) {
     return new L.TileLayer.GL(opts)
 }

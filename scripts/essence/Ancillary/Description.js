@@ -1,19 +1,17 @@
 //The bottom left text that describes to the user the basic mmgis state
 
-define(['jquery', 'd3', 'Formulae_'], function($, d3, F_) {
+define(['jquery', 'd3', 'Formulae_'], function ($, d3, F_) {
     var Description = {
         descCont: null,
         descMission: null,
         descSite: null,
         descPoint: null,
         L_: null,
-        init: function(mission, site, Map_, L_) {
+        init: function (mission, site, Map_, L_) {
             this.L_ = L_
             this.Map_ = Map_
-            this.descCont = d3.select(
-                '#main-container > #topBar .mainDescription'
-            )
-            this.descInfoCont = d3.select('#main-container > #topBar .mainInfo')
+            this.descCont = d3.select('.mainDescription')
+            this.descInfoCont = d3.select('.mainInfo')
             /*
             this.descMission = descCont
                 .append('div')
@@ -76,7 +74,7 @@ define(['jquery', 'd3', 'Formulae_'], function($, d3, F_) {
                 .style('cursor', 'pointer')
                 .style('margin', '0')
 
-            Description.descPointInner.on('click', function() {
+            Description.descPointInner.on('click', function () {
                 if (
                     Map_.activeLayer.feature.geometry.coordinates[1] &&
                     Map_.activeLayer.feature.geometry.coordinates[0]
@@ -148,37 +146,34 @@ define(['jquery', 'd3', 'Formulae_'], function($, d3, F_) {
             this.descInfoCont.html(infos.join('\n'))
 
             this.descInfoCont.style('display', 'flex')
-            $('#main-container > #topBar .mainInfo').animate(
+            $('.mainInfo').animate(
                 {
                     opacity: 1,
                 },
                 80
             )
 
-            d3.select('#main-container > #topBar .mainInfo > div').on(
-                'click',
-                function() {
-                    let lat = d3.select(this).attr('lat')
-                    let lng = d3.select(this).attr('lng')
+            d3.select('.mainInfo > div').on('click', function () {
+                let lat = d3.select(this).attr('lat')
+                let lng = d3.select(this).attr('lng')
 
-                    if (lat != null && lng != null) {
-                        Description.Map_.map.setView(
-                            [lat, lng],
-                            Description.Map_.mapScaleZoom ||
-                                Description.Map_.map.getZoom()
-                        )
-                    }
+                if (lat != null && lng != null) {
+                    Description.Map_.map.setView(
+                        [lat, lng],
+                        Description.Map_.mapScaleZoom ||
+                            Description.Map_.map.getZoom()
+                    )
                 }
-            )
+            })
         },
-        updateSite: function(site) {
+        updateSite: function (site) {
             if (site != null) {
                 Description.descSite.html(site)
             }
         },
-        updatePoint: function(activeLayer) {
+        updatePoint: function (activeLayer) {
             this.descCont.style('display', 'flex')
-            $('#main-container > #topBar .mainDescription').animate(
+            $('.mainDescription').animate(
                 {
                     opacity: 1,
                 },

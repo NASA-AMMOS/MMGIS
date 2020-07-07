@@ -23,7 +23,7 @@ define([
     'shp',
     'shpwrite',
     'css!DrawTool',
-], function(
+], function (
     DrawTool_Drawing,
     DrawTool_Editing,
     DrawTool_Files,
@@ -435,7 +435,7 @@ define([
                 color: '#fff',
             },
         },
-        initialize: function() {
+        initialize: function () {
             this.vars = L_.getToolVars('draw')
 
             //Set up intent mapping if any
@@ -476,7 +476,7 @@ define([
                 }
             }
         },
-        make: function() {
+        make: function () {
             DrawTool.open = true
             DrawTool.files = {}
             DrawTool.activeContent = 'draw'
@@ -518,7 +518,7 @@ define([
             //Start on the draw tab
             $('#drawToolNavButtonDraw').click()
 
-            DrawTool.getFiles(function() {
+            DrawTool.getFiles(function () {
                 DrawTool.setDrawing(true)
                 DrawTool.populateFiles()
 
@@ -530,7 +530,7 @@ define([
                 }
             })
 
-            $('#drawToolDrawPublished > div').on('click', function() {
+            $('#drawToolDrawPublished > div').on('click', function () {
                 $(this).toggleClass('on')
                 DrawTool.toggleFile('master', null, true, true)
             })
@@ -538,23 +538,20 @@ define([
             if (DrawTool.userGroups.indexOf('mmgis-group') == -1) {
                 $('.drawToolMasterReview').remove()
             } else {
-                $('.drawToolMasterReview').on('click', function() {
+                $('.drawToolMasterReview').on('click', function () {
                     DrawTool.showReview()
                 })
             }
 
-            $('#drawToolDrawSnapMode > div').on('click', function() {
+            $('#drawToolDrawSnapMode > div').on('click', function () {
                 var value = $(this).attr('value')
                 DrawTool.snapping = value === 'on' ? true : false
 
-                $(this)
-                    .parent()
-                    .find('div')
-                    .removeClass('active')
+                $(this).parent().find('div').removeClass('active')
                 $(this).addClass('active')
             })
             //Upload
-            $('#drawToolFileUpload > input').on('change', function(evt) {
+            $('#drawToolFileUpload > input').on('change', function (evt) {
                 $('#drawToolDrawFilesNewLoading').css('opacity', '1')
                 $('#drawToolFileUpload > i').css('color', '#1169d3')
 
@@ -585,10 +582,10 @@ define([
                             var dbfBuffer
 
                             var readerSHP = new FileReader()
-                            readerSHP.onload = function(e) {
+                            readerSHP.onload = function (e) {
                                 shpBuffer = e.target.result
                                 var readerDBF = new FileReader()
-                                readerDBF.onload = function(e) {
+                                readerDBF.onload = function (e) {
                                     dbfBuffer = e.target.result
                                     bothLoaded()
                                 }
@@ -599,7 +596,7 @@ define([
                             function bothLoaded() {
                                 var featureArray = []
                                 shp.open(shpBuffer, dbfBuffer)
-                                    .then(source =>
+                                    .then((source) =>
                                         source
                                             .read()
                                             .then(function log(result) {
@@ -615,7 +612,7 @@ define([
                                                     }
                                                     DrawTool.makeFile(
                                                         body,
-                                                        function() {
+                                                        function () {
                                                             DrawTool.populateFiles()
                                                             endLoad()
                                                         }
@@ -631,7 +628,7 @@ define([
                                                 return source.read().then(log)
                                             })
                                     )
-                                    .catch(error => {
+                                    .catch((error) => {
                                         endLoad()
                                     })
                             }
@@ -643,14 +640,14 @@ define([
                         var reader = new FileReader()
                         // Closure to capture the file information.
 
-                        reader.onload = (function(file) {
-                            return function(e) {
+                        reader.onload = (function (file) {
+                            return function (e) {
                                 var body = {
                                     file_name: file.name,
                                     intent: 'all',
                                     geojson: e.target.result,
                                 }
-                                DrawTool.makeFile(body, function() {
+                                DrawTool.makeFile(body, function () {
                                     DrawTool.populateFiles()
                                     endLoad()
                                 })
@@ -683,13 +680,13 @@ define([
                 }
             })
         },
-        destroy: function() {
+        destroy: function () {
             this.MMGISInterface.separateFromMMGIS()
         },
-        getUrlString: function() {
+        getUrlString: function () {
             return this.filesOn.toString().replace(/,/g, '.')
         },
-        showContent: function(type) {
+        showContent: function (type) {
             //Go to back to latest history after leaving history
             if (DrawTool.activeContent === 'history' && type !== 'history')
                 DrawTool.refreshFile(DrawTool.currentFileId, null, true)
@@ -743,11 +740,11 @@ define([
                 if (DrawTool.files[i].id == id) return DrawTool.files[i]
             }
         },
-        getFiles: function(callback) {
+        getFiles: function (callback) {
             calls.api(
                 'files_getfiles',
                 {},
-                function(data) {
+                function (data) {
                     if (data) {
                         //sort files by intent and the alphabetically by name within intent
                         //sort alphabetically first
@@ -768,82 +765,82 @@ define([
                     }
                     if (typeof callback === 'function') callback()
                 },
-                function(data) {
+                function (data) {
                     if (data.message == 'User is not logged in.') {
                         $('#drawToolNotLoggedIn').css('display', 'inherit')
                     }
                 }
             )
         },
-        makeFile: function(body, callback) {
+        makeFile: function (body, callback) {
             calls.api(
                 'files_make',
                 body,
-                function(data) {
+                function (data) {
                     DrawTool.getFiles(callback)
                 },
-                function() {}
+                function () {}
             )
         },
-        getFile: function(body, callback) {
+        getFile: function (body, callback) {
             calls.api(
                 'files_getfile',
                 body,
-                function(data) {
+                function (data) {
                     if (typeof callback === 'function')
                         callback(data ? data.body : null)
                 },
-                function() {}
+                function () {}
             )
         },
-        changeFile: function(body, callback, failure) {
+        changeFile: function (body, callback, failure) {
             calls.api(
                 'files_change',
                 body,
-                function(data) {
+                function (data) {
                     if (typeof callback === 'function') callback(data.body)
                 },
-                function() {
+                function () {
                     if (typeof failure === 'function') failure()
                 }
             )
         },
-        removeFile: function(body, callback, failureCallback) {
+        removeFile: function (body, callback, failureCallback) {
             calls.api(
                 'files_remove',
                 body,
-                function(data) {
+                function (data) {
                     if (typeof callback === 'function') callback(data.body)
                 },
-                function(data) {
+                function (data) {
                     if (typeof failureCallback === 'function') failureCallback()
                 }
             )
         },
-        compileFile: function(body, callback) {
+        compileFile: function (body, callback) {
             calls.api(
                 'files_compile',
                 body,
-                function(data) {
+                function (data) {
                     if (typeof callback === 'function') callback(data)
                 },
-                function() {}
+                function () {}
             )
         },
-        getHistoryFile: function(fileId, successCallback, failureCallback) {
+        getHistoryFile: function (fileId, successCallback, failureCallback) {
             calls.api(
                 'files_gethistory',
                 { id: fileId },
-                function(data) {
+                function (data) {
                     if (typeof successCallback === 'function')
                         successCallback(data.body)
                 },
-                function() {
+                function () {
                     if (typeof failureCallback === 'function') failureCallback()
                 }
             )
         },
-        addDrawing: function(body, callback, failure) {
+        addDrawing: function (body, callback, failure) {
             if (body.file_id == null) {
                 CursorInfo.update(
                     'No file chosen. Please select or make a file for drawings.',
@@ -860,7 +857,7 @@ define([
                 F_.lnglatsToDemtileElevs(
                     JSON.parse(body.geometry),
                     DrawTool.vars.demtilesets,
-                    function(data) {
+                    function (data) {
                         body.geometry = JSON.stringify(data)
                         add()
                         //geoJSON = F_.geojsonAddSpatialProperties(geoJSON)
@@ -873,11 +870,11 @@ define([
                 calls.api(
                     'draw_add',
                     body,
-                    function(data) {
+                    function (data) {
                         if (DrawTool.isReviewOpen) DrawTool.showReview(false)
                         if (typeof callback === 'function') callback(data.body)
                     },
-                    function(err) {
+                    function (err) {
                         let message = err ? err.message : 'Server Failure'
                         CursorInfo.update(message, 6000, true, { x: 268, y: 6 })
                         if (typeof failure === 'function') failure()
@@ -885,31 +882,31 @@ define([
                 )
             }
         },
-        removeDrawing: function(body, callback, failureCallback) {
+        removeDrawing: function (body, callback, failureCallback) {
             calls.api(
                 'draw_remove',
                 body,
-                function(data) {
+                function (data) {
                     if (typeof callback === 'function') callback(data.body)
                 },
-                function() {
+                function () {
                     if (typeof failureCallback === 'function') failureCallback()
                 }
             )
         },
-        undo: function(body, callback, failure) {
+        undo: function (body, callback, failure) {
             calls.api(
                 'draw_undo',
                 body,
-                function(data) {
+                function (data) {
                     if (typeof callback === 'function') callback(data.body)
                 },
-                function() {
+                function () {
                     if (typeof failure === 'function') failure()
                 }
             )
         },
-        prettyIntent: function(intent) {
+        prettyIntent: function (intent) {
             return (DrawTool.intentNameMapping[intent] || intent) + 's'
         },
         expandPointprops(geojson) {
@@ -959,7 +956,7 @@ define([
 
     //
     function interfaceWithMMGIS() {
-        this.separateFromMMGIS = function() {
+        this.separateFromMMGIS = function () {
             separateFromMMGIS()
         }
 
@@ -1001,19 +998,13 @@ define([
         if (F_.getBrowser() == 'firefox')
             $('#drawToolDrawFiles').css('max-height', 'calc(100vh - 313px)')
 
-        $('#drawToolDrawSettingsTier > div').on('click', function() {
-            $(this)
-                .parent()
-                .find('div')
-                .removeClass('active')
+        $('#drawToolDrawSettingsTier > div').on('click', function () {
+            $(this).parent().find('div').removeClass('active')
             $(this).addClass('active')
         })
 
-        $('#drawToolDrawSettingsMode > div').on('click', function() {
-            $(this)
-                .parent()
-                .find('div')
-                .removeClass('active')
+        $('#drawToolDrawSettingsMode > div').on('click', function () {
+            $(this).parent().find('div').removeClass('active')
             $(this).addClass('active')
         })
 
@@ -1029,12 +1020,12 @@ define([
         }
 
         //Switching Nav tabs
-        $('.drawToolNavButton').on('click', function() {
+        $('.drawToolNavButton').on('click', function () {
             DrawTool.showContent($(this).attr('type'))
         })
 
         //Switching draw intent
-        $('#drawToolShapesWrapper > div').on('click', function() {
+        $('#drawToolShapesWrapper > div').on('click', function () {
             if ($(this).hasClass('active')) {
                 if (!$(this).hasClass('open')) {
                     $('#drawToolShapesWrapper').css(
@@ -1069,7 +1060,7 @@ define([
         })
 
         //Submit on enter
-        $('#drawToolDrawFilesNewName').keypress(function(e) {
+        $('#drawToolDrawFilesNewName').keypress(function (e) {
             if ((e.which && e.which == 13) || (e.keyCode && e.keyCode == 13)) {
                 //enter
                 $('#drawToolDrawFilesNewName').blur()
@@ -1079,7 +1070,7 @@ define([
         })
 
         //Adding a new file
-        $('#drawToolDrawFilesNew').on('click', function() {
+        $('#drawToolDrawFilesNew').on('click', function () {
             var val = $('#drawToolDrawFilesNewName').val()
             var intent = $('#drawToolDrawFilesNewDiv > select').val()
             if (/[&\'\"<>]/g.test(val)) {
@@ -1097,7 +1088,7 @@ define([
                 file_name: val || 'New File',
                 intent: intent,
             }
-            DrawTool.makeFile(body, function() {
+            DrawTool.makeFile(body, function () {
                 DrawTool.populateFiles()
 
                 $('#drawToolDrawFilesNewName').val('')
@@ -1105,7 +1096,7 @@ define([
         })
 
         //Copy shapes
-        $('#drawToolShapesCopyGo').on('click', function() {
+        $('#drawToolShapesCopyGo').on('click', function () {
             if (DrawTool.copyFileId == null) {
                 CursorInfo.update(
                     'Please select a file to copy shapes to.',
@@ -1120,7 +1111,7 @@ define([
             //First check that all the selected intents match
             //We don't allow copying of varied intent shapes
             var intents = []
-            $('.drawToolShapeLi').each(function(i, elm) {
+            $('.drawToolShapeLi').each(function (i, elm) {
                 if ($(elm).hasClass('active')) {
                     intents.push($(elm).attr('intent'))
                 }
@@ -1149,7 +1140,7 @@ define([
                 })
 
                 var copyBodies = []
-                $('.drawToolShapeLi').each(function(i, elm) {
+                $('.drawToolShapeLi').each(function (i, elm) {
                     if ($(elm).hasClass('active')) {
                         var layer = $(elm).attr('layer')
                         var index = $(elm).attr('index')
@@ -1220,9 +1211,19 @@ define([
 
                 if (copyBodies.length > 0) copyLoop(0)
                 function copyLoop(i) {
+                    //Stop recursion
                     if (i >= copyBodies.length) {
-                        //Stop recursion
-                        DrawTool.refreshFile(copyBodies[0].file_id, null, true)
+                        // Only refresh if already on
+                        if (
+                            DrawTool.filesOn.indexOf(
+                                parseInt(copyBodies[0].file_id)
+                            ) != -1
+                        )
+                            DrawTool.refreshFile(
+                                copyBodies[0].file_id,
+                                null,
+                                true
+                            )
                         if (copied >= numToCopy) {
                             //rehighlight each shapeli
                             for (var s in elmArray) {
@@ -1233,7 +1234,7 @@ define([
                                         elmArray[s].i
                                 ).addClass('active')
                             }
-                            setTimeout(function() {
+                            setTimeout(function () {
                                 $('#drawToolShapesCopyMessageDiv').css({
                                     opacity: 0,
                                     'pointer-events': 'none',
@@ -1241,7 +1242,7 @@ define([
                             }, 2000)
                         }
                     } else {
-                        DrawTool.drawOver(copyBodies[i], 'off', function() {
+                        DrawTool.drawOver(copyBodies[i], 'off', function () {
                             copied++
                             $('#drawToolShapesCopyMessageDiv').text(
                                 'Copied ' +
@@ -1268,10 +1269,11 @@ define([
         })
 
         //HISTORY
-        $('#drawToolHistorySave').on('click', function() {
+        $('#drawToolHistorySave').on('click', function () {
             if (
                 DrawTool.currentFileId == null ||
-                DrawTool.timeInHistory == null
+                DrawTool.timeInHistory == null ||
+                !$(this).hasClass('active')
             )
                 return
             DrawTool.undo(
@@ -1279,10 +1281,10 @@ define([
                     file_id: DrawTool.currentFileId,
                     undo_time: DrawTool.timeInHistory,
                 },
-                function() {
+                function () {
                     DrawTool.populateHistory()
                 },
-                function() {
+                function () {
                     console.log('History save failed')
                 }
             )

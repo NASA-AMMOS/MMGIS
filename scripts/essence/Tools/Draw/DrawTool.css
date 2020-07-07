@@ -563,7 +563,7 @@
     padding: 0px;
 }
 #drawToolDrawFilesListMaster .drawToolIntentColor {
-    width: 18px !important;
+    width: 14px !important;
 }
 .drawToolIntentColor {
     transition: width 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
@@ -859,10 +859,16 @@
     padding: 0;
     margin: 0;
 }
+.drawToolShapesFeaturesListFileHeader {
+    border-bottom: 1px solid var(--color-m3);
+    font-size: 13px;
+    width: max-content;
+    padding: 0px 7px;
+}
 .drawToolShapeLi {
     color: var(--color-f);
     background: rgba(255, 255, 255, 0);
-    border-bottom: 1px solid var(--color-m1);
+    border-bottom: 1px solid var(--color-m3);
     transition: background 0.4s cubic-bezier(0.39, 0.575, 0.565, 1),
         padding 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
 }
@@ -907,7 +913,7 @@
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
-    max-width: 135px;
+    max-width: 160px;
 }
 .drawToolShapeLiItemC {
     color: white;
@@ -1630,7 +1636,7 @@
 
 #drawToolReview {
     position: fixed;
-    left: 260px;
+    left: 264px;
     top: 0px;
     color: #ededed;
     background: var(--color-a);
@@ -2114,7 +2120,7 @@
     background: white;
     padding: 15px;
     overflow-y: auto;
-    max-height: calc(100vh - 173px);
+    max-height: calc(100vh - 213px);
 }
 .drawToolContextMenuTab.active {
     display: inherit;

@@ -15,7 +15,7 @@ define([
     'colorPicker',
     'shp',
     'shpwrite',
-], function(
+], function (
     $,
     d3,
     F_,
@@ -35,7 +35,7 @@ define([
 ) {
     var DrawTool = null
     var Drawing = {
-        init: function(tool) {
+        init: function (tool) {
             DrawTool = tool
             DrawTool.drawing = drawing
             DrawTool.drawOver = Drawing.drawOver
@@ -48,7 +48,7 @@ define([
             DrawTool.setDrawing = Drawing.setDrawing
             DrawTool.addArrowToMap = Drawing.addArrowToMap
         },
-        drawOver: function(d, clip, callback) {
+        drawOver: function (d, clip, callback) {
             var file_id =
                 d.file_id == undefined ? DrawTool.currentFileId : d.file_id
             var lk = 'DrawTool_' + file_id
@@ -61,8 +61,8 @@ define([
                     geometry: JSON.stringify(d.shape.geometry),
                     clip: clip,
                 },
-                (function(shape) {
-                    return function(data) {
+                (function (shape) {
+                    return function (data) {
                         DrawTool.refreshFile(DrawTool.currentFileId, null, true)
 
                         if (d.end && d.begin) {
@@ -73,7 +73,7 @@ define([
                         if (typeof callback === 'function') callback()
                     }
                 })(JSON.parse(JSON.stringify(d.shape))),
-                function() {
+                function () {
                     if (d.end && d.begin) {
                         d.end()
                         d.begin()
@@ -81,7 +81,7 @@ define([
                 }
             )
         },
-        drawThrough: function(d) {
+        drawThrough: function (d) {
             //Drawn the regular shape
             //DrawTool.drawOver(d)
 
@@ -95,8 +95,8 @@ define([
                 if (i >= lg.length) {
                     //Draw the regular shape
                     setTimeout(
-                        (function(d) {
-                            return function() {
+                        (function (d) {
+                            return function () {
                                 DrawTool.drawOver(d)
                             }
                         })(d),
@@ -146,7 +146,7 @@ define([
                                     F_.lnglatsToDemtileElevs(
                                         feature.geometry,
                                         DrawTool.vars.demtilesets,
-                                        function(data) {
+                                        function (data) {
                                             feature.geometry = data
                                             drawEdit(feature)
                                             //geoJSON = F_.geojsonAddSpatialProperties(geoJSON)
@@ -169,8 +169,8 @@ define([
                                             feature.geometry
                                         ),
                                     },
-                                    (function(feature, i) {
-                                        return function(result) {
+                                    (function (feature, i) {
+                                        return function (result) {
                                             feature.properties._.id =
                                                 result.body.id
                                             Map_.rmNotNull(lg[i])
@@ -180,7 +180,7 @@ define([
                                                     features: [feature],
                                                 },
                                                 {
-                                                    style: function(feature) {
+                                                    style: function (feature) {
                                                         return feature
                                                             .properties.style
                                                     },
@@ -196,8 +196,8 @@ define([
                                             //Make sure the last drawn stays on top
                                             lg[i].bringToFront()
                                             setTimeout(
-                                                (function(i) {
-                                                    return function() {
+                                                (function (i) {
+                                                    return function () {
                                                         throughLoop(i + 1)
                                                     }
                                                 })(i),
@@ -205,7 +205,7 @@ define([
                                             )
                                         }
                                     })(feature, i),
-                                    function() {
+                                    function () {
                                         throughLoop(i + 1)
                                         CursorInfo.update(
                                             'Failed to cut through some shapes.',
@@ -225,7 +225,7 @@ define([
                 }
             }
         },
-        drawUnder: function(d) {
+        drawUnder: function (d) {
             //Modify shape based on intersecting features
             var bb = turf.bbox(d.shape)
             var lg = L_.layersGroup['DrawTool_' + DrawTool.currentFileId]
@@ -262,18 +262,18 @@ define([
             // Draw the shape
             DrawTool.drawOver(d)
         },
-        drawOverThroughUnder: function(d) {
+        drawOverThroughUnder: function (d) {
             var tier = $('#drawToolDrawSettingsTier > div.active').attr('value')
             DrawTool.drawOver(d, tier)
         },
-        endDrawing: function() {
+        endDrawing: function () {
             DrawTool.drawing.polygon.end()
             DrawTool.drawing.line.end()
             DrawTool.drawing.point.end()
             DrawTool.drawing.annotation.end()
             DrawTool.drawing.arrow.end()
         },
-        setDrawingType: function(type) {
+        setDrawingType: function (type) {
             switch (type) {
                 case 'polygon':
                     DrawTool.drawing.polygon.begin(type)
@@ -292,7 +292,7 @@ define([
                     break
             }
         },
-        switchDrawingType: function(type) {
+        switchDrawingType: function (type) {
             $('#drawToolDrawingTypeDiv > div').removeClass('active')
             $('#drawToolDrawingTypeDiv > div').css('border-radius', 0)
             var elm = $('.drawToolDrawingType' + type)
@@ -308,7 +308,7 @@ define([
 
             DrawTool.setDrawingType($(this).attr('draw'))
         },
-        setDrawing: function(onlyIntentChanged) {
+        setDrawing: function (onlyIntentChanged) {
             if (onlyIntentChanged) DrawTool.currentFileId = null
             switch (DrawTool.intentType) {
                 case 'roi':
@@ -372,7 +372,7 @@ define([
                 DrawTool.intentType
             )
         },
-        addArrowToMap: function(layerId, start, end, style, feature, index) {
+        addArrowToMap: function (layerId, start, end, style, feature, index) {
             var line
 
             var length
@@ -532,11 +532,11 @@ define([
 
     var drawing = {
         polygon: {
-            begin: function(intent) {
+            begin: function (intent) {
                 var d = drawing.polygon
 
                 //Overwrite Leaflet.Draw esc key to restart drawing
-                L.Draw.Feature.prototype._cancelDrawing = function(e) {
+                L.Draw.Feature.prototype._cancelDrawing = function (e) {
                     if (e.keyCode === 27) {
                         d.end()
                         d.begin()
@@ -578,7 +578,7 @@ define([
                 $('body').on('keydown', d.keydown)
                 $('body').on('keyup', d.keyup)
             },
-            end: function() {
+            end: function () {
                 var d = drawing.polygon
 
                 d.stopclick = false
@@ -591,7 +591,7 @@ define([
 
                 if (typeof d.drawing.disable === 'function') d.drawing.disable()
             },
-            start: function(e) {
+            start: function (e) {
                 var d = drawing.polygon
 
                 if (!d.stopclick) {
@@ -610,13 +610,13 @@ define([
 
                 d.lastVertex = e.latlng
             },
-            complete: function() {
+            complete: function () {
                 var d = drawing.polygon
 
                 d.drawing.completeShape()
                 Map_.map.off('click', d.complete)
             },
-            keydown: function(e) {
+            keydown: function (e) {
                 var d = drawing.polygon
                 //Ctrl-Z
                 if (mmgisglobal.ctrlDown && e.which == '90')
@@ -631,7 +631,7 @@ define([
                         d.drawing.disable()
                 }
             },
-            keyup: function(e) {
+            keyup: function (e) {
                 var d = drawing.polygon
                 if (
                     !d.drawing._enabled &&
@@ -644,7 +644,7 @@ define([
                     d.drawing.enable()
                 }
             },
-            move: function(e) {
+            move: function (e) {
                 var d = drawing.polygon
 
                 if (e && d.movemode) {
@@ -679,7 +679,7 @@ define([
 
                 d.shape = d.drawing._poly
             },
-            stop: function() {
+            stop: function () {
                 var d = drawing.polygon
                 if (d.shiftDisabled) return
 
@@ -709,11 +709,11 @@ define([
             shape: {},
         },
         line: {
-            begin: function(intent, overrideStyle, overrideFinishCallback) {
+            begin: function (intent, overrideStyle, overrideFinishCallback) {
                 var d = drawing.line
 
                 //Overwrite Leaflet.Draw esc key to restart drawing
-                L.Draw.Feature.prototype._cancelDrawing = function(e) {
+                L.Draw.Feature.prototype._cancelDrawing = function (e) {
                     if (e.keyCode === 27) {
                         d.end()
                         d.begin()
@@ -753,7 +753,7 @@ define([
 
                 Map_.map.on('click', d.start)
                 if (typeof overrideFinishCallback === 'function') {
-                    d.overstop = function() {
+                    d.overstop = function () {
                         if (typeof d.shape.toGeoJSON === 'function') {
                             let s = d.shape.toGeoJSON()
                             s.geometry.type = 'LineString'
@@ -769,7 +769,7 @@ define([
                 $('body').on('keydown', d.keydown)
                 $('body').on('keyup', d.keyup)
             },
-            end: function() {
+            end: function () {
                 var d = drawing.line
 
                 d.stopclick = false
@@ -782,7 +782,7 @@ define([
                 $('body').off('keyup', d.keyup)
                 if (typeof d.drawing.disable === 'function') d.drawing.disable()
             },
-            start: function(e) {
+            start: function (e) {
                 var d = drawing.line
 
                 if (!d.stopclick) {
@@ -801,12 +801,12 @@ define([
 
                 d.lastVertex = e.latlng
             },
-            complete: function() {
+            complete: function () {
                 var d = drawing.line
                 d.drawing.completeShape()
                 Map_.map.off('click', d.complete)
             },
-            keydown: function(e) {
+            keydown: function (e) {
                 var d = drawing.line
                 //Ctrl-Z
                 if (mmgisglobal.ctrlDown && e.which == '90')
@@ -821,7 +821,7 @@ define([
                         d.drawing.disable()
                 }
             },
-            keyup: function(e) {
+            keyup: function (e) {
                 var d = drawing.line
                 if (
                     !d.drawing._enabled &&
@@ -834,7 +834,7 @@ define([
                     d.drawing.enable()
                 }
             },
-            move: function(e) {
+            move: function (e) {
                 var d = drawing.line
 
                 if (e && d.movemode) {
@@ -869,7 +869,7 @@ define([
 
                 d.shape = d.drawing._poly
             },
-            stop: function() {
+            stop: function () {
                 var d = drawing.line
 
                 if (d.shiftDisabled) return
@@ -888,8 +888,8 @@ define([
                         properties: JSON.stringify(d.shape.properties),
                         geometry: JSON.stringify(d.shape.geometry),
                     },
-                    (function(shape) {
-                        return function(data) {
+                    (function (shape) {
+                        return function (data) {
                             DrawTool.refreshFile(
                                 DrawTool.currentFileId,
                                 null,
@@ -899,7 +899,7 @@ define([
                             d.begin()
                         }
                     })(JSON.parse(JSON.stringify(d.shape))),
-                    function() {
+                    function () {
                         if (d.end && d.begin) {
                             d.end()
                             d.begin()
@@ -920,11 +920,11 @@ define([
             shape: {},
         },
         point: {
-            begin: function(intent) {
+            begin: function (intent) {
                 var d = drawing.point
 
                 //Overwrite Leaflet.Draw esc key to restart drawing
-                L.Draw.Feature.prototype._cancelDrawing = function(e) {
+                L.Draw.Feature.prototype._cancelDrawing = function (e) {
                     if (e.keyCode === 27) {
                         d.end()
                         d.begin()
@@ -957,7 +957,7 @@ define([
                 $('body').on('keydown', d.keydown)
                 $('body').on('keyup', d.keyup)
             },
-            end: function() {
+            end: function () {
                 var d = drawing.point
 
                 d.stopclick = false
@@ -968,8 +968,8 @@ define([
                 $('body').off('keyup', d.keyup)
                 if (typeof d.drawing.disable === 'function') d.drawing.disable()
             },
-            start: function() {},
-            keydown: function(e) {
+            start: function () {},
+            keydown: function (e) {
                 var d = drawing.polygon
 
                 if (
@@ -983,7 +983,7 @@ define([
                         d.drawing.disable()
                 }
             },
-            keyup: function(e) {
+            keyup: function (e) {
                 var d = drawing.polygon
 
                 if (
@@ -996,11 +996,11 @@ define([
                     d.drawing.enable()
                 }
             },
-            move: function(e) {
+            move: function (e) {
                 var d = drawing.point
                 d.shape = e.latlng
             },
-            stop: function() {
+            stop: function () {
                 var d = drawing.point
                 if (d.shiftDisabled) return
 
@@ -1025,8 +1025,8 @@ define([
                         properties: JSON.stringify(d.shape.properties),
                         geometry: JSON.stringify(d.shape.geometry),
                     },
-                    (function(shape) {
-                        return function(data) {
+                    (function (shape) {
+                        return function (data) {
                             DrawTool.refreshFile(
                                 DrawTool.currentFileId,
                                 null,
@@ -1036,7 +1036,7 @@ define([
                             d.begin()
                         }
                     })(JSON.parse(JSON.stringify(d.shape))),
-                    function() {
+                    function () {
                         if (d.end && d.begin) {
                             d.end()
                             d.begin()
@@ -1052,11 +1052,11 @@ define([
             shape: {},
         },
         annotation: {
-            begin: function(intent) {
+            begin: function (intent) {
                 var d = drawing.annotation
 
                 //Overwrite Leaflet.Draw esc key to restart drawing
-                L.Draw.Feature.prototype._cancelDrawing = function(e) {
+                L.Draw.Feature.prototype._cancelDrawing = function (e) {
                     if (e.keyCode === 27) {
                         d.end()
                         d.begin()
@@ -1090,7 +1090,7 @@ define([
                 $('body').on('keydown', d.keydown)
                 $('body').on('keyup', d.keyup)
             },
-            end: function() {
+            end: function () {
                 var d = drawing.annotation
 
                 d.stopclick = false
@@ -1099,8 +1099,8 @@ define([
                 Map_.map.off('draw:drawstop', d.stop)
                 if (typeof d.drawing.disable === 'function') d.drawing.disable()
             },
-            start: function() {},
-            keydown: function(e) {
+            start: function () {},
+            keydown: function (e) {
                 var d = drawing.annotation
                 if (
                     e.which == '17' ||
@@ -1117,7 +1117,7 @@ define([
                     d.begin()
                 }
             },
-            keyup: function(e) {
+            keyup: function (e) {
                 var d = drawing.annotation
 
                 if (
@@ -1130,11 +1130,11 @@ define([
                     d.drawing.enable()
                 }
             },
-            move: function(e) {
+            move: function (e) {
                 var d = drawing.annotation
                 d.shape = e.latlng
             },
-            stop: function() {
+            stop: function () {
                 var d = drawing.annotation
                 if (d.shiftDisabled) return
 
@@ -1167,19 +1167,20 @@ define([
                     )
                     .addTo(Map_.map)
 
-                setTimeout(function() {
-                    document.getElementById(inputId).focus()
+                setTimeout(function () {
+                    if (document.getElementById(inputId))
+                        document.getElementById(inputId).focus()
                 }, 50)
 
                 d.end()
-                $('#' + inputId + '_Close').on('click', function() {
+                $('#' + inputId + '_Close').on('click', function () {
                     Map_.rmNotNull(DrawTool.activeAnnotation)
                     d.begin()
                 })
                 $('#' + inputId + '_Save').on('click', d.save)
 
                 //Save on enter
-                $('#' + inputId).keypress(function(e) {
+                $('#' + inputId).keypress(function (e) {
                     if (
                         (e.which && e.which == 13) ||
                         (e.keyCode && e.keyCode == 13)
@@ -1191,7 +1192,7 @@ define([
                     } else return true
                 })
             },
-            save: function() {
+            save: function () {
                 var d = drawing.annotation
                 if (d.shiftDisabled) return
 
@@ -1219,8 +1220,8 @@ define([
                         properties: JSON.stringify(d.shape.properties),
                         geometry: JSON.stringify(d.shape.geometry),
                     },
-                    (function(shape) {
-                        return function(data) {
+                    (function (shape) {
+                        return function (data) {
                             Map_.rmNotNull(DrawTool.activeAnnotation)
 
                             DrawTool.refreshFile(
@@ -1232,7 +1233,7 @@ define([
                             d.begin()
                         }
                     })(JSON.parse(JSON.stringify(d.shape))),
-                    function() {
+                    function () {
                         Map_.rmNotNull(DrawTool.activeAnnotation)
                         if (d.begin) {
                             d.begin()
@@ -1248,11 +1249,11 @@ define([
             shape: {},
         },
         arrow: {
-            begin: function(intent) {
+            begin: function (intent) {
                 var d = drawing.arrow
 
                 //Overwrite Leaflet.Draw esc key to restart drawing
-                L.Draw.Feature.prototype._cancelDrawing = function(e) {
+                L.Draw.Feature.prototype._cancelDrawing = function (e) {
                     if (e.keyCode === 27) {
                         d.end()
                         d.begin()
@@ -1277,7 +1278,7 @@ define([
                 $('body').on('keydown', d.keydown)
                 $('body').on('keyup', d.keyup)
             },
-            end: function() {
+            end: function () {
                 var d = drawing.arrow
 
                 d.stopclick = false
@@ -1288,7 +1289,7 @@ define([
                 $('body').off('keydown', d.keydown)
                 $('body').off('keyup', d.keyup)
             },
-            start: function(e) {
+            start: function (e) {
                 var d = drawing.arrow
 
                 d.startPt = e.latlng
@@ -1307,7 +1308,7 @@ define([
                 Map_.map.on('mousemove', d.move)
                 Map_.map.on('click', d.stop)
             },
-            keydown: function(e) {
+            keydown: function (e) {
                 var d = drawing.arrow
 
                 if (
@@ -1321,7 +1322,7 @@ define([
                         d.drawing.disable()
                 }
             },
-            keyup: function(e) {
+            keyup: function (e) {
                 var d = drawing.arrow
 
                 if (
@@ -1334,7 +1335,7 @@ define([
                     d.drawing.enable()
                 }
             },
-            move: function(e) {
+            move: function (e) {
                 var d = drawing.arrow
 
                 Map_.rmNotNull(d.drawing)
@@ -1370,12 +1371,12 @@ define([
                 ).addTo(Map_.map)
 
                 clearTimeout(d.arrowTimeout)
-                d.arrowTimeout = setTimeout(function() {
+                d.arrowTimeout = setTimeout(function () {
                     for (var i = 0; i < d.arrowHeads.length; i++)
                         Map_.rmNotNull(d.arrowHeads[i])
                 }, 100)
             },
-            stop: function(e) {
+            stop: function (e) {
                 var d = drawing.arrow
                 if (d.shiftDisabled) return
 
@@ -1394,8 +1395,8 @@ define([
                         properties: JSON.stringify(d.shape.properties),
                         geometry: JSON.stringify(d.shape.geometry),
                     },
-                    (function(shape, start, end) {
-                        return function(data) {
+                    (function (shape, start, end) {
+                        return function (data) {
                             DrawTool.refreshFile(
                                 DrawTool.currentFileId,
                                 null,
@@ -1409,7 +1410,7 @@ define([
                         d.startPt,
                         e.latlng
                     ),
-                    function() {
+                    function () {
                         if (d.end && d.begin) {
                             d.end()
                             d.begin()
@@ -1419,7 +1420,7 @@ define([
 
                 d.end()
             },
-            save: function() {
+            save: function () {
                 var d = drawing.arrow
                 if (d.shiftDisabled) return
 
@@ -1444,8 +1445,8 @@ define([
                         properties: JSON.stringify(d.shape.properties),
                         geometry: JSON.stringify(d.shape.geometry),
                     },
-                    (function(shape) {
-                        return function(data) {
+                    (function (shape) {
+                        return function (data) {
                             Map_.rmNotNull(DrawTool.activeAnnotation)
                             var popup = L.popup({
                                 className: 'leaflet-popup-annotation',
@@ -1490,7 +1491,7 @@ define([
                             $('.drawToolAnnotation').off('mouseover')
                             $('.drawToolAnnotation').on(
                                 'mouseover',
-                                function() {
+                                function () {
                                     var layer =
                                         'DrawTool_' + $(this).attr('layer')
                                     var index = $(this).attr('index')
@@ -1514,14 +1515,17 @@ define([
                                 }
                             )
                             $('.drawToolAnnotation').off('mouseout')
-                            $('.drawToolAnnotation').on('mouseout', function() {
-                                $('.drawToolShapeLi').removeClass('hovered')
-                                $(
-                                    '.drawToolShapeLi .drawToolShapeLiItem'
-                                ).mouseleave()
-                            })
+                            $('.drawToolAnnotation').on(
+                                'mouseout',
+                                function () {
+                                    $('.drawToolShapeLi').removeClass('hovered')
+                                    $(
+                                        '.drawToolShapeLi .drawToolShapeLiItem'
+                                    ).mouseleave()
+                                }
+                            )
                             $('.drawToolAnnotation').off('click')
-                            $('.drawToolAnnotation').on('click', function() {
+                            $('.drawToolAnnotation').on('click', function () {
                                 var layer = 'DrawTool_' + $(this).attr('layer')
                                 var index = $(this).attr('index')
                                 var shape = L_.layersGroup[layer][index]
@@ -1554,7 +1558,7 @@ define([
                             DrawTool.populateShapes()
                         }
                     })(JSON.parse(JSON.stringify(d.shape))),
-                    function() {
+                    function () {
                         Map_.rmNotNull(DrawTool.activeAnnotation)
                         if (d.begin) {
                             d.begin()

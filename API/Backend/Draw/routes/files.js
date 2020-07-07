@@ -32,17 +32,17 @@ const historyKey = {
   5: "Add (over)",
   6: "Merge",
   7: "Add (under)",
-  8: "Split"
+  8: "Split",
 };
 
-router.post("/", function(req, res, next) {
+router.post("/", function (req, res, next) {
   res.send("test files");
 });
 
 /**
  * Gets all owned or public files
  */
-router.post("/getfiles", function(req, res, next) {
+router.post("/getfiles", function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
 
   Table.findAll({
@@ -51,32 +51,32 @@ router.post("/getfiles", function(req, res, next) {
       hidden: "0",
       [Sequelize.Op.or]: {
         file_owner: req.user,
-        public: "1"
-      }
-    }
+        public: "1",
+      },
+    },
   })
-    .then(files => {
+    .then((files) => {
       if (!files) {
         res.send({
           status: "failure",
           message: "Failed to get files.",
-          body: {}
+          body: {},
         });
       } else {
         files.sort((a, b) => (a.id > b.id ? 1 : -1));
         res.send({
           status: "success",
           message: "Successfully got files.",
-          body: files
+          body: files,
         });
       }
     })
-    .catch(err => {
+    .catch((err) => {
       logger("error", "Failed to get files.", req.originalUrl, req, err);
       res.send({
         status: "failure",
         message: "Failed to get files.",
-        body: {}
+        body: {},
       });
     });
 });
@@ -89,7 +89,7 @@ router.post("/getfiles", function(req, res, next) {
  * 	published: <bool> (optional) get last published version (makes 'time' ignored)
  * }
  */
-router.post("/getfile", function(req, res, next) {
+router.post("/getfile", function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
   let Histories = req.body.test === "true" ? FilehistoriesTEST : Filehistories;
 
@@ -97,7 +97,7 @@ router.post("/getfile", function(req, res, next) {
     res.send({
       status: "failure",
       message: "Permission denied.",
-      body: {}
+      body: {},
     });
   }
 
@@ -117,11 +117,11 @@ router.post("/getfile", function(req, res, next) {
             : ""),
         {
           replacements: {
-            intent: req.body.intent || ""
-          }
+            intent: req.body.intent || "",
+          },
         }
       )
-      .spread(results => {
+      .spread((results) => {
         let geojson = { type: "FeatureCollection", features: [] };
         for (let i = 0; i < results.length; i++) {
           let properties = results[i].properties;
@@ -131,7 +131,7 @@ router.post("/getfile", function(req, res, next) {
             intent: results[i].intent,
             parent: results[i].parent,
             children: results[i].children,
-            level: results[i].level
+            level: results[i].level,
           };
           feature.type = "Feature";
           feature.properties = properties;
@@ -169,7 +169,7 @@ router.post("/getfile", function(req, res, next) {
         res.send({
           status: "success",
           message: "Successfully got file.",
-          body: geojson
+          body: geojson,
         });
       });
   } else {
@@ -187,16 +187,16 @@ router.post("/getfile", function(req, res, next) {
         //file_owner is req.user or public is '1'
         [Sequelize.Op.or]: {
           file_owner: req.user,
-          public: "1"
-        }
-      }
+          public: "1",
+        },
+      },
     })
-      .then(file => {
+      .then((file) => {
         if (!file) {
           res.send({
             status: "failure",
             message: "Failed to access file.",
-            body: {}
+            body: {},
           });
         } else {
           sequelize
@@ -221,11 +221,11 @@ router.post("/getfile", function(req, res, next) {
               {
                 replacements: {
                   id: req.body.id,
-                  time: atThisTime
-                }
+                  time: atThisTime,
+                },
               }
             )
-            .spread(results => {
+            .spread((results) => {
               let bestHistory = [];
               for (let i = 0; i < results.length; i++) {
                 bestHistory = bestHistory.concat(results[i].history);
@@ -251,11 +251,11 @@ router.post("/getfile", function(req, res, next) {
                     ")",
                   {
                     replacements: {
-                      id: req.body.id
-                    }
+                      id: req.body.id,
+                    },
                   }
                 )
-                .spread(results => {
+                .spread((results) => {
                   let geojson = { type: "FeatureCollection", features: [] };
                   for (let i = 0; i < results.length; i++) {
                     let properties = JSON.parse(results[i].properties);
@@ -264,7 +264,7 @@ router.post("/getfile", function(req, res, next) {
                       id: results[i].id,
                       file_id: results[i].file_id,
                       level: results[i].level,
-                      intent: results[i].intent
+                      intent: results[i].intent,
                     };
                     feature.type = "Feature";
                     feature.properties = properties;
@@ -319,8 +319,8 @@ router.post("/getfile", function(req, res, next) {
                     message: "Successfully got file.",
                     body: {
                       file: file,
-                      geojson: geojson
-                    }
+                      geojson: geojson,
+                    },
                   });
                 });
             });
@@ -328,12 +328,12 @@ router.post("/getfile", function(req, res, next) {
 
         return null;
       })
-      .catch(err => {
+      .catch((err) => {
         logger("error", "Failed to get file.", req.originalUrl, req, err);
         res.send({
           status: "failure",
           message: "Failed to get file.",
-          body: {}
+          body: {},
         });
       });
   }
@@ -349,7 +349,7 @@ router.post("/getfile", function(req, res, next) {
  *  geojson: <object> (optional) -- geojson to initialize file from
  * }
  */
-router.post("/make", function(req, res, next) {
+router.post("/make", function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
 
   //group is a reserved keyword
@@ -363,7 +363,7 @@ router.post("/make", function(req, res, next) {
     res.send({
       status: "failure",
       message: 'Failed to make a new file. Owner can\'t be "group".',
-      body: {}
+      body: {},
     });
     return;
   }
@@ -376,12 +376,12 @@ router.post("/make", function(req, res, next) {
     file_description: req.body.file_description,
     intent: req.body.intent,
     public: "1",
-    hidden: "0"
+    hidden: "0",
   };
 
   // Insert new userfile into the user_files table
   Table.create(newUserfile)
-    .then(created => {
+    .then((created) => {
       let geojson = req.body.geojson ? JSON.parse(req.body.geojson) : null;
       if (
         geojson &&
@@ -436,56 +436,51 @@ router.post("/make", function(req, res, next) {
             intent: intent,
             elevated: "0",
             properties: JSON.stringify(features[i].properties),
-            geom: geom
+            geom: geom,
           });
         }
 
         Userfeatures.bulkCreate(rows, { returning: true })
-          .then(function(response) {
+          .then(function (response) {
             let ids = [];
             for (let i = 0; i < response.length; i++) {
               ids.push(response[i].id);
             }
             Filehistories.findAll({
+              limit: 1,
               where: {
-                file_id: created.id
-              }
+                file_id: created.id,
+              },
+              order: [["history_id", "DESC"]],
             })
-              .then(histories => {
-                let maxHistoryId = -Infinity;
-                if (histories && histories.length > 0) {
-                  for (let i = 0; i < histories.length; i++) {
-                    maxHistoryId = Math.max(
-                      histories[i].history_id,
-                      maxHistoryId
-                    );
-                  }
+              .then((lastHistory) => {
+                if (lastHistory && lastHistory.length > 0) {
                   return {
-                    historyIndex: maxHistoryId + 1,
-                    history: histories[maxHistoryId].history
+                    historyIndex: lastHistory[0].history_id + 1,
+                    history: lastHistory[0].history,
                   };
                 } else return { historyIndex: 0, history: [] };
               })
-              .then(historyObj => {
+              .then((historyObj) => {
                 let history = historyObj.history.concat(ids);
                 let newHistoryEntry = {
                   file_id: created.id,
                   history_id: historyObj.historyIndex,
                   time: time,
                   action_index: 0,
-                  history: history
+                  history: history,
                 };
                 // Insert new entry into the history table
                 Filehistories.create(newHistoryEntry)
-                  .then(created => {
+                  .then((created) => {
                     res.send({
                       status: "success",
                       message: "Successfully made a new file from geojson.",
-                      body: {}
+                      body: {},
                     });
                     return null;
                   })
-                  .catch(err => {
+                  .catch((err) => {
                     logger(
                       "error",
                       "Upload GeoJSON but failed to update history!",
@@ -496,7 +491,7 @@ router.post("/make", function(req, res, next) {
                     res.send({
                       status: "failure",
                       message: "Upload GeoJSON but failed to update history!",
-                      body: {}
+                      body: {},
                     });
                   });
 
@@ -504,7 +499,7 @@ router.post("/make", function(req, res, next) {
               });
             return null;
           })
-          .catch(function(err) {
+          .catch(function (err) {
             logger(
               "error",
               "Failed to upload GeoJSON!",
@@ -515,7 +510,7 @@ router.post("/make", function(req, res, next) {
             res.send({
               status: "failure",
               message: "Failed to upload GeoJSON!",
-              body: {}
+              body: {},
             });
             return null;
           });
@@ -523,18 +518,18 @@ router.post("/make", function(req, res, next) {
         res.send({
           status: "success",
           message: "Successfully made a new file.",
-          body: {}
+          body: {},
         });
       }
 
       return null;
     })
-    .catch(err => {
+    .catch((err) => {
       logger("error", "Failed to make a new file.", req.originalUrl, req, err);
       res.send({
         status: "failure",
         message: "Failed to make a new file.",
-        body: {}
+        body: {},
       });
     });
 });
@@ -545,30 +540,30 @@ router.post("/make", function(req, res, next) {
  * 	id: <number> (required)
  * }
  */
-router.post("/remove", function(req, res, next) {
+router.post("/remove", function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
 
   Table.update(
     {
-      hidden: "1"
+      hidden: "1",
     },
     {
       where: {
         id: req.body.id,
-        file_owner: req.user
-      }
+        file_owner: req.user,
+      },
     }
   )
     .then(() => {
       res.send({
         status: "success",
         message: "File removed.",
-        body: {}
+        body: {},
       });
 
       return null;
     })
-    .catch(err => {
+    .catch((err) => {
       logger(
         "error",
         "Failed to find and remove file.",
@@ -579,7 +574,7 @@ router.post("/remove", function(req, res, next) {
       res.send({
         status: "failure",
         message: "Failed to find and remove file.",
-        body: {}
+        body: {},
       });
     });
 });
@@ -590,30 +585,30 @@ router.post("/remove", function(req, res, next) {
  * 	id: <number> (required)
  * }
  */
-router.post("/restore", function(req, res, next) {
+router.post("/restore", function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
 
   Table.update(
     {
-      hidden: "0"
+      hidden: "0",
     },
     {
       where: {
         id: req.body.id,
-        file_owner: req.user
-      }
+        file_owner: req.user,
+      },
     }
   )
     .then(() => {
       res.send({
         status: "success",
         message: "File restored.",
-        body: {}
+        body: {},
       });
 
       return null;
     })
-    .catch(err => {
+    .catch((err) => {
       logger(
         "error",
         "Failed to find and restore file.",
@@ -624,7 +619,7 @@ router.post("/restore", function(req, res, next) {
       res.send({
         status: "failure",
         message: "Failed to find and restore file.",
-        body: {}
+        body: {},
       });
     });
 });
@@ -638,7 +633,7 @@ router.post("/restore", function(req, res, next) {
  * 	public: <0|1> (optional)
  * }
  */
-router.post("/change", function(req, res, next) {
+router.post("/change", function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
 
   //Form update object
@@ -663,24 +658,24 @@ router.post("/change", function(req, res, next) {
     where: {
       id: req.body.id,
       file_owner: req.user,
-      is_master: false //No editing these
-    }
+      is_master: false, //No editing these
+    },
   })
     .then(() => {
       res.send({
         status: "success",
         message: "File edited.",
-        body: {}
+        body: {},
       });
 
       return null;
     })
-    .catch(err => {
+    .catch((err) => {
       logger("error", "Failed to edit file.", req.originalUrl, req, err);
       res.send({
         status: "failure",
         message: "Failed to edit file.",
-        body: {}
+        body: {},
       });
     });
 });
@@ -693,8 +688,9 @@ router.post("/change", function(req, res, next) {
  *  test: bool
  * }
  */
-const compile = function(req, res, callback) {
-  let Table = req.query.test === "true" ? UserfilesTEST : Userfiles;
+const compile = function (req, res, callback) {
+  const isTest = req.query.test === "true" || req.body.test === "true";
+  let Table = isTest ? UserfilesTEST : Userfiles;
 
   let atThisTime = req.query.time || Math.floor(Date.now());
 
@@ -702,10 +698,10 @@ const compile = function(req, res, callback) {
     where: {
       is_master: true,
       intent: {
-        [Sequelize.Op.in]: ["roi", "campaign", "campsite", "trail", "signpost"]
-      }
-    }
-  }).then(files => {
+        [Sequelize.Op.in]: ["roi", "campaign", "campsite", "trail", "signpost"],
+      },
+    },
+  }).then((files) => {
     let featureIds = [];
     let finished = 0;
     for (let f = 0; f < files.length; f++) {
@@ -714,7 +710,7 @@ const compile = function(req, res, callback) {
           "SELECT history" +
             " " +
             "FROM file_histories" +
-            (req.query.test === "true" ? "_tests" : "") +
+            (isTest ? "_tests" : "") +
             " " +
             "WHERE file_id=" +
             files[f].dataValues.id +
@@ -726,7 +722,7 @@ const compile = function(req, res, callback) {
             " " +
             "FETCH first 1 rows only"
         )
-        .spread(results => {
+        .spread((results) => {
           let bestHistory = results.length > 0 ? results[0].history : [];
           featureIds = featureIds.concat(bestHistory);
           finished++;
@@ -743,13 +739,13 @@ const compile = function(req, res, callback) {
               "id, file_id, level, intent, properties, ST_AsGeoJSON(geom)" +
               " " +
               "FROM user_features" +
-              (req.query.test === "true" ? "_tests" : "") +
+              (isTest ? "_tests" : "") +
               " " +
               "WHERE id IN (" +
               featureIds +
               ")"
           )
-          .spread(features => {
+          .spread((features) => {
             processFeatures(features);
           });
       }
@@ -762,11 +758,11 @@ const compile = function(req, res, callback) {
             '\'intersects\' as "association", a.id, a.intent, b.id AS "associated_id", b.intent AS "associated_intent", b.properties AS "associated_properties"' +
             " " +
             "FROM user_features" +
-            (req.query.test === "true" ? "_tests" : "") +
+            (isTest ? "_tests" : "") +
             " a," +
             " " +
             "user_features" +
-            (req.query.test === "true" ? "_tests" : "") +
+            (isTest ? "_tests" : "") +
             " b" +
             " " +
             "WHERE a.id IN (" +
@@ -792,11 +788,11 @@ const compile = function(req, res, callback) {
             '\'contains\' as "association", a.id, a.intent, b.id AS "associated_id", b.intent AS "associated_intent", b.properties AS "associated_properties"' +
             " " +
             "FROM user_features" +
-            (req.query.test === "true" ? "_tests" : "") +
+            (isTest ? "_tests" : "") +
             " a," +
             " " +
             "user_features" +
-            (req.query.test === "true" ? "_tests" : "") +
+            (isTest ? "_tests" : "") +
             " b" +
             " " +
             "WHERE a.id IN (" +
@@ -811,7 +807,7 @@ const compile = function(req, res, callback) {
             " " +
             "AND ST_Contains(a.geom, b.geom)"
         )
-        .spread(results => {
+        .spread((results) => {
           let hierarchy = [];
           let intentOrder = ["roi", "campaign", "campsite", "signpost"];
           let flatHierarchy = [];
@@ -831,20 +827,20 @@ const compile = function(req, res, callback) {
                     name: childProps.name,
                     uuid: childProps.uuid,
                     id: results[r].associated_id,
-                    intent: results[r].associated_intent
+                    intent: results[r].associated_intent,
                   });
                 } else if (results[r].association === "contains") {
                   contains.push({
                     name: childProps.name,
                     uuid: childProps.uuid,
                     id: results[r].associated_id,
-                    intent: results[r].associated_intent
+                    intent: results[r].associated_intent,
                   });
                   children.push({
                     name: childProps.name,
                     uuid: childProps.uuid,
                     id: results[r].associated_id,
-                    intent: results[r].associated_intent
+                    intent: results[r].associated_intent,
                   });
                 }
               }
@@ -860,8 +856,8 @@ const compile = function(req, res, callback) {
               possibleChildren: {
                 intersects: intersects,
                 contains: contains,
-                directIntersects: []
-              }
+                directIntersects: [],
+              },
             });
           }
           //Now attach parents to flatHierarchy
@@ -883,7 +879,7 @@ const compile = function(req, res, callback) {
                       name: flatHierarchy[j].name,
                       uuid: flatHierarchy[j].uuid,
                       id: flatHierarchy[j].id,
-                      intent: flatHierarchy[j].intent
+                      intent: flatHierarchy[j].intent,
                     });
                   }
                 }
@@ -935,7 +931,7 @@ const compile = function(req, res, callback) {
                       name: flatHierarchy[i].name,
                       uuid: flatHierarchy[i].uuid,
                       id: flatHierarchy[i].id,
-                      intent: flatHierarchy[i].intent
+                      intent: flatHierarchy[i].intent,
                     };
               }
 
@@ -998,8 +994,8 @@ const compile = function(req, res, callback) {
                 uuid: featureProps.uuid,
                 children: {
                   intersects: [],
-                  contains: []
-                }
+                  contains: [],
+                },
               });
               continue;
             }
@@ -1039,7 +1035,7 @@ const compile = function(req, res, callback) {
                   id: f.id,
                   file_id: f.file_id,
                   level: f.level,
-                  intent: f.intent
+                  intent: f.intent,
                 };
                 feature.type = "Feature";
                 feature.properties = properties;
@@ -1121,7 +1117,7 @@ const compile = function(req, res, callback) {
                         id: f.id,
                         file_id: f.file_id,
                         level: f.level,
-                        intent: f.intent
+                        intent: f.intent,
                       };
                       feature.type = "Feature";
                       feature.properties = properties;
@@ -1166,9 +1162,9 @@ const compile = function(req, res, callback) {
                   severity: "error",
                   antecedent: {
                     id: node.id,
-                    intent: node.intent
+                    intent: node.intent,
                   },
-                  message: "{antecedent} is missing a uuid."
+                  message: "{antecedent} is missing a uuid.",
                 });
               } else {
                 let uuidKeys = Object.keys(uuidsFound);
@@ -1178,18 +1174,18 @@ const compile = function(req, res, callback) {
                     severity: "error",
                     antecedent: {
                       id: node.id,
-                      intent: node.intent
+                      intent: node.intent,
                     },
                     message: "{antecedent} has the same uuid as {consequent}",
                     consequent: {
                       id: uuidsFound[uuidKeys[uuidI]].id,
-                      intent: uuidsFound[uuidKeys[uuidI]].intent
-                    }
+                      intent: uuidsFound[uuidKeys[uuidI]].intent,
+                    },
                   });
                 } else {
                   uuidsFound[props.uuid] = {
                     id: node.id,
-                    intent: node.intent
+                    intent: node.intent,
                   };
                 }
               }
@@ -1200,9 +1196,9 @@ const compile = function(req, res, callback) {
                   severity: "error",
                   antecedent: {
                     id: node.id,
-                    intent: node.intent
+                    intent: node.intent,
                   },
-                  message: "{antecedent} is missing a name."
+                  message: "{antecedent} is missing a name.",
                 });
               } else {
                 let nameKeys = Object.keys(namesFound);
@@ -1212,18 +1208,18 @@ const compile = function(req, res, callback) {
                     severity: "error",
                     antecedent: {
                       id: node.id,
-                      intent: node.intent
+                      intent: node.intent,
                     },
                     message: "{antecedent} has the same name as {consequent}",
                     consequent: {
                       id: namesFound[nameKeys[nameI]].id,
-                      intent: namesFound[nameKeys[nameI]].intent
-                    }
+                      intent: namesFound[nameKeys[nameI]].intent,
+                    },
                   });
                 } else {
                   namesFound[props.name] = {
                     id: node.id,
-                    intent: node.intent
+                    intent: node.intent,
                   };
                 }
               }
@@ -1237,21 +1233,21 @@ const compile = function(req, res, callback) {
                     severity: "error",
                     antecedent: {
                       id: node.id,
-                      intent: node.intent
+                      intent: node.intent,
                     },
                     message:
                       "{antecedent} does not have a parent of type: " +
                       parentIntent +
-                      "."
+                      ".",
                   });
                 } else if (Object.keys(node.parent).length === 0) {
                   issues.push({
                     severity: "error",
                     antecedent: {
                       id: node.id,
-                      intent: node.intent
+                      intent: node.intent,
                     },
-                    message: "{antecedent} does not have a parent."
+                    message: "{antecedent} does not have a parent.",
                   });
                 }
               }
@@ -1264,28 +1260,28 @@ const compile = function(req, res, callback) {
                     severity: "error",
                     antecedent: {
                       id: node.id,
-                      intent: node.intent
+                      intent: node.intent,
                     },
                     message:
                       "{antecedent} does not fully contain possible child {consequent}",
                     consequent: {
                       id: ints[j].id,
-                      intent: ints[j].intent
-                    }
+                      intent: ints[j].intent,
+                    },
                   });
                 else
                   issues.push({
                     severity: "error",
                     antecedent: {
                       id: node.id,
-                      intent: node.intent
+                      intent: node.intent,
                     },
                     message:
                       "{antecedent} intersects {consequent} of same intent.",
                     consequent: {
                       id: ints[j].id,
-                      intent: ints[j].intent
-                    }
+                      intent: ints[j].intent,
+                    },
                   });
               }
             }
@@ -1306,11 +1302,11 @@ const compile = function(req, res, callback) {
                   "FETCH first 1 rows only",
                 {
                   replacements: {
-                    time: Math.floor(Date.now())
-                  }
+                    time: Math.floor(Date.now()),
+                  },
                 }
               )
-              .spread(published_family_tree => {
+              .spread((published_family_tree) => {
                 if (
                   !published_family_tree ||
                   !published_family_tree[0] ||
@@ -1347,7 +1343,7 @@ const compile = function(req, res, callback) {
                       added.push({
                         uuid: newFeatureUUIDs[i],
                         name: newFeatures[newFeatureUUIDs[i]].name,
-                        id: newFeatures[newFeatureUUIDs[i]].id
+                        id: newFeatures[newFeatureUUIDs[i]].id,
                       });
                   }
                   //Removed
@@ -1356,7 +1352,7 @@ const compile = function(req, res, callback) {
                       removed.push({
                         uuid: oldFeatureUUIDs[i],
                         name: oldFeatures[oldFeatureUUIDs[i]].name,
-                        id: oldFeatures[oldFeatureUUIDs[i]].id
+                        id: oldFeatures[oldFeatureUUIDs[i]].id,
                       });
                   }
                   //Changed
@@ -1370,7 +1366,7 @@ const compile = function(req, res, callback) {
                           uuid: newFeatureUUIDs[i],
                           old_name: oldFeatures[newFeatureUUIDs[i]].name,
                           new_name: newFeatures[newFeatureUUIDs[i]].name,
-                          id: newFeatures[newFeatureUUIDs[i]].id
+                          id: newFeatures[newFeatureUUIDs[i]].id,
                         });
                       }
                     }
@@ -1381,11 +1377,11 @@ const compile = function(req, res, callback) {
               });
           }
 
-          findChanges(function(changes) {
+          findChanges(function (changes) {
             let body = {
               hierarchy: hierarchy,
               issues: issues,
-              changes: changes
+              changes: changes,
             };
             if (req.query.verbose) {
               body = {
@@ -1393,7 +1389,7 @@ const compile = function(req, res, callback) {
                 flatHierarchy: flatHierarchy,
                 issues: issues,
                 changes: changes,
-                saviors: saviors
+                saviors: saviors,
               };
             }
             callback(body);
@@ -1402,15 +1398,15 @@ const compile = function(req, res, callback) {
     }
   });
 };
-router.get("/compile", function(req, res, next) {
-  compile(req, res, body => {
+router.get("/compile", function (req, res, next) {
+  compile(req, res, (body) => {
     if (body == null) {
       logger("error", "Failed compile file.", req.originalUrl, req);
     }
     res.send({
       status: body != null ? "success" : "failed",
       message: "File compiled.",
-      body: body
+      body: body,
     });
   });
 });
@@ -1420,7 +1416,7 @@ router.get("/compile", function(req, res, next) {
  * {
  * }
  */
-router.post("/publish", function(req, res, next) {
+router.post("/publish", function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
   let Histories = req.body.test === "true" ? FilehistoriesTEST : Filehistories;
 
@@ -1432,7 +1428,7 @@ router.post("/publish", function(req, res, next) {
     res.send({
       status: "failure",
       message: "Unauthorized to publish.",
-      body: {}
+      body: {},
     });
     return null;
   }
@@ -1447,12 +1443,12 @@ router.post("/publish", function(req, res, next) {
         file_owner: req.user,
         [Sequelize.Op.and]: {
           file_owner: "group",
-          file_owner_group: { [Sequelize.Op.overlap]: groups }
-        }
-      }
-    }
-  }).then(files => {
-    publishToPublished(function(pass, message) {
+          file_owner_group: { [Sequelize.Op.overlap]: groups },
+        },
+      },
+    },
+  }).then((files) => {
+    publishToPublished(function (pass, message) {
       if (pass) {
         for (let f = 0; f < files.length; f++) {
           publishToHistory(
@@ -1464,16 +1460,16 @@ router.post("/publish", function(req, res, next) {
                 res.send({
                   status: "success",
                   message: "Published.",
-                  body: {}
+                  body: {},
                 });
               }
             },
-            err => {
+            (err) => {
               logger("error", "Failed to publish.", req.originalUrl, req, err);
               res.send({
                 status: "failure",
                 message: "Failed to publish.",
-                body: {}
+                body: {},
               });
             }
           );
@@ -1483,7 +1479,7 @@ router.post("/publish", function(req, res, next) {
         res.send({
           status: "failure",
           message: "Failed to publish." + message,
-          body: {}
+          body: {},
         });
       }
     });
@@ -1498,10 +1494,10 @@ router.post("/publish", function(req, res, next) {
   ) {
     Table.findAll({
       where: {
-        file_id: file_id
-      }
+        file_id: file_id,
+      },
     })
-      .then(histories => {
+      .then((histories) => {
         let maxHistoryId = -Infinity;
         if (histories && histories.length > 0) {
           for (let i = 0; i < histories.length; i++) {
@@ -1509,25 +1505,25 @@ router.post("/publish", function(req, res, next) {
           }
           return {
             historyIndex: maxHistoryId + 1,
-            history: histories[maxHistoryId].history
+            history: histories[maxHistoryId].history,
           };
         } else return { historyIndex: 0, history: [] };
       })
-      .then(historyObj => {
+      .then((historyObj) => {
         let newHistoryEntry = {
           file_id: file_id,
           history_id: historyObj.historyIndex,
           time: time,
           action_index: 4,
-          history: historyObj.history
+          history: historyObj.history,
         };
         // Insert new entry into the history table
         Table.create(newHistoryEntry)
-          .then(created => {
+          .then((created) => {
             successCallback(newHistoryEntry);
             return null;
           })
-          .catch(err => {
+          .catch((err) => {
             failureCallback(newHistoryEntry);
           });
         return null;
@@ -1537,7 +1533,7 @@ router.post("/publish", function(req, res, next) {
   function publishToPublished(cb) {
     let Publisheds = req.body.test === "true" ? PublishedTEST : Published;
     req.query.verbose = true;
-    compile(req, res, body => {
+    compile(req, res, (body) => {
       if (body.issues.length > 0) {
         cb(false, " File has unresolved issues.");
       } else if (req.body.test === "true") {
@@ -1547,12 +1543,12 @@ router.post("/publish", function(req, res, next) {
         PublishedStore.create({
           name: "published_family_tree",
           value: JSON.stringify(body),
-          time: time
+          time: time,
         })
           .then(() => {
             Publisheds.destroy({
-              where: {}
-            }).then(del => {
+              where: {},
+            }).then((del) => {
               let fH = body.flatHierarchy;
 
               let rows = [];
@@ -1563,28 +1559,28 @@ router.post("/publish", function(req, res, next) {
                   parent: fH[i].parent.hasOwnProperty("id")
                     ? fH[i].parent.id
                     : null,
-                  children: fH[i].children.map(v => {
+                  children: fH[i].children.map((v) => {
                     return v.id;
                   }),
                   level: fH[i].feature.level,
                   properties: JSON.parse(fH[i].feature.properties),
-                  geom: JSON.parse(fH[i].feature.st_asgeojson)
+                  geom: JSON.parse(fH[i].feature.st_asgeojson),
                 };
                 delete feature.properties._;
                 feature.geom.crs = {
                   type: "name",
-                  properties: { name: "EPSG:4326" }
+                  properties: { name: "EPSG:4326" },
                 };
 
                 rows.push(feature);
               }
 
               Publisheds.bulkCreate(rows, { returning: true })
-                .then(function(response) {
+                .then(function (response) {
                   cb(true);
                   return null;
                 })
-                .catch(function(error) {
+                .catch(function (error) {
                   cb(false);
                   return null;
                 });
@@ -1594,7 +1590,7 @@ router.post("/publish", function(req, res, next) {
 
             return null;
           })
-          .catch(function(err) {
+          .catch(function (err) {
             logger(
               "error",
               "Error adding published tree.",
@@ -1616,20 +1612,20 @@ router.post("/publish", function(req, res, next) {
  * 	id: <int>
  * }
  */
-router.post("/gethistory", function(req, res, next) {
+router.post("/gethistory", function (req, res, next) {
   let Table = req.body.test === "true" ? FilehistoriesTEST : Filehistories;
 
   Table.findAll({
     where: {
-      file_id: req.body.id
-    }
+      file_id: req.body.id,
+    },
   })
-    .then(histories => {
+    .then((histories) => {
       if (!histories) {
         res.send({
           status: "failure",
           message: "Failed to get history.",
-          body: {}
+          body: {},
         });
       } else {
         //Newest first
@@ -1641,18 +1637,18 @@ router.post("/gethistory", function(req, res, next) {
         res.send({
           status: "success",
           message: "Successfully got history.",
-          body: histories
+          body: histories,
         });
       }
 
       return null;
     })
-    .catch(err => {
+    .catch((err) => {
       logger("error", "Failed to get history.", req.originalUrl, req, err);
       res.send({
         status: "failure",
         message: "Failed to get history.",
-        body: {}
+        body: {},
       });
     });
 });

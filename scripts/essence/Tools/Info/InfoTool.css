@@ -13,11 +13,22 @@
     color: var(--color-mmgis);
 }
 
+#infoToolOverlaps {
+    width: 100%;
+    text-align: center;
+    display: block;
+    color: #98ff26;
+    position: absolute;
+    line-height: 30px;
+    font-size: 13px;
+}
+
 #infoToolContents {
     width: 100%;
     flex: 1;
     overflow-y: auto;
     font-size: 12px;
+    border-top: 1px solid var(--color-b);
 }
 
 #infoToolSelections {
@@ -33,11 +44,16 @@
     text-align: center;
     padding: 3px 0px;
     margin: 0px;
+    line-height: 18px;
     width: 100% !important;
 }
 #infoToolSelections li.active {
     background: var(--color-e);
     border-radius: 2px;
+    color: white;
+}
+#infoToolSelections li:hover {
+    color: white;
 }
 
 #infoTool .collapsed > ul {

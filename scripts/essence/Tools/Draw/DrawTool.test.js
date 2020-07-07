@@ -1,10 +1,10 @@
-define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
-    $,
-    F_,
-    TC_,
-    Test_,
-    L_
-) {
+define([
+    'jquery',
+    'Formulae_',
+    'ToolController_',
+    'Test_',
+    'Layers_',
+], function ($, F_, TC_, Test_, L_) {
     var Test = {
         tool: null,
         toolName: 'DrawTool',
@@ -12,12 +12,12 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
         subtests: 0,
         subtestRunning: false,
         timeout: 1000,
-        reset: function() {
+        reset: function () {
             TC_.closeActiveTool()
             mmgisglobal.test = true
             TC_.makeTool(this.toolName)
         },
-        run: function(callback) {
+        run: function (callback) {
             Test.reset()
             Test.tool = TC_.getTool(Test.toolName)
             Test.done = 0
@@ -71,14 +71,14 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Testing tables clear',
                 subtests: 1,
-                test: function(c) {
+                test: function (c) {
                     calls.api(
                         'clear_test',
                         {},
-                        function(d) {
+                        function (d) {
                             c('Tables clear', d.status === 'success')
                         },
-                        function() {
+                        function () {
                             c("Tables don't clear", false)
                         }
                     )
@@ -87,12 +87,12 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Check that we can get available files',
                 subtests: 1,
-                test: function(c) {
+                test: function (c) {
                     Test.tool.getFiles(
-                        function() {
+                        function () {
                             c('Gets files from server', Test.tool.files != null)
                         },
-                        function() {
+                        function () {
                             c('Gets files from server', false)
                         }
                     )
@@ -101,28 +101,28 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Check that we can add files',
                 subtests: 1,
-                test: function(c) {
+                test: function (c) {
                     var body = {
                         file_name: 'Test File',
                         intent: 'all',
                     }
                     Test.tool.makeFile(
                         body,
-                        function() {
+                        function () {
                             Test.tool.getFiles(
-                                function() {
+                                function () {
                                     var pass =
                                         Test.tool.files[5] &&
                                         Test.tool.files[5].file_name ===
                                             'Test File'
                                     c('Can make new files', pass)
                                 },
-                                function() {
+                                function () {
                                     c('Can make new files', false)
                                 }
                             )
                         },
-                        function() {
+                        function () {
                             c('Can make new files', false)
                         }
                     )
@@ -131,7 +131,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Check that we can alter files',
                 subtests: 3,
-                test: function(c) {
+                test: function (c) {
                     var body = {
                         id: 6,
                         file_name: 'Test File Altered',
@@ -140,9 +140,9 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                     }
                     Test.tool.changeFile(
                         body,
-                        function() {
+                        function () {
                             Test.tool.getFiles(
-                                function() {
+                                function () {
                                     var f = Test.tool.files[5]
                                     c(
                                         'Can alter file name',
@@ -158,14 +158,14 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                                         f.public === '1'
                                     )
                                 },
-                                function() {
+                                function () {
                                     c('Can alter file name', false)
                                     c('Can alter file description', false)
                                     c('Can alter file publicity', false)
                                 }
                             )
                         },
-                        function() {
+                        function () {
                             c('Can alter file name', false)
                             c('Can alter file description', false)
                             c('Can alter file publicity', false)
@@ -176,26 +176,26 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Check that we can remove files',
                 subtests: 1,
-                test: function(c) {
+                test: function (c) {
                     var body = {
                         id: 6,
                     }
                     Test.tool.removeFile(
                         body,
-                        function() {
+                        function () {
                             Test.tool.getFiles(
-                                function() {
+                                function () {
                                     c(
                                         'Can remove files',
                                         Test.tool.files.length === 5
                                     )
                                 },
-                                function() {
+                                function () {
                                     c('Can remove files', false)
                                 }
                             )
                         },
-                        function() {
+                        function () {
                             c('Can remove files', false)
                         }
                     )
@@ -204,7 +204,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Check whether tabs work',
                 subtests: 3,
-                test: function(c) {
+                test: function (c) {
                     c(
                         'Begins on Draw tab',
                         $('#drawToolDraw').css('display') != 'none'
@@ -226,7 +226,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Can reach initial drawing state',
                 subtests: 5,
-                test: function(c) {
+                test: function (c) {
                     //Ignore lnglats_to_demtile_elevs in tests
                     Test.tool.vars.demtilesets = null
 
@@ -249,7 +249,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                     )
 
                     $('#drawToolDrawFilesNew').click()
-                    setTimeout(function() {
+                    setTimeout(function () {
                         c(
                             'Makes file for drawing',
                             $('#drawToolDrawFilesList').children().length == 1
@@ -258,7 +258,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                         $(
                             '#drawToolDrawFilesList > li:first-child .drawToolFileSelector'
                         ).click()
-                        setTimeout(function() {
+                        setTimeout(function () {
                             c(
                                 'File can be selected',
                                 $(
@@ -273,7 +273,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Polygon drawing',
                 subtests: 2,
-                test: function(c) {
+                test: function (c) {
                     $('.drawToolDrawingTypePolygon').click()
                     c(
                         'Switches to polygon drawing',
@@ -288,7 +288,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                         { lat: -5, lng: 137 },
                     ]
                     Test_.mapEvent('draw:drawstop')
-                    setTimeout(function() {
+                    setTimeout(function () {
                         c(
                             'Draws and saves a polygon',
                             L_.layersGroup['DrawTool_7'].length == oldLength + 1
@@ -299,7 +299,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Line drawing',
                 subtests: 2,
-                test: function(c) {
+                test: function (c) {
                     $('.drawToolDrawingTypeLine').click()
                     c(
                         'Switches to line drawing',
@@ -317,7 +317,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                         { lat: -5, lng: 138 },
                     ]
                     Test_.mapEvent('draw:drawstop')
-                    setTimeout(function() {
+                    setTimeout(function () {
                         c(
                             'Draws and saves a line',
                             F_.noNullLength(L_.layersGroup['DrawTool_7']) ==
@@ -329,7 +329,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Point drawing',
                 subtests: 2,
-                test: function(c) {
+                test: function (c) {
                     $('.drawToolDrawingTypePoint').click()
                     c(
                         'Switches to point drawing',
@@ -341,7 +341,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                     )
                     Test.tool.drawing.point.shape = { lat: -5, lng: 138 }
                     Test_.mapEvent('draw:drawstop')
-                    setTimeout(function() {
+                    setTimeout(function () {
                         c(
                             'Draws and saves a point',
                             F_.noNullLength(L_.layersGroup['DrawTool_7']) ==
@@ -353,7 +353,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Text drawing',
                 subtests: 2,
-                test: function(c) {
+                test: function (c) {
                     $('.drawToolDrawingTypeText').click()
                     c(
                         'Switches to text drawing',
@@ -370,7 +370,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                     Test_.mapEvent('draw:drawstop')
                     $('#DrawTool_ActiveAnnotation').val('Test Text')
                     $('#DrawTool_ActiveAnnotation_Save').click()
-                    setTimeout(function() {
+                    setTimeout(function () {
                         c(
                             'Draws and saves text',
                             F_.noNullLength(L_.layersGroup['DrawTool_7']) ==
@@ -382,7 +382,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Arrow drawing',
                 subtests: 2,
-                test: function(c) {
+                test: function (c) {
                     $('.drawToolDrawingTypeArrow').click()
                     c(
                         'Switches to arrow drawing',
@@ -398,7 +398,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                     Test.tool.drawing.arrow.stop({
                         latlng: { lat: -4.25, lng: 137.75 },
                     })
-                    setTimeout(function() {
+                    setTimeout(function () {
                         c(
                             'Draws and saves arrows',
                             F_.noNullLength(L_.layersGroup['DrawTool_7']) ==
@@ -410,16 +410,16 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Polygon editing',
                 subtests: 13,
-                test: function(c) {
+                test: function (c) {
                     Test.tool.showContent('shapes')
 
                     $(
-                        '#drawToolShapesFeaturesList > li:nth-child(1) > div'
+                        '#drawToolShapesFeaturesList > li:nth-child(2) > div'
                     ).click()
                     c(
                         'Highlights editing feature',
                         $(
-                            '#drawToolShapesFeaturesList > li:nth-child(1)'
+                            '#drawToolShapesFeaturesList > li:nth-child(2)'
                         ).hasClass('active')
                     )
                     c(
@@ -450,7 +450,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                     $('.drawToolContextMenuSaveChanges').click()
                     $('.drawToolContextMenuHeaderClose').click()
 
-                    setTimeout(function() {
+                    setTimeout(function () {
                         var f = Test.tool.contextMenuLayer.feature
                         var coords = f.geometry.coordinates
                         var p = f.properties
@@ -474,18 +474,18 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                         c('Edits geometry', coords[0][1][0] === 136)
 
                         $(
-                            '#drawToolShapesFeaturesList > li:nth-child(1) > div'
+                            '#drawToolShapesFeaturesList > li:nth-child(2) > div'
                         ).click()
                         c(
                             'Reopens context menu',
                             $('.drawToolContextMenu').length != null &&
                                 $(
-                                    '#drawToolShapesFeaturesList > li:nth-child(1)'
+                                    '#drawToolShapesFeaturesList > li:nth-child(2)'
                                 ).hasClass('active')
                         )
                         $('.drawToolContextMenuDelete').click()
                         $('.drawToolContextMenuDeleteYes').click()
-                        setTimeout(function() {
+                        setTimeout(function () {
                             c(
                                 'Deletes polygon',
                                 L_.layersGroup['DrawTool_7'][0] == null
@@ -497,14 +497,14 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Line editing',
                 subtests: 11,
-                test: function(c) {
+                test: function (c) {
                     $(
-                        '#drawToolShapesFeaturesList > li:nth-child(1) > div'
+                        '#drawToolShapesFeaturesList > li:nth-child(2) > div'
                     ).click()
                     c(
                         'Highlights editing feature',
                         $(
-                            '#drawToolShapesFeaturesList > li:nth-child(1)'
+                            '#drawToolShapesFeaturesList > li:nth-child(2)'
                         ).hasClass('active')
                     )
                     c(
@@ -530,7 +530,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                     $('.drawToolContextMenuSaveChanges').click()
                     $('.drawToolContextMenuHeaderClose').click()
 
-                    setTimeout(function() {
+                    setTimeout(function () {
                         var f = Test.tool.contextMenuLayer.feature
                         var coords = f.geometry.coordinates
                         var p = f.properties
@@ -550,18 +550,18 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                         c('Edits geometry', coords[0][0] === 136)
 
                         $(
-                            '#drawToolShapesFeaturesList > li:nth-child(1) > div'
+                            '#drawToolShapesFeaturesList > li:nth-child(2) > div'
                         ).click()
                         c(
                             'Reopens context menu',
                             $('.drawToolContextMenu').length != null &&
                                 $(
-                                    '#drawToolShapesFeaturesList > li:nth-child(1)'
+                                    '#drawToolShapesFeaturesList > li:nth-child(2)'
                                 ).hasClass('active')
                         )
                         $('.drawToolContextMenuDelete').click()
                         $('.drawToolContextMenuDeleteYes').click()
-                        setTimeout(function() {
+                        setTimeout(function () {
                             c(
                                 'Deletes line',
                                 L_.layersGroup['DrawTool_7'][1] == null
@@ -573,14 +573,14 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Point editing',
                 subtests: 13,
-                test: function(c) {
+                test: function (c) {
                     $(
-                        '#drawToolShapesFeaturesList > li:nth-child(1) > div'
+                        '#drawToolShapesFeaturesList > li:nth-child(2) > div'
                     ).click()
                     c(
                         'Highlights editing feature',
                         $(
-                            '#drawToolShapesFeaturesList > li:nth-child(1)'
+                            '#drawToolShapesFeaturesList > li:nth-child(2)'
                         ).hasClass('active')
                     )
                     c(
@@ -611,7 +611,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                     $('.drawToolContextMenuSaveChanges').click()
                     $('.drawToolContextMenuHeaderClose').click()
 
-                    setTimeout(function() {
+                    setTimeout(function () {
                         var f = Test.tool.contextMenuLayer.feature
                         var coords = f.geometry.coordinates
                         var p = f.properties
@@ -639,18 +639,18 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                         )
 
                         $(
-                            '#drawToolShapesFeaturesList > li:nth-child(1) > div'
+                            '#drawToolShapesFeaturesList > li:nth-child(2) > div'
                         ).click()
                         c(
                             'Reopens context menu',
                             $('.drawToolContextMenu').length != null &&
                                 $(
-                                    '#drawToolShapesFeaturesList > li:nth-child(1)'
+                                    '#drawToolShapesFeaturesList > li:nth-child(2)'
                                 ).hasClass('active')
                         )
                         $('.drawToolContextMenuDelete').click()
                         $('.drawToolContextMenuDeleteYes').click()
-                        setTimeout(function() {
+                        setTimeout(function () {
                             c(
                                 'Deletes point',
                                 L_.layersGroup['DrawTool_7'][2] == null
@@ -662,14 +662,14 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Text editing',
                 subtests: 13,
-                test: function(c) {
+                test: function (c) {
                     $(
-                        '#drawToolShapesFeaturesList > li:nth-child(1) > div'
+                        '#drawToolShapesFeaturesList > li:nth-child(2) > div'
                     ).click()
                     c(
                         'Highlights editing feature',
                         $(
-                            '#drawToolShapesFeaturesList > li:nth-child(1)'
+                            '#drawToolShapesFeaturesList > li:nth-child(2)'
                         ).hasClass('active')
                     )
                     c(
@@ -700,7 +700,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                     $('.drawToolContextMenuSaveChanges').click()
                     $('.drawToolContextMenuHeaderClose').click()
 
-                    setTimeout(function() {
+                    setTimeout(function () {
                         //var coords = Test.tool.contextMenuLayer._latlng
                         var f = Test.tool.contextMenuLayer.feature
                         var coords = f.geometry.coordinates
@@ -731,18 +731,18 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                         )
 
                         $(
-                            '#drawToolShapesFeaturesList > li:nth-child(1) > div'
+                            '#drawToolShapesFeaturesList > li:nth-child(2) > div'
                         ).click()
                         c(
                             'Reopens context menu',
                             $('.drawToolContextMenu').length != null &&
                                 $(
-                                    '#drawToolShapesFeaturesList > li:nth-child(1)'
+                                    '#drawToolShapesFeaturesList > li:nth-child(2)'
                                 ).hasClass('active')
                         )
                         $('.drawToolContextMenuDelete').click()
                         $('.drawToolContextMenuDeleteYes').click()
-                        setTimeout(function() {
+                        setTimeout(function () {
                             c(
                                 'Deletes text',
                                 L_.layersGroup['DrawTool_7'][3] == null
@@ -754,14 +754,14 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Arrow editing',
                 subtests: 12,
-                test: function(c) {
+                test: function (c) {
                     $(
-                        '#drawToolShapesFeaturesList > li:nth-child(1) > div'
+                        '#drawToolShapesFeaturesList > li:nth-child(2) > div'
                     ).click()
                     c(
                         'Highlights editing feature',
                         $(
-                            '#drawToolShapesFeaturesList > li:nth-child(1)'
+                            '#drawToolShapesFeaturesList > li:nth-child(2)'
                         ).hasClass('active')
                     )
                     c(
@@ -789,7 +789,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                     $('.drawToolContextMenuSaveChanges').click()
                     $('.drawToolContextMenuHeaderClose').click()
 
-                    setTimeout(function() {
+                    setTimeout(function () {
                         var f = Test.tool.contextMenuLayer.feature
                         var p = f.properties
                         c('Edits name', p.name === 'Arrow Changed')
@@ -811,18 +811,18 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                         c('Edits length', p.style.length === '10')
 
                         $(
-                            '#drawToolShapesFeaturesList > li:nth-child(1) > div'
+                            '#drawToolShapesFeaturesList > li:nth-child(2) > div'
                         ).click()
                         c(
                             'Reopens context menu',
                             $('.drawToolContextMenu').length != null &&
                                 $(
-                                    '#drawToolShapesFeaturesList > li:nth-child(1)'
+                                    '#drawToolShapesFeaturesList > li:nth-child(2)'
                                 ).hasClass('active')
                         )
                         $('.drawToolContextMenuDelete').click()
                         $('.drawToolContextMenuDeleteYes').click()
-                        setTimeout(function() {
+                        setTimeout(function () {
                             c(
                                 'Deletes arrow',
                                 L_.layersGroup['DrawTool_7'][4] == null
@@ -834,7 +834,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Can make different intent files',
                 subtests: 2,
-                test: function(c) {
+                test: function (c) {
                     Test.tool.showContent('draw')
                     c(
                         'Switches to Draw tab',
@@ -847,16 +847,16 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                     }
                     Test.tool.makeFile(
                         body,
-                        function() {
+                        function () {
                             body = {
                                 file_name: 'Test Trail',
                                 intent: 'trail',
                             }
                             Test.tool.makeFile(
                                 body,
-                                function() {
+                                function () {
                                     Test.tool.getFiles(
-                                        function() {
+                                        function () {
                                             var pass1 =
                                                 Test.tool.files[1] &&
                                                 Test.tool.files[1].file_name ===
@@ -871,17 +871,17 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                                             )
                                             Test.tool.populateFiles()
                                         },
-                                        function() {
+                                        function () {
                                             c('Can make different files', false)
                                         }
                                     )
                                 },
-                                function() {
+                                function () {
                                     c('Can make different files', false)
                                 }
                             )
                         },
-                        function() {
+                        function () {
                             c('Can make different files', false)
                         }
                     )
@@ -890,8 +890,8 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Can edit file information',
                 subtests: 5,
-                test: function(c) {
-                    setTimeout(function() {
+                test: function (c) {
+                    setTimeout(function () {
                         $(
                             '#drawToolDrawFilesList > li:nth-child(2) .drawToolFileEdit'
                         ).click()
@@ -915,7 +915,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                             '#drawToolDrawFilesList > li:nth-child(2) .drawToolFileSave'
                         ).click()
 
-                        setTimeout(function() {
+                        setTimeout(function () {
                             c(
                                 'File name updates',
                                 $(
@@ -947,14 +947,14 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Can filter files',
                 subtests: 3,
-                test: function(c) {
+                test: function (c) {
                     var count = 0
 
                     //On
                     $('#drawToolDrawSortDiv > div[type="on"]').click()
-                    setTimeout(function() {
+                    setTimeout(function () {
                         count = 0
-                        $('#drawToolDrawFilesList > li').each(function() {
+                        $('#drawToolDrawFilesList > li').each(function () {
                             if ($(this).css('height') != '0px') count++
                         })
                         c('Filters on', count === 1)
@@ -962,9 +962,9 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                         //Public
                         $('#drawToolDrawSortDiv > div[type="on"]').click()
                         $('#drawToolDrawSortDiv > div[type="public"]').click()
-                        setTimeout(function() {
+                        setTimeout(function () {
                             count = 0
-                            $('#drawToolDrawFilesList > li').each(function() {
+                            $('#drawToolDrawFilesList > li').each(function () {
                                 if ($(this).css('height') != '0px') count++
                             })
                             c('Filters public', count === 2)
@@ -973,13 +973,11 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                             $(
                                 '#drawToolDrawSortDiv > div[type="public"]'
                             ).click()
-                            $('#drawToolDrawFilter')
-                                .val('ra')
-                                .trigger('input')
-                            setTimeout(function() {
+                            $('#drawToolDrawFilter').val('ra').trigger('input')
+                            setTimeout(function () {
                                 count = 0
                                 $('#drawToolDrawFilesList > li').each(
-                                    function() {
+                                    function () {
                                         if ($(this).css('height') != '0px')
                                             count++
                                     }
@@ -993,17 +991,17 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Recognize on layers',
                 subtests: 1,
-                test: function(c) {
+                test: function (c) {
                     TC_.closeActiveTool()
                     TC_.makeTool(Test.toolName)
 
-                    setTimeout(function() {
+                    setTimeout(function () {
                         var count = 0
                         $('#drawToolDrawSortDiv > div[type="on"]').click()
 
-                        setTimeout(function() {
+                        setTimeout(function () {
                             count = 0
-                            $('#drawToolDrawFilesList > li').each(function() {
+                            $('#drawToolDrawFilesList > li').each(function () {
                                 if ($(this).css('height') != '0px') count++
                             })
                             c('Recognizes on layers', count === 1)
@@ -1015,16 +1013,16 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Add roi file',
                 subtests: 1,
-                test: function(c) {
+                test: function (c) {
                     var body = {
                         file_name: 'Intent ROI',
                         intent: 'roi',
                     }
                     Test.tool.makeFile(
                         body,
-                        function() {
+                        function () {
                             Test.tool.getFiles(
-                                function() {
+                                function () {
                                     var pass = false
                                     for (var i in Test.tool.files) {
                                         if (
@@ -1035,12 +1033,12 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                                     }
                                     c('Added roi file', pass)
                                 },
-                                function() {
+                                function () {
                                     c('Added roi file', false)
                                 }
                             )
                         },
-                        function() {
+                        function () {
                             c('Added roi file', false)
                         }
                     )
@@ -1049,16 +1047,16 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Add campaign file',
                 subtests: 1,
-                test: function(c) {
+                test: function (c) {
                     var body = {
                         file_name: 'Intent Campaign',
                         intent: 'campaign',
                     }
                     Test.tool.makeFile(
                         body,
-                        function() {
+                        function () {
                             Test.tool.getFiles(
-                                function() {
+                                function () {
                                     var pass = false
                                     for (var i in Test.tool.files) {
                                         if (
@@ -1069,12 +1067,12 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                                     }
                                     c('Added campaign file', pass)
                                 },
-                                function() {
+                                function () {
                                     c('Added campaign file', false)
                                 }
                             )
                         },
-                        function() {
+                        function () {
                             c('Added campaign file', false)
                         }
                     )
@@ -1083,16 +1081,16 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Add campsite file',
                 subtests: 1,
-                test: function(c) {
+                test: function (c) {
                     var body = {
                         file_name: 'Intent Campsite',
                         intent: 'campsite',
                     }
                     Test.tool.makeFile(
                         body,
-                        function() {
+                        function () {
                             Test.tool.getFiles(
-                                function() {
+                                function () {
                                     var pass = false
                                     for (var i in Test.tool.files) {
                                         if (
@@ -1103,12 +1101,12 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                                     }
                                     c('Added campsite file', pass)
                                 },
-                                function() {
+                                function () {
                                     c('Added campsite file', false)
                                 }
                             )
                         },
-                        function() {
+                        function () {
                             c('Added campsite file', false)
                         }
                     )
@@ -1117,16 +1115,16 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Add trail file',
                 subtests: 1,
-                test: function(c) {
+                test: function (c) {
                     var body = {
                         file_name: 'Intent Trail',
                         intent: 'trail',
                     }
                     Test.tool.makeFile(
                         body,
-                        function() {
+                        function () {
                             Test.tool.getFiles(
-                                function() {
+                                function () {
                                     var pass = false
                                     for (var i in Test.tool.files) {
                                         if (
@@ -1137,12 +1135,12 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                                     }
                                     c('Added trail file', pass)
                                 },
-                                function() {
+                                function () {
                                     c('Added trail file', false)
                                 }
                             )
                         },
-                        function() {
+                        function () {
                             c('Added trail file', false)
                         }
                     )
@@ -1151,16 +1149,16 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Add signpost file',
                 subtests: 1,
-                test: function(c) {
+                test: function (c) {
                     var body = {
                         file_name: 'Intent Signpost',
                         intent: 'signpost',
                     }
                     Test.tool.makeFile(
                         body,
-                        function() {
+                        function () {
                             Test.tool.getFiles(
-                                function() {
+                                function () {
                                     var pass = false
                                     for (var i in Test.tool.files) {
                                         if (
@@ -1171,12 +1169,12 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                                     }
                                     c('Added signpost file', pass)
                                 },
-                                function() {
+                                function () {
                                     c('Added signpost file', false)
                                 }
                             )
                         },
-                        function() {
+                        function () {
                             c('Added signpost file', false)
                         }
                     )
@@ -1185,16 +1183,16 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Add map file',
                 subtests: 1,
-                test: function(c) {
+                test: function (c) {
                     var body = {
                         file_name: 'Intent Map',
                         intent: 'all',
                     }
                     Test.tool.makeFile(
                         body,
-                        function() {
+                        function () {
                             Test.tool.getFiles(
-                                function() {
+                                function () {
                                     var pass = false
                                     for (var i in Test.tool.files) {
                                         if (
@@ -1205,12 +1203,12 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                                     }
                                     c('Added map', pass)
                                 },
-                                function() {
+                                function () {
                                     c('Added map file', false)
                                 }
                             )
                         },
-                        function() {
+                        function () {
                             c('Added map file', false)
                         }
                     )
@@ -1219,10 +1217,10 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Check roi shape restrictions',
                 subtests: 4,
-                test: function(c) {
+                test: function (c) {
                     Test.tool.populateFiles()
 
-                    setTimeout(function() {
+                    setTimeout(function () {
                         $(
                             '.drawToolDrawFilesListElem[file_name="Intent ROI"] .drawToolFileName'
                         ).click()
@@ -1254,7 +1252,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Check campaign shape restrictions',
                 subtests: 4,
-                test: function(c) {
+                test: function (c) {
                     $(
                         '.drawToolDrawFilesListElem[file_name="Intent Campaign"] .drawToolFileName'
                     ).click()
@@ -1285,7 +1283,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Check campsite shape restrictions',
                 subtests: 4,
-                test: function(c) {
+                test: function (c) {
                     $(
                         '.drawToolDrawFilesListElem[file_name="Intent Campsite"] .drawToolFileName'
                     ).click()
@@ -1316,7 +1314,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Check trail shape restrictions',
                 subtests: 4,
-                test: function(c) {
+                test: function (c) {
                     $(
                         '.drawToolDrawFilesListElem[file_name="Intent Trail"] .drawToolFileName'
                     ).click()
@@ -1347,7 +1345,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Check signpost shape restrictions',
                 subtests: 4,
-                test: function(c) {
+                test: function (c) {
                     $(
                         '.drawToolDrawFilesListElem[file_name="Intent Signpost"] .drawToolFileName'
                     ).click()
@@ -1378,7 +1376,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Check no map shape restrictions',
                 subtests: 4,
-                test: function(c) {
+                test: function (c) {
                     $(
                         '.drawToolDrawFilesListElem[file_name="Intent Map"] .drawToolFileName'
                     ).click()
@@ -1409,7 +1407,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Can draw polygons over, under and through',
                 subtests: 6,
-                test: function(c) {
+                test: function (c) {
                     var fileId = $(
                         '.drawToolDrawFilesListElem[file_name="Intent Map"]'
                     ).attr('file_id')
@@ -1435,7 +1433,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                         { lat: -5, lng: 138 },
                     ]
                     Test_.mapEvent('draw:drawstop')
-                    setTimeout(function() {
+                    setTimeout(function () {
                         c(
                             'Draws polygon off',
                             L_.layersGroup[layerId].length == oldLength + 1
@@ -1462,7 +1460,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                             { lat: -4.75, lng: 137.75 },
                         ]
                         Test_.mapEvent('draw:drawstop')
-                        setTimeout(function() {
+                        setTimeout(function () {
                             c(
                                 'Draws polygon over',
                                 L_.layersGroup[layerId].filter(Boolean)
@@ -1491,7 +1489,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                                 { lat: -6, lng: 139 },
                             ]
                             Test_.mapEvent('draw:drawstop')
-                            setTimeout(function() {
+                            setTimeout(function () {
                                 c(
                                     'Draws polygon under',
                                     L_.layersGroup[layerId].filter(Boolean)
@@ -1506,7 +1504,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Prepare state for group testing',
                 subtests: 3,
-                test: function(c) {
+                test: function (c) {
                     var fileId = $(
                         '.drawToolDrawFilesListElem[file_name="Intent Map"]'
                     ).attr('file_id')
@@ -1527,7 +1525,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                         { lat: -4.5, lng: 137.5 },
                     ]
                     Test_.mapEvent('draw:drawstop')
-                    setTimeout(function() {
+                    setTimeout(function () {
                         c(
                             'Draw and save a line',
                             L_.layersGroup[layerId].filter(Boolean).length ==
@@ -1535,7 +1533,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                         )
 
                         Test.tool.refreshFile(15, null, true)
-                        setTimeout(function() {
+                        setTimeout(function () {
                             Test.tool.showContent('shapes')
                             c(
                                 'Switch to Shapes tab',
@@ -1548,14 +1546,14 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Check group selecting',
                 subtests: 11,
-                test: function(c) {
+                test: function (c) {
                     $(
-                        '#drawToolShapesFeaturesList > li:nth-child(1) > div'
+                        '#drawToolShapesFeaturesList > li:nth-child(3) > div'
                     ).click()
                     c(
                         'Highlights editing feature',
                         $(
-                            '#drawToolShapesFeaturesList > li:nth-child(1)'
+                            '#drawToolShapesFeaturesList > li:nth-child(3)'
                         ).hasClass('active')
                     )
                     c(
@@ -1570,18 +1568,18 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
 
                     mmgisglobal.shiftDown = true
                     $(
-                        '#drawToolShapesFeaturesList > li:nth-child(3) > div'
+                        '#drawToolShapesFeaturesList > li:nth-child(5) > div'
                     ).click()
                     c(
                         'Select range of features with shift',
                         $(
-                            '#drawToolShapesFeaturesList > li:nth-child(1)'
+                            '#drawToolShapesFeaturesList > li:nth-child(3)'
                         ).hasClass('active') &&
                             $(
-                                '#drawToolShapesFeaturesList > li:nth-child(2)'
+                                '#drawToolShapesFeaturesList > li:nth-child(4)'
                             ).hasClass('active') &&
                             $(
-                                '#drawToolShapesFeaturesList > li:nth-child(3)'
+                                '#drawToolShapesFeaturesList > li:nth-child(5)'
                             ).hasClass('active')
                     )
 
@@ -1593,22 +1591,22 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                     mmgisglobal.shiftDown = false
 
                     $(
-                        '#drawToolShapesFeaturesList > li:nth-child(1) > div'
+                        '#drawToolShapesFeaturesList > li:nth-child(3) > div'
                     ).click()
                     mmgisglobal.ctrlDown = true
                     $(
-                        '#drawToolShapesFeaturesList > li:nth-child(3) > div'
+                        '#drawToolShapesFeaturesList > li:nth-child(5) > div'
                     ).click()
                     c(
                         'Add to group of features with ctrl',
                         $(
-                            '#drawToolShapesFeaturesList > li:nth-child(1)'
+                            '#drawToolShapesFeaturesList > li:nth-child(3)'
                         ).hasClass('active') &&
                             !$(
-                                '#drawToolShapesFeaturesList > li:nth-child(2)'
+                                '#drawToolShapesFeaturesList > li:nth-child(4)'
                             ).hasClass('active') &&
                             $(
-                                '#drawToolShapesFeaturesList > li:nth-child(3)'
+                                '#drawToolShapesFeaturesList > li:nth-child(5)'
                             ).hasClass('active')
                     )
                     c(
@@ -1619,25 +1617,25 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                     mmgisglobal.ctrlDown = false
 
                     $(
-                        '#drawToolShapesFeaturesList > li:nth-child(1) > div'
+                        '#drawToolShapesFeaturesList > li:nth-child(3) > div'
                     ).click()
                     mmgisglobal.shiftDown = true
                     $(
-                        '#drawToolShapesFeaturesList > li:nth-child(4) > div'
+                        '#drawToolShapesFeaturesList > li:nth-child(6) > div'
                     ).click()
                     c(
                         'Select range of features with shift leaves out mismatched intents',
                         $(
-                            '#drawToolShapesFeaturesList > li:nth-child(1)'
+                            '#drawToolShapesFeaturesList > li:nth-child(3)'
                         ).hasClass('active') &&
                             $(
-                                '#drawToolShapesFeaturesList > li:nth-child(2)'
+                                '#drawToolShapesFeaturesList > li:nth-child(4)'
                             ).hasClass('active') &&
                             $(
-                                '#drawToolShapesFeaturesList > li:nth-child(3)'
+                                '#drawToolShapesFeaturesList > li:nth-child(5)'
                             ).hasClass('active') &&
                             !$(
-                                '#drawToolShapesFeaturesList > li:nth-child(4)'
+                                '#drawToolShapesFeaturesList > li:nth-child(6)'
                             ).hasClass('active')
                     )
                     c(
@@ -1648,19 +1646,19 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                     mmgisglobal.shiftDown = false
 
                     $(
-                        '#drawToolShapesFeaturesList > li:nth-child(1) > div'
+                        '#drawToolShapesFeaturesList > li:nth-child(3) > div'
                     ).click()
                     mmgisglobal.ctrlDown = true
                     $(
-                        '#drawToolShapesFeaturesList > li:nth-child(4) > div'
+                        '#drawToolShapesFeaturesList > li:nth-child(6) > div'
                     ).click()
                     c(
                         'Add to group of features with ctrl ignores mismatched intents',
                         $(
-                            '#drawToolShapesFeaturesList > li:nth-child(1)'
+                            '#drawToolShapesFeaturesList > li:nth-child(3)'
                         ).hasClass('active') &&
                             !$(
-                                '#drawToolShapesFeaturesList > li:nth-child(4)'
+                                '#drawToolShapesFeaturesList > li:nth-child(6)'
                             ).hasClass('active')
                     )
                     c(
@@ -1673,21 +1671,21 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Check group copying shapes',
                 subtests: 2,
-                test: function(c) {
+                test: function (c) {
                     mmgisglobal.shiftDown = true
                     $(
-                        '#drawToolShapesFeaturesList > li:nth-child(3) > div'
+                        '#drawToolShapesFeaturesList > li:nth-child(5) > div'
                     ).click()
                     c(
                         'Selected range of features with shift',
                         $(
-                            '#drawToolShapesFeaturesList > li:nth-child(1)'
+                            '#drawToolShapesFeaturesList > li:nth-child(3)'
                         ).hasClass('active') &&
                             $(
-                                '#drawToolShapesFeaturesList > li:nth-child(2)'
+                                '#drawToolShapesFeaturesList > li:nth-child(4)'
                             ).hasClass('active') &&
                             $(
-                                '#drawToolShapesFeaturesList > li:nth-child(3)'
+                                '#drawToolShapesFeaturesList > li:nth-child(5)'
                             ).hasClass('active')
                     )
                     mmgisglobal.shiftDown = false
@@ -1695,11 +1693,11 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                     Test.tool.copyFileId = 7
                     $('#drawToolShapesCopyGo').click()
 
-                    setTimeout(function() {
+                    setTimeout(function () {
                         c(
                             'Copies shapes to other files',
                             $('#drawToolShapesFeaturesList').children()
-                                .length === 7
+                                .length === 9
                         )
                     }, Test.timeout)
                 },
@@ -1707,9 +1705,9 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Merging Polygons',
                 subtests: 3,
-                test: function(c) {
+                test: function (c) {
                     Test.tool.showContent('draw')
-                    setTimeout(function() {
+                    setTimeout(function () {
                         $(
                             '#drawToolDrawFilesList > li:last-child .drawToolFileSelector'
                         ).click()
@@ -1725,7 +1723,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                             { lat: -7, lng: 140 },
                         ]
                         Test_.mapEvent('draw:drawstop')
-                        setTimeout(function() {
+                        setTimeout(function () {
                             c(
                                 'Draws a new polygon for merging',
                                 L_.layersGroup[layerId].filter(Boolean)
@@ -1733,13 +1731,13 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                                     oldLength + 1
                             )
                             Test.tool.showContent('draw')
-                            setTimeout(function() {
+                            setTimeout(function () {
                                 $(
-                                    '#drawToolShapesFeaturesList > li:nth-child(1) > div'
+                                    '#drawToolShapesFeaturesList > li:nth-child(2) > div'
                                 ).click()
                                 mmgisglobal.ctrlDown = true
                                 $(
-                                    '#drawToolShapesFeaturesList > li:nth-child(3) > div'
+                                    '#drawToolShapesFeaturesList > li:nth-child(4) > div'
                                 ).click()
 
                                 c(
@@ -1753,7 +1751,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                                     '.drawToolContextMenuTabSOMerge > ul > li:last-child > div:last-child'
                                 ).addClass('on')
                                 $('.drawToolContextMenuTabSOMergeMerge').click()
-                                setTimeout(function() {
+                                setTimeout(function () {
                                     c(
                                         'Merged to one polygon',
                                         $(
@@ -1769,20 +1767,24 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Prepare state for Lead testing',
                 subtests: 1,
-                test: function(c) {
-                    $('.drawToolFileCheckbox.on').each(function() {
+                test: function (c) {
+                    $(
+                        '#drawToolDrawFilesListMaster .drawToolDrawFilesListElem[file_id="1"] .drawToolFileSelector'
+                    ).click()
+                    $('.drawToolFileCheckbox.on').each(function () {
                         $(this).click()
                     })
+                    //Remember: you can't turn off the file you're drawing in so ROI will stay on
                     c(
                         'Turns all files off',
-                        $('.drawToolFileCheckbox.on').length === 0
+                        $('.drawToolFileCheckbox.on').length === 1
                     )
                 },
             },
             {
                 name: 'Lead can draw ROIs',
                 subtests: 2,
-                test: function(c) {
+                test: function (c) {
                     $(
                         '#drawToolDrawFilesListMaster .drawToolDrawFilesListElem[file_id="1"] .drawToolFileSelector'
                     ).click()
@@ -1803,7 +1805,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                         { lat: -5, lng: 138 },
                     ]
                     Test_.mapEvent('draw:drawstop')
-                    setTimeout(function() {
+                    setTimeout(function () {
                         c(
                             'Draws and saves a Lead ROI',
                             L_.layersGroup['DrawTool_1'].filter(Boolean)
@@ -1816,7 +1818,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Lead can draw Campaigns',
                 subtests: 3,
-                test: function(c) {
+                test: function (c) {
                     $(
                         '#drawToolDrawFilesListMaster .drawToolDrawFilesListElem[file_id="2"] .drawToolFileSelector'
                     ).click()
@@ -1835,7 +1837,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                         { lat: -4.5, lng: 137.5 },
                     ]
                     Test_.mapEvent('draw:drawstop')
-                    setTimeout(function() {
+                    setTimeout(function () {
                         c(
                             'Draws and saves a Lead Campaign',
                             L_.layersGroup['DrawTool_2'].filter(Boolean)
@@ -1852,7 +1854,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                             { lat: -4.5, lng: 136.5 },
                         ]
                         Test_.mapEvent('draw:drawstop')
-                        setTimeout(function() {
+                        setTimeout(function () {
                             c(
                                 'Draws and saves another Lead Campaign',
                                 L_.layersGroup['DrawTool_2'].filter(Boolean)
@@ -1866,7 +1868,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Lead can draw Campsites',
                 subtests: 2,
-                test: function(c) {
+                test: function (c) {
                     $(
                         '#drawToolDrawFilesListMaster .drawToolDrawFilesListElem[file_id="3"] .drawToolFileSelector'
                     ).click()
@@ -1885,7 +1887,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                         { lat: -4.6, lng: 137.6 },
                     ]
                     Test_.mapEvent('draw:drawstop')
-                    setTimeout(function() {
+                    setTimeout(function () {
                         c(
                             'Draws and saves a Lead Campsite',
                             L_.layersGroup['DrawTool_3'].filter(Boolean)
@@ -1898,7 +1900,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Lead can draw Trails',
                 subtests: 2,
-                test: function(c) {
+                test: function (c) {
                     $(
                         '#drawToolDrawFilesListMaster .drawToolDrawFilesListElem[file_id="4"] .drawToolFileSelector'
                     ).click()
@@ -1915,7 +1917,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                         { lat: -4.7, lng: 138.2 },
                     ]
                     Test_.mapEvent('draw:drawstop')
-                    setTimeout(function() {
+                    setTimeout(function () {
                         c(
                             'Draws and saves a Lead Trail',
                             L_.layersGroup['DrawTool_4'].filter(Boolean)
@@ -1928,7 +1930,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Lead can draw Signposts',
                 subtests: 3,
-                test: function(c) {
+                test: function (c) {
                     $(
                         '#drawToolDrawFilesListMaster .drawToolDrawFilesListElem[file_id="5"] .drawToolFileSelector'
                     ).click()
@@ -1940,7 +1942,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                         .length
                     Test.tool.drawing.point.shape = { lat: -4.45, lng: 137.45 }
                     Test_.mapEvent('draw:drawstop')
-                    setTimeout(function() {
+                    setTimeout(function () {
                         c(
                             'Draws and saves a Lead Signpost',
                             L_.layersGroup['DrawTool_5'].filter(Boolean)
@@ -1953,7 +1955,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                             lng: 136.45,
                         }
                         Test_.mapEvent('draw:drawstop')
-                        setTimeout(function() {
+                        setTimeout(function () {
                             c(
                                 'Draws and saves another Lead Signpost',
                                 L_.layersGroup['DrawTool_5'].filter(Boolean)
@@ -1967,10 +1969,10 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Lead Reviews and finds errors',
                 subtests: 1,
-                test: function(c) {
+                test: function (c) {
                     $('.drawToolMasterReview').click()
 
-                    setTimeout(function() {
+                    setTimeout(function () {
                         c(
                             'Finds seven errors',
                             $('#drawToolReviewContent li > div.error')
@@ -1982,14 +1984,14 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Lead Review fixes errors (part 1)',
                 subtests: 3,
-                test: function(c) {
+                test: function (c) {
                     $(
-                        '#drawToolShapesFeaturesList > li:nth-child(2) > div'
+                        '#drawToolShapesFeaturesList > li:nth-child(4) > div'
                     ).click()
                     c(
                         'Highlights editing feature',
                         $(
-                            '#drawToolShapesFeaturesList > li:nth-child(2)'
+                            '#drawToolShapesFeaturesList > li:nth-child(4)'
                         ).hasClass('active')
                     )
                     c(
@@ -2005,7 +2007,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                     $('.drawToolContextMenuSaveChanges').click()
                     $('.drawToolContextMenuHeaderClose').click()
 
-                    setTimeout(function() {
+                    setTimeout(function () {
                         c(
                             'Finds five errors',
                             $('#drawToolReviewContent li > div.error')
@@ -2017,14 +2019,14 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Lead Review fixes errors (part 2)',
                 subtests: 3,
-                test: function(c) {
+                test: function (c) {
                     $(
-                        '#drawToolShapesFeaturesList > li:nth-child(1) > div'
+                        '#drawToolShapesFeaturesList > li:nth-child(2) > div'
                     ).click()
                     c(
                         'Highlights editing feature',
                         $(
-                            '#drawToolShapesFeaturesList > li:nth-child(1)'
+                            '#drawToolShapesFeaturesList > li:nth-child(2)'
                         ).hasClass('active')
                     )
                     c(
@@ -2037,7 +2039,7 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                     $('.drawToolContextMenuSaveChanges').click()
                     $('.drawToolContextMenuHeaderClose').click()
 
-                    setTimeout(function() {
+                    setTimeout(function () {
                         c(
                             'Finds four errors',
                             $('#drawToolReviewContent li > div.error')
@@ -2049,9 +2051,9 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Lead Review fixes errors (part 3)',
                 subtests: 1,
-                test: function(c) {
+                test: function (c) {
                     $(
-                        '#drawToolShapesFeaturesList > li:nth-child(1) > div'
+                        '#drawToolShapesFeaturesList > li:nth-child(2) > div'
                     ).click()
 
                     $('#drawToolContextMenuPropertiesName').val('Polygon 1')
@@ -2059,9 +2061,9 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                     $('.drawToolContextMenuSaveChanges').click()
                     $('.drawToolContextMenuHeaderClose').click()
 
-                    setTimeout(function() {
+                    setTimeout(function () {
                         $(
-                            '#drawToolShapesFeaturesList > li:nth-child(2) > div'
+                            '#drawToolShapesFeaturesList > li:nth-child(4) > div'
                         ).click()
 
                         $('#drawToolContextMenuPropertiesName').val('Polygon 2')
@@ -2069,9 +2071,9 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                         $('.drawToolContextMenuSaveChanges').click()
                         $('.drawToolContextMenuHeaderClose').click()
 
-                        setTimeout(function() {
+                        setTimeout(function () {
                             $(
-                                '#drawToolShapesFeaturesList > li:nth-child(3) > div'
+                                '#drawToolShapesFeaturesList > li:nth-child(5) > div'
                             ).click()
 
                             $('#drawToolContextMenuPropertiesName').val(
@@ -2081,9 +2083,9 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                             $('.drawToolContextMenuSaveChanges').click()
                             $('.drawToolContextMenuHeaderClose').click()
 
-                            setTimeout(function() {
+                            setTimeout(function () {
                                 $(
-                                    '#drawToolShapesFeaturesList > li:nth-child(6) > div'
+                                    '#drawToolShapesFeaturesList > li:nth-child(11) > div'
                                 ).click()
 
                                 $('#drawToolContextMenuPropertiesName').val(
@@ -2093,14 +2095,14 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                                 $('.drawToolContextMenuSaveChanges').click()
                                 $('.drawToolContextMenuHeaderClose').click()
 
-                                setTimeout(function() {
+                                setTimeout(function () {
                                     c(
                                         'Finds no errors',
                                         $(
                                             '#drawToolReviewContent li > div.error'
                                         ).length === 0
                                     )
-                                }, Test.timeout)
+                                }, Test.timeout * 2)
                             }, Test.timeout)
                         }, Test.timeout)
                     }, Test.timeout)
@@ -2109,12 +2111,12 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
             {
                 name: 'Lead Publishes',
                 subtests: 3,
-                test: function(c) {
+                test: function (c) {
                     $('#drawToolReviewPublish').click()
 
-                    setTimeout(function() {
+                    setTimeout(function () {
                         Test.tool.showContent('draw')
-                        setTimeout(function() {
+                        setTimeout(function () {
                             c(
                                 'Switches to Draw tab',
                                 $('#drawToolDraw').css('display') != 'none'
@@ -2127,12 +2129,12 @@ define(['jquery', 'Formulae_', 'ToolController_', 'Test_', 'Layers_'], function(
                             )
 
                             $('.drawToolDrawPublishedCheckbox').click()
-                            setTimeout(function() {
+                            setTimeout(function () {
                                 Test.tool.showContent('shapes')
                                 c(
                                     'Published',
                                     $('#drawToolShapesFeaturesList > li')
-                                        .length === 7
+                                        .length === 11
                                 )
                                 $('#drawToolReviewTopbarClose').click()
                             }, Test.timeout)
