@@ -5,7 +5,7 @@ define([
     'Layers_',
     'ToolController_',
     'leafletPip',
-], function($, d3, F_, L_, TC_, leafletPip) {
+], function ($, d3, F_, L_, TC_, leafletPip) {
     var Kinds = {
         use(
             kind,
@@ -96,10 +96,11 @@ define([
                         null,
                         'master',
                         false,
+                        true,
                         true
                     )
 
-                    useInfo(true)
+                    useInfo(false)
                     break
                 default:
                     useInfo(false)
@@ -117,7 +118,9 @@ define([
                             typeof L_.layersGroup[layerName].eachLayer !==
                             'function'
                         ) {
-                            L_.layersGroup[layerName].eachLayer = function(cb) {
+                            L_.layersGroup[layerName].eachLayer = function (
+                                cb
+                            ) {
                                 for (var v in this._vectorTiles) {
                                     for (var l in this._vectorTiles[v]
                                         ._layers) {

@@ -141,6 +141,7 @@ define(['three', 'Formulae_', 'Layers_', 'd3'], function (
                                 "<div style='float: left; padding-right: 5px;'>Field of View</div>",
                                 "<input id='Globe_WalkSettingsFovValue' type='number' value='" + 60 + "' style='width: 100%; background-color: transparent; color: white; border: none; text-align: end; border-bottom: 1px solid #777; width: 90px; margin: 0px 2px 0px auto;'>",
                                 "<div style='font-size: 20px; padding-right: 4px;'>&deg;</div>",
+                                "<input id='Globe_WalkSettingsFovValueRaw' type='number' value='" + 60 + "' style='display: none;'>",
                             "</li>",
                             "<li id='Globe_WalkSettingsVerticalFov' style='display: flex; justify-content: space-between; margin-bottom: 3px;'>",
                                 "<div style='float: left; padding-right: 5px;'>Vertical FOV</div>",
@@ -350,6 +351,13 @@ define(['three', 'Formulae_', 'Layers_', 'd3'], function (
             $('#Globe_WalkStand').click(function () {
                 setCamera(true) //, true)
                 Globe_Walk.toggleFOVOverlay(true)
+                let w = getWalkValues()
+                Globe_Walk.updateFOVOverlayBounds(
+                    w.vfieldofview,
+                    w.elevation,
+                    w.fieldofview,
+                    w.azimuth
+                )
                 $(document).on('keydown', keydownWalkSettings)
                 $('#Globe_WalkStand').removeClass('highlightAnim1')
 
@@ -385,6 +393,8 @@ define(['three', 'Formulae_', 'Layers_', 'd3'], function (
                     'display',
                     'none'
                 )
+
+                //keydownWalkSettings({ which: null })
             })
             $('#Globe_WalkWalkHere').click(function () {
                 setCamera(false)
@@ -451,6 +461,9 @@ define(['three', 'Formulae_', 'Layers_', 'd3'], function (
                 return {
                     fieldofview:
                         parseFloat($('#Globe_WalkSettingsFovValue').val()) ||
+                        60,
+                    fieldofviewRaw:
+                        parseFloat($('#Globe_WalkSettingsFovValueRaw').val()) ||
                         60,
                     vfieldofview:
                         parseFloat(
