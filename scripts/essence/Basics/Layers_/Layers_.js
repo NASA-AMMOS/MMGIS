@@ -684,6 +684,9 @@ define(['Formulae_', 'Description', 'Search'], function (
         //Create parsed layers
         L_.layers = layers
 
+        //Because we want overall indecies and not local
+        let layerIndex = 0
+
         //Begin recursively going through those layers
         expandLayers(layers, 0, null)
 
@@ -695,7 +698,9 @@ define(['Formulae_', 'Description', 'Search'], function (
                 //Save the prevName for easy tracing back
                 L_.layersParent[d[i].name] = prevName
                 //Save the i
-                L_.layersIndex[d[i].name] = i
+                L_.layersIndex[d[i].name] = layerIndex
+
+                layerIndex++
 
                 //Check if it's not a header and thus an actual layer with data
                 if (d[i].type != 'header') {

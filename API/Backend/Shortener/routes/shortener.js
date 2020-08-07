@@ -15,7 +15,7 @@ const UrlShortener_s = us.sequelize;
  * @param url
  * @param text *optional*
  */
-router.post("/shorten", function(req, res, next) {
+router.post("/shorten", function (req, res, next) {
   var loop = 0;
   var maxLoop = 20;
 
@@ -23,23 +23,23 @@ router.post("/shorten", function(req, res, next) {
   function shorten() {
     var short = Math.random()
       .toString(36)
-      .substr(2, 4);
+      .substr(2, 5 + loop);
 
     let newUrlShortened = {
       full: encodeURIComponent(req.body.url),
       short: short,
-      creator: req.user
+      creator: req.user,
     };
 
     UrlShortener.create(newUrlShortened)
-      .then(created => {
+      .then((created) => {
         res.send({
           status: "success",
           message: "Successfully shortened URL.",
-          body: { url: short }
+          body: { url: short },
         });
       })
-      .catch(err => {
+      .catch((err) => {
         if (
           loop < maxLoop &&
           err.hasOwnProperty("errors") &&
@@ -54,31 +54,31 @@ router.post("/shorten", function(req, res, next) {
           res.send({
             status: "failure",
             message: "Failed to shorten URL.",
-            body: {}
+            body: {},
           });
         }
       });
   }
 });
 
-router.post("/expand", function(req, res, next) {
+router.post("/expand", function (req, res, next) {
   UrlShortener.findOne({
     where: {
-      short: req.body.short
-    }
-  }).then(url => {
+      short: req.body.short,
+    },
+  }).then((url) => {
     if (!url) {
       logger("error", "Failed to find short URL.", req.originalUrl, req);
       res.send({
         status: "failure",
         message: "Failure to find URL.",
-        body: {}
+        body: {},
       });
     } else {
       res.send({
         status: "success",
         message: "Successfully shortened URL.",
-        body: { url: decodeURIComponent(url.full) }
+        body: { url: decodeURIComponent(url.full) },
       });
     }
   });

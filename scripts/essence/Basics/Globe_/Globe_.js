@@ -2264,6 +2264,7 @@ define([
             for (var i = 0; i < tileLayersComplete.length; i++) {
                 if (tileLayersComplete[i] == false) return
             }
+
             if (textures.length == 0) {
                 //Hide the tiles if no textures are found
                 t.visible = false
@@ -2278,7 +2279,10 @@ define([
                 })
                 texturesOrdered = []
                 for (var i = 0; i < textures.length; i++) {
-                    var isVAT = tileLayers[i].name == 'Vectors As Tiles' ? 1 : 0
+                    var isVAT =
+                        tileLayers[textures[i].i].name == 'Vectors As Tiles'
+                            ? 1
+                            : 0
                     texturesOrdered.push({
                         name: textures[i].name,
                         texture: textures[i].texture,
@@ -3525,6 +3529,7 @@ define([
             .attr( 'id', 'globeToolBarControlsYaw' )
             .attr( 'class', 'hoverOpensPanel' )
             .style('width', '80px')
+            .style('position', 'relative')
             .html(
                 ["<div>",
                     "<div id='Globe_Yaw' class='mmgisButton3' style='padding: 0px 5px 0px 12px; user-select: none; margin-right: 0; display: flex; border-radius: 0;'>",
@@ -3554,6 +3559,7 @@ define([
             .attr( 'id', 'globeToolBarControlsPitch' )
             .attr( 'class', 'hoverOpensPanel' )
             .style('width', '80px')
+            .style('position', 'relative')
             .html(
                 ["<div>",
                     "<div id='Globe_Pitch' class='mmgisButton3' style='padding: 0px 5px 0px 16px; user-select: none; margin-right: 0; display: flex; border-radius: 0;'>",
@@ -3583,6 +3589,7 @@ define([
             .attr( 'id', 'globeToolBarControlsPan' )
             .attr( 'class', 'hoverOpensPanel' )
             .style('width', '80px')
+            .style('position', 'relative')
             .html(
                 ["<div>",
                     "<div id='Globe_Pan' class='mmgisButton3' style='padding: 0px 5px 0px 13px; user-select: none; margin-right: 0; display: flex; border-radius: 0;'>",
@@ -3628,6 +3635,7 @@ define([
             .attr('class', 'hoverOpensPanel')
             .style('margin-right', '6px')
             .style('width', '80px')
+            .style('position', 'relative')
             .html(
                 [
                     '<div>',

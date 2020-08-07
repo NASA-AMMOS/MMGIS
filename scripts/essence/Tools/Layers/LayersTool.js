@@ -8,7 +8,7 @@ define([
     'Layers_',
     'Map_',
     'css!LayersTool',
-], function($, d3, F_, L_, Map_) {
+], function ($, d3, F_, L_, Map_) {
     //Add the tool markup if you want to do it this way
     // prettier-ignore
     var markup = [
@@ -19,11 +19,11 @@ define([
                         '<div id="title">Layers</div>',
                     "</div>",
                     "<div class='right'>",
-                        '<div class="vector on" type="vector"><i class="mdi mdi-vector-square mdi-18px"></i></div>',
-                        '<div class="tile on" type="tile"><i class="mdi mdi-map-outline mdi-18px"></i></div>',
-                        '<div class="data on" type="data"><i class="mdi mdi-file-table mdi-18px"></i></div>',
-                        '<div class="model on" type="model"><i class="mdi mdi-cube-outline mdi-18px"></i></div>',
-                        '<div class="visible" type="visible"><i class="mdi mdi-eye mdi-18px"></i></div>',
+                        '<div class="vector on" type="vector" title="Hide/Show Vector Layers"><i class="mdi mdi-vector-square mdi-18px"></i></div>',
+                        '<div class="tile on" type="tile" title="Hide/Show Raster Layers"><i class="mdi mdi-map-outline mdi-18px"></i></div>',
+                        '<div class="data on" type="data" title="Hide/Show Data Layers"><i class="mdi mdi-file-table mdi-18px"></i></div>',
+                        '<div class="model on" type="model" title="Hide/Show Model Layers"><i class="mdi mdi-cube-outline mdi-18px"></i></div>',
+                        '<div class="visible" type="visible" title="Hide/Show Off Layers"><i class="mdi mdi-eye mdi-18px"></i></div>',
                     "</div>",
                 "</div>",
                 "<div id='searchLayers'>",
@@ -44,22 +44,22 @@ define([
         height: 0,
         width: 250,
         MMGISInterface: null,
-        make: function() {
+        make: function () {
             this.MMGISInterface = new interfaceWithMMGIS()
         },
-        destroy: function() {
+        destroy: function () {
             this.MMGISInterface.separateFromMMGIS()
         },
-        getUrlString: function() {
+        getUrlString: function () {
             return ''
         },
-        setHeader: function() {},
-        toggleHeader: function(elmIndex) {
+        setHeader: function () {},
+        toggleHeader: function (elmIndex) {
             var found = false
             var done = false
             var elmDepth = 0
             var wasOn = false
-            $('#layersToolList > li').each(function() {
+            $('#layersToolList > li').each(function () {
                 if (done) return
                 var t = $(this)
                 if (t.attr('id') == elmIndex) {
@@ -103,7 +103,7 @@ define([
 
     //
     function interfaceWithMMGIS() {
-        this.separateFromMMGIS = function() {
+        this.separateFromMMGIS = function () {
             separateFromMMGIS()
         }
 
@@ -356,11 +356,8 @@ define([
 
         //Add event functions and whatnot
         //Makes layers clickable on and off
-        $('#layersToolList > li > .title .checkbox').on('click', function() {
-            let li = $(this)
-                .parent()
-                .parent()
-                .parent()
+        $('#layersToolList > li > .title .checkbox').on('click', function () {
+            let li = $(this).parent().parent().parent()
             if (li.attr('type') != 'header') {
                 $(this).toggleClass('on')
                 L_.toggleLayer(L_.layersNamed[li.attr('name')])
@@ -368,52 +365,32 @@ define([
         })
 
         //Collapse header
-        $('.layersToolHeader').on('click', function() {
+        $('.layersToolHeader').on('click', function () {
             LayersTool.toggleHeader($(this).attr('id'))
         })
 
         //Enables the export dialogue box
-        $('.layerName, .layerDownload').on('click', function() {
-            var li = $(this)
-                .parent()
-                .parent()
+        $('.layerName, .layerDownload').on('click', function () {
+            var li = $(this).parent().parent()
             if (li.attr('type') == 'header') return
             var wasOn = li.hasClass('download_on')
-            $('.layerDownload')
-                .parent()
-                .parent()
-                .removeClass('download_on')
-            $('.gears')
-                .parent()
-                .parent()
-                .removeClass('gears_on')
+            $('.layerDownload').parent().parent().removeClass('download_on')
+            $('.gears').parent().parent().removeClass('gears_on')
             if (!wasOn) li.addClass('download_on')
         })
         //Enables the setting dialogue box
-        $('.layerName, .gears').on('click', function() {
-            var li = $(this)
-                .parent()
-                .parent()
+        $('.layerName, .gears').on('click', function () {
+            var li = $(this).parent().parent()
             if (li.attr('type') == 'header') return
             var wasOn = li.hasClass('gears_on')
-            $('.layerDownload')
-                .parent()
-                .parent()
-                .removeClass('download_on')
-            $('.gears')
-                .parent()
-                .parent()
-                .removeClass('gears_on')
+            $('.layerDownload').parent().parent().removeClass('download_on')
+            $('.gears').parent().parent().removeClass('gears_on')
             if (!wasOn) li.addClass('gears_on')
         })
 
         //Export GeoJSON
-        $('.layersToolExportGeoJSON').on('click', function() {
-            var li = $(this)
-                .parent()
-                .parent()
-                .parent()
-                .parent()
+        $('.layersToolExportGeoJSON').on('click', function () {
+            var li = $(this).parent().parent().parent().parent()
 
             let layerName = li.attr('name')
             F_.downloadObject(
@@ -424,17 +401,15 @@ define([
         })
 
         //Refresh settings
-        $('.reset').on('click', function() {
-            var li = $(this)
-                .parent()
-                .parent()
+        $('.reset').on('click', function () {
+            var li = $(this).parent().parent()
 
             L_.setLayerOpacity(li.attr('name'), 1)
             li.find('.transparencyslider').val(1)
 
             L_.setLayerFilter(li.attr('name'), 'clear')
 
-            li.find('.tilefilterslider').each(function() {
+            li.find('.tilefilterslider').each(function () {
                 $(this).val($(this).attr('default'))
             })
 
@@ -442,7 +417,7 @@ define([
         })
 
         //Applies slider values to map layers
-        $('.transparencyslider').on('input', function() {
+        $('.transparencyslider').on('input', function () {
             var texttransp = $(this).val()
             L_.setLayerOpacity($(this).attr('layername'), texttransp)
             $(this)
@@ -452,7 +427,7 @@ define([
         })
 
         //Applies slider values to map layers
-        $('.tilefilterslider').on('input', function() {
+        $('.tilefilterslider').on('input', function () {
             var val = $(this).val()
             L_.setLayerFilter(
                 $(this).attr('layername'),
@@ -465,7 +440,7 @@ define([
                 .text(parseInt(val * 100) + $(this).attr('unit'))
         })
 
-        $('.tileblender').on('change', function() {
+        $('.tileblender').on('change', function () {
             L_.setLayerFilter(
                 $(this).attr('layername'),
                 'mix-blend-mode',
@@ -474,7 +449,7 @@ define([
         })
 
         //TEMP DATA
-        $('.dataslider').on('change', function() {
+        $('.dataslider').on('change', function () {
             var layerName = $(this).attr('layername')
             var parameter = $(this).attr('parameter')
             var val = $(this).val()
@@ -487,12 +462,10 @@ define([
                 .text('(' + parseInt(val) + $(this).attr('unit') + ')')
         })
 
-        $('#searchLayers > input').on('input', function() {
+        $('#searchLayers > input').on('input', function () {
             $('#searchLayers > #expand').click()
-            var input = $(this)
-                .val()
-                .toLowerCase()
-            $('#layersToolList > li').each(function() {
+            var input = $(this).val().toLowerCase()
+            $('#layersToolList > li').each(function () {
                 if ($(this).attr('type') != 'header') {
                     if (input == '') {
                         if ($(this).attr('on') == 'true') {
@@ -506,10 +479,8 @@ define([
                         }
                     } else {
                         if (
-                            $(this)
-                                .attr('name')
-                                .toLowerCase()
-                                .indexOf(input) != -1
+                            $(this).attr('name').toLowerCase().indexOf(input) !=
+                            -1
                         ) {
                             $(this).css('height', 'auto')
                             $(this).css('margin-top', '1px')
@@ -524,8 +495,8 @@ define([
             })
         })
 
-        $('#searchLayers > #expand').on('click', function() {
-            $('#layersToolList > li').each(function() {
+        $('#searchLayers > #expand').on('click', function () {
+            $('#layersToolList > li').each(function () {
                 if (
                     $(this).attr('type') == 'header' &&
                     $(this).attr('childrenon') == 'false'
@@ -535,8 +506,8 @@ define([
             })
         })
 
-        $('#searchLayers > #collapse').on('click', function() {
-            $('#layersToolList > li').each(function() {
+        $('#searchLayers > #collapse').on('click', function () {
+            $('#layersToolList > li').each(function () {
                 if (
                     $(this).attr('type') == 'header' &&
                     $(this).attr('childrenon') == 'true'
@@ -546,16 +517,14 @@ define([
             })
         })
 
-        $('#filterLayers .right > div').on('click', function() {
+        $('#filterLayers .right > div').on('click', function () {
             $(this).toggleClass('on')
             var isOn = $(this).hasClass('on')
             var type = $(this).attr('type')
-            $('#layersToolList > li').each(function() {
+            $('#layersToolList > li').each(function () {
                 if (type == 'visible') {
                     if ($(this).attr('type') != 'header') {
-                        var layerOn = $(this)
-                            .find('.checkbox')
-                            .hasClass('on')
+                        var layerOn = $(this).find('.checkbox').hasClass('on')
                         if (isOn) {
                             if (layerOn) $(this).removeClass('forceOff2')
                             else $(this).addClass('forceOff2')
