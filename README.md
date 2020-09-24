@@ -26,7 +26,7 @@ Spatial Data Infrastructure for Planetary Missions
    
    Issue the following commands:  
        `CREATE DATABASE mmgis;`  
-       `\c mmgis` 
+       `\c mmgis`    
        `CREATE EXTENSION postgis;`  
        `exit`  
 
