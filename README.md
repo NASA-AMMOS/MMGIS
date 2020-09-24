@@ -23,11 +23,16 @@ Spatial Data Infrastructure for Planetary Missions
 1. Install [PostGIS 2.5+](https://postgis.net/install/). From the above install, you can use the 'Application Stack Builder' to install PostGIS.
 1. Make a new PostgreSQL database and remember the user, password and database name.
    Use 'pgsl' or the 'SQL Shell' to log into Postgres. It will prompt you for the username and password made during the install.
+   
    Issue the following commands:
-        CREATE DATABASE mmgis;
-        \c mmgis
-        CREATE EXTENSION postgis;
-        exit
+   
+   CREATE DATABASE mmgis;
+   
+   \c mmgis
+   
+   CREATE EXTENSION postgis;
+   
+   exit
 
 1. PHP, GDAL and Python2 are weaker dependencies (without them not everything will work)
 
