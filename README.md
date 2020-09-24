@@ -25,10 +25,10 @@ Spatial Data Infrastructure for Planetary Missions
    Use 'pgsl' or the 'SQL Shell' to log into Postgres. It will prompt you for the username and password made during the install.
    
    Issue the following commands:  
-       `CREATE DATABASE mmgis;`. 
-       `\c mmgis`. 
-       `CREATE EXTENSION postgis;`. 
-       `exit`. 
+       `CREATE DATABASE mmgis;`  
+       `\c mmgis` 
+       `CREATE EXTENSION postgis;`  
+       `exit`  
 
 1. PHP, GDAL and Python2 are weaker dependencies (without them not everything will work)
 
