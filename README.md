@@ -19,20 +19,21 @@ Spatial Data Infrastructure for Planetary Missions
 
 1. Install the latest version of [Node.js v10.10+](https://nodejs.org/en/download/).
 
-1. Install [PostgreSQL v9.6+](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads)
-1. And do so with the [PostGIS 2.5+](https://postgis.net/install/) extension enabled.
-   Agree to any possible postgis installions in the gui or run `CREATE EXTENSION postgis;` afterwards.
+1. Install [PostgreSQL v10.14+](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads)
+1. Install [PostGIS 2.5+](https://postgis.net/install/). From the above install, you can use the 'Application Stack Builder' to install PostGIS.
 1. Make a new PostgreSQL database and remember the user, password and database name.
+   Use 'pgsl' or the 'SQL Shell' to log into Postgres. It will prompt you for the username and password made during the install.
+   Issue the following commands:
+        CREATE DATABASE mmgis;
+        \c mmgis
+        CREATE EXTENSION postgis;
+        exit
 
 1. PHP, GDAL and Python2 are weaker dependencies (without them not everything will work)
 
-   - PHP 5.4.16+ \* php-pdo php-mysqli pdo_sqlite modules enabled
-   - GDAL 2.0.2 or 1.11.4 with Python bindings
-   - Python 2.75+
-
-   Possible commands to install them all:  
-   `apt-get update`  
-   `apt-get install -y php7.0-cli php-db php-sqlite3 gdal-bin libgdal-dev python-pip python-gdal`
+   - PHP [7+](https://www.php.net/downloads.php) \* php-pdo php-mysqli pdo_sqlite modules enabled
+   - GDAL [2.+](https://gdal.org/download.html) with Python bindings
+   - Python [2.7.18](https://www.python.org/downloads/release/python-2718/)
 
 ### Setup
 
@@ -61,7 +62,11 @@ Spatial Data Infrastructure for Planetary Missions
    DB_USER=<user>
    DB_PASS=<password>
    ```
-
+   From the install example:
+   DB_NAME=mmgis
+   DB_USER=postgres
+   DB_PASS=<password>
+   
 1. Within `/` run `npm start`
 
    - If you get errors, try running `npm start` a few times. Also make sure you ran `CREATE EXTENSION postgis;` on your database.
