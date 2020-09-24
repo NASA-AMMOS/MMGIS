@@ -29,7 +29,8 @@ Spatial Data Infrastructure for Planetary Missions
        `\c mmgis`    
        `CREATE EXTENSION postgis;`  
        `exit`  
-
+   In the above `\c` attaches to the database and `CREATE EXTENSION` enables PostGIS by creating a spatial reference table within that database.   
+   
 1. PHP, GDAL and Python2 are weaker dependencies (without them not everything will work)
 
    - PHP [7+](https://www.php.net/downloads.php) \* php-pdo php-mysqli pdo_sqlite modules enabled
@@ -70,7 +71,7 @@ Spatial Data Infrastructure for Planetary Missions
    DB_PASS=<password>
    ```   
    
-1. Within `/` run `npm start`
+1. Within the MMGIS install folder, run `npm start`
 
    - If you get errors, try running `npm start` a few times. Also make sure you ran `CREATE EXTENSION postgis;` on your database.
 
