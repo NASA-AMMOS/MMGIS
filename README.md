@@ -64,9 +64,11 @@ Spatial Data Infrastructure for Planetary Missions
    DB_PASS=<password>
    ```
    From the install example:
+   ```   
    DB_NAME=mmgis
    DB_USER=postgres
    DB_PASS=<password>
+   ```   
    
 1. Within `/` run `npm start`
 
