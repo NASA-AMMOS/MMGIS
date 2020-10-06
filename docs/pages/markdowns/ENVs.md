@@ -15,9 +15,10 @@ The kind of server running (apache is deprecated) | string enum | default `''`
 
 The kind of authentication method used | string enum | default `''`
 
-- _none:_ No authentication
-- _local:_ MMGIS handles authentication and account creation
-- _csso:_ Cloud Single Sign On - An external service handles authentication and account creation
+- _off:_ No authentication. Users cannot sign up or log in. Tools that require log in will not work.
+- _none:_ No authentication. Users can still sign up and log in from within MMGIS.
+- _local:_ Anyone without credentials is blocked. The Admin must log in, create accounts and pass out the credentials.
+- _csso:_ Use a Cloud Single Sign On service that's proxied in front of MMGIS.
 
 #### `NODE_ENV=`
 

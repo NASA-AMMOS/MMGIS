@@ -1299,7 +1299,11 @@ define([
 
             d3.select('#mapTopBar').style(
                 'padding',
-                '5px 76px 5px ' + $('#topBar').width() + 'px'
+                '5px ' +
+                    (mmgisglobal.AUTH !== 'off' ? 76 : 5) +
+                    'px 5px ' +
+                    $('#topBar').width() +
+                    'px'
             )
 
             UserInterface.show()
