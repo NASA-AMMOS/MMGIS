@@ -60,6 +60,8 @@ define([
         signUp: false,
         beganLoggedIn: false,
         init: function () {
+            if (mmgisglobal.AUTH == 'off') return
+
             if (
                 mmgisglobal.AUTH == 'csso' &&
                 mmgisglobal.hasOwnProperty('user')
@@ -430,7 +432,7 @@ define([
             })
 
             //Sign in at page load from cookie if possible
-            if (mmgisglobal.AUTH !== 'csso') {
+            if (mmgisglobal.AUTH !== 'off' && mmgisglobal.AUTH !== 'csso') {
                 calls.api(
                     'login',
                     {

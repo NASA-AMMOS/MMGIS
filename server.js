@@ -221,7 +221,7 @@ function ensureGroup(allowedGroups) {
     // not in any allowed groups, the next handler will never be called and a
     // 403 Forbidden response will be returned to the user.
     //console.log( 'ensureGroup', req );
-    if (process.env.AUTH == "none") {
+    if (process.env.AUTH == "off" || process.env.AUTH == "none") {
       next();
       return;
     }

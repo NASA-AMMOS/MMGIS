@@ -1031,11 +1031,21 @@ define([
                     L.latLng(layerObj.boundingBox[1], layerObj.boundingBox[0])
                 )
             }
+
+            var tileFormat = 'tms'
+            // For backward compatibility with the .tms option
+            if (typeof layerObj.tileformat === 'undefined') {
+                tileFormat =
+                    typeof layerObj.tms === 'undefined' ? true : layerObj.tms
+                tileFormat = tileFormat ? 'tms' : 'wmts'
+            } else tileFormat = layerObj.tileformat
+
             L_.layersGroup[layerObj.name] = L.tileLayer.colorFilter(layerUrl, {
                 minZoom: layerObj.minZoom,
                 maxZoom: layerObj.maxZoom,
                 maxNativeZoom: layerObj.maxNativeZoom,
-                tms: typeof layerObj.tms === 'undefined' ? true : layerObj.tms,
+                tileFormat: tileFormat,
+                tms: tileFormat === 'tms',
                 //noWrap: true,
                 continuousWorld: true,
                 reuseTiles: true,
