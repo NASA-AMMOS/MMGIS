@@ -391,6 +391,13 @@ function initialize() {
                   $("#tab_look #look_help").prop("checked", true);
                 }
 
+                $("#tab_look #look_logourl").val(
+                  cData.look ? cData.look.logourl : ""
+                );
+                $("#tab_look #look_helpurl").val(
+                  cData.look ? cData.look.helpurl : ""
+                );
+
                 //panels
                 $("#tab_panels input").prop("checked", false);
                 for (var i = 0; i < cData.panels.length; i++) {
