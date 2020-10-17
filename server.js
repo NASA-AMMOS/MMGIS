@@ -369,7 +369,14 @@ app.use("/API/", APIlimiter);
  * configuration for having more security
  **********************************************************/
 const helmet = require("helmet");
-app.use(helmet());
+app.use(
+  helmet({
+    frameguard:
+      process.env.ALLOW_EMBED != null
+        ? !(process.env.ALLOW_EMBED.toLowerCase() == "true")
+        : true,
+  })
+);
 app.set("etag", false);
 app.disable("x-powered-by");
 app.disable("Origin");

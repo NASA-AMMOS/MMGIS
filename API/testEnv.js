@@ -9,6 +9,8 @@ const test = (setupEnvs, port) => {
     NODE_ENV: process.env.NODE_ENV,
     SECRET: process.env.SECRET ? "_redacted_" : null,
     VERBOSE_LOGGING: process.env.VERBOSE_LOGGING || false,
+    ALLOW_EMBED: process.env.ALLOW_EMBED || false,
+    DISABLE_LINK_SHORTENER: process.env.DISABLE_LINK_SHORTENER || false,
     DB_HOST: process.env.DB_HOST,
     DB_PORT: process.env.DB_PORT,
     DB_NAME: process.env.DB_NAME,
@@ -20,7 +22,6 @@ const test = (setupEnvs, port) => {
     CSSO_GROUPS: process.env.CSSO_GROUPS || [],
     CSSO_LEAD_GROUP: process.env.CSSO_LEAD_GROUP || "",
     LEADS: process.env.LEADS || [],
-    SCIENCE_INTENT_HOST: process.env.SCIENCE_INTENT_HOST || ""
   };
 
   // include setupEnvs
@@ -43,9 +44,9 @@ const test = (setupEnvs, port) => {
     else if (e.indexOf("HOST") != -1 && envSample[e].substr(0, 4) === "http") {
       let target = envSample[e];
       fetch(target, {
-        method: "HEAD"
+        method: "HEAD",
       })
-        .then(res => {
+        .then((res) => {
           if (res.status >= 200 && res.status <= 299) {
             logger(
               "info",
@@ -66,7 +67,7 @@ const test = (setupEnvs, port) => {
             );
           }
         })
-        .catch(err => {
+        .catch((err) => {
           logger(
             "error",
             "Could not connect to: " + target,

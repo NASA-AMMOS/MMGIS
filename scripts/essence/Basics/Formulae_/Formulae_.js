@@ -1715,12 +1715,16 @@ define(['turf', 'fileSaver'], function (turf) {
             if (str === null) return ''
             let matches = str.match(/\{.*?\}/gi)
 
-            matches.forEach((v) => {
-                str = str.replace(
-                    new RegExp(v, 'g'),
-                    Formulae_.getIn(obj, v.replace(/[\{\}]/g, '').split('.'))
-                )
-            })
+            if (matches)
+                matches.forEach((v) => {
+                    str = str.replace(
+                        new RegExp(v, 'g'),
+                        Formulae_.getIn(
+                            obj,
+                            v.replace(/[\{\}]/g, '').split('.')
+                        )
+                    )
+                })
             return str
         },
         getCookieValue(a) {

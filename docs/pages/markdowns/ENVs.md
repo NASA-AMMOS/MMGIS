@@ -65,6 +65,14 @@ Port to run on | positive integer | default `3000`
 
 Potentially logs a bunch of extra stuff for development purposes | bool | default `false`
 
+#### `ALLOW_EMBED=`
+
+If true, removes the `X-Frame-Options: SAMEORIGIN` header to allow the embedding of MMGIS in external sites | bool | default `false`
+
+#### `DISABLE_LINK_SHORTENER=`
+
+If true, users that use the 'Copy Link' feature will receive a full-length deep link. Writing new short links will be disabled but expanding existing ones will still work. | bool | default `false`
+
 #### `HIDE_CONFIG=`
 
 Make the configure page inaccessible to everyone | bool | default `false`

@@ -31,6 +31,8 @@ Spatial Data Infrastructure for Planetary Missions
        `exit`  
    In the above `\c` attaches to the database and `CREATE EXTENSION` enables PostGIS by creating a spatial reference table within that database.   
    
+   If you want to use pgAdmin, follow the instructions [here]( http://postgis.net/workshops/postgis-intro/creating_db.html), except change the new database name to 'mmgis'.
+   
 1. PHP, GDAL and Python2 are weaker dependencies (without them not everything will work)
 
    - PHP [7+](https://www.php.net/downloads.php) \* php-pdo php-mysqli pdo_sqlite modules enabled

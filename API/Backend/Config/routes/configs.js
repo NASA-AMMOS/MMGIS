@@ -14,18 +14,15 @@ const fs = require("fs");
 
 function get(req, res, next, cb) {
   Config.findAll({
+    limit: 1,
     where: {
       mission: req.query.mission,
     },
+    order: [["id", "DESC"]],
   })
     .then((missions) => {
-      let maxVersion = -Infinity;
-      if (missions && missions.length > 0) {
-        for (let i = 0; i < missions.length; i++) {
-          maxVersion = Math.max(missions[i].version, maxVersion);
-        }
-        return maxVersion;
-      } else return 0;
+      if (missions && missions.length > 0) return missions[0].version;
+      return 0;
     })
     .then((version) => {
       if (req.query.version) version = req.query.version;
@@ -210,20 +207,15 @@ function upsert(req, res, next, cb) {
   let versionConfig = null;
 
   Config.findAll({
+    limit: 1,
     where: {
       mission: req.body.mission,
     },
+    order: [["id", "DESC"]],
   })
     .then((missions) => {
-      let maxVersion = -Infinity;
-      if (missions && missions.length > 0) {
-        for (let i = 0; i < missions.length; i++) {
-          maxVersion = Math.max(missions[i].version, maxVersion);
-          if (hasVersion && missions[i].version == req.body.version)
-            versionConfig = missions[i].config;
-        }
-        return maxVersion;
-      } else return -1; //will get incremented to 0
+      if (missions && missions.length > 0) return missions[0].version;
+      return -1;
     })
     .then((version) => {
       Config.create({
@@ -276,7 +268,7 @@ function upsert(req, res, next, cb) {
     })
     .catch((err) => {
       logger("error", "Failed to update mission.", req.originalUrl, req, err);
-      if (cb) cb({ status: "failure", message: "Failed to update mission." });
+      if (cb) cb({ status: "failure", message: "Failed to find mission." });
       else res.send({ status: "failure", message: "Failed to find mission." });
       return null;
     });
@@ -310,6 +302,7 @@ router.post("/versions", function (req, res, next) {
       mission: req.body.mission,
     },
     attributes: ["mission", "version", "createdAt"],
+    order: [["id", "ASC"]],
   })
     .then((missions) => {
       res.send({ status: "success", versions: missions });

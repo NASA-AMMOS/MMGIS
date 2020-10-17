@@ -45,7 +45,6 @@ define(['jquery', 'd3', 'Formulae_'], function ($, d3, F_) {
                 .style('display', 'flex')
                 .style('white-space', 'nowrap')
                 .style('line-height', '29px')
-                .style('font-size', '14px')
                 .style('color', 'var(--color-mw2)')
                 .style('font-weight', 'bold')
                 .style('cursor', 'pointer')
@@ -57,7 +56,6 @@ define(['jquery', 'd3', 'Formulae_'], function ($, d3, F_) {
                 .style('display', 'flex')
                 .style('white-space', 'nowrap')
                 .style('line-height', '29px')
-                .style('font-size', '14px')
                 .style('color', 'var(--color-mw2)')
                 .style('font-weight', 'bold')
                 .style('cursor', 'pointer')
@@ -200,8 +198,12 @@ define(['jquery', 'd3', 'Formulae_'], function ($, d3, F_) {
                                 ) +
                                 "' target='" +
                                 F_.cleanString(v.links[i].name) +
-                                "'>" +
+                                "' title='" +
                                 v.links[i].name +
+                                "'>" +
+                                "<span class='mainDescLinkName'>" +
+                                v.links[i].name +
+                                '</span>' +
                                 "<i class='mdi mdi-open-in-new mdi-12px'></i>" +
                                 '</a>'
                         }
@@ -213,10 +215,9 @@ define(['jquery', 'd3', 'Formulae_'], function ($, d3, F_) {
                     Object.keys(activeLayer.feature.properties)[0]
                 keyAsName =
                     activeLayer.feature.properties[key] +
-                    ' <div style="font-size: 12px; padding: 0px 3px; opacity: 0.8;">(' +
+                    ' <div class="mainDescPointInnerType" style="font-size: 11px; padding: 0px 3px; opacity: 0.8;">(' +
                     key +
                     ')</div>'
-
                 Description.descPointInner.html(
                     activeLayer.options.layerName + ': ' + keyAsName
                 )

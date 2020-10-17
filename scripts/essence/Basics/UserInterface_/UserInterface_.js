@@ -91,7 +91,11 @@ define([
                     .style('height', '32px')
                     .style('margin-top', '-2px')
                     .style('image-rendering', 'pixelated')
-                    .html("<img src='" + logoURL + "' width='32px' />")
+                    .html(
+                        "<img src='" +
+                            logoURL +
+                            "' width='32px' height='32px'/>"
+                    )
                     .on('click', F_.toHostForceLanding)
 
                 var tbt = this.topBarLeft
@@ -102,12 +106,13 @@ define([
                     .style('z-index', '1')
                 tbt.append('div')
                     .attr('id', 'topBarTitleName')
-                    .style('font-size', '16px')
-                    .style('font-weight', 'bold')
-                    .style('line-height', '14px')
-                    .style('letter-spacing', '3.21429px')
-                    .style('font-family', 'lato')
-                    .style('padding', '8px 10px 8px 14px')
+                    .style('font-weight', '600')
+                    .style('line-height', '15px')
+                    .style('letter-spacing', '1px')
+                    .style(
+                        'font-family',
+                        'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
+                    )
                     .html(mmgisglobal.name)
                 tbt.append('div').attr('id', 'topBarTitleIcon')
             }
@@ -144,88 +149,49 @@ define([
                 .attr('title', 'Swap')
                 .attr(
                     'class',
-                    'mdi mdi-checkbox-multiple-blank-outline mdi-18px'
+                    'mmgisHoverBlue mdi mdi-checkbox-multiple-blank-outline mdi-18px'
                 )
                 .style('padding', '5px 10px')
                 .style('width', '40px')
                 .style('height', '36px')
                 .style('line-height', '26px')
-                .style('color', 'rgb(0, 182,210)')
-                .style('opacity', '0.8')
                 .style('cursor', 'pointer')
 
             this.barBottom
                 .append('i')
                 .attr('id', 'topBarLink')
                 .attr('title', 'Copy Link')
-                .attr('class', 'mdi mdi-open-in-new mdi-18px')
+                .attr('class', 'mmgisHoverBlue mdi mdi-open-in-new mdi-18px')
                 .style('padding', '5px 10px')
                 .style('width', '40px')
                 .style('height', '36px')
                 .style('line-height', '26px')
-                //.style( 'color', '#00b5d2' )
-                .style('color', 'rgb(0, 210, 0)')
                 .style('cursor', 'pointer')
                 .on('click', function () {
+                    const linkButton = $(this)
                     QueryURL.writeCoordinateURL(function () {
                         F_.copyToClipboard(L_.url)
-                        $('#copyLinkCopied').css('display', 'inherit')
-                        $('#copyLinkCopied').css('width', '64px')
-                        $('#copyLinkCopied').animate(
-                            {
-                                opacity: 1,
-                            },
-                            150,
-                            function () {
-                                setTimeout(function () {
-                                    $('#copyLinkCopied').animate(
-                                        {
-                                            opacity: 0,
-                                            width: '0px',
-                                        },
-                                        500,
-                                        function () {
-                                            $('#copyLinkCopied').css(
-                                                'display',
-                                                'none'
-                                            )
-                                        }
-                                    )
-                                }, 1000)
-                            }
-                        )
+
+                        linkButton.removeClass('mdi-open-in-new')
+                        linkButton.addClass('mdi-check-bold')
+                        linkButton.css('color', 'var(--color-green)')
+                        setTimeout(() => {
+                            linkButton.removeClass('mdi-check-bold')
+                            linkButton.css('color', '')
+                            linkButton.addClass('mdi-open-in-new')
+                        }, 3000)
                     })
                 })
-            this.barBottom
-                .append('div')
-                .attr('id', 'copyLinkCopied')
-                .style('display', 'none')
-                .style('position', 'absolute')
-                .style('width', '0px')
-                .style('left', '40px')
-                .style('bottom', '107px')
-                .style('height', '36px')
-                .style('line-height', '36px')
-                .style('padding', '0px 12px 0px 10px')
-                .style('font-size', '12px')
-                .style('background', '#001')
-                //.style( 'border-top', '1px solid #26a8ff' )
-                .style('border-right', '1px solid var(--color-b)')
-                //.style( 'border-bottom', '1px solid #26a8ff' )
-                .style('color', 'white')
-                .style('pointer-events', 'none')
-                .html('Copied!')
 
             this.barBottom
                 .append('i')
                 .attr('id', 'topBarScreenshot')
                 .attr('title', 'Screenshot')
-                .attr('class', 'mdi mdi-camera mdi-18px')
+                .attr('class', 'mmgisHoverBlue mdi mdi-camera mdi-18px')
                 .style('padding', '5px 10px')
                 .style('width', '40px')
                 .style('height', '36px')
                 .style('line-height', '26px')
-                .style('color', '#d2b800')
                 .style('cursor', 'pointer')
                 .style('opacity', '0.8')
                 .on('click', function () {
@@ -268,18 +234,18 @@ define([
                     $('.leaflet-control-zoom').css('display', 'block')
                 })
             //Screenshot loading
-            this.barBottom
+            d3.select('#topBarScreenshot')
                 .append('i')
                 .attr('id', 'topBarScreenshotLoading')
                 .attr('title', 'Taking Screenshot')
                 .style('display', 'none')
                 .style('border-radius', '50%')
-                .style('border', '4px solid #ffe100')
+                .style('border', '8px solid #ffe100')
                 .style('border-right-color', 'transparent')
                 .style('border-left-color', 'transparent')
-                .style('position', 'absolute')
-                .style('top', '80px')
-                .style('left', '9px')
+                .style('position', 'relative')
+                .style('top', '3px')
+                .style('left', '-17px')
                 .style('width', '20px')
                 .style('height', '20px')
                 .style('line-height', '26px')
@@ -294,26 +260,30 @@ define([
                 .append('i')
                 .attr('id', 'topBarFullscreen')
                 .attr('title', 'Fullscreen')
-                .attr('class', 'mdi mdi-fullscreen mdi-18px')
+                .attr('class', 'mmgisHoverBlue mdi mdi-fullscreen mdi-18px')
                 .style('padding', '5px 10px')
                 .style('width', '40px')
                 .style('height', '36px')
                 .style('line-height', '26px')
-                //.style( 'color', 'rgb(0, 210, 0)' )
-                .style('color', '#d2b800')
                 .style('cursor', 'pointer')
                 .on('click', function () {
                     fullscreen()
                     if (
                         d3.select(this).attr('class') ==
-                        'mdi mdi-fullscreen mdi-18px'
+                        'mmgisHoverBlue mdi mdi-fullscreen mdi-18px'
                     )
                         d3.select(this)
-                            .attr('class', 'mdi mdi-fullscreen-exit mdi-18px')
+                            .attr(
+                                'class',
+                                'mmgisHoverBlue mdi mdi-fullscreen-exit mdi-18px'
+                            )
                             .attr('title', 'Exit Fullscreen')
                     else
                         d3.select(this)
-                            .attr('class', 'mdi mdi-fullscreen mdi-18px')
+                            .attr(
+                                'class',
+                                'mmgisHoverBlue mdi mdi-fullscreen mdi-18px'
+                            )
                             .attr('title', 'Fullscreen')
                 })
 
@@ -372,12 +342,11 @@ define([
                 .append('i')
                 .attr('id', 'topBarHelp')
                 .attr('title', 'Help')
-                .attr('class', 'mdi mdi-help mdi-18px')
+                .attr('class', 'mmgisHoverBlue mdi mdi-help mdi-18px')
                 .style('padding', '5px 10px')
                 .style('width', '40px')
                 .style('height', '36px')
                 .style('line-height', '26px')
-                .style('color', '#d26100')
                 .style('cursor', 'pointer')
                 .on('click', function () {
                     this.helpOn = !this.helpOn

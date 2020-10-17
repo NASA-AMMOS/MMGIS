@@ -822,14 +822,16 @@ define([
                         add(data.body)
                     },
                     function (data) {
-                        console.warn(
-                            'ERROR! ' +
-                                data.status +
-                                ' in ' +
-                                layerObj.url +
-                                ' /// ' +
-                                data.message
-                        )
+                        if (data) {
+                            console.warn(
+                                'ERROR! ' +
+                                    data.status +
+                                    ' in ' +
+                                    layerObj.url +
+                                    ' /// ' +
+                                    data.message
+                            )
+                        }
                         add(null)
                     }
                 )
