@@ -6,13 +6,13 @@
   if time is null, you can use CursorInfo.hide() to hide it.
 */
 
-define(['jquery', 'd3'], function($, d3) {
+define(['jquery', 'd3'], function ($, d3) {
     var CursorInfo = {
         //The div that will follow the mouse around
         cursorInfoDiv: null,
         forcedPos: false,
         //Creates that div and adds the mousemove event so it follows the cursor
-        init: function() {
+        init: function () {
             CursorInfo.cursorInfoDiv = d3
                 .select('body')
                 .append('div')
@@ -28,25 +28,25 @@ define(['jquery', 'd3'], function($, d3) {
                 .style('font-weight', 'bold')
                 .style('font-size', '16px')
                 //.style( 'box-shadow', '0px 5px 15px #000' )
-                .style('z-index', '6')
+                .style('z-index', '9001')
                 .style('pointer-events', 'none')
                 .style('display', 'none')
 
             d3.select('body').on('mousemove', cursorInfoMouseMove)
         },
         //Use jquery to fade in out then set display to none and clear inner html
-        hide: function(immediate) {
+        hide: function (immediate) {
             if (immediate) {
                 CursorInfo.cursorInfoDiv.style('display', 'none').html('')
             } else {
-                $('#cursorInfo').fadeOut(300, function() {
+                $('#cursorInfo').fadeOut(300, function () {
                     CursorInfo.cursorInfoDiv.style('display', 'none').html('')
                 })
             }
         },
         //Shows the div with message for time and isError just changes the color
         //Optional: position { x: , y: }
-        update: function(
+        update: function (
             message,
             time,
             isError,
@@ -65,23 +65,23 @@ define(['jquery', 'd3'], function($, d3) {
                 .style('display', 'block')
                 .style('opacity', 1)
             CursorInfo.cursorInfoDiv
-                .style('background-color', function() {
+                .style('background-color', function () {
                     if (forceColor != null) return forceColor
                     return isError ? '#cd0437' : 'var(--color-a)'
                 })
-                .style('color', function() {
+                .style('color', function () {
                     if (forceFontColor != null) return forceFontColor
                     return '#DCDCDC'
                 })
-                .style('border', function() {
+                .style('border', function () {
                     return isError ? '1px solid var(--color-a)' : 'none'
                 })
                 .style('display', 'block')
                 .html(message)
 
             if (time != null) {
-                setTimeout(function() {
-                    $('#cursorInfo').fadeOut(400, function() {
+                setTimeout(function () {
+                    $('#cursorInfo').fadeOut(400, function () {
                         CursorInfo.cursorInfoDiv
                             .style('display', 'none')
                             .html('')
@@ -91,7 +91,7 @@ define(['jquery', 'd3'], function($, d3) {
             }
         },
         //Remove everything CursorInfo created
-        remove: function() {
+        remove: function () {
             d3.select('body').off('mousemove', cursorInfoMouseMove)
             d3.select('#cursorInfo').remove()
         },

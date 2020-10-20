@@ -16,6 +16,15 @@ const UrlShortener_s = us.sequelize;
  * @param text *optional*
  */
 router.post("/shorten", function (req, res, next) {
+  if (process.env.DISABLE_LINK_SHORTENER == "true") {
+    res.send({
+      status: "failure",
+      message: "Won't shorten.",
+      body: {},
+    });
+    return;
+  }
+
   var loop = 0;
   var maxLoop = 20;
 

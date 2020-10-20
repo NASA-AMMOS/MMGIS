@@ -391,6 +391,13 @@ function initialize() {
                   $("#tab_look #look_help").prop("checked", true);
                 }
 
+                $("#tab_look #look_logourl").val(
+                  cData.look ? cData.look.logourl : ""
+                );
+                $("#tab_look #look_helpurl").val(
+                  cData.look ? cData.look.helpurl : ""
+                );
+
                 //panels
                 $("#tab_panels input").prop("checked", false);
                 for (var i = 0; i < cData.panels.length; i++) {
@@ -1606,10 +1613,21 @@ function save() {
             fillOpacity: styleOpacity,
             opacity: 1,
           };
+          layerObject.variables = {};
           if (modalVariable != "undefined") {
             try {
               layerObject.variables = JSON.parse(modalVariable);
-            } catch (e) {}
+            } catch (e) {
+              Materialize.toast(
+                "<span id='toast_warningovparse1'>WARNING: Skipping badly formed raw variable JSON - " +
+                  modalName +
+                  "</span>",
+                5000
+              );
+              $("#toast_warningovparse1")
+                .parent()
+                .css("background-color", "#a11717");
+            }
           }
           layerObject.radius = 1;
           if (

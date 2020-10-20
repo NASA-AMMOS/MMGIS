@@ -1,5 +1,5 @@
 //Coordinates sets up a div that displays the cursor's lng lat
-define(['Formulae_', 'Map_', 'QueryURL', 'd3'], function(
+define(['Formulae_', 'Map_', 'QueryURL', 'd3'], function (
     F_,
     Map_,
     QueryURL,
@@ -17,28 +17,26 @@ define(['Formulae_', 'Map_', 'QueryURL', 'd3'], function(
         state: 0,
         damCoordLabel: 'X, Y',
         damCoordSwapped: false,
-        init: function() {
+        init: function () {
             d3.select('.mouseLngLat').remove()
             var mll = d3
                 .select('body')
                 .append('div')
                 .attr('class', 'mouseLngLat')
-                //.style( 'background', '#001' )
                 .style('position', 'absolute')
                 .style('bottom', '0px')
                 .style('right', '0px')
                 .style('padding', '6px 12px 3px 12px')
                 .style('margin', '0')
                 .style('cursor', 'pointer')
-                .style('display', 'flex')
-                .style('z-index', '20')
+                .style('z-index', '400')
             mll.append('p')
                 .attr('id', 'mouseDesc')
-                .style('font-size', '12px')
+                .style('font-size', '14px')
                 .style('margin-bottom', '0')
                 .style('margin-right', '6px')
                 .style('color', 'white')
-                .style('line-height', '19px')
+                .style('line-height', '24px')
                 .style('text-align', 'center')
                 .style(
                     'text-shadow',
@@ -46,6 +44,7 @@ define(['Formulae_', 'Map_', 'QueryURL', 'd3'], function(
                 )
             mll.append('p')
                 .attr('id', 'mouseLngLat')
+                .style('font-size', '16px')
                 .style('font-weight', 'bold')
                 .style('margin-bottom', '2px')
                 .style('text-align', 'center')
@@ -61,14 +60,14 @@ define(['Formulae_', 'Map_', 'QueryURL', 'd3'], function(
             Map_.map.on('mousemove', mouseLngLatMove)
             Map_.map.on('click', urlClick)
         },
-        clear: function() {},
-        getLngLat: function() {
+        clear: function () {},
+        getLngLat: function () {
             return Coordinates.mouseLngLat
         },
-        getLatLng: function() {
+        getLatLng: function () {
             return [Coordinates.mouseLngLat[1], Coordinates.mouseLngLat[0]]
         },
-        getAllCoordinates: function() {
+        getAllCoordinates: function () {
             return {
                 longitude: {
                     value: Coordinates.mouseLngLat[0],
@@ -97,19 +96,19 @@ define(['Formulae_', 'Map_', 'QueryURL', 'd3'], function(
             }
         },
         //rawLngLat is same type as mouseLngLat and coordsString is whatever
-        setCoords: function(rawLngLat, coordsString) {
+        setCoords: function (rawLngLat, coordsString) {
             mouseLngLat = rawLngLat
             d3.select('#mouseLngLat').html(coordsString)
         },
-        setDamCoordLabel: function(label) {
+        setDamCoordLabel: function (label) {
             this.damCoordLabel = label
             this.refresh()
         },
-        setDamCoordSwap: function(isSwapped) {
+        setDamCoordSwap: function (isSwapped) {
             this.damCoordSwapped = isSwapped
             this.refresh()
         },
-        refresh: function() {
+        refresh: function () {
             if (F_.dam) {
                 d3.select('#mouseDesc').html(Coordinates.damCoordLabel)
                 if (!Coordinates.damCoordSwapped) {
@@ -205,7 +204,7 @@ define(['Formulae_', 'Map_', 'QueryURL', 'd3'], function(
                 }
             }
         },
-        remove: function() {
+        remove: function () {
             //Clear all the stuffes
             Map_.map.off('mousemove', mouseLngLatMove)
 

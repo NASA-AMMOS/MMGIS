@@ -1218,6 +1218,14 @@ input[type="range"].verticalSlider:focus::-ms-fill-upper {
   transition: opacity 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
 }
 
+.mmgisHoverBlue {
+  color: #aaaaaa;
+  transition: all 0.2s ease-in 0s;
+}
+.mmgisHoverBlue:hover {
+  color: var(--color-mmgis);
+}
+
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
   -webkit-appearance: none;

@@ -48,6 +48,8 @@ body {
   --color-g: #121218;
   --color-i: #363636;
 
+  --color-green: #00d200;
+
   --color-m1: #394044;
   --color-m2: #222829;
   --color-m3: #1b1d1e;
@@ -77,36 +79,18 @@ body {
 }
 
 #topBarHelp {
-  color: #999;
-  opacity: 0.8;
-  transition: color 0.3s;
   width: 24px;
   height: 24px;
-}
-#topBarHelp:hover {
-  color: #fff;
 }
 
 #topBarLink {
-  color: #999;
-  opacity: 0.8;
-  transition: color 0.3s;
   width: 24px;
   height: 24px;
-}
-#topBarLink:hover {
-  color: #fff;
 }
 
 #topBarFullscreen {
-  color: #999;
-  opacity: 0.8;
-  transition: color 0.3s;
   width: 24px;
   height: 24px;
-}
-#topBarFullscreen:hover {
-  color: #fff;
 }
 
 #toggleUI {
@@ -168,6 +152,15 @@ body {
 .splitterVInner i:hover {
   color: var(--color-mmgis);
   cursor: pointer;
+}
+
+#mapTopBar {
+  transition: padding-left 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+@media screen and (max-width: 800px) {
+  #mapTopBar {
+    padding-left: 134px !important;
+  }
 }
 #mapSplitInnerViewerInfo {
   position: absolute;
@@ -309,9 +302,16 @@ body {
   -webkit-transition: all 0.25s ease-in;
   transition: all 0.25s ease-in;
   opacity: 0.9;
+  display: flex;
 }
 .mouseLngLat:hover {
   opacity: 1;
+}
+
+@media screen and (max-width: 600px) {
+  .mouseLngLat {
+    display: none;
+  }
 }
 
 #topBarTitle {
@@ -321,6 +321,21 @@ body {
 }
 #topBarTitle:hover {
   color: #bbb;
+}
+
+#topBarTitleName {
+  font-size: 16px;
+  padding: 6px 14px 8px 14px;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+@media screen and (max-width: 800px) {
+  #topBarTitleName {
+    font-size: 14px;
+    padding: 0px 8px;
+    max-width: 100px;
+  }
 }
 
 .topHome {
@@ -366,6 +381,11 @@ body {
   cursor: pointer;
   margin: 0px;
 }
+@media screen and (max-width: 800px) {
+  .mainInfo > div > div {
+    font-size: 11px;
+  }
+}
 
 .mainInfo > div > i {
   line-height: 26px;
@@ -392,6 +412,12 @@ body {
   -webkit-transition: all 0.25s ease-in;
   transition: all 0.25s ease-in;
   opacity: 0.8;
+  font-size: 14px;
+}
+@media screen and (max-width: 800px) {
+  #mainDescPoint {
+    font-size: 11px;
+  }
 }
 #mainDescPoint:hover {
   opacity: 1;
@@ -419,6 +445,15 @@ body {
 #mainDescPoint a:hover {
   opacity: 1;
   background: var(--color-mmgis);
+}
+
+@media screen and (max-width: 800px) {
+  .mainDescPointInnerType {
+    display: none;
+  }
+  .mainDescLinkName {
+    display: none;
+  }
 }
 
 .ui.selection.list > .item.customColor1:hover {
