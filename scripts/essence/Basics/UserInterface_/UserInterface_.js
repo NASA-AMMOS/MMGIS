@@ -513,18 +513,6 @@ define([
                 let mapTopBarRight = this.mapTopBar
                     .append('div')
                     .style('display', 'flex')
-                mapTopBarLeft
-                    .append('div')
-                    .attr('class', 'mainInfo')
-                    .style('display', 'none')
-                    .style('position', 'relative')
-                    .style('height', '30px')
-                    .style('margin', '0')
-                    .style('margin-left', '8px')
-                    .style('z-index', '20')
-                    .style('opacity', 0)
-                    .style('pointer-events', 'auto')
-                    .style('transition', 'opacity 0.2s ease-out')
 
                 mapTopBarLeft
                     .append('div')
@@ -538,6 +526,19 @@ define([
                     .style('padding-left', '8px')
                     .style('border', '1px solid var(--color-m1)')
                     .style('background', 'var(--color-a)')
+                    .style('opacity', 0)
+                    .style('pointer-events', 'auto')
+                    .style('transition', 'opacity 0.2s ease-out')
+
+                mapTopBarLeft
+                    .append('div')
+                    .attr('class', 'mainInfo')
+                    .style('display', 'none')
+                    .style('position', 'relative')
+                    .style('height', '30px')
+                    .style('margin', '0')
+                    .style('margin-left', '8px')
+                    .style('z-index', '20')
                     .style('opacity', 0)
                     .style('pointer-events', 'auto')
                     .style('transition', 'opacity 0.2s ease-out')
