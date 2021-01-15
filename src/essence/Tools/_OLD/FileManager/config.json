@@ -1,0 +1,10 @@
+{
+    "defaultIcon": "folder-multiple",
+    "description": "A file finder/explorer to access and display other users' drawings.",
+    "descriptionFull": {},
+    "hasVars": false,
+    "name": "FileManager",
+    "paths": {
+        "FileManagerTool": "essence/Tools/FileManager/FileManagerTool"
+    }
+}

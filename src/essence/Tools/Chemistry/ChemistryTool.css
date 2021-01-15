@@ -1,0 +1,17 @@
+#chemistryTool #chemistryToolHeader {
+    display: flex;
+    height: 34px;
+    line-height: 18px;
+    color: #ccc;
+    background: var(--color-a);
+    justify-content: space-between;
+}
+#chemistryTool #chemistryToolHeader #title {
+    height: 34px;
+    line-height: 34px;
+    font-size: 16px;
+    padding-left: 6px;
+    font-family: 'lato-light';
+    text-transform: uppercase;
+    color: var(--color-l);
+}

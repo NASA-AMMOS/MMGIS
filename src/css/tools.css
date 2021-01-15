@@ -1,0 +1,23 @@
+/*CURTAIN TOOL*/
+#CurtainToolList {
+  display: flex;
+}
+#CurtainToolList > div {
+  cursor: pointer;
+  padding-right: 10px;
+  font-size: 18px;
+  color: #bbb;
+  transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+#CurtainToolList > div:hover {
+  color: white;
+}
+#CurtainToolList > div.active {
+  color: white;
+  font-weight: bold;
+}
+
+/*Search Tool*/
+.searchToolSelect {
+  width: 188px;
+}

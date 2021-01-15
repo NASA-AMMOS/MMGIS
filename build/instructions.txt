@@ -1,8 +1,0 @@
-With nodejs installed
-With requirejs install `npm install -g requriejs`
-With uglify-js install `npm install -g uglify-js`
-
-Run
-	node r.js -o build.js
-	
-	from the build directory

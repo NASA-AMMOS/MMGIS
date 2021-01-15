@@ -375,6 +375,14 @@ Example:
             "value": "Prop: {prop}"
         }
     ],
+    "markerIcon": { //See: https://leafletjs.com/reference-1.7.1.html#icon-l-icon
+        iconUrl: "pathToMainIconImage.png",
+        shadowUrl: "(opt)pathToShadowImage.png",
+        iconSize:     [38, 95], // size of the icon
+        shadowSize:   [50, 64], // size of the shadow
+        iconAnchor:   [22, 94], // point of the icon which will correspond to marker's location
+        shadowAnchor: [4, 62],  // the same for the shadow
+    }.
     "search": "(prop1) round(prop2.1) rmunder(prop_3)"
 }
 ```

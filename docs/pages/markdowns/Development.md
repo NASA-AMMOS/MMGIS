@@ -1,5 +1,7 @@
 # Development
 
+### NOT UP TO DATE if MMGIS2+ (require.js removed, webpack added, react supported)
+
 MMGIS is written in JavaScript and uses [Require.js](http://requirejs.org/) as an architectural platform for the front end and [Node.js](https://nodejs.org/).
 
 ##### Contents
@@ -70,12 +72,12 @@ Since tools are dynamically added to the DOM, it may be easier to directly write
 ```javascript
 var NewToolTemplate = {
   MMGISInterface: null,
-  make: function() {
+  make: function () {
     this.MMGISInterface = new interfaceWithMMGIS();
   },
-  destroy: function() {
+  destroy: function () {
     this.MMGISInterface.separateFromMMGIS();
-  }
+  },
 };
 ```
 
@@ -83,7 +85,7 @@ This is the object the tool must return. `NewToolTemplate` should be renamed to 
 
 ```javascript
 function interfaceWithMMGIS() {
-  this.separateFromMMGIS = function() {
+  this.separateFromMMGIS = function () {
     separateFromMMGIS();
   };
 
@@ -169,7 +171,7 @@ onceSynced() is called once all table are created/has their existence verified.
 The s parameter is an object containing the app and middleware. A common form to attach an API within a `setup.js` is to fill onceInit() with:
 
 ```javascript
-onceInit: s => {
+onceInit: (s) => {
   s.app.use(
     "/API/example",
     s.ensureUser(),

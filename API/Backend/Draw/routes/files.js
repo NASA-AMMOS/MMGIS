@@ -775,11 +775,11 @@ const compile = function (req, res, callback) {
             " " +
             "AND a.id != b.id" +
             " " +
-            "AND ((ST_OVERLAPS(ST_BUFFER(a.geom, -0.000005, 'join=mitre'), b.geom)" +
+            "AND ((ST_OVERLAPS(a.geom, b.geom)" +
             " " +
             "AND NOT ST_Touches(a.geom, b.geom))" +
             " " +
-            "OR ST_CROSSES(ST_BUFFER(a.geom, -0.000005, 'join=mitre'), b.geom))" +
+            "OR ST_CROSSES(a.geom, b.geom))" +
             " " +
             "UNION ALL" +
             " " +
@@ -1493,17 +1493,19 @@ router.post("/publish", function (req, res, next) {
     failureCallback
   ) {
     Table.findAll({
-      limit: 1,
       where: {
         file_id: file_id,
       },
-      order: [["history_id", "DESC"]],
     })
-      .then((lastHistory) => {
-        if (lastHistory && lastHistory.length > 0) {
+      .then((histories) => {
+        let maxHistoryId = -Infinity;
+        if (histories && histories.length > 0) {
+          for (let i = 0; i < histories.length; i++) {
+            maxHistoryId = Math.max(histories[i].history_id, maxHistoryId);
+          }
           return {
-            historyIndex: lastHistory[0].history_id + 1,
-            history: lastHistory[0].history,
+            historyIndex: maxHistoryId + 1,
+            history: histories[maxHistoryId].history,
           };
         } else return { historyIndex: 0, history: [] };
       })

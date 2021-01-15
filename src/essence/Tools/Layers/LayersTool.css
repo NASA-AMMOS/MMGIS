@@ -1,0 +1,422 @@
+#layersTool {
+    overflow: hidden;
+    overflow-y: auto;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-flow: column;
+    background: var(--color-k);
+    box-shadow: inset 2px 0px 10px 0px rgba(0, 0, 0, 0.2);
+}
+
+#layersToolHeader {
+    width: 100%;
+}
+
+#layersTool #searchLayers {
+    display: flex;
+    height: 31px;
+    line-height: 30px;
+}
+
+#layersTool #filterLayers {
+    display: flex;
+    height: 40px;
+    line-height: 18px;
+    color: #ccc;
+    background: var(--color-a);
+    justify-content: space-between;
+}
+#layersTool #filterLayers #title {
+    height: 40px;
+    line-height: 40px;
+    font-size: 16px;
+    padding-left: 6px;
+    font-family: 'lato-light';
+    text-transform: uppercase;
+    color: var(--color-l);
+}
+#layersTool #filterLayers > div {
+    display: flex;
+}
+#layersTool #filterLayers > .right > div {
+    width: 24px;
+    height: 24px;
+    padding: 2px;
+    margin: 8px 3px;
+    text-align: center;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
+        border 0.1s cubic-bezier(0.445, 0.05, 0.55, 0.95),
+        color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+#layersTool #filterLayers .right > div {
+    color: #999;
+}
+#layersTool #filterLayers .right > div.on {
+    color: #ccc;
+}
+#layersTool #filterLayers div.vector.on {
+    border: 1px solid rgba(15, 119, 189, 0.75);
+    background: rgba(15, 119, 189, 0.5);
+}
+#layersTool #filterLayers div.tile.on {
+    border: 1px solid rgba(119, 15, 189, 0.75);
+    background: rgba(119, 15, 189, 0.5);
+}
+#layersTool #filterLayers div.vectortile.on {
+    border: 1px solid #bd0f8e;
+    background: #bd0f8e;
+}
+#layersTool #filterLayers div.data.on {
+    border: 1px solid rgba(189, 15, 50, 0.75);
+    background: rgba(189, 15, 50, 0.5);
+}
+#layersTool #filterLayers div.model.on {
+    border: 1px solid rgba(189, 189, 15, 0.75);
+    background: rgba(189, 189, 15, 0.5);
+}
+#layersTool #filterLayers div.visible.on {
+    border: 1px solid rgba(160, 160, 160, 0.75);
+    background: rgba(160, 160, 160, 0.5);
+}
+#layersTool #searchLayers input {
+    background: #111;
+    width: 187px;
+    color: #ccc;
+    padding-left: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+#layersTool #searchLayers .mdi-magnify {
+    position: absolute;
+    right: 66px;
+    color: #999;
+    line-height: 30px;
+    pointer-events: none;
+}
+
+#layersTool #searchLayers > div {
+    cursor: pointer;
+    color: #999;
+    transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+    width: 30px;
+    text-align: center;
+}
+#layersTool #searchLayers > div:hover {
+    color: #fff;
+}
+#layersTool #searchLayers > div#expand {
+    position: absolute;
+    right: 30px;
+}
+#layersTool #searchLayers > div#collapse {
+    position: absolute;
+    right: 0;
+}
+
+#layersTool #layersToolList {
+    list-style-type: none;
+    padding: 0;
+    margin: 0px 0px 0px 6px;
+}
+
+#layersToolList > li {
+    cursor: pointer;
+    display: flex;
+    flex-flow: column;
+    font-size: 14px;
+    margin: 1px 0px;
+    background: var(--color-j);
+    overflow: hidden;
+}
+#layersToolList > li.forceOff {
+    height: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+#layersToolList > li.forceOff2 {
+    height: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+#layersTool #layersToolList > li:first-child {
+    margin-top: 0px !important;
+}
+
+#layersToolList .title {
+    height: 24px;
+    line-height: 24px;
+    justify-content: space-between;
+    display: flex;
+    width: 100%;
+}
+
+#layersTool .layerExport,
+#layersTool .settings {
+    height: 0px;
+    opacity: 0;
+    border-left: 6px solid transparent;
+    overflow: hidden;
+    color: #ccc;
+}
+#layersTool .layerExport.vector,
+#layersTool .settings.vector {
+    border-color: rgb(15, 119, 189);
+}
+#layersTool .layerExport.tile,
+#layersTool .settings.tile {
+    border-color: rgb(119, 15, 189);
+}
+#layersTool .layerExport.vectortile,
+#layersTool .settings.vectortile {
+    border-color: #bd0f8e;
+}
+#layersTool .layerExport.data,
+#layersTool .settings.data {
+    border-color: rgb(189, 15, 50);
+}
+#layersTool .layerExport.model,
+#layersTool .settings.model {
+    border-color: rgb(189, 189, 15);
+}
+
+#layersTool .layerExport ul,
+#layersTool .settings ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+#layersTool .settings ul > li > div {
+    display: flex;
+    justify-content: space-between;
+}
+#layersTool .layerExport ul > li > div:hover {
+    color: white;
+}
+#layersTool .settings ul > li > div > div {
+    font-size: 13px;
+    color: #ddd;
+}
+#layersTool .settings ul > li .right {
+    display: flex;
+    justify-content: space-between;
+}
+#layersTool .settings ul > li input[type='range'] {
+    width: 70px;
+    margin-right: 0;
+}
+#layersTool .settings span {
+    font-size: 12px;
+    padding-left: 4px;
+}
+
+#layersTool #layersToolList > li.download_on,
+#layersTool #layersToolList > li.gears_on {
+    height: auto;
+    color: white;
+    background: #444;
+}
+#layersTool #layersToolList > li.download_on .layerExport,
+#layersTool #layersToolList > li.gears_on .settings {
+    height: auto;
+    opacity: 1;
+    padding: 2px 6px;
+}
+
+#layersTool .reset,
+#layersTool .layerDownload,
+#layersTool .gears {
+    width: 24px;
+    height: 100%;
+    text-align: center;
+    line-height: 24px;
+    cursor: pointer;
+    color: #ccc;
+    transition: color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+
+#layersTool .layerDownload,
+#layersTool .gears {
+    color: transparent;
+}
+#layersTool .reset {
+    display: none;
+}
+#layersTool #layersToolList > li.gears_on .reset {
+    display: block;
+}
+#layersTool .headercollapse:hover,
+#layersTool li.gears_on .gears,
+#layersTool li:hover .gears {
+    color: #fff;
+}
+#layersTool .headercollapse:hover,
+#layersTool li.download_on .layerDownload,
+#layersTool li:hover .layerDownload {
+    color: #fff;
+}
+
+#layersToolContent {
+    flex: 1;
+    overflow-y: scroll;
+}
+#layersToolContent #layersToolList {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+#layersTool .layerName {
+    line-height: 25px;
+    height: 100%;
+    flex: 1;
+    user-select: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+#layersTool .layerCount {
+    display: none;
+    background: rgba(255, 255, 255, 0.1);
+    font-size: 11px;
+    border-radius: 3px;
+    width: 18px;
+    height: 18px;
+    margin: 3px;
+    color: #ccc;
+    text-align: center;
+    line-height: 19px;
+}
+
+.layersToolColor {
+    width: 6px;
+    height: 100%;
+}
+.layersToolColor.vector {
+    background: rgb(15, 119, 189);
+}
+.layersToolColor.tile {
+    background: rgb(119, 15, 189);
+}
+.layersToolColor.vectortile {
+    background: #bd0f8e;
+}
+.layersToolColor.data {
+    background: rgb(189, 15, 50);
+}
+.layersToolColor.model {
+    background: rgb(189, 189, 15);
+}
+
+#LayersToolLayer.model {
+    height: 33px;
+    padding: 5px;
+    max-width: 100%;
+    display: flex;
+    border-top: 3px solid black;
+    background: #552f89;
+    user-select: none;
+}
+
+#layersTool .checkboxcont {
+    width: 24px;
+    height: 24px;
+}
+#layersTool .checkbox {
+    margin: 5px;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #777;
+    border-radius: 3px;
+    transition: background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
+        border 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+#layersTool .checkbox.on {
+    background: white;
+    border: 0px solid #777;
+}
+
+#layersettings {
+    height: 33px;
+    padding: 5px;
+    border-top: 3px solid black;
+}
+
+#dropmenu {
+    max-width: 100%;
+}
+
+#LayersTooltileLayer:hover {
+    font-weight: bolder;
+    color: white;
+}
+
+#LayersToolvectorLayer:hover {
+    font-weight: bolder;
+    color: #ffffff;
+}
+
+#LayersToolmodelLayer:hover {
+    font-weight: bolder;
+    color: white;
+}
+
+#layersettings div.off {
+    font-weight: normal;
+    color: white;
+    background: black;
+}
+
+#LayersToolopacitySlider {
+    background-color: '#333';
+    height: 100%;
+    padding: 0px;
+    margin: 0px;
+}
+
+#LayersToolNav {
+    padding: 0px 10px;
+    text-align: left;
+    background: #26a8ff;
+    box-shadow: 0px 4px 2px rgba(0, 0, 0, 0.2);
+}
+
+#LayersToolNav .LayersToolNavButton {
+    transition: background 0.2s ease-out;
+    height: 30px;
+    display: inline-flex;
+    text-align: center;
+    line-height: 30px;
+    border-radius: 1px;
+    vertical-align: middle;
+    cursor: pointer;
+    padding: 0px 6px 0px 4px;
+    color: rgba(255, 255, 255, 0.5);
+    transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+
+#layersTool .dropdown {
+    background-color: #222;
+    border: none;
+    margin-top: 1px;
+    width: 70px;
+    height: 15px;
+    font-size: 12px;
+    color: var(--color-f);
+    padding-left: 3px;
+    appearance: none;
+}
+
+#layersTool .layernotfound {
+    background: #260d0d;
+    cursor: not-allowed;
+}
+#layersTool .layernotfound > div {
+    pointer-events: none;
+}
+
+#layersTool .layernotfound .checkboxcont .checkbox {
+    background: transparent !important;
+    border: 2px solid #777 !important;
+}

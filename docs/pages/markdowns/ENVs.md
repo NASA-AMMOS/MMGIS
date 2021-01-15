@@ -53,7 +53,7 @@ Password of Postgres database | string | default `null`
 
 #### `CSSO_GROUPS=`
 
-A list of CSSO LDAP groups that have access | array of string | default `[]`
+A list of CSSO LDAP groups that have access | string[] | default `[]`
 
 ## Optional Variables
 
@@ -65,9 +65,9 @@ Port to run on | positive integer | default `3000`
 
 Potentially logs a bunch of extra stuff for development purposes | bool | default `false`
 
-#### `ALLOW_EMBED=`
+#### `FRAME_ANCESTORS=`
 
-If true, removes the `X-Frame-Options: SAMEORIGIN` header to allow the embedding of MMGIS in external sites | bool | default `false`
+Sets the `Content-Security-Policy: frame-ancestors` header to allow the embedding of MMGIS in the specified external sites | string[] | default `null`
 
 #### `DISABLE_LINK_SHORTENER=`
 
@@ -77,17 +77,13 @@ If true, users that use the 'Copy Link' feature will receive a full-length deep 
 
 Make the configure page inaccessible to everyone | bool | default `false`
 
-#### `CONFIGCONFIG_PATH=`
-
-The path to a json file that sets up the configure page that overrides the database's record | string | default `''`
-
 #### `FORCE_CONFIG_PATH=`
 
 The path to a json config file that acts as the only configured mission for the instance | string | default `''`
 
 #### `LEADS=`
 
-When not using AUTH=csso, this is a list of usernames to be treated as leads (users with elevated permissions) | array of strings | default `[]`
+When not using AUTH=csso, this is a list of usernames to be treated as leads (users with elevated permissions) | string[] | default `[]`
 
 #### `CSSO_LEAD_GROUP=`
 

@@ -2,19 +2,11 @@ const router = require("./routes/configs");
 
 let setup = {
   //Once the app initializes
-  onceInit: s => {
+  onceInit: (s) => {
     if (
       !process.env.hasOwnProperty("HIDE_CONFIG") ||
       process.env.HIDE_CONFIG != "true"
     ) {
-      s.app.use(
-        "/API/configure",
-        s.ensureAdmin(),
-        s.checkHeadersCodeInjection,
-        s.setContentType,
-        router
-      );
-
       s.app.get(
         "/configure",
         s.ensureGroup(s.permissions.users),
@@ -25,16 +17,23 @@ let setup = {
             user: user,
             AUTH: process.env.AUTH,
             NODE_ENV: process.env.NODE_ENV,
-            CONFIGCONFIG_PATH: process.env.CONFIGCONFIG_PATH
           });
         }
       );
     }
+
+    s.app.use(
+      "/API/configure",
+      s.ensureAdmin(),
+      s.checkHeadersCodeInjection,
+      s.setContentType,
+      router
+    );
   },
   //Once the server starts
-  onceStarted: s => {},
+  onceStarted: (s) => {},
   //Once all tables sync
-  onceSynced: s => {}
+  onceSynced: (s) => {},
 };
 
 module.exports = setup;

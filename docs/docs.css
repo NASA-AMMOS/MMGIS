@@ -178,7 +178,7 @@ body {
 }
 
 #markdown img {
-  width: 100%;
+  max-width: 100%;
 }
 
 #markdown h1,
