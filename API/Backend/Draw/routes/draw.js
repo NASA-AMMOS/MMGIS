@@ -17,7 +17,7 @@ const { sequelize } = require("../../../connection");
 const router = express.Router();
 const db = database.db;
 
-router.post("/", function(req, res, next) {
+router.post("/", function (req, res, next) {
   res.send("test draw");
 });
 
@@ -51,23 +51,23 @@ const pushToHistory = (
   failureCallback
 ) => {
   Table.findAll({
+    limit: 1,
     where: {
-      file_id: file_id
-    }
+      file_id: file_id,
+    },
+    order: [["history_id", "DESC"]],
   })
-    .then(histories => {
+    .then((lastHistory) => {
       let maxHistoryId = -Infinity;
-      if (histories && histories.length > 0) {
-        for (let i = 0; i < histories.length; i++) {
-          maxHistoryId = Math.max(histories[i].history_id, maxHistoryId);
-        }
+      let bestI = -1;
+      if (lastHistory && lastHistory.length > 0) {
         return {
-          historyIndex: maxHistoryId + 1,
-          history: histories[maxHistoryId].history
+          historyIndex: lastHistory[0].history_id + 1,
+          history: lastHistory[0].history,
         };
       } else return { historyIndex: 0, history: [] };
     })
-    .then(historyObj => {
+    .then((historyObj) => {
       getNextHistory(
         Table,
         historyObj.history,
@@ -76,25 +76,25 @@ const pushToHistory = (
         feature_idRemove,
         file_id,
         undoToTime,
-        h => {
+        (h) => {
           let newHistoryEntry = {
             file_id: file_id,
             history_id: historyObj.historyIndex,
             time: time,
             action_index: action_index,
-            history: h
+            history: h,
           };
           // Insert new entry into the history table
           Table.create(newHistoryEntry)
-            .then(created => {
+            .then((created) => {
               successCallback();
               return null;
             })
-            .catch(err => {
+            .catch((err) => {
               failureCallback(err);
             });
         },
-        err => {
+        (err) => {
           failureCallback(err);
         }
       );
@@ -133,14 +133,14 @@ const getNextHistory = (
       Table.findOne({
         where: {
           file_id: file_id,
-          time: undoToTime
-        }
+          time: undoToTime,
+        },
       })
-        .then(history => {
+        .then((history) => {
           successCallback(history.history);
           return null;
         })
-        .catch(err => {
+        .catch((err) => {
           failureCallback(err);
           return null;
         });
@@ -165,7 +165,7 @@ const getNextHistory = (
  * @param {number} file_id
  * @param {number} added_id
  */
-const clipOver = function(
+const clipOver = function (
   req,
   res,
   file_id,
@@ -178,23 +178,23 @@ const clipOver = function(
 
   //CLIP OVER
   Histories.findAll({
+    limit: 1,
     where: {
-      file_id: file_id
-    }
+      file_id: file_id,
+    },
+    order: [["history_id", "DESC"]],
   })
-    .then(histories => {
+    .then((lastHistory) => {
       let maxHistoryId = -Infinity;
-      if (histories && histories.length > 0) {
-        for (let i = 0; i < histories.length; i++) {
-          maxHistoryId = Math.max(histories[i].history_id, maxHistoryId);
-        }
+      let bestI = -1;
+      if (lastHistory && lastHistory.length > 0) {
         return {
-          historyIndex: maxHistoryId + 1,
-          history: histories[maxHistoryId].history
+          historyIndex: lastHistory[0].history_id + 1,
+          history: lastHistory[0].history,
         };
       } else return { historyIndex: 0, history: [] };
     })
-    .then(historyObj => {
+    .then((historyObj) => {
       let history = historyObj.history;
       history = history.join(",");
       history = history || "NULL";
@@ -221,16 +221,16 @@ const clipOver = function(
           ")",
         ") data",
         "WHERE data.newgeom IS NOT NULL",
-        ") AS clipped"
+        ") AS clipped",
       ].join(" ");
       sequelize
         .query(q, {
           replacements: {
             file_id: file_id,
-            added_id: added_id
-          }
+            added_id: added_id,
+          },
         })
-        .spread(results => {
+        .spread((results) => {
           let oldIds = [];
           let newIds = [added_id];
 
@@ -248,7 +248,7 @@ const clipOver = function(
                 () => {
                   if (typeof successCallback === "function") successCallback();
                 },
-                err => {
+                (err) => {
                   if (typeof failureCallback === "function")
                     failureCallback(err);
                 },
@@ -259,21 +259,21 @@ const clipOver = function(
             let newReq = Object.assign({}, req);
             results[i].newgeom.crs = {
               type: "name",
-              properties: { name: "EPSG:4326" }
+              properties: { name: "EPSG:4326" },
             };
             newReq.body = {
               file_id: file_id,
               feature_id: results[i].id,
               geometry: results[i].newgeom,
               to_history: false,
-              test: req.body.test
+              test: req.body.test,
             };
 
             if (oldIds.indexOf(results[i].id) == -1) oldIds.push(results[i].id);
             edit(
               newReq,
               res,
-              newId => {
+              (newId) => {
                 newIds.push(newId);
                 editLoop(i + 1);
               },
@@ -285,18 +285,18 @@ const clipOver = function(
 
           return null;
         })
-        .catch(err => {
+        .catch((err) => {
           failureCallback(err);
         });
 
       return null;
     })
-    .catch(err => {
+    .catch((err) => {
       failureCallback(err);
     });
 };
 
-const clipUnder = function(
+const clipUnder = function (
   req,
   res,
   newFeature,
@@ -308,23 +308,23 @@ const clipUnder = function(
   let Histories = req.body.test === "true" ? FilehistoriesTEST : Filehistories;
 
   Histories.findAll({
+    limit: 1,
     where: {
-      file_id: newFeature.file_id
-    }
+      file_id: newFeature.file_id,
+    },
+    order: [["history_id", "DESC"]],
   })
-    .then(histories => {
+    .then((lastHistory) => {
       let maxHistoryId = -Infinity;
-      if (histories && histories.length > 0) {
-        for (let i = 0; i < histories.length; i++) {
-          maxHistoryId = Math.max(histories[i].history_id, maxHistoryId);
-        }
+      let bestI = -1;
+      if (lastHistory && lastHistory.length > 0) {
         return {
-          historyIndex: maxHistoryId + 1,
-          history: histories[maxHistoryId].history
+          historyIndex: lastHistory[0].history_id + 1,
+          history: lastHistory[0].history,
         };
       } else return { historyIndex: 0, history: [] };
     })
-    .then(historyObj => {
+    .then((historyObj) => {
       let history = historyObj.history;
       history = history.join(",");
       history = history || "NULL";
@@ -360,16 +360,16 @@ const clipUnder = function(
         "SELECT c.n, c.clippedgeom as clippedgeom FROM clipper c",
         "WHERE c.clippedgeom IS NOT NULL",
         "ORDER by c.n DESC LIMIT 1",
-        ") AS clipped"
+        ") AS clipped",
       ].join(" ");
 
       sequelize
         .query(q, {
           replacements: {
-            geom: JSON.stringify(newFeature.geom)
-          }
+            geom: JSON.stringify(newFeature.geom),
+          },
         })
-        .spread(results => {
+        .spread((results) => {
           let oldIds = [];
           let newIds = [];
 
@@ -387,7 +387,7 @@ const clipUnder = function(
                 () => {
                   if (typeof successCallback === "function") successCallback();
                 },
-                err => {
+                (err) => {
                   if (typeof failureCallback === "function")
                     failureCallback(err);
                 }
@@ -399,7 +399,7 @@ const clipUnder = function(
             clippedFeature.geom = JSON.parse(results[i].geom);
             clippedFeature.geom.crs = {
               type: "name",
-              properties: { name: "EPSG:4326" }
+              properties: { name: "EPSG:4326" },
             };
             clippedFeature.properties.uuid = uuidv4();
             clippedFeature.properties = JSON.stringify(
@@ -407,13 +407,13 @@ const clipUnder = function(
             );
 
             Features.create(clippedFeature)
-              .then(created => {
+              .then((created) => {
                 newIds.push(created.id);
                 //now update the
                 addLoop(i + 1);
                 return null;
               })
-              .catch(err => {
+              .catch((err) => {
                 addLoop(i + 1);
                 return null;
                 //failureCallback();
@@ -422,13 +422,13 @@ const clipUnder = function(
 
           return null;
         })
-        .catch(err => {
+        .catch((err) => {
           failureCallback(err);
         });
 
       return null;
     })
-    .catch(err => {
+    .catch((err) => {
       failureCallback(err);
     });
 };
@@ -445,7 +445,7 @@ const clipUnder = function(
  * 	geometry: <geometry> (required)
  * }
  */
-const add = function(
+const add = function (
   req,
   res,
   successCallback,
@@ -471,11 +471,11 @@ const add = function(
         file_owner: req.user,
         [Sequelize.Op.and]: {
           file_owner: "group",
-          file_owner_group: { [Sequelize.Op.overlap]: groups }
-        }
-      }
-    }
-  }).then(file => {
+          file_owner_group: { [Sequelize.Op.overlap]: groups },
+        },
+      },
+    },
+  }).then((file) => {
     if (!file) {
       if (typeof failureCallback1 === "function") failureCallback1();
     } else {
@@ -485,10 +485,10 @@ const add = function(
 
       Features.findAll({
         where: {
-          file_id: req.body.file_id
-        }
+          file_id: req.body.file_id,
+        },
       })
-        .then(features => {
+        .then((features) => {
           let maxLevel = -Infinity;
           let minLevel = Infinity;
           if (features && features.length > 0) {
@@ -500,7 +500,7 @@ const add = function(
             else return minLevel - 1;
           } else return 0;
         })
-        .then(level => {
+        .then((level) => {
           let properties = req.body.properties || {};
           //Remove _ from properties if it has it. This is because the server returns metadata
           // under _ and we don't want it to potentially nest
@@ -516,7 +516,7 @@ const add = function(
             intent: req.body.intent,
             elevated: "0",
             properties: properties,
-            geom: geom
+            geom: geom,
           };
 
           if (req.body.clip === "under") {
@@ -529,7 +529,7 @@ const add = function(
                 if (typeof successCallback === "function")
                   successCallback(createdId, createdIntent);
               },
-              err => {
+              (err) => {
                 if (typeof failureCallback2 === "function")
                   failureCallback2(err);
               }
@@ -540,7 +540,7 @@ const add = function(
             newFeature.properties = JSON.stringify(newFeature.properties);
             // Insert new feature into the feature table
             Features.create(newFeature)
-              .then(created => {
+              .then((created) => {
                 if (req.body.to_history) {
                   let id = created.id;
                   if (req.body.bulk_ids != null) {
@@ -558,7 +558,7 @@ const add = function(
                         if (typeof successCallback === "function")
                           successCallback(created.id, created.intent);
                       },
-                      err => {
+                      (err) => {
                         if (typeof failureCallback2 === "function")
                           failureCallback2(err);
                       }
@@ -576,7 +576,7 @@ const add = function(
                         if (typeof successCallback === "function")
                           successCallback(created.id, created.intent);
                       },
-                      err => {
+                      (err) => {
                         if (typeof failureCallback2 === "function")
                           failureCallback2(err);
                       }
@@ -588,7 +588,7 @@ const add = function(
                 }
                 return null;
               })
-              .catch(err => {
+              .catch((err) => {
                 if (typeof failureCallback2 === "function")
                   failureCallback2(err);
               });
@@ -598,7 +598,7 @@ const add = function(
     }
   });
 };
-router.post("/add", function(req, res, next) {
+router.post("/add", function (req, res, next) {
   add(
     req,
     res,
@@ -607,23 +607,23 @@ router.post("/add", function(req, res, next) {
       res.send({
         status: "success",
         message: "Successfully added a new feature.",
-        body: { id: id, intent: intent }
+        body: { id: id, intent: intent },
       });
     },
-    err => {
+    (err) => {
       logger("error", "Failed to access file.", req.originalUrl, req, err);
       res.send({
         status: "failure",
         message: "Failed to access file.",
-        body: {}
+        body: {},
       });
     },
-    err => {
+    (err) => {
       logger("error", "Failed to add new feature.", req.originalUrl, req, err);
       res.send({
         status: "failure",
         message: "Failed to add new feature.",
-        body: {}
+        body: {},
       });
     }
   );
@@ -641,7 +641,7 @@ router.post("/add", function(req, res, next) {
  * 	geometry: <geometry> (optional)
  * }
  */
-const edit = function(req, res, successCallback, failureCallback) {
+const edit = function (req, res, successCallback, failureCallback) {
   let Files = req.body.test === "true" ? UserfilesTEST : Userfiles;
   let Features = req.body.test === "true" ? UserfeaturesTEST : Userfeatures;
   let Histories = req.body.test === "true" ? FilehistoriesTEST : Filehistories;
@@ -660,30 +660,30 @@ const edit = function(req, res, successCallback, failureCallback) {
         file_owner: req.user,
         [Sequelize.Op.and]: {
           file_owner: "group",
-          file_owner_group: { [Sequelize.Op.overlap]: groups }
-        }
-      }
-    }
+          file_owner_group: { [Sequelize.Op.overlap]: groups },
+        },
+      },
+    },
   })
-    .then(file => {
+    .then((file) => {
       if (!file) {
         failureCallback();
       } else {
         Features.findOne({
           where: {
             id: req.body.feature_id,
-            file_id: req.body.file_id
+            file_id: req.body.file_id,
           },
           attributes: {
             include: [
               [
                 Sequelize.fn("ST_AsGeoJSON", Sequelize.col("geom")),
-                "geojson_geom"
-              ]
-            ]
-          }
+                "geojson_geom",
+              ],
+            ],
+          },
         })
-          .then(feature => {
+          .then((feature) => {
             if (!feature && !req.body.addIfNotFound) {
               failureCallback();
             } else {
@@ -721,11 +721,11 @@ const edit = function(req, res, successCallback, failureCallback) {
 
               newAttributes.geom.crs = {
                 type: "name",
-                properties: { name: "EPSG:4326" }
+                properties: { name: "EPSG:4326" },
               };
 
               Features.create(newAttributes)
-                .then(created => {
+                .then((created) => {
                   let createdId = created.id;
                   let createdUUID = JSON.parse(created.properties).uuid;
                   let createdIntent = created.intent;
@@ -742,7 +742,7 @@ const edit = function(req, res, successCallback, failureCallback) {
                       () => {
                         successCallback(createdId, createdUUID, createdIntent);
                       },
-                      err => {
+                      (err) => {
                         failureCallback(err);
                       }
                     );
@@ -751,25 +751,25 @@ const edit = function(req, res, successCallback, failureCallback) {
                   }
                   return null;
                 })
-                .catch(err => {
+                .catch((err) => {
                   failureCallback(err);
                 });
             }
             return null;
           })
-          .catch(err => {
+          .catch((err) => {
             failureCallback(err);
           });
       }
 
       return null;
     })
-    .catch(err => {
+    .catch((err) => {
       failureCallback(err);
     });
 };
 
-router.post("/edit", function(req, res) {
+router.post("/edit", function (req, res) {
   edit(
     req,
     res,
@@ -778,15 +778,15 @@ router.post("/edit", function(req, res) {
       res.send({
         status: "success",
         message: "Successfully edited feature.",
-        body: { id: createdId, uuid: createdUUID, intent: createdIntent }
+        body: { id: createdId, uuid: createdUUID, intent: createdIntent },
       });
     },
-    err => {
+    (err) => {
       logger("error", "Failed to edit feature.", req.originalUrl, req, err);
       res.send({
         status: "failure",
         message: "Failed to edit feature.",
-        body: {}
+        body: {},
       });
     }
   );
@@ -799,7 +799,7 @@ router.post("/edit", function(req, res) {
  *  feature_id: <number> (required)
  * }
  */
-router.post("/remove", function(req, res, next) {
+router.post("/remove", function (req, res, next) {
   let Files = req.body.test === "true" ? UserfilesTEST : Userfiles;
   let Features = req.body.test === "true" ? UserfeaturesTEST : Userfeatures;
   let Histories = req.body.test === "true" ? FilehistoriesTEST : Filehistories;
@@ -816,28 +816,28 @@ router.post("/remove", function(req, res, next) {
         file_owner: req.user,
         [Sequelize.Op.and]: {
           file_owner: "group",
-          file_owner_group: { [Sequelize.Op.overlap]: groups }
-        }
-      }
-    }
-  }).then(file => {
+          file_owner_group: { [Sequelize.Op.overlap]: groups },
+        },
+      },
+    },
+  }).then((file) => {
     if (!file) {
       logger("error", "Failed to access file.", req.originalUrl, req);
       res.send({
         status: "failure",
         message: "Failed to access file.",
-        body: {}
+        body: {},
       });
     } else {
       Features.update(
         {
-          extant_end: time
+          extant_end: time,
         },
         {
           where: {
             file_id: req.body.file_id,
-            id: req.body.id
-          }
+            id: req.body.id,
+          },
         }
       )
         .then(() => {
@@ -855,10 +855,10 @@ router.post("/remove", function(req, res, next) {
               res.send({
                 status: "success",
                 message: "Feature removed.",
-                body: {}
+                body: {},
               });
             },
-            err => {
+            (err) => {
               logger(
                 "error",
                 "Failed to remove feature.",
@@ -869,14 +869,14 @@ router.post("/remove", function(req, res, next) {
               res.send({
                 status: "failure",
                 message: "Failed to remove feature.",
-                body: {}
+                body: {},
               });
             }
           );
 
           return null;
         })
-        .catch(err => {
+        .catch((err) => {
           logger(
             "error",
             "Failed to find and remove feature.",
@@ -887,7 +887,7 @@ router.post("/remove", function(req, res, next) {
           res.send({
             status: "failure",
             message: "Failed to find and remove feature.",
-            body: {}
+            body: {},
           });
         });
     }
@@ -903,7 +903,7 @@ router.post("/remove", function(req, res, next) {
  *  undo_time: <number> (required)
  * }
  */
-router.post("/undo", function(req, res, next) {
+router.post("/undo", function (req, res, next) {
   let Files = req.body.test === "true" ? UserfilesTEST : Userfiles;
   let Features = req.body.test === "true" ? UserfeaturesTEST : Userfeatures;
   let Histories = req.body.test === "true" ? FilehistoriesTEST : Filehistories;
@@ -920,17 +920,17 @@ router.post("/undo", function(req, res, next) {
         file_owner: req.user,
         [Sequelize.Op.and]: {
           file_owner: "group",
-          file_owner_group: { [Sequelize.Op.overlap]: groups }
-        }
-      }
-    }
-  }).then(file => {
+          file_owner_group: { [Sequelize.Op.overlap]: groups },
+        },
+      },
+    },
+  }).then((file) => {
     if (!file) {
       logger("error", "Failed to access file.", req.originalUrl, req);
       res.send({
         status: "failure",
         message: "Failed to access file.",
-        body: {}
+        body: {},
       });
     } else {
       Features.update(
@@ -945,7 +945,7 @@ router.post("/undo", function(req, res, next) {
             Sequelize.col("trimmed_at"),
             String(time)
           ),
-          trimmed_at_final: time
+          trimmed_at_final: time,
         },
         {
           where: {
@@ -954,24 +954,24 @@ router.post("/undo", function(req, res, next) {
             [Sequelize.Op.or]: {
               [Sequelize.Op.and]: {
                 extant_start: {
-                  [Sequelize.Op.gt]: req.body.undo_time
+                  [Sequelize.Op.gt]: req.body.undo_time,
                 },
                 [Sequelize.Op.or]: {
                   extant_end: {
-                    [Sequelize.Op.gt]: req.body.undo_time
+                    [Sequelize.Op.gt]: req.body.undo_time,
                   },
-                  extant_end: null
-                }
+                  extant_end: null,
+                },
               },
               trimmed_at_final: {
                 //undo time less than any trimmed end value
-                [Sequelize.Op.lte]: time
-              }
-            }
-          }
+                [Sequelize.Op.lte]: time,
+              },
+            },
+          },
         }
       )
-        .then(r => {
+        .then((r) => {
           pushToHistory(
             Histories,
             req.body.file_id,
@@ -985,27 +985,27 @@ router.post("/undo", function(req, res, next) {
               res.send({
                 status: "success",
                 message: "Undo successful.",
-                body: {}
+                body: {},
               });
             },
-            err => {
+            (err) => {
               logger("error", "Failed to undo.", req.originalUrl, req, err);
               res.send({
                 status: "failure",
                 message: "Failed to undo.",
-                body: {}
+                body: {},
               });
             }
           );
 
           return null;
         })
-        .catch(err => {
+        .catch((err) => {
           logger("error", "Failed to undo file.", req.originalUrl, req, err);
           res.send({
             status: "failure",
             message: "Failed to undo file.",
-            body: {}
+            body: {},
           });
         });
     }
@@ -1022,7 +1022,7 @@ router.post("/undo", function(req, res, next) {
  *  ids: <int array> - of all the ids to merge together
  * }
  */
-router.post("/merge", function(req, res, next) {
+router.post("/merge", function (req, res, next) {
   let Files = req.body.test === "true" ? UserfilesTEST : Userfiles;
   let Features = req.body.test === "true" ? UserfeaturesTEST : Userfeatures;
   let Histories = req.body.test === "true" ? FilehistoriesTEST : Filehistories;
@@ -1044,24 +1044,24 @@ router.post("/merge", function(req, res, next) {
         file_owner: req.user,
         [Sequelize.Op.and]: {
           file_owner: "group",
-          file_owner_group: { [Sequelize.Op.overlap]: groups }
-        }
-      }
-    }
-  }).then(file => {
+          file_owner_group: { [Sequelize.Op.overlap]: groups },
+        },
+      },
+    },
+  }).then((file) => {
     if (!file) {
       logger("error", "Failed to access file.", req.originalUrl, req);
       res.send({
         status: "failure",
         message: "Failed to access file.",
-        body: {}
+        body: {},
       });
     } else {
       Features.findOne({
         where: {
-          id: req.body.prop_id
-        }
-      }).then(feature => {
+          id: req.body.prop_id,
+        },
+      }).then((feature) => {
         let ids = req.body.ids;
         ids = ids.join(",");
         ids = ids || "NULL";
@@ -1076,7 +1076,7 @@ router.post("/merge", function(req, res, next) {
               (req.body.test === "true" ? "_tests" : "") +
               " AS a",
             "WHERE a.id IN (" + ids + ") AND a.file_id = :file_id",
-            ") AS mergedgeom"
+            ") AS mergedgeom",
           ].join(" ");
         } else {
           q = [
@@ -1091,17 +1091,17 @@ router.post("/merge", function(req, res, next) {
             "WHERE a.id IN (" + ids + ")",
             "))",
             "), -0.00001,'join=mitre') AS geom",
-            ") AS mergedgeom"
+            ") AS mergedgeom",
           ].join(" ");
         }
         sequelize
           .query(q, {
             replacements: {
-              file_id: req.body.file_id
-            }
+              file_id: req.body.file_id,
+            },
           })
-          .spread(results => {
-            let oldIds = req.body.ids.map(function(id) {
+          .spread((results) => {
+            let oldIds = req.body.ids.map(function (id) {
               return parseInt(id, 10);
             });
 
@@ -1133,10 +1133,10 @@ router.post("/merge", function(req, res, next) {
                         "Successfully merged " +
                         req.body.ids.length +
                         " features.",
-                      body: { ids: newIds }
+                      body: { ids: newIds },
                     });
                   },
-                  err => {
+                  (err) => {
                     logger(
                       "error",
                       "Merge failure.",
@@ -1147,7 +1147,7 @@ router.post("/merge", function(req, res, next) {
                     res.send({
                       status: "failure",
                       message: "Merge failure.",
-                      body: {}
+                      body: {},
                     });
                   }
                 );
@@ -1157,17 +1157,17 @@ router.post("/merge", function(req, res, next) {
               mergedFeature.geom = JSON.parse(results[i].merged);
               mergedFeature.geom.crs = {
                 type: "name",
-                properties: { name: "EPSG:4326" }
+                properties: { name: "EPSG:4326" },
               };
               delete mergedFeature.id;
 
               Features.create(mergedFeature)
-                .then(created => {
+                .then((created) => {
                   newIds.push(created.id);
                   addLoop(i + 1);
                   return null;
                 })
-                .catch(err => {
+                .catch((err) => {
                   addLoop(i + 1);
                   return null;
                   //failureCallback();
@@ -1187,7 +1187,7 @@ router.post("/merge", function(req, res, next) {
  *  ids: <int array> - of all the ids to perform the split against
  * }
  */
-router.post("/split", function(req, res, next) {
+router.post("/split", function (req, res, next) {
   let Files = req.body.test === "true" ? UserfilesTEST : Userfiles;
   let Features = req.body.test === "true" ? UserfeaturesTEST : Userfeatures;
   let Histories = req.body.test === "true" ? FilehistoriesTEST : Filehistories;
@@ -1207,18 +1207,18 @@ router.post("/split", function(req, res, next) {
         file_owner: req.user,
         [Sequelize.Op.and]: {
           file_owner: "group",
-          file_owner_group: { [Sequelize.Op.overlap]: groups }
-        }
-      }
-    }
+          file_owner_group: { [Sequelize.Op.overlap]: groups },
+        },
+      },
+    },
   })
-    .then(file => {
+    .then((file) => {
       if (!file) {
         logger("error", "Failed to access file.", req.originalUrl, req);
         res.send({
           status: "failure",
           message: "Failed to access file.",
-          body: {}
+          body: {},
         });
       } else {
         let ids = req.body.ids;
@@ -1234,16 +1234,16 @@ router.post("/split", function(req, res, next) {
           "SELECT id, file_id, level, intent, properties, geom",
           "FROM user_features AS a",
           "WHERE a.id IN (" + ids + ") AND a.file_id = :file_id",
-          ") AS g"
+          ") AS g",
         ].join(" ");
         sequelize
           .query(q, {
             replacements: {
               file_id: parseInt(req.body.file_id),
-              geom: JSON.stringify(geom)
-            }
+              geom: JSON.stringify(geom),
+            },
           })
-          .spread(results => {
+          .spread((results) => {
             //reformat results
             let r = [];
             for (var i = 0; i < results.length; i++) {
@@ -1255,12 +1255,12 @@ router.post("/split", function(req, res, next) {
                     intent: results[i].intent,
                     level: results[i].level,
                     properties: results[i].properties,
-                    geom: results[i].st_split.geometries[j]
+                    geom: results[i].st_split.geometries[j],
                   });
               }
             }
 
-            let oldIds = req.body.ids.map(function(id) {
+            let oldIds = req.body.ids.map(function (id) {
               return parseInt(id, 10);
             });
 
@@ -1283,10 +1283,10 @@ router.post("/split", function(req, res, next) {
                         "Successfully split " +
                         req.body.ids.length +
                         " features.",
-                      body: { ids: newIds }
+                      body: { ids: newIds },
                     });
                   },
-                  err => {
+                  (err) => {
                     logger(
                       "error",
                       "Split failure.",
@@ -1297,7 +1297,7 @@ router.post("/split", function(req, res, next) {
                     res.send({
                       status: "failure",
                       message: "Split failure.",
-                      body: {}
+                      body: {},
                     });
                   }
                 );
@@ -1305,12 +1305,12 @@ router.post("/split", function(req, res, next) {
               }
 
               Features.create(r[i])
-                .then(created => {
+                .then((created) => {
                   newIds.push(created.id);
                   addLoop(i + 1);
                   return null;
                 })
-                .catch(err => {
+                .catch((err) => {
                   console.log(err);
                   addLoop(i + 1);
                   return null;
@@ -1319,12 +1319,12 @@ router.post("/split", function(req, res, next) {
 
             return null;
           })
-          .catch(err => {
+          .catch((err) => {
             logger("error", "Failed to split.", req.originalUrl, req, err);
             res.send({
               status: "failure",
               message: "Failed to split.",
-              body: {}
+              body: {},
             });
 
             return null;
@@ -1332,34 +1332,34 @@ router.post("/split", function(req, res, next) {
       }
       return null;
     })
-    .catch(err => {
+    .catch((err) => {
       logger("error", "Failed to split.", req.originalUrl, req, err);
       res.send({
         status: "failure",
         message: "Failed to split.",
-        body: {}
+        body: {},
       });
 
       return null;
     });
 });
 
-router.post("/replace", function(req, res, next) {
+router.post("/replace", function (req, res, next) {
   res.send("test draw replace");
 });
 
-router.post("/sendtofront", function(req, res, next) {
+router.post("/sendtofront", function (req, res, next) {
   res.send("test draw front");
 });
 
-router.post("/sendtoback", function(req, res, next) {
+router.post("/sendtoback", function (req, res, next) {
   res.send("test draw back");
 });
 
 /**
  * Clears out testing tables
  */
-router.post("/clear_test", function(req, res, next) {
+router.post("/clear_test", function (req, res, next) {
   sequelize
     .query('TRUNCATE TABLE "user_features_tests" RESTART IDENTITY')
     .then(() => {
@@ -1383,7 +1383,7 @@ router.post("/clear_test", function(req, res, next) {
                     res.send({
                       status: "success",
                       message: "Successfully cleared tables.",
-                      body: {}
+                      body: {},
                     });
 
                     return null;
@@ -1391,7 +1391,7 @@ router.post("/clear_test", function(req, res, next) {
 
                   return null;
                 })
-                .catch(err => {
+                .catch((err) => {
                   logger(
                     "error",
                     "Failed to clear 1 test table. (C)",
@@ -1402,14 +1402,14 @@ router.post("/clear_test", function(req, res, next) {
                   res.send({
                     status: "failure",
                     message: "Failed to clear 1 table.",
-                    body: {}
+                    body: {},
                   });
 
                   return null;
                 });
               return null;
             })
-            .catch(err => {
+            .catch((err) => {
               logger(
                 "error",
                 "Failed to clear 1 test table. (B)",
@@ -1420,14 +1420,14 @@ router.post("/clear_test", function(req, res, next) {
               res.send({
                 status: "failure",
                 message: "Failed to clear 1 table.",
-                body: {}
+                body: {},
               });
               return null;
             });
 
           return null;
         })
-        .catch(err => {
+        .catch((err) => {
           logger(
             "error",
             "Failed to clear 1 test table. (A)",
@@ -1438,14 +1438,14 @@ router.post("/clear_test", function(req, res, next) {
           res.send({
             status: "failure",
             message: "Failed to clear 1 table.",
-            body: {}
+            body: {},
           });
           return null;
         });
 
       return null;
     })
-    .catch(err => {
+    .catch((err) => {
       logger(
         "error",
         "Failed to clear both test tables.",
@@ -1456,7 +1456,7 @@ router.post("/clear_test", function(req, res, next) {
       res.send({
         status: "failure",
         message: "Failed to clear both tables",
-        body: {}
+        body: {},
       });
 
       return null;
@@ -1483,9 +1483,9 @@ const makeMasterFilesTEST = (leadGroupName, callback) => {
         is_master: true,
         intent: intent,
         public: "1",
-        hidden: "0"
-      }
-    }).spread(function(userResult, created) {
+        hidden: "0",
+      },
+    }).spread(function (userResult, created) {
       makeMasterFileTEST(i + 1, Table);
       return null;
     });

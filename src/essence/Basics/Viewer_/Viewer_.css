@@ -1,0 +1,59 @@
+#viewer #viewer_loading {
+    opacity: 0;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    height: 30px;
+    font-family: 'roboto';
+    letter-spacing: 2px;
+    font-size: 20px;
+    line-height: 30px;
+    color: var(--color-f);
+    padding: 0px 18px;
+    background: var(--color-a);
+    pointer-events: none;
+    transition: opacity 0.5s ease-in;
+}
+
+#viewer #viewer_help {
+    letter-spacing: 2px;
+    font-size: 14px;
+    color: #bbb;
+    text-align: right;
+    display: none;
+}
+
+#viewer #viewerDeviceOrientationButton {
+    display: flex;
+    justify-content: space-between;
+    position: absolute;
+    left: 5px;
+    bottom: 15px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: #fff;
+    font: normal 13px sans-serif;
+    text-align: left;
+    opacity: 0.4;
+    outline: none;
+    z-index: 999;
+    white-space: nowrap;
+    transition: opacity 0.2s ease-out;
+}
+#viewer_dropdownselector {
+    min-width: 30%;
+}
+#viewer_dropdownselector .dropy {
+    background: var(--color-a);
+    margin-bottom: 0;
+    font-size: 14px !important;
+}
+
+#viewer_Help {
+    display: none;
+    position: absolute;
+    left: 0;
+    top: 40px;
+}

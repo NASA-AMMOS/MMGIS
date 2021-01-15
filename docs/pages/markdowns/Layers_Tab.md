@@ -73,7 +73,7 @@ The unique display name and identifier of the layer. It must be unique and conta
 #### URL
 
 _type:_ string  
-A file path that points to a tileset's directory. If the path is relative, it will be relative to the mission's directory. The URL must contain a proper placeholder ending such as: `{z}/{x}/{y}.png`
+A file path that points to a tileset's directory. If the path is relative, it will be relative to the mission's directory. The URL must contain a proper placeholder ending such as: `{z}/{x}/{y}.png`. See the "Tile Format" section below for more details.
 
 #### DEM Tile URL
 
@@ -85,10 +85,15 @@ A file path like URL but pointing to a Digital Elevation Map tileset generated b
 _type:_ string  
 An absolute or relative file path pointing to a `legend.csv` that describes the symbology of the layer. Please see the Legend Tool to see how to form a `legend.csv`.
 
-#### TMS
+#### Tile Format
 
-_type:_ bool  
-The format of the tiles. If TMS is false, it assumes WMS tiles. The main difference between TMS and WMS is that their Y-axes are inverted.
+_type:_ enum [TMS, WMTS, WMS]  
+The format of the tiles.
+
+- TMS: Tile Map Service tiles are 256x256 sized images hierarchically organized by zoom level and referenced with x and y coordinates. These are the standard format for web tiles and are the format that MMGIS's auxiliary tiling scripts output. Append `/{z}/{x}/{y}.png` to your `URL`.
+- WMTS: Web Map Tile Service is the same exact concept as TMS but it has an inverted Y-axis. Just like TMS, append `/{z}/{x}/{y}.png` to your `URL`.
+- WMS: Web Map Service tiles are a popular way of publishing maps by professional GIS software. This format is similar to the previous two formats, but more generic and not so well optimized for use in web maps. A WMS image is defined by the coordinates of its corners. A layer (or list of layers) should be provided as an options by appending `?[<your_layer_name>,<another_if_you _want>]` to your `URL`.  
+  _Example URL: `http://ows.mundialis.de/services/service?[TOPO-WMS,OSM-Overlay-WMS]`_
 
 #### Visibility
 
@@ -317,6 +322,7 @@ The border color of each feature. If the feature is a line, this field is the co
   - hsl(130, 26%, 34%)
 - Based on a feature's color property
   - `prop:geojson_property_key` will set the feature's color to the values of `features[i].properties.geojson_property_key`
+  - If that property is not a valid CSS color and is a string, it will use a random and consistent color based on its hash.
 
 #### Fill Color
 
@@ -369,6 +375,14 @@ Example:
             "value": "Prop: {prop}"
         }
     ],
+    "markerIcon": { //See: https://leafletjs.com/reference-1.7.1.html#icon-l-icon
+        iconUrl: "pathToMainIconImage.png",
+        shadowUrl: "(opt)pathToShadowImage.png",
+        iconSize:     [38, 95], // size of the icon
+        shadowSize:   [50, 64], // size of the shadow
+        iconAnchor:   [22, 94], // point of the icon which will correspond to marker's location
+        shadowAnchor: [4, 62],  // the same for the shadow
+    }.
     "search": "(prop1) round(prop2.1) rmunder(prop_3)"
 }
 ```

@@ -1,0 +1,23 @@
+#photosphereAzIndicator {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-a);
+    padding: 0px 6px;
+    z-index: 1010;
+    cursor: pointer;
+    transition: color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+#photosphereAzIndicator:hover {
+    color: var(--color-mmgis);
+}
+
+#photosphereElIndicator {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    background: var(--color-a);
+    padding: 0px 6px;
+}

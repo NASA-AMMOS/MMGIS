@@ -1,0 +1,18 @@
+{
+    "defaultIcon": "eye",
+    "description": "Search a layer for a string.",
+    "descriptionFull": {
+        "title": "Please specify search fields. Search a layer for a string and either go to it and/or select it. The strings are built from the layer elements' properties object. Which properties it searches through depends on the defined searchfields for each layer. Try to choose a combination that's unique. propN is a geojson property key of that layer. All propNs are placed between parentheses and separated by a space. Place 'round' or 'rmunder' before a prop to round it or remove its underscores.",
+        "example": {
+            "searchfields": {
+                "[Layer_Name]": "(prop1) round(prop3)",
+                "...": "..."
+            }
+        }
+    },
+    "hasVars": true,
+    "name": "Search",
+    "paths": {
+        "SearchTool": "essence/Tools/Search/SearchTool"
+    }
+}

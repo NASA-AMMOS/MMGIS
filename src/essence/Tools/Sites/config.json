@@ -1,0 +1,29 @@
+{
+    "defaultIcon": "pin",
+    "description": "A button bar to navigate between various map locations.",
+    "descriptionFull": {
+        "title": "A button bar to quickly navigate between preset map locations.",
+        "example": {
+            "sites": [
+                {
+                    "name": "(str) Name of site",
+                    "code": "(str) Unique identifier. Can match header layer to toggle it's sublayers",
+                    "view": [
+                        "(num) Latitude",
+                        "(num) Longitude",
+                        "(num) Zoom level"
+                    ]
+                },
+                {
+                    "...": "..."
+                }
+            ]
+        }
+    },
+    "hasVars": true,
+    "name": "Sites",
+    "toolbarPriority": 4,
+    "paths": {
+        "SitesTool": "essence/Tools/Sites/SitesTool"
+    }
+}

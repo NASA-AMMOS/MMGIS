@@ -15,9 +15,10 @@ The kind of server running (apache is deprecated) | string enum | default `''`
 
 The kind of authentication method used | string enum | default `''`
 
-- _none:_ No authentication
-- _local:_ MMGIS handles authentication and account creation
-- _csso:_ Cloud Single Sign On - An external service handles authentication and account creation
+- _off:_ No authentication. Users cannot sign up or log in. Tools that require log in will not work.
+- _none:_ No authentication. Users can still sign up and log in from within MMGIS.
+- _local:_ Anyone without credentials is blocked. The Admin must log in, create accounts and pass out the credentials.
+- _csso:_ Use a Cloud Single Sign On service that's proxied in front of MMGIS.
 
 #### `NODE_ENV=`
 
@@ -52,7 +53,7 @@ Password of Postgres database | string | default `null`
 
 #### `CSSO_GROUPS=`
 
-A list of CSSO LDAP groups that have access | array of string | default `[]`
+A list of CSSO LDAP groups that have access | string[] | default `[]`
 
 ## Optional Variables
 
@@ -64,13 +65,17 @@ Port to run on | positive integer | default `3000`
 
 Potentially logs a bunch of extra stuff for development purposes | bool | default `false`
 
+#### `FRAME_ANCESTORS=`
+
+Sets the `Content-Security-Policy: frame-ancestors` header to allow the embedding of MMGIS in the specified external sites | string[] | default `null`
+
+#### `DISABLE_LINK_SHORTENER=`
+
+If true, users that use the 'Copy Link' feature will receive a full-length deep link. Writing new short links will be disabled but expanding existing ones will still work. | bool | default `false`
+
 #### `HIDE_CONFIG=`
 
 Make the configure page inaccessible to everyone | bool | default `false`
-
-#### `CONFIGCONFIG_PATH=`
-
-The path to a json file that sets up the configure page that overrides the database's record | string | default `''`
 
 #### `FORCE_CONFIG_PATH=`
 
@@ -78,7 +83,7 @@ The path to a json config file that acts as the only configured mission for the 
 
 #### `LEADS=`
 
-When not using AUTH=csso, this is a list of usernames to be treated as leads (users with elevated permissions) | array of strings | default `[]`
+When not using AUTH=csso, this is a list of usernames to be treated as leads (users with elevated permissions) | string[] | default `[]`
 
 #### `CSSO_LEAD_GROUP=`
 

@@ -11,19 +11,19 @@ const buf = crypto.randomBytes(128);
 const logger = require("../../../logger");
 const User = require("../models/user");
 
-router.post("/has", function(req, res, next) {
+router.post("/has", function (req, res, next) {
   User.count()
-    .then(count => {
+    .then((count) => {
       res.send({ status: "success", has: count !== 0 });
     })
-    .catch(err => {
+    .catch((err) => {
       res.send({ status: "failure" });
     });
 });
 
-router.post("/first_signup", function(req, res, next) {
+router.post("/first_signup", function (req, res, next) {
   User.count()
-    .then(count => {
+    .then((count) => {
       if (count === 0) {
         // Define a new user
         let firstUser = {
@@ -31,15 +31,15 @@ router.post("/first_signup", function(req, res, next) {
           email: null,
           password: req.body.password,
           permission: "111",
-          token: null
+          token: null,
         };
 
         User.create(firstUser)
-          .then(created => {
+          .then((created) => {
             res.send({ status: "success", message: "Successfully signed up" });
             return null;
           })
-          .catch(err => {
+          .catch((err) => {
             res.send({ status: "failure", message: "Failed to sign up" });
             return null;
           });
@@ -49,17 +49,20 @@ router.post("/first_signup", function(req, res, next) {
       }
       return null;
     })
-    .catch(err => {
+    .catch((err) => {
       res.send({ status: "failure", message: "Validation error" });
       return null;
     });
 });
 
-router.post("/signup", function(req, res, next) {
-  if (process.env.AUTH === "local" && req.session.permission !== "111") {
+router.post("/signup", function (req, res, next) {
+  if (
+    (process.env.AUTH === "local" && req.session.permission !== "111") ||
+    (process.env.AUTH === "off" && req.session.permission !== "111")
+  ) {
     res.send({
       status: "failure",
-      message: "Currently set so only administrators may create accounts."
+      message: "Currently set so only administrators may create accounts.",
     });
     return;
   }
@@ -69,19 +72,19 @@ router.post("/signup", function(req, res, next) {
     email: req.body.email,
     password: req.body.password,
     permission: "001",
-    token: null
+    token: null,
   };
 
   //Make sure user doesn't already exit
   User.findOne({
     where: {
-      username: newUser.username
-    }
+      username: newUser.username,
+    },
   })
-    .then(user => {
+    .then((user) => {
       if (!user) {
         User.create(newUser)
-          .then(created => {
+          .then((created) => {
             // Save the user's info in the session
             req.session.user = created.username;
             req.session.uid = created.id;
@@ -89,13 +92,13 @@ router.post("/signup", function(req, res, next) {
 
             User.update(
               {
-                token: req.session.token
+                token: req.session.token,
               },
               {
                 where: {
                   id: created.id,
-                  username: created.username
-                }
+                  username: created.username,
+                },
               }
             )
               .then(() => {
@@ -109,11 +112,11 @@ router.post("/signup", function(req, res, next) {
                   status: "success",
                   username: created.username,
                   token: req.session.token,
-                  groups: getUserGroups(created.username, req.leadGroupName)
+                  groups: getUserGroups(created.username, req.leadGroupName),
                 });
                 return null;
               })
-              .catch(err => {
+              .catch((err) => {
                 logger(
                   "error",
                   "Only partially signed up.",
@@ -123,13 +126,13 @@ router.post("/signup", function(req, res, next) {
                 );
                 res.send({
                   status: "failure",
-                  message: "Only partially signed up. Try logging in."
+                  message: "Only partially signed up. Try logging in.",
                 });
                 return null;
               });
             return null;
           })
-          .catch(err => {
+          .catch((err) => {
             logger("error", "Failed to sign up.", req.originalUrl, req, err);
             res.send({ status: "failure", message: "Failed to sign up." });
             return null;
@@ -139,7 +142,7 @@ router.post("/signup", function(req, res, next) {
       }
       return null;
     })
-    .catch(err => {
+    .catch((err) => {
       logger("error", "Failed to sign up.", req.originalUrl, req, err);
       res.send({ status: "failure", message: "Failed to sign up." });
     });
@@ -149,7 +152,7 @@ router.post("/signup", function(req, res, next) {
 /**
  * User login
  */
-router.post("/login", function(req, res) {
+router.post("/login", function (req, res) {
   let MMGISUser = req.cookies.MMGISUser
     ? JSON.parse(req.cookies.MMGISUser)
     : false;
@@ -162,15 +165,15 @@ router.post("/login", function(req, res) {
 
   User.findOne({
     where: {
-      username: username
+      username: username,
     },
-    attributes: ["id", "username", "email", "password", "permission"]
+    attributes: ["id", "username", "email", "password", "permission"],
   })
-    .then(user => {
+    .then((user) => {
       if (!user) {
         res.send({
           status: "failure",
-          message: "Invalid username or password."
+          message: "Invalid username or password.",
         });
       } else {
         function pass(err, result, again) {
@@ -183,13 +186,13 @@ router.post("/login", function(req, res) {
 
             User.update(
               {
-                token: req.session.token
+                token: req.session.token,
               },
               {
                 where: {
                   id: user.id,
-                  username: user.username
-                }
+                  username: user.username,
+                },
               }
             )
               .then(() => {
@@ -197,11 +200,11 @@ router.post("/login", function(req, res) {
                   status: "success",
                   username: user.username,
                   token: req.session.token,
-                  groups: getUserGroups(user.username, req.leadGroupName)
+                  groups: getUserGroups(user.username, req.leadGroupName),
                 });
                 return null;
               })
-              .catch(err => {
+              .catch((err) => {
                 res.send({ status: "failure", message: "Login failed." });
                 return null;
               });
@@ -209,7 +212,7 @@ router.post("/login", function(req, res) {
           } else {
             res.send({
               status: "failure",
-              message: "Invalid username or password."
+              message: "Invalid username or password.",
             });
             return null;
           }
@@ -223,10 +226,10 @@ router.post("/login", function(req, res) {
           User.findOne({
             where: {
               username: MMGISUser.username,
-              token: MMGISUser.token
-            }
+              token: MMGISUser.token,
+            },
           })
-            .then(user => {
+            .then((user) => {
               if (!user) {
                 res.send({ status: "failure", message: "Bad token." });
               } else {
@@ -234,7 +237,7 @@ router.post("/login", function(req, res) {
               }
               return null;
             })
-            .catch(err => {
+            .catch((err) => {
               res.send({ status: "failure", message: "Bad token." });
             });
           return null;
@@ -245,13 +248,13 @@ router.post("/login", function(req, res) {
       }
       return null;
     })
-    .catch(err => {
+    .catch((err) => {
       res.send({ status: "failure", message: "Bad token." });
     });
   return null;
 });
 
-router.post("/logout", function(req, res) {
+router.post("/logout", function (req, res) {
   let MMGISUser = req.cookies.MMGISUser
     ? JSON.parse(req.cookies.MMGISUser)
     : false;
@@ -266,20 +269,20 @@ router.post("/logout", function(req, res) {
   } else {
     User.update(
       {
-        token: null
+        token: null,
       },
       {
         where: {
           username: MMGISUser.username,
-          token: MMGISUser.token
-        }
+          token: MMGISUser.token,
+        },
       }
     )
       .then(() => {
         res.send({ status: "success" });
         return null;
       })
-      .catch(err => {
+      .catch((err) => {
         logger("error", "Logout failed.", req.originalUrl, req, err);
         res.send({ status: "failure", message: "Logout Failed." });
         return null;

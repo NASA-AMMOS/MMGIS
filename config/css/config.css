@@ -1,8 +1,3 @@
-@font-face {
-  font-family: venus;
-  src: url(../../public/fonts/taxidriver/TaxiDriver.ttf);
-}
-
 html {
   height: 100%;
   background-color: white;
@@ -15,6 +10,38 @@ body {
   color: black;
   overflow-x: hidden;
   display: flex;
+}
+
+.helpFromDocs {
+  position: fixed;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  line-height: 22px;
+  background: #1565c0;
+  box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.3);
+  bottom: 7px;
+  left: 227px;
+  color: white;
+  text-align: center;
+  opacity: 0.6;
+  transition: opacity 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+.helpFromDocs:hover {
+  opacity: 1;
+}
+
+.row.title {
+  margin-bottom: 2px;
+  margin-left: calc(5% - 30px) !important;
+  font-weight: 500;
+  color: #4f15c1;
+  font-size: 14px;
+}
+
+.row.checkboxRow {
+  padding-bottom: 41px;
+  margin-left: calc(5% - 13px) !important;
 }
 
 #leftPanel {
@@ -399,6 +426,7 @@ textarea {
   color: #ddd;
 }
 
+#variableEl > .CodeMirror,
 #vtLayerEl > .CodeMirror {
   margin: 0;
 }

@@ -1,7 +1,0 @@
-Pushing:
-run prepare.py r [...]
-run rmgitcache.sh
-git as normal:
-	add
-	commit
-	push

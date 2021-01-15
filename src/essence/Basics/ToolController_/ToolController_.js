@@ -1,0 +1,233 @@
+import $ from 'jquery'
+import * as d3 from 'd3'
+import L_ from '../Layers_/Layers_'
+import { toolModules } from '../../../pre/tools'
+
+let ToolController_ = {
+    tools: null,
+    incToolsDiv: null,
+    excToolsDiv: null,
+    toolModuleNames: [],
+    toolModules: toolModules,
+    activeTool: null,
+    activeToolName: null,
+    prevHeight: 0,
+    defaultColor: 'var(--color-f)',
+    hoverColor: 'var(--color-mmgis)',
+    activeColor: 'var(--color-mmgis)',
+    activeBG: 'var(--color-i)',
+    loaded: false,
+    init: function (tools) {
+        this.tools = tools
+
+        var mainDiv = d3
+            .select('#toolbar')
+            .append('div')
+            .attr('id', 'toolbarTools')
+            .style('height', '100%')
+        this.incToolsDiv = mainDiv
+            .append('div')
+            .attr('id', 'toolcontroller_incdiv')
+            .attr('class', 'sixteen wide column')
+            .style('transition', 'all 0.25s ease-in')
+            .style('pointer-events', 'none')
+            .style('opacity', '0')
+            .style('padding-bottom', '8px')
+
+        for (var i = 0; i < tools.length; i++) {
+            this.toolModuleNames.push(tools[i].js)
+
+            this.incToolsDiv
+                .append('div')
+                .attr('class', 'toolButton')
+                .style(
+                    'transition',
+                    'color 0.25s ease-in, background 0.25s ease-in'
+                )
+                .style('width', '100%')
+                .style('height', '30px')
+                .style('display', 'inline-block')
+                .style('text-align', 'center')
+                .style('line-height', '30px')
+                //.style( 'text-shadow', '0px 1px #111' )
+                .style('vertical-align', 'middle')
+                .style('cursor', 'pointer')
+                .attr('title', tools[i].name)
+                .attr('tabindex', i + 1)
+                .style('transition', 'all 0.2s ease-in')
+                .style('color', ToolController_.defaultColor)
+                .on(
+                    'click',
+                    (function (i) {
+                        return function () {
+                            var hasActive = false
+                            if ($(this).hasClass('active')) {
+                                hasActive = true
+                            }
+                            var prevActive = $('#toolcontroller_incdiv .active')
+                            prevActive.removeClass('active').css({
+                                color: ToolController_.defaultColor,
+                                background: 'none',
+                            })
+                            prevActive.parent().css({
+                                background: 'none',
+                            })
+                            if (!hasActive) {
+                                var newActive = $(
+                                    '#toolcontroller_incdiv #' +
+                                        ToolController_.tools[i].name +
+                                        'Tool'
+                                )
+                                newActive.addClass('active').css({
+                                    color: ToolController_.activeColor,
+                                })
+                                newActive.parent().css({
+                                    background: ToolController_.activeBG,
+                                })
+                            }
+                            ToolController_.makeTool(
+                                ToolController_.toolModuleNames[i]
+                            )
+                        }
+                    })(i)
+                )
+                .on('mouseover', function () {
+                    if (!$(this).hasClass('active')) {
+                        $(this).css({ color: ToolController_.hoverColor })
+                    }
+                })
+                .on('mouseleave', function () {
+                    if (!$(this).hasClass('active')) {
+                        $(this).css({ color: ToolController_.defaultColor })
+                    }
+                })
+                .append('i')
+                .attr('id', tools[i].name + 'Tool')
+                .attr('class', 'mdi mdi-' + tools[i].icon + ' mdi-18px')
+                .style('cursor', 'pointer')
+        }
+
+        ToolController_.incToolsDiv
+            .style('pointer-events', 'auto')
+            .style('opacity', '1')
+
+        for (let t in ToolController_.toolModules) {
+            if (typeof ToolController_.toolModules[t].initialize === 'function')
+                ToolController_.toolModules[t].initialize()
+        }
+
+        ToolController_.loaded = true
+        L_.toolsLoaded = true
+
+        L_.fullyLoaded()
+    },
+    clear() {
+        d3.select('#toolbarTools').remove()
+        this.tools = null
+        this.incToolsDiv = null
+        this.excToolsDiv = null
+        this.toolModuleNames = []
+        this.toolModules = []
+    },
+    getTool: function (name) {
+        var tool = this.toolModules[name]
+        return tool || { use: function () {} }
+    },
+    makeTool: function (name) {
+        var tool = this.getTool(name)
+
+        if (tool != undefined) {
+            if (this.activeToolName == null || name != this.activeToolName) {
+                //change tool
+                if (
+                    typeof tool.make === 'function' &&
+                    typeof tool.destroy === 'function'
+                ) {
+                    if (this.activeTool != null) {
+                        this.activeTool.destroy()
+                    }
+
+                    this.activeTool = tool
+                    this.setToolHeight(this.activeTool.height)
+                    this.setToolWidth(this.activeTool.width)
+                    if (this.activeTool.height == 0) {
+                        this.UserInterface.openToolPanel(this.activeTool.width)
+                    } else {
+                        this.UserInterface.closeToolPanel()
+                    }
+                    /*
+              if( this.prevHeight != this.activeTool.height && this.UserInterface != null ) {
+                this.UserInterface.setToolHeight( this.activeTool.height );
+              }
+              this.prevHeight = this.activeTool.height;
+              */
+
+                    this.activeTool.make(this)
+                } else {
+                    console.warn(
+                        'WARNING: ' +
+                            name +
+                            ' does not have a make or destroy function.' +
+                            " All tools require a 'make' and a 'destroy' function."
+                    )
+                }
+                this.activeToolName = name
+            } else {
+                //close tool
+                this.closeActiveTool()
+            }
+        }
+    },
+    setToolHeight: function (newHeight) {
+        if (this.prevHeight != newHeight && this.UserInterface != null) {
+            this.UserInterface.setToolHeight(newHeight)
+        }
+        this.prevHeight = newHeight
+    },
+    setToolWidth: function (newWidth) {
+        newWidth = newWidth || 'full'
+        this.UserInterface.setToolWidth(newWidth)
+    },
+    closeActiveTool: function () {
+        var prevActive = $('#toolcontroller_incdiv .active')
+        prevActive.removeClass('active').css({
+            color: ToolController_.defaultColor,
+            background: 'none',
+        })
+        prevActive.parent().css({ background: 'none' })
+
+        if (this.activeTool != null) {
+            this.activeTool.destroy()
+            d3.select('#tools').selectAll('*').remove()
+            this.UserInterface.closeToolPanel()
+        }
+        this.activeTool = null
+        this.activeToolName = null
+        if (this.prevHeight != 0 && this.UserInterface != null) {
+            this.UserInterface.setToolHeight(0)
+        }
+        this.prevHeight = 0
+    },
+    getToolsUrl: function () {
+        var toolsUrl = ''
+        for (var i = 0; i < this.toolModuleNames.length; i++) {
+            var tool = this.toolModules[this.toolModuleNames[i]]
+            if (tool && typeof tool.getUrlString === 'function') {
+                var urlString = tool.getUrlString()
+                if (urlString.length > 0)
+                    toolsUrl += this.toolModuleNames[i] + '$' + urlString + ','
+            }
+        }
+        //get rid of last , if there is one
+        if (toolsUrl[toolsUrl.length - 1] == ',')
+            toolsUrl = toolsUrl.substr(0, toolsUrl.length - 1)
+
+        if (toolsUrl.length == 0) toolsUrl = false
+        return toolsUrl
+    },
+    fina: function (userinterface) {
+        this.UserInterface = userinterface
+    },
+}
+
+export default ToolController_

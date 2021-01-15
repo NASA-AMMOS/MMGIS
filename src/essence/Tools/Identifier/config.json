@@ -1,0 +1,21 @@
+{
+    "defaultIcon": "map-marker",
+    "description": "Mouse over the map for a by-pixel legend of a raster.",
+    "descriptionFull": {
+        "title": "Mouse over to query underlying datasets.",
+        "example": {
+            "[Layer_Name]": {
+                "url": "(str) path_to_data/data.tif",
+                "bands": "(int) how many bands to query from",
+                "sigfigs": "(int) how many digits after the decimal",
+                "unit": "(str) whatever string unit"
+            },
+            "...": {}
+        }
+    },
+    "hasVars": true,
+    "name": "Identifier",
+    "paths": {
+        "IdentifierTool": "essence/Tools/Identifier/IdentifierTool"
+    }
+}

@@ -1,20 +1,35 @@
 doctype html
-head
-  title MMGIS / Login
-  link(rel='shortcut icon' href='resources/logo.png')
-  link(type='text/css' rel='stylesheet' href='public/login.css')
-  script(type='text/javascript' src='public/jquery.min.js')
-  script(type='text/javascript' src='public/login.js')
-body.mmgisScrollbar
-  .container
-    img(src='resources/mmgis.png' alt='MMGIS')
-    span#msg.error
-    form.box(name='form1')
-      h4
-        | Sign in
-        span to your account.
-      h5 If you do not have an account,<br>request one from your administrator.
-      input#username(type='text' name='username' placeholder='Username' autocomplete='off')
-      input#pwd(type='password' name='password' placeholder='Password' autocomplete='off')
-      input#pwd_retype(type='password' name='password' placeholder='Retype Password' autocomplete='off')
-      div.btn1(onClick='login()') Sign in
+html(lang='en')
+  head
+    title MMGIS / Login
+    link(rel='shortcut icon' href='resources/logo.png')
+    link(type='text/css' rel='stylesheet' href='public/login.css')
+    script(type='text/javascript' src='public/jquery.min.js')
+    script(type='text/javascript' src='public/login.js')
+  body.mmgisScrollbar
+    .header
+      img(src='https://graphics.jpl.nasa.gov/img/logos/Tribrand_WhiteText_CMYK_022615-354x67.png' alt='Jet Propulsion Laboratory, California Institute of Technology' style='left: 44px; transform: unset;')
+    .container(style='z-index: 1;')
+      img(src='public/images/logos/mmgis.png' alt='MMGIS')
+      span#msg.error
+      form.box(name='form1' title='Log in to MMGIS!')
+        h4
+          | Sign in
+          span to your account.
+        h5 If you do not have an account,<br>request one from your administrator.
+        label(for="username" style="position: absolute; color: #a1a4ad; top: 202px; left: 50%; transform: translateX(-50%); background: hsl(226, 32%, 15%); border-radius: 10px; font-size: 14px; width: 100px; text-align: center;") Username
+        input#username(type='text' name='username' placeholder='Username' autocomplete='off')
+        label(for="password" style="position: absolute; color: #a1a4ad; top: 269px; left: 50%; transform: translateX(-50%); background: hsl(226, 32%, 15%); border-radius: 10px; font-size: 14px; width: 100px; text-align: center;") Password
+        input#pwd(type='password' name='password' placeholder='Password' autocomplete='off')
+        input#pwd_retype(type='password' name='password' placeholder='Retype Password' autocomplete='off')
+        div.btn1(onClick='login()') Sign in
+    .footer(style='position: absolute; bottom: 0; padding: 44px; box-sizing: border-box; width: 100%; color: #adadad; font-size: 14px; display: flex; justify-content: flex-end; text-align: end;')
+      
+      div
+        div Contact: fred.calef@jpl.nasa.gov
+        div Clearance Number: CL##-####div
+        div(style='display: flex;')
+        a(href='http://www.jpl.nasa.gov/copyrights.cfm' style='margin-right: 10px;') PRIVACY
+        a(href='http://www.jpl.nasa.gov/imagepolicy/') IMAGE POLICY
+  footer
+    script(id="_fed_an_ua_tag" type="text/javascript" src="https://dap.digitalgov.gov/Universal-Federated-Analytics-Min.js?agency=NASA&subagency=MMGIS&dclink=true&sp=search,s")

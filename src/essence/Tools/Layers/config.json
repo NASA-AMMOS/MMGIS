@@ -1,0 +1,16 @@
+{
+    "defaultIcon": "buffer",
+    "description": "Hierarchically toggle layers on and off and alter their opacities.",
+    "descriptionFull":  {
+        "title": "Hierarchically toggle layers on and off and alter their opacities.",
+        "example": {
+            "expanded": "(bool) is initial state expanded [default false]"
+        }
+    },
+    "hasVars": true,
+    "name": "Layers",
+    "toolbarPriority": 1,
+    "paths": {
+        "LayersTool": "essence/Tools/Layers/LayersTool"
+    }
+}

@@ -34,6 +34,10 @@ Sets the color of vertical tool bar to a [CSS color](https://developer.mozilla.o
 
 Sets the background of the Map to a [CSS color](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value). The color is seen in regions of the 2D map where there is no data.
 
+#### Highlight Color
+
+Sets the highlight of active vector features to a [CSS color](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value).
+
 #### Swap
 
 If checked, adds a button in the tool bar that enables users to switch seamlessly between missions. This functionality may be buggy and break things depending on the missions switched to and from. It's recommended to return to the landing page to switch between missions or to extensively test swapping between your missions before enabling Swap.

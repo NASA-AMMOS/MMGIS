@@ -1,24 +1,23 @@
 .vscode
 .DS_Store
 .env
-/Missions_dev/
-/Missions_rel/
-/documentation
-API/logs/*
 
-node_modules/
-
-/Missions
-/db/
-/config/db/
-/dist/*
-/scripts/ignore
+/node_modules/
+/API/logs/*
+/Missions/*
+!/Missions/.gitkeep
 
 #Nested repo where private backend might reside
 /API/MMGIS-Private-Backend
 #Nested repo where private tools might reside
-/scripts/essence/MMGIS-Private-Tools
-/scripts/pre/toolConfigs.js
+/src/essence/MMGIS-Private-Tools
+/src/essence/MMGIS-Private-Tools-OFF
+
+/src/pre/toolConfigs.js
+/src/pre/tools.js
+
+/build/*
+
 sessions
 
 #tools

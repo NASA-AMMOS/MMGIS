@@ -10,7 +10,10 @@ let configure = [
   "Look_Tab",
   "Panels_Tab",
   "Kinds",
-  "Vector_Styling"
+  "Vector_Styling",
+  "Keys",
+  "Manage_Datasets",
+  "Manage_Geodatasets",
 ];
 let tools = [
   "Chemistry",
@@ -20,21 +23,22 @@ let tools = [
   "Layers",
   "Legend",
   "Measure",
-  "Sites"
+  "Sites",
+  "Viewshed",
 ];
 let apis = [
   { name: "Main", path: "/api/docs/main" },
-  { name: "Spatial", path: "/api/docs/spatial/" }
+  { name: "Spatial", path: "/api/docs/spatial/" },
 ];
 
-pages.forEach(v => {
+pages.forEach((v) => {
   let node = document.createElement("li");
   node.setAttribute("id", v);
   node.setAttribute("class", "page");
   node.addEventListener(
     "click",
-    (function(page) {
-      return function() {
+    (function (page) {
+      return function () {
         let pageElms = document.getElementsByClassName("page");
         for (let i = 0; i < pageElms.length; i++) {
           pageElms[i].setAttribute("class", "page");
@@ -52,14 +56,14 @@ pages.forEach(v => {
   document.getElementById("nav").appendChild(node);
 });
 
-configure.forEach(v => {
+configure.forEach((v) => {
   let node = document.createElement("li");
   node.setAttribute("id", v);
   node.setAttribute("class", "page");
   node.addEventListener(
     "click",
-    (function(page) {
-      return function() {
+    (function (page) {
+      return function () {
         let pageElms = document.getElementsByClassName("page");
         for (let i = 0; i < pageElms.length; i++) {
           pageElms[i].setAttribute("class", "page");
@@ -77,14 +81,14 @@ configure.forEach(v => {
   document.getElementById("navconfigure").appendChild(node);
 });
 
-tools.forEach(v => {
+tools.forEach((v) => {
   let node = document.createElement("li");
   node.setAttribute("id", v);
   node.setAttribute("class", "page");
   node.addEventListener(
     "click",
-    (function(page) {
-      return function() {
+    (function (page) {
+      return function () {
         let pageElms = document.getElementsByClassName("page");
         for (let i = 0; i < pageElms.length; i++) {
           pageElms[i].setAttribute("class", "page");
@@ -102,13 +106,13 @@ tools.forEach(v => {
   document.getElementById("navtools").appendChild(node);
 });
 
-apis.forEach(v => {
+apis.forEach((v) => {
   let node = document.createElement("li");
   node.setAttribute("id", v.name);
   node.addEventListener(
     "click",
-    (function(api) {
-      return function() {
+    (function (api) {
+      return function () {
         window.location.href = api.path;
       };
     })(v)
@@ -122,12 +126,12 @@ apis.forEach(v => {
 
 function setPage(page) {
   let xhr = new XMLHttpRequest();
-  xhr.addEventListener("load", function() {
+  xhr.addEventListener("load", function () {
     let url = window.location.href.split("?")[0] + "?page=" + page;
     window.history.replaceState("", "", url);
 
     let options = {
-      highlight: code => hljs.highlightAuto(code).value
+      highlight: (code) => hljs.highlightAuto(code).value,
     };
     document.getElementById("markdown").innerHTML = marked(
       this.responseText,
@@ -153,11 +157,11 @@ function getSingleQueryVariable(variable) {
   return false;
 }
 
-document.getElementById("tbtitle").addEventListener("click", function() {
+document.getElementById("tbtitle").addEventListener("click", function () {
   window.location.href = "/";
 });
 
-setTimeout(function() {
+setTimeout(function () {
   let page = getSingleQueryVariable("page") || "README";
 
   let pageElm = document.getElementById(page);

@@ -1,0 +1,692 @@
+@font-face {
+    font-family: lato;
+    src: url(/public/fonts/lato/Lato-Regular.ttf);
+}
+@font-face {
+    font-family: lato-light;
+    src: url(/public/fonts/lato/Lato-Light.ttf);
+}
+@font-face {
+    font-family: roboto;
+    src: url(/public/fonts/roboto/Roboto-Regular.ttf);
+}
+
+html {
+    position: fixed;
+    top: 0;
+}
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+}
+body {
+    background-color: var(--color-a);
+    /*background: linear-gradient(to top, #0F1111, #1E2021);*/
+
+    overflow: hidden !important;
+    color: #fff;
+    font-family: roboto;
+}
+
+/*Color variables*/
+:root {
+    --color-mmgis: #26a8ff;
+    --color-a: #010102; /*#1f1f1f;*/
+    --color-a1: #1f1f1f;
+    --color-b: #555555;
+    --color-c: #009eff;
+    --color-d: #2a2a2a;
+    --color-e: #4f4f4f;
+    --color-f: #e1e1e1;
+    --color-h: #fff800;
+    --color-g: #121218;
+    --color-i: #363636;
+    --color-j: #343437;
+    --color-k: #1d1e20;
+    --color-l: #fff; /*#ffe426;*/
+    --color-m: #c4c4c4;
+    --color-n: #151619;
+
+    --color-green: #00d200;
+    --color-yellow: #d2b800;
+    --color-blue: #00b6d2;
+    --color-orange: #d26100;
+    --color-red: #d20000;
+
+    --color-m1: #394044;
+    --color-m2: #222829;
+    --color-m3: #1b1d1e;
+    --color-mh: #ffdd5c;
+    --color-mw: #f8f8f8;
+    --color-mw2: #efefef;
+}
+
+#nodeenv {
+    display: none;
+    position: absolute;
+    width: 36px;
+    height: 1px;
+    left: 0;
+    bottom: 0;
+    overflow: hidden;
+    pointer-events: none;
+    background: #333;
+    z-index: 10000;
+}
+
+#webgl-error-message {
+    display: none;
+}
+
+#topBar {
+}
+
+#topBarHelp {
+    width: 24px;
+    height: 24px;
+}
+
+#topBarLink {
+    width: 24px;
+    height: 24px;
+}
+
+#topBarFullscreen {
+    width: 24px;
+    height: 24px;
+}
+
+#toggleUI {
+    opacity: 0.8;
+    cursor: pointer;
+    transition: color 0.3s;
+    width: 24px;
+    height: 24px;
+}
+
+#splitscreens {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    z-index: 1;
+}
+#vmgScreen {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+}
+.splitterV {
+    height: 100%;
+    position: absolute;
+    cursor: col-resize;
+    display: flex;
+    align-items: center;
+    z-index: 500;
+    transition: opacity 0.3s;
+}
+.splitterV:hover {
+    opacity: 0.9;
+}
+
+.splitterVInner {
+    position: absolute;
+    left: -50%;
+    height: 100vh;
+    background: linear-gradient(
+        to right,
+        rgba(0, 0, 0, 0),
+        rgba(0, 0, 0, 0.2),
+        rgba(0, 0, 0, 0)
+    );
+    text-align: center;
+    display: inline-flex;
+    justify-content: space-evenly;
+    align-items: center;
+}
+
+.splitterVInner i {
+    width: 48px;
+    height: 30px;
+    line-height: 30px;
+    cursor: col-resize;
+    color: #fff;
+}
+.splitterVInner i:hover {
+    color: var(--color-mmgis);
+    cursor: pointer;
+}
+
+#mapTopBar {
+    transition: padding-left 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+@media screen and (max-width: 800px) {
+    #mapTopBar {
+        padding-left: 134px !important;
+    }
+}
+#mapSplitInnerViewerInfo {
+    position: absolute;
+    left: 61px;
+    background: var(--color-a);
+    height: 30px;
+    line-height: 30px;
+    padding: 0px 8px;
+    border-radius: 3px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease-out;
+}
+.splitterVInner i:hover ~ #mapSplitInnerViewerInfo {
+    opacity: 1;
+}
+
+#mapSplitInnerGlobeInfo {
+    position: absolute;
+    left: -82px;
+    background: var(--color-a);
+    height: 30px;
+    line-height: 30px;
+    padding: 0px 8px;
+    border-radius: 3px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease-out;
+}
+.splitterVInner i:hover ~ #mapSplitInnerGlobeInfo {
+    opacity: 1;
+}
+
+.splitterH {
+    /*background-color: #1A1A1A;*/
+    width: 100%;
+    position: absolute;
+    /*border-top: 1px solid #333;*/
+    /*border-bottom: 1px solid rgba(0,0,0,0.95);*/
+    cursor: row-resize;
+    z-index: 6;
+}
+
+.splitterText {
+    -webkit-transition: all 0.25s ease-in;
+    transition: all 0.25s ease-in;
+    position: absolute;
+    font-weight: bolder;
+    transform: rotate(90deg);
+    margin-left: 0px;
+    font-size: 18px;
+    color: #555;
+    transform-origin: bottom left 0;
+}
+.splitterText.active {
+    margin-left: 24px;
+    color: #999;
+    font-size: 14px !important;
+    transform: rotate(0deg) !important;
+}
+
+#tScreen {
+    width: 100%;
+    position: absolute;
+    bottom: 0px;
+}
+#toolsSplit {
+    left: 0px;
+}
+#toolsWrapper {
+    height: 0%;
+    width: 100%;
+    position: absolute;
+    box-shadow: 0px -2px 3px 0px rgba(0, 0, 0, 0.2);
+}
+
+#toolbar {
+    width: auto;
+    background: var(--color-a);
+    height: 30px;
+    position: absolute;
+    left: 0px;
+    bottom: 0px;
+}
+
+#logoGoBack {
+    transition: 0.25s ease-in;
+    position: absolute;
+    bottom: 1px;
+    left: 24px;
+    opacity: 0.2;
+    z-index: 103;
+}
+#logoGoBack:hover {
+    opacity: 1;
+}
+
+.leaflet-container {
+    background: black;
+}
+.leaflet-popup-content-wrapper {
+    background: var(--color-a);
+    color: #e1e1e1;
+    font-size: 14px;
+    line-height: 24px;
+    border-radius: 0;
+    max-height: 50vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+.leaflet-popup-tip {
+}
+.leaflet-popup-close-button {
+    margin-right: 0px;
+    right: -20px !important;
+    padding: 3px 0px 0 0 !important;
+    width: 20px !important;
+    height: 20px !important;
+    color: #ffffff !important;
+    background: #26a8ff !important;
+}
+.leaflet-popup-content {
+    margin: 1px 7px 1px 7px;
+}
+
+.leaflet-marker-pane.hideDivIcons .leaflet-div-icon {
+    opacity: 0 !important;
+    pointer-events: none;
+}
+
+.noPointerEvents {
+    pointer-events: none;
+}
+.noPointerEventsImportant {
+    pointer-events: none !important;
+}
+
+.mouseLngLat {
+    opacity: 0.9;
+    display: flex;
+}
+.mouseLngLat:hover {
+    opacity: 1;
+}
+
+@media screen and (max-width: 600px) {
+    .mouseLngLat {
+        display: none;
+    }
+}
+
+.topHome {
+    display: flex;
+    padding: 0px 5px;
+    border: 1px solid var(--color-m1);
+    border-radius: 3px;
+    color: rgb(170, 170, 170);
+    line-height: 24px;
+    margin-left: 8px;
+    opacity: 0.8;
+    transition: opacity 0.25s ease-out;
+}
+.topHome:hover {
+    cursor: pointer;
+    opacity: 1;
+}
+
+#mainDescMission {
+    -webkit-transition: all 0.25s ease-in;
+    transition: all 0.25s ease-in;
+    opacity: 0.8;
+}
+#mainDescMission:hover {
+    opacity: 1;
+}
+#mainDescPoint {
+    -webkit-transition: all 0.25s ease-in;
+    transition: all 0.25s ease-in;
+    opacity: 0.8;
+    font-size: 14px;
+    display: flex;
+    white-space: nowrap;
+    line-height: 30px;
+    color: var(--color-mw2);
+    font-weight: bold;
+    cursor: pointer;
+    margin: 0;
+}
+@media screen and (max-width: 800px) {
+    #mainDescPoint {
+        font-size: 11px;
+    }
+}
+#mainDescPoint:hover {
+    opacity: 1;
+}
+#mainDescPoint a {
+    height: 100%;
+    line-height: 30px;
+    padding: 0px 8px;
+    font-size: 11px;
+    background: var(--color-e);
+    color: white;
+    border-left: 1px solid var(--color-b);
+    opacity: 0.8;
+    transition: opacity 0.25s ease-out, background 0.25s ease-out;
+}
+#mainDescPoint a > i {
+    margin-left: 3px;
+}
+#mainDescPoint a:first-child {
+    margin-left: 4px;
+    border-left: none;
+}
+#mainDescPoint a:last-child {
+}
+#mainDescPoint a:hover {
+    opacity: 1;
+    background: var(--color-mmgis);
+}
+
+@media screen and (max-width: 800px) {
+    .mainDescPointInnerType {
+        display: none;
+    }
+    .mainDescLinkName {
+        display: none;
+    }
+}
+
+.ui.selection.list > .item.customColor1:hover {
+    background: rgba(18, 66, 84, 0.5) !important;
+}
+
+.leaflet-tile-pane {
+    image-rendering: pixelated;
+}
+
+.leaflet-control-zoom {
+    border: none !important;
+    margin-top: 40px !important;
+    margin-right: 5px !important;
+    user-select: none;
+}
+.leaflet-control-zoom a {
+    color: var(--color-f);
+    width: 30px;
+    height: 30px;
+    line-height: 29px !important;
+    border-radius: 3px;
+    margin-bottom: 4px;
+    border: none !important;
+    border-radius: 0 !important;
+    background: var(--color-a) !important;
+    transition: color 0.2s ease-in 0s;
+}
+.leaflet-control-zoom a:hover {
+    color: var(--color-mmgis);
+}
+
+.leaflet-popup-content-wrapper::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0px 0px 6px rgba(0, 0, 0, 0.3);
+    background-color: Transparent;
+}
+
+.leaflet-popup-content-wrapper::-webkit-scrollbar {
+    width: 2px;
+    height: 2px;
+    background-color: var(--color-a);
+}
+
+.leaflet-popup-content-wrapper::-webkit-scrollbar-thumb {
+    border-radius: 0px;
+    background-color: #26a8ff;
+}
+
+.leaflet-popup-annotation {
+    left: 0 !important;
+    top: -10px !important;
+}
+.leaflet-popup-annotation > .leaflet-popup-content-wrapper {
+    background: transparent;
+    box-shadow: none;
+    max-height: none !important;
+}
+.leaflet-popup-annotation .leaflet-popup-content {
+    margin: 0;
+    width: auto !important;
+}
+.leaflet-popup-annotation textarea {
+    background: rgba(0, 0, 0, 0.4);
+    color: white;
+    border: none;
+    padding: 3px;
+}
+.leaflet-popup-annotation .leaflet-popup-tip-container {
+    display: none;
+}
+
+/*Leaflet fix that prevents shifting at higher zooms on single images*/
+.leaflet-container img.leaflet-image-layer {
+    max-width: none !important;
+}
+
+/*Openseadragon navigator border color*/
+.displayregion {
+    border: 2px solid var(--color-mh) !important;
+}
+.openseadragon-container .navigator {
+    border: 1px solid var(--color-a) !important;
+}
+.osd-custom-buttons > div {
+    width: 30px;
+    height: 30px;
+    background: var(--color-a);
+    line-height: 31px;
+    text-align: center;
+    margin-right: 5px;
+    cursor: pointer;
+    border-radius: 3px;
+    color: #bbb;
+    display: inline-block;
+    position: relative;
+    transition: color 0.2s ease-out;
+}
+.osd-custom-buttons > div:hover {
+    color: white;
+}
+
+.cplot_axis path {
+    fill: none;
+    stroke: #161616;
+}
+.cplot_axis line {
+    fill: none;
+    stroke: #fff;
+}
+
+#toolcontroller_incdiv > div {
+    color: #bbb;
+}
+#toolcontroller_incdiv > div:hover {
+    color: white;
+}
+
+.ui-menu .ui-menu-item {
+    color: rgba(255, 255, 255, 0.87);
+    border: 1px solid transparent;
+    border-top: 1px solid var(--color-b);
+    transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95),
+        color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+.ui-menu .ui-menu-item.ui-state-focus {
+    margin: 0;
+    background: var(--color-g);
+    color: white;
+}
+.ui-menu .ui-menu-item:hover {
+    background: var(--color-g);
+    color: white;
+}
+
+#scaleBar {
+    margin: 0;
+    margin-top: 5px;
+    pointer-events: none;
+    z-index: 1001;
+}
+
+.autoWidth {
+    width: auto !important;
+}
+
+.childpointerevents > * {
+    pointer-events: auto;
+}
+
+*:focus {
+    outline: none;
+}
+/*Clear white highlighting*/
+::selection {
+    background-color: rgb(0, 158, 255) !important;
+    color: rgb(255, 255, 255) !important;
+}
+
+.flexbetween {
+    display: flex;
+    justify-content: space-between;
+}
+
+.leaflet-control-scalefactor {
+    position: absolute;
+    bottom: 24px;
+    left: 10px;
+    display: flex;
+    margin-left: 2px !important;
+}
+.leaflet-control-scalefactor-line {
+    background: #161616;
+    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.2);
+    padding: 0px 4px;
+    color: #dcdcdc;
+    cursor: default;
+    opacity: 0.85;
+    user-select: none;
+    white-space: nowrap;
+}
+.leaflet-control-scalefactor-goto {
+    white-space: nowrap;
+    padding: 0px 4px;
+    background: #161616;
+    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.2);
+    padding: 0px 4px 0px 0px;
+    color: #dcdcdc;
+    cursor: pointer;
+    opacity: 0.85;
+    user-select: none;
+}
+
+.cp-color-picker {
+    background: var(--color-a);
+    border-radius: 0px !important;
+    margin-left: -1px;
+    margin-top: 1px;
+}
+
+.leaflet-tile-pane svg.leaflet-tile {
+    pointer-events: none !important;
+}
+.leaflet-tile-pane svg.leaflet-tile path.leaflet-interactive {
+    pointer-events: auto;
+}
+
+.leaflet-tile-256 {
+    width: 256px !important;
+    height: 256px !important;
+}
+
+.kindsWedgeLayer {
+    pointer-events: none !important;
+}
+
+.topBarSearch {
+    height: 100%;
+    max-width: 380px;
+    width: 100vw;
+    background: var(--color-a);
+    border: 1px solid var(--color-a);
+    padding: 0px 8px;
+    font-size: 14px;
+    color: var(--color-mw2);
+    flex: 1;
+    transition: background 0.2s ease-out, border 0.2s ease-out;
+}
+.topBarSearch:hover {
+    background: var(--color-i);
+}
+.topBarSearch:focus {
+    border: 1px solid var(--color-mmgis);
+}
+.topBarSearch::placeholder {
+    color: #aaa;
+}
+
+.hoverOpensPanel .hoverOpeningPanel {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95),
+        background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+.hoverOpensPanel .hoverOpeningPanel div:hover {
+    cursor: pointer;
+    color: white;
+    background: #151515;
+}
+.hoverOpensPanel:hover .hoverOpeningPanel {
+    opacity: 1;
+    pointer-events: initial;
+}
+
+.autocomplete-suggestion {
+    padding: 4px 6px;
+    border-top: 1px solid var(--color-i);
+    color: var(--color-f);
+    cursor: pointer;
+    font-weight: 400;
+    font-size: 14px;
+}
+.autocomplete-suggestion:hover {
+    background: var(--color-k);
+}
+.autocomplete-suggestion > strong {
+    font-weight: bold;
+    color: var(--color-mmgis);
+}
+
+.autocomplete-suggestion.autocomplete-selected {
+    background: var(--color-f);
+    color: black;
+}
+.autocomplete-suggestion.autocomplete-selected > strong {
+    text-decoration: underline;
+}
+
+.highlightAnim1 {
+    animation-name: highlightAnim1;
+    animation-duration: 1.2s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+    color: white;
+}
+@-webkit-keyframes highlightAnim1 {
+    0% {
+        background-color: #008321;
+    }
+    50% {
+        background-color: #00c932;
+    }
+    100% {
+        background-color: #008321;
+    }
+}

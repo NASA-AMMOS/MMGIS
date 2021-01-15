@@ -1,0 +1,1241 @@
+/*Button*/
+.mmgisButton {
+    -webkit-transition: all 0.15s ease-in;
+    transition: all 0.15s ease-in;
+    color: #999;
+    background-color: #111;
+    border-radius: 2px;
+    border: 1px solid #666;
+    width: auto;
+    display: inline-block;
+    padding-left: 14px;
+    padding-right: 14px;
+    height: 28px;
+    font-size: 14px;
+    line-height: 28px;
+    margin: 8px;
+    cursor: pointer;
+    word-wrap: break-word;
+    vertical-align: middle;
+}
+.mmgisButton:hover {
+    color: rgba(255, 255, 255, 0.87);
+}
+.mmgisButton.active {
+    color: rgba(0, 0, 0, 0.85);
+    background-color: #d1d1d1;
+    font-weight: bold;
+}
+
+/*Button2*/
+.mmgisButton2 {
+    -webkit-transition: all 0.15s ease-in;
+    transition: all 0.15s ease-in;
+    color: #999;
+    width: auto;
+    display: inline-block;
+    height: 28px;
+    padding: 2px 6px 2px 6px;
+    font-size: 14px;
+    line-height: 28px;
+    margin: 8px;
+    cursor: pointer;
+    word-wrap: break-word;
+    vertical-align: middle;
+}
+.mmgisButton2:hover {
+    color: rgba(255, 255, 255, 0.87);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.87);
+}
+.mmgisButton2.active {
+    color: rgba(255, 255, 255, 0.87);
+    background-color: #124254;
+}
+
+/*Button3*/
+.mmgisButton3 {
+    -webkit-transition: all 0.15s ease-in;
+    transition: all 0.15s ease-in;
+    color: #bbb;
+    background-color: var(--color-a);
+    width: auto;
+    display: inline-block;
+    border-radius: 2px;
+    padding-left: 5px;
+    padding-right: 5px;
+    height: 28px;
+    font-size: 14px;
+    line-height: 28px;
+    margin: 4px 6px;
+    cursor: pointer;
+    word-wrap: break-word;
+    vertical-align: middle;
+}
+.mmgisButton3:hover {
+    color: rgba(255, 255, 255, 0.87);
+}
+.mmgisButton3.active {
+    color: rgba(255, 255, 255, 0.87);
+    background-color: #124254;
+}
+
+/*Button4*/
+.mmgisButton4 {
+    -webkit-transition: all 0.15s ease-in;
+    transition: all 0.15s ease-in;
+    color: #999;
+    background-color: #111;
+    border-radius: 2px;
+    border: 1px solid #666;
+    width: auto;
+    display: inline-block;
+    padding-left: 14px;
+    padding-right: 14px;
+    height: 28px;
+    font-size: 14px;
+    line-height: 28px;
+    margin: 8px;
+    cursor: pointer;
+    word-wrap: break-word;
+    vertical-align: middle;
+}
+.mmgisButton4:hover {
+    color: #fffdf5;
+}
+.mmgisButton4.active {
+    color: black;
+    font-weight: bold;
+    background-color: #fffdf5;
+}
+
+/*RadioBar*/
+.mmgisRadioBar {
+    display: inline-block;
+    margin-left: 8px;
+    margin-right: 8px;
+    font-size: 0;
+}
+.mmgisRadioBar div {
+    -webkit-transition: all 0.15s ease-in;
+    transition: all 0.15s ease-in;
+    color: #999;
+    border: 1px solid #666;
+    border-right: none;
+    background-color: #111;
+    width: auto;
+    height: 28px;
+    line-height: 28px;
+    font-size: 14px;
+    padding-left: 14px;
+    padding-right: 14px;
+    text-align: center;
+    display: inline-block;
+    cursor: pointer;
+}
+.mmgisRadioBar div:first-child {
+    border-top-left-radius: 2px;
+    border-bottom-left-radius: 2px;
+}
+.mmgisRadioBar div:last-child {
+    border-top-right-radius: 2px;
+    border-bottom-right-radius: 2px;
+    border-right: 1px solid #666;
+}
+.mmgisRadioBar div:hover {
+    color: rgba(255, 255, 255, 0.87);
+}
+.mmgisRadioBar div.active {
+    color: rgba(255, 255, 255, 0.87);
+    background-color: #124254;
+}
+.mmgisRadioBar div.active:hover {
+    background-color: #0d303d;
+}
+.mmgisRadioBar.disabled {
+    pointer-events: none;
+}
+.mmgisRadioBar.disabled div:not(.active) {
+    color: #222;
+    background-color: #111;
+}
+.mmgisRadioBar.off div {
+    pointer-events: none;
+    color: #222;
+    background-color: #111;
+}
+
+/*RadioBar2*/
+.mmgisRadioBar2 {
+    height: 28px;
+    display: inline-block;
+    font-size: 0;
+}
+.mmgisRadioBar2 div {
+    -webkit-transition: all 0.15s ease-in;
+    transition: all 0.15s ease-in;
+    color: var(--color-f);
+    width: 100%;
+    height: 30px;
+    line-height: 30px;
+    padding: 0px 10px;
+    font-size: 14px;
+    display: inline-block;
+    cursor: pointer;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.8;
+    overflow: hidden;
+    border-bottom: 1px solid var(--color-i);
+}
+.mmgisRadioBar2 div:first-child {
+    border-top-left-radius: 2px;
+    border-bottom-left-radius: 2px;
+}
+.mmgisRadioBar2 div:last-child {
+    border-top-right-radius: 2px;
+    border-bottom-right-radius: 2px;
+}
+.mmgisRadioBar2 div:hover {
+    color: var(--color-mmgis);
+    background: var(--color-i);
+    opacity: 1;
+}
+.mmgisRadioBar2 div.active {
+    color: var(--color-mmgis);
+    background: var(--color-i);
+    font-weight: bold;
+    opacity: 1;
+}
+.mmgisRadioBar2 div.active:hover {
+    background-color: none;
+}
+.mmgisRadioBar2.disabled {
+    pointer-events: none;
+}
+.mmgisRadioBar2.disabled div:not(.active) {
+    color: #222;
+}
+.mmgisRadioBar2.off div {
+    pointer-events: none;
+    color: #222;
+}
+
+/*RadioBar3*/
+.mmgisRadioBar3 {
+    display: inline-block;
+    margin-left: 8px;
+    margin-right: 8px;
+    font-size: 0;
+}
+.mmgisRadioBar3 div {
+    -webkit-transition: all 0.15s ease-in;
+    transition: all 0.15s ease-in;
+    color: #999;
+    border-right: none;
+    background-color: rgba(0, 0, 0, 0.44);
+    width: auto;
+    height: 28px;
+    line-height: 28px;
+    font-size: 14px;
+    padding-left: 14px;
+    padding-right: 14px;
+    text-align: center;
+    display: inline-block;
+    cursor: pointer;
+}
+.mmgisRadioBar3 div:first-child {
+    border-top-left-radius: 2px;
+    border-bottom-left-radius: 2px;
+}
+.mmgisRadioBar3 div:last-child {
+    border-top-right-radius: 2px;
+    border-bottom-right-radius: 2px;
+}
+.mmgisRadioBar3 div:hover {
+    color: #eee;
+}
+.mmgisRadioBar3 div.active {
+    color: #eee;
+    background-color: #000000b0;
+}
+.mmgisRadioBar3 div.active:hover {
+    background-color: #000000b0;
+}
+.mmgisRadioBar3.disabled {
+    pointer-events: none;
+}
+.mmgisRadioBar3.disabled div:not(.active) {
+    color: #666;
+    background-color: rgba(0, 0, 0, 0.29);
+}
+.mmgisRadioBar3.off div {
+    pointer-events: none;
+    color: #666;
+    background-color: rgba(0, 0, 0, 0.29);
+}
+
+/*RadioBar4*/
+.mmgisRadioBar4 {
+    display: flex;
+}
+.mmgisRadioBar4 div {
+    -webkit-transition: all 0.15s ease-in;
+    transition: all 0.15s ease-in;
+    color: #999;
+    border-right: none;
+    background-color: rgba(0, 0, 0, 0.44);
+    width: auto;
+    height: 24px;
+    line-height: 24px;
+    font-size: 14px;
+    text-align: center;
+    flex: 1;
+    cursor: pointer;
+}
+.mmgisRadioBar4 div:first-child {
+    border-top-left-radius: 2px;
+    border-bottom-left-radius: 2px;
+}
+.mmgisRadioBar4 div:last-child {
+    border-top-right-radius: 2px;
+    border-bottom-right-radius: 2px;
+}
+.mmgisRadioBar4 div:hover {
+    color: #eee;
+}
+.mmgisRadioBar4 div.active {
+    color: #eee;
+    background-color: green;
+}
+.mmgisRadioBar4 div.active:hover {
+    background-color: #000000b0;
+}
+.mmgisRadioBar4.disabled {
+    pointer-events: none;
+}
+.mmgisRadioBar4.disabled div:not(.active) {
+    color: #666;
+    background-color: rgba(0, 0, 0, 0.29);
+}
+.mmgisRadioBar4.off div {
+    pointer-events: none;
+    color: #666;
+    background-color: rgba(0, 0, 0, 0.29);
+}
+
+/*RadioBarVertical*/
+.mmgisRadioBarVertical {
+    font-size: 0;
+}
+.mmgisRadioBarVertical div {
+    -webkit-transition: all 0.15s ease-in;
+    transition: all 0.15s ease-in;
+    color: #777;
+    width: auto;
+    height: 28px;
+    line-height: 28px;
+    padding-left: 2px;
+    font-size: 18px;
+    cursor: pointer;
+}
+.mmgisRadioBarVertical div:first-child {
+    border-top-left-radius: 2px;
+    border-bottom-left-radius: 2px;
+}
+.mmgisRadioBarVertical div:last-child {
+    border-top-right-radius: 2px;
+    border-bottom-right-radius: 2px;
+}
+.mmgisRadioBarVertical div:hover {
+    color: #aaa;
+}
+.mmgisRadioBarVertical div.active {
+    color: #eee;
+}
+.mmgisRadioBarVertical div.active:hover {
+    background-color: none;
+}
+.mmgisRadioBarVertical.disabled {
+    pointer-events: none;
+}
+.mmgisRadioBarVertical.disabled div:not(.active) {
+    color: #222;
+}
+.mmgisRadioBarVertical.off div {
+    pointer-events: none;
+    color: #222;
+}
+
+/*short semantic dropdown*/
+.ui.dropdown.selection.alittlelonger {
+    width: 200px;
+}
+.ui.dropdown.selection.afourthlonger {
+    width: 25%;
+    min-width: 400px !important;
+}
+.ui.dropdown.selection.short {
+    padding: 0.5em 0.6em 0.5em 0.6em;
+    min-height: 0;
+    height: 30px !important;
+    min-width: 0;
+    border-radius: 0px;
+    border: 1px solid var(--color-e);
+    background: var(--color-i);
+    color: rgba(255, 255, 255, 0.87);
+}
+.ui.dropdown.selection.short.lower {
+    margin-top: 7px;
+}
+.ui.dropdown.selection.short.w100 {
+    width: 100%;
+}
+.ui.dropdown.selection.short .text {
+    color: rgba(255, 255, 255, 0.87) !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    width: calc(100% - 5px) !important;
+    overflow: hidden;
+}
+.ui.dropdown.selection.short .dropdown.icon {
+    padding: 0.55em;
+}
+.ui.dropdown.selection.short div .item {
+    padding: 0.5em 0.6em 0.5em 0.6em !important;
+    min-height: 0;
+}
+.ui.selection.active.dropdown,
+.ui.selection.active.dropdown .menu {
+    border-color: var(--color-mmgis) !important;
+}
+
+.ui.dropdown.searchSelect {
+    font-size: 14px;
+    width: 160px;
+}
+.ui.dropdown.searchSelect .menu {
+    background: var(--color-a);
+    color: white;
+}
+.ui.dropdown.searchSelect .menu .item {
+    color: rgba(255, 255, 255, 0.87);
+    border-top: 1px solid var(--color-b);
+    transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95),
+        color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+.ui.dropdown.searchSelect .menu .item.selected {
+    color: white;
+}
+.ui.dropdown.searchSelect .menu .item:hover {
+    background: var(--color-g);
+    color: white;
+}
+
+.ui.selection.dropdown:focus {
+    border: 1px solid var(--color-e);
+}
+
+.ui.dropdown.selection.short2 {
+    padding: 0.5em 0.6em 0.5em 0.3em;
+    min-height: 0;
+    height: 30px !important;
+    min-width: 100px;
+    background: rgba(0, 0, 0, 0.25);
+    margin-bottom: 2px;
+    color: rgba(255, 255, 255, 0.87);
+}
+.ui.dropdown.selection.short2.w100 {
+    width: 100%;
+}
+.ui.dropdown.selection.short2 .text {
+    color: rgba(255, 255, 255, 0.87) !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    width: calc(100% - 12px) !important;
+    overflow: hidden;
+}
+.ui.dropdown.selection.short2 .dropdown.icon {
+    padding: 0.55em;
+}
+.ui.dropdown.selection.short2 div .item {
+    padding: 0.5em 0.6em 0.5em 0.6em !important;
+    min-height: 0;
+}
+.ui.dropdown.selection.short2.shorter {
+    min-width: 55px;
+}
+
+.ui.dropdown.selection.dropdown_1 {
+    padding: 0.5em 0.6em 0.5em 0.3em;
+    min-height: 0;
+    line-height: 11px;
+    box-sizing: border-box;
+    height: 25px !important;
+    min-width: 104px;
+    max-width: 104px;
+    background: rgba(255, 255, 255, 1);
+    margin-bottom: 2px;
+    color: #131313;
+    border-radius: 0 !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+}
+.ui.dropdown.selection.dropdown_1 .text {
+    color: #131313 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    width: calc(100% - 12px) !important;
+    overflow: hidden;
+}
+.ui.dropdown.selection.dropdown_1 .dropdown.icon {
+    padding: 0.45em;
+}
+.ui.dropdown.selection.dropdown_1 div .item {
+    padding: 0.5em 0.6em 0.5em 0.6em !important;
+    min-height: 0;
+}
+
+.ui.dropdown.selection.dropdown_2 {
+    padding: 0.5em 0.6em 0.5em 0.3em;
+    min-height: 0;
+    line-height: 11px;
+    box-sizing: border-box;
+    height: 25px !important;
+    min-width: 122px;
+    max-width: 122px;
+    background: var(--color-a);
+    margin-bottom: 2px;
+    color: #e1e1e1;
+    border-radius: 0 !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+}
+.ui.dropdown.selection.dropdown_2 .text {
+    color: #e1e1e1 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    width: calc(100% - 12px) !important;
+    overflow: hidden;
+}
+.ui.dropdown.selection.dropdown_2 .dropdown.icon {
+    padding: 0.45em;
+}
+.ui.dropdown.selection.dropdown_2 div .item {
+    padding: 0.5em 0.6em 0.5em 0.6em !important;
+    min-height: 0;
+}
+.ui.selection.active.dropdown:hover {
+    border-color: white;
+}
+
+.mmgisHoverContents > * {
+    cursor: pointer;
+}
+.mmgisHoverContents > *:hover {
+    color: white;
+}
+
+/*Color Bar*/
+.mmgisColorBar {
+    margin: 8px 8px 8px 8px;
+    padding-left: 10px;
+    padding-right: 10px;
+    display: inline-block;
+    vertical-align: middle;
+}
+.mmgisColorBar button {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    -webkit-transition: padding-left 0.2s ease-in, padding-right 0.2s ease-in;
+    transition: padding-left 0.2s ease-in, padding-right 0.2s ease-in;
+    background-color: #161616;
+    border: 1px solid black;
+    color: #dcdcdc;
+    padding-left: 10px;
+    padding-right: 10px;
+    margin: 0px 0px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    cursor: pointer;
+    border-radius: 1px;
+    font-family: 'Trebuchet MS', Verdana, sans-serif;
+}
+.mmgisColorBar button p {
+    display: none;
+    padding: 0;
+    margin: 0;
+    font-size: 14px;
+    font-weight: bold;
+    overflow: hidden;
+    width: 0px;
+    height: 16px;
+}
+.mmgisColorBar:not(:hover) button.active {
+    padding-top: 2px;
+    padding-bottom: 2px;
+    -webkit-transition: padding-left 0.2s ease-in, padding-right 0.2s ease-in;
+    transition: padding-left 0.2s ease-in, padding-right 0.2s ease-in;
+    background-color: #dcdcdc;
+    color: #161616;
+    padding-left: 20px;
+    padding-right: 20px;
+    width: auto;
+}
+.mmgisColorBar:not(:hover) button.active p {
+    display: block;
+    width: 160px;
+}
+.mmgisColorBar button:hover {
+    padding-top: 2px;
+    padding-bottom: 2px;
+    -webkit-transition: padding-left 0.2s ease-in, padding-right 0.2s ease-in;
+    transition: padding-left 0.2s ease-in, padding-right 0.2s ease-in;
+    background-color: #dcdcdc;
+    color: #161616;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+.mmgisColorBar button:hover p {
+    display: block;
+    width: 160px;
+}
+
+/*Custom Scrollbar for webkit*/
+.mmgisScrollbar::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0px 0px 6px rgba(0, 0, 0, 0.3);
+    background-color: Transparent;
+}
+
+.mmgisScrollbar::-webkit-scrollbar {
+    width: 2px;
+    height: 2px;
+    background-color: var(--color-a);
+}
+
+.mmgisScrollbar::-webkit-scrollbar-thumb {
+    border-radius: 0px;
+    background-color: var(--color-b);
+}
+
+::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+}
+::-webkit-scrollbar-thumb {
+    border: 3px solid rgba(0, 0, 0, 0);
+    background-clip: padding-box;
+    border-radius: 7px;
+    background-color: #666;
+    box-shadow: inset -1px -1px 0px rgba(0, 0, 0, 0.05),
+        inset 1px 1px 0px rgba(0, 0, 0, 0.05);
+}
+::-webkit-scrollbar-button {
+    width: 0;
+    height: 0;
+    display: none;
+}
+::-webkit-scrollbar-corner {
+    background-color: transparent;
+}
+
+/*vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv switch slider vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+
+.mmgisMultirange {
+    width: 93%;
+    height: 5px;
+    margin-top: 10px;
+    margin-left: 5px;
+    background: #030215;
+    border-radius: 0px;
+}
+.mmgisMultirange .ui-slider-handle {
+    width: 0px;
+    height: 0px;
+    border-left: 15px solid transparent;
+    border-right: 15px solid transparent;
+    border-top: none;
+    border-bottom: 10px solid #dea26d;
+    /* border-bottom: 10px solid #ffffff; */
+    background: transparent;
+    /* margin-top: -10px */
+    /* -webkit-appearance: none;
+  border-bottom-left-radius: 0px;
+  border-bottom-right-radius: 0px;
+  border-top-left-radius: 30px;
+  border-top-right-radius: 30px; */
+
+    /* background: cyan; */
+}
+
+/* CSS config for multirange slider for elevation slider */
+.mmgisMultirange_elev {
+    width: 95%;
+    height: 5px;
+    margin-top: 10px;
+    margin-left: 5px;
+    background: #030215;
+    border-radius: 0px;
+}
+
+.mmgisMultirange_elev .ui-slider-handle {
+    width: 0px;
+    height: 0px;
+    border-left: 15px solid transparent;
+    border-right: 15px solid transparent;
+    border-top: none;
+    border-bottom: 10px solid #dea26d;
+    background: transparent;
+}
+
+.ui-corner-all,
+.ui-corner-bottom,
+.ui-corner-right,
+.ui-corner-br {
+    border-bottom-right-radius: 0px;
+    border-bottom-left-radius: 0px;
+    border-top-right-radius: 0px;
+    border-top-left-radius: 0px;
+}
+
+/*============================================ Blinking text ===============================================*/
+blink {
+    -webkit-animation: 2s linear infinite condemned_blink_effect; /*for android */
+    animation: 1s linear infinite condemned_blink_effect;
+    transition: opacity 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+    text-shadow: 0px 0px 8px red;
+    font-weight: bold;
+    color: blue;
+}
+
+@-webkit-keyframes condemned_blink_effect {
+    /*for android */
+    0% {
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+@keyframes condemned_blink_effect {
+    0% {
+        opacity: 0;
+        color: blue;
+    }
+    50% {
+        opacity: 1;
+        color: red;
+    }
+    51% {
+        color: blue;
+    }
+    100% {
+        opacity: 0;
+        color: blue;
+    }
+}
+
+/*============================================Pure dropdown select===============================================*/
+/*https://gist.github.com/YoSmudge/2214759*/
+/*Add cursor to the spans and labels*/
+
+.mmgispureselect li label,
+.mmgispureselect li label span {
+    cursor: pointer;
+}
+
+/*By default, hide the spans*/
+.mmgispureselect li label span {
+    display: none;
+}
+
+/*All the spans should show when hovered*/
+.mmgispureselect:hover li label span {
+    display: block;
+}
+
+/*Otherwise, only the selected span should display*/
+.mmgispureselect li label input:checked + span {
+    display: block;
+    font-weight: bold;
+}
+/*
+	Make it pretty with Bootstrap
+*/
+
+/*As before, hide the radio buttons and style the ul*/
+.mmgispureselect li label input {
+    display: none;
+    width: 0;
+    height: 0;
+    margin: 0;
+    padding: 0;
+    position: absolute;
+}
+
+.mmgispureselect {
+    list-style-type: none;
+    margin: 0;
+}
+
+.mmgispureselect li label span {
+    color: #ffffff;
+    cursor: pointer;
+}
+
+/*When the dropdown isn't showing, display the elements inline and show the caret*/
+.mmgispureselect li,
+.mmgispureselect li label {
+    display: inline;
+}
+
+/*When it is showing, hide the caret and display as block*/
+.mmgispureselect:hover li {
+    display: block;
+}
+
+.mmgispureselect:hover li span.caret {
+    display: none;
+}
+
+/*Now hide all the elements except checked*/
+.mmgispureselect li label span {
+    display: none;
+}
+.mmgispureselect li label input:checked + span {
+    display: inline;
+}
+
+/*But show them on hover*/
+.mmgispureselect:hover li label span {
+    display: inline;
+}
+
+/*And highlight the selected one*/
+.mmgispureselect:hover li label input:checked + span {
+    font-weight: bold;
+}
+/*
+  CSS for dropdown
+*/
+
+/*First, do some styling on the UL*/
+
+.mmgispureselect {
+    background-color: var(--color-a);
+    display: inline-block;
+    list-style-type: none;
+    margin: 0;
+    padding: 1px;
+}
+
+/*Now we need to remove the actual radio buttons, the label will serve as the click area*/
+
+.mmgispureselect li label input {
+    display: none;
+    width: 0;
+    height: 0;
+    margin: 0;
+    padding: 0;
+    position: absolute;
+}
+
+/*==============================================================================================================*/
+
+/*vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv switch slider vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+.slidecontainer {
+    margin-top: 15px;
+    /* margin-left: 5px; */
+    width: 100%;
+}
+
+.slider {
+    -webkit-appearance: none;
+    /* width: 100%; */
+    height: 15px;
+    border-radius: 25px;
+    background: #d3d3d3;
+    outline: none;
+    opacity: 0.7;
+    transition: opacity 0.4s;
+}
+
+.slider:hover {
+    opacity: 1;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 15px;
+    height: 15px;
+    border-radius: 25px;
+    background: rgb(211, 129, 22);
+    cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+    width: 25px;
+    height: 25px;
+    background: rgba(255, 255, 255, 0);
+    cursor: pointer;
+}
+/*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ switch slider ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+
+/*Slider2*/
+
+.slider2 {
+    -webkit-appearance: none;
+    /* width: 100%; */
+    height: 15px;
+    background: #222;
+    outline: none;
+    opacity: 0.7;
+    transition: opacity 0.4s;
+}
+
+.slider2:hover {
+    opacity: 1;
+}
+
+.slider2::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #eee;
+    cursor: pointer;
+}
+
+.slider2::-moz-range-thumb {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: #eee;
+    cursor: pointer;
+}
+
+/*=====+==*/
+
+/*Other*/
+.hoverMeWhite {
+    cursor: pointer;
+    transition: color 0.25s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+.hoverMeWhite:hover {
+    color: white;
+}
+
+/*Loader*/
+.mmgisLoading {
+    -webkit-animation-duration: 0.75s;
+    -moz-animation-duration: 0.75s;
+    animation-duration: 0.75s;
+    -webkit-animation-iteration-count: infinite;
+    -moz-animation-iteration-count: infinite;
+    animation-iteration-count: infinite;
+    -webkit-animation-name: rotate-forever;
+    -moz-animation-name: rotate-forever;
+    animation-name: rotate-forever;
+    -webkit-animation-timing-function: linear;
+    -moz-animation-timing-function: linear;
+    animation-timing-function: linear;
+    height: 22px;
+    width: 22px;
+    border: 3px solid var(--color-c);
+    border-right-color: transparent;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+@-webkit-keyframes rotate-forever {
+    0% {
+        -webkit-transform: rotate(0deg);
+        -moz-transform: rotate(0deg);
+        -ms-transform: rotate(0deg);
+        -o-transform: rotate(0deg);
+        transform: rotate(0deg);
+    }
+    100% {
+        -webkit-transform: rotate(360deg);
+        -moz-transform: rotate(360deg);
+        -ms-transform: rotate(360deg);
+        -o-transform: rotate(360deg);
+        transform: rotate(360deg);
+    }
+}
+@-moz-keyframes rotate-forever {
+    0% {
+        -webkit-transform: rotate(0deg);
+        -moz-transform: rotate(0deg);
+        -ms-transform: rotate(0deg);
+        -o-transform: rotate(0deg);
+        transform: rotate(0deg);
+    }
+    100% {
+        -webkit-transform: rotate(360deg);
+        -moz-transform: rotate(360deg);
+        -ms-transform: rotate(360deg);
+        -o-transform: rotate(360deg);
+        transform: rotate(360deg);
+    }
+}
+@keyframes rotate-forever {
+    0% {
+        -webkit-transform: rotate(0deg);
+        -moz-transform: rotate(0deg);
+        -ms-transform: rotate(0deg);
+        -o-transform: rotate(0deg);
+        transform: rotate(0deg);
+    }
+    25% {
+        transform: rotate(90deg);
+    }
+    50% {
+        transform: rotate(180deg);
+    }
+    75% {
+        transform: rotate(270deg);
+    }
+    100% {
+        -webkit-transform: rotate(360deg);
+        -moz-transform: rotate(360deg);
+        -ms-transform: rotate(360deg);
+        -o-transform: rotate(360deg);
+        transform: rotate(360deg);
+    }
+}
+
+/*ar_slider*/
+input[type='range'].ar_slider {
+    -webkit-appearance: none;
+    width: 100%;
+    margin: 0;
+    background: transparent;
+}
+input[type='range'].ar_slider:focus {
+    outline: none;
+}
+input[type='range'].ar_slider::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 40px;
+    cursor: pointer;
+    box-shadow: 1px 1px 0px rgba(0, 0, 0, 0), 0px 0px 1px rgba(13, 13, 13, 0);
+    background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.1),
+        rgba(255, 255, 255, 0),
+        rgba(255, 255, 255, 0.1)
+    );
+    border-radius: 0px;
+    border: none;
+    margin: 0;
+}
+input[type='range'].ar_slider::-webkit-slider-thumb {
+    box-shadow: 0px 0px 0px rgba(103, 0, 0, 0), 0px 0px 0px rgba(129, 0, 0, 0);
+    border: 0px solid rgba(0, 0, 0, 0);
+    height: 40px;
+    width: 18px;
+    border-radius: 0px;
+    background: rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+    -webkit-appearance: none;
+    margin: 0;
+}
+input[type='range'].ar_slider:focus::-webkit-slider-runnable-track {
+    background: rgba(255, 255, 255, 0.1);
+}
+input[type='range'].ar_slider::-moz-range-track {
+    width: 100%;
+    height: 27px;
+    cursor: pointer;
+    box-shadow: 1px 1px 0px rgba(0, 0, 0, 0), 0px 0px 1px rgba(13, 13, 13, 0);
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 0px;
+    border: 0px solid rgba(1, 1, 1, 0);
+}
+input[type='range'].ar_slider::-moz-range-thumb {
+    box-shadow: 0px 0px 0px rgba(103, 0, 0, 0), 0px 0px 0px rgba(129, 0, 0, 0);
+    border: 0px solid rgba(0, 0, 0, 0);
+    height: 27px;
+    width: 18px;
+    border-radius: 0px;
+    background: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+}
+input[type='range'].ar_slider::-ms-track {
+    width: 100%;
+    height: 27px;
+    cursor: pointer;
+    background: transparent;
+    border-color: transparent;
+    color: transparent;
+}
+input[type='range'].ar_slider::-ms-fill-lower {
+    background: rgba(242, 242, 242, 0.1);
+    border: 0px solid rgba(1, 1, 1, 0);
+    border-radius: 0px;
+    box-shadow: 1px 1px 0px rgba(0, 0, 0, 0), 0px 0px 1px rgba(13, 13, 13, 0);
+}
+input[type='range'].ar_slider::-ms-fill-upper {
+    background: rgba(255, 255, 255, 0.1);
+    border: 0px solid rgba(1, 1, 1, 0);
+    border-radius: 0px;
+    box-shadow: 1px 1px 0px rgba(0, 0, 0, 0), 0px 0px 1px rgba(13, 13, 13, 0);
+}
+input[type='range'].ar_slider::-ms-thumb {
+    box-shadow: 0px 0px 0px rgba(103, 0, 0, 0), 0px 0px 0px rgba(129, 0, 0, 0);
+    border: 0px solid rgba(0, 0, 0, 0);
+    width: 18px;
+    border-radius: 0px;
+    background: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    height: 27px;
+}
+input[type='range'].ar_slider:focus::-ms-fill-lower {
+    background: rgba(255, 255, 255, 0.1);
+}
+input[type='range'].ar_slider:focus::-ms-fill-upper {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/*verticalSlider*/
+input[type='range'].verticalSlider {
+    -webkit-appearance: none;
+    width: 100px;
+    margin: 0;
+    background: transparent;
+}
+input[type='range'].verticalSlider:focus {
+    outline: none;
+}
+input[type='range'].verticalSlider::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 41px;
+    cursor: pointer;
+    box-shadow: 1px 1px 0px rgba(0, 0, 0, 0), 0px 0px 1px rgba(13, 13, 13, 0);
+    background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.1),
+        rgba(255, 255, 255, 0),
+        rgba(255, 255, 255, 0.1)
+    );
+    border-radius: 0px;
+    border: none;
+    margin: 0;
+}
+input[type='range'].verticalSlider::-webkit-slider-thumb {
+    box-shadow: 0px 0px 0px rgba(103, 0, 0, 0), 0px 0px 0px rgba(129, 0, 0, 0);
+    border: 0px solid rgba(0, 0, 0, 0);
+    height: 41px;
+    width: 18px;
+    border-radius: 0px;
+    background: rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+    -webkit-appearance: none;
+    margin: 0;
+}
+input[type='range'].verticalSlider:focus::-webkit-slider-runnable-track {
+    background: rgba(255, 255, 255, 0.1);
+}
+input[type='range'].verticalSlider::-moz-range-track {
+    width: 100%;
+    height: 41px;
+    cursor: pointer;
+    box-shadow: 1px 1px 0px rgba(0, 0, 0, 0), 0px 0px 1px rgba(13, 13, 13, 0);
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 0px;
+    border: 0px solid rgba(1, 1, 1, 0);
+}
+input[type='range'].verticalSlider::-moz-range-thumb {
+    box-shadow: 0px 0px 0px rgba(103, 0, 0, 0), 0px 0px 0px rgba(129, 0, 0, 0);
+    border: 0px solid rgba(0, 0, 0, 0);
+    height: 41px;
+    width: 18px;
+    border-radius: 0px;
+    background: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+}
+input[type='range'].verticalSlider::-ms-track {
+    width: 100%;
+    height: 41px;
+    cursor: pointer;
+    background: transparent;
+    border-color: transparent;
+    color: transparent;
+}
+input[type='range'].verticalSlider::-ms-fill-lower {
+    background: rgba(242, 242, 242, 0.1);
+    border: 0px solid rgba(1, 1, 1, 0);
+    border-radius: 0px;
+    box-shadow: 1px 1px 0px rgba(0, 0, 0, 0), 0px 0px 1px rgba(13, 13, 13, 0);
+}
+input[type='range'].verticalSlider::-ms-fill-upper {
+    background: rgba(255, 255, 255, 0.1);
+    border: 0px solid rgba(1, 1, 1, 0);
+    border-radius: 0px;
+    box-shadow: 1px 1px 0px rgba(0, 0, 0, 0), 0px 0px 1px rgba(13, 13, 13, 0);
+}
+input[type='range'].verticalSlider::-ms-thumb {
+    box-shadow: 0px 0px 0px rgba(103, 0, 0, 0), 0px 0px 0px rgba(129, 0, 0, 0);
+    border: 0px solid rgba(0, 0, 0, 0);
+    width: 18px;
+    border-radius: 0px;
+    background: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    height: 41px;
+}
+input[type='range'].verticalSlider:focus::-ms-fill-lower {
+    background: rgba(255, 255, 255, 0.1);
+}
+input[type='range'].verticalSlider:focus::-ms-fill-upper {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.blackTextBorder {
+    color: white;
+    text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000,
+        -1px -1px 0 #000, 0px 1px 0 #000, 0px -1px 0 #000, -1px 0px 0 #000,
+        1px 0px 0 #000, 2px 2px 0 #000, -2px 2px 0 #000, 2px -2px 0 #000,
+        -2px -2px 0 #000, 0px 2px 0 #000, 0px -2px 0 #000, -2px 0px 0 #000,
+        2px 0px 0 #000, 1px 2px 0 #000, -1px 2px 0 #000, 1px -2px 0 #000,
+        -1px -2px 0 #000, 2px 1px 0 #000, -2px 1px 0 #000, 2px -1px 0 #000,
+        -2px -1px 0 #000;
+}
+
+/*Other*/
+.unselectable {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.hidable {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+.hidable.shown {
+    opacity: 1;
+    pointer-events: inherit;
+    transition: opacity 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+
+.mmgisHoverBlue {
+    color: var(--color-f);
+    transition: all 0.2s ease-in 0s;
+}
+.mmgisHoverBlue:hover {
+    color: var(--color-mmgis);
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}

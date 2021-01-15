@@ -3,12 +3,12 @@ const path = require("path");
 
 const logger = require("./logger");
 
-let getBackendSetups = cb => {
+let getBackendSetups = (cb) => {
   let setups = {};
 
   //First read all the standard tools
   let setupsPath = "./API/Backend";
-  fs.readdir(setupsPath, { withFileTypes: true }, function(err, items) {
+  fs.readdir(setupsPath, { withFileTypes: true }, function (err, items) {
     items = items || [];
     for (var i = 0; i < items.length; i++) {
       let isDir = false;
@@ -45,7 +45,7 @@ let getBackendSetups = cb => {
     }
 
     setupsPath = "./API/MMGIS-Private-Backend";
-    fs.readdir(setupsPath, { withFileTypes: true }, function(err, items) {
+    fs.readdir(setupsPath, { withFileTypes: true }, function (err, items) {
       items = items || [];
       for (var i = 0; i < items.length; i++) {
         let isDir = false;
@@ -84,7 +84,7 @@ let getBackendSetups = cb => {
 
       // Sort the tools by priority
       setups = Object.keys(setups)
-        .sort(function(a, b) {
+        .sort(function (a, b) {
           return (setups[a].priority || 1000) - (setups[b].priority || 1000);
         })
         .reduce((obj, key) => {
@@ -111,21 +111,21 @@ let getBackendSetups = cb => {
       }
 
       cb({
-        init: s => {
+        init: (s) => {
           for (let f in setups)
             if (typeof setups[f].onceInit === "function") setups[f].onceInit(s);
         },
-        started: s => {
+        started: (s) => {
           for (let f in setups)
             if (typeof setups[f].onceStarted === "function")
               setups[f].onceStarted(s);
         },
-        synced: s => {
+        synced: (s) => {
           for (let f in setups)
             if (typeof setups[f].onceSynced === "function")
               setups[f].onceSynced(s);
         },
-        envs: envs
+        envs: envs,
       });
     });
   });
