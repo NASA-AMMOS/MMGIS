@@ -1,7 +1,7 @@
 doctype html
 head
   title MMGIS Configure
-  link(rel='shortcut icon' href='resources/logo.png')
+  link(rel='shortcut icon' href='../public/images/logos/logo.png')
   link(type='text/css' rel='stylesheet' href='public/fonts/materialdesignicons/css/materialdesignicons.min.css')
   // Import materialize.css
   link(type='text/css' rel='stylesheet' href='config/css/jquery-ui.css')
@@ -30,19 +30,18 @@ script.
     mmgisglobal.SHOW_AUTH_TIMEOUT = true;
     mmgisglobal.user = '#{user}';
     mmgisglobal.NODE_ENV = '#{NODE_ENV}';
-    mmgisglobal.CONFIGCONFIG_PATH = '#{CONFIGCONFIG_PATH}';
 script(type='text/javascript' src='config/js/calls.js')
 script(type='text/javascript' src='config/js/keys.js')
 script(type='text/javascript' src='config/js/datasets.js')
 script(type='text/javascript' src='config/js/geodatasets.js')
 script(type='text/javascript' src='config/js/config.js')
-script(type='text/javascript' src='scripts/pre/RefreshAuth.js')
+script(type='text/javascript' src='src/pre/RefreshAuth.js')
 
 #leftPanel
   #tbtitle
       //i.logout#config_logout.mdi.mdi-logout.mdi-24px
       a.logout#tbmmgis
-        img(src='../resources/mmgis.png' height='24px' style='position: relative; top: 13px;')
+        img(src='../public/images/logos/mmgis.png' height='24px' style='position: relative; top: 13px;')
       span#tbconfig  Configuration
   a#new_mission.btn.waves-effect.waves-light.col.s12.truncate(style='background-color: rgba(255,255,255,0.12);') New Mission
   ul#missions.mmgisScrollbar
@@ -57,7 +56,7 @@ script(type='text/javascript' src='scripts/pre/RefreshAuth.js')
   #tbtitle
     i.logout#config_logout.mdi.mdi-logout.mdi-24px
     a.logout#tbmmgis
-      img(src='../resources/mmgis.png' height='24px' style='position: relative; top: 4px;')
+      img(src='../public/images/logos/mmgis.png' height='24px' style='position: relative; top: 4px;')
     span#tbconfig  Configuration
   #divline
 #mission_bar.row.z-depth-1
@@ -111,6 +110,8 @@ script(type='text/javascript' src='scripts/pre/RefreshAuth.js')
           li.tab.col.s1
             a(href='#tab_panels') Panels
       #tab_overall.col.s12
+        a.helpFromDocs(href='docs/?page=Overall_Tab' target='__blank' rel='noopener')
+          i.mdi.mdi-help.mdi-14px
         ul#tab_overall_rows
           li.row
             #overall_mission_name.col.s12
@@ -127,6 +128,8 @@ script(type='text/javascript' src='scripts/pre/RefreshAuth.js')
             | Delete Mission
             i.mdi.mdi-delete.mdi-18px(style='float: right; margin-top: -1px;')
       #tab_initial.col.s12
+        a.helpFromDocs(href='docs/?page=Initial_Tab' target='__blank' rel='noopener')
+          i.mdi.mdi-help.mdi-14px
         ul#tab_initial_rows
           li.row
             #imissionEl.input-field.col.s4.push-s1
@@ -161,6 +164,8 @@ script(type='text/javascript' src='scripts/pre/RefreshAuth.js')
               input#imapScale.validate(type='text' value='')
               label(for='imapScale') Zoom Level of Map Scale
       #tab_projection.col.s12(style='padding-bottom: 15px;')
+        a.helpFromDocs(href='docs/?page=Projection_Tab' target='__blank' rel='noopener')
+          i.mdi.mdi-help.mdi-14px
         ul#tab_projection_rows
           li.row
             a#projection_toggleCustom.btn.waves-effect.waves-light.red.darken-3.col.s12(style='border-radius: 0px; margin-top: 25px;')
@@ -170,16 +175,9 @@ script(type='text/javascript' src='scripts/pre/RefreshAuth.js')
             #projection_epsgEl.input-field.col.s2.push-s1
               input#projection_epsg.validate(type='text' value='')
               label(for='projection_epsg') EPSG
-            #projection_projEl.input-field.col.s6.push-s1
+            #projection_projEl.input-field.col.s8.push-s1
               input#projection_proj.validate(type='text' value='')
               label(for='projection_proj') Proj4 v2.3.14 String
-            #projection_globeProjEl.input-field.col.s2.push-s1
-              select#projection_globeProj
-                option(value='webmercator' selected='') Web Mercator
-                option(value='equidistantcylindrical') Equi-Cylindrical
-                option(value='lambertazimuthalequalarea') Lambert Azimuthal
-                option(value='stereographic(N)') North Pole Sterographic
-              label(for='projection_globeProj') Globe Projection
           li.row
             #projection_xmlPathEl.input-field.col.s8.push-s1
               input#projection_xmlPath.validate(type='text' value='')
@@ -214,20 +212,45 @@ script(type='text/javascript' src='scripts/pre/RefreshAuth.js')
                 input#projection_res.validate(type='text' value='')
                 label(for='projection_res') the units per pixel are
       #tab_look.col.s12
+        a.helpFromDocs(href='docs/?page=Look_Tab' target='__blank' rel='noopener')
+          i.mdi.mdi-help.mdi-14px
         ul#tab_look_rows
+          li.row.title
+            .col.s2.push-s2 Rebranding 
           li.row
             #look_pagenameEl.input-field.col.s2.push-s2
               input#look_pagename.validate(type='text' value='')
               label(for='look_pagename') Page Name
+            #look_logourlEl.input-field.col.s6.push-s2
+              input#look_logourl.validate(type='text' value='')
+              label(for='look_logourl') Square Logo Image URL
+          li.row.title
+            .col.s2.push-s2 User Interface 
+          li.row.checkboxRow
             #look_minimalistEl.input-field.col.s2.push-s2
               input#look_minimalist.filled-in.checkbox-color(type='checkbox')
               label(for='look_minimalist' style='color: black;') Minimalist UI
             #look_zoomcontrolEl.input-field.col.s2.push-s2
               input#look_zoomcontrol.filled-in.checkbox-color(type='checkbox')
-              label(for='look_zoomcontrol' style='color: black;') Zoom Control
+              label(for='look_zoomcontrol' style='color: black;') Map Zoom Control
             #look_graticuleEl.input-field.col.s2.push-s2
               input#look_graticule.filled-in.checkbox-color(type='checkbox')
-              label(for='look_graticule' style='color: black;') Graticule
+              label(for='look_graticule' style='color: black;') Map Graticule
+          li.row.title
+            .col.s2.push-s2 Colors 
+          li.row
+            #look_primarycolorEl.input-field.col.s2.push-s2
+              input#look_primarycolor.validate(type='text' value='')
+              label(for='look_primarycolor') Primary Color
+            #look_secondarycolorEl.input-field.col.s2.push-s2
+              input#look_secondarycolor.validate(type='text' value='')
+              label(for='look_secondarycolor') Secondary Color
+            #look_tertiarycolorEl.input-field.col.s2.push-s2
+              input#look_tertiarycolor.validate(type='text' value='')
+              label(for='look_tertiarycolor') Tertiary Color
+            #look_accentcolorEl.input-field.col.s2.push-s2
+              input#look_accentcolor.validate(type='text' value='')
+              label(for='look_accentcolor') Accent Color
           li.row
             #look_bodycolorEl.input-field.col.s2.push-s2
               input#look_bodycolor.validate(type='text' value='')
@@ -242,30 +265,34 @@ script(type='text/javascript' src='scripts/pre/RefreshAuth.js')
               input#look_mapcolor.validate(type='text' value='')
               label(for='look_mapcolor') Map Color
           li.row
-            #look_swapEl.input-field.col.s2.push-s3
-              input#look_swap.filled-in.checkbox-color(type='checkbox')
-              label(for='look_swap' style='color: black;') Swap
-            #look_copylinkEl.input-field.col.s2.push-s3
+            #look_highlightcolorEl.input-field.col.s2.push-s2
+              input#look_highlightcolor.validate(type='text' value='')
+              label(for='look_highlightcolor') Highlight Color
+          li.row.title
+            .col.s2.push-s2 Secondary tools 
+          li.row.checkboxRow
+            #look_copylinkEl.input-field.col.s2.push-s2
               input#look_copylink.filled-in.checkbox-color(type='checkbox')
               label(for='look_copylink' style='color: black;') Copy link
-            #look_screenshotEl.input-field.col.s2.push-s3
+            #look_screenshotEl.input-field.col.s2.push-s2
               input#look_screenshot.filled-in.checkbox-color(type='checkbox')
               label(for='look_screenshot' style='color: black;') Screenshot
-          li.row
-            #look_fullscreenEl.input-field.col.s2.push-s4
+            #look_fullscreenEl.input-field.col.s2.push-s2
               input#look_fullscreen.filled-in.checkbox-color(type='checkbox')
               label(for='look_fullscreen' style='color: black;') Fullscreen
-            #look_helpEl.input-field.col.s2.push-s4
+          li.row.title
+            .col.s2.push-s2 User Help
+          li.row.checkboxRow
+            #look_helpEl.input-field.col.s2.push-s2
               input#look_help.filled-in.checkbox-color(type='checkbox')
               label(for='look_help' style='color: black;') Help
-          li.row
-            #look_logourlEl.input-field.col.s4.push-s2
-              input#look_logourl.validate(type='text' value='')
-              label(for='look_logourl') Square Logo Image URL
-            #look_helpurlEl.input-field.col.s4.push-s2
+            #look_helpurlEl.input-field.col.s6.push-s2
               input#look_helpurl.validate(type='text' value='')
               label(for='look_helpurl') Help URL
+            
       #tab_panels.col.s8.push-s2
+        a.helpFromDocs(href='docs/?page=Panels_Tab' target='__blank' rel='noopener')
+          i.mdi.mdi-help.mdi-14px
         p
           input#panels_viewer.filled-in.checkbox-color(type='checkbox')
           label(for='panels_viewer' style='color: black;') Viewer
@@ -276,8 +303,12 @@ script(type='text/javascript' src='scripts/pre/RefreshAuth.js')
           input#panels_globe.filled-in.checkbox-color(type='checkbox')
           label(for='panels_globe' style='color: black;') Globe
       #tab_tools.col.s12
+        a.helpFromDocs(href='docs/?page=Tools_Tab' target='__blank' rel='noopener')
+          i.mdi.mdi-help.mdi-14px
         ul#tab_tools_rows
       #tab_layers.col.s12
+        a.helpFromDocs(href='docs/?page=Layers_Tab' target='__blank' rel='noopener')
+          i.mdi.mdi-help.mdi-14px
         ul#tab_layers_rows(style='margin-top: 20px;')
         #add_new_layer.row
           a.btn.waves-effect.col.s2.push-s9(style='color: black; background: white;')

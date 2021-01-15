@@ -1,0 +1,34 @@
+{
+    "defaultIcon": "lead-pencil",
+    "description": "Draw polygons with colors, names and descriptions.",
+    "descriptionFull": {
+        "title": "Please specify a color legend. Draw polygons with colors, names and descriptions. Polygons of the same file never overlap each other and there are options to draw, erase, delete, draw over, draw under, change the color, name, description, download and choose which file you're drawing to.",
+        "example": {
+            "colorlegend": [
+                {
+                    "name": "Smooth Regolith",
+                    "color": "#1E5CB3",
+                    "value": "0",
+                    "invertTextColor": true
+                },
+                {
+                    "...": "..."
+                }
+            ],
+            "demtilesets": {
+                "path_to_DEM_tiles/{z}/{x}/{y}.png": {
+                    "dim": "(int) dimension of dem tiles used. 32 for 32x32 tiles",
+                    "z": "(int) zoom level to query elevation data off of dem tiles"
+                },
+                "...": {
+                    "...": "..."
+                }
+            }
+        }
+    },
+    "hasVars": true,
+    "name": "Sketch",
+    "paths": {
+        "SketchTool": "essence/Tools/Sketch/SketchTool"
+    }
+}

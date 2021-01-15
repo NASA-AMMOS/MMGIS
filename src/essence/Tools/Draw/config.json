@@ -1,0 +1,21 @@
+{
+    "defaultIcon": "pencil",
+    "description": "Advanced drawing",
+    "descriptionFull": {
+        "title": "",
+        "example": {
+            "intents": [
+                "Polygon_1_Alias",
+                "Polygon_2_Alias",
+                "Polygon_3_Alias",
+                "Line_Alias",
+                "Point_Alias"
+            ]
+        }
+    },
+    "hasVars": true,
+    "name": "Draw",
+    "paths": {
+        "DrawTool": "essence/Tools/Draw/DrawTool"
+    }
+}

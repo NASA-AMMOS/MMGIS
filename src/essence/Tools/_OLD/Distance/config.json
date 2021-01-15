@@ -1,0 +1,10 @@
+{
+    "defaultIcon": "ruler",
+    "description": "DEPRECATED. Measuring tool.",
+    "descriptionFull": {},
+    "hasVars": true,
+    "name": "Distance",
+    "paths": {
+        "DistanceTool": "essence/Tools/Distance/DistanceTool"
+    }
+}

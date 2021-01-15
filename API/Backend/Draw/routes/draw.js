@@ -58,6 +58,8 @@ const pushToHistory = (
     order: [["history_id", "DESC"]],
   })
     .then((lastHistory) => {
+      let maxHistoryId = -Infinity;
+      let bestI = -1;
       if (lastHistory && lastHistory.length > 0) {
         return {
           historyIndex: lastHistory[0].history_id + 1,
@@ -183,6 +185,8 @@ const clipOver = function (
     order: [["history_id", "DESC"]],
   })
     .then((lastHistory) => {
+      let maxHistoryId = -Infinity;
+      let bestI = -1;
       if (lastHistory && lastHistory.length > 0) {
         return {
           historyIndex: lastHistory[0].history_id + 1,
@@ -311,6 +315,8 @@ const clipUnder = function (
     order: [["history_id", "DESC"]],
   })
     .then((lastHistory) => {
+      let maxHistoryId = -Infinity;
+      let bestI = -1;
       if (lastHistory && lastHistory.length > 0) {
         return {
           historyIndex: lastHistory[0].history_id + 1,
@@ -541,12 +547,6 @@ const add = function (
                     id = req.body.bulk_ids;
                     id.push(created.id);
                   }
-
-                  let createdUUID = null;
-                  try {
-                    createdUUID = JSON.parse(created.properties).uuid;
-                  } catch (e) {}
-
                   if (req.body.clip === "over") {
                     clipOver(
                       req,
@@ -556,11 +556,7 @@ const add = function (
                       time,
                       () => {
                         if (typeof successCallback === "function")
-                          successCallback(
-                            created.id,
-                            created.intent,
-                            createdUUID
-                          );
+                          successCallback(created.id, created.intent);
                       },
                       (err) => {
                         if (typeof failureCallback2 === "function")
@@ -578,11 +574,7 @@ const add = function (
                       0,
                       () => {
                         if (typeof successCallback === "function")
-                          successCallback(
-                            created.id,
-                            created.intent,
-                            createdUUID
-                          );
+                          successCallback(created.id, created.intent);
                       },
                       (err) => {
                         if (typeof failureCallback2 === "function")
@@ -592,7 +584,7 @@ const add = function (
                   }
                 } else {
                   if (typeof successCallback === "function")
-                    successCallback(created.id, created.intent, createdUUID);
+                    successCallback(created.id, created.intent);
                 }
                 return null;
               })
@@ -610,12 +602,12 @@ router.post("/add", function (req, res, next) {
   add(
     req,
     res,
-    (id, intent, uuid) => {
+    (id, intent) => {
       logger("info", "Successfully added a new feature.", req.originalUrl, req);
       res.send({
         status: "success",
         message: "Successfully added a new feature.",
-        body: { id: id, intent: intent, uuid: uuid, tag: req.body.tag },
+        body: { id: id, intent: intent },
       });
     },
     (err) => {

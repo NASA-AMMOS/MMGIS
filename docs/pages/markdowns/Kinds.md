@@ -13,7 +13,7 @@ Works just like the None Kind but automatically opens the Info Tool too (if it's
 
 ### Waypoint
 
-This Kind is very specific to the Curiosity Rover and only works on point features. It takes hardcoded rover dimensions, `resources/RoverImages/CuriosityTopDownOrthoSmall.png` and the geojson feature property `yaw_rad` to orient a to scale Curiosity Rover image under the clicked point.
+This Kind is very specific to the Curiosity Rover and only works on point features. It takes hardcoded rover dimensions, `public/images/rovers/CuriosityTopDownOrthoSmall.png` and the geojson feature property `yaw_rad` to orient a to scale Curiosity Rover image under the clicked point.
 
 ### Chemistry Tool
 

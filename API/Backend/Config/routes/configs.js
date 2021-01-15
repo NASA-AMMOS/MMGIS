@@ -12,6 +12,13 @@ const config_template = require("../../../templates/config_template");
 
 const fs = require("fs");
 
+let fullAccess = false;
+if (
+  !process.env.hasOwnProperty("HIDE_CONFIG") ||
+  process.env.HIDE_CONFIG != "true"
+)
+  fullAccess = true;
+
 function get(req, res, next, cb) {
   Config.findAll({
     limit: 1,
@@ -197,9 +204,11 @@ function add(req, res, next, cb) {
     });
   return null;
 }
-router.post("/add", function (req, res, next) {
-  add(req, res, next);
-});
+
+if (fullAccess)
+  router.post("/add", function (req, res, next) {
+    add(req, res, next);
+  });
 
 function upsert(req, res, next, cb) {
   let hasVersion = false;
@@ -207,13 +216,20 @@ function upsert(req, res, next, cb) {
   let versionConfig = null;
 
   Config.findAll({
-    limit: 1,
     where: {
       mission: req.body.mission,
     },
     order: [["id", "DESC"]],
   })
     .then((missions) => {
+      missions.every(function (mission, i) {
+        if (hasVersion && missions[i].version == req.body.version) {
+          versionConfig = missions[i].config;
+          return false;
+        }
+        return true;
+      });
+
       if (missions && missions.length > 0) return missions[0].version;
       return -1;
     })
@@ -268,15 +284,17 @@ function upsert(req, res, next, cb) {
     })
     .catch((err) => {
       logger("error", "Failed to update mission.", req.originalUrl, req, err);
-      if (cb) cb({ status: "failure", message: "Failed to find mission." });
+      if (cb) cb({ status: "failure", message: "Failed to update mission." });
       else res.send({ status: "failure", message: "Failed to find mission." });
       return null;
     });
   return null;
 }
-router.post("/upsert", function (req, res, next) {
-  upsert(req, res, next);
-});
+
+if (fullAccess)
+  router.post("/upsert", function (req, res, next) {
+    upsert(req, res, next);
+  });
 
 router.post("/missions", function (req, res, next) {
   Config.aggregate("mission", "DISTINCT", { plain: false })
@@ -296,25 +314,26 @@ router.post("/missions", function (req, res, next) {
   return null;
 });
 
-router.post("/versions", function (req, res, next) {
-  Config.findAll({
-    where: {
-      mission: req.body.mission,
-    },
-    attributes: ["mission", "version", "createdAt"],
-    order: [["id", "ASC"]],
-  })
-    .then((missions) => {
-      res.send({ status: "success", versions: missions });
-      return null;
+if (fullAccess)
+  router.post("/versions", function (req, res, next) {
+    Config.findAll({
+      where: {
+        mission: req.body.mission,
+      },
+      attributes: ["mission", "version", "createdAt"],
+      order: [["id", "ASC"]],
     })
-    .catch((err) => {
-      logger("error", "Failed to find versions.", req.originalUrl, req, err);
-      res.send({ status: "failure", message: "Failed to find versions." });
-      return null;
-    });
-  return null;
-});
+      .then((missions) => {
+        res.send({ status: "success", versions: missions });
+        return null;
+      })
+      .catch((err) => {
+        logger("error", "Failed to find versions.", req.originalUrl, req, err);
+        res.send({ status: "failure", message: "Failed to find versions." });
+        return null;
+      });
+    return null;
+  });
 
 function relativizePaths(config, mission) {
   let relConfig = JSON.parse(JSON.stringify(config));
@@ -345,97 +364,100 @@ function relativizePaths(config, mission) {
 //existingMission
 //cloneMission
 //hasPaths
-router.post("/clone", function (req, res, next) {
-  req.query.full = true;
-  req.query.mission = req.body.existingMission;
+if (fullAccess)
+  router.post("/clone", function (req, res, next) {
+    req.query.full = true;
+    req.query.mission = req.body.existingMission;
 
-  get(req, res, next, function (r) {
-    if (r.status == "success") {
-      r.config.msv.mission = req.body.cloneMission;
-      req.body.config =
-        req.body.hasPaths == "true"
-          ? relativizePaths(r.config, req.body.existingMission)
-          : r.config;
-      req.body.mission = req.body.cloneMission;
-      execFile(
-        "php",
-        [
-          "private/api/create_mission.php",
-          encodeURIComponent(req.body.cloneMission),
-        ],
-        function (error, stdout, stderr) {
-          stdout = JSON.parse(stdout);
-          if (stdout.status == "success") {
-            add(req, res, next, function (r2) {
-              if (r2.status == "success") {
-                res.send(r2);
-              } else {
-                res.send(r2);
-              }
-            });
-          } else res.send(stdout);
-        }
-      );
-    } else {
-      res.send(r);
-    }
-  });
-});
-
-router.post("/rename", function (req, res, next) {});
-router.post("/destroy", function (req, res, next) {
-  Config.destroy({
-    where: {
-      mission: req.body.mission,
-    },
-  })
-    .then((mission) => {
-      logger(
-        "info",
-        "Deleted Mission: " + req.body.mission,
-        req.originalUrl,
-        req
-      );
-
-      const dir = "./Missions/" + req.body.mission;
-      if (fs.existsSync(dir)) {
-        fs.rename(dir, dir + "_deleted_", (err) => {
-          if (err)
-            res.send({
-              status: "success",
-              message:
-                "Successfully Deleted Mission: " +
-                req.body.mission +
-                " but couldn't rename its Missions directory.",
-            });
-          else
-            res.send({
-              status: "success",
-              message: "Successfully Deleted Mission: " + req.body.mission,
-            });
-        });
+    get(req, res, next, function (r) {
+      if (r.status == "success") {
+        r.config.msv.mission = req.body.cloneMission;
+        req.body.config =
+          req.body.hasPaths == "true"
+            ? relativizePaths(r.config, req.body.existingMission)
+            : r.config;
+        req.body.mission = req.body.cloneMission;
+        execFile(
+          "php",
+          [
+            "private/api/create_mission.php",
+            encodeURIComponent(req.body.cloneMission),
+          ],
+          function (error, stdout, stderr) {
+            stdout = JSON.parse(stdout);
+            if (stdout.status == "success") {
+              add(req, res, next, function (r2) {
+                if (r2.status == "success") {
+                  res.send(r2);
+                } else {
+                  res.send(r2);
+                }
+              });
+            } else res.send(stdout);
+          }
+        );
       } else {
-        res.send({
-          status: "success",
-          message: "Successfully Deleted Mission: " + req.body.mission,
-        });
+        res.send(r);
       }
-    })
-    .catch((err) => {
-      logger(
-        "error",
-        "Failed to delete mission: " + req.body.mission,
-        req.originalUrl,
-        req,
-        err
-      );
-      res.send({
-        status: "failure",
-        message: "Failed to delete mission " + req.body.mission + ".",
-      });
-      return null;
     });
-  return null;
-});
+  });
+
+if (fullAccess) router.post("/rename", function (req, res, next) {});
+
+if (fullAccess)
+  router.post("/destroy", function (req, res, next) {
+    Config.destroy({
+      where: {
+        mission: req.body.mission,
+      },
+    })
+      .then((mission) => {
+        logger(
+          "info",
+          "Deleted Mission: " + req.body.mission,
+          req.originalUrl,
+          req
+        );
+
+        const dir = "./Missions/" + req.body.mission;
+        if (fs.existsSync(dir)) {
+          fs.rename(dir, dir + "_deleted_", (err) => {
+            if (err)
+              res.send({
+                status: "success",
+                message:
+                  "Successfully Deleted Mission: " +
+                  req.body.mission +
+                  " but couldn't rename its Missions directory.",
+              });
+            else
+              res.send({
+                status: "success",
+                message: "Successfully Deleted Mission: " + req.body.mission,
+              });
+          });
+        } else {
+          res.send({
+            status: "success",
+            message: "Successfully Deleted Mission: " + req.body.mission,
+          });
+        }
+      })
+      .catch((err) => {
+        logger(
+          "error",
+          "Failed to delete mission: " + req.body.mission,
+          req.originalUrl,
+          req,
+          err
+        );
+        res.send({
+          status: "failure",
+          message: "Failed to delete mission " + req.body.mission + ".",
+        });
+        return null;
+      });
+    return null;
+  });
 
 module.exports = router;

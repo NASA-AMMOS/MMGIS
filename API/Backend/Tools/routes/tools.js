@@ -6,19 +6,19 @@ const path = require("path");
 const logger = require("../../../logger");
 const Tools = require("../models/tools");
 
-router.get("/get", function(req, res, next) {
+router.get("/get", function (req, res, next) {
   Tools.findOne({ order: [["createdAt", "DESC"]] })
-    .then(t => {
+    .then((t) => {
       return t.tools;
     })
-    .then(t => {
+    .then((t) => {
       res.send({
         status: "success",
-        tools: t
+        tools: t,
       });
       return null;
     })
-    .catch(err => {
+    .catch((err) => {
       res.send({ status: "failure", message: "Tool definitions not found." });
       return null;
     });
@@ -29,8 +29,8 @@ function updateToolDefinitions() {
   let tools = {};
 
   //First read all the standard tools
-  let toolsPath = "./scripts/essence/Tools";
-  fs.readdir(toolsPath, { withFileTypes: true }, function(err, items) {
+  let toolsPath = "./src/essence/Tools";
+  fs.readdir(toolsPath, { withFileTypes: true }, function (err, items) {
     items = items || [];
     for (var i = 0; i < items.length; i++) {
       let isDir = false;
@@ -66,8 +66,8 @@ function updateToolDefinitions() {
       }
     }
 
-    toolsPath = "./scripts/essence/MMGIS-Private-Tools";
-    fs.readdir(toolsPath, { withFileTypes: true }, function(err, items) {
+    toolsPath = "./src/essence/MMGIS-Private-Tools";
+    fs.readdir(toolsPath, { withFileTypes: true }, function (err, items) {
       items = items || [];
       for (var i = 0; i < items.length; i++) {
         if (
@@ -95,7 +95,7 @@ function updateToolDefinitions() {
 
       // Sort the tools by toolbarPriority
       tools = Object.keys(tools)
-        .sort(function(a, b) {
+        .sort(function (a, b) {
           return (
             (tools[a].toolbarPriority || 1000) -
             (tools[b].toolbarPriority || 1000)
@@ -107,11 +107,11 @@ function updateToolDefinitions() {
         }, {});
 
       Tools.create({ tools: tools })
-        .then(created => {
+        .then((created) => {
           logger("info", "Successfully updated tool definitions.", "Tools");
           return null;
         })
-        .catch(err => {
+        .catch((err) => {
           logger(
             "error",
             "Failed to update tool definitions.",
@@ -122,20 +122,55 @@ function updateToolDefinitions() {
           return null;
         });
 
-      let toolConfigs = "mmgisglobal.toolConfigs = " + JSON.stringify(tools);
-      fs.writeFile("./scripts/pre/toolConfigs.js", toolConfigs, err => {
-        if (err) {
-          logger(
-            "error",
-            "Failed to write tool paths to toolConfigs.js",
-            "Tools",
-            null,
-            err
-          );
-        } else {
-          logger("info", "Successfully updated tool configurations.", "Tools");
+      //Build dynamic toolConfigs file
+      let toolConfigs = "";
+      let toolModules = {};
+      let kindsModule = null;
+      for (let t in tools) {
+        for (let p in tools[t].paths) {
+          let pname;
+          if (p === "Kinds") {
+            kindsModule = p;
+            pname = "kinds";
+          } else toolModules[p] = p;
+          toolConfigs += `import ${pname || p} from '../${
+            tools[t].paths[p]
+          }'\n`;
         }
-      });
+      }
+      toolConfigs += `\n`;
+      toolConfigs += `export const toolConfigs = ${JSON.stringify(tools)}\n`;
+      toolConfigs += `export const toolModules = ${JSON.stringify(
+        toolModules
+      ).replace(/"/g, "")}\n`;
+      toolConfigs += `export const Kinds = kinds`;
+
+      if (kindsModule == null) {
+        logger(
+          "error",
+          "Kinds tool is required but is not found. Are you missing a config.js?",
+          "Tools",
+          null
+        );
+      } else {
+        fs.writeFile("./src/pre/tools.js", toolConfigs, (err) => {
+          if (err) {
+            logger(
+              "error",
+              "Failed to write tool paths to src tools.js",
+              "Tools",
+              null,
+              err
+            );
+          } else {
+            logger(
+              "info",
+              "Successfully updated source tool configurations.",
+              "Tools"
+            );
+          }
+        });
+      }
     });
   });
 }

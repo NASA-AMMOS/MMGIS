@@ -1,17 +1,31 @@
-# MMGIS (Multi-Mission Geographic Information System)
+<hr>
+<div align="center">
+  <h1 align="center">
+      MMGIS (Multi-Mission Geographic Information System)
+  </h1>
+</div>
 
-Spatial Data Infrastructure for Planetary Missions
+<pre align="center">Spatial Data Infrastructure for Planetary Missions</pre>
+
+<span style="display:block;text-align:center">![Example](/docs/images/Full_Example.png)</span>
+
+---
 
 ## Features
 
 - Web-based mapping interface
-- Slippy map
+- 2D slippy map
 - 3D globe with tiled height data
 - Image viewer capable of showing mosaics with targets
-- Customizable layers
-- Multiuser vector drawing
+- 5 fully customizable layer types
+- Easy to use CMS
+- Multi-user vector drawing
 - Elevation profiler
-- And more...
+- Custom projections
+- Tiling scripts
+- And so much more...
+
+---
 
 ## Installation
 
@@ -23,16 +37,14 @@ Spatial Data Infrastructure for Planetary Missions
 1. Install [PostGIS 2.5+](https://postgis.net/install/). From the above install, you can use the 'Application Stack Builder' to install PostGIS or the default [PostGIS install instructions](https://postgis.net/install/) for all platforms.
 1. Make a new PostgreSQL database and remember the user, password and database name.
    Use 'pgsl' or the 'SQL Shell' to log into Postgres. It will prompt you for the username and password made during the install.
-   
+
    Issue the following commands:  
-       `CREATE DATABASE mmgis;`  
-       `\c mmgis`    
-       `CREATE EXTENSION postgis;`  
-       `exit`  
-   In the above `\c` attaches to the database and `CREATE EXTENSION` enables PostGIS by creating a spatial reference table within that database.   
-   
-   If you want to use pgAdmin, follow the instructions [here]( http://postgis.net/workshops/postgis-intro/creating_db.html), except change the new database name to 'mmgis'.
-   
+    `CREATE DATABASE mmgis;`  
+    `\c mmgis`  
+    `CREATE EXTENSION postgis;`  
+    `exit`  
+   In the above `\c` attaches to the database and `CREATE EXTENSION` enables PostGIS by creating a spatial reference table within that database.
+
 1. PHP, GDAL and Python2 are weaker dependencies (without them not everything will work)
 
    - PHP [7+](https://www.php.net/downloads.php) \* php-pdo php-mysqli pdo_sqlite modules enabled
@@ -49,13 +61,6 @@ Spatial Data Infrastructure for Planetary Missions
 1. From within `/`  
    `npm install`
 
-1. From within `/API`  
-   `npm install`
-
-1. Run `install.sh` within `/`  
-   `./install.sh`  
-   (If you can't run install, just copy `/prepare/base/Missions` to `/Missions` and copy `/prepare/base/config/configconfig.json` to `/config/configconfig.json`)
-
 1. Copy `/sample.env` to `.env`  
    `cp sample.env .env`
 
@@ -66,16 +71,20 @@ Spatial Data Infrastructure for Planetary Missions
    DB_USER=<user>
    DB_PASS=<password>
    ```
+
    From the install example:
-   ```   
+
+   ```
    DB_NAME=mmgis
    DB_USER=postgres
    DB_PASS=<password>
-   ```   
-   
-1. Within the MMGIS install folder, run `npm start`
+   ```
 
-   - If you get errors, try running `npm start` a few times. Also make sure you ran `CREATE EXTENSION postgis;` on your database.
+1. Run `npm start` before building. This is to identify tools prior to building.
+
+1. Run `npm run build` to bundle up the code (first time or if there are any changes)
+
+1. Run `npm run start:build`
 
 1. Setup the admin account:
 
@@ -90,9 +99,34 @@ Spatial Data Infrastructure for Planetary Missions
 
 Go to `http://localhost:8888` to see the `Test` mission
 
+_Note:_ The development environment (`npm start`) and only the development environment uses two port numbers `8888` and `8889` (by default) — the latter for the main site and the former for the ancillary pages (such as `/configure` and `/docs`)
+
+---
+
+## Scripts
+
+### Production
+
+1. Run `npm run build` to bundle up the code (first time or if there are any changes)
+
+1. Run `npm run start:build`
+
+### Development
+
+1. Run `npm start`
+
+### Test
+
+1. Run `npm run test`  
+   _Note:_ Jest has just been added in v2.0.0 and test suites are still very limited
+
+---
+
 ## Documentation
 
-Documentation pages are served at `http://localhost:8888/docs` or immediately within the `docs/pages/markdowns` directory.
+Documentation pages are served at `http://localhost:8888/docs` or immediately within the [`docs/pages/markdowns`](/docs/pages/markdowns) directory.
+
+---
 
 ## Installing with Docker
 
@@ -105,11 +139,13 @@ To run MMGIS in a container, you need to create a directory on the host machine 
 
 If using `docker-compose`, map the volume and set all the env variables.
 
+---
+
 ## License: Apache 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
 
 License Terms
 
-Copyright (c) 2019, California Institute of Technology ("Caltech"). U.S. Government sponsorship acknowledged.
+Copyright (c) 2021, California Institute of Technology ("Caltech"). U.S. Government sponsorship acknowledged.
 
 All rights reserved.
 
@@ -120,6 +156,8 @@ Redistribution and use in source and binary forms, with or without modification,
 - Neither the name of Caltech nor its operating division, the Jet Propulsion Laboratory, nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+---
 
 ## Contacts
 

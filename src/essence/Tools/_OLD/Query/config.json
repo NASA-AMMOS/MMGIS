@@ -1,0 +1,12 @@
+{
+    "defaultIcon": "magnify",
+    "description": "Spatially query layer data",
+    "descriptionFull": {
+        "title": "A more complete description that you see when you click on the description"
+    },
+    "hasVars": true,
+    "name": "Query",
+    "paths": {
+        "QueryTool": "essence/Tools/Query/QueryTool"
+    }
+}

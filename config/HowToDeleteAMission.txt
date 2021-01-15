@@ -1,4 +1,0 @@
-To remove a mission from MMGIS, DELETE these 3 things:
-	- The mission's mission password entry in MMGIS/config/db/config.sqlite3
-	- The mission's name in MMGIS/config/configconfig.json from the 'missions' array
-	- The mission's folder under MMGIS/Missions

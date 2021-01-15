@@ -345,6 +345,18 @@ function initialize() {
                 if (cData.look && cData.look.graticule == true) {
                   $("#tab_look #look_graticule").prop("checked", true);
                 }
+                $("#tab_look #look_primarycolor").val(
+                  cData.look ? cData.look.primarycolor : ""
+                );
+                $("#tab_look #look_seconadrycolor").val(
+                  cData.look ? cData.look.secondarycolor : ""
+                );
+                $("#tab_look #look_tertiarycolor").val(
+                  cData.look ? cData.look.tertiarycolor : ""
+                );
+                $("#tab_look #look_accentcolor").val(
+                  cData.look ? cData.look.accentcolor : ""
+                );
                 $("#tab_look #look_bodycolor").val(
                   cData.look ? cData.look.bodycolor : ""
                 );
@@ -357,13 +369,10 @@ function initialize() {
                 $("#tab_look #look_mapcolor").val(
                   cData.look ? cData.look.mapcolor : ""
                 );
+                $("#tab_look #look_highlightcolor").val(
+                  cData.look ? cData.look.highlightcolor : ""
+                );
 
-                if (
-                  cData.look &&
-                  (cData.look.swap == true || cData.look.swap == null)
-                ) {
-                  $("#tab_look #look_swap").prop("checked", true);
-                }
                 if (
                   cData.look &&
                   (cData.look.copylink == true || cData.look.copylink == null)
@@ -390,7 +399,6 @@ function initialize() {
                 ) {
                   $("#tab_look #look_help").prop("checked", true);
                 }
-
                 $("#tab_look #look_logourl").val(
                   cData.look ? cData.look.logourl : ""
                 );
@@ -1429,12 +1437,16 @@ function save() {
     json.look["minimalist"] = $("#tab_look #look_minimalist").prop("checked");
     json.look["zoomcontrol"] = $("#tab_look #look_zoomcontrol").prop("checked");
     json.look["graticule"] = $("#tab_look #look_graticule").prop("checked");
+    json.look["primarycolor"] = $("#tab_look #look_primarycolor").val();
+    json.look["secondarycolor"] = $("#tab_look #look_secondarycolor").val();
+    json.look["tertiarycolor"] = $("#tab_look #look_tertiarycolor").val();
+    json.look["accentcolor"] = $("#tab_look #look_accentcolor").val();
     json.look["bodycolor"] = $("#tab_look #look_bodycolor").val();
     json.look["topbarcolor"] = $("#tab_look #look_topbarcolor").val();
     json.look["toolbarcolor"] = $("#tab_look #look_toolbarcolor").val();
     json.look["mapcolor"] = $("#tab_look #look_mapcolor").val();
+    json.look["highlightcolor"] = $("#tab_look #look_highlightcolor").val();
 
-    json.look["swap"] = $("#tab_look #look_swap").prop("checked");
     json.look["copylink"] = $("#tab_look #look_copylink").prop("checked");
     json.look["screenshot"] = $("#tab_look #look_screenshot").prop("checked");
     json.look["fullscreen"] = $("#tab_look #look_fullscreen").prop("checked");
@@ -1613,7 +1625,6 @@ function save() {
             fillOpacity: styleOpacity,
             opacity: 1,
           };
-          layerObject.variables = {};
           if (modalVariable != "undefined") {
             try {
               layerObject.variables = JSON.parse(modalVariable);
@@ -2122,7 +2133,6 @@ function save() {
 
     //SAVE HERE
     if (!isInvalidData && !isNonHeader) {
-      //passwordWriteJSON( missionPath, json );
       saveConfig(json);
     } else {
       Materialize.toast("<span id='toast_failure'>Save Failed.</span>", 5000);
@@ -2135,96 +2145,6 @@ function save() {
     );
     $("#toast_warning").parent().css("background-color", "#aeae09");
   }
-}
-
-function passwordMakeMission() {
-  var pass = $("#admin_password").val();
-  $.ajax({
-    type: calls.verify.type,
-    url: calls.verify.url,
-    data: {
-      m: "ADMIN",
-      p: pass,
-    },
-    success: function (data) {
-      if (data == "success") {
-        var missionname = $("#tab_new_mission_rows #nmmission").val();
-        var missionpassword = $("#tab_new_mission_rows #nmpassword").val();
-        var missionretypepassword = $(
-          "#tab_new_mission_rows #nmrtpassword"
-        ).val();
-
-        if (missionname.length > 0 && missionpassword.length > 0) {
-          if (!/^[\w\d\s-]+$/.test(missionname)) {
-            Materialize.toast(
-              "<span id='toast_failure6'>Don't use special characters in the mission name.</span>",
-              5000
-            );
-            $("#toast_failure6").parent().css("background-color", "#a11717");
-            return;
-          }
-          if (missionpassword == missionretypepassword) {
-            makeMission(missionname, missionpassword);
-          } else {
-            Materialize.toast(
-              "<span id='toast_failure3'>Mission passwords don't match.</span>",
-              5000
-            );
-            $("#toast_failure3").parent().css("background-color", "#a11717");
-          }
-        } else {
-          Materialize.toast(
-            "<span id='toast_failure4'>At least one field is empty.</span>",
-            5000
-          );
-          $("#toast_failure4").parent().css("background-color", "#a11717");
-        }
-      } else {
-        Materialize.toast(
-          "<span id='toast_bad_password2'>Invalid Password</span>",
-          5000
-        );
-        $("#toast_bad_password2").parent().css("background-color", "#a11717");
-        Materialize.toast(
-          "<span id='toast_failure5'>Launch Failed.</span>",
-          5000
-        );
-        $("#toast_failure5").parent().css("background-color", "#a11717");
-      }
-    },
-  });
-}
-
-function makeMission(missionname, missionpassword) {
-  $.ajax({
-    type: calls.make_mission.type,
-    url: calls.make_mission.url,
-    data: {
-      missionname: missionname,
-      password: missionpassword,
-    },
-    success: function (data) {
-      data = JSON.parse(data);
-      if (data["status"] == "success") {
-        Materialize.toast(
-          "<span id='toast_success1'>Mission: " +
-            missionname +
-            " Created. Page will now reload...</span>",
-          5000
-        );
-        $("#toast_success1").parent().css("background-color", "#1565C0");
-        setTimeout(function () {
-          location.reload();
-        }, 3000);
-      } else {
-        Materialize.toast(
-          "<span id='toast_failure7'>" + data["message"] + "</span>",
-          5000
-        );
-        $("#toast_failure7").parent().css("background-color", "#a11717");
-      }
-    },
-  });
 }
 
 function addMission() {
@@ -2306,105 +2226,6 @@ function saveConfig(json) {
         );
         $("#toast_failure8").parent().css("background-color", "#a11717");
       }
-    },
-  });
-}
-
-function passwordWriteJSON(filename, json) {
-  var pass = $("#save_password").val();
-  $.ajax({
-    type: calls.verify.type,
-    url: calls.verify.url,
-    data: {
-      m: mission.toLowerCase(),
-      p: pass,
-    },
-    success: function (data) {
-      if (data == "success") {
-        //Try changing the mission name if it was changed
-        if (mission.toLowerCase() != json.msv.mission.toLowerCase()) {
-          $.ajax({
-            type: calls.rename_mission.type,
-            url: calls.rename_mission.url,
-            data: {
-              mission: mission.toLowerCase(),
-              tomission: json.msv.mission,
-            },
-            success: function (data) {
-              data = JSON.parse(data);
-              if (data["status"] == "success") {
-                Materialize.toast(
-                  "<span id='toast_success2'>Mission Rename Successful.</span>",
-                  5000
-                );
-                $("#toast_success2")
-                  .parent()
-                  .css("background-color", "#1565C0");
-
-                filename =
-                  calls.missionPath + "" + json.msv.mission + "/config.json";
-
-                writeJSON(filename, json, function () {
-                  Materialize.toast(
-                    "<span id='toast_success3'>Page will now reload...</span>",
-                    3000
-                  );
-                  $("#toast_success3")
-                    .parent()
-                    .css("background-color", "#1565C0");
-                  setTimeout(function () {
-                    location.reload();
-                  }, 3000);
-                });
-              } else {
-                Materialize.toast(
-                  "<span id='toast_failure8'>" + data["message"] + "</span>",
-                  5000
-                );
-                $("#toast_failure8")
-                  .parent()
-                  .css("background-color", "#a11717");
-              }
-            },
-          });
-        } else {
-          writeJSON(filename, json);
-        }
-      } else {
-        Materialize.toast(
-          "<span id='toast_bad_password'>Invalid Password</span>",
-          5000
-        );
-        $("#toast_bad_password").parent().css("background-color", "#a11717");
-        Materialize.toast(
-          "<span id='toast_failure2'>Save Failed.</span>",
-          5000
-        );
-        $("#toast_failure2").parent().css("background-color", "#a11717");
-      }
-    },
-  });
-}
-function writeJSON(filename, json, callback) {
-  //Make it a nice string
-  json = JSON.stringify(json, null, 4);
-
-  $.ajax({
-    type: calls.write_json.type,
-    url: calls.write_json.url,
-    data: {
-      filename: calls.write_json.pathprefix + filename,
-      mission: mission,
-      json: json,
-    },
-    success: function (data) {
-      Materialize.toast(
-        "<span id='toast_success'>Save Successful.</span>",
-        5000
-      );
-      $("#toast_success").parent().css("background-color", "#1565C0");
-
-      if (typeof callback === "function") callback();
     },
   });
 }
@@ -2570,6 +2391,14 @@ function layerPopulateVariable(modalId) {
         value: "Prop: {prop}",
       },
     ];
+    currentLayerVars.markerIcon = currentLayerVars.markerIcon || {
+      iconUrl: "pathToMainIconImage.png",
+      shadowUrl: "(opt)pathToShadowImage.png",
+      iconSize: [38, 95], // size of the icon
+      shadowSize: [50, 64], // size of the shadow
+      iconAnchor: [22, 94], // point of the icon which will correspond to marker's location
+      shadowAnchor: [4, 62], // the same for the shadow
+    };
     currentLayerVars.search =
       currentLayerVars.search || "(prop1) round(prop2.1) rmunder(prop_3)";
 

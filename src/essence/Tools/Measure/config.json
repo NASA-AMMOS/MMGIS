@@ -1,0 +1,15 @@
+{
+    "defaultIcon": "tape-measure",
+    "description": "Measure distances and generates elevation profiles.",
+    "descriptionFull": {
+        "title": "Specify a path to a Digital Elevation Model (dem) .tif. Measure distances and generates elevation profiles. Can also query specific bands at specific points of images and generate profiles of them.",
+        "example": {
+            "dem": "(str) path to Data/missionDEM.tif"
+        }
+    },
+    "hasVars": true,
+    "name": "Measure",
+    "paths": {
+        "MeasureTool": "essence/Tools/Measure/MeasureTool"
+    }
+}
