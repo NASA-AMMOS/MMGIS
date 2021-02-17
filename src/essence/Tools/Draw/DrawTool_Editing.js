@@ -32,6 +32,10 @@ var Editing = {
     ) {
         if (!DrawTool.open && !displayOnly) return
 
+        // Force corner
+        x = 40
+        y = 40
+
         DrawTool.lastContextLayerIndexFileId = {
             layer: layer,
             index: index,

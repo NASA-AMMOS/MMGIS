@@ -1,7 +1,9 @@
 import $ from 'jquery'
 import TC_ from '../ToolController_/ToolController_'
 import Map_ from '../Map_/Map_'
-//import test from '../../MMGIS-Private-Tools/Draw/DrawTool.test'
+// Make this a plugin
+import test from '../../MMGIS-Private-Tools/Draw/DrawTool.test'
+import { testModules } from '../../../pre/tools'
 
 let L = window.L
 
@@ -22,7 +24,6 @@ var markup = [
 let Test_ = {
     testsInitialized: false,
     isOpen: false,
-    testModuleNames: [],
     testModules: [],
     results: {
         pass: 0,
@@ -33,19 +34,11 @@ let Test_ = {
     init: function (thenStart) {
         if (mmgisglobal.NODE_ENV === 'production') return
 
-        this.testModuleNames = Object.assign([], TC_.toolModuleNames)
-        for (var i = 0; i < this.testModuleNames.length; i++) {
-            this.testModuleNames[i] += '_test'
-        }
+        // TODO: support more than the first
+        this.testModules = [testModules[Object.keys(testModules)[0]]]
 
-        this.testModuleNames = ['DrawTool_test']
-        /*
-        require(this.testModuleNames, function () {
-            Test_.testModules = arguments
-            Test_.testsInitialized = true
-            if (thenStart === true) Test_.start()
-        })
-        */
+        Test_.testsInitialized = true
+        if (thenStart === true) Test_.start()
     },
     toggle: function () {
         if (this.isOpen) {
@@ -68,10 +61,9 @@ let Test_ = {
             $('#Test_Messages').css('padding-bottom', '18px')
             $('#Test_Messages').css('height', 'calc( 100% - 35px)')
 
-            //this.testModules[0].run(Test_.addMessage)
-            //test.run(Test_.addMessage)
+            this.testModules[0].run(Test_.addMessage)
         })
-        //this.start()
+        this.start()
     },
     start: function () {
         if (this.testsInitialized) {
@@ -83,12 +75,6 @@ let Test_ = {
                 total: 0,
             }
             this.testModules[0].reset()
-            /*
-                this.testModules[0].run(Test_.addMessage)
-                for (var i = 0; i < this.testModules.length; i++) {
-                    this.testModules[i].run(Test_.addMessage)
-                }
-                */
         } else {
             Test_.init(true)
         }
