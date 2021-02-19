@@ -148,6 +148,28 @@ var Shapes = {
             var shieldState = ''
             if (file.public == 1) shieldState = '-outline'
 
+            var shapeType = ''
+            if (properties._ && properties._.intent)
+                switch (properties._.intent) {
+                    case 'polygon':
+                        shapeType = 'vector-square'
+                        break
+                    case 'line':
+                        shapeType = 'vector-line'
+                        break
+                    case 'point':
+                        shapeType = 'square-medium-outline'
+                        break
+                    case 'arrow':
+                        shapeType = 'arrow-top-right'
+                        break
+                    case 'text':
+                        shapeType = 'format-text'
+                        break
+                    default:
+                        shapeType = ''
+                }
+
             var ownedByUser = false
             if (
                 mmgisglobal.user == file.file_owner ||
@@ -168,6 +190,7 @@ var Shapes = {
                     "</div>",
                     "</div>",
                     "<div class='flexbetween' style='padding-right: 5px;'>",
+                    shapeType != null ? ("<i class='mdi mdi-" + shapeType + " mdi-14px' style='opacity: 0.5; width: 18px;'></i>") : '',
                     "<i class='mdi mdi-shield" + shieldState + " mdi-14px' style='opacity: 0.25; width: 18px; display: " + ((shieldState == '') ? 'inherit' : 'none') + "'></i>",
                     "<i class='mdi" + ( (ownedByUser) ? ' mdi-account' : '' ) + " mdi-18px' style='opacity: 0.25; display: " + ( (ownedByUser) ? 'inherit' : 'none' ) + "'></i>",
                     "</div>",

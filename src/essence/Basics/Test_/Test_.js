@@ -1,8 +1,6 @@
 import $ from 'jquery'
 import TC_ from '../ToolController_/ToolController_'
 import Map_ from '../Map_/Map_'
-// Make this a plugin
-import test from '../../MMGIS-Private-Tools/Draw/DrawTool.test'
 import { testModules } from '../../../pre/tools'
 
 let L = window.L
@@ -61,7 +59,7 @@ let Test_ = {
             $('#Test_Messages').css('padding-bottom', '18px')
             $('#Test_Messages').css('height', 'calc( 100% - 35px)')
 
-            this.testModules[0].run(Test_.addMessage)
+            if (this.testModules[0]) this.testModules[0].run(Test_.addMessage)
         })
         this.start()
     },
@@ -74,7 +72,7 @@ let Test_ = {
                 finished: 0,
                 total: 0,
             }
-            this.testModules[0].reset()
+            if (this.testModules[0]) this.testModules[0].reset()
         } else {
             Test_.init(true)
         }

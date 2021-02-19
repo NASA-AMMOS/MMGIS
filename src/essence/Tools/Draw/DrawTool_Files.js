@@ -202,7 +202,12 @@ var Files = {
                             .toLowerCase()
                             .indexOf(string) != -1) &&
                     (sorts.indexOf('on') == -1 ||
-                        DrawTool.filesOn.indexOf(fileId) != -1) &&
+                        DrawTool.filesOn.indexOf(fileId) != -1 ||
+                        (file &&
+                            typeof file.file_description === 'string' &&
+                            file.file_description
+                                .toLowerCase()
+                                .indexOf(string) != -1)) &&
                     (sorts.indexOf('owned') == -1 ||
                         (file != null &&
                             file.file_owner === mmgisglobal.user)) &&

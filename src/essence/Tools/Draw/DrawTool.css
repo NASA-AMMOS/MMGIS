@@ -1644,8 +1644,8 @@
 
 #drawToolReview {
     position: fixed;
-    left: 264px;
-    top: 0px;
+    left: 269px;
+    top: 40px;
     color: #ededed;
     background: var(--color-a);
     padding: 4px;

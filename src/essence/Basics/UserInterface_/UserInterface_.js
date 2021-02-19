@@ -61,7 +61,7 @@ var UserInterface = {
                 "<div id='topBarLeft'>",
                     "<div id='topBarMain'>",
                         "<div id='topBarTitle'>",
-                            "<div id='topBarTitleName' tabindex='200'>",
+                            `<div id='topBarTitleName' tabindex='200'>`,
                                 window.mmgisglobal.name,
                             "</div>",
                         "</div>",
@@ -1101,8 +1101,13 @@ var UserInterface = {
         UserInterface.minimalist(true)
 
         clearUnwantedPanels(this.hasViewer, true, this.hasGlobe)
-        if (l_.configData.look && l_.configData.look.pagename) {
-            $('#topBarTitleName').html(l_.configData.look.pagename)
+        if (l_.configData.look) {
+            if (
+                l_.configData.look.pagename == null ||
+                l_.configData.look.pagename == ''
+            )
+                $('#topBarTitleName').css({ display: 'none' })
+            else $('#topBarTitleName').html(l_.configData.look.pagename)
         }
 
         //Disable toolbar presets when needed

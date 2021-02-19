@@ -1596,6 +1596,9 @@ var Test = {
             name: 'Check group copying shapes',
             subtests: 2,
             test: function (c) {
+                mmgisglobal.ctrlDown = false
+                mmgisglobal.shiftDown = false
+                $('#drawToolShapesFeaturesList > li:nth-child(3) > div').click()
                 mmgisglobal.shiftDown = true
                 $('#drawToolShapesFeaturesList > li:nth-child(5) > div').click()
                 c(
@@ -1614,13 +1617,12 @@ var Test = {
 
                 Test.tool.copyFileId = 7
                 $('#drawToolShapesCopyGo').click()
-
                 setTimeout(function () {
                     c(
                         'Copies shapes to other files',
                         $('#drawToolShapesFeaturesList').children().length === 9
                     )
-                }, Test.timeout)
+                }, Test.timeout * 3)
             },
         },
         {
