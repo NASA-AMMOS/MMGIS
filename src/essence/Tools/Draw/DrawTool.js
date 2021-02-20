@@ -1032,6 +1032,17 @@ function interfaceWithMMGIS() {
     $('#drawToolDrawFilesNew').on('click', function () {
         var val = $('#drawToolDrawFilesNewName').val()
         var intent = $('#drawToolDrawFilesNewDiv > select').val()
+        if (val == null || val == '') {
+            CursorInfo.update(
+                'Please enter a file name.',
+                6000,
+                true,
+                { x: 268, y: 6 },
+                '#e9ff26',
+                'black'
+            )
+            return
+        }
         if (/[&\'\"<>]/g.test(val)) {
             CursorInfo.update(
                 'Invalid file name.',

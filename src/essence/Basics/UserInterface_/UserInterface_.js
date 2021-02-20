@@ -159,6 +159,7 @@ var UserInterface = {
                 $('.leaflet-control-scalefactor').css('display', 'none')
                 $('.leaflet-control-zoom').css('display', 'none')
                 $('#topBarScreenshotLoading').css('display', 'block')
+                $('#mapToolBar').css('background', 'rgba(0,0,0,0)')
                 HTML2Canvas(document.getElementById('mapScreen')).then(
                     function (canvas) {
                         canvas.id = 'mmgisScreenshot'
@@ -185,6 +186,7 @@ var UserInterface = {
                     })
                 $('.leaflet-control-scalefactor').css('display', 'flex')
                 $('.leaflet-control-zoom').css('display', 'block')
+                $('#mapToolBar').css('background', 'rgba(0,0,0,0.15)')
             })
         //Screenshot loading
         d3.select('#topBarScreenshot')
