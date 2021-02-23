@@ -61,7 +61,7 @@ var UserInterface = {
                 "<div id='topBarLeft'>",
                     "<div id='topBarMain'>",
                         "<div id='topBarTitle'>",
-                            "<div id='topBarTitleName' tabindex='200'>",
+                            `<div id='topBarTitleName' tabindex='200'>`,
                                 window.mmgisglobal.name,
                             "</div>",
                         "</div>",
@@ -159,6 +159,7 @@ var UserInterface = {
                 $('.leaflet-control-scalefactor').css('display', 'none')
                 $('.leaflet-control-zoom').css('display', 'none')
                 $('#topBarScreenshotLoading').css('display', 'block')
+                $('#mapToolBar').css('background', 'rgba(0,0,0,0)')
                 HTML2Canvas(document.getElementById('mapScreen')).then(
                     function (canvas) {
                         canvas.id = 'mmgisScreenshot'
@@ -185,6 +186,7 @@ var UserInterface = {
                     })
                 $('.leaflet-control-scalefactor').css('display', 'flex')
                 $('.leaflet-control-zoom').css('display', 'block')
+                $('#mapToolBar').css('background', 'rgba(0,0,0,0.15)')
             })
         //Screenshot loading
         d3.select('#topBarScreenshot')
@@ -1101,8 +1103,13 @@ var UserInterface = {
         UserInterface.minimalist(true)
 
         clearUnwantedPanels(this.hasViewer, true, this.hasGlobe)
-        if (l_.configData.look && l_.configData.look.pagename) {
-            $('#topBarTitleName').html(l_.configData.look.pagename)
+        if (l_.configData.look) {
+            if (
+                l_.configData.look.pagename == null ||
+                l_.configData.look.pagename == ''
+            )
+                $('#topBarTitleName').css({ display: 'none' })
+            else $('#topBarTitleName').html(l_.configData.look.pagename)
         }
 
         //Disable toolbar presets when needed

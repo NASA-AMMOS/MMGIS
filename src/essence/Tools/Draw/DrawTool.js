@@ -28,13 +28,13 @@ var markup = [
         "<div>Please log in before drawing</div>",
       "</div>",
       "<div id='drawToolNav'>",
-        "<div type='draw' id='drawToolNavButtonDraw' class='drawToolNavButton'>",
+        "<div type='draw' id='drawToolNavButtonDraw' class='drawToolNavButton' title='Draw'>",
           "<i class='mdi mdi-lead-pencil mdi-18px'></i>",
         "</div>",
-        "<div type='shapes' class='drawToolNavButton'>",
+        "<div type='shapes' class='drawToolNavButton' title='Features'>",
           "<i class='mdi mdi-shape mdi-18px'></i>",
         "</div>",
-        "<div type='history' class='drawToolNavButton'>",
+        "<div type='history' class='drawToolNavButton' title='History'>",
           "<i id='drawToolHistoryButton' class='mdi mdi-history mdi-18px'></i>",
         "</div>",
       "</div>",
@@ -1032,6 +1032,17 @@ function interfaceWithMMGIS() {
     $('#drawToolDrawFilesNew').on('click', function () {
         var val = $('#drawToolDrawFilesNewName').val()
         var intent = $('#drawToolDrawFilesNewDiv > select').val()
+        if (val == null || val == '') {
+            CursorInfo.update(
+                'Please enter a file name.',
+                6000,
+                true,
+                { x: 268, y: 6 },
+                '#e9ff26',
+                'black'
+            )
+            return
+        }
         if (/[&\'\"<>]/g.test(val)) {
             CursorInfo.update(
                 'Invalid file name.',

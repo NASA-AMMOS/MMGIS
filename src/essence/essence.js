@@ -158,7 +158,8 @@ var essence = {
             //ToolController_.init( L_.tools );
         }
         //Update mission title
-        document.title = window.mmgisglobal.name + ' - ' + L_.mission
+        document.title =
+            (window.mmgisglobal.name || 'MMGIS') + ' - ' + L_.mission
         //Set radii
         F_.setRadius('major', L_.radius.major)
         F_.setRadius('minor', L_.radius.minor)

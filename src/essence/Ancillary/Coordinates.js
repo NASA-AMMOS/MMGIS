@@ -27,7 +27,7 @@ var Coordinates = {
             .style('position', 'absolute')
             .style('bottom', '0px')
             .style('right', '0px')
-            .style('padding', '9px 8px 7px 8px')
+            .style('padding', '7px 8px')
             .style('margin', '0')
             .style('cursor', 'pointer')
             .style('z-index', '20')
@@ -37,7 +37,7 @@ var Coordinates = {
             .style('margin-bottom', '0')
             .style('margin-right', '6px')
             .style('color', 'white')
-            .style('line-height', '24px')
+            .style('line-height', '25px')
             .style('text-align', 'center')
             .style(
                 'text-shadow',
@@ -45,7 +45,7 @@ var Coordinates = {
             )
         mll.append('p')
             .attr('id', 'mouseLngLat')
-            .style('font-size', '16px')
+            .style('font-size', '17px')
             .style('font-weight', 'bold')
             .style('margin-bottom', '2px')
             .style('text-align', 'center')

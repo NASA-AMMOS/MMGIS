@@ -732,6 +732,7 @@ var Editing = {
         $('.drawToolContextMenu').css({
             right: x + 'px',
             top: y + 'px',
+            zIndex: 10000,
         })
 
         $('#drawToolContextMenuPropertiesDescription').text(description)
