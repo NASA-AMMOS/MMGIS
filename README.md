@@ -80,8 +80,6 @@
    DB_PASS=<password>
    ```
 
-1. Run `npm start` before building. This is to identify tools prior to building.
-
 1. Run `npm run build` to bundle up the code (first time or if there are any changes)
 
 1. Run `npm run start:build`

@@ -27,6 +27,8 @@ const printHostingInstructions = require("react-dev-utils/printHostingInstructio
 const FileSizeReporter = require("react-dev-utils/FileSizeReporter");
 const printBuildError = require("react-dev-utils/printBuildError");
 
+const { updateTools } = require("../API/updateTools");
+
 const measureFileSizesBeforeBuild =
   FileSizeReporter.measureFileSizesBeforeBuild;
 const printFileSizesAfterBuild = FileSizeReporter.printFileSizesAfterBuild;
@@ -50,13 +52,9 @@ const config = configFactory("production");
 // browserslist defaults.
 const { checkBrowsers } = require("react-dev-utils/browsersHelper");
 
-console.log(
-  chalk.yellow(
-    `Be sure to run ${chalk.underline(
-      "npm start"
-    )} at least once before building.\n`
-  )
-);
+// Attach any tool plugins to the application
+console.log(chalk.cyan("Updating Tools...\n"));
+updateTools();
 
 checkBrowsers(paths.appPath, isInteractive)
   .then(() => {
