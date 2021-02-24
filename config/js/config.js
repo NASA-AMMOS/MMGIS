@@ -124,13 +124,8 @@ function initialize() {
       url: calls.getToolConfig.url,
       data: {},
       success: function (ccData) {
-        if (ccData.status != "success") {
-          console.warn("Failure getting tools configurations.");
-          return;
-        }
-
-        tData = Object.keys(ccData.tools).map(function (key) {
-          return ccData.tools[key];
+        tData = Object.keys(ccData).map(function (key) {
+          return ccData[key];
         });
 
         //Populate available Kinds

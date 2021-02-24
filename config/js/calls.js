@@ -6,7 +6,7 @@ let calls = {
   },
   getToolConfig: {
     type: "GET",
-    url: "api/tools/get",
+    url: "config/pre/toolConfigs.json",
   },
   get: {
     type: "GET",

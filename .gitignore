@@ -13,7 +13,7 @@
 /src/essence/MMGIS-Private-Tools
 /src/essence/MMGIS-Private-Tools-OFF
 
-/src/pre/toolConfigs.js
+/config/pre/toolConfigs.json
 /src/pre/tools.js
 
 /build/*

@@ -28,6 +28,8 @@ const { sequelize } = require("../API/connection");
 
 const setups = require("../API/setups");
 
+const { updateTools } = require("../API/updateTools");
+
 const chalk = require("chalk");
 const webpack = require("webpack");
 const WebpackDevServer = require("webpack-dev-server");
@@ -490,6 +492,11 @@ setups.getBackendSetups(function (setups) {
     express.static(path.join(rootDir, "/config/js"))
   );
   app.use(
+    "/config/pre",
+    ensureUser(),
+    express.static(path.join(rootDir, "/config/pre"))
+  );
+  app.use(
     "/config/fonts",
     ensureUser(),
     express.static(path.join(rootDir, "/config/fonts"))
@@ -599,10 +606,19 @@ setups.getBackendSetups(function (setups) {
     }
   );
 
+  // Validate envs
   if (process.env.NODE_ENV === "development") {
     console.log(chalk.cyan("Validating Environment Variables...\n"));
   }
   testEnv.test(setups.envs, port);
+
+  // Attach any tool plugins to the application
+  // We're only doing this for dev because we're assuming
+  // build will also call this.
+  if (process.env.NODE_ENV === "development") {
+    console.log(chalk.cyan("Updating Tools...\n"));
+    updateTools();
+  }
 
   //////Setups Init//////
   setups.init(s);
