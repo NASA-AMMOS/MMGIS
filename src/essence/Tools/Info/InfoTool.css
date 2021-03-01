@@ -154,8 +154,8 @@
 }
 
 #infoToolData > li > div:first-child {
-    max-width: 96px;
-    min-width: 96px;
+    max-width: 86px;
+    min-width: 86px;
     color: white;
     text-overflow: ellipsis;
     overflow: hidden;
@@ -165,4 +165,13 @@
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
+}
+
+#infoToolData > li.expand > div:first-child {
+    white-space: unset;
+    word-break: break-all;
+}
+#infoToolData > li.expand > div:last-child {
+    white-space: unset;
+    word-break: break-all;
 }

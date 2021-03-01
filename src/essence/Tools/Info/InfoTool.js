@@ -226,7 +226,7 @@ var InfoTool = {
     createInfo: function () {
         $('#infoToolData').empty()
         // Fill out Info
-        const depthMultiplier = 22
+        const depthMultiplier = 10
 
         let lastWasAHeader = false
         if (
