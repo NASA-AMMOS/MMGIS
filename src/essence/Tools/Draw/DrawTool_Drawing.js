@@ -93,7 +93,7 @@ var Drawing = {
                                 noChange = true
                         } catch (error) {
                             CursorInfo.update('ERROR: Topology.', 2500, true, {
-                                x: 268,
+                                x: 295,
                                 y: 6,
                             })
                             if (d.end && d.begin) {
@@ -175,7 +175,7 @@ var Drawing = {
                                         'Failed to cut through some shapes.',
                                         6000,
                                         true,
-                                        { x: 268, y: 6 }
+                                        { x: 295, y: 6 }
                                     )
                                 }
                             )
@@ -210,7 +210,7 @@ var Drawing = {
                     }
                 } catch (error) {
                     CursorInfo.update('ERROR: Topology.', 2500, true, {
-                        x: 268,
+                        x: 295,
                         y: 6,
                     })
                     if (d.end && d.begin) {

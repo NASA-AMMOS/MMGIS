@@ -1,0 +1,28 @@
+#mmgisModal {
+    overflow: auto;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.5));
+    z-index: 999999;
+    opacity: 0;
+}
+
+#mmgisModalClose {
+    position: absolute;
+    top: 0;
+    right: 0;
+    color: #ddd;
+    cursor: pointer;
+    margin: 8px 6px;
+    transition: color 0.2s ease;
+}
+
+#mmgisModalInner {
+    transform: translateX(-50%) translateY(-50%);
+    position: absolute;
+    left: 50%;
+    top: 50%;
+}

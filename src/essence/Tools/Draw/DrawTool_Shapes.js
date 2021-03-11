@@ -339,7 +339,7 @@ var Shapes = {
                                     'Grouped shapes must share intent.',
                                     6000,
                                     true,
-                                    { x: 268, y: 6 },
+                                    { x: 295, y: 6 },
                                     '#e9ff26',
                                     'black'
                                 )

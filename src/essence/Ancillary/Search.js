@@ -1,8 +1,6 @@
 import $ from 'jquery'
 //jqueryUI
 import * as d3 from 'd3'
-import F_ from '../Basics/Formulae_/Formulae_'
-import Description from './Description'
 
 import Dropy from '../../external/Dropy/dropy'
 import '../../external/JQuery/jquery.autocomplete'

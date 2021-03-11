@@ -82,7 +82,7 @@
 
 1. Run `npm run build` to bundle up the code (first time or if there are any changes)
 
-1. Run `npm run start:build`
+1. Run `npm run start:prod`
 
 1. Setup the admin account:
 
@@ -107,7 +107,7 @@ _Note:_ The development environment (`npm start`) and only the development envir
 
 1. Run `npm run build` to bundle up the code (first time or if there are any changes)
 
-1. Run `npm run start:build`
+1. Run `npm run start:prod`
 
 ### Development
 

@@ -34,51 +34,51 @@ const attributes = {
   file_owner: {
     type: Sequelize.STRING,
     unique: false,
-    allowNull: false
+    allowNull: false,
   },
   file_owner_group: {
     type: Sequelize.DataTypes.ARRAY(Sequelize.DataTypes.STRING),
     unique: false,
-    allowNull: true
+    allowNull: true,
   },
   file_name: {
     type: Sequelize.STRING,
     unique: false,
-    allowNull: false
+    allowNull: false,
   },
   file_description: {
-    type: Sequelize.STRING,
+    type: Sequelize.DataTypes.STRING(10000),
     allowNull: true,
     defaultValue: "",
-    unique: false
+    unique: false,
   },
   is_master: {
     type: Sequelize.BOOLEAN,
     allowNull: false,
     defaultValue: false,
-    unique: false
+    unique: false,
   },
   intent: {
     type: Sequelize.ENUM,
     values: intents,
     allowNull: true,
     defaultValue: null,
-    unique: false
+    unique: false,
   },
   public: {
     type: Sequelize.ENUM,
     values: ["0", "1"],
     allowNull: false,
     defaultValue: "0",
-    unique: false
+    unique: false,
   },
   hidden: {
     type: Sequelize.ENUM,
     values: ["0", "1"],
     allowNull: false,
     defaultValue: "0",
-    unique: false
-  }
+    unique: false,
+  },
 };
 
 const options = {
@@ -91,14 +91,14 @@ const options = {
   createdAt: "created_on",
 
   // I want updatedAt to actually be called update_on
-  updatedAt: "updated_on"
+  updatedAt: "updated_on",
 };
 
 // setup Userfiles model and its fields.
 var Userfiles = sequelize.define("user_files", attributes, options);
 var UserfilesTEST = sequelize.define("user_files_tests", attributes, options);
 
-const makeMasterFiles = intents => {
+const makeMasterFiles = (intents) => {
   makeMasterFile(0, Userfiles);
 
   function makeMasterFile(i, Table) {
@@ -114,9 +114,9 @@ const makeMasterFiles = intents => {
         is_master: true,
         intent: intent,
         public: "1",
-        hidden: "0"
-      }
-    }).spread(function(userResult, created) {
+        hidden: "0",
+      },
+    }).spread(function (userResult, created) {
       // userResult is the user instance
 
       if (created) {

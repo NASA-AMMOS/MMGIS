@@ -641,7 +641,7 @@ var DrawTool = {
                     message,
                     6000,
                     true,
-                    { x: 268, y: 6 },
+                    { x: 295, y: 6 },
                     '#e9ff26',
                     'black'
                 )
@@ -813,7 +813,7 @@ var DrawTool = {
                 'No file chosen. Please select or make a file for drawings.',
                 6000,
                 true,
-                { x: 268, y: 6 },
+                { x: 295, y: 6 },
                 '#e9ff26',
                 'black'
             )
@@ -843,7 +843,7 @@ var DrawTool = {
                 },
                 function (err) {
                     let message = err ? err.message : 'Server Failure'
-                    CursorInfo.update(message, 6000, true, { x: 268, y: 6 })
+                    CursorInfo.update(message, 6000, true, { x: 295, y: 6 })
                     if (typeof failure === 'function') failure()
                 }
             )
@@ -1037,7 +1037,7 @@ function interfaceWithMMGIS() {
                 'Please enter a file name.',
                 6000,
                 true,
-                { x: 268, y: 6 },
+                { x: 295, y: 6 },
                 '#e9ff26',
                 'black'
             )
@@ -1048,7 +1048,7 @@ function interfaceWithMMGIS() {
                 'Invalid file name.',
                 6000,
                 true,
-                { x: 268, y: 6 },
+                { x: 295, y: 6 },
                 '#e9ff26',
                 'black'
             )
@@ -1072,7 +1072,7 @@ function interfaceWithMMGIS() {
                 'Please select a file to copy shapes to.',
                 6000,
                 true,
-                { x: 268, y: 6 },
+                { x: 295, y: 6 },
                 '#e9ff26',
                 'black'
             )
@@ -1214,7 +1214,7 @@ function interfaceWithMMGIS() {
                 'Please select shapes to copy.',
                 6000,
                 true,
-                { x: 268, y: 6 },
+                { x: 295, y: 6 },
                 '#e9ff26',
                 'black'
             )
