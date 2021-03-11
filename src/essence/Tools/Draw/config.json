@@ -10,7 +10,8 @@
                 "Polygon_3_Alias",
                 "Line_Alias",
                 "Point_Alias"
-            ]
+            ],
+            "preferredTags": ["preferredTagA", "example1"]
         }
     },
     "hasVars": true,

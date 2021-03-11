@@ -51,7 +51,8 @@ var Shapes = {
                             'color',
                             file.intent == 'campaign' ||
                                 file.intent == 'campsite' ||
-                                file.intent == 'trail'
+                                file.intent == 'trail' ||
+                                file.intent == 'all'
                                 ? 'black'
                                 : 'white'
                         )
