@@ -391,7 +391,7 @@ let MeasureTool = {
     },
     download: function (e) {
         F_.downloadArrayAsCSV(
-            ['X', 'Y', 'D', 'Z'],
+            ['latitude', 'longitude', 'distance', 'elevation'],
             MeasureTool.lastData,
             'profiledata'
         )
@@ -518,19 +518,20 @@ function makeProfile() {
                 data = JSON.parse($.parseJSON(data))
 
                 MeasureTool.lastData = F_.clone(data)
-                var distance = 0
-                if (MeasureTool.lastData.length >= 2) {
-                    distance = F_.lngLatDistBetween(
-                        MeasureTool.lastData[0][0],
-                        MeasureTool.lastData[0][1],
-                        MeasureTool.lastData[1][0],
-                        MeasureTool.lastData[1][1]
-                    )
-                    if (F_.dam) distance = F_.metersToDegrees(distance)
-                }
 
-                for (var i = 0; i < MeasureTool.lastData.length; i++)
-                    MeasureTool.lastData[i].splice(2, 0, i * distance)
+                for (let i = 0; i < MeasureTool.lastData.length; i++) {
+                    let distance = 0
+                    if (i > 0 && i < MeasureTool.lastData.length) {
+                        distance = F_.lngLatDistBetween(
+                            MeasureTool.lastData[i][1],
+                            MeasureTool.lastData[i][0],
+                            MeasureTool.lastData[0][1],
+                            MeasureTool.lastData[0][0]
+                        )
+                        if (F_.dam) distance = F_.metersToDegrees(distance)
+                    }
+                    MeasureTool.lastData[i].splice(2, 0, distance)
+                }
 
                 profileData = []
                 for (var i = 0; i < data.length; i++) {

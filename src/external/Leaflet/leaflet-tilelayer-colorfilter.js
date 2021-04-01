@@ -83,28 +83,29 @@ var wmsExtension = {
     // WMS server as extra parameters in each request URL. This can be useful for
     // [non-standard vendor WMS parameters](http://docs.geoserver.org/stable/en/user/services/wms/vendor.html).
     defaultWmsParams: {
-        service: 'WMS',
-        request: 'GetMap',
+        SERVICE: 'WMS',
+        REQUEST: 'GetMap',
 
         // @option layers: String = ''
         // **(required)** Comma-separated list of WMS layers to show.
-        layers: '',
+        LAYERS: '',
 
         // @option styles: String = ''
         // Comma-separated list of WMS styles.
-        styles: '',
+        STYLES: '',
 
         // @option format: String = 'image/jpeg'
         // WMS image format (use `'image/png'` for layers with transparency).
-        format: 'image/jpeg',
+        FORMAT: 'image/png',
 
         // @option transparent: Boolean = false
         // If `true`, the WMS service will return images with transparency.
-        transparent: false,
+        TRANSPARENT: true,
 
         // @option version: String = '1.1.1'
         // Version of the WMS service to use
-        version: '1.1.1',
+        VERSION: '1.1.1',
+        SRS: 'helloworld',
     },
 
     options: {
@@ -115,13 +116,15 @@ var wmsExtension = {
 
         // @option uppercase: Boolean = false
         // If `true`, WMS request parameter keys will be uppercase.
-        uppercase: false,
+        uppercase: true,
     },
 
     initialize: function (url, options) {
         this._url = url
 
         var wmsParams = L.extend({}, this.defaultWmsParams)
+
+        //console.log( wmsParams)
 
         // all keys that are not TileLayer options go to WMS params
         for (var i in options) {
@@ -132,7 +135,7 @@ var wmsExtension = {
 
         options = L.setOptions(this, options)
 
-        wmsParams.width = wmsParams.height =
+        wmsParams.WIDTH = wmsParams.HEIGHT =
             options.tileSize *
             (options.detectRetina && L.Browser.retina ? 2 : 1)
 

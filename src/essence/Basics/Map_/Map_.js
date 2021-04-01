@@ -82,7 +82,9 @@ let Map_ = {
             var cp = L_.configData.projection
             //console.log(cp)
             var crs = new L.Proj.CRS(
-                'EPSG:' + cp.epsg,
+                Number.isFinite(parseInt(cp.epsg[0]))
+                    ? `EPSG:${cp.epsg}`
+                    : cp.epsg,
                 cp.proj,
                 {
                     origin: [
