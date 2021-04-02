@@ -1,28 +1,36 @@
-#use like: 2ptsToProfile.py raster lat1 lon1 lat2 lon2 steps axes band
+# use like: 2ptsToProfile.py raster lat1 lon1 lat2 lon2 steps axes band
 
-#returns an array of band value for step between (inclusive) [lat1, lon1] and [lat2, lon2]
+# returns an array of band value for step between (inclusive) [lat1, lon1] and [lat2, lon2]
 
-#example: 2ptsToProfile.py MSL_DEM_v3_webgis.tif -4.66086473 137.36935616 -4.67053145 137.36515045 10 z 1
-#2ptsToProfile.py MSL_DEM_v3_webgis.tif -4.67053145 137.36515045 -4.66086473 137.36935616 10 z 1
+# example: 2ptsToProfile.py MSL_DEM_v3_webgis.tif -4.66086473 137.36935616 -4.67053145 137.36515045 10 z 1
+# 2ptsToProfile.py MSL_DEM_v3_webgis.tif -4.67053145 137.36515045 -4.66086473 137.36935616 10 z 1
 
 # Setting axes to "xyz" will return image coordinates instead of lat lons
 
-#pip install numpy
-import os, sys, gdal, osr, numpy
+# pip install numpy
+import os
+import sys
+import gdal
+import osr
+import numpy
 from gdalconst import *
+from great_circle_calculator.great_circle_calculator import intermediate_point
 
 # Make gdal use exceptions instead of their own errors so that they can be caught
 gdal.UseExceptions()
 
 # Takes in a [[x,y],[x,y],[x,y],[x,y]...[x,y],[x,y]]
-#and returns an array of values on the raster at those points in order
+# and returns an array of values on the raster at those points in order
+
+
 def getRasterDataValues(pointArray):
     valuesArray = []
     for i in range(0, len(pointArray)):
         try:
-            value = band.ReadAsArray(pointArray[i][0], pointArray[i][1], 1, 1)[0][0]
+            value = band.ReadAsArray(
+                pointArray[i][0], pointArray[i][1], 1, 1)[0][0]
         except:
-            #-1100101 = (e)rror
+            # -1100101 = (e)rror
             value = -1100101
 
         noData = band.GetNoDataValue()
@@ -31,21 +39,25 @@ def getRasterDataValues(pointArray):
             decPlaces = 1
             if abs(noData) > 1000000000:
                 decPlaces = 10
-            if abs(value) >= abs( noData / decPlaces ) and abs(value) <= abs( noData * decPlaces ):
+            if abs(value) >= abs(noData / decPlaces) and abs(value) <= abs(noData * decPlaces):
                 value = -1100101
         valuesArray.append(value)
     return valuesArray
 
 # Takes in a [[x,y],[x,y],[x,y],[x,y]...[x,y],[x,y]]
-#and returns an array of values on the raster OF those points in order
+# and returns an array of values on the raster OF those points in order
+
+
 def getRasterDataCoords(pointArray):
     coordsArray = []
     for i in range(0, len(pointArray)):
         try:
-            valueX = bandX.ReadAsArray(pointArray[i][0], pointArray[i][1], 1, 1)[0][0]
-            valueY = bandY.ReadAsArray(pointArray[i][0], pointArray[i][1], 1, 1)[0][0]
+            valueX = bandX.ReadAsArray(
+                pointArray[i][0], pointArray[i][1], 1, 1)[0][0]
+            valueY = bandY.ReadAsArray(
+                pointArray[i][0], pointArray[i][1], 1, 1)[0][0]
         except:
-            #-1100101 = (e)rror
+            # -1100101 = (e)rror
             valueX = -1100101
             valueY = -1100101
 
@@ -55,7 +67,7 @@ def getRasterDataCoords(pointArray):
             decPlaces = 1
             if abs(noDataX) > 1000000000:
                 decPlaces = 10
-            if abs(valueX) >= abs( noDataX / decPlaces ) and abs(valueX) <= abs( noDataX * decPlaces ):
+            if abs(valueX) >= abs(noDataX / decPlaces) and abs(valueX) <= abs(noDataX * decPlaces):
                 valueX = -1100101
 
         noDataY = bandY.GetNoDataValue()
@@ -64,7 +76,7 @@ def getRasterDataCoords(pointArray):
             decPlaces = 1
             if abs(noDataY) > 1000000000:
                 decPlaces = 10
-            if abs(valueY) >= abs( noDataY / decPlaces ) and abs(valueY) <= abs( noDataY * decPlaces ):
+            if abs(valueY) >= abs(noDataY / decPlaces) and abs(valueY) <= abs(noDataY * decPlaces):
                 valueY = -1100101
 
         coordsArray.append([valueX, valueY])
@@ -72,8 +84,10 @@ def getRasterDataCoords(pointArray):
     return coordsArray
 
 # Takes in a [[x1,y1],[x2,y2]]
-#and returns [[x1,y1] + (steps - 2) interpolated pairs + [x2,y2]]
-def getInterpolatedArray(endPairs, steps):
+# and returns [[x1,y1] + (steps - 2) interpolated pairs + [x2,y2]]
+
+
+def getInterpolatedArrayLinear(endPairs, steps):
     interpolatedArray = []
     # Subtracting 1 from steps so the final point is included in the total steps
     # i.e. number of edges = number of verticies - 1
@@ -88,9 +102,24 @@ def getInterpolatedArray(endPairs, steps):
         interpolatedArray.append([x, y])
     return interpolatedArray
 
+# Takes in a [[x1,y1],[x2,y2]]
+# and returns [[x1,y1] + (steps - 2) interpolated pairs + [x2,y2]]
+
+
+def getInterpolatedArray(endPairs, steps):
+    interpolatedArray = []
+
+    for i in range(0, steps):
+        point = intermediate_point(
+            (endPairs[0][1], endPairs[0][0]), (endPairs[1][1], endPairs[1][0]), float(i)/(float(steps) - 1.0))
+        interpolatedArray.append([point[1], point[0]])
+    return interpolatedArray
+
 # Takes in a [[lat,lon],[lat,lon]...[lat,lon]]
-#and returns [[pixel,pixel][pixel,pixel]...[pixel,pixel]]
-#based on the predeclared ds (gdal.open(raster))
+# and returns [[pixel,pixel][pixel,pixel]...[pixel,pixel]]
+# based on the predeclared ds (gdal.open(raster))
+
+
 def latLonsToPixel(latLonPairs):
     # get georeference info
     transform = ds.GetGeoTransform()
@@ -101,19 +130,19 @@ def latLonsToPixel(latLonPairs):
     # Create a spatial reference object for the dataset
     srs = osr.SpatialReference()
     srs.ImportFromWkt(ds.GetProjection())
-	# Set up the coordinate transformation object
+    # Set up the coordinate transformation object
     srsLatLong = srs.CloneGeogCS()
-    ct = osr.CoordinateTransformation(srsLatLong,srs)
-	# Go through all the point pairs and translate them to latitude/longitude pairings
+    ct = osr.CoordinateTransformation(srsLatLong, srs)
+    # Go through all the point pairs and translate them to latitude/longitude pairings
     pixelPairs = []
     for point in latLonPairs:
         # Change the point locations into the GeoTransform space
-        (point[1],point[0],holder) = ct.TransformPoint(point[1],point[0])
+        (point[1], point[0], holder) = ct.TransformPoint(point[1], point[0])
         # Translate the x and y coordinates into pixel values
         x = (point[1] - xOrigin) / pixelWidth
         y = (point[0] - yOrigin) / pixelHeight
         # Add the point to our return array
-        pixelPairs.append([int(x),int(y)])
+        pixelPairs.append([int(x), int(y)])
     return pixelPairs
 
 
@@ -127,7 +156,7 @@ steps = int(sys.argv[6])
 axes = sys.argv[7]
 band = int(sys.argv[8])
 
-latLonEndPairs = [[lat1, lon1],[lat2, lon2]]
+latLonEndPairs = [[lat1, lon1], [lat2, lon2]]
 
 # Open the image
 ds = gdal.Open(raster, GA_ReadOnly)
@@ -151,6 +180,7 @@ else:
 # Interpolate between those latlons
 latLonArray = getInterpolatedArray(latLonEndPairs, steps)
 
+
 # Deep Copy the list
 latLonElevArray = [x[:] for x in latLonArray]
 
@@ -167,6 +197,7 @@ if axes == 'xyz':
 
 # Come latlon with elevs and print
 for i in range(0, len(latLonElevArray)):
-    latLonElevArray[i].append( elevArray[i] )
+    latLonElevArray[i] = [latLonElevArray[i][1], latLonElevArray[i][0]]
+    latLonElevArray[i].append(elevArray[i])
 
 print latLonElevArray
