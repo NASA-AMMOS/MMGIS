@@ -269,16 +269,18 @@ var Globe_ = {
             //  Check out the THREE.VRController.supported{} object to see
             //  all the named buttons we’ve already mapped for you!
 
-            controller.addEventListener('primary press began', function (
-                event
-            ) {
-                document.getElementById('topBarTitle').innerHtml = event
-            })
-            controller.addEventListener('primary press ended', function (
-                event
-            ) {
-                document.getElementById('topBarTitle').innerHtml = event
-            })
+            controller.addEventListener(
+                'primary press began',
+                function (event) {
+                    document.getElementById('topBarTitle').innerHtml = event
+                }
+            )
+            controller.addEventListener(
+                'primary press ended',
+                function (event) {
+                    document.getElementById('topBarTitle').innerHtml = event
+                }
+            )
 
             //  Remove controller on disconnect
 
