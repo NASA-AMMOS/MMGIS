@@ -351,18 +351,18 @@
 }
 #drawToolDrawFilter {
     border: none;
-    width: 164px;
+    width: 152px;
     padding: 0px 4px;
     height: 30px;
     color: black;
 }
 #drawToolDrawFilterClear {
-    width: 30px;
-    line-height: 28px;
+    width: 14px;
+    line-height: 30px;
     color: #aaa;
     text-align: center;
     background: white;
-    margin-right: 7px;
+    cursor: pointer;
     height: 30px;
     transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
 }
@@ -729,7 +729,6 @@
     color: black !important;
 }
 .drawToolFileOwner {
-    cursor: pointer;
     opacity: 0;
     color: rgb(255, 255, 255);
     transition: opacity 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
@@ -744,7 +743,6 @@
     opacity: 0.3;
 }
 .drawToolFileOwner.shown {
-    cursor: pointer;
     opacity: 0.3;
 }
 
@@ -1401,7 +1399,7 @@
 }
 #drawToolFileEditOnTagsNew {
     width: 180px;
-    height: 30px;
+    height: 31px;
     background: var(--color-a1);
     border: none;
     padding: 0px 8px;

@@ -89,32 +89,43 @@ var Shapes = {
             $('.drawToolShapeLi').each(function () {
                 var l =
                     L_.layersGroup[$(this).attr('layer')][$(this).attr('index')]
-                if (l.hasOwnProperty('_layers'))
+                if (l.feature == null && l.hasOwnProperty('_layers'))
                     l = l._layers[Object.keys(l._layers)[0]]
 
                 var show = false
-                if (
-                    l.feature.properties.name &&
-                    l.feature.properties.name.toLowerCase().indexOf(v) != -1
-                )
-                    show = true
-                if (
-                    l.feature.properties._.intent &&
-                    l.feature.properties._.intent.toLowerCase().indexOf(v) != -1
-                )
-                    show = true
-                if (l.feature.properties._.id.toString().indexOf(v) != -1)
-                    show = true
+                if (l.feature) {
+                    if (
+                        l.feature.properties.name &&
+                        l.feature.properties.name.toLowerCase().indexOf(v) != -1
+                    )
+                        show = true
+                    if (
+                        l.feature.properties.description &&
+                        l.feature.properties.description
+                            .toLowerCase()
+                            .indexOf(v) != -1
+                    )
+                        show = true
+                    if (
+                        l.feature.properties._.intent &&
+                        l.feature.properties._.intent
+                            .toLowerCase()
+                            .indexOf(v) != -1
+                    )
+                        show = true
+                    if (l.feature.properties._.id.toString().indexOf(v) != -1)
+                        show = true
 
-                const fileObj = DrawTool.getFileObjectWithId(
-                    l.feature.properties._.file_id
-                )
-                if (
-                    fileObj &&
-                    fileObj.file_name != null &&
-                    fileObj.file_name.toLowerCase().indexOf(v) != -1
-                )
-                    show = true
+                    const fileObj = DrawTool.getFileObjectWithId(
+                        l.feature.properties._.file_id
+                    )
+                    if (
+                        fileObj &&
+                        fileObj.file_name != null &&
+                        fileObj.file_name.toLowerCase().indexOf(v) != -1
+                    )
+                        show = true
+                }
 
                 if (show) {
                     $(this).css('display', 'list-item')

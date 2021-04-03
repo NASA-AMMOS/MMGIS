@@ -380,8 +380,11 @@ var Login = {
                                     document.cookie
                                 )
                                 var cookies = decodedCookie.split(';')
-                                var MMGISUser = cookies[0].split('=')
-                                MMGISUser = JSON.parse(MMGISUser[1])
+                                var MMGISUser = {}
+                                try {
+                                    MMGISUser = cookies[0].split('=')
+                                    MMGISUser = JSON.parse(MMGISUser[1])
+                                } catch (err) {}
                                 MMGISUser.username = ''
                                 MMGISUser.token = ''
 

@@ -128,8 +128,8 @@ var markup = [
                 "<ul id='drawToolDrawFilterByTagAutocompleteList'>",
                 "</ul>",
               "</div>",
-              "<input id='drawToolDrawFilter' type='text' placeholder='Filter Files' autocomplete='off'/>",
-                //"<div id='drawToolDrawFilterClear'><i id='drawToolDrawFilesNew' class='mdi mdi-close mdi-18px'></i></div>",
+              `<input id='drawToolDrawFilter' type='text' placeholder='Filter Files' autocomplete='off' title="Filter over a file's name, author and description.\nUse '#{tag}' to search over keywords."/>`,
+              "<div id='drawToolDrawFilterClear'><i class='mdi mdi-close mdi-14px'></i></div>",
               //"</div>",
                 /*
                 "<div class='drawToolFilterDropdown'>",
