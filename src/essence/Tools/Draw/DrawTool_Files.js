@@ -846,12 +846,20 @@ var Files = {
 
                         var fileid = elm.attr('file_id')
                         var filename = elm.find('.drawToolFileNameInput').val()
+                        var description = elm
+                            .find('.drawToolFileDesc')
+                            .val()
+                            .trimStart()
+                            .trimEnd()
+                        if (!description.replace(/\s/g, '').length) {
+                            description = ''
+                        }
                         var body = {
                             id: fileid,
                             file_name: filename,
                             file_description:
-                                elm.find('.drawToolFileDesc').val() +
-                                existingTags.map((t) => '#' + t).join(' '),
+                                description +
+                                existingTags.map((t) => ' #' + t).join(''),
                             public:
                                 elm
                                     .find(

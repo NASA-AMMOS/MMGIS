@@ -1266,6 +1266,7 @@
 }
 #drawToolFileEditOnHeadingName {
     flex: 1;
+    width: 70px;
 }
 #drawToolFileEditOnHeadingName > div {
     color: var(--color-f);

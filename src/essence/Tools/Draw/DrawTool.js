@@ -763,7 +763,7 @@ var DrawTool = {
     },
     stripTagsFromDescription(file_description) {
         if (typeof file_description !== 'string') return ''
-        return file_description.replaceAll(/#\w*/g, '')
+        return file_description.replaceAll(/#\w*/g, '').trimStart().trimEnd()
     },
     getFiles: function (callback) {
         calls.api(
