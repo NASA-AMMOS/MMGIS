@@ -88,11 +88,11 @@ var wmsExtension = {
 
         // @option layers: String = ''
         // **(required)** Comma-separated list of WMS layers to show.
-        LAYERS: '',
+        //LAYERS: '',
 
         // @option styles: String = ''
         // Comma-separated list of WMS styles.
-        STYLES: '',
+        //STYLES: '',
 
         // @option format: String = 'image/jpeg'
         // WMS image format (use `'image/png'` for layers with transparency).
@@ -105,7 +105,7 @@ var wmsExtension = {
         // @option version: String = '1.1.1'
         // Version of the WMS service to use
         VERSION: '1.1.1',
-        SRS: 'helloworld',
+        //SRS: 'helloworld',
     },
 
     options: {
