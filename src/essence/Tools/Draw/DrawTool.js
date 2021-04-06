@@ -45,7 +45,7 @@ var markup = [
             "<div id='drawToolDrawFilesNewDiv'>",
                 "<div id='drawToolFileUpload'>",
                     "<i class='mdi mdi-upload mdi-18px'></i>",
-                    "<input title='Upload' type=file accept='.geojson, .shp, .dbf' multiple>",
+                    "<input title='Upload' type=file accept='.json, .geojson, .shp, .dbf' multiple>",
                 "</div>",
                 "<input id='drawToolDrawFilesNewName' type='text' placeholder='New File' />",
                 "<select>",
@@ -651,7 +651,7 @@ var DrawTool = {
                     break
                 default:
                     CIU(
-                        'Only .geojson and .shp (with .dbf) files may be uploaded'
+                        'Only .json, .geojson and .shp (with .dbf) files may be uploaded'
                     )
             }
 

@@ -97,7 +97,7 @@ let Map_ = {
                         [parseFloat(cp.bounds[2]), parseFloat(cp.bounds[3])]
                     ),
                 },
-                L_.configData.msv.radius.major
+                parseFloat(L_.configData.msv.radius.major)
             )
 
             this.map = L.map('map', {
