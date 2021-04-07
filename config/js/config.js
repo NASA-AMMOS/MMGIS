@@ -2126,6 +2126,18 @@ function save() {
       $("#toast_warning").parent().css("background-color", "#a11717");
     }
 
+    let duplicatedNames = getDuplicatedNames(json);
+    if (duplicatedNames.length > 0) {
+      Materialize.toast(
+        `<span id='toast_warningdupn1'>ERROR: Layer names must be unique: ${duplicatedNames.join(
+          ", "
+        )}</span>`,
+        5000
+      );
+      $("#toast_warningdupn1").parent().css("background-color", "#a11717");
+      isInvalidData = true;
+    }
+
     //SAVE HERE
     if (!isInvalidData && !isNonHeader) {
       saveConfig(json);
@@ -2613,4 +2625,29 @@ function validName(name) {
     }
   }
   return false;
+}
+
+function getDuplicatedNames(json) {
+  let allNames = [];
+
+  depthTraversal(json.layers, 0);
+
+  function depthTraversal(node, depth) {
+    for (var i = 0; i < node.length; i++) {
+      allNames.push(node[i].name);
+      //Add other feature information while we're at it
+      if (node[i].sublayers != null && node[i].sublayers.length > 0) {
+        depthTraversal(node[i].sublayers, depth + 1);
+      }
+    }
+  }
+
+  let unique = [];
+  let duplicated = [];
+  allNames.forEach((name) => {
+    if (!unique.includes(name)) unique.push(name);
+    else duplicated.push(name);
+  });
+
+  return duplicated;
 }
