@@ -35,7 +35,8 @@ var WEBVR = {
                 }
             }
 
-            renderer.vr.setDevice(display)
+            if (typeof renderer.vr.setDevice === 'function')
+                renderer.vr.setDevice(display)
         }
 
         function showVRNotFound() {
@@ -63,7 +64,8 @@ var WEBVR = {
 
             button.onclick = null
 
-            renderer.vr.setDevice(null)
+            if (typeof renderer.vr.setDevice === 'function')
+                renderer.vr.setDevice(null)
         }
 
         function stylizeElement(element) {

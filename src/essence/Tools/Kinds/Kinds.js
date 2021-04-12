@@ -107,6 +107,31 @@ var Kinds = {
         function useInfo(open) {
             let features = []
             if (preFeatures == null) {
+                if (
+                    e.latlng == null &&
+                    e.target &&
+                    e.target.feature &&
+                    e.target.feature.geometry &&
+                    e.target.feature.geometry.type &&
+                    e.target.feature.geometry.type.toLowerCase() == 'point'
+                ) {
+                    e.latlng = {
+                        lng: e.target.feature.geometry.coordinates[0],
+                        lat: e.target.feature.geometry.coordinates[1],
+                    }
+                } else if (e.latlng == null && e.target && e.target._latlng) {
+                    e.latlng = e.target._latlng
+                } else if (e.latlng == null && e.target && e.target._latlngs) {
+                    const len = e.target._latlngs.length
+                    let lat = 0
+                    let lng = 0
+                    e.target._latlngs.forEach((coord) => {
+                        lat += coord.lat
+                        lng += coord.lng
+                    })
+                    e.latlng = { lat: lat / len, lng: lng / len }
+                }
+
                 if (e.latlng && e.latlng.lng != null && e.latlng.lat != null) {
                     if (
                         typeof L_.layersGroup[layerName].eachLayer !==

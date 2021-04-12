@@ -22,6 +22,7 @@ var Files = {
         DrawTool.refreshNoteEvents = Files.refreshNoteEvents
         DrawTool.refreshMasterCheckbox = Files.refreshMasterCheckbox
     },
+    prevFilterString: '',
     populateFiles: function () {
         $('#drawToolDrawFilesListMaster *').remove()
         $('#drawToolDrawFilesList *').remove()
@@ -135,6 +136,12 @@ var Files = {
         $('#drawToolDrawSortDiv > div').on('click', function () {
             $(this).toggleClass('active')
             fileFilter()
+        })
+        $('#drawToolDrawFilter').off('keydown')
+        $('#drawToolDrawFilter').on('keydown', function (e) {
+            if (e.which === 13)
+                // Enter key
+                $(this).blur()
         })
         $('#drawToolDrawFilter').off('focus')
         $('#drawToolDrawFilter').on('focus', function () {
@@ -365,7 +372,10 @@ var Files = {
                     'none'
             )
                 $('#drawToolDrawFilter').blur()
-            else $('#drawToolDrawFilter').focus()
+            else if (Files.prevFilterString != string2)
+                $('#drawToolDrawFilter').focus()
+
+            Files.prevFilterString = string2
         }
 
         function addFileToList(file) {
@@ -836,12 +846,20 @@ var Files = {
 
                         var fileid = elm.attr('file_id')
                         var filename = elm.find('.drawToolFileNameInput').val()
+                        var description = elm
+                            .find('.drawToolFileDesc')
+                            .val()
+                            .trimStart()
+                            .trimEnd()
+                        if (!description.replace(/\s/g, '').length) {
+                            description = ''
+                        }
                         var body = {
                             id: fileid,
                             file_name: filename,
                             file_description:
-                                elm.find('.drawToolFileDesc').val() +
-                                existingTags.map((t) => '#' + t).join(' '),
+                                description +
+                                existingTags.map((t) => ' #' + t).join(''),
                             public:
                                 elm
                                     .find(
@@ -923,6 +941,7 @@ var Files = {
                                 filenameToDelete +
                                 ' (Y/N)?'
                         )
+                        if (response == null) return
                         response = response.toLowerCase()
                         if (!(response == 'yes' || response == 'y')) return
 

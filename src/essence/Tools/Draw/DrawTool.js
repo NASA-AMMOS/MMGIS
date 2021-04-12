@@ -45,7 +45,7 @@ var markup = [
             "<div id='drawToolDrawFilesNewDiv'>",
                 "<div id='drawToolFileUpload'>",
                     "<i class='mdi mdi-upload mdi-18px'></i>",
-                    "<input title='Upload' type=file accept='.geojson, .shp, .dbf' multiple>",
+                    "<input title='Upload' type=file accept='.json, .geojson, .shp, .dbf' multiple>",
                 "</div>",
                 "<input id='drawToolDrawFilesNewName' type='text' placeholder='New File' />",
                 "<select>",
@@ -114,7 +114,6 @@ var markup = [
             "<div id='drawToolDrawFilterDiv2'>",
               //"<div id='drawToolDrawFilterCount'></div>",
               //"<div id='drawToolDrawFilterDiv'>",
-              "<div id='drawToolDrawFilterByTag' title='Filter by Tag'><i class='mdi mdi-tag-text mdi-18px'></i></div>",
               "<div id='drawToolDrawFilterByTagAutocomplete'>",
                 "<div id='drawToolDrawFilterByTagAutocompleteClose' title='Close tags'></div>",
                 "<div id='drawToolDrawFilterByTagAutocompleteHeading'>",
@@ -128,8 +127,8 @@ var markup = [
                 "<ul id='drawToolDrawFilterByTagAutocompleteList'>",
                 "</ul>",
               "</div>",
-              "<input id='drawToolDrawFilter' type='text' placeholder='Filter Files' autocomplete='off'/>",
-                //"<div id='drawToolDrawFilterClear'><i id='drawToolDrawFilesNew' class='mdi mdi-close mdi-18px'></i></div>",
+              `<input id='drawToolDrawFilter' type='text' placeholder='Filter Files' autocomplete='off' title="Filter over a file's name, author and description.\nUse '#{tag}' to search over keywords."/>`,
+              "<div id='drawToolDrawFilterClear'><i class='mdi mdi-close mdi-18px'></i></div>",
               //"</div>",
                 /*
                 "<div class='drawToolFilterDropdown'>",
@@ -145,12 +144,16 @@ var markup = [
                     "</ul>",
                 "</div>",
                 */
-              "<div id='drawToolDrawSortDiv'>",
-                "<div type='public' title='Public Only'><i class='mdi mdi-shield-outline mdi-14px'></i></div>",
-                "<div type='owned' title='Yours Only' class='active'><i class='mdi mdi-account mdi-18px'></i></div>",
-                "<div type='on' title='On Only'><i class='mdi mdi-eye mdi-18px'></i></div>",
-                //"<div><i class='mdi mdi-account-tie mdi-18px'></i></div>",
-              "</div>",
+            "</div>",
+            
+            "<div id='drawToolDrawFilterOptions'>",
+                "<div id='drawToolDrawFilterByTag' title='Filter by Tag'><i class='mdi mdi-tag-text mdi-18px'></i></div>",
+                "<div id='drawToolDrawSortDiv'>",
+                    "<div type='public' title='Public Only'><i class='mdi mdi-shield-outline mdi-14px'></i></div>",
+                    "<div type='owned' title='Yours Only' class='active'><i class='mdi mdi-account mdi-18px'></i></div>",
+                    "<div type='on' title='On Only'><i class='mdi mdi-eye mdi-18px'></i></div>",
+                    //"<div><i class='mdi mdi-account-tie mdi-18px'></i></div>",
+                "</div>",
             "</div>",
           "</div>",
           "<div id='drawToolDrawFiles'>",
@@ -648,7 +651,7 @@ var DrawTool = {
                     break
                 default:
                     CIU(
-                        'Only .geojson and .shp (with .dbf) files may be uploaded'
+                        'Only .json, .geojson and .shp (with .dbf) files may be uploaded'
                     )
             }
 
@@ -729,15 +732,24 @@ var DrawTool = {
             if (DrawTool.files[i].id == id) return DrawTool.files[i]
         }
     },
+    // Return in pinned then last modified order
     getAllTags() {
         let tags = []
         for (var i = 0; i < DrawTool.files.length; i++) {
             tags = tags.concat(
                 DrawTool.getTagsFromFileDescription(
                     DrawTool.files[i].file_description
-                )
+                ).map((t) => {
+                    return {
+                        tag: t,
+                        modified: Date.parse(DrawTool.files[i].updated_on),
+                    }
+                })
             )
         }
+        tags = tags.sort((a, b) => a.modified - b.modified)
+        tags = tags.map((t) => t.tag)
+
         if (DrawTool.vars.preferredTags)
             tags = DrawTool.vars.preferredTags.concat(tags.reverse())
         else tags = tags.reverse()
@@ -763,7 +775,7 @@ var DrawTool = {
     },
     stripTagsFromDescription(file_description) {
         if (typeof file_description !== 'string') return ''
-        return file_description.replaceAll(/#\w*/g, '')
+        return file_description.replaceAll(/#\w*/g, '').trimStart().trimEnd()
     },
     getFiles: function (callback) {
         calls.api(

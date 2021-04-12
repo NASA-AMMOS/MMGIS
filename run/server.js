@@ -227,7 +227,7 @@ function ensureGroup(allowedGroups) {
     // not in any allowed groups, the next handler will never be called and a
     // 403 Forbidden response will be returned to the user.
     //console.log( 'ensureGroup', req );
-    if (process.env.AUTH == "off" || process.env.AUTH == "none") {
+    if (process.env.AUTH != "csso") {
       next();
       return;
     }
@@ -242,10 +242,7 @@ function ensureGroup(allowedGroups) {
           return;
         }
       }
-    } else if (
-      process.env.AUTH == "local" ||
-      process.env.NODE_ENV === "development"
-    ) {
+    } else if (process.env.NODE_ENV === "development") {
       next();
       return;
     }
@@ -335,9 +332,11 @@ function ensureUser() {
       process.env.AUTH != "local" ||
       (typeof req.session.permission === "string" &&
         req.session.permission[req.session.permission.length - 1] === "1")
-    )
+    ) {
       next();
-    else res.render("login", { user: req.user });
+    } else {
+      res.render("login", { user: req.user });
+    }
     return;
   };
 }
@@ -629,8 +628,8 @@ setups.getBackendSetups(function (setups) {
   httpServer.listen(port, (err) => {
     if (process.env.NODE_ENV === "development") {
       setTimeout(setupDevServer, 2000);
-      app.get("/", (req, res) => {
-        res.redirect("http://localhost:8889");
+      app.get("/", ensureUser(), (req, res) => {
+        res.redirect(`http://localhost:${port + 1}`);
       });
     } else {
       // Each calls the ensureGroup middleware,

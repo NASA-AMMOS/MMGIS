@@ -42,6 +42,17 @@ export default [
         githublink: 'https://github.com/DataTables/DataTables',
     },
     {
+        library: 'Great Circle Calculator',
+        librarylink: 'https://github.com/seangrogan/great_circle_calculator',
+        version: '1.2.0',
+        author: 'Sean Grogan',
+        authorlink: 'http://seangrogan.net/',
+        license: 'MIT',
+        licenselink:
+            'https://github.com/seangrogan/great_circle_calculator/blob/master/LICENSE',
+        githublink: 'https://github.com/seangrogan/great_circle_calculator',
+    },
+    {
         library: 'Highcharts JS',
         librarylink: 'https://www.highcharts.com/',
         version: '7.1.1',
