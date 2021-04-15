@@ -160,7 +160,7 @@ var SetOperations = {
                         "Warning! Can't merge shapes from separate files.",
                         6000,
                         true,
-                        { x: 268, y: 6 },
+                        { x: 295, y: 6 },
                         '#e9ff26',
                         'black'
                     )
@@ -178,7 +178,7 @@ var SetOperations = {
                     'Merge: Select a shape whose properties will persist through the merge.',
                     6000,
                     true,
-                    { x: 268, y: 6 },
+                    { x: 295, y: 6 },
                     '#e9ff26',
                     'black'
                 )
@@ -206,7 +206,7 @@ var SetOperations = {
                     'Split: Draw a line to split against first.',
                     6000,
                     true,
-                    { x: 268, y: 6 },
+                    { x: 295, y: 6 },
                     '#e9ff26',
                     'black'
                 )
@@ -225,7 +225,7 @@ var SetOperations = {
                         "Warning! Can't split shapes from separate files.",
                         6000,
                         true,
-                        { x: 268, y: 6 },
+                        { x: 295, y: 6 },
                         '#e9ff26',
                         'black'
                     )

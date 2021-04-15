@@ -1,5 +1,9 @@
 FROM node:12
 
+# Install PHP and GDAL
+RUN apt-get update
+RUN apt-get install -y php7.0-cli php-db php-sqlite3 gdal-bin libgdal-dev python-pip python-gdal
+
 # Create app directory
 WORKDIR /usr/src/app
 
@@ -10,10 +14,6 @@ RUN npm install
 
 # Bundle app source
 COPY . .
-
-# Install PHP and GDAL
-RUN apt-get update
-RUN apt-get install -y php7.0-cli php-db php-sqlite3 gdal-bin libgdal-dev python-pip python-gdal
 
 # build
 RUN npm run build

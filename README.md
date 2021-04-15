@@ -82,7 +82,7 @@
 
 1. Run `npm run build` to bundle up the code (first time or if there are any changes)
 
-1. Run `npm run start:build`
+1. Run `npm run start:prod`
 
 1. Setup the admin account:
 
@@ -107,7 +107,7 @@ _Note:_ The development environment (`npm start`) and only the development envir
 
 1. Run `npm run build` to bundle up the code (first time or if there are any changes)
 
-1. Run `npm run start:build`
+1. Run `npm run start:prod`
 
 ### Development
 
@@ -135,7 +135,9 @@ To run MMGIS in a container, you need to create a directory on the host machine 
 
 `docker run -v /Missions:/usr/src/app/Missions <image tag>`
 
-If using `docker-compose`, map the volume and set all the env variables.
+This repo contains a `docker-compose.yml` file that defines a service for the application and a PostgreSQL database with PostGIS installed. Simply set all the env variables in `.env` and run:
+
+`docker-compose up`
 
 ---
 

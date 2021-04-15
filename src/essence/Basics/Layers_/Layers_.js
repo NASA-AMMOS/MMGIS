@@ -162,9 +162,11 @@ var L_ = {
             if (newView != null) {
                 this.view = newView
 
-                L_.Map_.resetView(newView)
-                if (!dontSetGlobe && L_.hasGlobe) {
-                    L_.Globe_.setCenter(newView)
+                if (this.FUTURES.activePoint == null) {
+                    L_.Map_.resetView(newView)
+                    if (!dontSetGlobe && L_.hasGlobe) {
+                        L_.Globe_.setCenter(newView)
+                    }
                 }
             }
         } else console.log('Failure updating to new site')
@@ -578,9 +580,11 @@ var L_ = {
                                 newView = [
                                     lat / llflat.length,
                                     lng / llflat.length,
-                                    activePoint.zoom ||
-                                        L_.Map_.mapScaleZoom ||
-                                        L_.Map_.map.getZoom(),
+                                    parseInt(
+                                        activePoint.zoom ||
+                                            L_.Map_.mapScaleZoom ||
+                                            L_.Map_.map.getZoom()
+                                    ),
                                 ]
                             }
 
@@ -631,13 +635,16 @@ var L_ = {
                                     newView = [
                                         lat / llflat.length,
                                         lng / llflat.length,
-                                        activePoint.zoom ||
-                                            L_.Map_.mapScaleZoom ||
-                                            L_.Map_.map.getZoom(),
+                                        parseInt(
+                                            activePoint.zoom ||
+                                                L_.Map_.mapScaleZoom ||
+                                                L_.Map_.map.getZoom()
+                                        ),
                                     ]
                                 }
-
-                                L_.Map_.resetView(newView)
+                                setTimeout(() => {
+                                    L_.Map_.resetView(newView)
+                                }, 50)
                                 if (L_.hasGlobe) {
                                     L_.Globe_.setCenter(newView)
                                 }

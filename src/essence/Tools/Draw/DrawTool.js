@@ -45,7 +45,7 @@ var markup = [
             "<div id='drawToolDrawFilesNewDiv'>",
                 "<div id='drawToolFileUpload'>",
                     "<i class='mdi mdi-upload mdi-18px'></i>",
-                    "<input title='Upload' type=file accept='.geojson, .shp, .dbf' multiple>",
+                    "<input title='Upload' type=file accept='.json, .geojson, .shp, .dbf' multiple>",
                 "</div>",
                 "<input id='drawToolDrawFilesNewName' type='text' placeholder='New File' />",
                 "<select>",
@@ -60,13 +60,44 @@ var markup = [
                 "<i id='drawToolDrawFilesNew' title='Make new file' class='mdi mdi-plus mdi-18px'></i>",
                 "<div id='drawToolDrawFilesNewLoading'><div></div></div>",
             "</div>",
-            "<div id='drawToolDrawingInIndicator'>Choose a file to draw in</div>",
-            "<div id='drawToolDrawingTypeDiv'>",
-              "<div class='drawToolDrawingTypePolygon' draw='polygon' title='Polygon'><i class='mdi mdi-vector-square mdi-18px'></i></div>",
-              "<div class='drawToolDrawingTypeLine' draw='line' title='Line'><i class='mdi mdi-vector-line mdi-24px'></i></div>",
-              "<div class='drawToolDrawingTypePoint' draw='point' title='Point'><i class='mdi mdi-square-medium-outline mdi-24px'></i></div>",
-              "<div class='drawToolDrawingTypeText' draw='text' title='Text'><i class='mdi mdi-format-text mdi-24px'></i></div>",
-              "<div class='drawToolDrawingTypeArrow' draw='arrow' title='Arrow'><i class='mdi mdi-arrow-top-right mdi-24px'></i></div>",
+            //"<div id='drawToolDrawingInIndicator'>Choose a file to draw in</div>",
+            "<div id='drawToolDrawingCont'>",
+                "<div id='drawToolDrawingTypeDiv'>",
+                    "<div class='drawToolDrawingTypePolygon' draw='polygon' title='Polygon'><i class='mdi mdi-vector-square mdi-18px'></i></div>",
+                    "<div class='drawToolDrawingTypeLine' draw='line' title='Line'><i class='mdi mdi-vector-line mdi-24px'></i></div>",
+                    "<div class='drawToolDrawingTypePoint' draw='point' title='Point'><i class='mdi mdi-square-medium-outline mdi-24px'></i></div>",
+                    "<div class='drawToolDrawingTypeText' draw='text' title='Text'><i class='mdi mdi-format-text mdi-24px'></i></div>",
+                    "<div class='drawToolDrawingTypeArrow' draw='arrow' title='Arrow'><i class='mdi mdi-arrow-top-right mdi-24px'></i></div>",
+                "</div>",
+                "<div id='drawToolDrawingSettingsToggle' title='Draw Settings'><i class='mdi mdi-settings mdi-18px'></i></div>",
+            "</div>",
+            "<div id='drawToolDrawSettings'>",
+                "<div id='drawToolDrawSettingsBody'>",
+                    "<ul>",
+                        "<li>",
+                            "<div title='Clip drawing or existing shapes'>Draw Clipping</div>",
+                            "<div id='drawToolDrawSettingsTier' class='drawToolRadio'>",
+                                "<div value='over'>Over</div>",
+                                "<div class='active' value='under'>Under</div>",
+                                "<div value='off'>Off</div>",
+                            "</div>",
+                        "</li>",
+                        "<li>",
+                            "<div title='Auto vertex spacing or click to add'>Draw Resolution</div>",
+                            "<div id='drawToolDrawSettingsMode' class='drawToolRadio'>",
+                                "<div value='on'><span>On</span><input id='drawToolDrawSettingsModeVertexRes' type='number' step='1' value='10'/></div>",
+                                "<div class='active' value='off'>Off</div>",
+                            "</div>",
+                        "</li>",
+                        "<li>",
+                            "<div title='Enable snapping in edit mode'>Edit Snapping</div>",
+                            "<div id='drawToolDrawSnapMode' class='drawToolRadio'>",
+                                "<div value='on'>On</div>",
+                                "<div class='active' value='off'>Off</div>",
+                            "</div>",
+                        "</li>",
+                    "</ul>",
+                "</div>",
             "</div>",
             /*
             "<div id='drawToolDrawIntentFilterDiv'>",
@@ -83,10 +114,23 @@ var markup = [
             "<div id='drawToolDrawFilterDiv2'>",
               //"<div id='drawToolDrawFilterCount'></div>",
               //"<div id='drawToolDrawFilterDiv'>",
-              "<input id='drawToolDrawFilter' type='text' placeholder='Filter Files' />",
-                //"<div id='drawToolDrawFilterClear'><i id='drawToolDrawFilesNew' class='mdi mdi-close mdi-18px'></i></div>",
+              "<div id='drawToolDrawFilterByTagAutocomplete'>",
+                "<div id='drawToolDrawFilterByTagAutocompleteClose' title='Close tags'></div>",
+                "<div id='drawToolDrawFilterByTagAutocompleteHeading'>",
+                    "<div id='drawToolDrawFilterByTagAutocompleteTitle'>#Tags</div>",
+                    "<select id='drawToolDrawFilterByTagAutocompleteSort' class='ui dropdown dropdown_2 unsetMaxWidth'>",
+                        `<option value='relevance' selected>Relevance</option>`,
+                        `<option value='alphabetical'>Alphabetical</option>`,
+                        `<option value='count'>Count</option>`,
+                    "</select>",
+                "</div>",
+                "<ul id='drawToolDrawFilterByTagAutocompleteList'>",
+                "</ul>",
+              "</div>",
+              `<input id='drawToolDrawFilter' type='text' placeholder='Filter Files' autocomplete='off' title="Filter over a file's name, author and description.\nUse '#{tag}' to search over keywords."/>`,
+              "<div id='drawToolDrawFilterClear'><i class='mdi mdi-close mdi-18px'></i></div>",
               //"</div>",
-              
+                /*
                 "<div class='drawToolFilterDropdown'>",
                     "<input type='checkbox' id='checkbox-toggle'>",
                     "<label for='checkbox-toggle'><i class='mdi mdi-dots-vertical mdi-18px'></i></label>",
@@ -99,12 +143,17 @@ var markup = [
                         "<li intent='all'><div id='drawToolFilterDropdownAll'>Maps</div><div class='drawToolFilterCheckbox'></div></li>",
                     "</ul>",
                 "</div>",
-              "<div id='drawToolDrawSortDiv'>",
-                "<div type='public' title='Public Only'><i class='mdi mdi-shield-outline mdi-14px'></i></div>",
-                "<div type='owned' title='Yours Only' class='active'><i class='mdi mdi-account mdi-18px'></i></div>",
-                "<div type='on' title='On Only'><i class='mdi mdi-eye mdi-18px'></i></div>",
-                //"<div><i class='mdi mdi-account-tie mdi-18px'></i></div>",
-              "</div>",
+                */
+            "</div>",
+            
+            "<div id='drawToolDrawFilterOptions'>",
+                "<div id='drawToolDrawFilterByTag' title='Filter by Tag'><i class='mdi mdi-tag-text mdi-18px'></i></div>",
+                "<div id='drawToolDrawSortDiv'>",
+                    "<div type='public' title='Public Only'><i class='mdi mdi-shield-outline mdi-14px'></i></div>",
+                    "<div type='owned' title='Yours Only' class='active'><i class='mdi mdi-account mdi-18px'></i></div>",
+                    "<div type='on' title='On Only'><i class='mdi mdi-eye mdi-18px'></i></div>",
+                    //"<div><i class='mdi mdi-account-tie mdi-18px'></i></div>",
+                "</div>",
             "</div>",
           "</div>",
           "<div id='drawToolDrawFiles'>",
@@ -136,34 +185,6 @@ var markup = [
               "</div>",
               "<ul id='drawToolDrawFilesList' class='mmgisScrollbar'>",
               "</ul>",
-            "</div>",
-          "</div>",
-          "<div id='drawToolDrawSettings'>",
-            "<div id='drawToolDrawSettingsBody'>",
-                "<ul>",
-                    "<li>",
-                        "<div title='Clip drawing or existing shapes'>Draw Clipping</div>",
-                        "<div id='drawToolDrawSettingsTier' class='drawToolRadio'>",
-                            "<div value='over'>Over</div>",
-                            "<div class='active' value='under'>Under</div>",
-                            "<div value='off'>Off</div>",
-                        "</div>",
-                    "</li>",
-                    "<li>",
-                        "<div title='Auto vertex spacing or click to add'>Draw Resolution</div>",
-                        "<div id='drawToolDrawSettingsMode' class='drawToolRadio'>",
-                            "<div value='on'><span>On</span><input id='drawToolDrawSettingsModeVertexRes' type='number' step='1' value='10'/></div>",
-                            "<div class='active' value='off'>Off</div>",
-                        "</div>",
-                    "</li>",
-                    "<li>",
-                        "<div title='Enable snapping in edit mode'>Edit Snapping</div>",
-                        "<div id='drawToolDrawSnapMode' class='drawToolRadio'>",
-                            "<div value='on'>On</div>",
-                            "<div class='active' value='off'>Off</div>",
-                        "</div>",
-                    "</li>",
-                "</ul>",
             "</div>",
           "</div>",
         "</div>",
@@ -216,7 +237,7 @@ var markup = [
 
 var DrawTool = {
     height: 0,
-    width: 224,
+    width: 250,
     vars: {},
     //host: window.location.hostname,
     open: true,
@@ -230,6 +251,8 @@ var DrawTool = {
     intentType: null,
     currentFileId: null,
     filesOn: [],
+    allTags: {}, //<tag>: count, ...
+    tags: [],
     labelsOn: [],
     palettes: [
         [
@@ -351,33 +374,33 @@ var DrawTool = {
         },
 
         all: {
-            color: 'rgb(104, 28, 190)',
+            color: 'rgb(255, 255, 255)',
             radius: 2,
-            fillColor: 'rgb(104, 28, 190)',
+            fillColor: 'rgb(255, 255, 255)',
             weight: 2,
             opacity: 1,
             fillOpacity: 0.2,
         },
         polygon: {
-            color: 'rgb(104, 28, 190)',
+            color: 'rgb(255, 255, 255)',
             radius: 2,
-            fillColor: 'rgb(104, 28, 190)',
+            fillColor: 'rgb(255, 255, 255)',
             weight: 2,
             opacity: 1,
             fillOpacity: 0.2,
         },
         line: {
-            color: 'rgb(104, 28, 190)',
+            color: 'rgb(255, 255, 255)',
             radius: 2,
-            fillColor: 'rgb(104, 28, 190)',
+            fillColor: 'rgb(255, 255, 255)',
             weight: 2,
             opacity: 1,
             fillOpacity: 1,
         },
         point: {
-            color: 'rgb(104, 28, 190)',
+            color: 'rgb(255, 255, 255)',
             radius: 6,
-            fillColor: 'rgb(104, 28, 190)',
+            fillColor: 'rgb(255, 255, 255)',
             weight: 2,
             opacity: 1,
             fillOpacity: 0.4,
@@ -628,7 +651,7 @@ var DrawTool = {
                     break
                 default:
                     CIU(
-                        'Only .geojson and .shp (with .dbf) files may be uploaded'
+                        'Only .json, .geojson and .shp (with .dbf) files may be uploaded'
                     )
             }
 
@@ -641,7 +664,7 @@ var DrawTool = {
                     message,
                     6000,
                     true,
-                    { x: 268, y: 6 },
+                    { x: 295, y: 6 },
                     '#e9ff26',
                     'black'
                 )
@@ -709,6 +732,51 @@ var DrawTool = {
             if (DrawTool.files[i].id == id) return DrawTool.files[i]
         }
     },
+    // Return in pinned then last modified order
+    getAllTags() {
+        let tags = []
+        for (var i = 0; i < DrawTool.files.length; i++) {
+            tags = tags.concat(
+                DrawTool.getTagsFromFileDescription(
+                    DrawTool.files[i].file_description
+                ).map((t) => {
+                    return {
+                        tag: t,
+                        modified: Date.parse(DrawTool.files[i].updated_on),
+                    }
+                })
+            )
+        }
+        tags = tags.sort((a, b) => a.modified - b.modified)
+        tags = tags.map((t) => t.tag)
+
+        if (DrawTool.vars.preferredTags)
+            tags = DrawTool.vars.preferredTags.concat(tags.reverse())
+        else tags = tags.reverse()
+
+        let allTags = {}
+        tags.forEach((tag) => {
+            if (allTags[tag] != null) allTags[tag] = allTags[tag] + 1
+            else
+                allTags[tag] =
+                    DrawTool.vars.preferredTags &&
+                    DrawTool.vars.preferredTags.includes(tag)
+                        ? 0
+                        : 1
+        })
+        return allTags
+    },
+    getTagsFromFileDescription(file_description) {
+        if (typeof file_description !== 'string') return []
+        const tags = file_description.match(/#\w*/g) || []
+        const uniqueTags = [...tags]
+        // remove '#'s
+        return uniqueTags.map((t) => t.substring(1))
+    },
+    stripTagsFromDescription(file_description) {
+        if (typeof file_description !== 'string') return ''
+        return file_description.replaceAll(/#\w*/g, '').trimStart().trimEnd()
+    },
     getFiles: function (callback) {
         calls.api(
             'files_getfiles',
@@ -729,6 +797,9 @@ var DrawTool = {
                         }
                     }
                     DrawTool.files = sortedBody
+
+                    DrawTool.allTags = DrawTool.getAllTags()
+                    DrawTool.tags = Object.keys(DrawTool.allTags)
                 }
                 if (typeof callback === 'function') callback()
             },
@@ -813,7 +884,7 @@ var DrawTool = {
                 'No file chosen. Please select or make a file for drawings.',
                 6000,
                 true,
-                { x: 268, y: 6 },
+                { x: 295, y: 6 },
                 '#e9ff26',
                 'black'
             )
@@ -843,7 +914,7 @@ var DrawTool = {
                 },
                 function (err) {
                     let message = err ? err.message : 'Server Failure'
-                    CursorInfo.update(message, 6000, true, { x: 268, y: 6 })
+                    CursorInfo.update(message, 6000, true, { x: 295, y: 6 })
                     if (typeof failure === 'function') failure()
                 }
             )
@@ -960,6 +1031,11 @@ function interfaceWithMMGIS() {
     if (F_.getBrowser() == 'firefox')
         $('#drawToolDrawFiles').css('max-height', 'calc(100vh - 313px)')
 
+    $('#drawToolDrawingSettingsToggle').on('click', function () {
+        $('#drawToolDrawingSettingsToggle').toggleClass('active')
+        $('#drawToolDrawSettings').toggleClass('active')
+    })
+
     $('#drawToolDrawSettingsTier > div').on('click', function () {
         $(this).parent().find('div').removeClass('active')
         $(this).addClass('active')
@@ -1037,7 +1113,7 @@ function interfaceWithMMGIS() {
                 'Please enter a file name.',
                 6000,
                 true,
-                { x: 268, y: 6 },
+                { x: 295, y: 6 },
                 '#e9ff26',
                 'black'
             )
@@ -1048,7 +1124,7 @@ function interfaceWithMMGIS() {
                 'Invalid file name.',
                 6000,
                 true,
-                { x: 268, y: 6 },
+                { x: 295, y: 6 },
                 '#e9ff26',
                 'black'
             )
@@ -1072,7 +1148,7 @@ function interfaceWithMMGIS() {
                 'Please select a file to copy shapes to.',
                 6000,
                 true,
-                { x: 268, y: 6 },
+                { x: 295, y: 6 },
                 '#e9ff26',
                 'black'
             )
@@ -1214,7 +1290,7 @@ function interfaceWithMMGIS() {
                 'Please select shapes to copy.',
                 6000,
                 true,
-                { x: 268, y: 6 },
+                { x: 295, y: 6 },
                 '#e9ff26',
                 'black'
             )

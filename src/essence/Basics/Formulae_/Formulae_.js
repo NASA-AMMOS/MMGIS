@@ -74,6 +74,11 @@ var Formulae_ = {
 
         return R * c
     },
+    bearingFromGreatArcDistance: function (distance) {
+        return (
+            -1 * ((distance / this.radiusOfPlanetMajor) * (180 / Math.PI) + 90)
+        )
+    },
     metersToDegrees: function (meters) {
         return (meters / this.radiusOfPlanetMajor) * (180 / Math.PI)
     },

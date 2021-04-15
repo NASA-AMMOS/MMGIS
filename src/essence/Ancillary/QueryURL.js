@@ -362,6 +362,7 @@ var QueryURL = {
     },
     writeSearchURL: function (searchStrs, searchFile) {
         return //!!!!!!!!!!!!!!!!
+        /*
         var url =
             window.location.href.split('?')[0] +
             '?mission=' +
@@ -374,6 +375,7 @@ var QueryURL = {
         url = url + '&searchFile=' + searchFile
 
         window.history.replaceState('', '', url)
+        */
     },
 }
 

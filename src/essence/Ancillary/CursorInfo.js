@@ -29,7 +29,7 @@ var CursorInfo = {
             .style('font-weight', 'bold')
             .style('font-size', '16px')
             //.style( 'box-shadow', '0px 5px 15px #000' )
-            .style('z-index', '6')
+            .style('z-index', '60000000')
             .style('pointer-events', 'none')
             .style('display', 'none')
 

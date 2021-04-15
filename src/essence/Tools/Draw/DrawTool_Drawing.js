@@ -93,7 +93,7 @@ var Drawing = {
                                 noChange = true
                         } catch (error) {
                             CursorInfo.update('ERROR: Topology.', 2500, true, {
-                                x: 268,
+                                x: 295,
                                 y: 6,
                             })
                             if (d.end && d.begin) {
@@ -175,7 +175,7 @@ var Drawing = {
                                         'Failed to cut through some shapes.',
                                         6000,
                                         true,
-                                        { x: 268, y: 6 }
+                                        { x: 295, y: 6 }
                                     )
                                 }
                             )
@@ -210,7 +210,7 @@ var Drawing = {
                     }
                 } catch (error) {
                     CursorInfo.update('ERROR: Topology.', 2500, true, {
-                        x: 268,
+                        x: 295,
                         y: 6,
                     })
                     if (d.end && d.begin) {
@@ -257,17 +257,8 @@ var Drawing = {
     },
     switchDrawingType: function (type) {
         $('#drawToolDrawingTypeDiv > div').removeClass('active')
-        $('#drawToolDrawingTypeDiv > div').css('border-radius', 0)
         var elm = $('.drawToolDrawingType' + type)
         elm.addClass('active')
-        elm.prev().css({
-            'border-top-right-radius': '10px',
-            'border-bottom-right-radius': '10px',
-        })
-        elm.next().css({
-            'border-top-left-radius': '10px',
-            'border-bottom-left-radius': '10px',
-        })
 
         DrawTool.setDrawingType($(this).attr('draw'))
     },
@@ -307,16 +298,13 @@ var Drawing = {
         if (DrawTool.intentType != null) {
             var color = DrawTool.categoryStyles[DrawTool.intentType].color
             $('#drawToolDrawIntentFilterDiv').css('background', color)
-            $('#drawToolDrawFilterDiv2').css(
-                'border-left',
-                '7px solid ' + color
-            )
             $('#drawToolDrawingTypeDiv > div').css(
                 'background',
                 'var(--color-a)'
             )
             $('#drawToolDrawingTypeDiv div.active').css('background', color)
             $('#drawToolDrawingTypeDiv').css('background', color)
+            /*
             $('#drawToolDrawingInIndicator').css('background', color)
             $('#drawToolDrawingInIndicator').css(
                 'color',
@@ -329,6 +317,7 @@ var Drawing = {
             $('#drawToolDrawingInIndicator').text(
                 'Drawing ' + DrawTool.prettyIntent(DrawTool.intentType)
             )
+            */
         }
         $('#drawToolDrawFeaturesNewName').attr(
             'placeholder',
