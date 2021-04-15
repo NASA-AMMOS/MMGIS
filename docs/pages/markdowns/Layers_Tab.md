@@ -56,7 +56,7 @@ Header layers contain no content but allows other layers to be grouped underneat
 _type:_ string  
 The unique display name and identifier of the layer. It must be unique and contain no special characters.
 
-#### Visibility
+#### Initial Visibility
 
 _type:_ bool  
 Whether the contents of this header are possibly visible initially.
@@ -92,10 +92,10 @@ The format of the tiles.
 
 - TMS: Tile Map Service tiles are 256x256 sized images hierarchically organized by zoom level and referenced with x and y coordinates. These are the standard format for web tiles and are the format that MMGIS's auxiliary tiling scripts output. Append `/{z}/{x}/{y}.png` to your `URL`.
 - WMTS: Web Map Tile Service is the same exact concept as TMS but it has an inverted Y-axis. Just like TMS, append `/{z}/{x}/{y}.png` to your `URL`.
-- WMS: Web Map Service tiles are a popular way of publishing maps by professional GIS software. This format is similar to the previous two formats, but more generic and not so well optimized for use in web maps. A WMS image is defined by the coordinates of its corners. A layer (or list of layers) should be provided as an options by appending `?[<your_layer_name>,<another_if_you _want>]` to your `URL`.  
-  _Example URL: `http://ows.mundialis.de/services/service?[TOPO-WMS,OSM-Overlay-WMS]`_
+- WMS: Web Map Service tiles are a popular way of publishing maps by professional GIS software. This format is similar to the previous two formats, but more generic and not so well optimized for use in web maps. A WMS image is defined by the coordinates of its corners. A layer (or list of layers) should be provided as an options by appending `?layers=<your_layer_name><,another_if_you _want>` to your `URL`. To override WMS parameters append `&<wms_param>=<value>` again to the `URL` after the "layers" parameters.
+  _Example URL: `http://ows.mundialis.de/services/service?layers=TOPO-WMS,OSM-Overlay-WMS`_
 
-#### Visibility
+#### Initial Visibility
 
 _type:_ bool  
 Whether the layer is on initially.
@@ -158,12 +158,17 @@ A file path like URL but pointing to a Digital Elevation Map tileset generated b
 _type:_ string  
 An absolute or relative file path pointing to a `legend.csv` that describes the symbology of the layer. Please see the Legend Tool to see how to form a `legend.csv`.
 
-#### TMS
+#### Tile Format
 
-_type:_ bool  
-The format of the tiles. If TMS is false, it assumes WMS tiles. The main difference between TMS and WMS is that their Y-axes are inverted.
+_type:_ enum [TMS, WMTS, WMS]  
+The format of the tiles.
 
-#### Visibility
+- TMS: Tile Map Service tiles are 256x256 sized images hierarchically organized by zoom level and referenced with x and y coordinates. These are the standard format for web tiles and are the format that MMGIS's auxiliary tiling scripts output. Append `/{z}/{x}/{y}.png` to your `URL`.
+- WMTS: Web Map Tile Service is the same exact concept as TMS but it has an inverted Y-axis. Just like TMS, append `/{z}/{x}/{y}.png` to your `URL`.
+- WMS: Web Map Service tiles are a popular way of publishing maps by professional GIS software. This format is similar to the previous two formats, but more generic and not so well optimized for use in web maps. A WMS image is defined by the coordinates of its corners. A layer (or list of layers) should be provided as an options by appending `?layers=<your_layer_name><,another_if_you _want>` to your `URL`. To override WMS parameters append `&<wms_param>=<value>` again to the `URL` after the "layers" parameters.
+  _Example URL: `http://ows.mundialis.de/services/service?layers=TOPO-WMS,OSM-Overlay-WMS`_
+
+#### Initial Visibility
 
 _type:_ bool  
 Whether the layer is on initially.
@@ -239,7 +244,7 @@ A relative to the mission directoty or absolute file path to a Digital Elevation
 _type:_ string  
 An absolute or relative file path pointing to a `legend.csv` that describes the symbology of the layer. Please see the Legend Tool to see how to form a `legend.csv`.
 
-#### Visibility
+#### Initial Visibility
 
 _type:_ bool  
 Whether the layer is on initially.
@@ -291,7 +296,7 @@ A file path that points to a geojson. If the path is relative, it will be relati
 _type:_ string  
 An absolute or relative file path pointing to a `legend.csv` that describes the symbology of the layer. Please see the Legend Tool to see how to form a `legend.csv`.
 
-#### Visibility
+#### Initial Visibility
 
 _type:_ bool  
 Whether the layer is on initially.
@@ -449,7 +454,7 @@ A z-axis rotation in radians to orient the model.
 _type:_ float _optional_  
 A scaling factor to resize the model.
 
-#### Visibility
+#### Initial Visibility
 
 _type:_ bool  
 Whether the layer is on initially.

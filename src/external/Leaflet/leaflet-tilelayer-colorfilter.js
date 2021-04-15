@@ -108,7 +108,7 @@ var wmsExtension = {
         //SRS: 'helloworld',
     },
 
-    options: {
+    extensionOptions: {
         // @option crs: CRS = null
         // Coordinate Reference System to use for the WMS requests, defaults to
         // map CRS. Don't change this if you're not sure what it means.
@@ -128,11 +128,10 @@ var wmsExtension = {
 
         // all keys that are not TileLayer options go to WMS params
         for (var i in options) {
-            if (!(i in this.options)) {
+            if (!(i in this.extensionOptions)) {
                 wmsParams[i] = options[i]
             }
         }
-
         options = L.setOptions(this, options)
 
         wmsParams.WIDTH = wmsParams.HEIGHT =
@@ -143,10 +142,12 @@ var wmsExtension = {
     },
 
     onAdd: function (map) {
-        this._crs = this.options.crs || map.options.crs
-        this._wmsVersion = parseFloat(this.wmsParams.version)
+        this._crs = this.extensionOptions.crs || map.options.crs
+        this._wmsVersion =
+            parseFloat(this.wmsParams.VERSION) ||
+            parseFloat(this.wmsParams.version)
 
-        var projectionKey = this._wmsVersion >= 1.3 ? 'crs' : 'srs'
+        var projectionKey = this._wmsVersion >= 1.3 ? 'CRS' : 'SRS'
         this.wmsParams[projectionKey] = this._crs.code
 
         L.TileLayer.prototype.onAdd.call(this, map)
@@ -164,8 +165,12 @@ var wmsExtension = {
 
         return (
             url +
-            L.Util.getParamString(this.wmsParams, url, this.options.uppercase) +
-            (this.options.uppercase ? '&BBOX=' : '&bbox=') +
+            L.Util.getParamString(
+                this.wmsParams,
+                url,
+                this.extensionOptions.uppercase
+            ) +
+            (this.extensionOptions.uppercase ? '&BBOX=' : '&bbox=') +
             bbox
         )
     },
@@ -192,10 +197,20 @@ L.TileLayer.WMSColorFilter = L.TileLayer.extend(
 
 L.tileLayer.colorFilter = function (url, options) {
     if (options.tileFormat && options.tileFormat == 'wms') {
-        //Strip layers from url
-        options.layers = url.match(/[^[\]]+(?=])/)
-        url = url.substr(0, url.indexOf('['))
-        return new L.TileLayer.WMSColorFilter(url, options)
+        const urlSplit = url.split('?')
+        const urlBaseString = urlSplit[0]
+        const urlParamString = urlSplit[1]
+        const wmsOptions = {}
+        const urlParams = new URLSearchParams(urlParamString)
+        const entries = urlParams.entries()
+        for (const entry of entries) {
+            wmsOptions[entry[0].toUpperCase()] = entry[1]
+        }
+        if (wmsOptions.LAYERS == null)
+            console.warn(
+                `WARNING: WMS layer has no "layers" parameter in the url - ${url}`
+            )
+        return new L.TileLayer.WMSColorFilter(urlBaseString, wmsOptions)
     }
     return new L.TileLayer.ColorFilter(url, options)
 }

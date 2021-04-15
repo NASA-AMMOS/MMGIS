@@ -763,7 +763,9 @@ function makeLayerBarAndModal(d, level) {
         maxnzEl = "none"; maxzEl = "none"; strcolEl = "none"; filcolEl = "none";
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none"; 
-      break;
+      break; 
+    default:
+      console.warn(`Unknown layer type: ${d.type}`)
   }
 
   var barColor;
@@ -803,6 +805,9 @@ function makeLayerBarAndModal(d, level) {
     case "model":
       barColor = "rgb(189, 189, 15)";
       modelSel = "selected";
+      break;
+    default:
+      console.warn(`Unknown layer type: ${d.type}`);
   }
 
   var tileformatTMSSel = "",
@@ -838,6 +843,7 @@ function makeLayerBarAndModal(d, level) {
       visFalseSel = "selected";
       visIcon = "none";
       break;
+    default:
   }
 
   var togwheadTrueSel = "",
@@ -852,6 +858,7 @@ function makeLayerBarAndModal(d, level) {
       case "false":
         togwheadFalseSel = "selected";
         break;
+      default:
     }
   } else togwheadTrueSel = "selected";
 
@@ -899,7 +906,7 @@ function makeLayerBarAndModal(d, level) {
         "<p>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='nameEl' class='input-field col s" + (kindEl == 'none' ? 5 : 3) + " push-s1' style='display: " + nameEl + "'>" +
+            "<div id='nameEl' class='input-field col s" + (kindEl == 'none' ? 8 : 6) + " push-s1' style='display: " + nameEl + "'>" +
               "<input id='Name" + n + "' type='text' class='validate' value='" + unescape(d.name) + "'>" +
               "<label for='Name" + n + "'>Layer Name</label>" +
             "</div>" +
@@ -910,7 +917,7 @@ function makeLayerBarAndModal(d, level) {
               "</select>" +
               "<label>Kind of Layer</label>" +
             "</div>" +
-            "<div id='typeEl' class='input-field col s5 push-s1' style='display: " + typeEl + "'>" +
+            "<div id='typeEl' class='input-field col s2 push-s1' style='display: " + typeEl + "'>" +
               "<select>" +
                 "<optgroup label='Pseudo Layers'>" +
                   "<option value='header' " + headerSel + ">Header</option>" +
@@ -929,15 +936,20 @@ function makeLayerBarAndModal(d, level) {
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='urlEl' class='input-field col s5 push-s1' style='display: " + urlEl + "'>" +
+            "<div id='urlEl' class='input-field col s8 push-s1' style='display: " + urlEl + "'>" +
               "<input id='Url" + n + "' type='text' class='validate' value='" + d.url + "'>" +
               "<label for='Url" + n + "'>URL</label>" +
             "</div>" +
-            "<div id='demtileurlEl' class='input-field col s5 push-s1' style='display: " + demtileurlEl + "'>" +
-              "<input id='DemTileUrl" + n + "' type='text' class='validate' value='" + d.demtileurl + "'>" +
-              "<label for='DemTileUrl" + n + "'>DEM Tile URL</label>" +
+            "<div id='tileformatEl' class='input-field col s2 push-s1' style='display: " + tileformatEl + "'>" +
+              "<select>" +
+                "<option value='tms' " + tileformatTMSSel + ">TMS</option>" +
+                "<option value='wmts' " + tileformatWMTSSel + ">WMTS</option>" +
+                "<option value='wms' " + tileformatWMSSel + ">WMS</option>" +
+              "</select>" +
+              "<label style='cursor: default;' title='TMS and WMTS: Append \"/{z}/{x}/{y}.png\" to URL\n\nWMS: After service, append \"?layer=<your_layer_name><,another_if_you _want>\" to the URL\nTo override WMS parameters append \"&<wms_param>=<value>\" again to the URL after the layers list.\n\nAll brackets included, quotes are not and <> require custom input.'>Tile Format <i class='mdi mdi-information mdi-14px'></i></label>" +
             "</div>" +
           "</div>" +
+
           //Model Position
           "<div class='row' style='margin-bottom: 0px;'>" +
             "<div id='modelLonEl' class='input-field col s3 push-s1' style='display: " + modelLonEl + "'>" +
@@ -977,24 +989,42 @@ function makeLayerBarAndModal(d, level) {
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='legendEl' class='input-field col s3 push-s1' style='display: " + legendEl + "'>" +
-              "<input id='Legend" + n + "' type='text' class='validate' value='" + d.legend + "'>" +
-              "<label for='Legend" + n + "'>Legend</label>" +
+            "<div id='demtileurlEl' class='input-field col s6 push-s1' style='display: " + demtileurlEl + "'>" +
+              "<input id='DemTileUrl" + n + "' type='text' class='validate' value='" + d.demtileurl + "'>" +
+              "<label for='DemTileUrl" + n + "'>DEM Tile URL</label>" +
             "</div>" +
-            "<div id='tileformatEl' class='input-field col s2 push-s1' style='display: " + tileformatEl + "'>" +
+            "<div id='legendEl' class='input-field col s4 push-s1' style='display: " + legendEl + "'>" +
+              "<input id='Legend" + n + "' type='text' class='validate' value='" + d.legend + "'>" +
+              "<label for='Legend" + n + "'>Legend URL</label>" +
+            "</div>" +
+          "</div>" +
+
+          "<div class='row' style='margin-bottom: 0px;'>" +
+            "<div id='togwheadEl' class='input-field col s2 push-s1' style='display: " + /*togwheadEl*/ 'none' + "'>" +
               "<select>" +
-                "<option value='tms' " + tileformatTMSSel + ">TMS</option>" +
-                "<option value='wmts' " + tileformatWMTSSel + ">WMTS</option>" +
-                "<option value='wms' " + tileformatWMSSel + ">WMS</option>" +
+                "<option value='true' " + togwheadTrueSel + ">True</option>" +
+                "<option value='false' " + togwheadFalseSel + ">False</option>" +
               "</select>" +
-              "<label title='TMS and WMTS: Append /{z}/{x}/{y}.png to URL\nWMS: After service, append ?[<your_layer_name>,<another_if_you _want>] to URL\nAll brackets included and <> require custom input.'>Tile Format <i class='mdi mdi-information mdi-14px'></i></label>" +
+              "<label>Toggles with Header</label>" +
+            "</div>" +
+            "<div id='minzEl' class='input-field col s2 push-s1' style='display: " + minzEl + "'>" +
+              "<input id='Minz" + n + "' type='text' class='validate' value='" + d.minZoom + "'>" +
+              "<label for='Minz" + n + "'>Minimum Zoom</label>" +
+            "</div>" +
+            "<div id='maxnzEl' class='input-field col s2 push-s1' style='display: " + maxnzEl + "'>" +
+              "<input id='Maxnz" + n + "' type='text' class='validate' value='" + d.maxNativeZoom + "'>" +
+              "<label for='Maxnz" + n + "'>Maximum Native Zoom</label>" +
+            "</div>" +
+            "<div id='maxzEl' class='input-field col s2 push-s1' style='display: " + maxzEl + "'>" +
+              "<input id='Maxz" + n + "' type='text' class='validate' value='" + d.maxZoom + "'>" +
+              "<label for='Maxz" + n + "'>Maximum Zoom</label>" +
             "</div>" +
             "<div id='visEl' class='input-field col s2 push-s1' style='display: " + visEl + "'>" +
               "<select>" +
                 "<option value='true' " + visTrueSel + ">True</option>" +
                 "<option value='false' " + visFalseSel + ">False</option>" +
               "</select>" +
-              "<label>Visibility</label>" +
+              "<label>Initial Visibility</label>" +
             "</div>" +
             "<div id='viscutEl' class='input-field col s2 push-s1' style='display: " + viscutEl + "'>" +
               "<input id='Visibilitycutoff" + n + "' type='text' class='validate' value='" + d.visibilitycutoff + "'>" +
@@ -1003,28 +1033,6 @@ function makeLayerBarAndModal(d, level) {
             "<div id='initOpacEl' class='input-field col s2 push-s1' style='display: " + initOpacEl + "'>" +
               "<input id='InitialOpacity" + n + "' type='text' class='validate' value='" + ( d.initialOpacity == null ? 1 : d.initialOpacity ) + "'>" +
               "<label for='InitialOpacity" + n + "'>Initial Opacity [0 - 1]</label>" +
-            "</div>" +
-            "<div id='togwheadEl' class='input-field col s2 push-s1' style='display: " + /*togwheadEl*/ 'none' + "'>" +
-              "<select>" +
-                "<option value='true' " + togwheadTrueSel + ">True</option>" +
-                "<option value='false' " + togwheadFalseSel + ">False</option>" +
-              "</select>" +
-              "<label>Toggles with Header</label>" +
-            "</div>" +
-          "</div>" +
-
-          "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='minzEl' class='input-field col s3 push-s1' style='display: " + minzEl + "'>" +
-              "<input id='Minz" + n + "' type='text' class='validate' value='" + d.minZoom + "'>" +
-              "<label for='Minz" + n + "'>Minimum Zoom</label>" +
-            "</div>" +
-            "<div id='maxnzEl' class='input-field col s4 push-s1' style='display: " + maxnzEl + "'>" +
-              "<input id='Maxnz" + n + "' type='text' class='validate' value='" + d.maxNativeZoom + "'>" +
-              "<label for='Maxnz" + n + "'>Maximum Native Zoom</label>" +
-            "</div>" +
-            "<div id='maxzEl' class='input-field col s3 push-s1' style='display: " + maxzEl + "'>" +
-              "<input id='Maxz" + n + "' type='text' class='validate' value='" + d.maxZoom + "'>" +
-              "<label for='Maxz" + n + "'>Maximum Zoom</label>" +
             "</div>" +
           "</div>" +
 
@@ -1269,7 +1277,8 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";  
       break;
-    
+    default:
+      console.warn(`Unknown selected layer type`)
   }
 
   //Set modal bottom color
@@ -1281,8 +1290,8 @@ function mmgisLinkModalsToLayersTypeChange(e) {
   mainThis.find("#typeEl").css("display", typeEl);
   mainThis.find("#kindEl").css("display", kindEl);
   if (kindEl == "none")
-    mainThis.find("#nameEl").removeClass("s3").addClass("s5");
-  else mainThis.find("#nameEl").removeClass("s5").addClass("s3");
+    mainThis.find("#nameEl").removeClass("s6").addClass("s8");
+  else mainThis.find("#nameEl").removeClass("s8").addClass("s6");
   mainThis.find("#urlEl").css("display", urlEl);
   mainThis.find("#demtileurlEl").css("display", demtileurlEl);
   mainThis.find("#legendEl").css("display", legendEl);
@@ -1290,7 +1299,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
   mainThis.find("#visEl").css("display", visEl);
   mainThis.find("#viscutEl").css("display", viscutEl);
   mainThis.find("#initOpacEl").css("display", initOpacEl);
-  mainThis.find("#togwheadEl").css("display", togwheadEl);
+  //mainThis.find("#togwheadEl").css("display", togwheadEl);
   mainThis.find("#minzEl").css("display", minzEl);
   mainThis.find("#maxnzEl").css("display", maxnzEl);
   mainThis.find("#maxzEl").css("display", maxzEl);
@@ -2084,6 +2093,8 @@ function save() {
               $("#toast_warningm6").parent().css("background-color", "#aeae09");
             }
             break;
+          default:
+            console.warn(`Unknown modal type: ${modalType}`);
         }
 
         //This is now the proper spelling and 'broke' is the misspelling
