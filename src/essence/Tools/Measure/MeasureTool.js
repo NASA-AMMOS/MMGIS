@@ -584,8 +584,11 @@ function makeProfile() {
                 try {
                     data = JSON.parse(JSON.parse(data))
                 } catch (err) {
-                    MeasureTool.reset()
-                    return
+                    // Fake a line between the most then
+                    data = [
+                        [elevPoints[0].y, elevPoints[0].x, 0],
+                        [elevPoints[1].y, elevPoints[1].x, 0],
+                    ]
                 }
 
                 if (mode === 'segment') MeasureTool.data = F_.clone(data)
