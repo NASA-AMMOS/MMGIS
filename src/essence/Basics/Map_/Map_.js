@@ -11,6 +11,7 @@ import QueryURL from '../../Ancillary/QueryURL'
 import Kinds from '../../Tools/Kinds/Kinds'
 import DataShaders from '../../Ancillary/DataShaders'
 import calls from '../../../pre/calls'
+
 let L = window.L
 
 let essenceFina = function () {}
@@ -25,6 +26,7 @@ let Map_ = {
     player: { arrow: null, lookat: null },
     //Initialize a map based on a config file
     init: function (essenceFinal) {
+        console.log("----- Map_ init ----- ")
         essenceFina = essenceFinal
 
         //Repair Leaflet and plugin incongruities
@@ -184,6 +186,7 @@ let Map_ = {
         //Remove attribution
         d3.select('.leaflet-control-attribution').remove()
 
+        console.log("\tThis is where we try to make the layers");
         //Make our layers
         makeLayers(L_.layersData)
 
@@ -420,13 +423,17 @@ function getLayersChosenNamePropVal(feature, layer) {
 
 //Takes an array of layer objects and makes them map layers
 function makeLayers(layersObj) {
+    console.log("----- Map_ makeLayers -----")
     //Make each layer (backwards to maintain draw order)
     for (var i = layersObj.length - 1; i >= 0; i--) {
+        console.log("\tMaking each layer");
         makeLayer(layersObj[i])
     }
 }
 //Takes the layer object and makes it a map layer
-function makeLayer(layerObj) {
+export function makeLayer(layerObj) {
+    console.log("***** Map_ makeLayer *****")
+    console.log("\t", layerObj);
     //Decide what kind of layer it is
     //Headers do not need to be made
     if (layerObj.type != 'header') {
@@ -458,9 +465,14 @@ function makeLayer(layerObj) {
     //Default is onclick show full properties and onhover show 1st property
     Map_.onEachFeatureDefault = onEachFeatureDefault
     function onEachFeatureDefault(feature, layer) {
+        console.log("----- Map_ onEachFeatureDefault -----")
+        console.log("\tfeature", feature)
+        console.log("\tlayer", layer)
         var pv = getLayersChosenNamePropVal(feature, layer)
 
         layer['useKeyAsName'] = pv.name
+
+        console.log("\tpv.name", pv)
         if (
             layer.hasOwnProperty('options') &&
             layer.options.hasOwnProperty('layerName')
@@ -500,6 +512,7 @@ function makeLayer(layerObj) {
             )
         ) {
             //Add a click event to send the data to the info tab
+            console.log("\t\t adding click event", layerObj)
             layer.on('click', function (e) {
                 if (
                     ToolController_.activeTool &&
@@ -532,6 +545,7 @@ function makeLayer(layerObj) {
                             queries: JSON.stringify(dlFilled),
                         },
                         function (data) {
+                            console.log("datasets_get", data)
                             const d = data.body
                             for (let i = 0; i < d.length; i++) {
                                 if (d[i].type == 'images') {
@@ -562,10 +576,14 @@ function makeLayer(layerObj) {
                         }
                     )
                 } else {
+                    console.log("\t\t keep going")
                     keepGoing()
                 }
 
                 function keepGoing() {
+                    console.log("Map_ ----- keepGoing ------")
+                    console.log("\tlayer", layer)
+
                     L_.setLastActivePoint(layer)
                     L_.resetLayerFills()
                     L_.highlight(layer)
@@ -580,8 +598,17 @@ function makeLayer(layerObj) {
                             : ''
                     )
 
+                    console.log("layerObj.name", layerObj.name)
+                    console.log("layerObj", layerObj)
+                    console.log("L_.layersNamed[layerObj.name]", L_.layersNamed[layerObj.name])
+                    console.log("L_.layersNamed[layerObj.name].kind", L_.layersNamed[layerObj.name].kind)
+                    console.log("L_.layersNamed",L_.layersNamed)
+                    // Hack to pass in the correct info due to scope of the variable `layerObj`
+                    var layerObjName = layer.hasOwnProperty('options') && layer.options.hasOwnProperty('layerName')
+                            ? layer.options.layerName : layerObj.name;
+                    console.log("layerObjName", layerObjName)
                     Kinds.use(
-                        L_.layersNamed[layerObj.name].kind,
+                        L_.layersNamed[layerObjName].kind,
                         Map_,
                         feature,
                         layer,
@@ -668,6 +695,7 @@ function makeLayer(layerObj) {
                         }
                     }
 
+                    console.log("\t\tkeyAsName", keyAsName)
                     QueryURL.writeSearchURL(
                         [searchStr],
                         layer.options.layerName
@@ -679,6 +707,7 @@ function makeLayer(layerObj) {
 
     //Pretty much like makePointLayer but without the pointToLayer stuff
     function makeVectorLayer() {
+        console.log("----- Map_ makeVectorLayer -----")
         var layerUrl = layerObj.url
         if (!F_.isUrlAbsolute(layerUrl)) layerUrl = L_.missionPath + layerUrl
         let urlSplit = layerObj.url.split(':')
@@ -789,6 +818,7 @@ function makeLayer(layerObj) {
                 }
             )
         } else {
+            console.log("\t is a json file");
             $.getJSON(layerUrl, function (data) {
                 add(data)
             }).fail(function (jqXHR, textStatus, errorThrown) {
@@ -809,6 +839,9 @@ function makeLayer(layerObj) {
         }
 
         function add(data) {
+            console.log("\t _____ add _____")
+            console.log("\t\t layerObj.name", layerObj.name)
+            console.log("\t\t data", data)
             if (data == null) {
                 L_.layersLoaded[L_.layersOrdered.indexOf(layerObj.name)] = true
                 allLayersLoaded()
@@ -892,6 +925,7 @@ function makeLayer(layerObj) {
                     return layerObj.style
                 },
                 onEachFeature: (function (layerObjName) {
+                    console.log("\t ! calling on EachFeature", layerObjName)
                     return onEachFeatureDefault
                 })(layerObj.name),
             }
@@ -938,6 +972,7 @@ function makeLayer(layerObj) {
 
             //If it's a drawing layer
             if (layerObj.name.toLowerCase().indexOf('draw') != -1) {
+                console.log("\t is a drawing layer")
                 F_.sortGeoJSONFeatures(data)
 
                 leafletLayerObject = {
@@ -969,8 +1004,14 @@ function makeLayer(layerObj) {
                     },
                 }
             }
-            L_.layersGroup[layerObj.name] = L.geoJson(data, leafletLayerObject)
 
+            // !!!!!!!!!!!!!! 
+            L_.layersGroup[layerObj.name] = L.geoJson(data, leafletLayerObject)
+            console.log("\t data",  data)
+            console.log("\t layerObj", layerObj)
+            console.log("\t L_.layersGroup",  L_.layersGroup)
+
+            console.log("layerObj.name.replace", '.' + layerObj.name.replace(/\s/g, '').toLowerCase())
             d3.selectAll(
                 '.' + layerObj.name.replace(/\s/g, '').toLowerCase()
             ).data(data.features)
@@ -1227,10 +1268,21 @@ function makeLayer(layerObj) {
     }
 }
 
+function sleep(milliseconds) {
+    console.log("####### sleeping ######")
+    var start = new Date().getTime();
+    for (var i = 0; i < 1e7; i++) {
+        if ((new Date().getTime() - start) > milliseconds){
+            break;
+        }
+    }
+}
+
 //Because some layers load faster than others, check to see if
 // all our layers were loaded before moving on
-function allLayersLoaded() {
+export function allLayersLoaded() {
     if (!Map_.allLayersLoadedPassed) {
+        console.log("----- Map_ allLayersLoaded -----")
         //Only continues if all layers have been loaded
         for (var i = 0; i < L_.layersLoaded.length; i++) {
             if (L_.layersLoaded[i] == false) {
@@ -1243,6 +1295,26 @@ function allLayersLoaded() {
         essenceFina()
         L_.addVisible(Map_)
         enforceVisibilityCutoffs()
+
+        //OTHER TEMPORARY TEST STUFF THINGS
+    }
+}
+
+export function allLayersLoadedNoCutoff() {
+    if (!Map_.allLayersLoadedPassed) {
+        console.log("----- Map_ allLayersLoaded -----")
+        //Only continues if all layers have been loaded
+        for (var i = 0; i < L_.layersLoaded.length; i++) {
+            if (L_.layersLoaded[i] == false) {
+                return
+            }
+        }
+        Map_.allLayersLoadedPassed = true
+
+        //Then do these
+        //essenceFina()
+        //L_.addVisible(Map_)
+        //enforceVisibilityCutoffs()
 
         //OTHER TEMPORARY TEST STUFF THINGS
     }
