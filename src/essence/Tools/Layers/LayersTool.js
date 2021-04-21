@@ -301,7 +301,7 @@ function interfaceWithMMGIS() {
                                     '<div>',
                                         '<i class="headerChevron mdi mdi-menu-down mdi-24px"></i>',
                                     '</div>',
-                                    '<div class="layerName">' +
+                                    `<div class="layerName" title="${node[i].name}">` +
                                         node[i].name,
                                     '</div>',
                                     '<div class="layerCount">' +
@@ -322,7 +322,7 @@ function interfaceWithMMGIS() {
                                     '<div class="checkboxcont">',
                                         '<div class="checkbox ' + (L_.toggledArray[node[i].name] ? 'on' : 'off') + '"></div>',
                                     '</div>',
-                                    '<div class="layerName">',
+                                    `<div class="layerName" title="${node[i].name}">`,
                                         node[i].name,
                                     '</div>',
                                     '<div class="reset">',

@@ -230,6 +230,7 @@ var L_ = {
         var sNext = getSublayers(s)
         if (sNext != 0) toggleSubRecur(sNext, on)
 
+        // Possibly deprecated because group layer toggling is no longer supported in the UI
         function toggleSubRecur(r, on) {
             for (var i = 0; i < r.length; i++) {
                 //( if it doesn't have it ) or ( if it has it and it's true )
@@ -329,7 +330,7 @@ var L_ = {
             }
         }
     },
-    //Simply if visibility was set as true in the json,
+    // Simply if visibility was set as true in the json,
     // add the layer
     addVisible: function (map_) {
         var map = map_
@@ -356,6 +357,12 @@ var L_ = {
                     }
                 }
                 if (L_.layersData[i].type == 'tile') {
+                    // Make sure all tile layers follow z-index order at start instead of element order
+                    L_.layersGroup[L_.layersData[i].name].setZIndex(
+                        L_.layersOrdered.length +
+                            1 -
+                            L_.layersOrdered.indexOf(L_.layersData[i].name)
+                    )
                     var s = L_.layersData[i]
                     var layerUrl = s.url
                     if (!F_.isUrlAbsolute(layerUrl))
