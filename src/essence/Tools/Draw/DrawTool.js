@@ -628,6 +628,7 @@ var DrawTool = {
                         CIU('Warning! FileManager - missing .shp or .dbf')
                     }
                     break
+                case 'json':
                 case 'geojson':
                     var reader = new FileReader()
                     // Closure to capture the file information.
@@ -638,6 +639,12 @@ var DrawTool = {
                                 file_name: file.name,
                                 intent: 'all',
                                 geojson: e.target.result,
+                            }
+                            if (body.geojson.type !== 'FeatureCollection') {
+                                CIU(
+                                    'Uploaded object has no type: "FeatureCollection". Are you sure this is geojson?'
+                                )
+                                return
                             }
                             DrawTool.makeFile(body, function () {
                                 DrawTool.populateFiles()
