@@ -141,9 +141,7 @@ This repo contains a `docker-compose.yml` file that defines a service for the ap
 
 ---
 
-## License: Apache 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
-
-License Terms
+### License: Apache 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
 
 Copyright (c) 2021, California Institute of Technology ("Caltech"). U.S. Government sponsorship acknowledged.
 
