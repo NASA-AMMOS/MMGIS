@@ -35,7 +35,7 @@ _Notes:_
 
 Generate Digital Elevation Maps (DEMs) tiles.
 
-Any 32-bit image data can be encoded into the RGBA channels of a PNG. MMGUS uses this file type to create terrain meshes as well as for a data layer.
+Any 32-bit image data can be encoded into the RGBA channels of a PNG. MMGIS uses this file type to create terrain meshes as well as for a data layer.
 
 **Requires:**
 
