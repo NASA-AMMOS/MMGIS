@@ -19,7 +19,7 @@ import le from './external/Leaflet/leaflet-editable'
 import lh from './external/Leaflet/leaflet.hotline'
 import lpd from './external/Leaflet/leaflet.polylineDecorator'
 import lsf from './external/Leaflet/leaflet.scalefactor.min'
-import lcf from './external/Leaflet/leaflet-tilelayer-colorfilter'
+import ltm from './essence/Basics/Layers_/leaflet-tilelayer-middleware'
 import ltl from './external/Leaflet/leaflet.tilelayer.gl'
 import lvg from './external/Leaflet/leaflet.vectorGrid.bundled'
 

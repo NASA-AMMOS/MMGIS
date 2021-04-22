@@ -4,3 +4,5 @@ API/node_modules
 Missions
 Missions_rel
 Missions_dev
+.env
+**/.git

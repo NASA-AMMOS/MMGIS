@@ -1,6 +1,6 @@
 {
   "name": "mmgis",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "A web-based mapping and localization solution for science operation on planetary missions.",
   "homepage": "/build",
   "repository": {
