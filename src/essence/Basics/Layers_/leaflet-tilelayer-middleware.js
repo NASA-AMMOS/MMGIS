@@ -1,3 +1,9 @@
+/* Several leaflet tile layer plugins combined and tweaked enough to warrant
+ * pulling it out from /external (in case someone thinks it can be easily updated)
+ */
+/*
+  Leaflet.TileLayer.WMS
+*/
 /*
   Leaflet.TileLayer.ColorFilter
   (c) 2018, Claudio T. Kawakani
@@ -153,13 +159,39 @@ var wmsExtension = {
         L.TileLayer.prototype.onAdd.call(this, map)
     },
 
-    getTileUrl: function (coords) {
+    getTileUrlOLD: function (coords) {
         var tileBounds = this._tileCoordsToBounds(coords),
             nw = this._crs.project(tileBounds.getNorthWest()),
             se = this._crs.project(tileBounds.getSouthEast()),
             bbox = (this._wmsVersion >= 1.3 && this._crs === L.CRS.EPSG4326
                 ? [se.y, nw.x, nw.y, se.x]
                 : [nw.x, se.y, se.x, nw.y]
+            ).join(','),
+            url = L.TileLayer.prototype.getTileUrl.call(this, coords)
+
+        return (
+            url +
+            L.Util.getParamString(
+                this.wmsParams,
+                url,
+                this.extensionOptions.uppercase
+            ) +
+            (this.extensionOptions.uppercase ? '&BBOX=' : '&bbox=') +
+            bbox
+        )
+    },
+    getTileUrl: function (coords) {
+        var tileBounds = this._tileCoordsToNwSe(coords),
+            crs = this._crs,
+            bounds = this.toBounds(
+                crs.project(tileBounds[0]),
+                crs.project(tileBounds[1])
+            ),
+            min = bounds.min,
+            max = bounds.max,
+            bbox = (this._wmsVersion >= 1.3 && this._crs === L.CRS.EPSG4326
+                ? [min.y, min.x, max.y, max.x]
+                : [min.x, min.y, max.x, max.y]
             ).join(','),
             url = L.TileLayer.prototype.getTileUrl.call(this, coords)
 
@@ -185,6 +217,12 @@ var wmsExtension = {
         }
 
         return this
+    },
+    toBounds(a, b) {
+        if (!a || a instanceof L.Bounds) {
+            return a
+        }
+        return new L.Bounds(a, b)
     },
 }
 
