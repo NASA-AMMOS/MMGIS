@@ -158,28 +158,6 @@ var wmsExtension = {
 
         L.TileLayer.prototype.onAdd.call(this, map)
     },
-
-    getTileUrlOLD: function (coords) {
-        var tileBounds = this._tileCoordsToBounds(coords),
-            nw = this._crs.project(tileBounds.getNorthWest()),
-            se = this._crs.project(tileBounds.getSouthEast()),
-            bbox = (this._wmsVersion >= 1.3 && this._crs === L.CRS.EPSG4326
-                ? [se.y, nw.x, nw.y, se.x]
-                : [nw.x, se.y, se.x, nw.y]
-            ).join(','),
-            url = L.TileLayer.prototype.getTileUrl.call(this, coords)
-
-        return (
-            url +
-            L.Util.getParamString(
-                this.wmsParams,
-                url,
-                this.extensionOptions.uppercase
-            ) +
-            (this.extensionOptions.uppercase ? '&BBOX=' : '&bbox=') +
-            bbox
-        )
-    },
     getTileUrl: function (coords) {
         var tileBounds = this._tileCoordsToNwSe(coords),
             crs = this._crs,
