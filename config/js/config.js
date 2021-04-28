@@ -1586,6 +1586,7 @@ function save() {
         }
         layerObject.type = modalType;
         if (modalUrl != "undefined") layerObject.url = modalUrl;
+        if (modalUrl == "undefined" && modalControlledEl) layerObject.url = "";
         if (modaldemtileUrl != "undefined")
           layerObject.demtileurl = modaldemtileUrl;
         if (modalControlledEl != "undefined")
