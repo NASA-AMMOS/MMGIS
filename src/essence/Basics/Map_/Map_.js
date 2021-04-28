@@ -789,23 +789,32 @@ function makeLayer(layerObj) {
                 }
             )
         } else {
-            $.getJSON(layerUrl, function (data) {
-                add(data)
-            }).fail(function (jqXHR, textStatus, errorThrown) {
-                //Tell the console council about what happened
-                console.warn(
-                    'ERROR! ' +
-                        textStatus +
-                        ' in ' +
-                        layerObj.url +
-                        ' /// ' +
-                        errorThrown
-                )
-                //Say that this layer was loaded, albeit erroneously
-                L_.layersLoaded[L_.layersOrdered.indexOf(layerObj.name)] = true
-                //Check again to see if all layers have loaded
-                allLayersLoaded()
-            })
+            // If there is no url to a JSON file but the "controlled" option is checked in the layer config,
+            // create the geoJSON layer with empty GeoJSON data
+            var layerData = L_.layersDataByName[layerObj.name]
+            if (L_.missionPath === layerUrl && layerData.controlled) {
+                // Empty GeoJSON data
+                var geojson = { type: "FeatureCollection", features: [] }
+                add(geojson)
+            } else {
+                $.getJSON(layerUrl, function (data) {
+                    add(data)
+                }).fail(function (jqXHR, textStatus, errorThrown) {
+                    //Tell the console council about what happened
+                    console.warn(
+                        'ERROR! ' +
+                            textStatus +
+                            ' in ' +
+                            layerObj.url +
+                            ' /// ' +
+                            errorThrown
+                    )
+                    //Say that this layer was loaded, albeit erroneously
+                    L_.layersLoaded[L_.layersOrdered.indexOf(layerObj.name)] = true
+                    //Check again to see if all layers have loaded
+                    allLayersLoaded()
+                })
+            }
         }
 
         function add(data) {

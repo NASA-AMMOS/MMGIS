@@ -291,6 +291,11 @@ A special kind of interaction for the layer. Please see the Kinds page for more.
 _type:_ string  
 A file path that points to a geojson. If the path is relative, it will be relative to the mission's directory. The URL must contain a proper placeholder ending such as: `{z}/{x}/{y}.png`. Alternatively vectors can be served with Geodatasets. Simply go to "Manage Geodatasets" at the bottom left, upload a geojson and link to it in this URL field with "geodatasets:{geodataset\*name}"
 
+#### Controlled
+
+_type:_ bool
+Whether the layer can be dynamically updated or not. If true, the layer can be dynamically updated and the URL is not required.
+
 #### Legend
 
 _type:_ string  

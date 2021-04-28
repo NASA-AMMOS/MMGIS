@@ -664,6 +664,57 @@ var L_ = {
         }
         return false
     },
+    clearVectorLayer: function (layerName) {
+        try {
+            L_.layersGroup[layerName].clearLayers()
+        } catch (e) {
+            console.log(e)
+            console.warn(
+                'Warning: Unable to clear vector layer: ' +
+                    layerName
+            )
+        }
+    },
+    updateVectorLayer: function (layerName, inputData, keepN) {
+        // Validate input for keepN
+        const keepNum = parseInt(keepN);
+        if (keepN && Number.isNaN(Number(keepNum))) {
+            console.warn(
+                'Warning: Unable to update vector layer `' + layerName +
+                    '` as keepN == ' + keepN + ' and is not a valid integer'
+            )
+            return
+        }
+
+        if (layerName in L_.layersGroup) {
+            const updateLayer = L_.layersGroup[layerName]
+
+            try {
+                // Add data
+                updateLayer.addData(inputData)
+            } catch(e) {
+                console.log(e)
+                console.warn(
+                    'Warning: Unable to update vector layer as the input data is invalid: ' +
+                        layerName
+                )
+            }
+
+            // Keep N elements if greater than 0 else keep all elements
+            if (keepN && keepNum > 0) {
+                var layers = updateLayer.getLayers()
+                while (layers.length > keepNum) {
+                    updateLayer.removeLayer(layers[0])
+                    layers = updateLayer.getLayers()
+                }
+            }
+        } else {
+            console.warn(
+                'Warning: Unable to update vector layer as it does not exist: ' +
+                    layerName
+            )
+        }
+    },
 }
 
 //Takes in a configData object and does a depth-first search through its
