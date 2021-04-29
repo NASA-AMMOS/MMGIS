@@ -2,7 +2,7 @@
   "name": "mmgis",
   "version": "2.3.1",
   "description": "A web-based mapping and localization solution for science operation on planetary missions.",
-  "homepage": "/build",
+  "homepage": "build",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/NASA-AMMOS/MMGIS.git"
@@ -121,6 +121,7 @@
     "sass-loader": "8.0.2",
     "semver": "6.3.0",
     "sequelize": "^5.21.2",
+    "string-replace-loader": "^2.3.0",
     "style-loader": "0.23.1",
     "swagger-ui-express": "^4.1.4",
     "terser-webpack-plugin": "^4.2.3",

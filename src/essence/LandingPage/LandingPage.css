@@ -6,7 +6,7 @@
     display: flex;
     flex-flow: column;
     background: var(--color-a);
-    background-image: url(/../public/images/PIA20461.jpg);
+    background-image: url(/public/images/PIA20461.jpg);
     background-size: cover;
     background-position: center;
     padding: 40px;
