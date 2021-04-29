@@ -69,6 +69,7 @@ module.exports = function (webpackEnv) {
 
   // common function to get style loaders
   const getStyleLoaders = (cssOptions, preProcessor) => {
+    // prettier-ignore
     const loaders = [
       isEnvDevelopment && require.resolve("style-loader"),
       isEnvProduction && {
@@ -77,8 +78,16 @@ module.exports = function (webpackEnv) {
         // in production `paths.publicUrlOrPath` can be a relative path
         options: paths.publicUrlOrPath.startsWith(".")
           ? { publicPath: "../../" }
-          : {},
+          : { publicPath: paths.publicUrlOrPath },
       },
+      isEnvProduction &&
+        process.env.PUBLIC_URL && {
+          loader: "string-replace-loader",
+          options: {
+            search: /url\(\/public\//g,
+            replace: `url(${process.env.PUBLIC_URL}/`,
+          },
+        },
       {
         loader: require.resolve("css-loader"),
         options: cssOptions,
