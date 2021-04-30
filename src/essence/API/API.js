@@ -8,7 +8,7 @@ var API = {
     clearVectorLayer: L_.clearVectorLayer,
     /**
      * Updates a specified layer with GeoJSON data
-     * @param {string} - layerName - name of layer to clear
+     * @param {string} - layerName - name of layer to update
      * @param {GeoJSON} - inputData - valid GeoJSON data
      * @param {number} - keepN - number of features to keep. A value less than or equal to 0 keeps all previous features
      */
