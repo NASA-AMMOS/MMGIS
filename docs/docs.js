@@ -27,8 +27,8 @@ let tools = [
   "Viewshed",
 ];
 let apis = [
-  { name: "Main", path: "/api/docs/main" },
-  { name: "Spatial", path: "/api/docs/spatial/" },
+  { name: "Main", path: "../api/docs/main" },
+  { name: "Spatial", path: "../api/docs/spatial/" },
 ];
 
 pages.forEach((v) => {
@@ -138,8 +138,8 @@ function setPage(page) {
       options
     );
   });
-  let path = "/docs/pages/markdowns/" + page + ".md";
-  if (page == "README") path = "/README.md";
+  let path = "../docs/pages/markdowns/" + page + ".md";
+  if (page == "README") path = "../README.md";
   xhr.open("GET", path);
   xhr.send();
 }
