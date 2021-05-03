@@ -1,5 +1,12 @@
 //Form nav
-let pages = ["README", "AR_and_VR", "Deep_Linking", "Development", "ENVs"];
+let pages = [
+  "README",
+  "API",
+  "AR_and_VR",
+  "Deep_Linking",
+  "Development",
+  "ENVs",
+];
 let configure = [
   "Configure",
   "Overall_Tab",
