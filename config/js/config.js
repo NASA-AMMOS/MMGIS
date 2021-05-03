@@ -410,6 +410,9 @@ function initialize() {
                   );
                 }
 
+                //time
+                $("#tab_time input").prop("checked", false);
+
                 //tools
                 //uncheck all tools
                 $("#tab_tools").find(":checkbox").prop("checked", false);
@@ -1395,6 +1398,7 @@ function save() {
       panels: [],
       tools: [],
       layers: [],
+      time: [],
     };
     var prevIndentations = [];
     var prevLayerObjects = [];
@@ -1469,6 +1473,9 @@ function save() {
     if ($("#tab_panels #panels_map").prop("checked")) json.panels.push("map");
     if ($("#tab_panels #panels_globe").prop("checked"))
       json.panels.push("globe");
+    //Time
+    if ($("#tab_time #time_enabled").prop("checked"))
+      json.time.push("enabled");
     //Tools
     for (var i = 0; i < tData.length; i++) {
       if ($("#tab_tools #tools_" + tData[i].name).prop("checked")) {

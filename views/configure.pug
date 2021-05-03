@@ -109,6 +109,8 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
             a(href='#tab_look') Look
           li.tab.col.s1
             a(href='#tab_panels') Panels
+          li.tab.col.s1
+            a(href='#tab_time') Time
       #tab_overall.col.s12
         a.helpFromDocs(href='docs/?page=Overall_Tab' target='__blank' rel='noopener')
           i.mdi.mdi-help.mdi-14px
@@ -302,6 +304,12 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
         p
           input#panels_globe.filled-in.checkbox-color(type='checkbox')
           label(for='panels_globe' style='color: black;') Globe
+      #tab_time.col.s8.push-s2
+        a.helpFromDocs(href='docs/?page=Time_Tab' target='__blank' rel='noopener')
+          i.mdi.mdi-help.mdi-14px
+        p
+          input#time_enabled.filled-in.checkbox-color(type='checkbox')
+          label(for='time_enabled' style='color: black;') Enabled
       #tab_tools.col.s12
         a.helpFromDocs(href='docs/?page=Tools_Tab' target='__blank' rel='noopener')
           i.mdi.mdi-help.mdi-14px

@@ -39,6 +39,7 @@ module.exports = {
     helpurl: "",
   },
   panels: ["viewer", "map", "globe"],
+  time:["enabled"],
   tools: [
     {
       name: "Layers",

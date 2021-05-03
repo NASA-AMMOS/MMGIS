@@ -34,6 +34,7 @@ import ScaleBar from './Ancillary/ScaleBar'
 import ScaleBox from './Ancillary/ScaleBox'
 //import Swap from './Ancillary/Swap'
 import QueryURL from './Ancillary/QueryURL'
+import TimeControl from './Ancillary/TimeControl'
 import calls from '../pre/calls'
 import API from './API/API'
 import { makeMissionNotFoundDiv } from './LandingPage/LandingPage'
@@ -181,6 +182,9 @@ var essence = {
         //Now that the map is made
         Coordinates.init()
         ContextMenu.init()
+        
+        //Make the time control
+        TimeControl.init()
 
         if (!swapping) {
             Description.init(L_.mission, L_.site, Map_, L_)
