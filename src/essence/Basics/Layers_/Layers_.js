@@ -217,7 +217,7 @@ var L_ = {
                         minZoom: s.minZoom,
                         maxZoom: s.maxNativeZoom,
                         boundingBox: s.boundingBox,
-                        time: s.time.end,
+                        time: ((typeof s.time === 'undefined') ? '' : s.time.end),
                     })
                 } else {
                     L_.Globe_.toggleLayer(s.name, true)
@@ -286,7 +286,7 @@ var L_ = {
                                     minZoom: r[i].minZoom,
                                     maxZoom: r[i].maxNativeZoom,
                                     boundingBox: r[i].boundingBox,
-                                    time: r[i].time.end,
+                                    time: ((typeof r[i].time === 'undefined') ? '' : r[i].time.end),
                                 })
                             } else {
                                 L_.Globe_.toggleLayer(r[i].name, false)
@@ -383,7 +383,7 @@ var L_ = {
                         minZoom: s.minZoom,
                         maxZoom: s.maxNativeZoom,
                         boundingBox: s.boundingBox,
-                        time: s.time.end,
+                        time: ((typeof s.time === 'undefined') ? '' : s.time.end),
                     })
                 }
             }
