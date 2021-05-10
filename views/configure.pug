@@ -304,12 +304,30 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
         p
           input#panels_globe.filled-in.checkbox-color(type='checkbox')
           label(for='panels_globe' style='color: black;') Globe
-      #tab_time.col.s8.push-s2
+
+      #tab_time.col.s12
         a.helpFromDocs(href='docs/?page=Time_Tab' target='__blank' rel='noopener')
           i.mdi.mdi-help.mdi-14px
-        p
-          input#time_enabled.filled-in.checkbox-color(type='checkbox')
-          label(for='time_enabled' style='color: black;') Enabled
+        ul#tab_time_rows
+          li.row.title
+            .col.s2.push-s2 User Interface 
+          li.row.checkboxRow
+            #time_enabled.input-field.col.s2.push-s2
+              input#time_enabled.filled-in.checkbox-color(type='checkbox')
+              label(for='time_enabled' style='color: black;') Enabled
+            #time_visible.input-field.col.s2.push-s2
+              input#time_visible.filled-in.checkbox-color(type='checkbox')
+              label(for='time_visible' style='color: black;') Visible
+          li.row.title
+            .col.s4.push-s2 Time Format
+          li.row
+            #time_format.input-field.col.s4.push-s2
+              input#time_format.validate(type='text' value='YYYY-MM-DDThh:mm:ss.sssZ')
+              label(for='time_format') Time Format
+          li.row.title
+            .col.s4.push-s2 Variable Mappings
+          li.row
+
       #tab_tools.col.s12
         a.helpFromDocs(href='docs/?page=Tools_Tab' target='__blank' rel='noopener')
           i.mdi.mdi-help.mdi-14px

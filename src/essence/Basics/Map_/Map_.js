@@ -1017,6 +1017,7 @@ function makeLayer(layerObj) {
             continuousWorld: true,
             reuseTiles: true,
             bounds: bb,
+            time: layerObj.time.end,
         })
 
         L_.setLayerOpacity(layerObj.name, L_.opacityArray[layerObj.name])

@@ -411,7 +411,8 @@ function initialize() {
                 }
 
                 //time
-                $("#tab_time input").prop("checked", false);
+                $("#tab_time #time_enabled").prop("checked", cData.time.includes('enabled') ? true : false);
+                $("#tab_time #time_visible").prop("checked", cData.time.includes('visible') ? true : false);
 
                 //tools
                 //uncheck all tools
@@ -716,6 +717,7 @@ function makeLayerBarAndModal(d, level) {
         maxnzEl = "block"; maxzEl = "block"; strcolEl = "none"; filcolEl = "none";
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
+        timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'block'; timeIncrementEl = 'block';
       break;
     case "vectortile":
         nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; controlledEl = "none"; legendEl = "block";
@@ -848,6 +850,34 @@ function makeLayerBarAndModal(d, level) {
       break;
     default:
   }
+
+var timeTrueSel = "",
+  timeFalseSel = "";
+var timeIcon = "inherit";
+switch (d.time.enabled) {
+  case true:
+  case "true":
+    timeTrueSel = "selected";
+    break;
+  case false:
+  case "false":
+    timeFalseSel = "selected";
+    timeIcon = "none";
+    break;
+  default:
+}
+
+var timeGlobalSel = "",
+  timeInvidualSel = "";
+switch (d.time.type) {
+  case "global":
+    timeGlobalSel = "selected";
+    break;
+  case "individual":
+    timeInvidualSel = "selected";
+    break;
+  default:
+}
 
   var togwheadTrueSel = "",
     togwheadFalseSel = "";
@@ -1050,6 +1080,36 @@ function makeLayerBarAndModal(d, level) {
             "</div>" +
           "</div>" +
 
+          // Time options
+          "<div class='row' style='margin-bottom: 0px;'>" +
+            "<div id='timeEl' class='input-field col s2 push-s1' style='display: " + timeEl + "'>" +
+              "<select>" +
+                "<option value='true' " + timeTrueSel + ">True</option>" +
+                "<option value='false' " + timeFalseSel + ">False</option>" +
+              "</select>" +
+              "<label>Time Enabled</label>" +
+            "</div>" +
+            "<div id='timeTypeEl' class='input-field col s2 push-s1' style='display: " + timeTypeEl + "'>" +
+              "<select>" +
+                "<option value='global' " + timeGlobalSel + ">Global</option>" +
+                "<option value='individual' " + timeInvidualSel + ">Individual</option>" +
+              "</select>" +
+              "<label>Time Type</label>" +
+            "</div>" +
+            "<div id='timeFormatEl' class='input-field col s2 push-s1' style='display: " + timeFormatEl + "'>" +
+              "<input id='TimeFormat" + n + "' type='text' class='validate' value='" + d.time.format + "'>" +
+              "<label for='TimeFormat" + n + "'>Time Format</label>" +
+            "</div>" +
+            "<div id='timeRefreshEl' class='input-field col s2 push-s1' style='display: " + timeRefreshEl + "'>" +
+              "<input id='TimeRefresh" + n + "' type='text' class='validate' value='" + d.time.refresh + "'>" +
+              "<label for='TimeRefresh" + n + "'>Time Refresh</label>" +
+            "</div>" +
+            "<div id='timeIncrementEl' class='input-field col s2 push-s1' style='display: " + timeIncrementEl + "'>" +
+              "<input id='TimeIncrement" + n + "' type='text' class='validate' value='" + d.time.increment + "'>" +
+              "<label for='TimeIncrement" + n + "'>Time Increment</label>" +
+            "</div>" +
+          "</div>" +
+
           //Vector tile options
           "<div class='row' style='margin-bottom: 0px;'>" +
             "<div id='vtIdEl' class='input-field col s5 push-s1' style='display: " + vtIdEl + "'>" +
@@ -1169,6 +1229,10 @@ $.fn.extend({
         $(this).find("#visEl").off("change", mmgisLinkModalsToLayersVisChange);
         $(this).find("#visEl").on("change", mmgisLinkModalsToLayersVisChange);
 
+        //Link time with icon
+        // $(this).find("#timeEl").off("change", mmgisLinkModalsToLayersTimeChange);
+        // $(this).find("#timeEl").on("change", mmgisLinkModalsToLayersTimeChange);
+
         //Make delete delete
         $(this)
           .find("#delete_layer")
@@ -1237,7 +1301,8 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxzEl = "block"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
         opacityEl = "none"; radiusEl = "none"; variableEl = "none";
-        xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";  
+        xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
+        timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'block'; timeIncrementEl = 'block';
       break;
     case "vectortile": barColor = "#bd0f8e";
         nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; controlledEl = "none"; legendEl = "block";
@@ -1476,6 +1541,8 @@ function save() {
     //Time
     if ($("#tab_time #time_enabled").prop("checked"))
       json.time.push("enabled");
+    if ($("#tab_time #time_visible").prop("checked"))
+      json.time.push("visible");
     //Tools
     for (var i = 0; i < tData.length; i++) {
       if ($("#tab_tools #tools_" + tData[i].name).prop("checked")) {
@@ -1582,6 +1649,16 @@ function save() {
             : {};
         var modalVtId = modal.find("#vtIdEl input").val();
         var modalVtKey = modal.find("#vtKeyEl input").val();
+        var modalTime = modal
+          .find("#timeEl select option:selected")
+          .text()
+          .toLowerCase();
+        if (modalTime == "true") modalTime = true;
+        else modalTime = false;
+        var modalTimeType = modal
+          .find("#timeTypeEl select option:selected")
+          .text()
+          .toLowerCase();
 
         layerObject.name = modalName;
         if (
@@ -1696,6 +1773,18 @@ function save() {
             layerObject.radius = styleRadius;
           }
         }
+
+        // time properties
+        layerObject.time = {}
+        layerObject.time.enabled = modalTime // static or timed
+        layerObject.time.type = modalTimeType // 'global or individual'
+        layerObject.time.isRelative = true // absolute or relative
+        layerObject.time.current = new Date().toISOString().split('.')[0]+'Z' // initial time
+        layerObject.time.start = '' // initial start
+        layerObject.time.end = '' // initial end
+        layerObject.time.format = 'YYYY-MM-DDTHH:mm:ssZ' // time string format
+        layerObject.time.refresh = '1 hours' // refresh when the layer becomes stale
+        layerObject.time.increment = '5 minutes' // time bar steps
 
         if (!validName(modalName)) {
           isInvalidData = true;

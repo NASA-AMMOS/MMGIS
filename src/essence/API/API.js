@@ -45,8 +45,26 @@ var API = {
      */
     setLayerTime: TimeControl.setLayerTime,
     
-    // Like the individual nature of setLayerTime, this sets a drawing file's time
-    setDrawingTime: TimeControl.setDrawingTime
+    /** Like the individual nature of setLayerTime, this sets a drawing file's time
+     * @param {string} [fileId]
+     * @param {string} [endTime=00:00:00]
+     */
+    // setDrawingTime: TimeControl.setDrawingTime
+
+    /** 
+     * @returns {string} - The current time on the map with offset included
+     */
+    getTime: TimeControl.getTime,
+
+    /** 
+     * @returns {string} - The start time on the map with offset included
+     */   
+    getStartTime: TimeControl.getStartTime,
+
+    /** 
+     * @returns {string} - The end time on the map with offset included
+     */  
+    getEndTime: TimeControl.getEndTime,
 }
 
 window.API = API
