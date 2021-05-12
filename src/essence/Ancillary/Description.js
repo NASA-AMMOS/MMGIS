@@ -216,6 +216,11 @@ var Description = {
             Description.descPointLinks.html(links)
         }
     },
+    clearDescription: function () {
+        // Clear the description
+        $('#mainDescPointInner').empty()
+        $('#mainDescPointLinks').empty()
+    },
 }
 
 export default Description
