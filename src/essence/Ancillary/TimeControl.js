@@ -220,6 +220,8 @@ var TimeControl = {
         if (layer.time.enabled == true) {
             layer.time.start = startTime
             layer.time.end = endTime
+            d3.select('.starttime.' + layer.name.replace(/\s/g,'')).text(layer.time.start)
+            d3.select('.endtime.' + layer.name.replace(/\s/g,'')).text(layer.time.end)
         }
         return true
     },
@@ -304,11 +306,35 @@ var TimeControl = {
             if (layer.time.enabled == true && layer.time.type == 'global') {
                 layer.time.start = TimeControl.startTime
                 layer.time.end = TimeControl.endTime
+                d3.select('.starttime.' + layer.name.replace(/\s/g,'')).text(layer.time.start)
+                d3.select('.endtime.' + layer.name.replace(/\s/g,'')).text(layer.time.end)
                 updatedLayers.push(layer.name)
             }
         })
         return updatedLayers
-    }
+    },
+    setLayerTimeStatus: function(layer, color) {
+        if (typeof layer == 'string') {
+            L_.configData.layers.forEach(function (l) {
+                if (l.name == layer) {
+                    layer = l
+                }
+            })
+        }
+        layer.time.status = color
+        d3.select('#timesettings' + layer.name.replace(/\s/g,'')).style('color', layer.time.status)
+        return true
+    },
+    setLayersTimeStatus: function(color) {
+        var updatedLayers = []
+        L_.configData.layers.forEach(function (layer) {
+            if (layer.time.enabled == true && layer.time.type == 'global') {
+                TimeControl.setLayerTimeStatus(layer, color)
+                updatedLayers.push(layer.name)
+            }
+        })
+        return updatedLayers
+    },
 }
 
 function updateTime() {

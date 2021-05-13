@@ -237,6 +237,9 @@ let Map_ = {
 
         //Build the toolbar
         buildToolBar()
+
+        //Set the time for any time enabled layers
+        TimeControl.updateLayersTime()
     },
     clear: function () {
         this.map.eachLayer(function (layer) {

@@ -140,6 +140,29 @@ function interfaceWithMMGIS() {
                     layerExport = ''
             }
 
+            // Build timeDisplay
+            var timeDisplay = ''
+            if (node[i].time !== 'undefined') {
+                if (node[i].time.enabled == true ) {
+                    timeDisplay = [
+                        '<ul>',
+                            '<li>',
+                                '<div>',
+                                    '<div>Start Time</div>',
+                                    '<label class="starttime ' + node[i].name.replace(/\s/g,'') + '">' + node[i].time.start +'</label>',
+                                '</div>',
+                            '</li>',
+                            '<li>',
+                                '<div>',
+                                    '<div>End Time</div>',
+                                    '<label class="endtime ' + node[i].name.replace(/\s/g,'') + '">' + node[i].time.end +'</label>',
+                                '</div>',
+                            '</li>',
+                        '</ul>',
+                    ].join('\n')                   
+                }
+            }
+
             //Build settings object
             var settings
             switch (node[i].type) {
@@ -241,16 +264,6 @@ function interfaceWithMMGIS() {
                                         '</select>',
                                     '</div>',
                                 '</li>',
-                                '<li>',
-                                    '<div>',
-                                        '<div>Start Time</div>',
-                                    '</div>',
-                                '</li>',
-                                '<li>',
-                                    '<div>',
-                                        '<div>End Time</div>',
-                                    '</div>',
-                                '</li>',
                                 /*
                                 '<li>',
                                     '<div>',
@@ -341,15 +354,18 @@ function interfaceWithMMGIS() {
                                     (layerExport != '') ? ['<div class="layerDownload" id="layerexport' + node[i].name.replace(/\s/g, "") + '" stype="' + node[i].type + '" layername="' + node[i].name.replace(/\s/g, "") + '">',
                                         '<i class="mdi mdi-download mdi-18px" name="layerexport"></i>',
                                     '</div>'].join('\n') : '',
-                                    '<div class="time" id="timesettings' + node[i].name.replace(/\s/g, "") + '" stype="' + node[i].type + '" layername="' + node[i].name.replace(/\s/g, "") + '">',
-                                        '<i class="mdi mdi-clock mdi-18px" name="timesettings"></i>',
-                                    '</div>',
+                                    (timeDisplay != '') ? ['<div class="time" id="timesettings' + node[i].name.replace(/\s/g, "") + '" stype="' + node[i].type + '" layername="' + node[i].name.replace(/\s/g, "") + '">',
+                                        '<i class="mdi mdi-clock mdi-18px" name="timesettings" style="color:' + node[i].time.status + '"></i>',
+                                    '</div>'].join('\n') : '',
                                     '<div class="gears" id="layersettings' + node[i].name.replace(/\s/g, "") + '" stype="' + node[i].type + '" layername="' + node[i].name.replace(/\s/g, "") + '">',
                                         '<i class="mdi mdi-tune mdi-18px" name="layersettings"></i>',
                                     '</div>',
                                 '</div>',
                                 '<div class="layerExport ' + node[i].type + '">',
                                     layerExport,
+                                '</div>',
+                                '<div class="timeDisplay settings ' + node[i].type + '">',
+                                    timeDisplay,
                                 '</div>',
                                 '<div class="settings ' + node[i].type + '">',
                                     settings,
@@ -396,6 +412,14 @@ function interfaceWithMMGIS() {
         $('.layerDownload').parent().parent().removeClass('download_on')
         $('.gears').parent().parent().removeClass('gears_on')
         if (!wasOn) li.addClass('gears_on')
+    })
+    //Enables the time dialogue box
+    $('.layerName, .time').on('click', function () {
+        var li = $(this).parent().parent()
+        if (li.attr('type') == 'header') return
+        var wasOn = li.hasClass('time_on')
+        $('.time').parent().parent().removeClass('time_on')
+        if (!wasOn) li.addClass('time_on')
     })
 
     //Export GeoJSON

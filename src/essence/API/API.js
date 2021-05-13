@@ -26,8 +26,8 @@ var API = {
 
     /**
      * Sets the global time for MMGIS. All layers influenced by time (i.e. a
-     *  raster with '{t} | {time} | {end_time}' in its url, a vector layer pointing to
-     *  'https://lunarsev/getLayer?start_time={start_time}&end_time={end_time}') get
+     *  raster with '{t} | {time} | {endtime}' in its url, a vector layer pointing to
+     *  'https://lunarsev/getLayer?starttime={starttime}&endtime={endtime}') get
      *  updated accordingly
      * @param {string} [startTime] - Can be either YYYY-MM-DDThh:mm:ssZ if absolute or hh:mm:ss or seconds if relative
      * @param {string} [endTime] - Can be either YYYY-MM-DDThh:mm:ssZ if absolute or hh:mm:ss or seconds if relative
@@ -70,7 +70,7 @@ var API = {
      */  
     getLayerEndTime: TimeControl.getLayerEndTime,
 
-    /** reloadLayer will reload a given layer
+    /** reloadLayer will reload a given time enabled layer
      * @param {string} [layerName]
      * @returns {boolean} - Whether the layer was successfully reloaded
      */
@@ -84,8 +84,20 @@ var API = {
     /** updateLayersTime - will synchronize every global time enabled layer with global times
      * @returns {array} - A list of layers that were reloaded
      */
-     updateLayersTime: TimeControl.updateLayersTime
+     updateLayersTime: TimeControl.updateLayersTime,
 
+     /** setLayerTimeStatus - will set the status color for the given layer
+      * @param {string} [layerName]
+      * @param {string} [color]
+      * @returns {boolean} - True if time status was successfully set
+     */    
+     setLayerTimeStatus: TimeControl.setLayerTimeStatus,
+
+     /** setLayersTimeStatus - will set the status color for all global time enabled layers
+      * @param {string} [color]
+      * @returns {array} - A list of layers that were set
+     */    
+      setLayersTimeStatus: TimeControl.setLayersTimeStatus
 }
 
 window.API = API
