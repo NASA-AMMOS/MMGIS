@@ -322,11 +322,8 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
             .col.s4.push-s2 Time Format
           li.row
             #time_format.input-field.col.s4.push-s2
-              input#time_format.validate(type='text' value='YYYY-MM-DDThh:mm:ss.sssZ')
+              input#time_format.validate(type='text' value='YYYY-MM-DDThh:mm:ssZ')
               label(for='time_format') Time Format
-          li.row.title
-            .col.s4.push-s2 Variable Mappings
-          li.row
 
       #tab_tools.col.s12
         a.helpFromDocs(href='docs/?page=Tools_Tab' target='__blank' rel='noopener')

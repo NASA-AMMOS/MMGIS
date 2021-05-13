@@ -2,15 +2,17 @@
 import * as d3 from 'd3'
 import * as moment from 'moment'
 import L_ from '../Basics/Layers_/Layers_'
+import Map_ from '../Basics/Map_/Map_'
 
-const relativeTimeFormat = new RegExp(/(?:[01]\d|2[0-3]):(?:[0-5]\d):(?:[0-5]\d)/)
+// Can be either hh:mm:ss or just seconds
+const relativeTimeFormat = new RegExp(/((?:-?\d*):(?:[0-5]\d):(?:[0-5]\d))|(?:\d*)/)
 
 var TimeControl = {
     isRelative: true,
     currentTime: new Date().toISOString().split('.')[0]+'Z',
-    timeOffset: '00:30:00',
-    startTime: '',
-    endTime: '',
+    timeOffset: '01:00:00',
+    startTime: new Date().toISOString().split('.')[0]+'Z',
+    endTime: new Date().toISOString().split('.')[0]+'Z',
     relativeStartTime: '01:00:00',
     relativeEndTime: '00:00:00',
     init: function () {
@@ -163,7 +165,6 @@ var TimeControl = {
 
         updateTime()
     },
-    clear: function () {},
     toggleTimeUI: function (isOn) {
         d3.select("#timeUI").style('visibility', function() {
             return (isOn === true) ? "visible" : "hidden";
@@ -174,10 +175,13 @@ var TimeControl = {
 
         var now = new Date()
         var offset = 0
-        d3.select('#offsetTimeInput').property('value', timeOffset)
         if(relativeTimeFormat.test(timeOffset)) {
             offset = parseTime(timeOffset)
+        } else {
+            // assume seconds otherwise
+            offset = parseInt(timeOffset)
         }
+        d3.select('#offsetTimeInput').property('value', timeOffset)
         var currentTime = new moment(now).add(offset, 'seconds')
         d3.select('#currentTimeLabel').text(currentTime.toISOString())
         TimeControl.currentTime = currentTime.toDate().toISOString().split('.')[0]+'Z'
@@ -202,15 +206,23 @@ var TimeControl = {
         }
         TimeControl.startTime = d3.select('#startTimeInput').property('value')
         TimeControl.endTime = d3.select('#endTimeInput').property('value')
-
-        updateLayerTimes()
+        TimeControl.updateLayersTime()
         return true
     },
-    setLayerTime: function(layerName, endTime, startTime, isRelative) {
-
+    setLayerTime: function(layer, startTime, endTime) {
+        if (typeof layer == 'string') {
+            L_.configData.layers.forEach(function (l) {
+                if (l.name == layer) {
+                    layer = l
+                }
+            })
+        }
+        if (layer.time.enabled == true) {
+            layer.time.start = startTime
+            layer.time.end = endTime
+        }
+        return true
     },
-    // setDrawingTime: function(fileId, endTime) {
-    // },
     getTime: function() {
         return TimeControl.currentTime
     },
@@ -219,10 +231,88 @@ var TimeControl = {
     },
     getEndTime: function() {
         return TimeControl.endTime
+    },
+    getLayerStartTime: function(layer) {
+        if (typeof layer == 'string') {
+            L_.configData.layers.forEach(function (l) {
+                if (l.name == layer) {
+                    layer = l
+                }
+            })
+        }
+        return layer.time.start
+    },
+    getLayerEndTime: function(layer) {
+        if (typeof layer == 'string') {
+            L_.configData.layers.forEach(function (l) {
+                if (l.name == layer) {
+                    layer = l
+                }
+            })
+        }
+        return layer.time.end
+    },
+    reloadLayer: function(layer) {
+        // reload layer
+        if (typeof layer == 'string') {
+            L_.configData.layers.forEach(function (l) {
+                if (l.name == layer) {
+                    layer = l
+                }
+            })
+        }
+        console.log('Reloading ' + layer.name)
+        if (layer.time.enabled == true) {
+            layer.time.current = TimeControl.currentTime // keeps track of when layer was refreshed
+            if (layer.type == 'tile') {
+                if (typeof L_.layersGroup[layer.name].wmsParams !== 'undefined') {
+                    L_.layersGroup[layer.name].wmsParams.TIME = layer.time.end
+                }
+                L_.layersGroup[layer.name].options.time = layer.time.end
+                L_.toggleLayer(layer)
+                L_.toggleLayer(layer)
+            } else {
+                // replace start/endtime keywords
+                layer.url = layer.url
+                .replace('{starttime}', layer.time.start)
+                .replace('{endtime}', layer.time.end)
+                // refresh map
+                Map_.refreshLayer(layer)
+                // put start/endtime keywords back
+                layer.url = layer.url
+                .replace(layer.time.start, '{starttime}')
+                .replace(layer.time.end, '{endtime}')
+            }
+        }
+
+        return true
+    },
+    reloadTimeLayers: function() {
+        // refresh time enabled layers
+        var reloadedLayers = []
+        L_.configData.layers.forEach(function (layer) {
+            if (layer.time.enabled == true) {
+                TimeControl.reloadLayer(layer)
+                reloadedLayers.push(layer.name)
+            }
+        })
+        return reloadedLayers
+    },
+    updateLayersTime: function() {
+        var updatedLayers = []
+        L_.configData.layers.forEach(function (layer) {
+            if (layer.time.enabled == true && layer.time.type == 'global') {
+                layer.time.start = TimeControl.startTime
+                layer.time.end = TimeControl.endTime
+                updatedLayers.push(layer.name)
+            }
+        })
+        return updatedLayers
     }
 }
 
 function updateTime() {
+    // Continuously update global time clock and UI elements
     var now = new Date()
     var offset = 0
     var offsetTime = d3.select('#offsetTimeInput').property('value')
@@ -245,7 +335,6 @@ function updateTime() {
         d3.select('#startTimeInput').property('value', startTime.toISOString().split('.')[0]+'Z')
         d3.select('#endTimeInput').property('value', endTime.toISOString().split('.')[0]+'Z')
     }
-
     setTimeout(updateTime, 100)
 }
 
@@ -258,41 +347,38 @@ function timeInputChange() {
         d3.select(this).style('background-color', '#ff0000')
     }
 
-    // Update layer times
-    updateLayerTimes()
-}
-
-function updateLayerTimes() {
     TimeControl.startTime = d3.select('#startTimeInput').property('value')
     TimeControl.endTime = d3.select('#endTimeInput').property('value')
-    L_.configData.layers.forEach(function (layer) {
-        layer.time.current = TimeControl.currentTime
-        layer.time.start = TimeControl.startTime
-        layer.time.end = TimeControl.endTime
 
-        // refresh time enabled layers
-        if (layer.time.enabled == true) {
-            if (typeof L_.layersGroup[layer.name].wmsParams !== 'undefined') {
-                L_.layersGroup[layer.name].wmsParams.TIME = layer.time.end
-            }
-            L_.layersGroup[layer.name].options.time = layer.time.end
-            L_.toggleLayer(layer)
-            L_.toggleLayer(layer)
-        }
-    })
+    // Update layer times and reload
+    TimeControl.updateLayersTime()
+    TimeControl.reloadTimeLayers()
 }
 
 function parseTime( t ) {
-    var s = t.split(':');
-    var seconds = (+s[0]) * 60 * 60 + (+s[1]) * 60 + (+s[2]);
-    if (t.charAt(0) == '-') {
+    if (t.toString().indexOf(':') == -1) {
+        return parseInt(t)
+    }
+    var s = t.split(':')
+    var seconds = (+s[0].replace('-','')) * 60 * 60 + (+s[1]) * 60 + (+s[2])
+    if (t.charAt(0) === '-') {
         seconds = seconds * -1
     }
     return seconds
  }
 
- function formatTimeString( t ) {
-
+ function formatTimeString( seconds ) {
+     // converts seconds to hh:mm:ss
+    if (typeof seconds === 'undefined') {
+        return '00:00:00'
+    }
+    var t = Math.abs(seconds)
+    var days = Math.floor(t / 86400)
+    var dt = new Date(t * 1000)
+    var dtString = dt.toISOString().substr(11, 8)
+    var s = dtString.split(':')
+    var hours = +s[0] + days * 24
+    return ((seconds < 0) ? '-' : '') + hours + ':' + s[1] + ':' + s[2]
  }
 
 export default TimeControl

@@ -11,6 +11,7 @@ import QueryURL from '../../Ancillary/QueryURL'
 import Kinds from '../../Tools/Kinds/Kinds'
 import DataShaders from '../../Ancillary/DataShaders'
 import calls from '../../../pre/calls'
+import TimeControl from '../../Ancillary/TimeControl'
 let L = window.L
 
 let essenceFina = function () {}
@@ -312,6 +313,16 @@ let Map_ = {
         for (var i = 0; i < hasIndex.length; i++) {
             Map_.map.addLayer(L_.layersGroup[L_.layersOrdered[hasIndex[i]]])
         }
+    },
+    refreshLayer: function(layerObj) {
+        this.map.eachLayer( function (layer) {
+            // Need to overcome some weirdness with points not being removed
+            Map_.map.removeLayer( layer )
+            L_.layersLoaded[L_.layersOrdered.indexOf( layerObj.name )] = false
+        });
+        Map_.allLayersLoadedPassed = false
+        makeLayer(layerObj)
+        allLayersLoaded()
     },
     setPlayerArrow(lng, lat, rot) {
         var playerMapArrowOffsets = [
@@ -680,6 +691,14 @@ function makeLayer(layerObj) {
     //Pretty much like makePointLayer but without the pointToLayer stuff
     function makeVectorLayer() {
         var layerUrl = layerObj.url
+        // Give time enabled layers a default start and end time to avoid errors
+        var startTime = TimeControl.getStartTime()
+        var endTime = TimeControl.getEndTime()
+        if (typeof layerObj.time != 'undefined') {
+            layerUrl = layerUrl
+                .replace('{starttime}', startTime)
+                .replace('{endtime}', endTime)
+        }
         if (!F_.isUrlAbsolute(layerUrl)) layerUrl = L_.missionPath + layerUrl
         let urlSplit = layerObj.url.split(':')
 
@@ -814,6 +833,11 @@ function makeLayer(layerObj) {
                     //Check again to see if all layers have loaded
                     allLayersLoaded()
                 })
+                if (typeof layerObj.time != 'undefined') {
+                    layerUrl = layerUrl
+                    .replace(startTime, '{starttime}')
+                    .replace(endTime, '{endtime}')
+                }               
             }
         }
 
