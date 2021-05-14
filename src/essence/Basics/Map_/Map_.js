@@ -221,7 +221,7 @@ let Map_ = {
             if (L_.mapAndGlobeLinked || window.mmgisglobal.ctrlDown) {
                 if (L_.Globe_ != null) {
                     var c = Map_.map.getCenter()
-                    L_.Globe_.setCenter([c.lat, c.lng])
+                    L_.Globe_.litho.setCenter([c.lat, c.lng])
                 }
             }
         })
@@ -547,9 +547,10 @@ function makeLayer(layerObj) {
                                         )
                                     }
                                     //remove duplicates
-                                    layer.feature.properties.images = F_.removeDuplicatesInArrayOfObjects(
-                                        layer.feature.properties.images
-                                    )
+                                    layer.feature.properties.images =
+                                        F_.removeDuplicatesInArrayOfObjects(
+                                            layer.feature.properties.images
+                                        )
                                 } else {
                                     layer.feature.properties._data =
                                         d[i].results
@@ -794,7 +795,7 @@ function makeLayer(layerObj) {
             var layerData = L_.layersDataByName[layerObj.name]
             if (L_.missionPath === layerUrl && layerData.controlled) {
                 // Empty GeoJSON data
-                var geojson = { type: "FeatureCollection", features: [] }
+                var geojson = { type: 'FeatureCollection', features: [] }
                 add(geojson)
             } else {
                 $.getJSON(layerUrl, function (data) {
@@ -810,7 +811,9 @@ function makeLayer(layerObj) {
                             errorThrown
                     )
                     //Say that this layer was loaded, albeit erroneously
-                    L_.layersLoaded[L_.layersOrdered.indexOf(layerObj.name)] = true
+                    L_.layersLoaded[
+                        L_.layersOrdered.indexOf(layerObj.name)
+                    ] = true
                     //Check again to see if all layers have loaded
                     allLayersLoaded()
                 })

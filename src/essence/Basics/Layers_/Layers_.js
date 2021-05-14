@@ -166,7 +166,7 @@ var L_ = {
                 if (this.FUTURES.activePoint == null) {
                     L_.Map_.resetView(newView)
                     if (!dontSetGlobe && L_.hasGlobe) {
-                        L_.Globe_.setCenter(newView)
+                        L_.Globe_.litho.setCenter(newView)
                     }
                 }
             }
@@ -186,9 +186,9 @@ var L_ = {
                     L_.Map_.map.removeLayer(L_.layersGroup[s.name])
                 }
                 if (s.type == 'tile') {
-                    L_.Globe_.removeTileLayer(s.name)
+                    L_.Globe_.litho.removeLayer(s.name)
                 } else {
-                    L_.Globe_.toggleLayer(s.name, false)
+                    L_.Globe_.litho.toggleLayer(s.name, false)
                 }
             } else {
                 if (L_.layersGroup[s.name]) {
@@ -208,7 +208,18 @@ var L_ = {
                         demUrl = L_.missionPath + demUrl
                     if (s.demtileurl == undefined || s.demtileurl.length == 0)
                         demUrl = undefined
-                    L_.Globe_.addTileLayer({
+                    console.log({
+                        name: s.name,
+                        order: L_.layersIndex[s.name],
+                        on: L_.opacityArray[s.name],
+                        path: layerUrl,
+                        demPath: demUrl,
+                        opacity: L_.opacityArray[s.name],
+                        minZoom: s.minZoom,
+                        maxZoom: s.maxNativeZoom,
+                        boundingBox: s.boundingBox,
+                    })
+                    L_.Globe_.litho.addLayer('tile', {
                         name: s.name,
                         order: L_.layersIndex[s.name],
                         on: L_.opacityArray[s.name],
@@ -220,7 +231,7 @@ var L_ = {
                         boundingBox: s.boundingBox,
                     })
                 } else {
-                    L_.Globe_.toggleLayer(s.name, true)
+                    L_.Globe_.litho.toggleLayer(s.name, true)
                 }
             }
         }
@@ -250,9 +261,9 @@ var L_ = {
                                 )
                             }
                             if (r[i].type == 'tile') {
-                                L_.Globe_.removeTileLayer(r[i].name)
+                                L_.Globe_.litho.removeLayer(r[i].name)
                             } else {
-                                L_.Globe_.toggleLayer(r[i].name, true)
+                                L_.Globe_.litho.toggleLayer(r[i].name, true)
                             }
                             L_.toggledArray[r[i].name] = false
                         } else {
@@ -276,7 +287,7 @@ var L_ = {
                                     demUrl = L_.missionPath + demUrl
                                 if (s.demtileurl == undefined)
                                     demUrl = undefined
-                                L_.Globe_.addTileLayer({
+                                L_.Globe_.litho.addLayer('tile', {
                                     name: r[i].name,
                                     order: L_.layersIndex[r[i].name],
                                     on: L_.opacityArray[r[i].name],
@@ -288,7 +299,7 @@ var L_ = {
                                     boundingBox: r[i].boundingBox,
                                 })
                             } else {
-                                L_.Globe_.toggleLayer(r[i].name, false)
+                                L_.Globe_.litho.toggleLayer(r[i].name, false)
                             }
                             L_.toggledArray[r[i].name] = true
                         }
@@ -372,10 +383,12 @@ var L_ = {
                     if (!F_.isUrlAbsolute(demUrl))
                         demUrl = L_.missionPath + demUrl
                     if (s.demtileurl == undefined) demUrl = undefined
-                    L_.Globe_.addTileLayer({
+                    L_.Globe_.litho.addLayer('tile', {
                         name: s.name,
                         order: L_.layersIndex[s.name],
                         on: L_.opacityArray[s.name],
+                        format: 'tms',
+                        demFormat: 'tms',
                         path: layerUrl,
                         demPath: demUrl,
                         opacity: L_.opacityArray[s.name],
@@ -411,7 +424,7 @@ var L_ = {
     },
 
     setLayerOpacity: function (name, newOpacity) {
-        if (L_.Globe_) L_.Globe_.setLayerOpacity(name, newOpacity)
+        if (L_.Globe_) L_.Globe_.litho.setLayerOpacity(name, newOpacity)
         var l = L_.layersGroup[name]
         if (l) {
             try {
@@ -494,7 +507,7 @@ var L_ = {
     },
     home() {
         L_.Map_.resetView(L_.configData.msv.view)
-        L_.Globe_.setCenter(L_.configData.msv.view)
+        L_.Globe_.litho.setCenter(L_.configData.msv.view)
     },
     hasTool: function (toolName) {
         for (var i = 0; i < L_.tools.length; i++) {
@@ -598,7 +611,7 @@ var L_ = {
 
                             L_.Map_.resetView(newView)
                             if (L_.hasGlobe) {
-                                L_.Globe_.setCenter(newView)
+                                L_.Globe_.litho.setCenter(newView)
                             }
                         }
                         return true
@@ -654,7 +667,7 @@ var L_ = {
                                     L_.Map_.resetView(newView)
                                 }, 50)
                                 if (L_.hasGlobe) {
-                                    L_.Globe_.setCenter(newView)
+                                    L_.Globe_.litho.setCenter(newView)
                                 }
                             }
                             return true
@@ -671,19 +684,19 @@ var L_ = {
             L_.clearVectorLayerInfo()
         } catch (e) {
             console.log(e)
-            console.warn(
-                'Warning: Unable to clear vector layer: ' +
-                    layerName
-            )
+            console.warn('Warning: Unable to clear vector layer: ' + layerName)
         }
     },
     updateVectorLayer: function (layerName, inputData, keepN) {
         // Validate input for keepN
-        const keepNum = parseInt(keepN);
+        const keepNum = parseInt(keepN)
         if (keepN && Number.isNaN(Number(keepNum))) {
             console.warn(
-                'Warning: Unable to update vector layer `' + layerName +
-                    '` as keepN == ' + keepN + ' and is not a valid integer'
+                'Warning: Unable to update vector layer `' +
+                    layerName +
+                    '` as keepN == ' +
+                    keepN +
+                    ' and is not a valid integer'
             )
             return
         }
@@ -694,7 +707,7 @@ var L_ = {
             try {
                 // Add data
                 updateLayer.addData(inputData)
-            } catch(e) {
+            } catch (e) {
                 console.log(e)
                 console.warn(
                     'Warning: Unable to update vector layer as the input data is invalid: ' +
@@ -702,16 +715,15 @@ var L_ = {
                 )
             }
 
-            const infoTool = ToolController_.getTool('InfoTool');
+            const infoTool = ToolController_.getTool('InfoTool')
 
             // Keep N elements if greater than 0 else keep all elements
             if (keepN && keepNum > 0) {
                 var layers = updateLayer.getLayers()
                 while (layers.length > keepNum) {
-
                     // If we remove a layer but its properties are displayed in the InfoTool
                     // and description (i.e. it was clicked), clear the InfoTool and description
-                    const removeLayer = layers[0];
+                    const removeLayer = layers[0]
                     if (infoTool.currentLayer === removeLayer) {
                         L_.clearVectorLayerInfo()
                     }
@@ -732,7 +744,7 @@ var L_ = {
         // Clear the InfoTools data
         const infoTool = ToolController_.getTool('InfoTool')
         if (infoTool.hasOwnProperty('clearInfo')) {
-            infoTool.clearInfo();
+            infoTool.clearInfo()
         }
 
         // Clear the description

@@ -250,10 +250,10 @@ var QueryURL = {
         if (mapLat === undefined) mapLat = L_.Map_.map.getCenter().lat
         if (mapZoom === undefined) mapZoom = L_.Map_.map.getZoom()
 
-        var globeCenter = L_.Globe_.getCenter()
+        var globeCenter = L_.Globe_.litho.getCenter()
         if (globeLon === undefined) globeLon = globeCenter.lon
         if (globeLat === undefined) globeLat = globeCenter.lat
-        if (globeZoom === undefined) globeZoom = L_.Globe_.zoom
+        if (globeZoom === undefined) globeZoom = L_.Globe_.litho.zoom
 
         var viewerImg = L_.Viewer_.getLastImageId()
         var viewerLoc = L_.Viewer_.getLocation()
@@ -283,7 +283,7 @@ var QueryURL = {
         urlAppendage += '&globeZoom=' + globeZoom
 
         //globeCamera
-        var orbit = L_.Globe_.getCameras().orbit
+        var orbit = L_.Globe_.litho.getCameras().orbit
         var cam = orbit.camera
         var con = orbit.controls
 

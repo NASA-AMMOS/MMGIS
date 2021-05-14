@@ -7,6 +7,7 @@ import calls from '../../../pre/calls'
 // often referred to as F_
 var temp = new Float32Array(1)
 
+// eslint-disable-next-line no-extend-native
 Object.defineProperty(Object.prototype, 'getFirst', {
     value: function () {
         return this[Object.keys(this)[0]]
@@ -670,16 +671,18 @@ var Formulae_ = {
                                                         'Lazy depth traversal failed'
                                                     )
                                                 } else {
-                                                    var newCoords = Object.assign(
-                                                        [],
-                                                        coords[i][j][k][l][m]
-                                                    )
+                                                    var newCoords =
+                                                        Object.assign(
+                                                            [],
+                                                            coords[i][j][k][l][
+                                                                m
+                                                            ]
+                                                        )
                                                     var swap = newCoords[0]
                                                     newCoords[0] = newCoords[1]
                                                     newCoords[1] = swap
-                                                    coords[i][j][k][l][
-                                                        m
-                                                    ] = newCoords
+                                                    coords[i][j][k][l][m] =
+                                                        newCoords
                                                 }
                                             }
                                         } else {

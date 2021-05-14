@@ -259,7 +259,8 @@ var Editing = {
 
         if (!deselecting) {
             if (typeof DrawTool.contextMenuLayer.toGeoJSON === 'function')
-                DrawTool.contextMenuLayerOriginalGeoJSON = DrawTool.contextMenuLayer.toGeoJSON()
+                DrawTool.contextMenuLayerOriginalGeoJSON =
+                    DrawTool.contextMenuLayer.toGeoJSON()
             else
                 DrawTool.contextMenuLayerOriginalGeoJSON =
                     DrawTool.contextMenuLayer.feature
@@ -357,7 +358,8 @@ var Editing = {
             if (DrawTool.contextMenuLayers.length > 0) {
                 DrawTool.contextMenuLayer = DrawTool.contextMenuLayers[0].layer
                 if (typeof DrawTool.contextMenuLayer.toGeoJSON === 'function')
-                    DrawTool.contextMenuLayerOriginalGeoJSON = DrawTool.contextMenuLayer.toGeoJSON()
+                    DrawTool.contextMenuLayerOriginalGeoJSON =
+                        DrawTool.contextMenuLayer.toGeoJSON()
                 else
                     DrawTool.contextMenuLayerOriginalGeoJSON =
                         DrawTool.contextMenuLayer.feature
@@ -976,7 +978,7 @@ var Editing = {
 
                 //Remove from globe
                 var lif = DrawTool.lastContextLayerIndexFileId
-                Globe_.removeVectorTileLayer(
+                Globe_.litho.removeLayer(
                     'camptool_' + lif.layer + '_' + lif.index
                 )
                 DrawTool.populateShapes()
@@ -1903,10 +1905,11 @@ var Editing = {
                 ) {
                     if (DrawTool.snapping) {
                         try {
-                            DrawTool.contextMenuLayer.snapediting = new L.Handler.PolylineSnap(
-                                Map_.map,
-                                DrawTool.contextMenuLayer
-                            )
+                            DrawTool.contextMenuLayer.snapediting =
+                                new L.Handler.PolylineSnap(
+                                    Map_.map,
+                                    DrawTool.contextMenuLayer
+                                )
                             var guides = DrawTool.getSnapGuides(
                                 DrawTool.contextMenuLayer
                             )
@@ -1915,8 +1918,10 @@ var Editing = {
                                     guides[g]
                                 )
 
-                            DrawTool.contextMenuLayer.snapediting._poly.options.editing = {}
-                            DrawTool.contextMenuLayer.snapediting._poly.options.original = {}
+                            DrawTool.contextMenuLayer.snapediting._poly.options.editing =
+                                {}
+                            DrawTool.contextMenuLayer.snapediting._poly.options.original =
+                                {}
                             DrawTool.contextMenuLayer.snapediting.enable()
                         } catch (e) {
                             console.log(e)
@@ -2010,7 +2015,8 @@ var Editing = {
             if (!grouping) {
                 //Then just a regular single save
                 if (typeof DrawTool.contextMenuLayer.toGeoJSON === 'function')
-                    DrawTool.contextMenuLayerOriginalGeoJSON = DrawTool.contextMenuLayer.toGeoJSON()
+                    DrawTool.contextMenuLayerOriginalGeoJSON =
+                        DrawTool.contextMenuLayer.toGeoJSON()
                 else
                     DrawTool.contextMenuLayerOriginalGeoJSON =
                         DrawTool.contextMenuLayer.feature
