@@ -1,7 +1,7 @@
 //Form nav
 let pages = [
   "README",
-  "API",
+  "JavaScript_API",
   "AR_and_VR",
   "Deep_Linking",
   "Development",
@@ -16,6 +16,7 @@ let configure = [
   "Projection_Tab",
   "Look_Tab",
   "Panels_Tab",
+  "Time_Tab",
   "Kinds",
   "Vector_Styling",
   "Keys",
