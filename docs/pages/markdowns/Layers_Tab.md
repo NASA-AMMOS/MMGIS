@@ -128,6 +128,21 @@ _type:_ string _optional_
 A comma separated string defining the tileset's `minimumLonDeg,minimumLatDeg,maximumLonDeg,maximumLatDeg`. Setting a bounding box improves performance by limiting requests for tiles to only those that fit the bounds.  
 _Note: This field can be automatically populate with "Populate from XML". "Populate from XML" uses looks for a `tilemapresource.xml` in the tileset directory specified by the URL field._
 
+#### Time Enabled
+
+_type:_ bool  
+True if the layer is time enabled. URLs that contain `{time}` will be dynamically replaced by their set values when the layer is fetched.
+
+#### Time Type
+
+_type:_ enum [Global, Individual]  
+Whether the layer should use global time values or function independently with its own time values.
+
+#### Time Format
+
+_type:_ string _optional_  
+The string format to be used in the URL for `{time}`. Defaults to `YYYY-MM-DDTHH:mm:ssZ`.
+
 # Vector Tile
 
 A mix between Tile and Vector. Useful when rendering tons of features since features are rendered based on viewport instead of all at once at the start.
@@ -194,6 +209,22 @@ _Note: This field can be automatically populate with "Populate from XML". "Popul
 
 _type:_ integer  
 The highest (largest number) zoom level to see in MMGIS. This value is at least as high as Maximum Native Zoom. This allows zooms level higher than that of the tileset. Instead of rendering new tile image, it scales them in instead.
+
+#### Time Enabled
+
+_type:_ bool  
+True if the layer is time enabled. URLs that contain `{time}` will be dynamically replaced by their set values when the layer is fetched.
+
+#### Time Type
+
+_type:_ enum [Global, Individual]  
+Whether the layer should use global time values or function independently with its own time values.
+
+#### Time Format
+
+_type:_ string _optional_  
+The string format to be used in the URL for `{time}`. Defaults to `YYYY-MM-DDTHH:mm:ssZ`.
+
 
 #### Vector Tile Feature Unique Id Key
 
@@ -272,6 +303,22 @@ _type:_ string _optional_
 A comma separated string defining the tileset's `minimumLonDeg,minimumLatDeg,maximumLonDeg,maximumLatDeg`. Setting a bounding box improves performance by limiting requests for tiles to only those that fit the bounds.  
 _Note: This field can be automatically populate with "Populate from XML". "Populate from XML" uses looks for a `tilemapresource.xml` in the tileset directory specified by the URL field._
 
+#### Time Enabled
+
+_type:_ bool  
+True if the layer is time enabled. URLs that contain `{starttime}` or `{endtime}` will be dynamically replaced by their set values when the layer is fetched.
+
+#### Time Type
+
+_type:_ enum [Global, Individual]  
+Whether the layer should use global time values or function independently with its own time values.
+
+#### Time Format
+
+_type:_ string _optional_  
+The string format to be used in the URL for `{starttime}` and `{endtime}`. Defaults to `YYYY-MM-DDTHH:mm:ssZ`.
+
+
 # Vector
 
 A [geojson](https://geojson.org/) layer.
@@ -315,6 +362,21 @@ If set, this vector layer will be hidden if the current zoom level is less than 
 
 _type:_ float  
 A value from 0 to 1 of the layer's initial opacity. 1 is fully opaque.
+
+#### Time Enabled
+
+_type:_ bool  
+True if the layer is time enabled. URLs that contain `{starttime}` or `{endtime}` will be dynamically replaced by their set values when the layer is fetched.
+
+#### Time Type
+
+_type:_ enum [Global, Individual]  
+Whether the layer should use global time values or function independently with its own time values.
+
+#### Time Format
+
+_type:_ string _optional_  
+The string format to be used in the URL for `{starttime}` and `{endtime}`. Defaults to `YYYY-MM-DDTHH:mm:ssZ`.
 
 #### Stroke Color
 
@@ -468,6 +530,22 @@ Whether the layer is on initially.
 
 _type:_ float  
 A value from 0 to 1 of the layer's initial opacity. 1 is fully opaque.
+
+#### Time Enabled
+
+_type:_ bool  
+True if the layer is time enabled. URLs that contain `{starttime}` or `{endtime}` will be dynamically replaced by their set values when the layer is fetched.
+
+#### Time Type
+
+_type:_ enum [Global, Individual]  
+Whether the layer should use global time values or function independently with its own time values.
+
+#### Time Format
+
+_type:_ string _optional_  
+The string format to be used in the URL for `{starttime}` and `{endtime}`. Defaults to `YYYY-MM-DDTHH:mm:ssZ`.
+
 
 ---
 

@@ -18,17 +18,16 @@ var API = {
     // Time Control API functions
 
     /**
-     * Toggles the TimeUI -- a TimeConductor-like MMGIS implementation to stand alone and for dev work
-     * @param {boolean} - Whether to turn the TimeUI on or off. If unset, flips state.
+     * This function toggles the visibility of ancillary Time Control User Interface.
+     * It is useful in situations where time functions are controlled by an external application.
+     * @param {boolean} - Whether to turn the TimeUI on or off. If true, makes visible.
      * @returns {boolean} - Whether the TimeUI is now on or off
      */
     toggleTimeUI: TimeControl.toggleTimeUI,
 
     /**
-     * Sets the global time for MMGIS. All layers influenced by time (i.e. a
-     *  raster with '{t} | {time} | {endtime}' in its url, a vector layer pointing to
-     *  'https://lunarsev/getLayer?starttime={starttime}&endtime={endtime}') get
-     *  updated accordingly
+     * This function sets the global time properties for all of MMGIS.
+     * All time enabled layers that are configured to use the `Global` time type will be updated by this function.
      * @param {string} [startTime] - Can be either YYYY-MM-DDThh:mm:ssZ if absolute or hh:mm:ss or seconds if relative
      * @param {string} [endTime] - Can be either YYYY-MM-DDThh:mm:ssZ if absolute or hh:mm:ss or seconds if relative
      * @param {boolean} [isRelative=false] - If true, startTime and endTime are relative to currentTime
@@ -37,7 +36,8 @@ var API = {
      */
     setTime: TimeControl.setTime,
 
-    /** Sets the start and end time for a single layer; overrides global time for that layer
+    /** This function sets the start and end time for a single layer.
+     * It will override the global time for that layer.
      * @param {string} [layerName]
      * @param {string} [startTime] - YYYY-MM-DDThh:mm:ssZ
      * @param {string} [endTime] - YYYY-MM-DDThh:mm:ssZ
@@ -61,14 +61,21 @@ var API = {
     getEndTime: TimeControl.getEndTime,
 
     /** 
+     * @param {string} [layerName]
      * @returns {string} - The start time for an individual layer
      */   
     getLayerStartTime: TimeControl.getLayerStartTime,
  
     /** 
+     * @param {string} [layerName]
      * @returns {string} - The end time for an individual layer
      */  
     getLayerEndTime: TimeControl.getLayerEndTime,
+
+    /** reloadTimeLayers will reload every time enabled layer
+     * @returns {array} - A list of layers that were reloaded
+     */
+     reloadTimeLayers: TimeControl.reloadTimeLayers,
 
     /** reloadLayer will reload a given time enabled layer
      * @param {string} [layerName]
@@ -76,28 +83,25 @@ var API = {
      */
     reloadLayer: TimeControl.reloadLayer,
 
-    /** reloadTimeLayers will reload every time enabled layer
-     * @returns {array} - A list of layers that were reloaded
-     */
-    reloadTimeLayers: TimeControl.reloadTimeLayers,
+    /** setLayersTimeStatus - will set the status color for all global time enabled layers
+     * @param {string} [color]
+     * @returns {array} - A list of layers that were set
+     */    
+    setLayersTimeStatus: TimeControl.setLayersTimeStatus,
 
-    /** updateLayersTime - will synchronize every global time enabled layer with global times
-     * @returns {array} - A list of layers that were reloaded
-     */
-     updateLayersTime: TimeControl.updateLayersTime,
-
-     /** setLayerTimeStatus - will set the status color for the given layer
+    /** setLayerTimeStatus - will set the status color for the given layer
       * @param {string} [layerName]
       * @param {string} [color]
       * @returns {boolean} - True if time status was successfully set
      */    
-     setLayerTimeStatus: TimeControl.setLayerTimeStatus,
+    setLayerTimeStatus: TimeControl.setLayerTimeStatus,
 
-     /** setLayersTimeStatus - will set the status color for all global time enabled layers
-      * @param {string} [color]
-      * @returns {array} - A list of layers that were set
-     */    
-      setLayersTimeStatus: TimeControl.setLayersTimeStatus
+    /** updateLayersTime - will synchronize every global time enabled layer with global times.
+     * Probably should be a private function, but could be useful for edge cases when things
+     * may need to be re-synchronized.
+     * @returns {array} - A list of layers that were reloaded
+     */
+     updateLayersTime: TimeControl.updateLayersTime
 }
 
 window.API = API

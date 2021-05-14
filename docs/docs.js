@@ -1,5 +1,5 @@
 //Form nav
-let pages = ["README", "AR_and_VR", "Deep_Linking", "Development", "ENVs"];
+let pages = ["README", "AR_and_VR", "Deep_Linking", "Development", "ENVs", "JavaScript_API"];
 let configure = [
   "Configure",
   "Overall_Tab",
@@ -9,6 +9,7 @@ let configure = [
   "Projection_Tab",
   "Look_Tab",
   "Panels_Tab",
+  "Time_Tab",
   "Kinds",
   "Vector_Styling",
   "Keys",
