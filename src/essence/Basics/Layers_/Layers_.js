@@ -2,6 +2,7 @@
 import F_ from '../Formulae_/Formulae_'
 import Description from '../../Ancillary/Description'
 import Search from '../../Ancillary/Search'
+import ToolController_ from '../../Basics/ToolController_/ToolController_'
 import $ from 'jquery'
 
 var L_ = {
@@ -670,6 +671,7 @@ var L_ = {
     clearVectorLayer: function (layerName) {
         try {
             L_.layersGroup[layerName].clearLayers()
+            L_.clearVectorLayerInfo()
         } catch (e) {
             console.log(e)
             console.warn(
@@ -703,11 +705,22 @@ var L_ = {
                 )
             }
 
+            const infoTool = ToolController_.getTool('InfoTool');
+
             // Keep N elements if greater than 0 else keep all elements
             if (keepN && keepNum > 0) {
                 var layers = updateLayer.getLayers()
                 while (layers.length > keepNum) {
-                    updateLayer.removeLayer(layers[0])
+
+                    // If we remove a layer but its properties are displayed in the InfoTool
+                    // and description (i.e. it was clicked), clear the InfoTool and description
+                    const removeLayer = layers[0];
+                    if (infoTool.currentLayer === removeLayer) {
+                        L_.clearVectorLayerInfo()
+                    }
+
+                    // Remove the layer
+                    updateLayer.removeLayer(removeLayer)
                     layers = updateLayer.getLayers()
                 }
             }
@@ -717,6 +730,16 @@ var L_ = {
                     layerName
             )
         }
+    },
+    clearVectorLayerInfo: function () {
+        // Clear the InfoTools data
+        const infoTool = ToolController_.getTool('InfoTool')
+        if (infoTool.hasOwnProperty('clearInfo')) {
+            infoTool.clearInfo();
+        }
+
+        // Clear the description
+        Description.clearDescription()
     },
 }
 

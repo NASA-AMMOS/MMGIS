@@ -374,6 +374,20 @@ var InfoTool = {
             }
         })
     },
+    clearInfo: function () {
+        this.currentLayer = null
+        this.currentLayerName = null
+        this.info = null
+        this.variables = null
+        this.activeFeatureI = null
+
+        // Clear the InfoTools data
+        $('#infoToolData').empty()
+        $('#infoToolHeader > .right').css('display', 'none')
+        $('#infoToolSelected').css('display', 'none')
+        $('#infoToolFilter').css('display', 'none')
+        $('#infoToolNoneSelected').css('display', 'block')
+    },
 }
 
 //
