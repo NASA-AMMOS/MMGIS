@@ -53,13 +53,16 @@ let Globe_ = {
             'mmgisLithoExaggerate',
             this.litho.controls.exaggerate
         )
-        this.litho.addControl('mmgisLithoLayers', this.litho.controls.layers)
+        //this.litho.addControl('mmgisLithoLayers', this.litho.controls.layers)
         this.litho.addControl('mmgisLithoObserve', this.litho.controls.observe)
         this.litho.addControl('mmgisLithoWalk', this.litho.controls.walk)
         this.litho.addControl('mmgisLithoCompass', this.litho.controls.compass)
         this.litho.addControl(
             'mmgisLithoCoords',
-            this.litho.controls.coordinates
+            this.litho.controls.coordinates,
+            {
+                existingDivId: 'mouseLngLat',
+            }
         )
 
         console.log(this.litho)

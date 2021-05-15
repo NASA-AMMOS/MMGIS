@@ -208,17 +208,6 @@ var L_ = {
                         demUrl = L_.missionPath + demUrl
                     if (s.demtileurl == undefined || s.demtileurl.length == 0)
                         demUrl = undefined
-                    console.log({
-                        name: s.name,
-                        order: L_.layersIndex[s.name],
-                        on: L_.opacityArray[s.name],
-                        path: layerUrl,
-                        demPath: demUrl,
-                        opacity: L_.opacityArray[s.name],
-                        minZoom: s.minZoom,
-                        maxZoom: s.maxNativeZoom,
-                        boundingBox: s.boundingBox,
-                    })
                     L_.Globe_.litho.addLayer('tile', {
                         name: s.name,
                         order: L_.layersIndex[s.name],
@@ -291,6 +280,8 @@ var L_ = {
                                     name: r[i].name,
                                     order: L_.layersIndex[r[i].name],
                                     on: L_.opacityArray[r[i].name],
+                                    format: 'tms',
+                                    demFormat: 'tms',
                                     path: layerUrl,
                                     demPath: demUrl,
                                     opacity: L_.opacityArray[r[i].name],
@@ -355,8 +346,19 @@ var L_ = {
         } else {
             map = map.map
         }
+        console.log(L_)
         for (var i = L_.layersData.length - 1; i >= 0; i--) {
             if (L_.toggledArray[L_.layersData[i].name] == true) {
+                if (L_.layersData[i].type === 'tile') {
+                    // Make sure all tile layers follow z-index order at start instead of element order
+                    L_.layersGroup[L_.layersData[i].name].setZIndex(
+                        L_.layersOrdered.length +
+                            1 -
+                            L_.layersOrdered.indexOf(L_.layersData[i].name)
+                    )
+                }
+
+                // Add Map layers
                 if (L_.layersGroup[L_.layersData[i].name]) {
                     try {
                         map.addLayer(L_.layersGroup[L_.layersData[i].name])
@@ -368,18 +370,13 @@ var L_ = {
                         )
                     }
                 }
-                if (L_.layersData[i].type == 'tile') {
-                    // Make sure all tile layers follow z-index order at start instead of element order
-                    L_.layersGroup[L_.layersData[i].name].setZIndex(
-                        L_.layersOrdered.length +
-                            1 -
-                            L_.layersOrdered.indexOf(L_.layersData[i].name)
-                    )
-                    var s = L_.layersData[i]
-                    var layerUrl = s.url
-                    if (!F_.isUrlAbsolute(layerUrl))
-                        layerUrl = L_.missionPath + layerUrl
-                    var demUrl = s.demtileurl
+                // Add Globe layers
+                const s = L_.layersData[i]
+                let layerUrl = s.url
+                if (!F_.isUrlAbsolute(layerUrl))
+                    layerUrl = L_.missionPath + layerUrl
+                if (L_.layersData[i].type === 'tile') {
+                    let demUrl = s.demtileurl
                     if (!F_.isUrlAbsolute(demUrl))
                         demUrl = L_.missionPath + demUrl
                     if (s.demtileurl == undefined) demUrl = undefined
@@ -396,6 +393,36 @@ var L_ = {
                         maxZoom: s.maxNativeZoom,
                         boundingBox: s.boundingBox,
                     })
+                } else if (L_.layersData[i].type != 'header') {
+                    console.log(s.name)
+                    L_.Globe_.litho.addLayer(
+                        L_.layersData[i].type == 'vector'
+                            ? 'clamped'
+                            : L_.layersData[i].type,
+                        {
+                            name: s.name,
+                            order: L_.layersIndex[s.name],
+                            on: L_.opacityArray[s.name] ? true : false,
+                            geojsonPath: layerUrl,
+                            useKeyAsHoverName: s.useKeyAsName,
+                            style: {
+                                // Prefer feature[f].properties.style values
+                                letPropertiesStyleOverride: false, // default false
+                                default: {
+                                    fillColor: s.style.fillColor, //Use only rgb and hex. No css color names
+                                    fillOpacity: parseFloat(
+                                        s.style.fillOpacity
+                                    ),
+                                    color: s.style.color,
+                                    weight: s.style.weight,
+                                    radius: s.radius,
+                                },
+                            },
+                            opacity: L_.opacityArray[s.name],
+                            minZoom: 0, //s.minZoom,
+                            maxZoom: 100, //s.maxNativeZoom,
+                        }
+                    )
                 }
             }
         }
