@@ -89,6 +89,7 @@ function getClientEnvironment(publicUrl) {
         // MMGIS
         AUTH: process.env.AUTH,
         VERSION: packagejson.version,
+        CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER,
         HOSTS: JSON.stringify({
           scienceIntent: process.env.SCIENCE_INTENT_HOST,
         }),

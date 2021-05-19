@@ -10,12 +10,12 @@ function login() {
 
   $.ajax({
     type: "POST",
-    url: "/API/users/login",
+    url: "API/users/login",
     data: {
       username: document.getElementById("username").value,
-      password: document.getElementById("pwd").value
+      password: document.getElementById("pwd").value,
     },
-    success: function(data) {
+    success: function (data) {
       if (
         !data.hasOwnProperty("status") ||
         (data.hasOwnProperty("status") && data.status == "success")
@@ -25,7 +25,7 @@ function login() {
           "MMGISUser=" +
           JSON.stringify({
             username: data.username,
-            token: data.token
+            token: data.token,
           });
         location.reload();
       } else {
@@ -35,16 +35,16 @@ function login() {
         document.getElementById("msg").style.opacity = 1;
       }
     },
-    error: function() {
+    error: function () {
       //error
       document.getElementById("msg").innerHTML = "Server error.";
       document.getElementById("msg").style.opacity = 1;
-    }
+    },
   });
 }
 
-$(document).ready(function() {
-  $(document).on("keypress", function(e) {
+$(document).ready(function () {
+  $(document).on("keypress", function (e) {
     if (e.which == 13) {
       login();
     }

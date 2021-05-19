@@ -335,7 +335,10 @@ function ensureUser() {
     ) {
       next();
     } else {
-      res.render("login", { user: req.user });
+      res.render("login", {
+        user: req.user,
+        CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER || "CL##-####",
+      });
     }
     return;
   };
@@ -346,8 +349,10 @@ var swaggerOptions = {
   customJs: "/docs/pages/swaggers/swaggerJS.js",
 };
 
-const useSwaggerSchema = (schema) => (...args) =>
-  swaggerUi.setup(schema, swaggerOptions)(...args);
+const useSwaggerSchema =
+  (schema) =>
+  (...args) =>
+    swaggerUi.setup(schema, swaggerOptions)(...args);
 
 let s = {
   app: app,
@@ -653,6 +658,7 @@ setups.getBackendSetups(function (setups) {
           NODE_ENV: process.env.NODE_ENV,
           VERSION: packagejson.version,
           FORCE_CONFIG_PATH: process.env.FORCE_CONFIG_PATH,
+          CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER,
           HOSTS: JSON.stringify({
             scienceIntent: process.env.SCIENCE_INTENT_HOST,
           }),

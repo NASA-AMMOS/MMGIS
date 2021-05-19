@@ -87,6 +87,19 @@
     color: #fff;
 }
 
+.landingPage .clearance {
+    font-family: 'roboto';
+    font-size: 11px;
+    color: #bbb;
+    position: absolute;
+    bottom: 20px;
+    left: 0px;
+    width: 315px;
+    display: flex;
+    justify-content: center;
+    z-index: 20;
+}
+
 .landingPage #title img {
     position: relative;
     left: -6px;

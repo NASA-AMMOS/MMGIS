@@ -310,10 +310,7 @@
       <div class="planet3"></div>
       <div id="title">
         <p>
-          <img
-            src="public/images/logos/mmgis.png"
-            alt="Full logo"
-          />
+          <img src="public/images/logos/mmgis.png" alt="Full logo" />
         </p>
       </div>
       <div id="loading2">
@@ -335,6 +332,7 @@
           mmgisglobal.groups = "#{groups}";
           mmgisglobal.NODE_ENV = "#{NODE_ENV}";
           mmgisglobal.FORCE_CONFIG_PATH = "#{FORCE_CONFIG_PATH}";
+          mmgisglobal.CLEARANCE_NUMBER = "#{CLEARANCE_NUMBER}";
           mmgisglobal.HOSTS = "#{HOSTS}";
           break;
         default:
@@ -345,6 +343,7 @@
           mmgisglobal.groups = [];
           mmgisglobal.NODE_ENV = NODE_ENV;
           mmgisglobal.FORCE_CONFIG_PATH = null;
+          mmgisglobal.CLEARANCE_NUMBER = "%CLEARANCE_NUMBER%";
           // eslint-disable-next-line
           mmgisglobal.HOSTS = %HOSTS%;
           break;

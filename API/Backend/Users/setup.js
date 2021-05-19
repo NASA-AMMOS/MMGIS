@@ -2,13 +2,13 @@ const router = require("./routes/users");
 
 let setup = {
   //Once the app initializes
-  onceInit: s => {
+  onceInit: (s) => {
     s.app.use("/API/users", s.checkHeadersCodeInjection, router);
   },
   //Once the server starts
-  onceStarted: s => {},
+  onceStarted: (s) => {},
   //Once all tables sync
-  onceSynced: s => {}
+  onceSynced: (s) => {},
 };
 
 module.exports = setup;
