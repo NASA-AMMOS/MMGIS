@@ -218,7 +218,7 @@ var L_ = {
                         minZoom: s.minZoom,
                         maxZoom: s.maxNativeZoom,
                         boundingBox: s.boundingBox,
-                        time: ((typeof s.time === 'undefined') ? '' : s.time.end),
+                        time: s.time == null ? '' : s.time.end,
                     })
                 } else {
                     L_.Globe_.toggleLayer(s.name, true)
@@ -287,7 +287,8 @@ var L_ = {
                                     minZoom: r[i].minZoom,
                                     maxZoom: r[i].maxNativeZoom,
                                     boundingBox: r[i].boundingBox,
-                                    time: ((typeof r[i].time === 'undefined') ? '' : r[i].time.end),
+                                    time:
+                                        r[i].time == null ? '' : r[i].time.end,
                                 })
                             } else {
                                 L_.Globe_.toggleLayer(r[i].name, false)
@@ -384,7 +385,7 @@ var L_ = {
                         minZoom: s.minZoom,
                         maxZoom: s.maxNativeZoom,
                         boundingBox: s.boundingBox,
-                        time: ((typeof s.time === 'undefined') ? '' : s.time.end),
+                        time: s.time == null ? '' : s.time.end,
                     })
                 }
             }
@@ -674,19 +675,19 @@ var L_ = {
             L_.clearVectorLayerInfo()
         } catch (e) {
             console.log(e)
-            console.warn(
-                'Warning: Unable to clear vector layer: ' +
-                    layerName
-            )
+            console.warn('Warning: Unable to clear vector layer: ' + layerName)
         }
     },
     updateVectorLayer: function (layerName, inputData, keepN) {
         // Validate input for keepN
-        const keepNum = parseInt(keepN);
+        const keepNum = parseInt(keepN)
         if (keepN && Number.isNaN(Number(keepNum))) {
             console.warn(
-                'Warning: Unable to update vector layer `' + layerName +
-                    '` as keepN == ' + keepN + ' and is not a valid integer'
+                'Warning: Unable to update vector layer `' +
+                    layerName +
+                    '` as keepN == ' +
+                    keepN +
+                    ' and is not a valid integer'
             )
             return
         }
@@ -697,7 +698,7 @@ var L_ = {
             try {
                 // Add data
                 updateLayer.addData(inputData)
-            } catch(e) {
+            } catch (e) {
                 console.log(e)
                 console.warn(
                     'Warning: Unable to update vector layer as the input data is invalid: ' +
@@ -705,16 +706,15 @@ var L_ = {
                 )
             }
 
-            const infoTool = ToolController_.getTool('InfoTool');
+            const infoTool = ToolController_.getTool('InfoTool')
 
             // Keep N elements if greater than 0 else keep all elements
             if (keepN && keepNum > 0) {
                 var layers = updateLayer.getLayers()
                 while (layers.length > keepNum) {
-
                     // If we remove a layer but its properties are displayed in the InfoTool
                     // and description (i.e. it was clicked), clear the InfoTool and description
-                    const removeLayer = layers[0];
+                    const removeLayer = layers[0]
                     if (infoTool.currentLayer === removeLayer) {
                         L_.clearVectorLayerInfo()
                     }
@@ -735,7 +735,7 @@ var L_ = {
         // Clear the InfoTools data
         const infoTool = ToolController_.getTool('InfoTool')
         if (infoTool.hasOwnProperty('clearInfo')) {
-            infoTool.clearInfo();
+            infoTool.clearInfo()
         }
 
         // Clear the description

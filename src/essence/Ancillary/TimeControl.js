@@ -5,19 +5,20 @@ import L_ from '../Basics/Layers_/Layers_'
 import Map_ from '../Basics/Map_/Map_'
 
 // Can be either hh:mm:ss or just seconds
-const relativeTimeFormat = new RegExp(/((?:-?\d*):(?:[0-5]\d):(?:[0-5]\d))|(?:\d*)/)
+const relativeTimeFormat = new RegExp(
+    /((?:-?\d*):(?:[0-5]\d):(?:[0-5]\d))|(?:\d*)/
+)
 
 var TimeControl = {
     isRelative: true,
-    currentTime: new Date().toISOString().split('.')[0]+'Z',
+    currentTime: new Date().toISOString().split('.')[0] + 'Z',
     timeOffset: '01:00:00',
-    startTime: new Date().toISOString().split('.')[0]+'Z',
-    endTime: new Date().toISOString().split('.')[0]+'Z',
+    startTime: new Date().toISOString().split('.')[0] + 'Z',
+    endTime: new Date().toISOString().split('.')[0] + 'Z',
     relativeStartTime: '01:00:00',
     relativeEndTime: '00:00:00',
     init: function () {
-
-        if (L_.configData.time[0] == 'enabled') {
+        if (L_.configData.time && L_.configData.time[0] == 'enabled') {
             console.log('Time controller enabled')
         } else {
             return
@@ -28,15 +29,16 @@ var TimeControl = {
             .append('div')
             .attr('id', 'timeUI')
             .attr('class', 'center aligned ui padded grid')
-            .style( 'background', 'rgba(0, 0, 0, 0.15)' )
-            .style( 'height', '40px')
-            .style( 'width', '550px')
+            .style('background', 'rgba(0, 0, 0, 0.15)')
+            .style('height', '40px')
+            .style('width', '550px')
             .style('position', 'absolute')
             .style('bottom', '0px')
             .style('right', '450px')
             .style('margin', '0')
             .style('z-index', '20')
-        timeUI.append('label')
+        timeUI
+            .append('label')
             .style('font-size', '12px')
             .style('font-weight', 'bold')
             .style('text-align', 'center')
@@ -45,7 +47,8 @@ var TimeControl = {
                 '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000'
             )
             .text('')
-        timeUI.append('label')
+        timeUI
+            .append('label')
             .attr('id', 'currentTimeLabel')
             .style('font-size', '12px')
             .style('font-weight', 'bold')
@@ -54,9 +57,9 @@ var TimeControl = {
                 'text-shadow',
                 '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000'
             )
-        timeUI.append('span')
-            .style( 'padding', '10px')
-        timeUI.append('label')
+        timeUI.append('span').style('padding', '10px')
+        timeUI
+            .append('label')
             .attr('id', 'startTimeLabel')
             .style('font-size', '12px')
             .style('font-weight', 'bold')
@@ -66,13 +69,14 @@ var TimeControl = {
                 '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000'
             )
             .text('Start: ')
-        timeUI.append('input')
+        timeUI
+            .append('input')
             .attr('id', 'startTimeInput')
-            .style( 'width', '130px')
+            .style('width', '130px')
             .style('font-size', '12px')
-        timeUI.append('span')
-            .style( 'padding', '10px')
-        timeUI.append('label')
+        timeUI.append('span').style('padding', '10px')
+        timeUI
+            .append('label')
             .attr('id', 'endTimeLabel')
             .style('font-size', '12px')
             .style('font-weight', 'bold')
@@ -82,13 +86,15 @@ var TimeControl = {
                 '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000'
             )
             .text('End: ')
-        timeUI.append('input')
+        timeUI
+            .append('input')
             .attr('id', 'endTimeInput')
-            .style( 'width', '130px')
+            .style('width', '130px')
             .style('font-size', '12px')
 
         timeUI.append('br')
-        timeUI.append('label')
+        timeUI
+            .append('label')
             .attr('id', 'offsetTime')
             .style('font-size', '12px')
             .style('font-weight', 'bold')
@@ -98,17 +104,19 @@ var TimeControl = {
                 '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000'
             )
             .text('Offset: ')
-        timeUI.append('input')
+        timeUI
+            .append('input')
             .attr('id', 'offsetTimeInput')
-            .style( 'width', '75px')
+            .style('width', '75px')
             .style('font-size', '12px')
-        timeUI.append('span')
-            .style( 'padding', '15px')
-        timeUI.append('input')
+        timeUI.append('span').style('padding', '15px')
+        timeUI
+            .append('input')
             .attr('id', 'isRelativeTime')
             .attr('type', 'checkbox')
-            .property('checked', this.isRelative);
-        timeUI.append('label')
+            .property('checked', this.isRelative)
+        timeUI
+            .append('label')
             .attr('id', 'useRelativeTime')
             .style('font-size', '12px')
             .style('font-weight', 'bold')
@@ -118,9 +126,9 @@ var TimeControl = {
                 '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000'
             )
             .text(' Relative time')
-        timeUI.append('span')
-            .style( 'padding', '11px')
-        timeUI.append('label')
+        timeUI.append('span').style('padding', '11px')
+        timeUI
+            .append('label')
             .attr('id', 'startRelativeTime')
             .style('font-size', '12px')
             .style('font-weight', 'bold')
@@ -130,13 +138,14 @@ var TimeControl = {
                 '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000'
             )
             .text('Start: - ')
-        timeUI.append('input')
+        timeUI
+            .append('input')
             .attr('id', 'startRelativeTimeInput')
-            .style( 'width', '75px')
+            .style('width', '75px')
             .style('font-size', '12px')
-        timeUI.append('span')
-            .style( 'padding', '10px')
-        timeUI.append('label')
+        timeUI.append('span').style('padding', '10px')
+        timeUI
+            .append('label')
             .attr('id', 'endRelativeTime')
             .style('font-size', '12px')
             .style('font-weight', 'bold')
@@ -146,36 +155,47 @@ var TimeControl = {
                 '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000'
             )
             .text('End: + ')
-        timeUI.append('input')
+        timeUI
+            .append('input')
             .attr('id', 'endRelativeTimeInput')
-            .style( 'width', '75px')
+            .style('width', '75px')
             .style('font-size', '12px')
 
         d3.select('#startTimeInput').property('value', this.startTime)
         d3.select('#endTimeInput').property('value', this.endTime)
         d3.select('#offsetTimeInput').property('value', this.timeOffset)
-        d3.select('#startRelativeTimeInput').property('value', this.relativeStartTime)
-        d3.select('#endRelativeTimeInput').property('value', this.relativeEndTime)
+        d3.select('#startRelativeTimeInput').property(
+            'value',
+            this.relativeStartTime
+        )
+        d3.select('#endRelativeTimeInput').property(
+            'value',
+            this.relativeEndTime
+        )
 
-        d3.select('#offsetTimeInput').on("change", timeInputChange)
-        d3.select('#startTimeInput').on("change", timeInputChange)
-        d3.select('#endTimeInput').on("change", timeInputChange)
-        d3.select('#startRelativeTimeInput').on("change", timeInputChange)
-        d3.select('#endRelativeTimeInput').on("change", timeInputChange)
+        d3.select('#offsetTimeInput').on('change', timeInputChange)
+        d3.select('#startTimeInput').on('change', timeInputChange)
+        d3.select('#endTimeInput').on('change', timeInputChange)
+        d3.select('#startRelativeTimeInput').on('change', timeInputChange)
+        d3.select('#endRelativeTimeInput').on('change', timeInputChange)
 
         updateTime()
     },
     toggleTimeUI: function (isOn) {
-        d3.select("#timeUI").style('visibility', function() {
-            return (isOn === true) ? "visible" : "hidden";
+        d3.select('#timeUI').style('visibility', function () {
+            return isOn === true ? 'visible' : 'hidden'
         })
-        return isOn       
+        return isOn
     },
-    setTime: function(startTime, endTime, isRelative, timeOffset='00:00:00') {
-
+    setTime: function (
+        startTime,
+        endTime,
+        isRelative,
+        timeOffset = '00:00:00'
+    ) {
         var now = new Date()
         var offset = 0
-        if(relativeTimeFormat.test(timeOffset)) {
+        if (relativeTimeFormat.test(timeOffset)) {
             offset = parseTime(timeOffset)
         } else {
             // assume seconds otherwise
@@ -184,9 +204,10 @@ var TimeControl = {
         d3.select('#offsetTimeInput').property('value', timeOffset)
         var currentTime = new moment(now).add(offset, 'seconds')
         d3.select('#currentTimeLabel').text(currentTime.toISOString())
-        TimeControl.currentTime = currentTime.toDate().toISOString().split('.')[0]+'Z'
+        TimeControl.currentTime =
+            currentTime.toDate().toISOString().split('.')[0] + 'Z'
 
-        d3.select("#isRelativeTime").property('checked', isRelative)
+        d3.select('#isRelativeTime').property('checked', isRelative)
         if (isRelative == true) {
             d3.select('#startRelativeTimeInput').property('value', startTime)
             d3.select('#endRelativeTimeInput').property('value', endTime)
@@ -195,79 +216,83 @@ var TimeControl = {
             var end = parseTime(endTime)
             var startTimeM = new moment(currentTime).subtract(start, 'seconds')
             var endTimeM = new moment(currentTime).add(end, 'seconds')
-    
-            d3.select('#startTimeInput').property('value', startTimeM.toISOString().split('.')[0]+'Z')
-            d3.select('#endTimeInput').property('value', endTimeM.toISOString().split('.')[0]+'Z')
+
+            d3.select('#startTimeInput').property(
+                'value',
+                startTimeM.toISOString().split('.')[0] + 'Z'
+            )
+            d3.select('#endTimeInput').property(
+                'value',
+                endTimeM.toISOString().split('.')[0] + 'Z'
+            )
         } else {
             var startTimeD = new Date(startTime)
             var endTimeD = new Date(endTime)
-            d3.select('#startTimeInput').property('value', startTimeD.toISOString().split('.')[0]+'Z')
-            d3.select('#endTimeInput').property('value', endTimeD.toISOString().split('.')[0]+'Z')           
+            d3.select('#startTimeInput').property(
+                'value',
+                startTimeD.toISOString().split('.')[0] + 'Z'
+            )
+            d3.select('#endTimeInput').property(
+                'value',
+                endTimeD.toISOString().split('.')[0] + 'Z'
+            )
         }
         TimeControl.startTime = d3.select('#startTimeInput').property('value')
         TimeControl.endTime = d3.select('#endTimeInput').property('value')
         TimeControl.updateLayersTime()
         return true
     },
-    setLayerTime: function(layer, startTime, endTime) {
+    setLayerTime: function (layer, startTime, endTime) {
         if (typeof layer == 'string') {
-            L_.configData.layers.forEach(function (l) {
-                if (l.name == layer) {
-                    layer = l
-                }
-            })
+            layer = L_.layersNamed[layer]
         }
-        if (layer.time.enabled == true) {
+        if (layer.time && layer.time.enabled == true) {
             layer.time.start = startTime
             layer.time.end = endTime
-            d3.select('.starttime.' + layer.name.replace(/\s/g,'')).text(layer.time.start)
-            d3.select('.endtime.' + layer.name.replace(/\s/g,'')).text(layer.time.end)
+            d3.select('.starttime.' + layer.name.replace(/\s/g, '')).text(
+                layer.time.start
+            )
+            d3.select('.endtime.' + layer.name.replace(/\s/g, '')).text(
+                layer.time.end
+            )
         }
         return true
     },
-    getTime: function() {
+    getTime: function () {
         return TimeControl.currentTime
     },
-    getStartTime: function() {
+    getStartTime: function () {
         return TimeControl.startTime
     },
-    getEndTime: function() {
+    getEndTime: function () {
         return TimeControl.endTime
     },
-    getLayerStartTime: function(layer) {
+    getLayerStartTime: function (layer) {
         if (typeof layer == 'string') {
-            L_.configData.layers.forEach(function (l) {
-                if (l.name == layer) {
-                    layer = l
-                }
-            })
+            layer = L_.layersNamed[layer]
         }
-        return layer.time.start
+        if (layer.time) return layer.time.start
+        return false
     },
-    getLayerEndTime: function(layer) {
+    getLayerEndTime: function (layer) {
         if (typeof layer == 'string') {
-            L_.configData.layers.forEach(function (l) {
-                if (l.name == layer) {
-                    layer = l
-                }
-            })
+            layer = L_.layersNamed[layer]
         }
-        return layer.time.end
+        if (layer.time) return layer.time.end
+        return false
     },
-    reloadLayer: function(layer) {
+    reloadLayer: function (layer) {
         // reload layer
         if (typeof layer == 'string') {
-            L_.configData.layers.forEach(function (l) {
-                if (l.name == layer) {
-                    layer = l
-                }
-            })
+            layer = L_.layersNamed[layer]
         }
         console.log('Reloading ' + layer.name)
-        if (layer.time.enabled == true) {
+        if (layer.time && layer.time.enabled == true) {
             layer.time.current = TimeControl.currentTime // keeps track of when layer was refreshed
             if (layer.type == 'tile') {
-                if (typeof L_.layersGroup[layer.name].wmsParams !== 'undefined') {
+                if (
+                    typeof L_.layersGroup[layer.name].wmsParams !== 'undefined'
+                ) {
                     L_.layersGroup[layer.name].wmsParams.TIME = layer.time.end
                 }
                 L_.layersGroup[layer.name].options.time = layer.time.end
@@ -276,63 +301,79 @@ var TimeControl = {
             } else {
                 // replace start/endtime keywords
                 layer.url = layer.url
-                .replace('{starttime}', layer.time.start)
-                .replace('{endtime}', layer.time.end)
+                    .replace('{starttime}', layer.time.start)
+                    .replace('{endtime}', layer.time.end)
                 // refresh map
                 Map_.refreshLayer(layer)
                 // put start/endtime keywords back
                 layer.url = layer.url
-                .replace(layer.time.start, '{starttime}')
-                .replace(layer.time.end, '{endtime}')
+                    .replace(layer.time.start, '{starttime}')
+                    .replace(layer.time.end, '{endtime}')
             }
         }
 
         return true
     },
-    reloadTimeLayers: function() {
+    reloadTimeLayers: function () {
         // refresh time enabled layers
         var reloadedLayers = []
-        L_.configData.layers.forEach(function (layer) {
-            if (layer.time.enabled == true) {
+        for (let layerName in L_.layersNamed) {
+            const layer = L_.layersNamed[layerName]
+            if (layer.time && layer.time.enabled == true) {
                 TimeControl.reloadLayer(layer)
                 reloadedLayers.push(layer.name)
             }
-        })
+        }
         return reloadedLayers
     },
-    updateLayersTime: function() {
+    updateLayersTime: function () {
         var updatedLayers = []
-        L_.configData.layers.forEach(function (layer) {
-            if (layer.time.enabled == true && layer.time.type == 'global') {
+        for (let layerName in L_.layersNamed) {
+            const layer = L_.layersNamed[layerName]
+            if (
+                layer.time &&
+                layer.time.enabled == true &&
+                layer.time.type == 'global'
+            ) {
                 layer.time.start = TimeControl.startTime
                 layer.time.end = TimeControl.endTime
-                d3.select('.starttime.' + layer.name.replace(/\s/g,'')).text(layer.time.start)
-                d3.select('.endtime.' + layer.name.replace(/\s/g,'')).text(layer.time.end)
+                d3.select('.starttime.' + layer.name.replace(/\s/g, '')).text(
+                    layer.time.start
+                )
+                d3.select('.endtime.' + layer.name.replace(/\s/g, '')).text(
+                    layer.time.end
+                )
                 updatedLayers.push(layer.name)
             }
-        })
+        }
         return updatedLayers
     },
-    setLayerTimeStatus: function(layer, color) {
+    setLayerTimeStatus: function (layer, color) {
         if (typeof layer == 'string') {
-            L_.configData.layers.forEach(function (l) {
-                if (l.name == layer) {
-                    layer = l
-                }
-            })
+            layer = L_.layersNamed[layer]
         }
-        layer.time.status = color
-        d3.select('#timesettings' + layer.name.replace(/\s/g,'')).style('color', layer.time.status)
+        if (layer.time) {
+            layer.time.status = color
+            d3.select('#timesettings' + layer.name.replace(/\s/g, '')).style(
+                'color',
+                layer.time.status
+            )
+        }
         return true
     },
-    setLayersTimeStatus: function(color) {
+    setLayersTimeStatus: function (color) {
         var updatedLayers = []
-        L_.configData.layers.forEach(function (layer) {
-            if (layer.time.enabled == true && layer.time.type == 'global') {
+        for (let layerName in L_.layersNamed) {
+            const layer = L_.layersNamed[layerName]
+            if (
+                layer.time &&
+                layer.time.enabled == true &&
+                layer.time.type == 'global'
+            ) {
                 TimeControl.setLayerTimeStatus(layer, color)
                 updatedLayers.push(layer.name)
             }
-        })
+        }
         return updatedLayers
     },
 }
@@ -342,24 +383,36 @@ function updateTime() {
     var now = new Date()
     var offset = 0
     var offsetTime = d3.select('#offsetTimeInput').property('value')
-    if(relativeTimeFormat.test(offsetTime)) {
+    if (relativeTimeFormat.test(offsetTime)) {
         offset = parseTime(offsetTime)
     }
     var currentTime = new moment(now).add(offset, 'seconds')
     d3.select('#currentTimeLabel').text(currentTime.toISOString())
-    TimeControl.currentTime = currentTime.toDate().toISOString().split('.')[0]+'Z'
+    TimeControl.currentTime =
+        currentTime.toDate().toISOString().split('.')[0] + 'Z'
 
-    if (d3.select("#isRelativeTime").property('checked') == true) {
-        var start = parseTime(d3.select('#startRelativeTimeInput').property('value'))
-        var end = parseTime(d3.select('#endRelativeTimeInput').property('value'))
+    if (d3.select('#isRelativeTime').property('checked') == true) {
+        var start = parseTime(
+            d3.select('#startRelativeTimeInput').property('value')
+        )
+        var end = parseTime(
+            d3.select('#endRelativeTimeInput').property('value')
+        )
         var startTime = new moment(currentTime).subtract(start, 'seconds')
         var endTime = new moment(currentTime).add(end, 'seconds')
 
-        TimeControl.startTime = startTime.toDate().toISOString().split('.')[0]+'Z'
-        TimeControl.endTime = endTime.toDate().toISOString().split('.')[0]+'Z'
+        TimeControl.startTime =
+            startTime.toDate().toISOString().split('.')[0] + 'Z'
+        TimeControl.endTime = endTime.toDate().toISOString().split('.')[0] + 'Z'
 
-        d3.select('#startTimeInput').property('value', startTime.toISOString().split('.')[0]+'Z')
-        d3.select('#endTimeInput').property('value', endTime.toISOString().split('.')[0]+'Z')
+        d3.select('#startTimeInput').property(
+            'value',
+            startTime.toISOString().split('.')[0] + 'Z'
+        )
+        d3.select('#endTimeInput').property(
+            'value',
+            endTime.toISOString().split('.')[0] + 'Z'
+        )
     }
     setTimeout(updateTime, 100)
 }
@@ -367,7 +420,7 @@ function updateTime() {
 function timeInputChange() {
     // Validate time format
     var timeInput = d3.select(this).property('value')
-    if(relativeTimeFormat.test(timeInput)) {
+    if (relativeTimeFormat.test(timeInput)) {
         d3.select(this).style('background-color', '#ffffff')
     } else {
         d3.select(this).style('background-color', '#ff0000')
@@ -381,20 +434,20 @@ function timeInputChange() {
     TimeControl.reloadTimeLayers()
 }
 
-function parseTime( t ) {
+function parseTime(t) {
     if (t.toString().indexOf(':') == -1) {
         return parseInt(t)
     }
     var s = t.split(':')
-    var seconds = (+s[0].replace('-','')) * 60 * 60 + (+s[1]) * 60 + (+s[2])
+    var seconds = +s[0].replace('-', '') * 60 * 60 + +s[1] * 60 + +s[2]
     if (t.charAt(0) === '-') {
         seconds = seconds * -1
     }
     return seconds
- }
+}
 
- function formatTimeString( seconds ) {
-     // converts seconds to hh:mm:ss
+function formatTimeString(seconds) {
+    // converts seconds to hh:mm:ss
     if (typeof seconds === 'undefined') {
         return '00:00:00'
     }
@@ -404,7 +457,7 @@ function parseTime( t ) {
     var dtString = dt.toISOString().substr(11, 8)
     var s = dtString.split(':')
     var hours = +s[0] + days * 24
-    return ((seconds < 0) ? '-' : '') + hours + ':' + s[1] + ':' + s[2]
- }
+    return (seconds < 0 ? '-' : '') + hours + ':' + s[1] + ':' + s[2]
+}
 
 export default TimeControl

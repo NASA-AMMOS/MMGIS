@@ -142,24 +142,32 @@ function interfaceWithMMGIS() {
 
             // Build timeDisplay
             var timeDisplay = ''
-            if (node[i].time !== 'undefined') {
-                if (node[i].time.enabled == true ) {
+            if (node[i].time != null) {
+                if (node[i].time.enabled == true) {
                     timeDisplay = [
                         '<ul>',
-                            '<li>',
-                                '<div>',
-                                    '<div>Start Time</div>',
-                                    '<label class="starttime ' + node[i].name.replace(/\s/g,'') + '">' + node[i].time.start +'</label>',
-                                '</div>',
-                            '</li>',
-                            '<li>',
-                                '<div>',
-                                    '<div>End Time</div>',
-                                    '<label class="endtime ' + node[i].name.replace(/\s/g,'') + '">' + node[i].time.end +'</label>',
-                                '</div>',
-                            '</li>',
+                        '<li>',
+                        '<div>',
+                        '<div>Start Time</div>',
+                        '<label class="starttime ' +
+                            node[i].name.replace(/\s/g, '') +
+                            '">' +
+                            node[i].time.start +
+                            '</label>',
+                        '</div>',
+                        '</li>',
+                        '<li>',
+                        '<div>',
+                        '<div>End Time</div>',
+                        '<label class="endtime ' +
+                            node[i].name.replace(/\s/g, '') +
+                            '">' +
+                            node[i].time.end +
+                            '</label>',
+                        '</div>',
+                        '</li>',
                         '</ul>',
-                    ].join('\n')                   
+                    ].join('\n')
                 }
             }
 
