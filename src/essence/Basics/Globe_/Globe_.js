@@ -652,10 +652,10 @@ var Globe_ = {
         // don't invert globe if we find WMTS layers
         var layer = L_.layersNamed[layerObj.name]
         if (layer != null && layer.tileformat == 'wmts') {
-        	Globe_.yInvert = false
-    	} else {
-    		Globe_.yInvert = true
-    	}
+            Globe_.yInvert = false
+        } else {
+            Globe_.yInvert = true
+        }
 
         killDrawingTiles()
         var alreadyExists = false
