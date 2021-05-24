@@ -412,9 +412,12 @@ function initialize() {
 
                 //time
                 if (typeof cData.time != "undefined") {
-                  $("#tab_time #time_enabled").prop("checked", cData.time.includes('enabled') ? true : false);
-                  $("#tab_time #time_visible").prop("checked", cData.time.includes('visible') ? true : false);
+                  $("#tab_time #time_enabled").prop("checked", cData.time.enabled ? true : false);
+                  $("#tab_time #time_visible").prop("checked", cData.time.visible ? true : false);
                 }
+                $("#tab_time #time_format").val(
+                  cData.time ? cData.time.format : "%Y-%m-%dT%H:%M:%SZ"
+                );
 
                 //tools
                 //uncheck all tools
@@ -1118,7 +1121,7 @@ if (typeof d.time != "undefined") {
               "<label>Time Type</label>" +
             "</div>" +
             "<div id='timeFormatEl' class='input-field col s5 push-s1' style='display: " + timeFormatEl + "'>" +
-              "<input id='TimeFormat" + n + "' type='text' class='validate' value='" + ((typeof d.time != "undefined") ? d.time.format : "YYYY-MM-DDThh:mm:ssZ") + "'>" +
+              "<input id='TimeFormat" + n + "' type='text' class='validate' value='" + ((typeof d.time != "undefined") ? d.time.format : "%Y-%m-%dT%H:%M:%SZ") + "'>" +
               "<label for='TimeFormat" + n + "'>Time Format</label>" +
             "</div>" +
             "<div id='timeRefreshEl' class='input-field col s2 push-s1' style='display: " + timeRefreshEl + "'>" +
@@ -1496,7 +1499,7 @@ function save() {
       panels: [],
       tools: [],
       layers: [],
-      time: [],
+      time: {},
     };
     var prevIndentations = [];
     var prevLayerObjects = [];
@@ -1572,10 +1575,18 @@ function save() {
     if ($("#tab_panels #panels_globe").prop("checked"))
       json.panels.push("globe");
     //Time
-    if ($("#tab_time #time_enabled").prop("checked"))
-      json.time.push("enabled");
-    if ($("#tab_time #time_visible").prop("checked"))
-      json.time.push("visible");
+    if ($("#tab_time #time_enabled").prop("checked")) {
+      json.time.enabled = true
+    }
+    else {
+      json.time.enabled = false
+    }
+    if ($("#tab_time #time_visible").prop("checked")) {
+      json.time.visible = true
+    } else {
+      json.time.visible = false
+    }
+    json.time.format = $("#tab_time #time_format").val();
     //Tools
     for (var i = 0; i < tData.length; i++) {
       if ($("#tab_tools #tools_" + tData[i].name).prop("checked")) {
@@ -1692,6 +1703,7 @@ function save() {
           .find("#timeTypeEl select option:selected")
           .text()
           .toLowerCase();
+        var modalTimeFormat = modal.find("#timeFormatEl input").val();
 
         layerObject.name = modalName;
         if (
@@ -1815,7 +1827,7 @@ function save() {
         layerObject.time.current = new Date().toISOString().split('.')[0]+'Z' // initial time
         layerObject.time.start = '' // initial start
         layerObject.time.end = '' // initial end
-        layerObject.time.format = 'YYYY-MM-DDTHH:mm:ssZ' // time string format
+        layerObject.time.format = modalTimeFormat // time string format
         layerObject.time.refresh = '1 hours' // refresh when the layer becomes stale
         layerObject.time.increment = '5 minutes' // time bar steps
 

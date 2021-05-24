@@ -17,9 +17,11 @@ var TimeControl = {
     endTime: new Date().toISOString().split('.')[0] + 'Z',
     relativeStartTime: '01:00:00',
     relativeEndTime: '00:00:00',
+    globalTimeFormat: null,
     init: function () {
-        if (L_.configData.time && L_.configData.time[0] == 'enabled') {
+        if (L_.configData.time && L_.configData.time.enabled == true) {
             console.log('Time controller enabled')
+            TimeControl.globalTimeFormat = d3.utcFormat(L_.configData.time.format)
         } else {
             return
         }
@@ -180,6 +182,10 @@ var TimeControl = {
         d3.select('#endRelativeTimeInput').on('change', timeInputChange)
 
         updateTime()
+        if (L_.configData.time.visible == false) {
+            TimeControl.toggleTimeUI(false)
+        }
+
     },
     toggleTimeUI: function (isOn) {
         d3.select('#timeUI').style('visibility', function () {
@@ -203,7 +209,7 @@ var TimeControl = {
         }
         d3.select('#offsetTimeInput').property('value', timeOffset)
         var currentTime = new moment(now).add(offset, 'seconds')
-        d3.select('#currentTimeLabel').text(currentTime.toISOString())
+        d3.select('#currentTimeLabel').text(TimeControl.globalTimeFormat(currentTime))
         TimeControl.currentTime =
             currentTime.toDate().toISOString().split('.')[0] + 'Z'
 
@@ -288,27 +294,31 @@ var TimeControl = {
         }
         console.log('Reloading ' + layer.name)
         if (layer.time && layer.time.enabled == true) {
+            var layerTimeFormat = d3.utcFormat(layer.time.format)
             layer.time.current = TimeControl.currentTime // keeps track of when layer was refreshed
             if (layer.type == 'tile') {
                 if (
                     typeof L_.layersGroup[layer.name].wmsParams !== 'undefined'
                 ) {
-                    L_.layersGroup[layer.name].wmsParams.TIME = layer.time.end
+                    L_.layersGroup[layer.name].wmsParams.TIME = layerTimeFormat(Date.parse(layer.time.end))
+                    L_.layersGroup[layer.name].wmsParams.STARTTIME = layerTimeFormat(Date.parse(layer.time.start))
+                    L_.layersGroup[layer.name].wmsParams.ENDTIME = layerTimeFormat(Date.parse(layer.time.end))
                 }
-                L_.layersGroup[layer.name].options.time = layer.time.end
+                L_.layersGroup[layer.name].options.time = layerTimeFormat(Date.parse(layer.time.end))
+                L_.layersGroup[layer.name].options.starttime = layerTimeFormat(Date.parse(layer.time.start))
+                L_.layersGroup[layer.name].options.endtime = layerTimeFormat(Date.parse(layer.time.end))
                 L_.toggleLayer(layer)
                 L_.toggleLayer(layer)
             } else {
                 // replace start/endtime keywords
+                var originalUrl = layer.url
                 layer.url = layer.url
-                    .replace('{starttime}', layer.time.start)
-                    .replace('{endtime}', layer.time.end)
+                    .replace('{starttime}', layerTimeFormat(Date.parse(layer.time.start)))
+                    .replace('{endtime}', layerTimeFormat(Date.parse(layer.time.end)))
                 // refresh map
                 Map_.refreshLayer(layer)
                 // put start/endtime keywords back
-                layer.url = layer.url
-                    .replace(layer.time.start, '{starttime}')
-                    .replace(layer.time.end, '{endtime}')
+                layer.url = originalUrl
             }
         }
 
@@ -387,7 +397,7 @@ function updateTime() {
         offset = parseTime(offsetTime)
     }
     var currentTime = new moment(now).add(offset, 'seconds')
-    d3.select('#currentTimeLabel').text(currentTime.toISOString())
+    d3.select('#currentTimeLabel').text(TimeControl.globalTimeFormat(currentTime))
     TimeControl.currentTime =
         currentTime.toDate().toISOString().split('.')[0] + 'Z'
 

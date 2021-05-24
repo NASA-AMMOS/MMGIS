@@ -141,7 +141,7 @@ Whether the layer should use global time values or function independently with i
 #### Time Format
 
 _type:_ string _optional_  
-The string format to be used in the URL for `{time}`. Defaults to `YYYY-MM-DDTHH:mm:ssZ`.
+The string format to be used in the URL for `{time}`. Defaults to `%Y-%m-%dT%H:%M:%SZ`.
 
 # Vector Tile
 
