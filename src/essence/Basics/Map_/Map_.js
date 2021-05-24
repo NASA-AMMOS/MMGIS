@@ -704,7 +704,7 @@ function makeLayer(layerObj) {
     function makeVectorLayer() {
         var layerUrl = layerObj.url
         // Give time enabled layers a default start and end time to avoid errors
-        var layerTimeFormat = (layerObj.time == null) ? '%Y-%m-%dT%H:%M:%SZ' : d3.utcFormat(layerObj.time.format)
+        var layerTimeFormat = (layerObj.time == null) ? d3.utcFormat('%Y-%m-%dT%H:%M:%SZ') : d3.utcFormat(layerObj.time.format)
         var startTime = layerTimeFormat(Date.parse(TimeControl.getStartTime()))
         var endTime = layerTimeFormat(Date.parse(TimeControl.getEndTime()))
         if (typeof layerObj.time != 'undefined') {
