@@ -25,9 +25,9 @@ var Kinds = {
                 //Make rover image curiosity
                 Map_.rmNotNull(Map_.tempOverlayImage)
                 //256 x 338, 256 is 2.8m
-                var wm = 2.8
-                var w = 256
-                var h = 338
+                var wm = 2.6924
+                var w = 420
+                var h = 600
                 var lngM = F_.metersToDegrees(wm) / 2
                 var latM = lngM * (h / w)
                 var center = [layer._latlng.lng, layer._latlng.lat]
@@ -72,7 +72,7 @@ var Kinds = {
                     [bottomLeft.y, bottomLeft.x],
                 ]
                 Map_.tempOverlayImage = L.imageTransform(
-                    'public/images/rovers/CuriosityTopDownOrthoSmall.png',
+                    'public/images/rovers/PerseveranceTopDown.png',
                     anchors,
                     { opacity: 1, clip: anchors }
                 )

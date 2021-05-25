@@ -346,9 +346,8 @@ var L_ = {
         } else {
             map = map.map
         }
-        console.log(L_)
         for (var i = L_.layersData.length - 1; i >= 0; i--) {
-            if (L_.toggledArray[L_.layersData[i].name] == true) {
+            if (L_.toggledArray[L_.layersData[i].name] === true) {
                 if (L_.layersData[i].type === 'tile') {
                     // Make sure all tile layers follow z-index order at start instead of element order
                     L_.layersGroup[L_.layersData[i].name].setZIndex(
@@ -394,20 +393,19 @@ var L_ = {
                         boundingBox: s.boundingBox,
                     })
                 } else if (L_.layersData[i].type != 'header') {
-                    console.log(s.name)
                     L_.Globe_.litho.addLayer(
                         L_.layersData[i].type == 'vector'
                             ? 'clamped'
                             : L_.layersData[i].type,
                         {
                             name: s.name,
-                            order: L_.layersIndex[s.name],
+                            order: 1000 - L_.layersIndex[s.name], // Since higher order in litho is on top
                             on: L_.opacityArray[s.name] ? true : false,
                             geojsonPath: layerUrl,
                             useKeyAsHoverName: s.useKeyAsName,
                             style: {
                                 // Prefer feature[f].properties.style values
-                                letPropertiesStyleOverride: false, // default false
+                                letPropertiesStyleOverride: true, // default false
                                 default: {
                                     fillColor: s.style.fillColor, //Use only rgb and hex. No css color names
                                     fillOpacity: parseFloat(
