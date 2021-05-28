@@ -160,13 +160,13 @@ var UserInterface = {
                 $('.leaflet-control-zoom').css('display', 'none')
                 $('#topBarScreenshotLoading').css('display', 'block')
                 $('#mapToolBar').css('background', 'rgba(0,0,0,0)')
-                HTML2Canvas(document.getElementById('mapScreen')).then(
+                HTML2Canvas(document.getElementById('mapScreen'), {allowTaint: true, useCORS: true}).then(
                     function (canvas) {
                         canvas.id = 'mmgisScreenshot'
                         document.body.appendChild(canvas)
                         F_.downloadCanvas(
                             canvas.id,
-                            'camp-screenshot',
+                            'mmgis-screenshot',
                             function () {
                                 canvas.remove()
                                 setTimeout(function () {
