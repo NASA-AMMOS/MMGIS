@@ -318,11 +318,20 @@ let Map_ = {
         }
     },
     refreshLayer: function(layerObj) {
-        this.map.eachLayer( function (layer) {
-            // Need to overcome some weirdness with points not being removed
-            Map_.map.removeLayer( layer )
-            L_.layersLoaded[L_.layersOrdered.indexOf( layerObj.name )] = false
-        });
+        // We need to find and remove all points on the map that belong to the layer
+        // Not sure if there is a cleaner way of doing this
+        for (var i = L_.layersOrdered.length - 1; i >= 0; i--) {
+            if (Map_.hasLayer(L_.layersOrdered[i])) {
+                if (
+                    L_.layersNamed[L_.layersOrdered[i]] &&
+                    L_.layersNamed[L_.layersOrdered[i]].type == 'vector' &&
+                    L_.layersNamed[L_.layersOrdered[i]].name == layerObj.name
+                ) {
+                    Map_.map.removeLayer(L_.layersGroup[L_.layersOrdered[i]])
+                    L_.layersLoaded[L_.layersOrdered.indexOf( layerObj.name )] = false
+                }
+            }
+        }
         Map_.allLayersLoadedPassed = false
         makeLayer(layerObj)
         allLayersLoaded()
@@ -695,12 +704,14 @@ function makeLayer(layerObj) {
     function makeVectorLayer() {
         var layerUrl = layerObj.url
         // Give time enabled layers a default start and end time to avoid errors
-        var startTime = TimeControl.getStartTime()
-        var endTime = TimeControl.getEndTime()
+        var layerTimeFormat = (layerObj.time == null) ? d3.utcFormat('%Y-%m-%dT%H:%M:%SZ') : d3.utcFormat(layerObj.time.format)
+        var startTime = layerTimeFormat(Date.parse(TimeControl.getStartTime()))
+        var endTime = layerTimeFormat(Date.parse(TimeControl.getEndTime()))
         if (typeof layerObj.time != 'undefined') {
-            layerUrl = layerUrl
+            layerUrl = layerObj.url
                 .replace('{starttime}', startTime)
                 .replace('{endtime}', endTime)
+                .replace('{time}', endTime)
         }
         if (!F_.isUrlAbsolute(layerUrl)) layerUrl = L_.missionPath + layerUrl
         let urlSplit = layerObj.url.split(':')
@@ -837,10 +848,8 @@ function makeLayer(layerObj) {
                     allLayersLoaded()
                 })
                 if (typeof layerObj.time != 'undefined') {
-                    layerUrl = layerUrl
-                    .replace(startTime, '{starttime}')
-                    .replace(endTime, '{endtime}')
-                }               
+                    layerUrl = layerObj.url
+                }
             }
         }
 
@@ -1045,6 +1054,8 @@ function makeLayer(layerObj) {
             reuseTiles: true,
             bounds: bb,
             time: ((typeof layerObj.time === 'undefined') ? '' : layerObj.time.end),
+            starttime: ((typeof layerObj.time === 'undefined') ? '' : layerObj.time.start),
+            endtime: ((typeof layerObj.time === 'undefined') ? '' : layerObj.time.end),
         })
 
         L_.setLayerOpacity(layerObj.name, L_.opacityArray[layerObj.name])

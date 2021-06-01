@@ -12,4 +12,6 @@ Whether or not the Time user interface should be visible.
 
 ## Time Format
 
-The time format to be displayed on the Time UI. Currently only works with `YYYY-MM-DDThh:mm:ssZ`.
+The time format to be displayed on the Time UI. Uses D3 time format specifiers: https://github.com/d3/d3-time-format
+
+Default: `%Y-%m-%dT%H:%M:%SZ`
