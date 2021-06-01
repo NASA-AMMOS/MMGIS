@@ -593,14 +593,17 @@ var DrawTool = {
                                 .then((source) =>
                                     source.read().then(function log(result) {
                                         if (result.done) {
-                                            var geojsonResult = F_.getBaseGeoJSON()
-                                            geojsonResult.features = featureArray
+                                            var geojsonResult =
+                                                F_.getBaseGeoJSON()
+                                            geojsonResult.features =
+                                                featureArray
                                             var body = {
                                                 file_name: f.name,
                                                 intent: 'all',
-                                                geojson: JSON.stringify(
-                                                    geojsonResult
-                                                ),
+                                                geojson:
+                                                    JSON.stringify(
+                                                        geojsonResult
+                                                    ),
                                             }
                                             DrawTool.makeFile(
                                                 body,
@@ -640,7 +643,12 @@ var DrawTool = {
                                 intent: 'all',
                                 geojson: e.target.result,
                             }
-                            if (body.geojson.type !== 'FeatureCollection') {
+
+                            if (
+                                body.geojson &&
+                                JSON.parse(body.geojson).type !==
+                                    'FeatureCollection'
+                            ) {
                                 CIU(
                                     'Uploaded object has no type: "FeatureCollection". Are you sure this is geojson?'
                                 )
@@ -1221,8 +1229,8 @@ function interfaceWithMMGIS() {
                     delete properties._
                     var geometry = feature.geometry
 
-                    var toFileIntent = DrawTool.getFileObjectWithId(file_id)
-                        .intent
+                    var toFileIntent =
+                        DrawTool.getFileObjectWithId(file_id).intent
 
                     if (intent == 'polygon') {
                         if (

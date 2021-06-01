@@ -340,7 +340,7 @@ const clipUnder = function (
         "SELECT ST_BUFFER(",
         "ST_UNION(",
         "ARRAY((",
-        "SELECT ST_BUFFER(a.geom, 0.00001, 'join=mitre')",
+        "SELECT ST_BUFFER(a.geom, 0.000001, 'join=mitre')",
         "FROM user_features" +
           (req.body.test === "true" ? "_tests" : "") +
           " AS a",
@@ -349,7 +349,7 @@ const clipUnder = function (
           ") AND ST_INTERSECTS(a.geom, clippedgeom)",
         "))",
         "),",
-        "-0.00001,'join=mitre')",
+        "-0.000001,'join=mitre')",
         ")",
         ")",
         "FROM clipper",
@@ -1084,13 +1084,13 @@ router.post("/merge", function (req, res, next) {
             "(",
             "SELECT ST_BUFFER(ST_UNION(",
             "ARRAY((",
-            "SELECT ST_BUFFER(geom, 0.00001, 'join=mitre')",
+            "SELECT ST_BUFFER(geom, 0.000001, 'join=mitre')",
             "FROM user_features" +
               (req.body.test === "true" ? "_tests" : "") +
               " AS a",
             "WHERE a.id IN (" + ids + ")",
             "))",
-            "), -0.00001,'join=mitre') AS geom",
+            "), -0.000001,'join=mitre') AS geom",
             ") AS mergedgeom",
           ].join(" ");
         }
