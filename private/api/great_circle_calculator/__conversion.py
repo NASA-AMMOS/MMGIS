@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from _constants import *
-from __error_checking import _error_check_point
+from ._constants import *
+from .__error_checking import _error_check_point
 
 
 def _degrees_to_radians(degrees):

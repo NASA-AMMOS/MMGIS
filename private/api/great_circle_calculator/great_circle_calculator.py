@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from __conversion import _point_to_radians, _point_to_degrees, _radians_to_degrees, \
+from .__conversion import _point_to_radians, _point_to_degrees, _radians_to_degrees, \
     _degrees_to_radians
-from __error_checking import _error_check_point
-from _constants import *
+from .__error_checking import _error_check_point
+from ._constants import *
 
 
 def distance_between_points(p1, p2, unit='meters', haversine=True):

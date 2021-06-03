@@ -7,13 +7,12 @@
 
 # Setting axes to "xyz" will return image coordinates instead of lat lons
 
-# pip install numpy
-import os
 import sys
 import gdal
 import osr
-import numpy
+import math
 from gdalconst import *
+from osgeo import __version__ as osgeoversion
 from great_circle_calculator.great_circle_calculator import intermediate_point
 
 # Make gdal use exceptions instead of their own errors so that they can be caught
@@ -129,6 +128,9 @@ def latLonsToPixel(latLonPairs):
     pixelHeight = transform[5]
     # Create a spatial reference object for the dataset
     srs = osr.SpatialReference()
+    if int(osgeoversion[0]) >= 3:
+        # GDAL 3 changes axis order: https://github.com/OSGeo/gdal/issues/1546
+        srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
     srs.ImportFromWkt(ds.GetProjection())
     # Set up the coordinate transformation object
     srsLatLong = srs.CloneGeogCS()
@@ -141,6 +143,10 @@ def latLonsToPixel(latLonPairs):
         # Translate the x and y coordinates into pixel values
         x = (point[1] - xOrigin) / pixelWidth
         y = (point[0] - yOrigin) / pixelHeight
+        if math.isinf(x):
+            x = 0
+        if math.isinf(y):
+            y = 0
         # Add the point to our return array
         pixelPairs.append([int(x), int(y)])
     return pixelPairs
@@ -161,7 +167,7 @@ latLonEndPairs = [[lat1, lon1], [lat2, lon2]]
 # Open the image
 ds = gdal.Open(raster, GA_ReadOnly)
 if ds is None:
-    print "Could not open image"
+    print("Could not open image")
     sys.exit(1)
 
 # Get the band
@@ -171,7 +177,7 @@ if axes == 'xyz':
         bandX = ds.GetRasterBand(1)
         bandY = ds.GetRasterBand(2)
     except:
-        print "Failed to get bands 1, 2 and 3"
+        print("Failed to get bands 1, 2 and 3")
         sys.exit(1)
 else:
     band = ds.GetRasterBand(band)
@@ -200,4 +206,4 @@ for i in range(0, len(latLonElevArray)):
     latLonElevArray[i] = [latLonElevArray[i][1], latLonElevArray[i][0]]
     latLonElevArray[i].append(elevArray[i])
 
-print latLonElevArray
+print(latLonElevArray)
