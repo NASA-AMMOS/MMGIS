@@ -217,21 +217,15 @@ let Map_ = {
             enforceVisibilityCutoffs()
         })
 
-        Map_.map.on('move', function (e) {
-            if (L_.mapAndGlobeLinked || window.mmgisglobal.ctrlDown) {
-                if (L_.Globe_ != null) {
-                    var c = Map_.map.getCenter()
-                    L_.Globe_.litho.setCenter([c.lat, c.lng])
-                }
-            }
+        this.map.on('move', (e) => {
+            const c = this.map.getCenter()
+            Globe_.controls.link.linkMove(c.lng, c.lat)
         })
-        Map_.map.on('mousemove', function (e) {
-            if (L_.mapAndGlobeLinked || window.mmgisglobal.ctrlDown) {
-                if (L_.Globe_ != null) L_.Globe_.setLink(e.latlng)
-            }
+        this.map.on('mousemove', (e) => {
+            Globe_.controls.link.linkMouseMove(e.latlng.lng, e.latlng.lat)
         })
-        Map_.map.on('mouseout', function (e) {
-            if (L_.Globe_ != null) L_.Globe_.setLink('off')
+        this.map.on('mouseout', (e) => {
+            Globe_.controls.link.linkMouseOut()
         })
 
         //Build the toolbar
@@ -397,11 +391,12 @@ function getLayersChosenNamePropVal(feature, layer) {
         ) {
             propertyName = l.variables['useKeyAsName']
             if (feature.properties.hasOwnProperty(propertyName)) {
-                propertyValue = feature.properties[propertyName]
-                foundThroughVariables = true
+                propertyValue = F_.getIn(feature.properties, propertyName)
+                if (propertyValue != null) foundThroughVariables = true
             }
         }
     }
+    // Use first key
     if (!foundThroughVariables) {
         for (var key in feature.properties) {
             //Store the current feature's key

@@ -5,6 +5,9 @@ import LithoSphere from 'lithosphere'
 
 let Globe_ = {
     litho: null,
+    controls: {
+        link: null,
+    },
     init: function () {
         const containerId = 'globe'
         let initialView = null
@@ -62,6 +65,44 @@ let Globe_ = {
             this.litho.controls.coordinates,
             {
                 existingDivId: 'mouseLngLat',
+            }
+        )
+
+        this.controls.link = this.litho.addControl(
+            'mmgisLithoLink',
+            this.litho.controls.link,
+            {
+                initiallyLinked: false,
+                // callbacks
+                onMove: (lng, lat, height) => {
+                    /*React to globe move*/
+                    L_.Map_.resetView([lat, lng], true)
+                },
+                onMouseMove: (lng, lat) => {
+                    L_.Map_.setPlayerLookat(lng, lat)
+                },
+                onMouseOut: () => {
+                    L_.Map_.hidePlayer()
+                },
+                onToggle: (isLinked) => {},
+                onFirstPersonUpdate: () => {
+                    const center = this.litho.getCenter()
+                    L_.Map_.setPlayerArrow(
+                        center.lng,
+                        center.lat,
+                        (this.litho._.cameras.firstPerson.controls.getObject()
+                            .rotation.y %
+                            (Math.PI * 2)) +
+                            Math.PI
+                    )
+                    L_.Map_.setPlayerLookat(
+                        this.litho.mouse.lng,
+                        this.litho.mouse.lat
+                    )
+                },
+                onOrbitalUpdate: () => {
+                    L_.Map_.hidePlayer()
+                },
             }
         )
 

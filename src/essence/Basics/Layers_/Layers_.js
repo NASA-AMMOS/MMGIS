@@ -402,6 +402,9 @@ var L_ = {
                             order: 1000 - L_.layersIndex[s.name], // Since higher order in litho is on top
                             on: L_.opacityArray[s.name] ? true : false,
                             geojsonPath: layerUrl,
+                            onClick: (feature, lnglat, layer) => {
+                                this.selectFeature(layer.name, feature)
+                            },
                             useKeyAsHoverName: s.useKeyAsName,
                             style: {
                                 // Prefer feature[f].properties.style values
@@ -583,6 +586,29 @@ var L_ = {
                 layerName: null,
                 lat: null,
                 lon: null,
+            }
+        }
+    },
+    selectFeature(layerName, feature) {
+        const layer = L_.layersGroup[layerName]
+        if (layer) {
+            const layers = layer._layers
+            for (let l in layers) {
+                if (
+                    F_.isEqual(
+                        layers[l].feature.geometry,
+                        feature.geometry,
+                        true
+                    ) &&
+                    F_.isEqual(
+                        layers[l].feature.properties,
+                        feature.properties,
+                        true
+                    )
+                ) {
+                    layers[l].fireEvent('click')
+                    return
+                }
             }
         }
     },

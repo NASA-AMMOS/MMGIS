@@ -691,3 +691,7 @@ body {
         background-color: #008321;
     }
 }
+
+#_lithosphere_controls_topleft {
+    top: 40px !important;
+}
