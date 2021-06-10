@@ -220,6 +220,9 @@ var Description = {
         // Clear the description
         $('#mainDescPointInner').empty()
         $('#mainDescPointLinks').empty()
+
+        // Reset the style
+        this.descCont.attr('style', null)
     },
 }
 
