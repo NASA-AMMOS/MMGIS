@@ -1,5 +1,6 @@
 import L_ from '../Basics/Layers_/Layers_'
 import TimeControl from '../Ancillary/TimeControl'
+import mmgisAPI_ from './mmgisAPI_'
 
 var API = {
     /**
@@ -101,8 +102,49 @@ var API = {
      * may need to be re-synchronized.
      * @returns {array} - A list of layers that were reloaded
      */
-     updateLayersTime: TimeControl.updateLayersTime
+     updateLayersTime: TimeControl.updateLayersTime,
+
+    /** map - exposes Leaflet map object.
+     * @returns {object} - The Leaflet map object 
+     */
+     map: null,
+
+    /** featuresContained - returns an array of all features in a given extent.
+      * @param {object} [extent] - any valid form of Leaflet LatLng (i.e. L.latLng, simple array, simple object)
+      * @param {string} [isByLayer] - defaults to false, otherwise value should be a string representing a layer name
+     * @returns {object} - An object containing layer names as keys and values as arrays with all features (as GeoJson Feature objects) contained in the given extent
+     */
+    featuresContained: mmgisAPI_.featuresContained,
+
+     /** getActiveFeature - returns the currently active feature (i.e. feature thats clicked and displayed in the InfoTool)
+     * @returns {object} - The currently selected active feature as an object with the layer name as key and value as an array containing the GeoJson Feature object (MMGIS only allows the section of a single feature).
+     */
+    getActiveFeature: mmgisAPI_.getActiveFeature,
+
+     /** getVisibleLayers - returns an object with the visiblity state of all layers
+     * @returns {object} - an object containing the visibility state of each layer
+     */
+    getVisibleLayers: mmgisAPI_.getVisibleLayers,
+
+    /** addEventListener - adds map event listener.
+     * @param {string} - eventName - name of event to add listener to. Available events: onPan, onZoom, onClick
+     * @param {function} - functionReference - function reference to listener event callback function 
+     */
+    addEventListener: mmgisAPI_.addEventListener,
+
+    /** removeEventListener - removes map event listener added using the MMGIS API. 
+     * @param {string} - eventName - name of event to add listener to. Available events: onPan, onZoom, onClick
+     * @param {function} - functionReference - function reference to listener event callback function. null value removes all functions for a given eventName
+     */
+    removeEventListener: mmgisAPI_.removeEventListener,
 }
+
+Object.defineProperty(API, 'fina', {
+    enumerable : false,
+    value: function (map_) {
+        API.map = map_.map
+    },
+});
 
 window.API = API
 
