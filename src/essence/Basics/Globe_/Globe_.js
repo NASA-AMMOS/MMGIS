@@ -102,9 +102,9 @@ var Globe_ = {
     //How many THREE world units each tile is
     tileDimension: 6,
     //How many vertices wide each tile is
-    tileResolution: 32,
+    tileResolution: 64,
     //How many pixel the dem data is
-    trueTileResolution: 32,
+    trueTileResolution: 64,
     //How many tiles out from look at point
     radiusOfTiles: null,
     exaggeration: 1,
@@ -783,9 +783,8 @@ var Globe_ = {
                 if (tilesDrawn[m].t.texturesOrdered[n].name == name) {
                     tilesDrawn[m].t.texturesOrdered[n].opacity = opacity
                     if (tilesDrawn[m].t.material.hasOwnProperty('uniforms')) {
-                        tilesDrawn[m].t.material.uniforms[
-                            'tA' + n
-                        ].value = opacity
+                        tilesDrawn[m].t.material.uniforms['tA' + n].value =
+                            opacity
                     }
                 }
             }
@@ -1024,10 +1023,9 @@ var Globe_ = {
                                 layerName: l.name,
                                 type: l.type,
                                 index: j,
-                                name:
-                                    data[j].properties[
-                                        L_.layersNamed[l.name].useKeyAsName
-                                    ],
+                                name: data[j].properties[
+                                    L_.layersNamed[l.name].useKeyAsName
+                                ],
                                 useKeyAsName:
                                     L_.layersNamed[l.name].useKeyAsName,
                                 on: L_.toggledArray[l.name],
@@ -1600,9 +1598,8 @@ var Globe_ = {
                         mesh.scene.children[c].material.transparent = true
                         for (let i in mesh.scene.children[c].material) {
                             if (mesh.scene.children[c].material[i]) {
-                                mesh.scene.children[c].material[
-                                    i
-                                ].opacity = opacity
+                                mesh.scene.children[c].material[i].opacity =
+                                    opacity
                                 mesh.scene.children[c].material[
                                     i
                                 ].transparent = true
@@ -1861,10 +1858,11 @@ var Globe_ = {
                     ) {
                         //restore previously clicked point's material
                         if (!F_.isEmpty(lastIntersectsZero)) {
-                            lastIntersectsZero.material = Sprites.makeMarkerMaterial(
-                                {},
-                                lastIntersectsZero.layerName
-                            )
+                            lastIntersectsZero.material =
+                                Sprites.makeMarkerMaterial(
+                                    {},
+                                    lastIntersectsZero.layerName
+                                )
                             lastIntersectsZero.material.needsUpdate = true
                         }
                         //Emulate click on map
@@ -2804,12 +2802,11 @@ function resetLayerFills(layerName) {
     ) {
         for (let s in spriteGroup) {
             for (let i in spriteGroup[s].children) {
-                spriteGroup[s].children[
-                    i
-                ].children[1].material = Sprites.makeMarkerMaterial(
-                    {},
-                    spriteGroup[s].children[i].layerName
-                )
+                spriteGroup[s].children[i].children[1].material =
+                    Sprites.makeMarkerMaterial(
+                        {},
+                        spriteGroup[s].children[i].layerName
+                    )
                 spriteGroup[s].children[
                     i
                 ].children[1].material.needsUpdate = true
@@ -3730,6 +3727,27 @@ function getPixel(imagedata, x, y) {
 }
 
 function RGBAto32(rgba) {
+    /*
+    function rgbaToF(rgba) {
+        // It's important that these typed arrays are vars
+        var int8 = new Int8Array(4)
+        var int32 = new Int32Array(int8.buffer, 0, 1)
+        var float32 = new Float32Array(int8.buffer, 0, 1)
+        const bits = (rgba.r << 24) | (rgba.g << 16) | (rgba.b << 8) | rgba.a
+        int32[0] = bits
+        return float32[0]
+    }
+    return rgbaToF(rgba.r, rgba.g, rgba.b, rgba.a)
+
+    const f = decodeFloat(
+        asByteString(rgba.r.toString(2)) +
+            asByteString(rgba.g.toString(2)) +
+            asByteString(rgba.b.toString(2)) +
+            asByteString(rgba.a.toString(2))
+    )
+    if (asF != f) console.log(asF, f)
+    */
+
     return decodeFloat(
         asByteString(rgba.r.toString(2)) +
             asByteString(rgba.g.toString(2)) +

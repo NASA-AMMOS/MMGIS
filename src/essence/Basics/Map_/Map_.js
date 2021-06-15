@@ -317,7 +317,7 @@ let Map_ = {
             Map_.map.addLayer(L_.layersGroup[L_.layersOrdered[hasIndex[i]]])
         }
     },
-    refreshLayer: function(layerObj) {
+    refreshLayer: function (layerObj) {
         // We need to find and remove all points on the map that belong to the layer
         // Not sure if there is a cleaner way of doing this
         for (var i = L_.layersOrdered.length - 1; i >= 0; i--) {
@@ -328,7 +328,9 @@ let Map_ = {
                     L_.layersNamed[L_.layersOrdered[i]].name == layerObj.name
                 ) {
                     Map_.map.removeLayer(L_.layersGroup[L_.layersOrdered[i]])
-                    L_.layersLoaded[L_.layersOrdered.indexOf( layerObj.name )] = false
+                    L_.layersLoaded[
+                        L_.layersOrdered.indexOf(layerObj.name)
+                    ] = false
                 }
             }
         }
@@ -570,9 +572,10 @@ function makeLayer(layerObj) {
                                         )
                                     }
                                     //remove duplicates
-                                    layer.feature.properties.images = F_.removeDuplicatesInArrayOfObjects(
-                                        layer.feature.properties.images
-                                    )
+                                    layer.feature.properties.images =
+                                        F_.removeDuplicatesInArrayOfObjects(
+                                            layer.feature.properties.images
+                                        )
                                 } else {
                                     layer.feature.properties._data =
                                         d[i].results
@@ -704,7 +707,10 @@ function makeLayer(layerObj) {
     function makeVectorLayer() {
         var layerUrl = layerObj.url
         // Give time enabled layers a default start and end time to avoid errors
-        var layerTimeFormat = (layerObj.time == null) ? d3.utcFormat('%Y-%m-%dT%H:%M:%SZ') : d3.utcFormat(layerObj.time.format)
+        var layerTimeFormat =
+            layerObj.time == null
+                ? d3.utcFormat('%Y-%m-%dT%H:%M:%SZ')
+                : d3.utcFormat(layerObj.time.format)
         var startTime = layerTimeFormat(Date.parse(TimeControl.getStartTime()))
         var endTime = layerTimeFormat(Date.parse(TimeControl.getEndTime()))
         if (typeof layerObj.time != 'undefined') {
@@ -827,7 +833,7 @@ function makeLayer(layerObj) {
             var layerData = L_.layersDataByName[layerObj.name]
             if (L_.missionPath === layerUrl && layerData.controlled) {
                 // Empty GeoJSON data
-                var geojson = { type: "FeatureCollection", features: [] }
+                var geojson = { type: 'FeatureCollection', features: [] }
                 add(geojson)
             } else {
                 $.getJSON(layerUrl, function (data) {
@@ -843,7 +849,9 @@ function makeLayer(layerObj) {
                             errorThrown
                     )
                     //Say that this layer was loaded, albeit erroneously
-                    L_.layersLoaded[L_.layersOrdered.indexOf(layerObj.name)] = true
+                    L_.layersLoaded[
+                        L_.layersOrdered.indexOf(layerObj.name)
+                    ] = true
                     //Check again to see if all layers have loaded
                     allLayersLoaded()
                 })
@@ -1053,9 +1061,11 @@ function makeLayer(layerObj) {
             continuousWorld: true,
             reuseTiles: true,
             bounds: bb,
-            time: ((typeof layerObj.time === 'undefined') ? '' : layerObj.time.end),
-            starttime: ((typeof layerObj.time === 'undefined') ? '' : layerObj.time.start),
-            endtime: ((typeof layerObj.time === 'undefined') ? '' : layerObj.time.end),
+            time: typeof layerObj.time === 'undefined' ? '' : layerObj.time.end,
+            starttime:
+                typeof layerObj.time === 'undefined' ? '' : layerObj.time.start,
+            endtime:
+                typeof layerObj.time === 'undefined' ? '' : layerObj.time.end,
         })
 
         L_.setLayerOpacity(layerObj.name, L_.opacityArray[layerObj.name])
@@ -1242,7 +1252,7 @@ function makeLayer(layerObj) {
     }
 
     function makeDataLayer() {
-        var layerUrl = layerObj.url
+        var layerUrl = layerObj.demtileurl
         if (!F_.isUrlAbsolute(layerUrl)) layerUrl = L_.missionPath + layerUrl
 
         var bb = null

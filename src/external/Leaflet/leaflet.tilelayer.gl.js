@@ -559,6 +559,12 @@
 
                 this._render(coords)
 
+                this._2dContexts[key].clearRect(
+                    0,
+                    0,
+                    tile.el.width,
+                    tile.el.height
+                )
                 this._2dContexts[key].drawImage(this._renderer, 0, 0)
             }
         },

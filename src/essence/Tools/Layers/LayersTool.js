@@ -4,6 +4,8 @@ import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
 
+import DataShaders from '../../Ancillary/DataShaders'
+
 import './LayersTool.css'
 
 //Add the tool markup if you want to do it this way
@@ -290,8 +292,10 @@ function interfaceWithMMGIS() {
                         ].join('\n')
                     break
                 case 'data':
-                    // prettier-ignore
-                    settings = [
+                    if (node[i].variables && node[i].variables.shaders) {
+                        const shader = node[i].variables.shaders[0]
+                        // prettier-ignore
+                        settings = [
                                 '<ul>',
                                     '<li>',
                                         '<div>',
@@ -299,14 +303,10 @@ function interfaceWithMMGIS() {
                                             '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="1" default="' + L_.opacityArray[node[i].name] + '">',
                                         '</div>',
                                     '</li>',
-                                    '<li>',
-                                        '<div>',
-                                            '<div>Height<span></span></div>',
-                                            '<input class="dataslider slider2" parameter="floodheight" unit="m" layername="' + node[i].name + '" type="range" min="-4500" max="-4100" step="10" value="-4500" default="-4500">',
-                                        '</div>',
-                                    '</li>',
+                                    DataShaders[shader.type] ? DataShaders[shader.type].getHTML(node[i].name, shader) : '',
                                 '</ul>'
                             ].join('\n')
+                    }
                     break
                 case 'model':
                     // prettier-ignore
@@ -491,7 +491,7 @@ function interfaceWithMMGIS() {
     })
 
     //TEMP DATA
-    $('.dataslider').on('change', function () {
+    $('.dataslider').on('input', function () {
         var layerName = $(this).attr('layername')
         var parameter = $(this).attr('parameter')
         var val = $(this).val()
