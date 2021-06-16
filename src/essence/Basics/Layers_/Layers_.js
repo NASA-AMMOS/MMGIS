@@ -210,7 +210,7 @@ var L_ = {
                         demUrl = undefined
                     L_.Globe_.litho.addLayer('tile', {
                         name: s.name,
-                        order: L_.layersIndex[s.name],
+                        order: 99999 - L_.layersIndex[s.name],
                         on: L_.opacityArray[s.name],
                         path: layerUrl,
                         demPath: demUrl,
@@ -279,7 +279,7 @@ var L_ = {
                                     demUrl = undefined
                                 L_.Globe_.litho.addLayer('tile', {
                                     name: r[i].name,
-                                    order: L_.layersIndex[r[i].name],
+                                    order: 99999 - L_.layersIndex[r[i].name],
                                     on: L_.opacityArray[r[i].name],
                                     format: 'tms',
                                     demFormat: 'tms',
@@ -384,7 +384,7 @@ var L_ = {
                     if (s.demtileurl == undefined) demUrl = undefined
                     L_.Globe_.litho.addLayer('tile', {
                         name: s.name,
-                        order: L_.layersIndex[s.name],
+                        order: 99999 - L_.layersIndex[s.name],
                         on: L_.opacityArray[s.name],
                         format: 'tms',
                         demFormat: 'tms',
