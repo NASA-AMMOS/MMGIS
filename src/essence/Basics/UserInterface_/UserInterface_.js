@@ -1497,7 +1497,7 @@ function resize() {
     //resize map
     if (Map_ != null) Map_.map.invalidateSize()
     //resize globe
-    if (Globe_ != null) Globe_.invalidateSize()
+    if (Globe_ != null) Globe_.litho.invalidateSize()
 
     shouldRotateSplitterText()
 }

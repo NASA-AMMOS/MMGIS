@@ -166,7 +166,7 @@ var L_ = {
                 if (this.FUTURES.activePoint == null) {
                     L_.Map_.resetView(newView)
                     if (!dontSetGlobe && L_.hasGlobe) {
-                        L_.Globe_.setCenter(newView)
+                        L_.Globe_.litho.setCenter(newView)
                     }
                 }
             }
@@ -186,9 +186,9 @@ var L_ = {
                     L_.Map_.map.removeLayer(L_.layersGroup[s.name])
                 }
                 if (s.type == 'tile') {
-                    L_.Globe_.removeTileLayer(s.name)
+                    L_.Globe_.litho.removeLayer(s.name)
                 } else {
-                    L_.Globe_.toggleLayer(s.name, false)
+                    L_.Globe_.litho.toggleLayer(s.name, false)
                 }
             } else {
                 if (L_.layersGroup[s.name]) {
@@ -208,7 +208,7 @@ var L_ = {
                         demUrl = L_.missionPath + demUrl
                     if (s.demtileurl == undefined || s.demtileurl.length == 0)
                         demUrl = undefined
-                    L_.Globe_.addTileLayer({
+                    L_.Globe_.litho.addLayer('tile', {
                         name: s.name,
                         order: L_.layersIndex[s.name],
                         on: L_.opacityArray[s.name],
@@ -221,7 +221,7 @@ var L_ = {
                         time: s.time == null ? '' : s.time.end,
                     })
                 } else {
-                    L_.Globe_.toggleLayer(s.name, true)
+                    L_.Globe_.litho.toggleLayer(s.name, true)
                 }
             }
         }
@@ -251,9 +251,9 @@ var L_ = {
                                 )
                             }
                             if (r[i].type == 'tile') {
-                                L_.Globe_.removeTileLayer(r[i].name)
+                                L_.Globe_.litho.removeLayer(r[i].name)
                             } else {
-                                L_.Globe_.toggleLayer(r[i].name, true)
+                                L_.Globe_.litho.toggleLayer(r[i].name, true)
                             }
                             L_.toggledArray[r[i].name] = false
                         } else {
@@ -277,10 +277,12 @@ var L_ = {
                                     demUrl = L_.missionPath + demUrl
                                 if (s.demtileurl == undefined)
                                     demUrl = undefined
-                                L_.Globe_.addTileLayer({
+                                L_.Globe_.litho.addLayer('tile', {
                                     name: r[i].name,
                                     order: L_.layersIndex[r[i].name],
                                     on: L_.opacityArray[r[i].name],
+                                    format: 'tms',
+                                    demFormat: 'tms',
                                     path: layerUrl,
                                     demPath: demUrl,
                                     opacity: L_.opacityArray[r[i].name],
@@ -291,7 +293,7 @@ var L_ = {
                                         r[i].time == null ? '' : r[i].time.end,
                                 })
                             } else {
-                                L_.Globe_.toggleLayer(r[i].name, false)
+                                L_.Globe_.litho.toggleLayer(r[i].name, false)
                             }
                             L_.toggledArray[r[i].name] = true
                         }
@@ -348,7 +350,17 @@ var L_ = {
             map = map.map
         }
         for (var i = L_.layersData.length - 1; i >= 0; i--) {
-            if (L_.toggledArray[L_.layersData[i].name] == true) {
+            if (L_.toggledArray[L_.layersData[i].name] === true) {
+                if (L_.layersData[i].type === 'tile') {
+                    // Make sure all tile layers follow z-index order at start instead of element order
+                    L_.layersGroup[L_.layersData[i].name].setZIndex(
+                        L_.layersOrdered.length +
+                            1 -
+                            L_.layersOrdered.indexOf(L_.layersData[i].name)
+                    )
+                }
+
+                // Add Map layers
                 if (L_.layersGroup[L_.layersData[i].name]) {
                     try {
                         map.addLayer(L_.layersGroup[L_.layersData[i].name])
@@ -360,25 +372,22 @@ var L_ = {
                         )
                     }
                 }
-                if (L_.layersData[i].type == 'tile') {
-                    // Make sure all tile layers follow z-index order at start instead of element order
-                    L_.layersGroup[L_.layersData[i].name].setZIndex(
-                        L_.layersOrdered.length +
-                            1 -
-                            L_.layersOrdered.indexOf(L_.layersData[i].name)
-                    )
-                    var s = L_.layersData[i]
-                    var layerUrl = s.url
-                    if (!F_.isUrlAbsolute(layerUrl))
-                        layerUrl = L_.missionPath + layerUrl
-                    var demUrl = s.demtileurl
+                // Add Globe layers
+                const s = L_.layersData[i]
+                let layerUrl = s.url
+                if (!F_.isUrlAbsolute(layerUrl))
+                    layerUrl = L_.missionPath + layerUrl
+                if (L_.layersData[i].type === 'tile') {
+                    let demUrl = s.demtileurl
                     if (!F_.isUrlAbsolute(demUrl))
                         demUrl = L_.missionPath + demUrl
                     if (s.demtileurl == undefined) demUrl = undefined
-                    L_.Globe_.addTileLayer({
+                    L_.Globe_.litho.addLayer('tile', {
                         name: s.name,
                         order: L_.layersIndex[s.name],
                         on: L_.opacityArray[s.name],
+                        format: 'tms',
+                        demFormat: 'tms',
                         path: layerUrl,
                         demPath: demUrl,
                         opacity: L_.opacityArray[s.name],
@@ -387,6 +396,38 @@ var L_ = {
                         boundingBox: s.boundingBox,
                         time: s.time == null ? '' : s.time.end,
                     })
+                } else if (L_.layersData[i].type != 'header') {
+                    L_.Globe_.litho.addLayer(
+                        L_.layersData[i].type == 'vector'
+                            ? 'clamped'
+                            : L_.layersData[i].type,
+                        {
+                            name: s.name,
+                            order: 1000 - L_.layersIndex[s.name], // Since higher order in litho is on top
+                            on: L_.opacityArray[s.name] ? true : false,
+                            geojsonPath: layerUrl,
+                            onClick: (feature, lnglat, layer) => {
+                                this.selectFeature(layer.name, feature)
+                            },
+                            useKeyAsHoverName: s.useKeyAsName,
+                            style: {
+                                // Prefer feature[f].properties.style values
+                                letPropertiesStyleOverride: true, // default false
+                                default: {
+                                    fillColor: s.style.fillColor, //Use only rgb and hex. No css color names
+                                    fillOpacity: parseFloat(
+                                        s.style.fillOpacity
+                                    ),
+                                    color: s.style.color,
+                                    weight: s.style.weight,
+                                    radius: s.radius,
+                                },
+                            },
+                            opacity: L_.opacityArray[s.name],
+                            minZoom: 0, //s.minZoom,
+                            maxZoom: 100, //s.maxNativeZoom,
+                        }
+                    )
                 }
             }
         }
@@ -415,7 +456,7 @@ var L_ = {
     },
 
     setLayerOpacity: function (name, newOpacity) {
-        if (L_.Globe_) L_.Globe_.setLayerOpacity(name, newOpacity)
+        if (L_.Globe_) L_.Globe_.litho.setLayerOpacity(name, newOpacity)
         var l = L_.layersGroup[name]
         if (l) {
             try {
@@ -498,7 +539,7 @@ var L_ = {
     },
     home() {
         L_.Map_.resetView(L_.configData.msv.view)
-        L_.Globe_.setCenter(L_.configData.msv.view)
+        L_.Globe_.litho.setCenter(L_.configData.msv.view)
     },
     hasTool: function (toolName) {
         for (var i = 0; i < L_.tools.length; i++) {
@@ -552,6 +593,29 @@ var L_ = {
             }
         }
     },
+    selectFeature(layerName, feature) {
+        const layer = L_.layersGroup[layerName]
+        if (layer) {
+            const layers = layer._layers
+            for (let l in layers) {
+                if (
+                    F_.isEqual(
+                        layers[l].feature.geometry,
+                        feature.geometry,
+                        true
+                    ) &&
+                    F_.isEqual(
+                        layers[l].feature.properties,
+                        feature.properties,
+                        true
+                    )
+                ) {
+                    layers[l].fireEvent('click')
+                    return
+                }
+            }
+        }
+    },
     /**
      * @param {object} - activePoint { layerName: , lat: lon: }
      * @returns {bool} - true only if successful
@@ -602,7 +666,7 @@ var L_ = {
 
                             L_.Map_.resetView(newView)
                             if (L_.hasGlobe) {
-                                L_.Globe_.setCenter(newView)
+                                L_.Globe_.litho.setCenter(newView)
                             }
                         }
                         return true
@@ -658,7 +722,7 @@ var L_ = {
                                     L_.Map_.resetView(newView)
                                 }, 50)
                                 if (L_.hasGlobe) {
-                                    L_.Globe_.setCenter(newView)
+                                    L_.Globe_.litho.setCenter(newView)
                                 }
                             }
                             return true

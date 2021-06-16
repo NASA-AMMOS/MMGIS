@@ -1,0 +1,38 @@
+{
+    "defaultIcon": "wifi-strength-2",
+    "description": "Realtime user generated viewsheds.",
+    "descriptionFull": {
+        "title": "Renders dynamic tilesets based on line-of-sight visibilities from user defined source points. DEM tiles are used to generate these. At least one DEM tileset must be configured. curvature is optional and can be set to false to disable using the Major Radius to account for curvature during generations. cameraPresets are optional and the objects within only require the name field.",
+        "example": {
+            "data": [
+                {
+                    "name": "Unique Name 1",
+                    "demtileurl": "Layers/Example/demtileset/{z}/{x}/{y}.png",
+                    "minZoom": 8,
+                    "maxNativeZoom": 18
+                },
+                { "...": "..." }
+            ],
+            "curvature": false,
+            "cameraPresets": [
+                {
+                    "name": "CAM A",
+                    "height": 2,
+                    "azCenter": 0,
+                    "azFOV": 70,
+                    "elCenter": -10,
+                    "elFOV": 30
+                },
+                { "...": "..." }
+            ]
+        }
+    },
+    "hasVars": true,
+    "name": "Viewshed",
+    "toolbarPriority": 101,
+    "paths": {
+        "ViewshedTool": "essence/Tools/Viewshed/ViewshedTool",
+        "ViewshedTool_Manager": "essence/Tools/Viewshed/ViewshedTool_Manager",
+        "ViewshedTool_Algorithm": "essence/Tools/Viewshed/ViewshedTool_Algorithm"
+    }
+}
