@@ -1,6 +1,6 @@
 # JavaScript API
 
-The `src/essence/API/API.js` file exposes functions that can be called using the global `window.API` object.
+The `src/essence/mmgisAPI/mmgisAPI.js` file exposes functions that can be called using the global `window.mmgisAPI` object.
 
 ## Layer Control
 
@@ -15,7 +15,7 @@ This function clears an existing vector layer with a specified name
 The following is an example of how to call the `clearVectorLayer` function:
 
 ```javascript
-window.API.clearVectorLayer('Waypoints')
+window.mmgisAPI.clearVectorLayer('Waypoints')
 ```
 
 ### updateVectorLayer(layerName, inputData, keepN)
@@ -31,7 +31,7 @@ This function updates an existing vector layer with a specified name, valid GeoJ
 The following is an example of how to call the `updateVectorLayer` function:
 
 ```javascript
-window.API.updateVectorLayer('Waypoints', {
+window.mmgisAPI.updateVectorLayer('Waypoints', {
     "type": "Feature",
     "properties": {
     "sol": 690,
@@ -65,7 +65,7 @@ This function toggles the visibility of ancillary Time Control User Interface. I
 The following is an example of how to call the `toggleTimeUI` function:
 
 ```javascript
-window.API.toggleTimeUI(false)
+window.mmgisAPI.toggleTimeUI(false)
 ```
 
 ## setTime(startTime, endTime, isRelative, timeOffset)
@@ -84,11 +84,11 @@ Note that layers will not be refreshed on the map until `reloadTimeLayers()` (or
 The following are examples of how to call the `setTime` function:
 
 ```javascript
-window.API.setTime('2021-05-13T01:00:00Z', '2021-05-13T07:00:00Z', false)
+window.mmgisAPI.setTime('2021-05-13T01:00:00Z', '2021-05-13T07:00:00Z', false)
 
-window.API.setTime('02:00:00', '00:00:00', true, '01:00:00')
+window.mmgisAPI.setTime('02:00:00', '00:00:00', true, '01:00:00')
 
-window.API.setTime(7200, 0, true, 3600)
+window.mmgisAPI.setTime(7200, 0, true, 3600)
 ```
 
 ## setLayerTime(layer, startTime, endTime)
@@ -108,7 +108,7 @@ Note that the layer will not be refreshed on the map until `reloadTimeLayers()` 
 The following is an example of how to call the `setLayerTime` function:
 
 ```javascript
-window.API.setLayerTime('Earthquakes', '2021-05-01T00:00:00Z', '2021-05-13T23:59:59Z')
+window.mmgisAPI.setLayerTime('Earthquakes', '2021-05-01T00:00:00Z', '2021-05-13T23:59:59Z')
 ```
 
 ## getTime()
@@ -118,7 +118,7 @@ Returns the current time on the map with offset included in `YYYY-MM-DDThh:mm:ss
 The following is an example of how to call the `getTime` function:
 
 ```javascript
-window.API.getTime()
+window.mmgisAPI.getTime()
 
 "2021-05-14T02:06:29Z"
 ```
@@ -130,7 +130,7 @@ Returns the global start time on the map with offset included in `YYYY-MM-DDThh:
 The following is an example of how to call the `getStartTime` function:
 
 ```javascript
-window.API.getStartTime()
+window.mmgisAPI.getStartTime()
 
 "2021-05-14T01:06:29Z"
 ```
@@ -142,7 +142,7 @@ Returns the global end time on the map with offset included in `YYYY-MM-DDThh:mm
 The following is an example of how to call the `getEndTime` function:
 
 ```javascript
-window.API.getEndTime()
+window.mmgisAPI.getEndTime()
 
 "2021-05-14T03:06:29Z"
 ```
@@ -158,7 +158,7 @@ Returns the start time set for an individual in `YYYY-MM-DDThh:mm:ssZ` format.
 The following is an example of how to call the `getLayerStartTime` function:
 
 ```javascript
-window.API.getStartTime('Earthquakes')
+window.mmgisAPI.getStartTime('Earthquakes')
 
 "2021-05-01T00:00:00Z"
 ```
@@ -174,7 +174,7 @@ Returns the end time set for an individual in `YYYY-MM-DDThh:mm:ssZ` format.
 The following is an example of how to call the `getLayerEndTime` function:
 
 ```javascript
-window.API.getEndTime('Earthquakes')
+window.mmgisAPI.getEndTime('Earthquakes')
 
 "2021-05-13T23:59:59Z"
 ```
@@ -186,7 +186,7 @@ This function will reload every layer that is time-enabled by re-fetching the da
 The following is an example of how to call the `reloadTimeLayers` function:
 
 ```javascript
-window.API.reloadTimeLayers()
+window.mmgisAPI.reloadTimeLayers()
 
 ["Lunaserv", "Earthquakes"]
 ```
@@ -202,7 +202,7 @@ This function will reload the given time-enabled layer by re-fetching the data a
 The following is an example of how to call the `reloadLayer` function:
 
 ```javascript
-window.API.reloadLayer('Earthquakes')
+window.mmgisAPI.reloadLayer('Earthquakes')
 ```
 
 ## setLayersTimeStatus(color)
@@ -216,11 +216,11 @@ This function will set the status icon color (e.g. to indicate staleness) for al
 The following is an example of how to call the `reloadLayer` function:
 
 ```javascript
-window.API.setLayersTimeStatus('#ff0000')
+window.mmgisAPI.setLayersTimeStatus('#ff0000')
 
 ["Lunaserv", "Earthquakes"]
 
-window.API.setLayersTimeStatus('green')
+window.mmgisAPI.setLayersTimeStatus('green')
 
 ["Lunaserv", "Earthquakes"]
 ```
@@ -237,9 +237,9 @@ This function will set the status icon color (e.g. to indicate staleness) for th
 The following is an example of how to call the `reloadLayer` function:
 
 ```javascript
-window.API.setLayerTimeStatus('Earthquakes', '#ff0000')
+window.mmgisAPI.setLayerTimeStatus('Earthquakes', '#ff0000')
 
-window.API.setLayerTimeStatus('Earthquakes', 'green')
+window.mmgisAPI.setLayerTimeStatus('Earthquakes', 'green')
 ```
 
 ## updateLayersTime()
@@ -249,7 +249,7 @@ This function will synchronize every global time enabled layer with the current 
 The following is an example of how to call the `updateLayersTime` function:
 
 ```javascript
-window.API.updateLayersTime()
+window.mmgisAPI.updateLayersTime()
 ```
 
 ## Event Listeners
