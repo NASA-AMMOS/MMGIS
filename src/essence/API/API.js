@@ -109,10 +109,8 @@ var API = {
      */
      map: null,
 
-    /** featuresContained - returns an array of all features in a given extent.
-      * @param {object} [extent] - any valid form of Leaflet LatLng (i.e. L.latLng, simple array, simple object)
-      * @param {string} [isByLayer] - defaults to false, otherwise value should be a string representing a layer name
-     * @returns {object} - An object containing layer names as keys and values as arrays with all features (as GeoJson Feature objects) contained in the given extent
+    /** featuresContained - returns an array of all features in the current map view.
+     * @returns {object} - An object containing layer names as keys and values as arrays with all features (as GeoJson Feature objects) contained in the current map view
      */
     featuresContained: mmgisAPI_.featuresContained,
 
@@ -128,7 +126,8 @@ var API = {
 
     /** addEventListener - adds map event listener.
      * @param {string} - eventName - name of event to add listener to. Available events: onPan, onZoom, onClick
-     * @param {function} - functionReference - function reference to listener event callback function 
+     * @param {function} - functionReference - function reference to listener event callback function. null value removes all functions for a given eventName
+
      */
     addEventListener: mmgisAPI_.addEventListener,
 

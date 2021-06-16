@@ -10,27 +10,21 @@ var mmgisAPI_ = {
         mmgisAPI_.map = map_.map
     },
     // Returns an array of all features in a given extent
-    featuresContained: function (extent, isByLayer = false) {
+    featuresContained: function () {
+        if (!mmgisAPI_.map) {
+            console.warn(
+                'Warning: Unable to find features contained as the Leaflet map object is not initialized'
+            )
+        }
+
+        const extent = mmgisAPI_.map.getBounds()
         let features = {}
 
-        if (!isByLayer) {
-            // For all MMGIS layers
-            for (let key in L_.layersGroup) {
-                if (L_.layersGroup[key].hasOwnProperty('_layers')) {
-                    const foundFeatures = findFeaturesInLayer(extent, L_.layersGroup[key])
-                    features[key] = foundFeatures
-                }
-            }
-        } else {
-            // For only features on a specific layer 
-            if (isByLayer in L_.layersGroup) {
-                const foundFeatures = findFeaturesInLayer(extent, L_.layersGroup[isByLayer])
-                features[isByLayer] = foundFeatures
-            } else {
-                console.warn(
-                    'Warning: Unable to get features as the layer name is invalid: ' +
-                        isByLayer
-                )
+        // For all MMGIS layers
+        for (let key in L_.layersGroup) {
+            if (L_.layersGroup[key].hasOwnProperty('_layers')) {
+                const foundFeatures = findFeaturesInLayer(extent, L_.layersGroup[key])
+                features[key] = foundFeatures
             }
         }
 
