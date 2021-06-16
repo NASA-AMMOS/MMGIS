@@ -70,6 +70,7 @@ let ViewshedTool = {
     dynamicUpdateResCutoff: 1,
     dynamicUpdatePanCutoff: 1,
     MMGISInterface: null,
+    tempSheet: null,
     initialize: function () {
         this.vars = L_.getToolVars('viewshed')
 
@@ -164,9 +165,16 @@ let ViewshedTool = {
             if (this.firstOpen) this.makeNewElm()
             this.firstOpen = false
         }
+
+        // No fading in tiles while the viewshed tool is active because it interferes
+        this.tempSheet = $(
+            '<style type="text/css">.leaflet-tile { opacity: 1 !important; }</style>'
+        )
+        $('html > head').append(this.tempSheet)
     },
     destroy: function () {
         this.MMGISInterface.separateFromMMGIS()
+        if (this.tempSheet) this.tempSheet.remove()
     },
     getUrlString: function () {
         let urlString = ''
