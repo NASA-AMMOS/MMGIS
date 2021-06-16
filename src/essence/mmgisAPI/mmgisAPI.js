@@ -9,7 +9,7 @@ var mmgisAPI_ = {
     // Initialize the map variable
     fina: function (map_) {
         mmgisAPI_.map = map_.map
-        API.map = map_.map
+        mmgisAPI.map = map_.map
     },
     // Returns an array of all features in a given extent
     featuresContained: function () {
@@ -134,7 +134,7 @@ var mmgisAPI_ = {
     },
 }
 
-var API = {
+var mmgisAPI = {
     /**
      * Clears a layer with a specified name
      * @param {string} - layerName - name of layer to clear
@@ -270,6 +270,6 @@ var API = {
     removeEventListener: mmgisAPI_.removeEventListener,
 }
 
-window.API = API
+window.mmgisAPI = mmgisAPI
 
-export { mmgisAPI_, API }
+export { mmgisAPI_, mmgisAPI }

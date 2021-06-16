@@ -36,7 +36,7 @@ import ScaleBox from './Ancillary/ScaleBox'
 import QueryURL from './Ancillary/QueryURL'
 import TimeControl from './Ancillary/TimeControl'
 import calls from '../pre/calls'
-import { mmgisAPI_, API } from './API/API'
+import { mmgisAPI_, mmgisAPI } from './mmgisAPI/mmgisAPI'
 import { makeMissionNotFoundDiv } from './LandingPage/LandingPage'
 import { stylize } from './Ancillary/Stylize'
 //Requiring UserInterface_ initializes itself
