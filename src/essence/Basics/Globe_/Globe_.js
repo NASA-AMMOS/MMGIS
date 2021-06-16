@@ -41,11 +41,11 @@ let Globe_ = {
             //wireframeMode: true, // default false
             //useLOD: true, // default true
             starsphere: {
-                url: 'https://miplmmgis.jpl.nasa.gov/public/images/eso0932a.jpg',
-                color: '#666666',
+                url: 'public/images/eso0932a.jpg',
+                color: '#444444',
             },
             atmosphere: {
-                color: '#111111',
+                color: '#0c0c0c',
             },
             highlightColor: 'yellow', //css color for vector hover highlights | default 'yellow'
             activeColor: 'red', //css color for active vector features | default 'red'
@@ -106,7 +106,7 @@ let Globe_ = {
             }
         )
 
-        console.log(this.litho)
+        //console.log(this.litho)
     },
     fina: function (coordinates) {
         // Passes in Coordinates so that LithoSphere can share the same coordinate ui element
