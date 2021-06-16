@@ -251,3 +251,93 @@ The following is an example of how to call the `updateLayersTime` function:
 ```javascript
 window.API.updateLayersTime()
 ```
+
+## Event Listeners
+
+### addEventListener(eventName, functionReference)
+
+This function adds a map event listener added using the MMGIS API. This function takes in one of the following events: `onPan`, `onZoom`, `onClick`.
+
+#### Function parameters
+
+- `eventName` - name of event to add listener to. Available events: `onPan`, `onZoom`, `onClick`
+- `functionReference` - function reference to listener event callback function. `null` value removes all functions for a given `eventName`
+
+The following is an example of how to call the `removeEventListener` function:
+
+```javascript
+function listener() {
+    const featuresContained = window.mmgisAPI.featuresContained()
+    console.log('featuresContained', featuresContained)
+
+    const activeFeature = window.mmgisAPI.getActiveFeature()
+    console.log('activeFeature', activeFeature)
+}
+
+window.mmgisAPI.addEventListener('onPan', listener)
+```
+
+### removeEventListener(eventName, functionReference)
+
+This function removes a map event listener added using the MMGIS API.
+
+#### Function parameters
+
+- `eventName` - name of event to add listener to. Available events: `onPan`, `onZoom`, `onClick`
+- `functionReference` - function reference to listener event callback function. `null` value removes all functions for a given `eventName`
+
+The following is an example of how to call the `removeEventListener` function:
+
+```javascript
+function listener() {
+    const featuresContained = window.mmgisAPI.featuresContained()
+    console.log('featuresContained', featuresContained)
+
+    const activeFeature = window.mmgisAPI.getActiveFeature()
+    console.log('activeFeature', activeFeature)
+}
+
+window.mmgisAPI.removeEventListener('onPan', listener)
+```
+
+## Map Feature Information
+
+### map
+
+This is an object which exposes the Leaflet map object.
+
+The following is an example of how to call the `map` object:
+
+```javascript
+window.mmgisAPI.map
+```
+
+### featuresContained
+
+This function returns an array of all features in the current map view. The return value is an object containing layer names as keys and values as arrays with all features (as GeoJson Feature objects) contained in the current map view
+
+The following is an example of how to call the `featuresContained` function:
+
+```javascript
+window.mmgisAPI.featuresContained()
+```
+
+### getActiveFeature
+
+This function returns the currently active feature (i.e. feature thats clicked and displayed in the InfoTool). The return value is the currently selected active feature as an object with the layer name as key and value as an array containing the GeoJson Feature object (MMGIS only allows the section of a single feature).
+
+The following is an example of how to call the `getActiveFeature` function:
+
+```javascript
+window.mmgisAPI.getActiveFeature()
+```
+
+### getVisibleLayers
+
+This function returns an object with the visiblity state of all layers
+
+The following is an example of how to call the `getVisibleLayers` function:
+
+```javascript
+window.mmgisAPI.getVisibleLayers()
+```
