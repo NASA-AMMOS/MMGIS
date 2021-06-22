@@ -12,6 +12,7 @@ import osr
 import ast
 import re
 import math
+from urllib import parse
 from gdalconst import *
 from osgeo import __version__ as osgeoversion
 
@@ -104,14 +105,14 @@ def latLonsToPixel(latLonPairs):
 
 
 # Get arguments
-raster = sys.argv[1]
-lat = float(sys.argv[2])
-lon = float(sys.argv[3])
-type = sys.argv[4]
-bands = ast.literal_eval(sys.argv[5])
+raster = parse.unquote(sys.argv[1])  # path
+lat = float(sys.argv[2])  # x
+lon = float(sys.argv[3])  # y
+if str(sys.argv[4]).isalnum():
+    type = str(sys.argv[4])  # xyorll
+bands = ast.literal_eval(parse.unquote(sys.argv[5]))  # bands
 
 latLonPair = [[lat, lon]]
-# raster = '../../../../Missions/MSL/Data/CRISM_Master/frt0000a091_07_if165j_mtr3/frt0000a091_07_if165j_mtr3.img'
 
 # Open the image
 ds = gdal.Open(raster, GA_ReadOnly)
@@ -130,4 +131,4 @@ else:
 # Find the raster value at each of those points
 valueArray = getRasterDataValues()
 
-print(valueArray)
+print('"', valueArray, '"')

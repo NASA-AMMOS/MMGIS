@@ -551,9 +551,9 @@ setups.getBackendSetups(function (setups) {
       const axes = encodeURIComponent(req.body.axes);
 
       execFile(
-        "php",
+        "python3",
         [
-          "private/api/getprofile.php",
+          "private/api/2ptsToProfile.py",
           path,
           lat1,
           lon1,
@@ -561,6 +561,7 @@ setups.getBackendSetups(function (setups) {
           lon2,
           steps,
           axes,
+          1
         ],
         function (error, stdout, stderr) {
           res.send(stdout);
@@ -601,8 +602,8 @@ setups.getBackendSetups(function (setups) {
       const bands = encodeURIComponent(req.body.bands);
 
       execFile(
-        "php",
-        ["private/api/getbands.php", path, x, y, xyorll, bands],
+        "python3",
+        ["private/api/BandsToProfile.py", path, x, y, xyorll, bands],
         function (error, stdout, stderr) {
           res.send(stdout);
         }
