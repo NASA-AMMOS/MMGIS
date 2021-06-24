@@ -551,9 +551,9 @@ setups.getBackendSetups(function (setups) {
       const axes = encodeURIComponent(req.body.axes);
 
       execFile(
-        "php",
+        "python",
         [
-          "private/api/getprofile.php",
+          "private/api/2ptsToProfile.py",
           path,
           lat1,
           lon1,
@@ -561,26 +561,8 @@ setups.getBackendSetups(function (setups) {
           lon2,
           steps,
           axes,
+          1
         ],
-        function (error, stdout, stderr) {
-          res.send(stdout);
-        }
-      );
-    }
-  );
-
-  //utils lnglats_to_demtile_elevs
-  app.post(
-    "/api/utils/lnglats_to_demtile_elevs",
-    ensureUser(),
-    ensureGroup(permissions.users),
-    function (req, res) {
-      const lnglats = req.body.lnglats;
-      const demtilesets = req.body.demtilesets;
-
-      execFile(
-        "php",
-        ["private/api/lnglats_to_demtile_elevs.php", lnglats, demtilesets],
         function (error, stdout, stderr) {
           res.send(stdout);
         }
@@ -601,8 +583,8 @@ setups.getBackendSetups(function (setups) {
       const bands = encodeURIComponent(req.body.bands);
 
       execFile(
-        "php",
-        ["private/api/getbands.php", path, x, y, xyorll, bands],
+        "python",
+        ["private/api/BandsToProfile.py", path, x, y, xyorll, bands],
         function (error, stdout, stderr) {
           res.send(stdout);
         }

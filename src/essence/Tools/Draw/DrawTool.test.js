@@ -218,7 +218,6 @@ var Test = {
             name: 'Can reach initial drawing state',
             subtests: 5,
             test: function (c) {
-                //Ignore lnglats_to_demtile_elevs in tests
                 Test.tool.vars.demtilesets = null
 
                 Test.tool.showContent('draw')
