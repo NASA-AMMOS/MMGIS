@@ -12,9 +12,12 @@ import osr
 import ast
 import re
 import math
-from urllib import parse
 from gdalconst import *
 from osgeo import __version__ as osgeoversion
+try:
+    from urllib.parse import unquote
+except ImportError:
+    from urllib import unquote
 
 # Make gdal use exceptions instead of their own errors so that they can be caught
 gdal.UseExceptions()
@@ -105,12 +108,12 @@ def latLonsToPixel(latLonPairs):
 
 
 # Get arguments
-raster = parse.unquote(sys.argv[1])  # path
+raster = unquote(sys.argv[1])  # path
 lat = float(sys.argv[2])  # x
 lon = float(sys.argv[3])  # y
 if str(sys.argv[4]).isalnum():
     type = str(sys.argv[4])  # xyorll
-bands = ast.literal_eval(parse.unquote(sys.argv[5]))  # bands
+bands = ast.literal_eval(unquote(sys.argv[5]))  # bands
 
 latLonPair = [[lat, lon]]
 

@@ -143,29 +143,6 @@
         }
       }
     },
-    "/utils/lnglats_to_demtile_elevs": {
-      "post": {
-        "description": "NEEDS WORK!!! Populates a GeoJSON geometry with elevation values from dem tilesets. Takes the first latlng and tries to match it to the first demtileset. If the tile is not found or has no data, the latlng will then try to be matched with the next demtileset and so on. Once found, the next latlng is chosen and so on. Finally the latlngs JSON is returned with attached elevation values ... [lat, lng, elev] ...",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/lnglats_to_demtile_elevs"
-            }
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
     "/utils/getprofile": {
       "post": {
         "description": "Returns an array of evenly spaced values between two points from a tif",
@@ -407,22 +384,6 @@
           "type": "object",
           "description": "The key is the path to the dem tileset",
           "$ref": "#/definitions/demtilesetsinside"
-        }
-      }
-    },
-    "lnglats_to_demtile_elevs": {
-      "required": [
-        "lnglats",
-        "demtilesets"
-      ],
-      "properties": {
-        "lnglats": {
-          "type": "object",
-          "description": "GeoJSON geometry object"
-        },
-        "demtilesets": {
-          "type": "object",
-          "description": "JSON of prioritized dem tileset urls and their px dimension size and zoom level to query. { 'dems/thisdem/{z}/{x}/{y}.png': { 'dim': 32, 'z': 16 }, ... } dim is the one side dimension in pixels of a single square tile. z is the zoom level to query values from."
         }
       }
     },

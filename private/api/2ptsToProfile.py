@@ -12,9 +12,12 @@ import gdal
 import osr
 import math
 from gdalconst import *
-from urllib import parse
 from osgeo import __version__ as osgeoversion
 from great_circle_calculator.great_circle_calculator import intermediate_point
+try:
+    from urllib.parse import unquote
+except ImportError:
+    from urllib import unquote
 
 # Make gdal use exceptions instead of their own errors so that they can be caught
 gdal.UseExceptions()
@@ -154,13 +157,13 @@ def latLonsToPixel(latLonPairs):
 
 
 # Get arguments
-raster = parse.unquote(sys.argv[1])
+raster = unquote(sys.argv[1])
 lat1 = float(sys.argv[2])
 lon1 = float(sys.argv[3])
 lat2 = float(sys.argv[4])
 lon2 = float(sys.argv[5])
 steps = int(sys.argv[6])
-axes = parse.unquote(sys.argv[7])
+axes = unquote(sys.argv[7])
 band = int(sys.argv[8])
 
 latLonEndPairs = [[lat1, lon1], [lat2, lon2]]
