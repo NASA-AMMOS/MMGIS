@@ -288,7 +288,7 @@
                 if (typeof defaultValue === 'number') {
                     this._uniformSizes[uniformName] = 0
                     defs += 'uniform float ' + uniformName + ';\n'
-                } else if (typeof defaultValue === 'array') {
+                } else if (defaultValue.constructor === Float32Array) {
                     if (defaultValue.length > 4) {
                         throw new Error(
                             'Max size for uniform value is 4 elements'
@@ -464,6 +464,7 @@
                     if (!this._map) {
                         return
                     }
+
                     // If the shader is time-dependent (i.e. animated),
                     // save the textures for later access
                     if (this._isReRenderable) {
@@ -474,7 +475,12 @@
 
                     var gl = this._gl
                     for (var i = 0; i < this._tileLayers.length && i < 8; i++) {
-                        this._bindTexture(i, textureImages[i])
+                        this._bindTexture(
+                            i,
+                            textureImages[i].tile
+                                ? textureImages[i].tile
+                                : textureImages[i]
+                        )
                     }
 
                     this._render(coords)
@@ -554,7 +560,12 @@
                 }
 
                 for (var i = 0; i < this._tileLayers.length && i < 8; i++) {
-                    this._bindTexture(i, this._fetchedTextures[wrappedKey][i])
+                    this._bindTexture(
+                        i,
+                        this._fetchedTextures[wrappedKey][i].tile
+                            ? this._fetchedTextures[wrappedKey][i].tile
+                            : this._fetchedTextures[wrappedKey][i]
+                    )
                 }
 
                 this._render(coords)
@@ -615,6 +626,41 @@
                         } else {
                             reject(tile)
                         }
+                    } else if (this.options.pixelPerfect) {
+                        PNG.load(
+                            layer.getTileUrl(coords),
+                            function (img) {
+                                const imgData = img.decode()
+                                if (imgData == null) {
+                                    reject(tile)
+                                    return
+                                }
+                                tile.src = layer.getTileUrl(coords)
+                                L.DomEvent.on(
+                                    tile,
+                                    'load',
+                                    resolve.bind(this, {
+                                        tile,
+                                        pixelPerfect: {
+                                            img: img,
+                                            imgData: imgData,
+                                        },
+                                    })
+                                )
+                                L.DomEvent.on(
+                                    tile,
+                                    'error',
+                                    reject.bind(this, {
+                                        tile,
+                                        pixelPerfect: {
+                                            img: img,
+                                            imgData: imgData,
+                                        },
+                                    })
+                                )
+                            },
+                            true
+                        )
                     } else {
                         tile.src = layer.getTileUrl(coords)
                         L.DomEvent.on(tile, 'load', resolve.bind(this, tile))

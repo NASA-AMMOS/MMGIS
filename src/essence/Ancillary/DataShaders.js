@@ -1,3 +1,6 @@
+import $ from 'jquery'
+import Dropy from '../../external/Dropy/dropy'
+
 // rgbaToGFloat from: https://github.com/ihmeuw/glsl-rgba-to-float
 // License: BSD-3 Clause https://github.com/ihmeuw/glsl-rgba-to-float/blob/master/LICENSE.md
 // prettier-ignore
@@ -71,6 +74,13 @@ const rgbaToFloat = [
     '}'
 ].join('\n')
 
+// prettier-ignore
+const linearScale = [
+    'float linearScale(float domainStart, float domainEnd, float rangeStart, float rangeEnd, float value) {',
+        'return ((rangeEnd - rangeStart) * (value - domainStart)) / (domainEnd - domainStart) + rangeStart;',
+    '}',
+].join('\n')
+
 let DataShaders = {
     image: {
         // prettier-ignore
@@ -83,50 +93,178 @@ let DataShaders = {
             ].join('\n'),
         settings: [],
     },
-    flood: {
+    colorize: {
         getHTML: function (name, shaderObj) {
             const df = shaderObj.defaults || {}
             // prettier-ignore
-            return [ '<li>',
-                '<div>',
-                    '<div>Height<span></span></div>',
-                    `<input class="dataslider slider2" parameter="floodheight" unit="m" layername="${name}" type="range" min="${ df.minValue ? df.minValue : -100 }" max="${ df.maxValue ? df.maxValue : 100 }" step="${ df.stepValue ? df.stepValue : 1}" value="${df.defaultValue ? df.defaultValue : 0}">`,
-                '</div>',
-            '</li>',
-        ].join('\n')
+            return [
+                '<li>',
+                    '<div>',
+                        '<div>Dynamic</div>',
+                        `<input class="datacheckbox checkboxSmall" parameter="dynamic" layername="${name}" type="checkbox" checked>`,
+                    '</div>',
+                '</li>',
+                '<li>',
+                    '<div>',
+                        '<div>Discrete</div>',
+                        `<input class="datacheckbox checkboxSmall" parameter="discrete" layername="${name}" type="checkbox">`,
+                    '</div>',
+                '</li>',
+                '<li>',
+                    '<div>',
+                        '<div>Color Ramp</div>',
+                        `<div id="dataShader_${name}_colorize_ramps" style="width: 126px;"></div>`,
+                    '</div>',
+                '</li>',
+                '<li>',
+                    '<div style="display: block;">',
+                        '<div style="display: flex; justify-content: space-between; font-weight: bold;"><div>Value</div><div>Stop</div><div>Color</div></div>',
+                        `<ul id="dataShader_${name}_colorize_legend"></ul>`,
+                    '</div>',
+                '</li>',
+            ].join('\n')
+        },
+        attachEvents: function (name, shaderObj) {
+            const initialRampIdx = 0
+
+            //RAMPS
+            let ramps = []
+            shaderObj.ramps.forEach((ramp) => {
+                let newRamp = []
+                ramp.forEach((color) => {
+                    newRamp.push(
+                        `<div style="width: ${
+                            100 / ramp.length
+                        }%; height: 18px; background: ${color};"></div>`
+                    )
+                })
+                ramps.push(
+                    `<div style="display: flex;">${newRamp.join('\n')}</div>`
+                )
+            })
+
+            $(`#dataShader_${name}_colorize_ramps`).html(
+                Dropy.construct(ramps, null, initialRampIdx)
+            )
+            $(`#dataShader_${name}_colorize_ramps ul`).css({
+                background: 'var(--color-a)',
+            })
+            $(`#dataShader_${name}_colorize_ramps .dropy`).css({
+                marginBottom: '0px',
+            })
+            $(`#dataShader_${name}_colorize_ramps .dropy__title span`).css({
+                padding: '5px',
+            })
+            $(`#dataShader_${name}_colorize_ramps li > a`).css({
+                marginBottom: '0px',
+                padding: '5px',
+            })
+            Dropy.init($(`#dataShader_${name}_colorize_ramps`), function (idx) {
+                setLegend(idx)
+            })
+
+            setLegend()
+            //LEGEND
+            function setLegend(rampIdx) {
+                let legend = []
+                if (shaderObj.ramps) {
+                    const ramp =
+                        shaderObj.ramps[
+                            rampIdx != null ? rampIdx : initialRampIdx
+                        ]
+                    ramp.forEach((color, idx) => {
+                        // prettier-ignore
+                        legend.push(
+                        `<li style="display: flex; justify-content: space-between; padding: 2px 0px;">`,
+                            `<div>4500${shaderObj.units || ''}</div>`,
+                            `<div>${idx / ramp.length * 100}%</div>`,
+                            `<div style="width: 18px; height: 18px; background: ${color};"></div>`,
+                        `</li>`
+                    )
+                    })
+                }
+                $(`#dataShader_${name}_colorize_legend`).html(legend.join('\n'))
+            }
         },
         // prettier-ignore
         frag: [
             rgbaToFloat,
+            linearScale,
             'void main(void) {',
                 // Fetch color from texture 2, which is the terrain-rgb tile
                 'highp vec4 texelColour = texture2D(uTexture0, vec2(vTextureCoords.s, vTextureCoords.t));',
             
-                'highp float pxheight = rgbaToFloat(texelColour, false);',
+                'highp float pxValue = rgbaToFloat(texelColour, false);',
             
-                'vec4 floodColour;',
-                'if (pxheight > floodheight) {',
-                    'floodColour = vec4(0, 0, 0, 0.0);',
-                '} else {',
-                    // Water, some semiopaque blue
-                    'floodColour = vec4(0.05, 0.2, 0.7, 0.6);',
-                '}',
-            
+                'vec4 colour;',
+                'colour = vec4(1.0, 0.0, 0.0, linearScale(minvalue, maxvalue, 0.0, 1.0, pxValue));',
+
                 // And compose the labels on top of everything
-                'gl_FragColor = floodColour;',
+                'gl_FragColor = colour;',
                 
                 //'gl_FragColor = vec4(0.7, 0.6, 0.1, 1);',
             '}'
         ].join('\n'),
         settings: [
             {
-                name: 'Height',
-                type: 'range',
-                min: -10000,
-                step: 100,
-                max: 4000,
-                value: -4500,
-                parameter: 'floodheight',
+                parameter: 'minvalue',
+                value: 0,
+            },
+            {
+                parameter: 'maxvalue',
+                value: 1,
+            },
+            {
+                parameter: 'ramp0',
+                value: new Float32Array([1, 0, 0, 0]), // v4 isn't alpha, it's the color stop
+            },
+            {
+                parameter: 'ramp1',
+                value: new Float32Array([0, 0, 1, 1]),
+            },
+            {
+                parameter: 'ramp2',
+                value: new Float32Array([0, 0, 0, 0]),
+            },
+            {
+                parameter: 'ramp3',
+                value: new Float32Array([0, 0, 0, 0]),
+            },
+            {
+                parameter: 'ramp4',
+                value: new Float32Array([0, 0, 0, 0]),
+            },
+            {
+                parameter: 'ramp5',
+                value: new Float32Array([0, 0, 0, 0]),
+            },
+            {
+                parameter: 'ramp6',
+                value: new Float32Array([0, 0, 0, 0]),
+            },
+            {
+                parameter: 'ramp7',
+                value: new Float32Array([0, 0, 0, 0]),
+            },
+            {
+                parameter: 'ramp8',
+                value: new Float32Array([0, 0, 0, 0]),
+            },
+            {
+                parameter: 'ramp9',
+                value: new Float32Array([0, 0, 0, 0]),
+            },
+            {
+                parameter: 'ramp10',
+                value: new Float32Array([0, 0, 0, 0]),
+            },
+            {
+                parameter: 'ramp11',
+                value: new Float32Array([0, 0, 0, 0]),
+            },
+            {
+                parameter: 'ramp12',
+                value: new Float32Array([0, 0, 0, 0]),
             },
         ],
     },

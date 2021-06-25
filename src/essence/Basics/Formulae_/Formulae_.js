@@ -396,13 +396,21 @@ var Formulae_ = {
      * @param {*} obj
      * @param {*} keyArray
      */
-    getIn: function (obj, keyArray) {
-        if (keyArray == null) return null
+    getIn: function (obj, keyArray, notSetValue) {
+        // eslint-disable-next-line no-eq-null, eqeqeq
+        if (obj == null) return notSetValue != null ? notSetValue : null
+        // eslint-disable-next-line no-eq-null, eqeqeq
+        if (keyArray == null) return notSetValue != null ? notSetValue : null
+        if (typeof keyArray === 'string') keyArray = keyArray.split('.')
         let object = Object.assign({}, obj)
-        for (let i = 0; i < keyArray.length; i++) {
-            if (object.hasOwnProperty(keyArray[i])) object = object[keyArray[i]]
-            else return null
-        }
+        // eslint-disable-next-line unicorn/no-for-loop
+        for (let i = 0; i < keyArray.length; i++)
+            // eslint-disable-next-line no-prototype-builtins,no-eq-null, eqeqeq
+            if (object != null && object.hasOwnProperty(keyArray[i]))
+                object = object[keyArray[i]]
+            // eslint-disable-next-line no-eq-null, eqeqeq
+            else return notSetValue != null ? notSetValue : null
+
         return object
     },
     getKeyByValue: function (obj, value) {
@@ -670,16 +678,18 @@ var Formulae_ = {
                                                         'Lazy depth traversal failed'
                                                     )
                                                 } else {
-                                                    var newCoords = Object.assign(
-                                                        [],
-                                                        coords[i][j][k][l][m]
-                                                    )
+                                                    var newCoords =
+                                                        Object.assign(
+                                                            [],
+                                                            coords[i][j][k][l][
+                                                                m
+                                                            ]
+                                                        )
                                                     var swap = newCoords[0]
                                                     newCoords[0] = newCoords[1]
                                                     newCoords[1] = swap
-                                                    coords[i][j][k][l][
-                                                        m
-                                                    ] = newCoords
+                                                    coords[i][j][k][l][m] =
+                                                        newCoords
                                                 }
                                             }
                                         } else {

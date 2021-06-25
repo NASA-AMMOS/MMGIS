@@ -2547,26 +2547,15 @@ function layerPopulateVariable(modalId, layerType) {
     var currentLayerVars = JSON.parse(layerEditors[modalId].getValue() || "{}");
 
     if (layerType == "data") {
-      currentLayerVars = currentLayerVars.shaders
-        ? { shaders: currentLayerVars.shaders }
+      currentLayerVars = currentLayerVars.shader
+        ? { shader: currentLayerVars.shader }
         : {
-            shaders: [
-              {
-                type: "flood",
-                defaults: {
-                  minValue: 0,
-                  maxValue: 1000,
-                  stepValue: 1,
-                  defaultValue: 500,
-                  ramp: 0,
-                  discrete: false,
-                },
-                units: "m",
-                ramps: [
-                  ["#ffffcc", "#a1dab4", "#41b6c4", "#2c7fb8", "#253494"],
-                ],
-              },
-            ],
+            shader: {
+              type: "colorize",
+              units: "m",
+              editable: true,
+              ramps: [["#ffffcc", "#a1dab4", "#41b6c4", "#2c7fb8", "#253494"]],
+            },
           };
     } else {
       currentLayerVars.useKeyAsName = currentLayerVars.useKeyAsName || "prop";

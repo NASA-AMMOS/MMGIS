@@ -19,7 +19,7 @@ export default {
                 `<dt class="dropy__title"><span>${items[selectedIndex] || placeholder}</span></dt>`,
                 '<dd class="dropy__content">',
                     '<ul>',
-                        `<li><a class="dropy__header" style="pointer-events: none;">${placeholder}</a></li>`,
+                        placeholder ? `<li><a class="dropy__header" style="pointer-events: none;">${placeholder}</a></li>` : '',
                         items.map((item, i) => `<li><a${ i === selectedIndex ? ' class="selected"' : ""} idx=${i}>${item}</a></li>`).join('\n'),
                     '</ul>',
                 '</dd>',

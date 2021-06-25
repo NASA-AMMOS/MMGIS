@@ -292,21 +292,28 @@ function interfaceWithMMGIS() {
                         ].join('\n')
                     break
                 case 'data':
-                    if (node[i].variables && node[i].variables.shaders) {
-                        const shader = node[i].variables.shaders[0]
+                    let additionalSettings = ''
+                    const shader = F_.getIn(node[i], 'variables.shader')
+                    console.log(shader)
+                    if (shader && DataShaders[shader.type]) {
                         // prettier-ignore
-                        settings = [
-                                '<ul>',
-                                    '<li>',
-                                        '<div>',
-                                            '<div>Opacity</div>',
-                                            '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="1" default="' + L_.opacityArray[node[i].name] + '">',
-                                        '</div>',
-                                    '</li>',
-                                    DataShaders[shader.type] ? DataShaders[shader.type].getHTML(node[i].name, shader) : '',
-                                '</ul>'
-                            ].join('\n')
+                        additionalSettings = [
+                            DataShaders[shader.type].getHTML(node[i].name, shader)
+                        ].join('\n')
                     }
+
+                    // prettier-ignore
+                    settings = [
+                        '<ul>',
+                            '<li>',
+                                '<div>',
+                                    '<div>Opacity</div>',
+                                    '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="1" default="' + L_.opacityArray[node[i].name] + '">',
+                                '</div>',
+                            '</li>',
+                            additionalSettings,
+                        '</ul>'
+                    ].join('\n')
                     break
                 case 'model':
                     // prettier-ignore
@@ -381,6 +388,22 @@ function interfaceWithMMGIS() {
                             '</li>',
                         ].join('\n')
                     )
+
+                    //Attach DataShader events
+                    if (node[i].type === 'data') {
+                        const shader = F_.getIn(node[i], 'variables.shader')
+                        if (
+                            shader &&
+                            DataShaders[shader.type] &&
+                            typeof DataShaders[shader.type].attachEvents ===
+                                'function'
+                        )
+                            DataShaders[shader.type].attachEvents(
+                                node[i].name,
+                                shader
+                            )
+                    }
+                    break
             }
 
             if (node[i].sublayers)

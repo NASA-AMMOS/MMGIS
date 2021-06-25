@@ -1252,10 +1252,10 @@ function makeLayer(layerObj) {
     }
 
     function makeDataLayer() {
-        var layerUrl = layerObj.demtileurl
+        let layerUrl = layerObj.demtileurl
         if (!F_.isUrlAbsolute(layerUrl)) layerUrl = L_.missionPath + layerUrl
 
-        var bb = null
+        let bb = null
         if (layerObj.hasOwnProperty('boundingBox')) {
             bb = L.latLngBounds(
                 L.latLng(layerObj.boundingBox[3], layerObj.boundingBox[2]),
@@ -1263,19 +1263,58 @@ function makeLayer(layerObj) {
             )
         }
 
+        const shaderType =
+            F_.getIn(layerObj, 'variables.shader.type') || 'image'
+
         var uniforms = {}
-        for (var i = 0; i < DataShaders['flood'].settings.length; i++) {
-            uniforms[DataShaders['flood'].settings[i].parameter] =
-                DataShaders['flood'].settings[i].value
+        for (let i = 0; i < DataShaders[shaderType].settings.length; i++) {
+            uniforms[DataShaders[shaderType].settings[i].parameter] =
+                DataShaders[shaderType].settings[i].value
         }
 
         L_.layersGroup[layerObj.name] = L.tileLayer.gl({
             options: {
                 tms: true,
+                bounds: bb,
             },
-            fragmentShader: DataShaders['flood'].frag,
+            fragmentShader: DataShaders[shaderType].frag,
             tileUrls: [layerUrl],
+            pixelPerfect: true,
             uniforms: uniforms,
+        })
+
+        L_.layersGroup[layerObj.name].on('load', (e) => {
+            let min = Infinity
+            let max = -Infinity
+            console.log(e.sourceTarget)
+            for (const c in e.sourceTarget._fetchedTextures) {
+                if (e.sourceTarget._fetchedTextures[c][0].pixelPerfect) {
+                    const data =
+                        e.sourceTarget._fetchedTextures[c][0].pixelPerfect
+                            .imgData
+
+                    for (let i = 0; i < data.length; i += 4) {
+                        const value = F_.RGBAto32({
+                            r: data[i + 0],
+                            g: data[i + 1],
+                            b: data[i + 2],
+                            a: data[i + 3],
+                        })
+                        //if (i < 20) console.log(value)
+                        if (value < min) {
+                            min = value
+                        }
+                        if (value > max) {
+                            max = value
+                        }
+                    }
+                }
+            }
+            console.log('Min:', min, ', Max:', max)
+
+            L_.layersGroup[layerObj.name].setUniform('minvalue', min)
+            L_.layersGroup[layerObj.name].setUniform('maxvalue', max)
+            L_.layersGroup[layerObj.name].reRender()
         })
 
         L_.setLayerOpacity(layerObj.name, L_.opacityArray[layerObj.name])
