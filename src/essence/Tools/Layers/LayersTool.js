@@ -123,6 +123,11 @@ function interfaceWithMMGIS() {
     function depthTraversal(node, parent, depth) {
         for (var i = 0; i < node.length; i++) {
             let currentOpacity
+            let currentBrightness
+            let currentContrast
+            let currentSaturation
+            let currentBlend
+
             //Build layerExport
             var layerExport
             switch (node[i].type) {
@@ -199,10 +204,10 @@ function interfaceWithMMGIS() {
                     if (currentOpacity == null)
                         currentOpacity = L_.opacityArray[node[i].name]
 
-                    let currentBrightness = 1
-                    let currentContrast = 1
-                    let currentSaturation = 1
-                    let currentBlend = 'none'
+                    currentBrightness = 1
+                    currentContrast = 1
+                    currentSaturation = 1
+                    currentBlend = 'none'
                     if (L_.layerFilters[node[i].name]) {
                         let f = L_.layerFilters[node[i].name]
 
@@ -292,9 +297,23 @@ function interfaceWithMMGIS() {
                         ].join('\n')
                     break
                 case 'data':
+                    currentOpacity = L_.getLayerOpacity(node[i].name)
+                    if (currentOpacity == null)
+                        currentOpacity = L_.opacityArray[node[i].name]
+
+                    currentBlend = 'none'
+                    if (L_.layerFilters[node[i].name]) {
+                        let f = L_.layerFilters[node[i].name]
+
+                        currentBlend =
+                            f['mix-blend-mode'] == null
+                                ? 'none'
+                                : f['mix-blend-mode']
+                    }
+
                     let additionalSettings = ''
                     const shader = F_.getIn(node[i], 'variables.shader')
-                    console.log(shader)
+
                     if (shader && DataShaders[shader.type]) {
                         // prettier-ignore
                         additionalSettings = [
@@ -308,7 +327,17 @@ function interfaceWithMMGIS() {
                             '<li>',
                                 '<div>',
                                     '<div>Opacity</div>',
-                                    '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="1" default="' + L_.opacityArray[node[i].name] + '">',
+                                    '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.opacityArray[node[i].name] + '">',
+                                '</div>',
+                            '</li>',
+                            '<li>',
+                                '<div>',
+                                    '<div>Blend</div>',
+                                    '<select class="tileblender dropdown" layername="' + node[i].name + '">',
+                                        '<option value="unset"' + (currentBlend == 'none' ? ' selected' : '') + '>None</option>',
+                                        '<option value="color"' + (currentBlend == 'color' ? ' selected' : '') + '>Color</option>',
+                                        '<option value="overlay"' + (currentBlend == 'overlay' ? ' selected' : '') + '>Overlay</option>',
+                                    '</select>',
                                 '</div>',
                             '</li>',
                             additionalSettings,
@@ -511,20 +540,6 @@ function interfaceWithMMGIS() {
             'mix-blend-mode',
             $(this).val()
         )
-    })
-
-    //TEMP DATA
-    $('.dataslider').on('input', function () {
-        var layerName = $(this).attr('layername')
-        var parameter = $(this).attr('parameter')
-        var val = $(this).val()
-        L_.layersGroup[layerName].setUniform(parameter, val)
-        L_.layersGroup[layerName].reRender()
-
-        $(this)
-            .parent()
-            .find('span')
-            .text('(' + parseInt(val) + $(this).attr('unit') + ')')
     })
 
     $('#searchLayers > input').on('input', function () {

@@ -673,6 +673,17 @@ body {
     text-decoration: underline;
 }
 
+.checkeredTransparent {
+    background-image: linear-gradient(45deg, #555 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #555 75%),
+        linear-gradient(45deg, transparent 75%, #555 75%),
+        linear-gradient(45deg, #555 25%, #999 25%);
+
+    background-size: 10px 10px;
+
+    background-position: 0 0, 0 0, -5px -5px, 5px 5px;
+}
+
 .highlightAnim1 {
     animation-name: highlightAnim1;
     animation-duration: 1.2s;

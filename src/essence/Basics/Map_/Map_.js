@@ -1263,8 +1263,8 @@ function makeLayer(layerObj) {
             )
         }
 
-        const shaderType =
-            F_.getIn(layerObj, 'variables.shader.type') || 'image'
+        const shader = F_.getIn(layerObj, 'variables.shader')
+        const shaderType = shader.type || 'image'
 
         var uniforms = {}
         for (let i = 0; i < DataShaders[shaderType].settings.length; i++) {
@@ -1283,39 +1283,9 @@ function makeLayer(layerObj) {
             uniforms: uniforms,
         })
 
-        L_.layersGroup[layerObj.name].on('load', (e) => {
-            let min = Infinity
-            let max = -Infinity
-            console.log(e.sourceTarget)
-            for (const c in e.sourceTarget._fetchedTextures) {
-                if (e.sourceTarget._fetchedTextures[c][0].pixelPerfect) {
-                    const data =
-                        e.sourceTarget._fetchedTextures[c][0].pixelPerfect
-                            .imgData
-
-                    for (let i = 0; i < data.length; i += 4) {
-                        const value = F_.RGBAto32({
-                            r: data[i + 0],
-                            g: data[i + 1],
-                            b: data[i + 2],
-                            a: data[i + 3],
-                        })
-                        //if (i < 20) console.log(value)
-                        if (value < min) {
-                            min = value
-                        }
-                        if (value > max) {
-                            max = value
-                        }
-                    }
-                }
-            }
-            console.log('Min:', min, ', Max:', max)
-
-            L_.layersGroup[layerObj.name].setUniform('minvalue', min)
-            L_.layersGroup[layerObj.name].setUniform('maxvalue', max)
-            L_.layersGroup[layerObj.name].reRender()
-        })
+        if (DataShaders[shaderType].attachImmediateEvents) {
+            DataShaders[shaderType].attachImmediateEvents(layerObj.name, shader)
+        }
 
         L_.setLayerOpacity(layerObj.name, L_.opacityArray[layerObj.name])
 

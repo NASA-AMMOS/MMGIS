@@ -27,7 +27,7 @@ export default {
             '</dl>'].join('\n')
     },
     // onChange(index, value, element)
-    init: function (dropyElm, onChange) {
+    init: function (dropyElm, onChange, onOpen, onClose) {
         var self = this
 
         dropyElm = dropyElm.find('.dropy')
@@ -36,6 +36,9 @@ export default {
         dropyElm.find('.dropy__title').click(function () {
             $('.dropy').removeClass(self.openClass)
             $(this).parents('.dropy').addClass(self.openClass)
+            if (typeof onOpen === 'function') {
+                onOpen()
+            }
         })
 
         // Click on a dropy list
@@ -66,6 +69,10 @@ export default {
             // Close dropdown
             $dropy.removeClass(self.openClass)
 
+            if (typeof onClose === 'function') {
+                onClose()
+            }
+
             if (typeof onChange === 'function') {
                 onChange(parseInt($that.attr('idx')), $that.text(), $that)
             }
@@ -75,6 +82,9 @@ export default {
         $(document).bind('click', function (e) {
             if (!$(e.target).parents().hasClass('dropy')) {
                 $('.dropy').removeClass(self.openClass)
+                if (typeof onClose === 'function') {
+                    onClose()
+                }
             }
         })
     },

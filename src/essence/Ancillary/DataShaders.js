@@ -1,5 +1,7 @@
 import $ from 'jquery'
 import Dropy from '../../external/Dropy/dropy'
+import L_ from '../Basics/Layers_/Layers_'
+import F_ from '../Basics/Formulae_/Formulae_'
 
 // rgbaToGFloat from: https://github.com/ihmeuw/glsl-rgba-to-float
 // License: BSD-3 Clause https://github.com/ihmeuw/glsl-rgba-to-float/blob/master/LICENSE.md
@@ -95,37 +97,116 @@ let DataShaders = {
     },
     colorize: {
         getHTML: function (name, shaderObj) {
-            const df = shaderObj.defaults || {}
+            //const df = shaderObj.defaults || {}
             // prettier-ignore
             return [
-                '<li>',
+                `<li class="dataShader_${name}_colorize">`,
                     '<div>',
                         '<div>Dynamic</div>',
-                        `<input class="datacheckbox checkboxSmall" parameter="dynamic" layername="${name}" type="checkbox" checked>`,
+                        `<select class="dropdown" parameter="dynamic" layername="${name}">`,
+                            '<option value="true" selected>On</option>',
+                            '<option value="false">Off</option>',
+                        '</select>',
                     '</div>',
                 '</li>',
-                '<li>',
+                `<li class="dataShader_${name}_colorize">`,
                     '<div>',
-                        '<div>Discrete</div>',
-                        `<input class="datacheckbox checkboxSmall" parameter="discrete" layername="${name}" type="checkbox">`,
+                        '<div>Mode</div>',
+                        `<select class="dropdown" parameter="discrete" layername="${name}">`,
+                            '<option value="continuous" selected>Continuous</option>',
+                            '<option value="discrete">Discrete</option>',
+                        '</select>',
                     '</div>',
                 '</li>',
-                '<li>',
-                    '<div>',
-                        '<div>Color Ramp</div>',
-                        `<div id="dataShader_${name}_colorize_ramps" style="width: 126px;"></div>`,
+                `<li class="dataShader_${name}_colorize">`,
+                    '<div style="padding: 2px 0px;">',
+                        `<div id="dataShader_${name}_colorize_ramps" style="width: 100%;"></div>`,
                     '</div>',
                 '</li>',
-                '<li>',
+                `<li class="dataShader_${name}_colorize" style="height: auto; min-height: 120px; padding-top: 4px;">`,
                     '<div style="display: block;">',
-                        '<div style="display: flex; justify-content: space-between; font-weight: bold;"><div>Value</div><div>Stop</div><div>Color</div></div>',
+                        '<div style="display: flex; justify-content: space-between; font-weight: bold;"><div>Value</div><div>Color</div></div>',
                         `<ul id="dataShader_${name}_colorize_legend"></ul>`,
                     '</div>',
                 '</li>',
             ].join('\n')
         },
+        // Like attach events but included on layer add
+        attachImmediateEvents: function (name, shaderObj) {
+            DataShaders.colorize.refreshRamp(name, shaderObj, 0)
+            // Get minmax
+            L_.layersGroup[name].on('load', (e) => {
+                if (
+                    L_.layersGroup[name].minValue != null &&
+                    L_.layersGroup[name].maxValue != null &&
+                    L_.layersGroup[name].isDynamic === false
+                ) {
+                    return
+                }
+
+                let min = Infinity
+                let max = -Infinity
+                const noDataValues = shaderObj.noDataValues || []
+                for (const c in e.sourceTarget._fetchedTextures) {
+                    if (e.sourceTarget._fetchedTextures[c][0].pixelPerfect) {
+                        const data =
+                            e.sourceTarget._fetchedTextures[c][0].pixelPerfect
+                                .imgData
+
+                        for (let i = 0; i < data.length; i += 4) {
+                            const value = F_.RGBAto32({
+                                r: data[i + 0],
+                                g: data[i + 1],
+                                b: data[i + 2],
+                                a: data[i + 3],
+                            })
+                            //if (i < 20) console.log(value)
+                            if (value < min && !noDataValues.includes(value)) {
+                                min = value
+                            }
+                            if (value > max && !noDataValues.includes(value)) {
+                                max = value
+                            }
+                        }
+                    }
+                }
+
+                L_.layersGroup[name].setUniform('minvalue', min)
+                L_.layersGroup[name].setUniform('maxvalue', max)
+                L_.layersGroup[name].reRender()
+
+                DataShaders.colorize.updateLegendMinMax(
+                    name,
+                    shaderObj,
+                    min,
+                    max
+                )
+            })
+        },
+        // Like attach immediate events but on layer tool open
         attachEvents: function (name, shaderObj) {
-            const initialRampIdx = 0
+            $(`.dataShader_${name}_colorize select[parameter=dynamic]`).on(
+                'change',
+                function () {
+                    const layerName = $(this).attr('layername')
+                    const val = $(this).val()
+                    L_.layersGroup[layerName].isDynamic = val === 'true'
+                }
+            )
+            //Checkboxes
+            $(`.dataShader_${name}_colorize select[parameter=discrete]`).on(
+                'change',
+                function () {
+                    const layerName = $(this).attr('layername')
+                    const parameter = $(this).attr('parameter')
+                    const val = $(this).val()
+                    L_.layersGroup[layerName].setUniform(
+                        parameter,
+                        val === 'discrete' ? 1 : 0
+                    )
+                    L_.layersGroup[layerName].reRender()
+                }
+            )
 
             //RAMPS
             let ramps = []
@@ -133,9 +214,15 @@ let DataShaders = {
                 let newRamp = []
                 ramp.forEach((color) => {
                     newRamp.push(
-                        `<div style="width: ${
-                            100 / ramp.length
-                        }%; height: 18px; background: ${color};"></div>`
+                        `<div ${
+                            color === 'transparent'
+                                ? 'class="checkeredTransparent"'
+                                : ''
+                        } style="width: ${100 / ramp.length}%; height: 22px; ${
+                            color !== 'transparent'
+                                ? `background: ${color};`
+                                : ''
+                        }"></div>`
                     )
                 })
                 ramps.push(
@@ -144,7 +231,7 @@ let DataShaders = {
             })
 
             $(`#dataShader_${name}_colorize_ramps`).html(
-                Dropy.construct(ramps, null, initialRampIdx)
+                Dropy.construct(ramps, null, 0)
             )
             $(`#dataShader_${name}_colorize_ramps ul`).css({
                 background: 'var(--color-a)',
@@ -153,37 +240,102 @@ let DataShaders = {
                 marginBottom: '0px',
             })
             $(`#dataShader_${name}_colorize_ramps .dropy__title span`).css({
-                padding: '5px',
+                padding: '2px 0px',
             })
             $(`#dataShader_${name}_colorize_ramps li > a`).css({
                 marginBottom: '0px',
-                padding: '5px',
+                padding: '2px 0px',
             })
-            Dropy.init($(`#dataShader_${name}_colorize_ramps`), function (idx) {
-                setLegend(idx)
-            })
-
-            setLegend()
-            //LEGEND
-            function setLegend(rampIdx) {
-                let legend = []
-                if (shaderObj.ramps) {
-                    const ramp =
-                        shaderObj.ramps[
-                            rampIdx != null ? rampIdx : initialRampIdx
-                        ]
-                    ramp.forEach((color, idx) => {
-                        // prettier-ignore
-                        legend.push(
-                        `<li style="display: flex; justify-content: space-between; padding: 2px 0px;">`,
-                            `<div>4500${shaderObj.units || ''}</div>`,
-                            `<div>${idx / ramp.length * 100}%</div>`,
-                            `<div style="width: 18px; height: 18px; background: ${color};"></div>`,
-                        `</li>`
-                    )
+            Dropy.init(
+                $(`#dataShader_${name}_colorize_ramps`),
+                function (rampIdx) {
+                    DataShaders.colorize.refreshRamp(name, shaderObj, rampIdx)
+                },
+                function () {
+                    $(`#dataShader_${name}_colorize_ramps .dropy.open ul`).css({
+                        maxHeight: '140px',
+                    })
+                },
+                function () {
+                    $(`#dataShader_${name}_colorize_ramps .dropy ul`).css({
+                        maxHeight: '',
                     })
                 }
-                $(`#dataShader_${name}_colorize_legend`).html(legend.join('\n'))
+            )
+
+            DataShaders.colorize.setLegend(name, shaderObj)
+        },
+        refreshRamp: function (name, shaderObj, rampIdx) {
+            rampIdx = rampIdx || 0
+            DataShaders.colorize.setLegend(name, shaderObj, rampIdx)
+            if (shaderObj.ramps) {
+                const ramp = shaderObj.ramps[rampIdx != null ? rampIdx : 0]
+                ramp.forEach((color, idx) => {
+                    let rgb
+                    // Hacky easy transparency support
+                    if (color === 'transparent') rgb = { r: 1, g: 1, b: 1 }
+                    else {
+                        rgb = F_.hexToRGB(color)
+                        if (rgb.r == 1 && rgb.g == 1 && rgb.b == 1)
+                            rgb = { r: 0, g: 0, b: 0 }
+                    }
+
+                    L_.layersGroup[name].setUniform(
+                        `ramp${idx}`,
+                        new Float32Array([
+                            rgb.r / 255,
+                            rgb.g / 255,
+                            rgb.b / 255,
+                            idx / (ramp.length - 1),
+                        ])
+                    )
+                })
+                L_.layersGroup[name].reRender()
+            }
+        },
+        setLegend: function (name, shaderObj, rampIdx) {
+            let legend = []
+            if (shaderObj.ramps) {
+                const ramp = shaderObj.ramps[rampIdx != null ? rampIdx : 0]
+                ramp.forEach((color, idx) => {
+                    // prettier-ignore
+                    legend.push(
+                        `<li style="display: flex; justify-content: space-between; padding: 2px 0px;">`,
+                            `<div class="dataShader_${name}_colorize_legend_value_${idx}"></div>`,
+                            `<div ${color === 'transparent' ? 'class="checkeredTransparent"' : ''} style="width: 24px; height: 23px; ${ color !== 'transparent' ? `background: ${color};` : ''}"></div>`,
+                        `</li>`
+                    )
+                })
+            }
+            $(`#dataShader_${name}_colorize_legend`).html(legend.join('\n'))
+            $(`#dataShader_${name}_colorize_legend`).attr('rampIdx', rampIdx)
+            DataShaders.colorize.updateLegendMinMax(name, shaderObj)
+        },
+        updateLegendMinMax: function (name, shaderObj, min, max) {
+            if (min == null) min = L_.layersGroup[name].minValue
+            if (max == null) max = L_.layersGroup[name].maxValue
+            if (shaderObj.ramps && min != null && max != null) {
+                const rampIdx = $(`#dataShader_${name}_colorize_legend`).attr(
+                    'rampIdx'
+                )
+                const ramp = shaderObj.ramps[rampIdx != null ? rampIdx : 0]
+                ramp.forEach((color, idx) => {
+                    let value = F_.linearScale(
+                        [0, ramp.length - 1],
+                        [min, max],
+                        idx
+                    )
+                    if (!isNaN(value))
+                        value = `${value.toFixed(
+                            shaderObj.sigfigs != null ? shaderObj.sigfigs : 3
+                        )}${shaderObj.units || ''}`
+                    else value = '--'
+                    $(`.dataShader_${name}_colorize_legend_value_${idx}`).html(
+                        value
+                    )
+                })
+                L_.layersGroup[name].minValue = min
+                L_.layersGroup[name].maxValue = max
             }
         },
         // prettier-ignore
@@ -196,16 +348,48 @@ let DataShaders = {
             
                 'highp float pxValue = rgbaToFloat(texelColour, false);',
             
-                'vec4 colour;',
-                'colour = vec4(1.0, 0.0, 0.0, linearScale(minvalue, maxvalue, 0.0, 1.0, pxValue));',
+                'vec4 colour = vec4(0.0, 0.0, 0.0, 0.0);',
+
+                'float valuePercent = linearScale(minvalue, maxvalue, 0.0, 1.0, pxValue);',
+
+                new Array(13).fill('').map((v, i) => {
+                    if( i === 0 )
+                        // prettier-ignore
+                        return [
+                            `if (valuePercent < ramp${i}[3]) {`,
+                                `float alphaI = 1.0;`,
+                                `if ( ramp${i}[0] * 255.0 == 1.0 && ramp${i}[1] * 255.0 == 1.0 && ramp${i}[2] * 255.0 == 1.0) { alphaI = 0.0; }`,
+                                `colour = vec4(ramp${i}[0], ramp${i}[1], ramp${i}[2], alphaI);`,
+                            '}'
+                        ].join('\n')
+                    // prettier-ignore
+                    return [
+                        `else if (valuePercent <= ramp${i}[3] || ramp${i}[3] == 1.0) {`,
+                            `if (discrete > 0.0) {`,
+                                `if (valuePercent - ramp${i-1}[3] < ramp${i}[3] - valuePercent) {`,     
+                                    `valuePercent = ramp${i-1}[3];`,
+                                '} else {',
+                                    `valuePercent = ramp${i}[3];`,
+                                '}',
+                            `}`,
+                            `float alphaI = 1.0;`,
+                            `float alphaIm1 = 1.0;`,
+                            `if ( ramp${i}[0] * 255.0 == 1.0 && ramp${i}[1] * 255.0 == 1.0 && ramp${i}[2] * 255.0 == 1.0) { alphaI = 0.0; }`,
+                            `if ( ramp${i-1}[0] * 255.0 == 1.0 && ramp${i-1}[1] * 255.0 == 1.0 && ramp${i-1}[2] * 255.0 == 1.0) { alphaIm1 = 0.0; }`,
+                            `colour = vec4(linearScale(ramp${i-1}[3], ramp${i}[3], ramp${i-1}[0], ramp${i}[0], valuePercent), linearScale(ramp${i-1}[3], ramp${i}[3], ramp${i-1}[1], ramp${i}[1], valuePercent), linearScale(ramp${i-1}[3], ramp${i}[3], ramp${i-1}[2], ramp${i}[2], valuePercent), linearScale(ramp${i-1}[3], ramp${i}[3], alphaIm1, alphaI, valuePercent));`,
+                        `}`
+                    ].join('\n')
+                }).join('\n'),
 
                 // And compose the labels on top of everything
                 'gl_FragColor = colour;',
-                
-                //'gl_FragColor = vec4(0.7, 0.6, 0.1, 1);',
             '}'
         ].join('\n'),
         settings: [
+            {
+                parameter: 'discrete',
+                value: 0,
+            },
             {
                 parameter: 'minvalue',
                 value: 0,
@@ -220,11 +404,11 @@ let DataShaders = {
             },
             {
                 parameter: 'ramp1',
-                value: new Float32Array([0, 0, 1, 1]),
+                value: new Float32Array([0, 1, 0, 0.5]), // if the stop is 1 (100%), we stop the whole color scale
             },
             {
                 parameter: 'ramp2',
-                value: new Float32Array([0, 0, 0, 0]),
+                value: new Float32Array([0, 0, 1, 1]),
             },
             {
                 parameter: 'ramp3',

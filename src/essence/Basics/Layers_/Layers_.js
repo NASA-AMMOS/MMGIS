@@ -360,7 +360,10 @@ var L_ = {
                         )
                     }
                 }
-                if (L_.layersData[i].type == 'tile') {
+                if (
+                    L_.layersData[i].type == 'tile' ||
+                    L_.layersData[i].type == 'data'
+                ) {
                     // Make sure all tile layers follow z-index order at start instead of element order
                     L_.layersGroup[L_.layersData[i].name].setZIndex(
                         L_.layersOrdered.length +

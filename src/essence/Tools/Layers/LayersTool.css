@@ -187,6 +187,10 @@
     padding: 0;
     margin: 0;
 }
+#layersTool .settings ul > li {
+    height: 24px;
+    line-height: 24px;
+}
 #layersTool .settings ul > li > div {
     display: flex;
     justify-content: space-between;
@@ -203,7 +207,7 @@
     justify-content: space-between;
 }
 #layersTool .settings ul > li input[type='range'] {
-    width: 70px;
+    width: 100px;
     margin-right: 0;
 }
 #layersTool .settings span {
@@ -415,8 +419,8 @@
     background-color: #222;
     border: none;
     margin-top: 1px;
-    width: 70px;
-    height: 15px;
+    width: 100px;
+    height: 20px;
     font-size: 12px;
     color: var(--color-f);
     padding-left: 3px;
