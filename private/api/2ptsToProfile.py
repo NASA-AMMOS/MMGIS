@@ -210,4 +210,4 @@ for i in range(0, len(latLonElevArray)):
     latLonElevArray[i] = [latLonElevArray[i][1], latLonElevArray[i][0]]
     latLonElevArray[i].append(elevArray[i])
 
-print('"', latLonElevArray, '"')
+print(latLonElevArray)

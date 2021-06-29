@@ -43,10 +43,10 @@ const Measure = () => {
             .on('click', MeasureTool.clickMap)
             .on('mousemove', MeasureTool.moveMap)
             .on('mouseout', MeasureTool.mouseOutMap)
-        Globe_.litho
-            .getContainer()
-            .addEventListener('click', MeasureTool.clickGlobe, false)
-            .addEventListener('mousemove', MeasureTool.moveGlobe, false)
+
+        const globeCont = Globe_.litho.getContainer()
+        globeCont.addEventListener('click', MeasureTool.clickGlobe, false)
+        globeCont.addEventListener('mousemove', MeasureTool.moveGlobe, false)
 
         Viewer_.imageViewerMap.addHandler(
             'canvas-click',
@@ -380,11 +380,25 @@ let MeasureTool = {
                 name: '_MeasureToolGlobeFocusMarker',
                 id: '_MeasureToolGlobeFocusMarker',
                 on: true,
+                opacity: 1,
+                minZoom: 0,
+                maxZoom: 30,
                 style: {
                     fillColor: 'yellow',
                     color: '#000',
                 },
-                geometry: [[lat, lng, z]],
+                geojson: {
+                    type: 'FeatureCollection',
+                    features: [
+                        {
+                            type: 'Feature',
+                            geometry: {
+                                type: 'Point',
+                                coordinates: [[lat, lng, z]],
+                            },
+                        },
+                    ],
+                },
             },
             1
         )
@@ -586,8 +600,10 @@ function makeProfile() {
                     return
                 }
                 try {
-                    data = JSON.parse(JSON.parse(data))
+                    data = data.replace(/[\n\r]/g, '')
+                    data = JSON.parse(data)
                 } catch (err) {
+                    console.log(err)
                     // Fake a line between the most then
                     data = [
                         [elevPoints[0].y, elevPoints[0].x, 0],

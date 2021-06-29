@@ -378,32 +378,36 @@ var L_ = {
                 let layerUrl = s.url
                 if (!F_.isUrlAbsolute(layerUrl))
                     layerUrl = L_.missionPath + layerUrl
-                if (L_.layersData[i].type === 'tile' || L_.layersData[i].type == 'data') {
+                if (
+                    L_.layersData[i].type === 'tile' ||
+                    L_.layersData[i].type === 'data'
+                ) {
                     // Make sure all tile layers follow z-index order at start instead of element order
                     L_.layersGroup[L_.layersData[i].name].setZIndex(
                         L_.layersOrdered.length +
                             1 -
                             L_.layersOrdered.indexOf(L_.layersData[i].name)
                     )
-                  
+
                     let demUrl = s.demtileurl
                     if (!F_.isUrlAbsolute(demUrl))
                         demUrl = L_.missionPath + demUrl
                     if (s.demtileurl == undefined) demUrl = undefined
-                    L_.Globe_.litho.addLayer('tile', {
-                        name: s.name,
-                        order: 99999 - L_.layersIndex[s.name],
-                        on: L_.opacityArray[s.name],
-                        format: 'tms',
-                        demFormat: 'tms',
-                        path: layerUrl,
-                        demPath: demUrl,
-                        opacity: L_.opacityArray[s.name],
-                        minZoom: s.minZoom,
-                        maxZoom: s.maxNativeZoom,
-                        boundingBox: s.boundingBox,
-                        time: s.time == null ? '' : s.time.end,
-                    })
+                    if (L_.layersData[i].type === 'tile')
+                        L_.Globe_.litho.addLayer('tile', {
+                            name: s.name,
+                            order: 99999 - L_.layersIndex[s.name],
+                            on: L_.opacityArray[s.name],
+                            format: 'tms',
+                            demFormat: 'tms',
+                            path: layerUrl,
+                            demPath: demUrl,
+                            opacity: L_.opacityArray[s.name],
+                            minZoom: s.minZoom,
+                            maxZoom: s.maxNativeZoom,
+                            boundingBox: s.boundingBox,
+                            time: s.time == null ? '' : s.time.end,
+                        })
                 } else if (L_.layersData[i].type != 'header') {
                     L_.Globe_.litho.addLayer(
                         L_.layersData[i].type == 'vector'
