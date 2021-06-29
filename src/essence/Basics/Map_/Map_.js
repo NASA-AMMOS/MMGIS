@@ -1290,7 +1290,7 @@ function makeLayer(layerObj) {
             )
         }
 
-        const shader = F_.getIn(layerObj, 'variables.shader')
+        const shader = F_.getIn(layerObj, 'variables.shader') || {}
         const shaderType = shader.type || 'image'
 
         var uniforms = {}

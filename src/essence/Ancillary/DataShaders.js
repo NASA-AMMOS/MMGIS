@@ -103,20 +103,32 @@ let DataShaders = {
             return [
                 `<li class="dataShader_${name}_colorize">`,
                     '<div>',
-                        '<div>Dynamic</div>',
+                        '<div>Mode</div>',
+                        `<select class="dropdown" parameter="discrete" layername="${name}">`,
+                            '<option value="continuous" selected>Continuous</option>',
+                            '<option value="discrete">Discrete</option>',
+                        '</select>',
+                    '</div>',
+                '</li>',
+                `<li class="dataShader_${name}_colorize">`,
+                    '<div>',
+                        '<div title="Whether to refit the minmax range when the viewport changes.">Dynamic</div>',
                         `<select class="dropdown" parameter="dynamic" layername="${name}">`,
                             '<option value="true" selected>On</option>',
                             '<option value="false">Off</option>',
                         '</select>',
                     '</div>',
                 '</li>',
-                `<li class="dataShader_${name}_colorize">`,
+                `<li class="dataShader_${name}_colorize_minValue">`,
                     '<div>',
-                        '<div>Mode</div>',
-                        `<select class="dropdown" parameter="discrete" layername="${name}">`,
-                            '<option value="continuous" selected>Continuous</option>',
-                            '<option value="discrete">Discrete</option>',
-                        '</select>',
+                        '<div>Min Value</div>',
+                        `<input style="width: 101px;" layername="${name}" parameter="min" type="number" value="0" default="0">`,
+                    '</div>',
+                '</li>',
+                `<li class="dataShader_${name}_colorize_maxValue">`,
+                    '<div>',
+                        '<div>Max Value</div>',
+                        `<input style="width: 101px;" layername="${name}" parameter="max" type="number" value="0" default="0">`,
                     '</div>',
                 '</li>',
                 `<li class="dataShader_${name}_colorize">`,
@@ -206,6 +218,7 @@ let DataShaders = {
         intervalMinMax: null,
         setMinMaxAnimated(name, shaderObj, min, max) {
             if (!Number.isFinite(min) || !Number.isFinite(max)) return
+            DataShaders.colorize.updateLegendMinMax(name, shaderObj, min, max)
             if (
                 DataShaders.colorize.lastMinMax.min == null ||
                 DataShaders.colorize.lastMinMax.max == null
@@ -215,21 +228,14 @@ let DataShaders = {
                 L_.layersGroup[name].setUniform('minvalue', min)
                 L_.layersGroup[name].setUniform('maxvalue', max)
                 L_.layersGroup[name].reRender()
-
-                DataShaders.colorize.updateLegendMinMax(
-                    name,
-                    shaderObj,
-                    min,
-                    max
-                )
                 return
             }
             if (DataShaders.colorize.intervalMinMax)
                 clearInterval(DataShaders.colorize.intervalMinMax)
             DataShaders.colorize.intervalMinMax = setInterval(() => {
                 if (
-                    Math.abs(min - DataShaders.colorize.lastMinMax.min) < 10 &&
-                    Math.abs(max - DataShaders.colorize.lastMinMax.max) < 10
+                    Math.abs(min - DataShaders.colorize.lastMinMax.min) < 1 &&
+                    Math.abs(max - DataShaders.colorize.lastMinMax.max) < 1
                 ) {
                     clearInterval(DataShaders.colorize.intervalMinMax)
                     L_.layersGroup[name].setUniform('minvalue', min)
@@ -265,14 +271,6 @@ let DataShaders = {
                     DataShaders.colorize.lastMinMax.max
                 )
                 L_.layersGroup[name].reRender()
-
-                DataShaders.colorize.updateLegendMinMax(
-                    name,
-                    shaderObj,
-                    DataShaders.colorize.lastMinMax.min,
-                    DataShaders.colorize.lastMinMax.max,
-                    true
-                )
             }, 50)
         },
         // Like attach immediate events but on layer tool open
@@ -308,43 +306,29 @@ let DataShaders = {
                 }
             )
 
-            //Checkboxes
-            $(`#dataShader_${name}_colorize_shift_values`).on(
+            //Min Max
+            $(`.dataShader_${name}_colorize_minValue input[parameter=min]`).on(
                 'change',
                 function () {
-                    const shift = parseFloat($(this).val())
-                    const name = $(this).attr('layername')
-
-                    const min = L_.layersGroup[name].minValue
-                    const max = L_.layersGroup[name].maxValue
-
-                    let cShift = DataShaders.colorize.lastShift
-                    DataShaders.colorize.lastShift = shift
-                    if (DataShaders.colorize.intervalShift)
-                        clearInterval(DataShaders.colorize.intervalShift)
-                    DataShaders.colorize.intervalShift = setInterval(() => {
-                        if (Math.abs(shift - cShift) < 0.01)
-                            clearInterval(DataShaders.colorize.intervalShift)
-                        else if (cShift > shift) cShift -= 0.002
-                        else if (cShift < shift) cShift += 0.002
-
-                        const diff = max - min
-
-                        const newMin = min + cShift * diff
-                        const newMax = max + cShift * diff
-
-                        L_.layersGroup[name].setUniform('minvalue', newMin)
-                        L_.layersGroup[name].setUniform('maxvalue', newMax)
-                        L_.layersGroup[name].reRender()
-
-                        DataShaders.colorize.updateLegendMinMax(
-                            name,
-                            shaderObj,
-                            newMin,
-                            newMax,
-                            true
-                        )
-                    }, 24)
+                    const min = parseFloat($(this).val())
+                    DataShaders.colorize.setMinMaxAnimated(
+                        name,
+                        shaderObj,
+                        min,
+                        L_.layersGroup[name].maxValue
+                    )
+                }
+            )
+            $(`.dataShader_${name}_colorize_maxValue input[parameter=max]`).on(
+                'change',
+                function () {
+                    const max = parseFloat($(this).val())
+                    DataShaders.colorize.setMinMaxAnimated(
+                        name,
+                        shaderObj,
+                        L_.layersGroup[name].minValue,
+                        max
+                    )
                 }
             )
 
@@ -526,6 +510,12 @@ let DataShaders = {
                 if (!dontUpdateMinMix) {
                     L_.layersGroup[name].minValue = min
                     L_.layersGroup[name].maxValue = max
+                    $(
+                        `.dataShader_${name}_colorize_minValue input[parameter=min]`
+                    ).val(min.toFixed(sigfigs))
+                    $(
+                        `.dataShader_${name}_colorize_maxValue input[parameter=max]`
+                    ).val(max.toFixed(sigfigs))
                 }
             }
         },
