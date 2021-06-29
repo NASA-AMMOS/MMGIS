@@ -41,7 +41,7 @@
 }
 #layersTool #filterLayers > .right > div {
     width: 24px;
-    height: 24px;
+    height: 28px;
     padding: 2px;
     margin: 8px 3px;
     text-align: center;
@@ -58,28 +58,22 @@
     color: #ccc;
 }
 #layersTool #filterLayers div.vector.on {
-    border: 1px solid rgba(15, 119, 189, 0.75);
-    background: rgba(15, 119, 189, 0.5);
+    border-bottom: 4px solid rgba(15, 119, 189, 1);
 }
 #layersTool #filterLayers div.tile.on {
-    border: 1px solid rgba(119, 15, 189, 0.75);
-    background: rgba(119, 15, 189, 0.5);
+    border-bottom: 4px solid rgba(119, 15, 189, 1);
 }
 #layersTool #filterLayers div.vectortile.on {
-    border: 1px solid #bd0f8e;
-    background: #bd0f8e;
+    border-bottom: 4px solid #bd0f8e;
 }
 #layersTool #filterLayers div.data.on {
-    border: 1px solid rgba(189, 15, 50, 0.75);
-    background: rgba(189, 15, 50, 0.5);
+    border-bottom: 4px solid rgba(189, 15, 50, 1);
 }
 #layersTool #filterLayers div.model.on {
-    border: 1px solid rgba(189, 189, 15, 0.75);
-    background: rgba(189, 189, 15, 0.5);
+    border-bottom: 4px solid rgba(189, 189, 15, 1);
 }
 #layersTool #filterLayers div.visible.on {
-    border: 1px solid rgba(160, 160, 160, 0.75);
-    background: rgba(160, 160, 160, 0.5);
+    border-bottom: 4px solid rgba(255, 255, 255, 1);
 }
 #layersTool #searchLayers input {
     background: #111;
@@ -205,6 +199,15 @@
 #layersTool .settings ul > li .right {
     display: flex;
     justify-content: space-between;
+}
+
+#layersTool .settings ul > li input[type='number'] {
+    background: #222;
+    width: 80px;
+    color: #ccc;
+    text-align: right;
+    padding: 0px 3px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 #layersTool .settings ul > li input[type='range'] {
     width: 100px;

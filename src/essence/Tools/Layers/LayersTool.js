@@ -18,10 +18,10 @@ var markup = [
                         '<div id="title">Layers</div>',
                     "</div>",
                     "<div class='right'>",
-                        '<div class="vector on" type="vector" title="Hide/Show Vector Layers"><i class="mdi mdi-vector-square mdi-18px"></i></div>',
-                        '<div class="tile on" type="tile" title="Hide/Show Raster Layers"><i class="mdi mdi-map-outline mdi-18px"></i></div>',
-                        '<div class="data on" type="data" title="Hide/Show Data Layers"><i class="mdi mdi-file-table mdi-18px"></i></div>',
-                        '<div class="model on" type="model" title="Hide/Show Model Layers"><i class="mdi mdi-cube-outline mdi-18px"></i></div>',
+                        '<div class="vector" type="vector" title="Hide/Show Vector Layers"><i class="mdi mdi-vector-square mdi-18px"></i></div>',
+                        '<div class="tile" type="tile" title="Hide/Show Raster Layers"><i class="mdi mdi-map-outline mdi-18px"></i></div>',
+                        '<div class="data" type="data" title="Hide/Show Data Layers"><i class="mdi mdi-file-table mdi-18px"></i></div>',
+                        '<div class="model" type="model" title="Hide/Show Model Layers"><i class="mdi mdi-cube-outline mdi-18px"></i></div>',
                         '<div class="visible" type="visible" title="Hide/Show Off Layers"><i class="mdi mdi-eye mdi-18px"></i></div>',
                     "</div>",
                 "</div>",
@@ -604,18 +604,30 @@ function interfaceWithMMGIS() {
         $(this).toggleClass('on')
         var isOn = $(this).hasClass('on')
         var type = $(this).attr('type')
+        const ons = {
+            vector: $('#filterLayers .right > .vector').hasClass('on'),
+            tile: $('#filterLayers .right > .tile').hasClass('on'),
+            data: $('#filterLayers .right > .data').hasClass('on'),
+            model: $('#filterLayers .right > .model').hasClass('on'),
+            visible: $('#filterLayers .right > .visible').hasClass('on'),
+        }
         $('#layersToolList > li').each(function () {
-            if (type == 'visible') {
-                if ($(this).attr('type') != 'header') {
+            if ($(this).attr('type') != 'header') {
+                if (type == 'visible') {
                     var layerOn = $(this).find('.checkbox').hasClass('on')
                     if (isOn) {
                         if (layerOn) $(this).removeClass('forceOff2')
                         else $(this).addClass('forceOff2')
                     } else $(this).removeClass('forceOff2')
+                } else {
+                    if (!ons.vector && !ons.tile && !ons.data && !ons.data)
+                        $(this).removeClass('forceOff')
+                    else {
+                        const liType = $(this).attr('type')
+                        if (ons[liType]) $(this).removeClass('forceOff')
+                        else $(this).addClass('forceOff')
+                    }
                 }
-            } else if ($(this).attr('type') == type) {
-                if (isOn) $(this).removeClass('forceOff')
-                else $(this).addClass('forceOff')
             }
         })
     })

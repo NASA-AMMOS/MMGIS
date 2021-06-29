@@ -1,6 +1,7 @@
 import $ from 'jquery'
 import Dropy from '../../external/Dropy/dropy'
 import L_ from '../Basics/Layers_/Layers_'
+import Map_ from '../Basics/Map_/Map_'
 import F_ from '../Basics/Formulae_/Formulae_'
 
 // rgbaToGFloat from: https://github.com/ihmeuw/glsl-rgba-to-float
@@ -123,19 +124,22 @@ let DataShaders = {
                         `<div id="dataShader_${name}_colorize_ramps" style="width: 100%;"></div>`,
                     '</div>',
                 '</li>',
-                `<li class="dataShader_${name}_colorize" style="height: auto; min-height: 120px; padding-top: 4px;">`,
+                `<li class="dataShader_${name}_colorize" style="height: auto; min-height: 120px; padding: 4px 0px;">`,
                     '<div style="display: block;">',
-                        '<div style="display: flex; justify-content: space-between; font-weight: bold;"><div>Value</div><div>Color</div></div>',
+                        `<div style="display: flex; justify-content: space-between; font-weight: bold;"><div>Value ${shaderObj.units ? ` (${shaderObj.units})`: ''}</div><div>Color</div></div>`,
                         `<ul id="dataShader_${name}_colorize_legend"></ul>`,
                     '</div>',
                 '</li>',
             ].join('\n')
         },
+        sourceTargets: {},
         // Like attach events but included on layer add
         attachImmediateEvents: function (name, shaderObj) {
             DataShaders.colorize.refreshRamp(name, shaderObj, 0)
+
             // Get minmax
-            L_.layersGroup[name].on('load', (e) => {
+            const getMinMax = (e) => {
+                if (!L_.layersGroup[name]) return
                 if (
                     L_.layersGroup[name].minValue != null &&
                     L_.layersGroup[name].maxValue != null &&
@@ -144,14 +148,30 @@ let DataShaders = {
                     return
                 }
 
+                if (e.type === 'load') {
+                    DataShaders.colorize.sourceTargets[name] = e.sourceTarget
+                }
+                if (DataShaders.colorize.sourceTargets[name] == null) return
+
+                const currentXYZs = L_.Map_.getCurrentTileXYZs()
+                const activeTiles = []
+                currentXYZs.forEach((xyz) => {
+                    activeTiles.push(`${xyz.x}:${xyz.y}:${xyz.z}`)
+                })
+
                 let min = Infinity
                 let max = -Infinity
                 const noDataValues = shaderObj.noDataValues || []
-                for (const c in e.sourceTarget._fetchedTextures) {
-                    if (e.sourceTarget._fetchedTextures[c][0].pixelPerfect) {
+                activeTiles.forEach((c) => {
+                    if (
+                        DataShaders.colorize.sourceTargets[name]
+                            ._fetchedTextures[c] &&
+                        DataShaders.colorize.sourceTargets[name]
+                            ._fetchedTextures[c][0].pixelPerfect
+                    ) {
                         const data =
-                            e.sourceTarget._fetchedTextures[c][0].pixelPerfect
-                                .imgData
+                            DataShaders.colorize.sourceTargets[name]
+                                ._fetchedTextures[c][0].pixelPerfect.imgData
 
                         for (let i = 0; i < data.length; i += 4) {
                             const value = F_.RGBAto32({
@@ -169,8 +189,29 @@ let DataShaders = {
                             }
                         }
                     }
-                }
+                })
+                DataShaders.colorize.setMinMaxAnimated(
+                    name,
+                    shaderObj,
+                    min,
+                    max
+                )
+            }
 
+            Map_.map.on('moveend', getMinMax)
+            Map_.map.on('zoomend', getMinMax)
+            L_.layersGroup[name].on('load', getMinMax)
+        },
+        lastMinMax: { min: null, max: null },
+        intervalMinMax: null,
+        setMinMaxAnimated(name, shaderObj, min, max) {
+            if (!Number.isFinite(min) || !Number.isFinite(max)) return
+            if (
+                DataShaders.colorize.lastMinMax.min == null ||
+                DataShaders.colorize.lastMinMax.max == null
+            ) {
+                DataShaders.colorize.lastMinMax.min = min
+                DataShaders.colorize.lastMinMax.max = max
                 L_.layersGroup[name].setUniform('minvalue', min)
                 L_.layersGroup[name].setUniform('maxvalue', max)
                 L_.layersGroup[name].reRender()
@@ -181,7 +222,58 @@ let DataShaders = {
                     min,
                     max
                 )
-            })
+                return
+            }
+            if (DataShaders.colorize.intervalMinMax)
+                clearInterval(DataShaders.colorize.intervalMinMax)
+            DataShaders.colorize.intervalMinMax = setInterval(() => {
+                if (
+                    Math.abs(min - DataShaders.colorize.lastMinMax.min) < 10 &&
+                    Math.abs(max - DataShaders.colorize.lastMinMax.max) < 10
+                ) {
+                    clearInterval(DataShaders.colorize.intervalMinMax)
+                    L_.layersGroup[name].setUniform('minvalue', min)
+                    L_.layersGroup[name].setUniform('maxvalue', max)
+                    L_.layersGroup[name].reRender()
+
+                    DataShaders.colorize.updateLegendMinMax(
+                        name,
+                        shaderObj,
+                        min,
+                        max
+                    )
+                }
+                const minRate =
+                    Math.abs(DataShaders.colorize.lastMinMax.min - min) / 30
+                const maxRate =
+                    Math.abs(DataShaders.colorize.lastMinMax.max - max) / 30
+                if (DataShaders.colorize.lastMinMax.min > min)
+                    DataShaders.colorize.lastMinMax.min -= minRate
+                else if (DataShaders.colorize.lastMinMax.min < min)
+                    DataShaders.colorize.lastMinMax.min += minRate
+                if (DataShaders.colorize.lastMinMax.max > max)
+                    DataShaders.colorize.lastMinMax.max -= maxRate
+                else if (DataShaders.colorize.lastMinMax.min < max)
+                    DataShaders.colorize.lastMinMax.max += maxRate
+
+                L_.layersGroup[name].setUniform(
+                    'minvalue',
+                    DataShaders.colorize.lastMinMax.min
+                )
+                L_.layersGroup[name].setUniform(
+                    'maxvalue',
+                    DataShaders.colorize.lastMinMax.max
+                )
+                L_.layersGroup[name].reRender()
+
+                DataShaders.colorize.updateLegendMinMax(
+                    name,
+                    shaderObj,
+                    DataShaders.colorize.lastMinMax.min,
+                    DataShaders.colorize.lastMinMax.max,
+                    true
+                )
+            }, 50)
         },
         // Like attach immediate events but on layer tool open
         attachEvents: function (name, shaderObj) {
@@ -200,11 +292,59 @@ let DataShaders = {
                     const layerName = $(this).attr('layername')
                     const parameter = $(this).attr('parameter')
                     const val = $(this).val()
+                    DataShaders.colorize.setLegend(
+                        name,
+                        shaderObj,
+                        $(`#dataShader_${name}_colorize_legend`).attr(
+                            'rampIdx'
+                        ),
+                        val == 'discrete'
+                    )
                     L_.layersGroup[layerName].setUniform(
                         parameter,
                         val === 'discrete' ? 1 : 0
                     )
                     L_.layersGroup[layerName].reRender()
+                }
+            )
+
+            //Checkboxes
+            $(`#dataShader_${name}_colorize_shift_values`).on(
+                'change',
+                function () {
+                    const shift = parseFloat($(this).val())
+                    const name = $(this).attr('layername')
+
+                    const min = L_.layersGroup[name].minValue
+                    const max = L_.layersGroup[name].maxValue
+
+                    let cShift = DataShaders.colorize.lastShift
+                    DataShaders.colorize.lastShift = shift
+                    if (DataShaders.colorize.intervalShift)
+                        clearInterval(DataShaders.colorize.intervalShift)
+                    DataShaders.colorize.intervalShift = setInterval(() => {
+                        if (Math.abs(shift - cShift) < 0.01)
+                            clearInterval(DataShaders.colorize.intervalShift)
+                        else if (cShift > shift) cShift -= 0.002
+                        else if (cShift < shift) cShift += 0.002
+
+                        const diff = max - min
+
+                        const newMin = min + cShift * diff
+                        const newMax = max + cShift * diff
+
+                        L_.layersGroup[name].setUniform('minvalue', newMin)
+                        L_.layersGroup[name].setUniform('maxvalue', newMax)
+                        L_.layersGroup[name].reRender()
+
+                        DataShaders.colorize.updateLegendMinMax(
+                            name,
+                            shaderObj,
+                            newMin,
+                            newMax,
+                            true
+                        )
+                    }, 24)
                 }
             )
 
@@ -293,7 +433,7 @@ let DataShaders = {
                 L_.layersGroup[name].reRender()
             }
         },
-        setLegend: function (name, shaderObj, rampIdx) {
+        setLegend: function (name, shaderObj, rampIdx, isDiscrete) {
             let legend = []
             if (shaderObj.ramps) {
                 const ramp = shaderObj.ramps[rampIdx != null ? rampIdx : 0]
@@ -301,7 +441,20 @@ let DataShaders = {
                     // prettier-ignore
                     legend.push(
                         `<li style="display: flex; justify-content: space-between; padding: 2px 0px;">`,
-                            `<div class="dataShader_${name}_colorize_legend_value_${idx}"></div>`,
+                            isDiscrete ? [
+                                `<div class="dataShader_${name}_colorize_legend_value_${idx}">`,
+                                    idx === 0 ? `<i class='mdi mdi-less-than mdi-12px' style="font-size: 12px; padding-right: 2px;"></i><div class="dataShader_${name}_colorize_legend_value_min dataShader_${name}_colorize_legend_value_${idx}_low" type="number" style="color: white;"></div>`
+                                    : idx === ramp.length - 1 ? `<i class='mdi mdi-greater-than mdi-12px' style="font-size: 12px; padding-right: 2px;"></i><div class="dataShader_${name}_colorize_legend_value_max dataShader_${name}_colorize_legend_value_${idx}_high" type="number" style="color: white;"></div>`
+                                    : [
+                                        `<div class="dataShader_${name}_colorize_legend_value_${idx}_low" style="color: white;"></div>`,
+                                        `<i class='mdi mdi-arrow-right mdi-12px' style="font-size: 12px;  padding: 0px 2px;"></i>`,
+                                        `<div class="dataShader_${name}_colorize_legend_value_${idx}_high" style="color: white;"></div>`
+                                    ].join('\n'),
+                                `</div>`
+                                ].join('\n') :
+                                idx === 0 ? `<div class="dataShader_${name}_colorize_legend_value_${idx} dataShader_${name}_colorize_legend_value_min" type="number" style="color: white;"></div>`
+                                    : idx === ramp.length - 1 ? `<div class="dataShader_${name}_colorize_legend_value_${idx} dataShader_${name}_colorize_legend_value_max" type="number" style="color: white;"></div>`
+                                       : `<div class="dataShader_${name}_colorize_legend_value_${idx}" style="color: white;"></div>`,
                             `<div ${color === 'transparent' ? 'class="checkeredTransparent"' : ''} style="width: 24px; height: 23px; ${ color !== 'transparent' ? `background: ${color};` : ''}"></div>`,
                         `</li>`
                     )
@@ -309,33 +462,71 @@ let DataShaders = {
             }
             $(`#dataShader_${name}_colorize_legend`).html(legend.join('\n'))
             $(`#dataShader_${name}_colorize_legend`).attr('rampIdx', rampIdx)
+            $(`#dataShader_${name}_colorize_legend`).attr(
+                'isdiscrete',
+                isDiscrete === true
+            )
             DataShaders.colorize.updateLegendMinMax(name, shaderObj)
         },
-        updateLegendMinMax: function (name, shaderObj, min, max) {
+        updateLegendMinMax: function (
+            name,
+            shaderObj,
+            min,
+            max,
+            dontUpdateMinMix
+        ) {
             if (min == null) min = L_.layersGroup[name].minValue
             if (max == null) max = L_.layersGroup[name].maxValue
+            const isDiscrete =
+                $(`#dataShader_${name}_colorize_legend`).attr('isdiscrete') ==
+                'true'
             if (shaderObj.ramps && min != null && max != null) {
                 const rampIdx = $(`#dataShader_${name}_colorize_legend`).attr(
                     'rampIdx'
                 )
+                const sigfigs =
+                    shaderObj.sigfigs != null ? shaderObj.sigfigs : 3
                 const ramp = shaderObj.ramps[rampIdx != null ? rampIdx : 0]
+                const v0 = F_.linearScale([0, ramp.length - 1], [min, max], 0)
+                const v1 = F_.linearScale([0, ramp.length - 1], [min, max], 1)
+                const valueGap = v1 - v0
+                const valueGapHalf = valueGap / 2
                 ramp.forEach((color, idx) => {
                     let value = F_.linearScale(
                         [0, ramp.length - 1],
                         [min, max],
                         idx
                     )
-                    if (!isNaN(value))
-                        value = `${value.toFixed(
-                            shaderObj.sigfigs != null ? shaderObj.sigfigs : 3
-                        )}${shaderObj.units || ''}`
-                    else value = '--'
-                    $(`.dataShader_${name}_colorize_legend_value_${idx}`).html(
-                        value
-                    )
+                    if (isDiscrete) {
+                        $(
+                            `div.dataShader_${name}_colorize_legend_value_${idx}_low`
+                        ).html(
+                            idx === 0
+                                ? (value + valueGapHalf).toFixed(sigfigs)
+                                : (value - valueGapHalf).toFixed(sigfigs)
+                        )
+                        $(
+                            `div.dataShader_${name}_colorize_legend_value_${idx}_high`
+                        ).html(
+                            idx === ramp.length - 1
+                                ? (value - valueGapHalf).toFixed(sigfigs)
+                                : (value + valueGapHalf).toFixed(sigfigs)
+                        )
+                    } else {
+                        if (!isNaN(value)) value = value.toFixed(sigfigs)
+                        else value = '--'
+                        $(
+                            `div.dataShader_${name}_colorize_legend_value_${idx}`
+                        ).html(value)
+                        $(
+                            `input.dataShader_${name}_colorize_legend_value_${idx}`
+                        ).val(value)
+                    }
                 })
-                L_.layersGroup[name].minValue = min
-                L_.layersGroup[name].maxValue = max
+                if (!dontUpdateMinMix) {
+                    L_.layersGroup[name].minValue = min
+                    L_.layersGroup[name].maxValue = max
+                }
             }
         },
         // prettier-ignore

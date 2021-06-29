@@ -749,7 +749,7 @@ function makeLayerBarAndModal(d, level) {
       break;
     case "data":
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "none"; demtileurlEl = "block"; controlledEl = "none"; legendEl = "block";
-        visEl = "block"; viscutEl = "none"; initOpacEl = "none"; togwheadEl = "block"; minzEl = "block";
+        visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "block";
         tileformatEl = "none";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
@@ -1348,7 +1348,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
       break;
     case "data": barColor = "rgb(189, 15, 50)";
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "none"; demtileurlEl = "block"; controlledEl = "none"; legendEl = "block";
-        tileformatEl = "none"; visEl = "block"; viscutEl = "none"; initOpacEl = "none"; togwheadEl = "block"; minzEl = "block"; maxnzEl = "block";
+        tileformatEl = "none"; visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "block"; maxnzEl = "block";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxzEl = "block"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";

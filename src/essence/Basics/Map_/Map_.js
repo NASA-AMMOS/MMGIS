@@ -404,6 +404,33 @@ let Map_ = {
             seLatLng.lat
         )
     },
+    getCurrentTileXYZs() {
+        const bounds = Map_.map.getBounds()
+        const zoom = Map_.map.getZoom()
+
+        const min = Map_.map
+                .project(bounds.getNorthWest(), zoom)
+                .divideBy(256)
+                .floor(),
+            max = Map_.map
+                .project(bounds.getSouthEast(), zoom)
+                .divideBy(256)
+                .floor(),
+            xyzs = [],
+            mod = Math.pow(2, zoom)
+
+        for (var i = min.x; i <= max.x; i++) {
+            for (var j = min.y; j <= max.y; j++) {
+                var x = ((i % mod) + mod) % mod
+                var y = ((j % mod) + mod) % mod
+                var coords = new L.Point(x, y)
+                coords.z = zoom
+                xyzs.push(coords)
+            }
+        }
+
+        return xyzs
+    },
 }
 
 //Specific internal functions likely only to be used once
