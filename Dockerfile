@@ -1,8 +1,8 @@
 FROM node:12
 
-# Install PHP and GDAL
+# Install GDAL with Python bindings
 RUN apt-get update
-RUN apt-get install -y php7.0-cli php-db php-sqlite3 gdal-bin libgdal-dev python3-pip python3-gdal
+RUN apt-get install -y gdal-bin libgdal-dev python3-pip python3-gdal
 
 # Use Python3 for python
 RUN rm /usr/bin/python && ln -s /usr/bin/python3 /usr/bin/python

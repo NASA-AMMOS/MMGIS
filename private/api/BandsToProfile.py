@@ -7,12 +7,12 @@
 # 2ptsToProfile.py MSL_DEM_v3_webgis.tif -4.67053145 137.36515045 -4.66086473 137.36935616 10 1
 
 import sys
-import gdal
-import osr
 import ast
 import re
 import math
-from gdalconst import *
+from osgeo import gdal
+from osgeo import osr
+from osgeo.gdalconst import *
 from osgeo import __version__ as osgeoversion
 try:
     from urllib.parse import unquote
