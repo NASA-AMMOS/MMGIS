@@ -527,9 +527,10 @@ var Files = {
                                         i++
                                     ) {
                                         var newIntent = null
-                                        var t = geojson.features[
-                                            i
-                                        ].geometry.type.toLowerCase()
+                                        var t =
+                                            geojson.features[
+                                                i
+                                            ].geometry.type.toLowerCase()
                                         if (
                                             t == 'polygon' ||
                                             t == 'multipolygon'
@@ -967,7 +968,7 @@ var Files = {
                                                 L_.layersGroup[layerId][i]
                                             )
                                             //And from the Globe
-                                            Globe_.removeVectorTileLayer(
+                                            Globe_.litho.removeLayer(
                                                 'camptool_' + layerId + '_' + i
                                             )
                                         }
@@ -1136,7 +1137,7 @@ var Files = {
                             Map_.rmNotNull(L_.layersGroup[layerId][i])
                             L_.layersGroup[layerId][i] = null
                             //And from the Globe
-                            Globe_.removeVectorTileLayer(
+                            Globe_.litho.removeLayer(
                                 'camptool_' + layerId + '_' + i
                             )
                         }
@@ -1288,7 +1289,8 @@ var Files = {
                                 layer = Object.assign({}, llast)
                             }
 
-                            Globe_.addVectorTileLayer(
+                            Globe_.litho.addLayer(
+                                'clamped',
                                 {
                                     id: 'camptool_' + layerId + '_' + last,
                                     on: true,
@@ -1361,9 +1363,7 @@ var Files = {
                 for (var i = 0; i < L_.layersGroup[layerId].length; i++) {
                     Map_.rmNotNull(L_.layersGroup[layerId][i])
                     //And from the Globe
-                    Globe_.removeVectorTileLayer(
-                        'camptool_' + layerId + '_' + i
-                    )
+                    Globe_.litho.removeLayer('camptool_' + layerId + '_' + i)
                 }
             }
 

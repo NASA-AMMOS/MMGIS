@@ -7,6 +7,7 @@ import calls from '../../../pre/calls'
 // often referred to as F_
 var temp = new Float32Array(1)
 
+// eslint-disable-next-line no-extend-native
 Object.defineProperty(Object.prototype, 'getFirst', {
     value: function () {
         return this[Object.keys(this)[0]]
@@ -403,7 +404,6 @@ var Formulae_ = {
         if (keyArray == null) return notSetValue != null ? notSetValue : null
         if (typeof keyArray === 'string') keyArray = keyArray.split('.')
         let object = Object.assign({}, obj)
-        // eslint-disable-next-line unicorn/no-for-loop
         for (let i = 0; i < keyArray.length; i++)
             // eslint-disable-next-line no-prototype-builtins,no-eq-null, eqeqeq
             if (object != null && object.hasOwnProperty(keyArray[i]))
@@ -1188,7 +1188,32 @@ var Formulae_ = {
 
         return a
     },
-
+    // From https://javascript.plainenglish.io/4-ways-to-compare-objects-in-javascript-97fe9b2a949c
+    isEqual(obj1, obj2, isSimple) {
+        if (isSimple) {
+            return JSON.stringify(obj1) === JSON.stringify(obj2)
+        } else {
+            let props1 = Object.getOwnPropertyNames(obj1)
+            let props2 = Object.getOwnPropertyNames(obj2)
+            if (props1.length != props2.length) {
+                return false
+            }
+            for (let i = 0; i < props1.length; i++) {
+                let prop = props1[i]
+                let bothAreObjects =
+                    typeof obj1[prop] === 'object' &&
+                    typeof obj2[prop] === 'object'
+                if (
+                    (!bothAreObjects && obj1[prop] !== obj2[prop]) ||
+                    (bothAreObjects &&
+                        !Formulae_.isEqual(obj1[prop], obj2[prop]))
+                ) {
+                    return false
+                }
+            }
+            return true
+        }
+    },
     scaleImageInHalf(image, width, height) {
         var newWidth = Math.floor(width / 2)
         var newHeight = Math.floor(height / 2)

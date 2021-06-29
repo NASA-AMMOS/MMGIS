@@ -30,11 +30,6 @@ const c = {
         url: 'api/utils/getprofile',
         pathprefix: '',
     },
-    lnglatsToDemtileElevs: {
-        type: 'POST',
-        url: 'api/utils/lnglats_to_demtile_elevs',
-        pathprefix: '',
-    },
     draw_add: {
         type: 'POST',
         url: 'API/draw/add',

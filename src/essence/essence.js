@@ -36,7 +36,7 @@ import ScaleBox from './Ancillary/ScaleBox'
 import QueryURL from './Ancillary/QueryURL'
 import TimeControl from './Ancillary/TimeControl'
 import calls from '../pre/calls'
-import API from './API/API'
+import { mmgisAPI_, mmgisAPI } from './mmgisAPI/mmgisAPI'
 import { makeMissionNotFoundDiv } from './LandingPage/LandingPage'
 import { stylize } from './Ancillary/Stylize'
 //Requiring UserInterface_ initializes itself
@@ -292,6 +292,8 @@ var essence = {
         UserInterface_.fina(L_, Viewer_, Map_, Globe_)
         //Finalize the Viewer
         Viewer_.fina(Map_)
+        // Finalize the mmgisAPI
+        mmgisAPI_.fina(Map_)
 
         stylize()
     },

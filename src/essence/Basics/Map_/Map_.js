@@ -74,7 +74,6 @@ let Map_ = {
         if (this.map != null) this.map.remove()
 
         let shouldFade = true
-        if (L_.hasTool('viewshed')) shouldFade = false
 
         if (
             L_.configData.projection &&
@@ -165,6 +164,7 @@ let Map_ = {
                 //wheelPxPerZoomLevel: 500,
             })
         }
+
         if (this.map.zoomControl) this.map.zoomControl.setPosition('topright')
 
         if (Map_.mapScaleZoom) {
@@ -218,22 +218,19 @@ let Map_ = {
             enforceVisibilityCutoffs()
         })
 
-        Map_.map.on('move', function (e) {
-            if (L_.mapAndGlobeLinked || window.mmgisglobal.ctrlDown) {
-                if (L_.Globe_ != null) {
-                    var c = Map_.map.getCenter()
-                    L_.Globe_.setCenter([c.lat, c.lng])
-                }
-            }
+        this.map.on('move', (e) => {
+            const c = this.map.getCenter()
+            Globe_.controls.link.linkMove(c.lng, c.lat)
         })
-        Map_.map.on('mousemove', function (e) {
-            if (L_.mapAndGlobeLinked || window.mmgisglobal.ctrlDown) {
-                if (L_.Globe_ != null) L_.Globe_.setLink(e.latlng)
-            }
+        this.map.on('mousemove', (e) => {
+            Globe_.controls.link.linkMouseMove(e.latlng.lng, e.latlng.lat)
         })
-        Map_.map.on('mouseout', function (e) {
-            if (L_.Globe_ != null) L_.Globe_.setLink('off')
+        this.map.on('mouseout', (e) => {
+            Globe_.controls.link.linkMouseOut()
         })
+
+        // Clear the selected feature if clicking on the map where there are no features
+        Map_.map.addEventListener('click', clearOnMapClick)
 
         //Build the toolbar
         buildToolBar()
@@ -449,11 +446,12 @@ function getLayersChosenNamePropVal(feature, layer) {
         ) {
             propertyName = l.variables['useKeyAsName']
             if (feature.properties.hasOwnProperty(propertyName)) {
-                propertyValue = feature.properties[propertyName]
-                foundThroughVariables = true
+                propertyValue = F_.getIn(feature.properties, propertyName)
+                if (propertyValue != null) foundThroughVariables = true
             }
         }
     }
+    // Use first key
     if (!foundThroughVariables) {
         for (var key in feature.properties) {
             //Store the current feature's key
@@ -1484,6 +1482,56 @@ function buildToolBar() {
         .attr('id', 'scaleBar')
         .attr('width', '270px')
         .attr('height', '36px')
+}
+
+function clearOnMapClick(event) {
+    // Skip if there is no actively selected feature
+    const infoTool = ToolController_.getTool('InfoTool')
+    if (!infoTool.currentLayer) {
+        return
+    }
+
+    if ('latlng' in event) {
+        // Position of clicked element
+        const latlng = event.latlng
+
+        let found = false
+        // For all MMGIS layers
+        for (let key in L_.layersGroup) {
+            if ('getLayers' in L_.layersGroup[key]) {
+                const layers = L_.layersGroup[key].getLayers()
+                for (let k in layers) {
+                    const layer = layers[k]
+
+                    if ('getBounds' in layer) {
+                        // Use the pixel bounds because longitude/latitude conversions for bounds
+                        // may be odd in the case of polar projections
+                        if (layer._pxBounds.contains(event.layerPoint)) {
+                            found = true
+                            break
+                        }
+                    } else if ('getLatLng' in layer) {
+                        // A latlng is a latlng, regardless of the projection type
+                        if (layer.getLatLng().equals(latlng)) {
+                            found = true
+                            break
+                        }
+                    }
+                }
+            }
+            if (found) {
+                // If a clicked feature is found, break out early because MMGIS can only select
+                // a single feature at a time (i.e. no group select)
+                break
+            }
+        }
+
+        // If no feature was selected by this click event, clear the currently selected item
+        if (!found) {
+            L_.resetLayerFills()
+            L_.clearVectorLayerInfo()
+        }
+    }
 }
 
 export default Map_

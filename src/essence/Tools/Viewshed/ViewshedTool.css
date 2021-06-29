@@ -1,0 +1,371 @@
+#viewshedTool {
+    width: 100%;
+    height: 100%;
+    color: white;
+    display: flex;
+    flex-flow: column;
+    background: var(--color-k);
+    box-shadow: inset 2px 0px 10px 0px rgba(0, 0, 0, 0.2);
+}
+
+#infoToolHeader {
+    display: flex;
+    height: 40px;
+    line-height: 18px;
+    color: #ccc;
+    background: var(--color-a);
+    justify-content: space-between;
+}
+#infoToolHeader > div {
+    display: flex;
+}
+
+#infoToolTitle {
+    height: 40px;
+    line-height: 40px;
+    font-size: 16px;
+    padding-left: 6px;
+    font-family: 'lato-light';
+    text-transform: uppercase;
+    color: var(--color-l);
+}
+
+#viewshedTool #vstHeader {
+    width: 100%;
+    border-bottom: 1px solid var(--color-e);
+}
+#viewshedTool #vstHeader > div:first-child {
+    display: flex;
+    height: 40px;
+    line-height: 18px;
+    color: #ccc;
+    background: var(--color-a);
+    border-bottom: 1px solid var(--color-i);
+    justify-content: space-between;
+}
+#viewshedTool #vstHeader > div:last-child {
+    display: flex;
+    height: 26px;
+    line-height: 24px;
+    padding: 1px 6px;
+}
+#viewshedTool #vstHeader .vstLabel {
+    font-size: 12px;
+}
+#viewshedTool #vstTitle {
+    height: 40px;
+    line-height: 40px;
+    font-size: 16px;
+    padding-left: 6px;
+    font-family: 'lato-light';
+    text-transform: uppercase;
+    color: var(--color-l);
+}
+#viewshedTool #vstNew {
+    display: flex;
+    cursor: pointer;
+    height: 40px;
+    line-height: 40px;
+    font-size: 14px;
+    padding-right: 6px;
+    transition: color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+#viewshedTool #vstNew:hover {
+    color: var(--color-mmgis);
+}
+
+#viewshedTool #vstContent {
+    height: calc(100% - 48px);
+    overflow-y: auto;
+}
+
+#viewshedTool #vstViewsheds {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+#viewshedTool #vstViewsheds > li {
+    position: relative;
+    border-bottom: 1px solid var(--color-e);
+}
+#viewshedTool #vstViewsheds > li > .vstShedHeader {
+    display: flex;
+    justify-content: space-between;
+    height: 24px;
+    padding-right: 6px;
+    line-height: 24px;
+}
+#viewshedTool #vstViewsheds > li > .vstShedHeader > div {
+    display: flex;
+}
+#viewshedTool #vstViewsheds > li > .vstShedHeader .vstShedTune {
+    padding-left: 2px;
+    cursor: pointer;
+}
+#viewshedTool #vstViewsheds > li > .vstShedHeader .vstShedTune:hover {
+    color: white;
+}
+#viewshedTool #vstViewsheds > li > .vstShedHeader .vstShed3D {
+    cursor: pointer;
+    padding-left: 2px;
+    height: 24px;
+}
+#viewshedTool #vstViewsheds > li > .vstShedHeader .vstShed3D:hover {
+    color: white;
+}
+#viewshedTool #vstViewsheds > li > .vstShedHeader .vstShedClone {
+    cursor: pointer;
+    height: 24px;
+}
+#viewshedTool #vstViewsheds > li > .vstShedHeader .vstShedClone:hover {
+    color: white;
+}
+
+#viewshedTool #vstViewsheds > li > .vstShedContents {
+    overflow: hidden;
+    padding: 1px 0px 0px 0px;
+    border-left: 6px solid rgba(0, 0, 0, 0);
+    height: 0px;
+    pointer-events: none;
+    opacity: 0;
+    transition: height 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95),
+        opacity 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+#viewshedTool #vstViewsheds > li > .vstShedContents.open {
+    height: 336px;
+    pointer-events: inherit;
+    opacity: 1;
+    background: linear-gradient(0deg, var(--color-a), transparent);
+}
+
+#viewshedTool #vstViewsheds > li > .vstShedContents > div {
+    display: none;
+    justify-content: space-between;
+    line-height: 24px;
+    padding-left: 5px;
+    border-bottom: 1px solid var(--color-e);
+}
+#viewshedTool #vstViewsheds > li > .vstShedContents.open > div {
+    height: 24px;
+    display: flex;
+}
+#viewshedTool #vstViewsheds > li > div > div {
+    font-size: 13px;
+    color: #ddd;
+}
+
+#viewshedTool .vstOptionColor > div:last-child {
+    width: 111px;
+    height: 23px;
+}
+
+#viewshedTool .vstLoading {
+    width: 0%;
+    height: 24px;
+    pointer-events: none;
+    opacity: 0;
+    position: absolute;
+    top: 0;
+    box-sizing: border-box;
+    border-bottom: 2px solid lime;
+    transition: opacity 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+#viewshedTool .vstLoading.on {
+    opacity: 1;
+}
+
+#viewshedTool .vstColorbox {
+    width: 6px;
+    height: 100%;
+}
+
+#viewshedTool #vstViewsheds > li .vstShedBar {
+    margin-top: 0px;
+    padding-left: 0px !important;
+}
+#viewshedTool #vstViewsheds > li .vstShedBar .vstRegen {
+    flex: 1;
+    text-align: center;
+}
+#viewshedTool .vstDelete {
+    width: 28px;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+#viewshedTool .vstDelete:hover {
+    background: #be0e0e;
+}
+#viewshedTool .vstDeleteSure {
+    position: absolute;
+    display: flex;
+    background: var(--color-g);
+    left: 6px;
+    width: calc(100% - 6px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+#viewshedTool .vstDeleteSure.on {
+    opacity: 1;
+    pointer-events: inherit;
+}
+#viewshedTool .vstDeleteSure > div {
+    padding: 0px 4px;
+    margin-right: 3px;
+    height: 24px;
+    line-height: 26px;
+}
+#viewshedTool .vstDeleteSure > div i {
+    line-height: 24px !important;
+}
+#viewshedTool .vstDeleteSure > div span {
+    position: relative;
+    top: -2px;
+}
+#viewshedTool .vstDeleteSure > div:first-child {
+    font-size: 12px;
+}
+#viewshedTool .vstDeleteSureYes {
+    background: #be0e0e;
+    cursor: pointer;
+}
+#viewshedTool .vstDeleteSureNo {
+    background: #0e75be;
+    cursor: pointer;
+}
+#viewshedTool .vstSave {
+    width: 28px;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+#viewshedTool .vstSave:hover {
+    background: #0e6dbe;
+}
+#viewshedTool .vstShedClone {
+    width: 28px;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+#viewshedTool .vstShedClone:hover {
+    background: #0e6dbe;
+}
+#viewshedTool .vstRegen {
+    position: relative;
+    cursor: pointer;
+    background: #363636;
+    color: #848484;
+    font-size: 16px;
+    transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+#viewshedTool .vstRegen.changed {
+    pointer-events: inherit;
+    background: white;
+    color: #000000;
+    cursor: pointer;
+}
+#viewshedTool .vstRegen span {
+    width: 0%;
+    position: absolute;
+    height: 100%;
+    left: 0;
+    top: 0;
+    background: lime;
+    mix-blend-mode: multiply;
+}
+
+#viewshedTool .vstUnit {
+    width: 21px;
+    text-align: center;
+    background: var(--color-i);
+    border-left: 1px solid var(--color-e);
+    color: #bfbfbf;
+    font-size: 20px;
+}
+#viewshedTool .vstUnit.smallFont {
+    font-size: 14px;
+}
+
+#viewshedTool .dropdown {
+    background-color: var(--color-i);
+    color: #ededed;
+    border: none;
+    width: 111px;
+    height: 23px;
+    font-size: 14px;
+}
+
+#viewshedTool .vstEditbox {
+    cursor: pointer;
+    width: 22px;
+    transition: border 0.2s ease-out,
+        background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+#viewshedTool .vstEditbox i {
+    position: absolute;
+    transition: opacity 0.2s ease-out;
+}
+#viewshedTool .vstEditbox i.off {
+    opacity: 0.45;
+}
+#viewshedTool .vstEditbox:hover i.off {
+    opacity: 0.65;
+}
+#viewshedTool .vstEditbox i.on {
+    opacity: 0;
+}
+
+#viewshedTool .vstEditbox.on i.off {
+    opacity: 0;
+}
+#viewshedTool .vstEditbox.on:hover i.off {
+    opacity: 0;
+}
+#viewshedTool .vstEditbox.on i.on {
+    opacity: 1;
+    color: rgb(0, 210, 0);
+}
+
+#viewshedTool input[type='number'] {
+    border: none;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+    padding: 0px 6px;
+    height: 23px;
+    width: 89px;
+    background: var(--color-i);
+    text-align: right;
+    color: #ededed;
+}
+
+#viewshedTool .vstShedHeader input {
+    border: none;
+    height: 24px;
+    background: none;
+    color: #ededed;
+    width: 118px;
+}
+
+#viewshedTool .slider2 {
+    width: 111px !important;
+    height: 23px;
+    background: var(--color-i);
+    opacity: 1 !important;
+    margin: 0;
+}
+
+#viewshedTool .checkbox.on {
+    background: white;
+    border: 0px solid #777;
+}
+#viewshedTool .checkbox {
+    margin: 5px;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #777;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
+        border 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}

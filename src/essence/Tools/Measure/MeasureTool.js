@@ -43,9 +43,10 @@ const Measure = () => {
             .on('click', MeasureTool.clickMap)
             .on('mousemove', MeasureTool.moveMap)
             .on('mouseout', MeasureTool.mouseOutMap)
-        Globe_.globe
-            .on('click', MeasureTool.clickGlobe)
-            .on('mousemove', MeasureTool.moveGlobe)
+        Globe_.litho
+            .getContainer()
+            .addEventListener('click', MeasureTool.clickGlobe, false)
+            .addEventListener('mousemove', MeasureTool.moveGlobe, false)
 
         Viewer_.imageViewerMap.addHandler(
             'canvas-click',
@@ -262,9 +263,10 @@ let MeasureTool = {
             .off('mousemove', MeasureTool.moveMap)
             .off('mouseout', MeasureTool.mouseOutMap)
 
-        Globe_.globe
-            .off('click', MeasureTool.clickGlobe)
-            .off('mousemove', MeasureTool.moveGlobe)
+        Globe_.litho
+            .getContainer()
+            .removeEventListener('click', MeasureTool.clickGlobe)
+            .removeEventListener('mousemove', MeasureTool.moveGlobe)
 
         Viewer_.imageViewerMap.removeHandler(
             'canvas-click',
@@ -277,8 +279,8 @@ let MeasureTool = {
         Map_.rmNotNull(distMousePoint)
         Map_.rmNotNull(measureToolLayer)
 
-        Globe_.removeVectorLayer('measure')
-        Globe_.removeVectorLayer('MeasureToolGlobeFocusMarker')
+        Globe_.litho.removeLayer('_measure')
+        Globe_.litho.removeLayer('_MeasureToolGlobeFocusMarker')
 
         CursorInfo.hide()
 
@@ -333,7 +335,7 @@ let MeasureTool = {
         CursorInfo.hide()
         MeasureTool.clearFocusPoint()
 
-        var xy = { x: Globe_.mouseLngLat.Lat, y: Globe_.mouseLngLat.Lng }
+        var xy = { x: Globe_.litho.mouse.lat, y: Globe_.litho.mouse.lng }
         clickedLatLngs.push(xy)
 
         makeMeasureToolLayer()
@@ -342,10 +344,10 @@ let MeasureTool = {
     moveGlobe: function (e) {
         if (
             (mode === 'continuous' || clickedLatLngs.length === 1) &&
-            Globe_.mouseLngLat.Lng != null &&
-            Globe_.mouseLngLat.Lat != null
+            Globe_.litho.mouse.lng != null &&
+            Globe_.litho.mouse.lat != null
         ) {
-            makeGhostLine(Globe_.mouseLngLat.Lng, Globe_.mouseLngLat.Lat)
+            makeGhostLine(Globe_.litho.mouse.lng, Globe_.litho.mouse.lat)
         }
     },
     clickViewer: function (e) {
@@ -354,9 +356,10 @@ let MeasureTool = {
             e.position
         )
         // Convert from viewport coordinates to image coordinates.
-        var xy = Viewer_.imageViewerMap.viewport.viewportToImageCoordinates(
-            viewportPoint
-        )
+        var xy =
+            Viewer_.imageViewerMap.viewport.viewportToImageCoordinates(
+                viewportPoint
+            )
         xy.x = parseInt(xy.x)
         xy.y = parseInt(xy.y)
         makeBandProfile(xy)
@@ -371,10 +374,11 @@ let MeasureTool = {
         })
             .setRadius(6)
             .addTo(Map_.map)
-        Globe_.addVectorLayer(
+        Globe_.litho.addLayer(
+            'vector',
             {
-                name: 'MeasureToolGlobeFocusMarker',
-                id: 'MeasureToolGlobeFocusMarker',
+                name: '_MeasureToolGlobeFocusMarker',
+                id: '_MeasureToolGlobeFocusMarker',
                 on: true,
                 style: {
                     fillColor: 'yellow',
@@ -406,8 +410,8 @@ let MeasureTool = {
             )
 
         makeMeasureToolLayer()
-        Globe_.removeVectorLayer('measure')
-        Globe_.removeVectorLayer('measurePoint')
+        Globe_.litho.removeLayer('_measure')
+        Globe_.litho.removeLayer('_measurePoint')
 
         MeasureTool.clearFocusPoint()
 
@@ -422,8 +426,8 @@ let MeasureTool = {
         Map_.rmNotNull(distLineToMouse)
         Map_.rmNotNull(distMousePoint)
         Map_.rmNotNull(measureToolLayer)
-        Globe_.removeVectorLayer('measure')
-        Globe_.removeVectorLayer('measurePoint')
+        Globe_.litho.removeLayer('_measure')
+        Globe_.litho.removeLayer('_measurePoint')
 
         d3.select('#' + profileDivId)
             .selectAll('*')
@@ -626,7 +630,7 @@ function makeProfile() {
 
                 updateProfileData(profileData)
 
-                Globe_.removeVectorLayer('measurePoint')
+                Globe_.litho.removeLayer('_measurePoint')
 
                 makeMeasureToolLayer()
                 //getCorrectedProfileData();

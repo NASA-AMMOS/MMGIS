@@ -1,6 +1,6 @@
 {
   "name": "mmgis",
-  "version": "2.3.1",
+  "version": "2.4.0",
   "description": "A web-based mapping and localization solution for science operation on planetary missions.",
   "homepage": "build",
   "repository": {
@@ -94,6 +94,7 @@
     "jest-resolve": "24.9.0",
     "jest-watch-typeahead": "0.4.2",
     "jquery": "^3.5.1",
+    "lithosphere": "^1.0.0",
     "mark.js": "^8.11.1",
     "memorystore": "^1.6.2",
     "mini-css-extract-plugin": "0.9.0",
