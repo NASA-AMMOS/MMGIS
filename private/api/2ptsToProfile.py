@@ -8,10 +8,10 @@
 # Setting axes to "xyz" will return image coordinates instead of lat lons
 
 import sys
-import gdal
-import osr
 import math
-from gdalconst import *
+from osgeo import gdal
+from osgeo import osr
+from osgeo.gdalconst import *
 from osgeo import __version__ as osgeoversion
 from great_circle_calculator.great_circle_calculator import intermediate_point
 try:

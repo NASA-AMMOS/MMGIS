@@ -45,11 +45,10 @@
     `exit`  
    In the above `\c` attaches to the database and `CREATE EXTENSION` enables PostGIS by creating a spatial reference table within that database.
 
-1. PHP, GDAL and Python2 are weaker dependencies (without them not everything will work)
+1. GDAL and Python are weaker dependencies (without them not everything will work)
 
-   - PHP [7+](https://www.php.net/downloads.php) \* php-pdo php-mysqli pdo_sqlite modules enabled
    - GDAL [2.+](https://gdal.org/download.html) with Python bindings
-   - Python [2.7.18](https://www.python.org/downloads/release/python-2718/)
+   - Python [2.7+](https://www.python.org/downloads/release/python-2718/)/[3.6+](https://www.python.org/downloads/release/python-396/)
 
 ### Setup
 
