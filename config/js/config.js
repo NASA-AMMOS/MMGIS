@@ -2058,18 +2058,6 @@ function save() {
                 .parent()
                 .css("background-color", "#a11717");
             }
-            if (modalUrl == "undefined" || modalUrl == "") {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningt3'>WARNING: " +
-                  modalName +
-                  " has undefined url.</span>",
-                5000
-              );
-              $("#toast_warningdt3")
-                .parent()
-                .css("background-color", "#a11717");
-            }
             if (isNaN(modalMinz)) {
               isInvalidData = true;
               Materialize.toast(
