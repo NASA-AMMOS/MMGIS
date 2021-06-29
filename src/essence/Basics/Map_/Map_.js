@@ -401,6 +401,33 @@ let Map_ = {
             seLatLng.lat
         )
     },
+    getCurrentTileXYZs() {
+        const bounds = Map_.map.getBounds()
+        const zoom = Map_.map.getZoom()
+
+        const min = Map_.map
+                .project(bounds.getNorthWest(), zoom)
+                .divideBy(256)
+                .floor(),
+            max = Map_.map
+                .project(bounds.getSouthEast(), zoom)
+                .divideBy(256)
+                .floor(),
+            xyzs = [],
+            mod = Math.pow(2, zoom)
+
+        for (var i = min.x; i <= max.x; i++) {
+            for (var j = min.y; j <= max.y; j++) {
+                var x = ((i % mod) + mod) % mod
+                var y = ((j % mod) + mod) % mod
+                var coords = new L.Point(x, y)
+                coords.z = zoom
+                xyzs.push(coords)
+            }
+        }
+
+        return xyzs
+    },
 }
 
 //Specific internal functions likely only to be used once
@@ -1250,10 +1277,10 @@ function makeLayer(layerObj) {
     }
 
     function makeDataLayer() {
-        var layerUrl = layerObj.url
+        let layerUrl = layerObj.demtileurl
         if (!F_.isUrlAbsolute(layerUrl)) layerUrl = L_.missionPath + layerUrl
 
-        var bb = null
+        let bb = null
         if (layerObj.hasOwnProperty('boundingBox')) {
             bb = L.latLngBounds(
                 L.latLng(layerObj.boundingBox[3], layerObj.boundingBox[2]),
@@ -1261,20 +1288,29 @@ function makeLayer(layerObj) {
             )
         }
 
+        const shader = F_.getIn(layerObj, 'variables.shader') || {}
+        const shaderType = shader.type || 'image'
+
         var uniforms = {}
-        for (var i = 0; i < DataShaders['flood'].settings.length; i++) {
-            uniforms[DataShaders['flood'].settings[i].parameter] =
-                DataShaders['flood'].settings[i].value
+        for (let i = 0; i < DataShaders[shaderType].settings.length; i++) {
+            uniforms[DataShaders[shaderType].settings[i].parameter] =
+                DataShaders[shaderType].settings[i].value
         }
 
         L_.layersGroup[layerObj.name] = L.tileLayer.gl({
             options: {
                 tms: true,
+                bounds: bb,
             },
-            fragmentShader: DataShaders['flood'].frag,
+            fragmentShader: DataShaders[shaderType].frag,
             tileUrls: [layerUrl],
+            pixelPerfect: true,
             uniforms: uniforms,
         })
+
+        if (DataShaders[shaderType].attachImmediateEvents) {
+            DataShaders[shaderType].attachImmediateEvents(layerObj.name, shader)
+        }
 
         L_.setLayerOpacity(layerObj.name, L_.opacityArray[layerObj.name])
 

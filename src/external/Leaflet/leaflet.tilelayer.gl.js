@@ -288,7 +288,7 @@
                 if (typeof defaultValue === 'number') {
                     this._uniformSizes[uniformName] = 0
                     defs += 'uniform float ' + uniformName + ';\n'
-                } else if (typeof defaultValue === 'array') {
+                } else if (defaultValue.constructor === Float32Array) {
                     if (defaultValue.length > 4) {
                         throw new Error(
                             'Max size for uniform value is 4 elements'
@@ -464,6 +464,7 @@
                     if (!this._map) {
                         return
                     }
+
                     // If the shader is time-dependent (i.e. animated),
                     // save the textures for later access
                     if (this._isReRenderable) {
@@ -474,7 +475,12 @@
 
                     var gl = this._gl
                     for (var i = 0; i < this._tileLayers.length && i < 8; i++) {
-                        this._bindTexture(i, textureImages[i])
+                        this._bindTexture(
+                            i,
+                            textureImages[i].tile
+                                ? textureImages[i].tile
+                                : textureImages[i]
+                        )
                     }
 
                     this._render(coords)
@@ -554,11 +560,22 @@
                 }
 
                 for (var i = 0; i < this._tileLayers.length && i < 8; i++) {
-                    this._bindTexture(i, this._fetchedTextures[wrappedKey][i])
+                    this._bindTexture(
+                        i,
+                        this._fetchedTextures[wrappedKey][i].tile
+                            ? this._fetchedTextures[wrappedKey][i].tile
+                            : this._fetchedTextures[wrappedKey][i]
+                    )
                 }
 
                 this._render(coords)
 
+                this._2dContexts[key].clearRect(
+                    0,
+                    0,
+                    tile.el.width,
+                    tile.el.height
+                )
                 this._2dContexts[key].drawImage(this._renderer, 0, 0)
             }
         },
@@ -609,6 +626,41 @@
                         } else {
                             reject(tile)
                         }
+                    } else if (this.options.pixelPerfect) {
+                        PNG.load(
+                            layer.getTileUrl(coords),
+                            function (img) {
+                                const imgData = img.decode()
+                                if (imgData == null) {
+                                    reject(tile)
+                                    return
+                                }
+                                tile.src = layer.getTileUrl(coords)
+                                L.DomEvent.on(
+                                    tile,
+                                    'load',
+                                    resolve.bind(this, {
+                                        tile,
+                                        pixelPerfect: {
+                                            img: img,
+                                            imgData: imgData,
+                                        },
+                                    })
+                                )
+                                L.DomEvent.on(
+                                    tile,
+                                    'error',
+                                    reject.bind(this, {
+                                        tile,
+                                        pixelPerfect: {
+                                            img: img,
+                                            imgData: imgData,
+                                        },
+                                    })
+                                )
+                            },
+                            true
+                        )
                     } else {
                         tile.src = layer.getTileUrl(coords)
                         L.DomEvent.on(tile, 'load', resolve.bind(this, tile))
@@ -616,6 +668,72 @@
                     }
                 }.bind(this)
             )
+        },
+
+        // CSS Color Filters
+        colorFilter: function () {
+            let VALIDFILTERS = [
+                'blur:px',
+                'brightness: ',
+                'bright:brightness: ',
+                'bri:brightness: ',
+                'contrast: ',
+                'con:contrast: ',
+                'grayscale:%',
+                'gray:grayscale:%',
+                'hue-rotate:deg',
+                'hue:hue-rotate:deg',
+                'hue-rotation:hue-rotate:deg',
+                'invert:%',
+                'inv:invert:%',
+                'opacity:%',
+                'op:opacity:%',
+                'saturate: ',
+                'saturation:saturate: ',
+                'sat:saturate: ',
+                'sepia:%',
+                'sep:sepia:%',
+            ]
+
+            let colorFilterOptions = this.options.filter
+                ? this.options.filter
+                : []
+            let filterSettings = colorFilterOptions
+                .map((opt) => {
+                    let filter = opt.toLowerCase().split(':')
+                    if (filter.length === 2) {
+                        let match = VALIDFILTERS.find((vf) => {
+                            return vf.split(':')[0] === filter[0]
+                        })
+                        if (match) {
+                            match = match.split(':')
+                            filter[1] += /^\d+$/.test(filter[1])
+                                ? match[match.length - 1]
+                                : ''
+                            return `${match[match.length - 2]}(${filter[1]})`
+                        }
+                    }
+                    return ''
+                })
+                .join(' ')
+            return filterSettings
+        },
+        colorBlend: function () {
+            let colorFilterOptions = this.options.filter
+                ? this.options.filter
+                : []
+            for (let i = 0; i < colorFilterOptions.length; i++) {
+                let filter = colorFilterOptions[i].toLowerCase().split(':')
+                if (filter[0] == 'mix-blend-mode') return filter[1]
+            }
+            return 'unset'
+        },
+        updateFilter: function (newFilter) {
+            this.options.filter = newFilter
+            if (this._container) {
+                this._container.style.filter = this.colorFilter()
+                this._container.style['mix-blend-mode'] = this.colorBlend()
+            }
         },
     })
 

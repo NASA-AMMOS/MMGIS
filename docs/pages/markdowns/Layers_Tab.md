@@ -225,7 +225,6 @@ Whether the layer should use global time values or function independently with i
 _type:_ string _optional_  
 The string format to be used in the URL for `{time}`. Defaults to `YYYY-MM-DDTHH:mm:ssZ`.
 
-
 #### Vector Tile Feature Unique Id Key
 
 _type:_ string
@@ -258,7 +257,7 @@ Example:
 
 # Data
 
-An experimental layer type. Uses WebGL shaders to generate tiles on the fly. Only a flood shader with hardcoded values is supported at this moment. The flood height can be adjusted in real time under the layer's setting in MMGIS.
+Data layers use WebGL shaders to generate tiles on the fly.
 
 #### Layer Name
 
@@ -318,6 +317,38 @@ Whether the layer should use global time values or function independently with i
 _type:_ string _optional_  
 The string format to be used in the URL for `{starttime}` and `{endtime}`. Defaults to `YYYY-MM-DDTHH:mm:ssZ`.
 
+#### Raw Variables
+
+Data layers need a configured `shader` raw variable to be effective. Supported shader types are as follows:
+
+- "colorize": Allows users to apply and configure dynamic color ramps to the data. Uses the current minimum and maximum viewport data values to adjust color ramps into the most relevant range.
+  - units: A string to append to user displayed data values.
+  - noDataValues: Values to exclude from minimum and maximum calculations.
+  - sigfigs: How many significant figures to round user displayed values.
+  - ramps: An array of arrays of hex color strings. "transparent" is a special keyword for a fully transparent ramp color.
+- "image": (Default) Simply shows the underlying raw data in an image form. Mainly for testing, it can also be useful for development for internal pass-tile-canvas-instead-of-url layers.
+
+Example:
+
+```javascript
+{
+    "shader": {
+        "type": "colorize",
+        "units": "m",
+        "noDataValues": [
+            0
+        ],
+        "sigfigs": 3,
+        "ramps": [
+            [
+                "#FF0000",
+                "transparent",
+                "#0000FF"
+            ]
+        ]
+    }
+}
+```
 
 # Vector
 
@@ -545,7 +576,6 @@ Whether the layer should use global time values or function independently with i
 
 _type:_ string _optional_  
 The string format to be used in the URL for `{starttime}` and `{endtime}`. Defaults to `YYYY-MM-DDTHH:mm:ssZ`.
-
 
 ---
 

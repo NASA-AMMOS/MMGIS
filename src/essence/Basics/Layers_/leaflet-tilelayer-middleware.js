@@ -167,9 +167,10 @@ var wmsExtension = {
             ),
             min = bounds.min,
             max = bounds.max,
-            bbox = (this._wmsVersion >= 1.3 && this._crs === L.CRS.EPSG4326
-                ? [min.y, min.x, max.y, max.x]
-                : [min.x, min.y, max.x, max.y]
+            bbox = (
+                this._wmsVersion >= 1.3 && this._crs === L.CRS.EPSG4326
+                    ? [min.y, min.x, max.y, max.x]
+                    : [min.x, min.y, max.x, max.y]
             ).join(','),
             url = L.TileLayer.prototype.getTileUrl.call(this, coords)
 

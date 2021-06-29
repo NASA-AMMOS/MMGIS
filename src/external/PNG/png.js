@@ -47,7 +47,7 @@ window.PNG = (function () {
             xhr.open('GET', url, true)
             xhr.responseType = 'arraybuffer'
             xhr.onload = () => {
-                const data = new Uint8Array(
+                const data = new Uint8ClampedArray(
                     xhr.response || xhr.mozResponseArrayBuffer
                 )
                 if (xhr.status !== 404) {
@@ -166,9 +166,8 @@ window.PNG = (function () {
                             case 0:
                                 // Greyscale. Corresponding to entries in the PLTE chunk.
                                 // Grey is two bytes, range 0 .. (2 ^ bit-depth) - 1
-                                this.transparency.grayscale = this.read(
-                                    chunkSize
-                                )[0]
+                                this.transparency.grayscale =
+                                    this.read(chunkSize)[0]
                                 break
                             case 2:
                                 // True color with proper alpha channel.

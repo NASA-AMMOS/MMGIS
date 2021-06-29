@@ -4,6 +4,8 @@ import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
 
+import DataShaders from '../../Ancillary/DataShaders'
+
 import './LayersTool.css'
 
 //Add the tool markup if you want to do it this way
@@ -16,10 +18,10 @@ var markup = [
                         '<div id="title">Layers</div>',
                     "</div>",
                     "<div class='right'>",
-                        '<div class="vector on" type="vector" title="Hide/Show Vector Layers"><i class="mdi mdi-vector-square mdi-18px"></i></div>',
-                        '<div class="tile on" type="tile" title="Hide/Show Raster Layers"><i class="mdi mdi-map-outline mdi-18px"></i></div>',
-                        '<div class="data on" type="data" title="Hide/Show Data Layers"><i class="mdi mdi-file-table mdi-18px"></i></div>',
-                        '<div class="model on" type="model" title="Hide/Show Model Layers"><i class="mdi mdi-cube-outline mdi-18px"></i></div>',
+                        '<div class="vector" type="vector" title="Hide/Show Vector Layers"><i class="mdi mdi-vector-square mdi-18px"></i></div>',
+                        '<div class="tile" type="tile" title="Hide/Show Raster Layers"><i class="mdi mdi-map-outline mdi-18px"></i></div>',
+                        '<div class="data" type="data" title="Hide/Show Data Layers"><i class="mdi mdi-file-table mdi-18px"></i></div>',
+                        '<div class="model" type="model" title="Hide/Show Model Layers"><i class="mdi mdi-cube-outline mdi-18px"></i></div>',
                         '<div class="visible" type="visible" title="Hide/Show Off Layers"><i class="mdi mdi-eye mdi-18px"></i></div>',
                     "</div>",
                 "</div>",
@@ -121,6 +123,11 @@ function interfaceWithMMGIS() {
     function depthTraversal(node, parent, depth) {
         for (var i = 0; i < node.length; i++) {
             let currentOpacity
+            let currentBrightness
+            let currentContrast
+            let currentSaturation
+            let currentBlend
+
             //Build layerExport
             var layerExport
             switch (node[i].type) {
@@ -197,10 +204,10 @@ function interfaceWithMMGIS() {
                     if (currentOpacity == null)
                         currentOpacity = L_.opacityArray[node[i].name]
 
-                    let currentBrightness = 1
-                    let currentContrast = 1
-                    let currentSaturation = 1
-                    let currentBlend = 'none'
+                    currentBrightness = 1
+                    currentContrast = 1
+                    currentSaturation = 1
+                    currentBlend = 'none'
                     if (L_.layerFilters[node[i].name]) {
                         let f = L_.layerFilters[node[i].name]
 
@@ -290,23 +297,52 @@ function interfaceWithMMGIS() {
                         ].join('\n')
                     break
                 case 'data':
+                    currentOpacity = L_.getLayerOpacity(node[i].name)
+                    if (currentOpacity == null)
+                        currentOpacity = L_.opacityArray[node[i].name]
+
+                    currentBlend = 'none'
+                    if (L_.layerFilters[node[i].name]) {
+                        let f = L_.layerFilters[node[i].name]
+
+                        currentBlend =
+                            f['mix-blend-mode'] == null
+                                ? 'none'
+                                : f['mix-blend-mode']
+                    }
+
+                    let additionalSettings = ''
+                    const shader = F_.getIn(node[i], 'variables.shader')
+
+                    if (shader && DataShaders[shader.type]) {
+                        // prettier-ignore
+                        additionalSettings = [
+                            DataShaders[shader.type].getHTML(node[i].name, shader)
+                        ].join('\n')
+                    }
+
                     // prettier-ignore
                     settings = [
-                                '<ul>',
-                                    '<li>',
-                                        '<div>',
-                                            '<div>Opacity</div>',
-                                            '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="1" default="' + L_.opacityArray[node[i].name] + '">',
-                                        '</div>',
-                                    '</li>',
-                                    '<li>',
-                                        '<div>',
-                                            '<div>Height<span></span></div>',
-                                            '<input class="dataslider slider2" parameter="floodheight" unit="m" layername="' + node[i].name + '" type="range" min="-4500" max="-4100" step="10" value="-4500" default="-4500">',
-                                        '</div>',
-                                    '</li>',
-                                '</ul>'
-                            ].join('\n')
+                        '<ul>',
+                            '<li>',
+                                '<div>',
+                                    '<div>Opacity</div>',
+                                    '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.opacityArray[node[i].name] + '">',
+                                '</div>',
+                            '</li>',
+                            '<li>',
+                                '<div>',
+                                    '<div>Blend</div>',
+                                    '<select class="tileblender dropdown" layername="' + node[i].name + '">',
+                                        '<option value="unset"' + (currentBlend == 'none' ? ' selected' : '') + '>None</option>',
+                                        '<option value="color"' + (currentBlend == 'color' ? ' selected' : '') + '>Color</option>',
+                                        '<option value="overlay"' + (currentBlend == 'overlay' ? ' selected' : '') + '>Overlay</option>',
+                                    '</select>',
+                                '</div>',
+                            '</li>',
+                            additionalSettings,
+                        '</ul>'
+                    ].join('\n')
                     break
                 case 'model':
                     // prettier-ignore
@@ -381,6 +417,22 @@ function interfaceWithMMGIS() {
                             '</li>',
                         ].join('\n')
                     )
+
+                    //Attach DataShader events
+                    if (node[i].type === 'data') {
+                        const shader = F_.getIn(node[i], 'variables.shader')
+                        if (
+                            shader &&
+                            DataShaders[shader.type] &&
+                            typeof DataShaders[shader.type].attachEvents ===
+                                'function'
+                        )
+                            DataShaders[shader.type].attachEvents(
+                                node[i].name,
+                                shader
+                            )
+                    }
+                    break
             }
 
             if (node[i].sublayers)
@@ -490,20 +542,6 @@ function interfaceWithMMGIS() {
         )
     })
 
-    //TEMP DATA
-    $('.dataslider').on('change', function () {
-        var layerName = $(this).attr('layername')
-        var parameter = $(this).attr('parameter')
-        var val = $(this).val()
-        L_.layersGroup[layerName].setUniform(parameter, val)
-        L_.layersGroup[layerName].reRender()
-
-        $(this)
-            .parent()
-            .find('span')
-            .text('(' + parseInt(val) + $(this).attr('unit') + ')')
-    })
-
     $('#searchLayers > input').on('input', function () {
         $('#searchLayers > #expand').click()
         var input = $(this).val().toLowerCase()
@@ -566,18 +604,30 @@ function interfaceWithMMGIS() {
         $(this).toggleClass('on')
         var isOn = $(this).hasClass('on')
         var type = $(this).attr('type')
+        const ons = {
+            vector: $('#filterLayers .right > .vector').hasClass('on'),
+            tile: $('#filterLayers .right > .tile').hasClass('on'),
+            data: $('#filterLayers .right > .data').hasClass('on'),
+            model: $('#filterLayers .right > .model').hasClass('on'),
+            visible: $('#filterLayers .right > .visible').hasClass('on'),
+        }
         $('#layersToolList > li').each(function () {
-            if (type == 'visible') {
-                if ($(this).attr('type') != 'header') {
+            if ($(this).attr('type') != 'header') {
+                if (type == 'visible') {
                     var layerOn = $(this).find('.checkbox').hasClass('on')
                     if (isOn) {
                         if (layerOn) $(this).removeClass('forceOff2')
                         else $(this).addClass('forceOff2')
                     } else $(this).removeClass('forceOff2')
+                } else {
+                    if (!ons.vector && !ons.tile && !ons.data && !ons.data)
+                        $(this).removeClass('forceOff')
+                    else {
+                        const liType = $(this).attr('type')
+                        if (ons[liType]) $(this).removeClass('forceOff')
+                        else $(this).addClass('forceOff')
+                    }
                 }
-            } else if ($(this).attr('type') == type) {
-                if (isOn) $(this).removeClass('forceOff')
-                else $(this).addClass('forceOff')
             }
         })
     })

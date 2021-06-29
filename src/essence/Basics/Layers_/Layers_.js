@@ -372,12 +372,20 @@ var L_ = {
                         )
                     }
                 }
+
                 // Add Globe layers
                 const s = L_.layersData[i]
                 let layerUrl = s.url
                 if (!F_.isUrlAbsolute(layerUrl))
                     layerUrl = L_.missionPath + layerUrl
-                if (L_.layersData[i].type === 'tile') {
+                if (L_.layersData[i].type === 'tile' || L_.layersData[i].type == 'data') {
+                    // Make sure all tile layers follow z-index order at start instead of element order
+                    L_.layersGroup[L_.layersData[i].name].setZIndex(
+                        L_.layersOrdered.length +
+                            1 -
+                            L_.layersOrdered.indexOf(L_.layersData[i].name)
+                    )
+                  
                     let demUrl = s.demtileurl
                     if (!F_.isUrlAbsolute(demUrl))
                         demUrl = L_.missionPath + demUrl

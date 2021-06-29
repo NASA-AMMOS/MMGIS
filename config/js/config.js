@@ -412,8 +412,14 @@ function initialize() {
 
                 //time
                 if (typeof cData.time != "undefined") {
-                  $("#tab_time #time_enabled").prop("checked", cData.time.enabled ? true : false);
-                  $("#tab_time #time_visible").prop("checked", cData.time.visible ? true : false);
+                  $("#tab_time #time_enabled").prop(
+                    "checked",
+                    cData.time.enabled ? true : false
+                  );
+                  $("#tab_time #time_visible").prop(
+                    "checked",
+                    cData.time.visible ? true : false
+                  );
                 }
                 $("#tab_time #time_format").val(
                   cData.time ? cData.time.format : "%Y-%m-%dT%H:%M:%SZ"
@@ -742,13 +748,13 @@ function makeLayerBarAndModal(d, level) {
         timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none";
       break;
     case "data":
-        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "black"; controlledEl = "none"; legendEl = "block";
-        visEl = "block"; viscutEl = "none"; initOpacEl = "none"; togwheadEl = "block"; minzEl = "block";
+        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "none"; demtileurlEl = "block"; controlledEl = "none"; legendEl = "block";
+        visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "block";
         tileformatEl = "none";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxnzEl = "block"; maxzEl = "block"; strcolEl = "none"; filcolEl = "none";
-        weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "none";
+        weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none"; 
         timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none";
       break;
@@ -867,41 +873,41 @@ function makeLayerBarAndModal(d, level) {
     default:
   }
 
-var timeTrueSel = "",
-  timeFalseSel = "";
-var timeIcon = "inherit";
-if (typeof d.time != "undefined") {
-  switch (d.time.enabled) {
-    case true:
-    case "true":
-      timeTrueSel = "selected";
-      break;
-    case false:
-    case "false":
-      timeFalseSel = "selected";
-      timeIcon = "none";
-      break;
-    default:
+  var timeTrueSel = "",
+    timeFalseSel = "";
+  var timeIcon = "inherit";
+  if (typeof d.time != "undefined") {
+    switch (d.time.enabled) {
+      case true:
+      case "true":
+        timeTrueSel = "selected";
+        break;
+      case false:
+      case "false":
+        timeFalseSel = "selected";
+        timeIcon = "none";
+        break;
+      default:
+    }
+  } else {
+    timeFalseSel = "selected";
   }
-} else {
-  timeFalseSel = "selected";
-}
 
-var timeGlobalSel = "",
-  timeIndividualSel = "";
-if (typeof d.time != "undefined") {
-  switch (d.time.type) {
-    case "global":
-      timeGlobalSel = "selected";
-      break;
-    case "individual":
-      timeIndividualSel = "selected";
-      break;
-    default:
+  var timeGlobalSel = "",
+    timeIndividualSel = "";
+  if (typeof d.time != "undefined") {
+    switch (d.time.type) {
+      case "global":
+        timeGlobalSel = "selected";
+        break;
+      case "individual":
+        timeIndividualSel = "selected";
+        break;
+      default:
+    }
+  } else {
+    timeGlobalSel = "selected";
   }
-} else {
-  timeGlobalSel = "selected";
-}
 
   var togwheadTrueSel = "",
     togwheadFalseSel = "";
@@ -1190,7 +1196,7 @@ if (typeof d.time != "undefined") {
       "<div class='modal-footer' style='background-color: " + barColor + "; display: flex; justify-content: space-between;'>" +
         "<a id='delete_layer' href='#!' class='modal-action modal-close waves-effect waves-red btn-flat left' style='color: white;'>Delete</a>" +
         "<div id='xmlEl' class='waves-effect btn-flat left' style='color: #111; background: #fafafa; display:" + xmlEl + ";' onclick='tilelayerPopulateFromXML(" + n + ")'>Populate from XML</div>" +
-        "<div id='layerSetVariableEl' class='waves-effect btn-flat left' style='color: #111; background: #fafafa; display:" + variableEl + "; text-align: center;' onclick='layerPopulateVariable(" + n + ")'>Set default Variables</div>" +
+        "<div id='layerSetVariableEl' class='waves-effect btn-flat left' style='color: #111; background: #fafafa; display:" + variableEl + "; text-align: center;' onclick='layerPopulateVariable(" + n + ",\"" + d.type + "\")'>Set default Variables</div>" +
         "<div id='vtLayerSetStylesEl' class='waves-effect btn-flat left' style='color: #111; background: #fafafa; display:" + vtLayerSetStylesEl + "; text-align: center;' onclick='vtlayerPopulateStyle(" + n + ")'>Setup Styles with Layer Names from metadata.json</div>" +
         "<a href='#!' class='modal-action modal-close waves-effect waves-green btn-flat' style='color: white;'>Done</a>" +
       "</div>" +
@@ -1341,12 +1347,12 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
       break;
     case "data": barColor = "rgb(189, 15, 50)";
-        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; controlledEl = "none"; legendEl = "block";
-        tileformatEl = "none"; visEl = "block"; viscutEl = "none"; initOpacEl = "none"; togwheadEl = "block"; minzEl = "block"; maxnzEl = "block";
+        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "none"; demtileurlEl = "block"; controlledEl = "none"; legendEl = "block";
+        tileformatEl = "none"; visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "block"; maxnzEl = "block";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxzEl = "block"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
-        opacityEl = "none"; radiusEl = "none"; variableEl = "none";
+        opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
         timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';  
       break;
@@ -1576,15 +1582,14 @@ function save() {
       json.panels.push("globe");
     //Time
     if ($("#tab_time #time_enabled").prop("checked")) {
-      json.time.enabled = true
-    }
-    else {
-      json.time.enabled = false
+      json.time.enabled = true;
+    } else {
+      json.time.enabled = false;
     }
     if ($("#tab_time #time_visible").prop("checked")) {
-      json.time.visible = true
+      json.time.visible = true;
     } else {
-      json.time.visible = false
+      json.time.visible = false;
     }
     json.time.format = $("#tab_time #time_format").val();
     //Tools
@@ -1645,7 +1650,9 @@ function save() {
           .toLowerCase();
         var modalUrl = modal.find("#urlEl input").val();
         var modaldemtileUrl = modal.find("#demtileurlEl input").val();
-        var modalControlledEl = modal.find("#controlledEl input").is(':checked');
+        var modalControlledEl = modal
+          .find("#controlledEl input")
+          .is(":checked");
         var modalLegend = modal.find("#legendEl input").val();
         var modalTileFormat = modal
           .find("#tileformatEl select option:selected")
@@ -1757,7 +1764,8 @@ function save() {
         if (
           modalType == "point" ||
           modalType == "vector" ||
-          modalType == "vectortile"
+          modalType == "vectortile" ||
+          modalType == "data"
         ) {
           layerObject.style = {
             className: styleName,
@@ -1820,16 +1828,16 @@ function save() {
         }
 
         // time properties
-        layerObject.time = {}
-        layerObject.time.enabled = modalTime // static or timed
-        layerObject.time.type = modalTimeType // 'global or individual'
-        layerObject.time.isRelative = true // absolute or relative
-        layerObject.time.current = new Date().toISOString().split('.')[0]+'Z' // initial time
-        layerObject.time.start = '' // initial start
-        layerObject.time.end = '' // initial end
-        layerObject.time.format = modalTimeFormat // time string format
-        layerObject.time.refresh = '1 hours' // refresh when the layer becomes stale
-        layerObject.time.increment = '5 minutes' // time bar steps
+        layerObject.time = {};
+        layerObject.time.enabled = modalTime; // static or timed
+        layerObject.time.type = modalTimeType; // 'global or individual'
+        layerObject.time.isRelative = true; // absolute or relative
+        layerObject.time.current = new Date().toISOString().split(".")[0] + "Z"; // initial time
+        layerObject.time.start = ""; // initial start
+        layerObject.time.end = ""; // initial end
+        layerObject.time.format = modalTimeFormat; // time string format
+        layerObject.time.refresh = "1 hours"; // refresh when the layer becomes stale
+        layerObject.time.increment = "5 minutes"; // time bar steps
 
         if (!validName(modalName)) {
           isInvalidData = true;
@@ -2170,7 +2178,10 @@ function save() {
               );
               $("#toast_warningv2").parent().css("background-color", "#a11717");
             }
-            if ((modalUrl == "undefined" || modalUrl == "") && !modalControlledEl) {
+            if (
+              (modalUrl == "undefined" || modalUrl == "") &&
+              !modalControlledEl
+            ) {
               isInvalidData = true;
               Materialize.toast(
                 "<span id='toast_warningv3'>WARNING: " +
@@ -2493,8 +2504,8 @@ function tilelayerPopulateFromXML(modalId) {
       try {
         var tLen = $(xml).find("TileSet").length;
         var minzValue = $(xml).find("TileSet")[0].attributes["order"].value;
-        var maxnzValue = $(xml).find("TileSet")[tLen - 1].attributes["order"]
-          .value;
+        var maxnzValue =
+          $(xml).find("TileSet")[tLen - 1].attributes["order"].value;
         var bbValue =
           $(xml).find("BoundingBox")[0].attributes["minx"].value +
           "," +
@@ -2530,46 +2541,58 @@ function tilelayerPopulateFromXML(modalId) {
   });
 }
 
-function layerPopulateVariable(modalId) {
+function layerPopulateVariable(modalId, layerType) {
   modalId = "Variable" + modalId;
   if (layerEditors[modalId]) {
-    var currentLayerVars = JSON.parse(layerEditors[modalId].getValue());
+    var currentLayerVars = JSON.parse(layerEditors[modalId].getValue() || "{}");
 
-    currentLayerVars.useKeyAsName = currentLayerVars.useKeyAsName || "prop";
-    currentLayerVars.datasetLinks = currentLayerVars.datasetLinks || [
-      {
-        prop: "{prop}",
-        dataset: "{dataset}",
-        column: "{column}",
-        type: "{none || images}",
-      },
-    ];
+    if (layerType == "data") {
+      currentLayerVars = currentLayerVars.shader
+        ? { shader: currentLayerVars.shader }
+        : {
+            shader: {
+              type: "colorize",
+              units: "m",
+              editable: true,
+              ramps: [["#ffffcc", "#a1dab4", "#41b6c4", "#2c7fb8", "#253494"]],
+            },
+          };
+    } else {
+      currentLayerVars.useKeyAsName = currentLayerVars.useKeyAsName || "prop";
+      currentLayerVars.datasetLinks = currentLayerVars.datasetLinks || [
+        {
+          prop: "{prop}",
+          dataset: "{dataset}",
+          column: "{column}",
+          type: "{none || images}",
+        },
+      ];
 
-    currentLayerVars.links = currentLayerVars.links || [
-      {
-        name: "example",
-        link: "url/?param={prop}",
-      },
-    ];
+      currentLayerVars.links = currentLayerVars.links || [
+        {
+          name: "example",
+          link: "url/?param={prop}",
+        },
+      ];
 
-    currentLayerVars.info = currentLayerVars.info || [
-      {
-        which: "last",
-        icon: "material design icon",
-        value: "Prop: {prop}",
-      },
-    ];
-    currentLayerVars.markerIcon = currentLayerVars.markerIcon || {
-      iconUrl: "pathToMainIconImage.png",
-      shadowUrl: "(opt)pathToShadowImage.png",
-      iconSize: [38, 95], // size of the icon
-      shadowSize: [50, 64], // size of the shadow
-      iconAnchor: [22, 94], // point of the icon which will correspond to marker's location
-      shadowAnchor: [4, 62], // the same for the shadow
-    };
-    currentLayerVars.search =
-      currentLayerVars.search || "(prop1) round(prop2.1) rmunder(prop_3)";
-
+      currentLayerVars.info = currentLayerVars.info || [
+        {
+          which: "last",
+          icon: "material design icon",
+          value: "Prop: {prop}",
+        },
+      ];
+      currentLayerVars.markerIcon = currentLayerVars.markerIcon || {
+        iconUrl: "pathToMainIconImage.png",
+        shadowUrl: "(opt)pathToShadowImage.png",
+        iconSize: [38, 95], // size of the icon
+        shadowSize: [50, 64], // size of the shadow
+        iconAnchor: [22, 94], // point of the icon which will correspond to marker's location
+        shadowAnchor: [4, 62], // the same for the shadow
+      };
+      currentLayerVars.search =
+        currentLayerVars.search || "(prop1) round(prop2.1) rmunder(prop_3)";
+    }
     layerEditors[modalId].setValue(JSON.stringify(currentLayerVars, null, 4));
   }
 }
