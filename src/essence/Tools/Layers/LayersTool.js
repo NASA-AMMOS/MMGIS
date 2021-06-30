@@ -46,7 +46,7 @@ var LayersTool = {
     MMGISInterface: null,
     make: function () {
         //Get tool variables
-        this.vars = L_.getToolVars('measure')
+        this.vars = L_.getToolVars('layers')
         this.MMGISInterface = new interfaceWithMMGIS()
     },
     destroy: function () {

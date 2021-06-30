@@ -103,6 +103,15 @@ let DataShaders = {
             return [
                 `<li class="dataShader_${name}_colorize">`,
                     '<div>',
+                        '<div title="Whether to animate range changes.">Animated</div>',
+                        `<select class="dropdown" parameter="animated" layername="${name}">`,
+                            '<option value="true" selected>On</option>',
+                            '<option value="false">Off</option>',
+                        '</select>',
+                    '</div>',
+                '</li>',
+                `<li class="dataShader_${name}_colorize">`,
+                    '<div>',
                         '<div>Mode</div>',
                         `<select class="dropdown" parameter="discrete" layername="${name}">`,
                             '<option value="continuous" selected>Continuous</option>',
@@ -139,7 +148,7 @@ let DataShaders = {
                 `<li class="dataShader_${name}_colorize" style="height: auto; min-height: 120px; padding: 4px 0px;">`,
                     '<div style="display: block;">',
                         `<div style="display: flex; justify-content: space-between; font-weight: bold;"><div>Value ${shaderObj.units ? ` (${shaderObj.units})`: ''}</div><div>Color</div></div>`,
-                        `<ul id="dataShader_${name}_colorize_legend"></ul>`,
+                        `<ul id="dataShader_${name}_colorize_legend" style="position: relative;"></ul>`,
                     '</div>',
                 '</li>',
             ].join('\n')
@@ -174,6 +183,7 @@ let DataShaders = {
                 let min = Infinity
                 let max = -Infinity
                 const noDataValues = shaderObj.noDataValues || []
+                const histo = {}
                 activeTiles.forEach((c) => {
                     if (
                         DataShaders.colorize.sourceTargets[name]
@@ -192,6 +202,9 @@ let DataShaders = {
                                 b: data[i + 2],
                                 a: data[i + 3],
                             })
+                            const valR = Math.round(value)
+                            histo[valR] = histo[valR] || 0
+                            histo[valR]++
                             //if (i < 20) console.log(value)
                             if (value < min && !noDataValues.includes(value)) {
                                 min = value
@@ -202,6 +215,8 @@ let DataShaders = {
                         }
                     }
                 })
+                L_.layersGroup[name].histogram = histo
+
                 DataShaders.colorize.setMinMaxAnimated(
                     name,
                     shaderObj,
@@ -221,7 +236,8 @@ let DataShaders = {
             DataShaders.colorize.updateLegendMinMax(name, shaderObj, min, max)
             if (
                 DataShaders.colorize.lastMinMax.min == null ||
-                DataShaders.colorize.lastMinMax.max == null
+                DataShaders.colorize.lastMinMax.max == null ||
+                L_.layersGroup[name].isAnimated === false
             ) {
                 DataShaders.colorize.lastMinMax.min = min
                 DataShaders.colorize.lastMinMax.max = max
@@ -250,9 +266,9 @@ let DataShaders = {
                     )
                 }
                 const minRate =
-                    Math.abs(DataShaders.colorize.lastMinMax.min - min) / 30
+                    Math.abs(DataShaders.colorize.lastMinMax.min - min) / 18
                 const maxRate =
-                    Math.abs(DataShaders.colorize.lastMinMax.max - max) / 30
+                    Math.abs(DataShaders.colorize.lastMinMax.max - max) / 18
                 if (DataShaders.colorize.lastMinMax.min > min)
                     DataShaders.colorize.lastMinMax.min -= minRate
                 else if (DataShaders.colorize.lastMinMax.min < min)
@@ -271,7 +287,7 @@ let DataShaders = {
                     DataShaders.colorize.lastMinMax.max
                 )
                 L_.layersGroup[name].reRender()
-            }, 50)
+            }, 40)
         },
         // Like attach immediate events but on layer tool open
         attachEvents: function (name, shaderObj) {
@@ -283,26 +299,33 @@ let DataShaders = {
                     L_.layersGroup[layerName].isDynamic = val === 'true'
                 }
             )
-            //Checkboxes
+            //MODE
             $(`.dataShader_${name}_colorize select[parameter=discrete]`).on(
                 'change',
                 function () {
                     const layerName = $(this).attr('layername')
                     const parameter = $(this).attr('parameter')
                     const val = $(this).val()
+                    L_.layersGroup[layerName].isDiscrete = val === 'discrete'
                     DataShaders.colorize.setLegend(
                         name,
                         shaderObj,
-                        $(`#dataShader_${name}_colorize_legend`).attr(
-                            'rampIdx'
-                        ),
-                        val == 'discrete'
+                        $(`#dataShader_${name}_colorize_legend`).attr('rampIdx')
                     )
                     L_.layersGroup[layerName].setUniform(
                         parameter,
-                        val === 'discrete' ? 1 : 0
+                        L_.layersGroup[layerName].isDiscrete ? 1 : 0
                     )
                     L_.layersGroup[layerName].reRender()
+                }
+            )
+            //Animated
+            $(`.dataShader_${name}_colorize select[parameter=animated]`).on(
+                'change',
+                function () {
+                    const layerName = $(this).attr('layername')
+                    const val = $(this).val()
+                    L_.layersGroup[layerName].isAnimated = val === 'true'
                 }
             )
 
@@ -321,7 +344,7 @@ let DataShaders = {
             )
             $(`.dataShader_${name}_colorize_maxValue input[parameter=max]`).on(
                 'change',
-                function () {
+                function (e) {
                     const max = parseFloat($(this).val())
                     DataShaders.colorize.setMinMaxAnimated(
                         name,
@@ -394,6 +417,7 @@ let DataShaders = {
             DataShaders.colorize.setLegend(name, shaderObj, rampIdx)
             if (shaderObj.ramps) {
                 const ramp = shaderObj.ramps[rampIdx != null ? rampIdx : 0]
+                L_.layersGroup[name].ramp = ramp
                 ramp.forEach((color, idx) => {
                     let rgb
                     // Hacky easy transparency support
@@ -417,8 +441,10 @@ let DataShaders = {
                 L_.layersGroup[name].reRender()
             }
         },
-        setLegend: function (name, shaderObj, rampIdx, isDiscrete) {
+        setLegend: function (name, shaderObj, rampIdx) {
             let legend = []
+
+            const isDiscrete = L_.layersGroup[name].isDiscrete
             if (shaderObj.ramps) {
                 const ramp = shaderObj.ramps[rampIdx != null ? rampIdx : 0]
                 ramp.forEach((color, idx) => {
@@ -444,6 +470,14 @@ let DataShaders = {
                     )
                 })
             }
+
+            // Histogram
+            // prettier-ignore
+            legend.push([
+                `<div class="dataShader_${name}_colorize_legend_histogram" style="position: absolute; right: 24px; top: 2px; width: 32px;">`,
+                `</div>`
+            ].join('\n'))
+
             $(`#dataShader_${name}_colorize_legend`).html(legend.join('\n'))
             $(`#dataShader_${name}_colorize_legend`).attr('rampIdx', rampIdx)
             $(`#dataShader_${name}_colorize_legend`).attr(
@@ -507,9 +541,67 @@ let DataShaders = {
                         ).val(value)
                     }
                 })
+
+                // Histogram
+                if (L_.layersGroup[name].histogram) {
+                    const histogram = []
+                    const binSize =
+                        (Math.max(min, max) - Math.min(min, max)) / ramp.length
+                    const histoKeys = Object.keys(
+                        L_.layersGroup[name].histogram
+                    )
+                    for (
+                        let v = Math.min(min, max);
+                        v < Math.max(min, max);
+                        v += binSize
+                    ) {
+                        let binValue = 0
+                        histoKeys
+                            .filter(
+                                (val) =>
+                                    parseFloat(val) >= v &&
+                                    parseFloat(val) <= v + binSize
+                            )
+                            .forEach((value) => {
+                                binValue +=
+                                    L_.layersGroup[name].histogram[value]
+                            })
+                        histogram.push(binValue)
+                    }
+                    if (histogram.length > 0) {
+                        const histoMin = Math.min(...histogram)
+                        const histoMax = Math.max(...histogram)
+
+                        const total = histogram.reduce((a, b) => a + b)
+
+                        const histoDivs = []
+                        histogram.forEach((value, idx) => {
+                            const width = F_.linearScale(
+                                [histoMin, histoMax],
+                                [0, 30],
+                                value
+                            )
+                            histoDivs.push(
+                                `<div title="${((value / total) * 100).toFixed(
+                                    2
+                                )}%" style="background: ${
+                                    ramp[idx]
+                                }; width: ${width}px; height: 10px; position: absolute; right: 1px; top: ${
+                                    idx * 24 + 7
+                                }px;"></div>`
+                            )
+                        })
+
+                        $(`.dataShader_${name}_colorize_legend_histogram`).html(
+                            histoDivs.join('\n')
+                        )
+                    }
+                }
+
                 if (!dontUpdateMinMix) {
                     L_.layersGroup[name].minValue = min
                     L_.layersGroup[name].maxValue = max
+
                     $(
                         `.dataShader_${name}_colorize_minValue input[parameter=min]`
                     ).val(min.toFixed(sigfigs))
