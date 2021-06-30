@@ -230,6 +230,7 @@ var QueryURL = {
       "tools=camp$1.3.4,"
     */
     writeCoordinateURL: function (
+        shortenURL = true,
         mapLon,
         mapLat,
         mapZoom,
@@ -340,25 +341,28 @@ var QueryURL = {
         if (urlTools !== false) urlAppendage += '&tools=' + urlTools
 
         var url = urlAppendage
+        if (shortenURL) {
+            calls.api(
+                'shortener_shorten',
+                {
+                    url: url,
+                },
+                function (s) {
+                    //Set and update the short url
+                    L_.url = window.location.href.split('?')[0] + '?s=' + s.body.url
+                    window.history.replaceState('', '', L_.url)
+                    if (typeof callback === 'function') callback()
+                },
+                function (e) {
+                    //Set and update the full url
+                    L_.url = window.location.href.split('?')[0] + url
+                    window.history.replaceState('', '', L_.url)
+                    if (typeof callback === 'function') callback()
+                }
+            )
+        }
 
-        calls.api(
-            'shortener_shorten',
-            {
-                url: url,
-            },
-            function (s) {
-                //Set and update the short url
-                L_.url = window.location.href.split('?')[0] + '?s=' + s.body.url
-                window.history.replaceState('', '', L_.url)
-                if (typeof callback === 'function') callback()
-            },
-            function (e) {
-                //Set and update the full url
-                L_.url = window.location.href.split('?')[0] + url
-                window.history.replaceState('', '', L_.url)
-                if (typeof callback === 'function') callback()
-            }
-        )
+        return window.location.href.split('?')[0] + url
     },
     writeSearchURL: function (searchStrs, searchFile) {
         return //!!!!!!!!!!!!!!!!

@@ -1,5 +1,6 @@
 import L_ from '../Basics/Layers_/Layers_'
 import ToolController_ from '../Basics/ToolController_/ToolController_'
+import QueryURL from '../Ancillary/QueryURL'
 import TimeControl from '../Ancillary/TimeControl'
 let L = window.L
 
@@ -131,6 +132,9 @@ var mmgisAPI_ = {
             return 'click'
         }
         return null 
+    },
+    writeCoordinateURL: function() {
+        return QueryURL.writeCoordinateURL(false);
     },
 }
 
@@ -268,6 +272,12 @@ var mmgisAPI = {
      * @param {function} - functionReference - function reference to listener event callback function. null value removes all functions for a given eventName
      */
     removeEventListener: mmgisAPI_.removeEventListener,
+
+    /** writeCoordinateURL - writes out the current view as a url. This returns the long form of
+     * the 'Copy Link' feature and does not save a short url to the database.
+     * @returns {string} - a string containing the current view as a url
+     */
+    writeCoordinateURL: mmgisAPI_.writeCoordinateURL,
 }
 
 window.mmgisAPI = mmgisAPI
