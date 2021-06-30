@@ -341,3 +341,15 @@ The following is an example of how to call the `getVisibleLayers` function:
 ```javascript
 window.mmgisAPI.getVisibleLayers()
 ```
+
+## Miscellaneous Features
+
+### writeCoordinateURL
+
+This function writes out the current view as a URL. This programmatically returns the long form of the 'Copy Link' feature and does not save a short URL to the database.
+
+The following is an example of how to call the `writeCoordinateURL` function:
+
+```javascript
+window.mmgisAPI.writeCoordinateURL()
+```
