@@ -11,6 +11,7 @@ var mmgisAPI_ = {
     fina: function (map_) {
         mmgisAPI_.map = map_.map
         mmgisAPI.map = map_.map
+        mmgisAPI_.isLoaded = true
     },
     // Returns an array of all features in a given extent
     featuresContained: function () {
@@ -135,6 +136,38 @@ var mmgisAPI_ = {
     },
     writeCoordinateURL: function() {
         return QueryURL.writeCoordinateURL(false);
+    },
+    isLoaded: false,
+    onLoaded: function(functionReference, timeout = 60000) {
+        if (typeof functionReference !== 'function') {
+            console.warn(
+                'Warning: The following parameter passed to the `onLoaded` function is not a function: ' +
+                    functionReference
+            )
+            return
+        }
+
+        // Check if MMGIS has finshed loading every 500ms
+        var clearCheckIfLoaded = setInterval(() => {
+            if (mmgisAPI_.isLoaded) {
+                clearInterval(clearCheckIfLoaded)
+                clearTimeout(clearTime)
+
+                // Call function
+                functionReference()
+            }
+        }, 500);
+
+        // Time out after 1 minute
+        var clearTime = setTimeout(() => {
+            clearTimeout(clearTime)
+            clearInterval(clearCheckIfLoaded)
+            console.warn(
+                'Warning: Tried to set up MMGIS but timed out because ' +
+                timeout +
+                ' milliseconds has passed'
+            )
+        }, timeout)
     },
 }
 
@@ -278,6 +311,12 @@ var mmgisAPI = {
      * @returns {string} - a string containing the current view as a url
      */
     writeCoordinateURL: mmgisAPI_.writeCoordinateURL,
+
+    /** onLoaded - calls functionReference as a function once MMGIS has finished loading. Function checks for load completion every 500ms.
+     * @param {function} - functionReference - function reference to function that is called when MMGIS is finished loading
+     * @param {integer} - timeout - timeout in milliseconds if MMGIS has not finished loading. Defaults to 60000 milliseconds (1 minute).
+     */
+    onLoaded: mmgisAPI_.onLoaded,
 }
 
 window.mmgisAPI = mmgisAPI
