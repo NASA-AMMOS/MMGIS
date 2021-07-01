@@ -356,10 +356,9 @@ window.mmgisAPI.writeCoordinateURL()
 
 ### onLoaded
 
-This function calls the function reference as a function once MMGIS has finished loading. This function checks for load completion every 500ms and the function times out if MMGIS does not complete loading after the timeout.
+This function calls the callback function once MMGIS has finished loading.
 
-- `functionReference` - function reference to function that is called when MMGIS is finished loading
-- `timeout` - timeout in milliseconds if MMGIS has not finished loading. Defaults to 60000 milliseconds (1 minute).
+- `onLoadCallback` - callback function that is called when MMGIS has finished loading
 
 The following is an example of how to call the `onLoaded` function:
 
@@ -375,5 +374,5 @@ window.mmgisAPI.onLoaded(() => {
     }
 
     window.mmgisAPI.addEventListener('onPan', listener)
-}, 30000)
+})
 ```
