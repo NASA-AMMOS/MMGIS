@@ -11,6 +11,7 @@ var mmgisAPI_ = {
     fina: function (map_) {
         mmgisAPI_.map = map_.map
         mmgisAPI.map = map_.map
+        if( typeof mmgisAPI_.onLoadCallback === 'function' ) mmgisAPI_.onLoadCallback()
     },
     // Returns an array of all features in a given extent
     featuresContained: function () {
@@ -135,6 +136,10 @@ var mmgisAPI_ = {
     },
     writeCoordinateURL: function() {
         return QueryURL.writeCoordinateURL(false);
+    },
+    onLoadCallback: null,
+    onLoaded: function(onLoadCallback) {
+        mmgisAPI_.onLoadCallback = onLoadCallback
     },
 }
 
@@ -278,6 +283,11 @@ var mmgisAPI = {
      * @returns {string} - a string containing the current view as a url
      */
     writeCoordinateURL: mmgisAPI_.writeCoordinateURL,
+
+    /** onLoaded - calls onLoadCallback as a function once MMGIS has finished loading.
+     * @param {function} - onLoadCallback - function reference to function that is called when MMGIS is finished loading
+     */
+    onLoaded: mmgisAPI_.onLoaded,
 }
 
 window.mmgisAPI = mmgisAPI

@@ -353,3 +353,26 @@ The following is an example of how to call the `writeCoordinateURL` function:
 ```javascript
 window.mmgisAPI.writeCoordinateURL()
 ```
+
+### onLoaded
+
+This function calls the callback function once MMGIS has finished loading.
+
+- `onLoadCallback` - callback function that is called when MMGIS has finished loading
+
+The following is an example of how to call the `onLoaded` function:
+
+```javascript
+window.mmgisAPI.onLoaded(() => { 
+    // Add listener with MMGIS API now that MMGIS has finished loading
+    function listener() {
+        const featuresContained = window.mmgisAPI.featuresContained()
+        console.log('featuresContained', featuresContained)
+
+        const activeFeature = window.mmgisAPI.getActiveFeature()
+        console.log('activeFeature', activeFeature)
+    }
+
+    window.mmgisAPI.addEventListener('onPan', listener)
+})
+```
