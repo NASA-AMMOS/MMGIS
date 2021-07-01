@@ -137,7 +137,7 @@ var mmgisAPI_ = {
     writeCoordinateURL: function() {
         return QueryURL.writeCoordinateURL(false);
     },
-    onLoadCallback: false,
+    onLoadCallback: null,
     onLoaded: function(onLoadCallback) {
         mmgisAPI_.onLoadCallback = onLoadCallback
     },
