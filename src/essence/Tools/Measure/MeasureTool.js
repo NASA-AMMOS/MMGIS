@@ -537,7 +537,7 @@ function makeMeasureToolLayer() {
                     )
                 }else if(distDisplayUnit == "kilometers"){
                     temp.bindTooltip(
-                        '' + (roundedTotalDist/1000) + 'km ' + distAzimuth + '&deg;',
+                        '' + (roundedTotalDist/1000).toFixed(2) + 'km ' + distAzimuth + '&deg;',
                         {
                             permanent: true,
                             direction: 'right',
@@ -802,7 +802,7 @@ function makeGhostLine(lng, lat) {
             )
         }else if (distDisplayUnit == "kilometers"){
             CursorInfo.update(
-                `${roundedTotalDist/1000}km ${
+                `${(roundedTotalDist/1000).toFixed(2)}km ${
                     mode === 'continuous' ? `(+${roundedDist/1000}km)` : ''
                 } ${distAzimuth}&deg;`,
                 null,
