@@ -546,15 +546,6 @@ function makeMeasureToolLayer() {
                         }
                     )
                 }
-                // temp.bindTooltip(
-                //     '' + roundedTotalDist + 'm ' + distAzimuth + '&deg;',
-                //     {
-                //         permanent: true,
-                //         direction: 'right',
-                //         className: 'distLabel',
-                //         offset: [4, 0],
-                //     }
-                // )
             }
         }
         pointsAndPathArr.push(temp)
@@ -802,7 +793,6 @@ function makeGhostLine(lng, lat) {
         //  {permanent: true, direction: 'right', className: "distLabel", className: "noPointerEvents", offset: [15,-15]})
         //distMousePoint.addTo(Map_.map);
         if(distDisplayUnit == 'meters'){
-            console.log("hello im meters")
             CursorInfo.update(
                 `${roundedTotalDist}m ${
                     mode === 'continuous' ? `(+${roundedDist}m)` : ''
@@ -811,7 +801,6 @@ function makeGhostLine(lng, lat) {
                 false
             )
         }else if (distDisplayUnit == "kilometers"){
-            console.log("hello im kilometers")
             CursorInfo.update(
                 `${roundedTotalDist/1000}km ${
                     mode === 'continuous' ? `(+${roundedDist/1000}km)` : ''
@@ -820,13 +809,6 @@ function makeGhostLine(lng, lat) {
                 false
             )
         }
-        // CursorInfo.update(
-        //     `${roundedTotalDist}m ${
-        //         mode === 'continuous' ? `(+${roundedDist}m)` : ''
-        //     } ${distAzimuth}&deg;`,
-        //     null,
-        //     false
-        // )
     }
 }
 
