@@ -803,7 +803,7 @@ function makeGhostLine(lng, lat) {
         }else if (distDisplayUnit == "kilometers"){
             CursorInfo.update(
                 `${(roundedTotalDist/1000).toFixed(2)}km ${
-                    mode === 'continuous' ? `(+${roundedDist/1000}km)` : ''
+                    mode === 'continuous' ? `(+${(roundedDist/1000).toFixed(2)}km)` : ''
                 } ${distAzimuth}&deg;`,
                 null,
                 false
