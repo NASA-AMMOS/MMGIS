@@ -263,7 +263,7 @@ This function adds a map event listener added using the MMGIS API. This function
 - `eventName` - name of event to add listener to. Available events: `onPan`, `onZoom`, `onClick`
 - `functionReference` - function reference to listener event callback function. `null` value removes all functions for a given `eventName`
 
-The following is an example of how to call the `removeEventListener` function:
+The following is an example of how to call the `addEventListener` function:
 
 ```javascript
 function listener() {
