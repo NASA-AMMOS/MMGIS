@@ -44,10 +44,10 @@ const Measure = () => {
             .on('click', MeasureTool.clickMap)
             .on('mousemove', MeasureTool.moveMap)
             .on('mouseout', MeasureTool.mouseOutMap)
-        // Globe_.litho
-        //     .getContainer()
-        //     .addEventListener('click', MeasureTool.clickGlobe, false)
-        //     .addEventListener('mousemove', MeasureTool.moveGlobe, false)
+            
+            const globeCont = Globe_.litho.getContainer()
+            globeCont.addEventListener('click', MeasureTool.clickGlobe, false)
+            globeCont.addEventListener('mousemove', MeasureTool.moveGlobe, false)
 
         Viewer_.imageViewerMap.addHandler(
             'canvas-click',
