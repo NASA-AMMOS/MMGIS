@@ -33,7 +33,8 @@
 }
 
 .MeasureTool #measureMode,
-.MeasureTool #measureSamples {
+.MeasureTool #measureSamples,
+.MeasureTool #measureUnit {
     display: flex;
     justify-content: space-between;
     font-size: 14px;
@@ -41,7 +42,8 @@
     margin: 0px 7px 3px 7px;
 }
 .MeasureTool #measureMode > select,
-.MeasureTool #measureSamples > select {
+.MeasureTool #measureSamples > select,
+.MeasureTool #measureUnit > select {
     width: 100px;
 }
 
