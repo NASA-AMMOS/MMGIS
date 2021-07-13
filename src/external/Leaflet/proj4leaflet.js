@@ -65,7 +65,6 @@
                 L.CRS.Earth.R = planetRadius
                 this.R = L.CRS.Earth.R
             }
-            //console.log('REMEMBER ME ' + this.R, L.CRS.Earth.distance)
             var code, proj, def, options
 
             if (L.Proj._isProj4Obj(a)) {
