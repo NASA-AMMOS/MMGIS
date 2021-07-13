@@ -62,6 +62,14 @@ body {
     --color-mh: #ffdd5c;
     --color-mw: #f8f8f8;
     --color-mw2: #efefef;
+
+    --color-r1: #b30000;
+    --color-r2: #7c1158;
+    --color-r3: #4421af;
+    --color-r4: #1a53ff;
+    --color-r5: #00b7c7;
+    --color-r6: #8be04e;
+    --color-r7: #ebdc78;
 }
 
 #nodeenv {

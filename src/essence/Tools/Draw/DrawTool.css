@@ -1218,9 +1218,10 @@
     margin-bottom: 4px;
 }
 #drawToolContextMenuPropertiesDescription {
-    height: 37px;
+    width: 220px;
     resize: vertical;
     box-sizing: border-box;
+    margin-bottom: 4px;
 }
 .drawToolContextMenuPropertiesReassignUUID {
     height: 27px;

@@ -832,6 +832,7 @@ var Formulae_ = {
                     }
                 }
                 break
+            default:
         }
         return feature
     },
@@ -855,14 +856,13 @@ var Formulae_ = {
         )
     },
     //Current only supports a single feature: {type:"feature", ...}
-    geojsonAddSpatialProperties(geojson) {
-        var g = geojson.geometry.coordinates[0]
+    getFeatureLength(feature, displayFriendly) {
+        let g = feature.geometry.coordinates
+        let length2D = 0
 
-        switch (geojson.geometry.type.toLowerCase()) {
-            case 'multilinestring':
-                //length2D
-                var length2D = 0
-                for (var i = 1; i < g.length; i++) {
+        switch (feature.geometry.type.toLowerCase()) {
+            case 'linestring':
+                for (let i = 1; i < g.length; i++) {
                     length2D += this.lngLatDistBetween(
                         g[i - 1][0],
                         g[i - 1][1],
@@ -870,25 +870,36 @@ var Formulae_ = {
                         g[i][1]
                     )
                 }
-                geojson.properties.length2D = length2D
                 break
             case 'polygon':
-                //perimeter2D
-                var perimeter2D = 0
-                for (var i = 1; i < g.length; i++) {
-                    perimeter2D += this.lngLatDistBetween(
+            case 'multilinestring':
+                g = g[0]
+                for (let i = 1; i < g.length; i++) {
+                    length2D += this.lngLatDistBetween(
                         g[i - 1][0],
                         g[i - 1][1],
                         g[i][0],
                         g[i][1]
                     )
                 }
-
-                geojson.properties.perimeter2D = perimeter2D
-                //area2D
-                var area2D = this.geoJSONArea(geojson.geometry)
-                geojson.properties.area2D = area2D
                 break
+            default:
+        }
+
+        if (displayFriendly) length2D = `${length2D.toFixed(2)}m`
+        return length2D
+    },
+    geojsonAddSpatialProperties(geojson) {
+        switch (geojson.geometry.type.toLowerCase()) {
+            case 'linestring':
+            case 'multilinestring':
+                geojson.properties.length2D = this.getFeatureLength(geojson)
+                break
+            case 'polygon':
+                geojson.properties.perimeter2D = this.getFeatureLength(geojson)
+                geojson.properties.area2D = this.getFeatureArea(geojson)
+                break
+            default:
         }
         return geojson
     },
@@ -948,7 +959,8 @@ var Formulae_ = {
         }
     },
     //https://github.com/mapbox/geojson-area/blob/master/index.js
-    geoJSONArea(g) {
+    getFeatureArea(feature, displayFriendly) {
+        const g = feature.geometry
         return geometry(g)
 
         function geometry(_) {
@@ -956,23 +968,27 @@ var Formulae_ = {
                 i
             switch (_.type) {
                 case 'Polygon':
-                    return polygonArea(_.coordinates)
+                    area = polygonArea(_.coordinates)
+                    break
                 case 'MultiPolygon':
                     for (i = 0; i < _.coordinates.length; i++) {
                         area += polygonArea(_.coordinates[i])
                     }
-                    return area
+                    break
                 case 'Point':
                 case 'MultiPoint':
                 case 'LineString':
                 case 'MultiLineString':
-                    return 0
+                    break
                 case 'GeometryCollection':
                     for (i = 0; i < _.geometries.length; i++) {
                         area += geometry(_.geometries[i])
                     }
-                    return area
+                    break
+                default:
             }
+            if (displayFriendly) area = `${area.toFixed(2)} ㎡`
+            return area
         }
         function polygonArea(coords) {
             var area = 0

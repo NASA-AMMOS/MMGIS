@@ -1183,7 +1183,7 @@ var Files = {
 
                             var s = features[i].properties.style
                             var styleString =
-                                (s.color
+                                (s.color != null
                                     ? 'text-shadow: ' +
                                       F_.getTextShadowString(
                                           s.color,
@@ -1192,10 +1192,10 @@ var Files = {
                                       ) +
                                       '; '
                                     : '') +
-                                (s.fillColor
+                                (s.fillColor != null
                                     ? 'color: ' + s.fillColor + '; '
                                     : '') +
-                                (s.fontSize
+                                (s.fontSize != null
                                     ? 'font-size: ' + s.fontSize + '; '
                                     : '')
                             L_.layersGroup[layerId].push(

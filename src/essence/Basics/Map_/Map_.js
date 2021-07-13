@@ -1506,7 +1506,10 @@ function clearOnMapClick(event) {
                     if ('getBounds' in layer) {
                         // Use the pixel bounds because longitude/latitude conversions for bounds
                         // may be odd in the case of polar projections
-                        if (layer._pxBounds.contains(event.layerPoint)) {
+                        if (
+                            layer._pxBounds &&
+                            layer._pxBounds.contains(event.layerPoint)
+                        ) {
                             found = true
                             break
                         }
