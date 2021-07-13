@@ -121,7 +121,7 @@ var UserInterface = {
             .style('cursor', 'pointer')
             .on('click', function () {
                 const linkButton = $(this)
-                QueryURL.writeCoordinateURL(function () {
+                QueryURL.writeCoordinateURL(true, function () {
                     F_.copyToClipboard(L_.url)
 
                     linkButton.removeClass('mdi-open-in-new')

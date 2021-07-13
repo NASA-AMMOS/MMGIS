@@ -263,7 +263,7 @@ This function adds a map event listener added using the MMGIS API. This function
 - `eventName` - name of event to add listener to. Available events: `onPan`, `onZoom`, `onClick`
 - `functionReference` - function reference to listener event callback function. `null` value removes all functions for a given `eventName`
 
-The following is an example of how to call the `removeEventListener` function:
+The following is an example of how to call the `addEventListener` function:
 
 ```javascript
 function listener() {
@@ -340,4 +340,39 @@ The following is an example of how to call the `getVisibleLayers` function:
 
 ```javascript
 window.mmgisAPI.getVisibleLayers()
+```
+
+## Miscellaneous Features
+
+### writeCoordinateURL
+
+This function writes out the current view as a URL. This programmatically returns the long form of the 'Copy Link' feature and does not save a short URL to the database.
+
+The following is an example of how to call the `writeCoordinateURL` function:
+
+```javascript
+window.mmgisAPI.writeCoordinateURL()
+```
+
+### onLoaded
+
+This function calls the callback function once MMGIS has finished loading.
+
+- `onLoadCallback` - callback function that is called when MMGIS has finished loading
+
+The following is an example of how to call the `onLoaded` function:
+
+```javascript
+window.mmgisAPI.onLoaded(() => { 
+    // Add listener with MMGIS API now that MMGIS has finished loading
+    function listener() {
+        const featuresContained = window.mmgisAPI.featuresContained()
+        console.log('featuresContained', featuresContained)
+
+        const activeFeature = window.mmgisAPI.getActiveFeature()
+        console.log('activeFeature', activeFeature)
+    }
+
+    window.mmgisAPI.addEventListener('onPan', listener)
+})
 ```
