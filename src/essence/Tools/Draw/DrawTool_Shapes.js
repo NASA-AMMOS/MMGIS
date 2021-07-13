@@ -268,22 +268,35 @@ var Shapes = {
                             )
                                 return
                             var l = L_.layersGroup[layer][index]
-                            var p
                             if (
                                 !l.hasOwnProperty('feature') &&
                                 l.hasOwnProperty('_layers')
                             )
-                                p =
-                                    l._layers[Object.keys(l._layers)[0]].feature
-                                        .properties
-                            else p = l.feature.properties
+                                l = l._layers[Object.keys(l._layers)[0]]
+                            const p = l.feature.properties
                             var centerPx = event.containerPoint
 
-                            $('#drawToolMouseoverText').text(p.name)
+                            let text = p.name
+
+                            // Add length to hover text for lines if wanted
+                            if (
+                                DrawTool.vars.hoverLengthOnLines === true &&
+                                l.feature &&
+                                (l.feature.geometry.type.toLowerCase() ==
+                                    'linestring' ||
+                                    l.feature.geometry.type.toLowerCase() ==
+                                        'multilinestring')
+                            )
+                                text = `${text} (${F_.getFeatureLength(
+                                    l.feature,
+                                    true
+                                )})`
+
+                            $('#drawToolMouseoverText').text(text)
                             $('#drawToolMouseoverText').addClass('active')
                             $('#drawToolMouseoverText').css({
                                 top: centerPx.y,
-                                left: centerPx.x + 280,
+                                left: centerPx.x + 310,
                             })
                         }
                     })(layer, index)
