@@ -1,0 +1,99 @@
+#isochroneTool {
+    width: 100%;
+    height: 100%;
+    color: white;
+    background-color: var(--color-k);
+}
+
+#isochroneToolTitle {
+    height: 40px;
+    padding-left: 6px;
+    line-height: 40px;
+    font-size: 16px;
+    font-family: lato-light;
+    color: var(--color-l);
+    background-color: var(--color-a);
+    border-bottom: 1px solid var(--color-i);
+    text-transform: uppercase;
+}
+
+#isochroneOptionsContainer {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+.isochroneOptions {
+    position: relative;
+}
+
+.isochroneOptions > div, .isochroneOptions > section > div {
+    display: flex;
+    justify-content: space-between;
+    height: 30px;
+    line-height: 30px;
+    padding-left: 5px;
+    border-bottom: 1px solid var(--color-e);
+    font-size: 15px;
+    overflow: clip;
+}
+
+#isochroneTool .dropdown {
+    background-color: var(--color-i);
+    color: #ededed;
+    border: none;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 0;
+    width: 120px;
+    height: 29px;
+    font-size: 14px;
+    transition: height 0.2s linear;
+}
+
+#isochroneTool .dropdown.color {
+    position: absolute;
+    right: 0;
+    overflow: hidden;
+}
+
+#isochroneTool .dropdown.color canvas {
+    vertical-align: bottom;
+}
+
+#isochroneTool .dropdown.color:hover {
+    height: fit-content;
+}
+
+#isochroneTool .unit {
+    width: 33px;
+    text-align: center;
+    background: var(--color-i);
+    border-left: 1px solid var(--color-e);
+    color: #bfbfbf;
+    font-size: 14px;
+    line-height: 28px;
+}
+
+#isochroneTool input[type='number'] {
+    border: none;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 0;
+    padding: 0px 6px;
+    height: 29px;
+    width: 86px;
+    background: var(--color-i);
+    text-align: right;
+    color: #ededed;
+}
+
+#isochroneTool input[type='number'].nounit {
+    width: 120px;
+}
+
+#isochroneTool .sectionhead {
+    font-variant: small-caps;
+    font-size: 16px;
+    height: 21px;
+    line-height: 20px;
+    background-color: var(--color-b);
+}
