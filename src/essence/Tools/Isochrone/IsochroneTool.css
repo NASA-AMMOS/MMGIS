@@ -1,0 +1,206 @@
+#isochroneTool {
+    width: 100%;
+    height: 100%;
+    color: white;
+    background-color: var(--color-k);
+}
+
+#isochroneToolHeader {
+    display: flex;
+    justify-content: space-between;
+    height: 40px;
+    padding-left: 6px;
+    line-height: 40px;
+    font-size: 16px;
+    color: var(--color-l);
+    background-color: var(--color-a);
+    border-bottom: 1px solid var(--color-i);
+}
+
+#isochroneToolTitle {
+    font-family: lato-light;
+    text-transform: uppercase;
+}
+
+#isochroneToolHeader #iscNew {
+    display: flex;
+    cursor: pointer;
+    height: 40px;
+    line-height: 40px;
+    font-size: 14px;
+    padding-right: 6px;
+    transition: color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+#isochroneTool #iscNew:hover {
+    color: var(--color-mmgis);
+}
+
+#isochroneOptionsContainer {
+    height: calc(100% - 40px);
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+}
+
+li.focused {
+    background: linear-gradient(180deg, var(--color-i), rgba(0, 0, 0, 0) 75%);
+}
+
+.isochroneHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items:center;
+    height: 28px;
+    border-bottom: 1px solid var(--color-e);
+}
+
+.isochroneHeader .checkbox.on {
+    background: white;
+    border: 0px solid #777;
+}
+.isochroneHeader .checkbox {
+    margin: 5px;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #777;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
+        border 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+.isochroneHeader .iscicon {
+    cursor: pointer;
+    margin-top: 2px;
+}
+
+.isochroneHeader .title {
+    flex: 1;
+}
+
+.focused .isochroneHeader {
+    background-color: var(--color-b);
+}
+.focused .isochroneOptions {
+    border-left-color: #e0e0e0;
+}
+.focused .isochroneOptions > div, .focused .isochroneOptions > section > div {
+    color: #cfcfcf;
+}
+
+.isochroneOptions {
+    position: relative;
+    border-left: 5px solid var(--color-e);
+    overflow: hidden;
+    transition: height 0.2s linear;
+}
+.isochroneOptions.collapsed {
+    height: 0px;
+}
+
+.isochroneOptions > div, .isochroneOptions > section > div {
+    display: flex;
+    justify-content: space-between;
+    height: 26px;
+    line-height: 26px;
+    padding-left: 5px;
+    border-bottom: 1px solid var(--color-e);
+    font-size: 15px;
+    overflow: clip;
+    color: #909090;
+}
+
+#isochroneTool .dropdown {
+    background-color: var(--color-i);
+    color: #ededed;
+    border: none;
+    border-radius: 0;
+    width: 120px;
+    height: 25px;
+    font-size: 14px;
+    transition: height 0.2s linear;
+}
+
+#isochroneTool .dropdown.color {
+    position: absolute;
+    right: 0;
+    border: none;
+}
+
+#isochroneTool .dropdown.color canvas {
+    vertical-align: top;
+}
+
+#isochroneTool .dropdown.color:hover canvas.selected {
+    outline: 3px solid #fff;
+    outline-offset: -3px;
+}
+
+#isochroneTool .dropdown.color:not(:hover) canvas:not(.selected) {
+    height: 0px;
+}
+
+#isochroneTool .unit {
+    width: 33px;
+    text-align: center;
+    background: var(--color-i);
+    border-left: 1px solid var(--color-e);
+    color: #bfbfbf;
+    font-size: 14px;
+    line-height: 26px;
+}
+
+#isochroneTool input[type='number'] {
+    border: none;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 0;
+    padding: 0px 6px;
+    height: 26px;
+    width: 87px;
+    background: var(--color-i);
+    text-align: right;
+    color: #ededed;
+}
+
+#isochroneTool input[type='number'].nounit {
+    width: 120px;
+}
+
+#isochroneTool .slider2 {
+    width: 120px !important;
+    height: 25px;
+    background: var(--color-i);
+    opacity: 1 !important;
+    margin: 0;
+    border-radius: 0;
+}
+
+#isochroneTool .sectionhead {
+    font-variant: small-caps;
+    font-size: 16px;
+    height: 21px;
+    line-height: 20px;
+    background: linear-gradient(90deg, var(--color-b) 0%, rgba(0, 0, 0, 0) 100%);
+}
+
+#isochroneTool div.loading {
+    width: 100%;
+    overflow: visible;
+    padding-left: 0px;
+}
+
+#isochroneTool div.loading div {
+    width: 0%;
+    position: absolute;
+    left: 0;
+    height: 25px;
+    background: #486f9d;
+}
+#isochroneTool div.loading div.error {
+    width: 100%;
+    background: #c72323;
+}
+
+#isochroneTool div.loading span {
+    margin-left: 5px;
+    z-index: 100;
+}

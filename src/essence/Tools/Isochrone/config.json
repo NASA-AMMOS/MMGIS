@@ -1,0 +1,36 @@
+{
+    "defaultIcon": "circle-double",
+    "description": "Find the range of locations accessible to an explorer within a given time.",
+    "descriptionFull": {
+        "title": "Given a user-defined starting point, render a shaded region where colors indicate minimum travel time or resource expenditure to reach a given location. Hover over the region to view the least costly path from the start to the cursor. Costs are calculated based on selectable and configurable models, which may each require multiple different tilesets as input.",
+        "example": {
+            "data": {
+                "DEM": [
+                    {
+                        "name": "Unique Name 1",
+                        "tileurl": "Layers/Example/{z}/{x}/{y}.png",
+                        "minZoom": 8,
+                        "maxNativeZoom": 18,
+                        "resolution": 256,
+                        "interpolateSeams": true
+                    },
+                    { "...": "..." }
+                ],
+                "slope": [
+                    { "...": "..." }
+                ],
+                "cost": [
+                    { "...": "..." }
+                ]
+            },
+            "interpolateSeams": false,
+            "models": ["Traverse Time", "Isodistance", "..."]
+        }
+    },
+    "hasVars": true,
+    "name": "Isochrone",
+    "toolbarPriority": 10,
+    "paths": {
+        "IsochroneTool": "essence/Tools/Isochrone/IsochroneTool"
+    }
+}
