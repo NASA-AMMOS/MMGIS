@@ -3,7 +3,34 @@ import $ from 'jquery'
 import * as d3 from 'd3'
 import F_ from '../Basics/Formulae_/Formulae_'
 import Map_ from '../Basics/Map_/Map_'
-import QueryURL from './QueryURL'
+
+import './Coordinates.css'
+
+// prettier-ignore
+const markup = [
+        "<div class='mouseLngLat'>",
+            "<div id='mouseDesc'></div>",
+            "<div id='mouseLngLat'></div>",
+        "</div>",
+        "<div class='mouseLngLatPicking'>",
+            "<div id='mouseDescPicking'></div>",
+            "<div id='mouseLngLatPicking'></div>",
+            "<div id='mouseGoPicking' title='Go to coordinate.'>",
+                "<i class='mdi mdi-arrow-right-thick mdi-18px'></i>",
+            "</div>",
+        "</div>",
+        "<div id='buttonsLngLat' style='display: flex;'>",
+            "<div id='pickLngLat' title='Pick coordinates.'>",
+                "<i class='mdi mdi-target mdi-18px'></i>",
+            "</div>",
+            "<div id='changeLngLat' title='Change coordinate types.'>",
+                "<i class='mdi mdi-cached mdi-18px'></i>",
+            "</div>",
+        "</div>",
+        "<div id='toggleTimeUI'>",
+            "<i class='mdi mdi-clock mdi-18px'></i>",
+        "</div>"
+    ].join('\n');
 
 var Coordinates = {
     //[ lng, lat ]
@@ -17,47 +44,21 @@ var Coordinates = {
     state: 0,
     damCoordLabel: 'X, Y',
     damCoordSwapped: false,
+    tempIndicatorPoint: null,
     init: function () {
-        d3.select('.mouseLngLat').remove()
-        var mll = d3
-            .select('body')
+        d3.select('#CoordinatesDiv').remove()
+        d3.select('body')
             .append('div')
-            .attr('class', 'mouseLngLat')
-            //.style( 'background', '#001' )
-            .style('position', 'absolute')
-            .style('bottom', '0px')
-            .style('right', '0px')
-            .style('padding', '7px 8px')
-            .style('margin', '0')
-            .style('cursor', 'pointer')
-            .style('z-index', '20')
-        mll.append('p')
-            .attr('id', 'mouseDesc')
-            .style('font-size', '14px')
-            .style('margin-bottom', '0')
-            .style('margin-right', '6px')
-            .style('color', 'white')
-            .style('line-height', '25px')
-            .style('text-align', 'center')
-            .style(
-                'text-shadow',
-                '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000'
-            )
-        mll.append('p')
-            .attr('id', 'mouseLngLat')
-            .style('font-size', '17px')
-            .style('font-weight', 'bold')
-            .style('margin-bottom', '2px')
-            .style('text-align', 'center')
-            .style(
-                'text-shadow',
-                '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000'
-            )
+            .attr('id', 'CoordinatesDiv')
+            .html(markup)
 
         //true for decimal deg, false for meters
         Coordinates.DDnotM = true
 
-        d3.select('.mouseLngLat').on('click', mouseLngLatClick)
+        $('#changeLngLat').on('click', mouseLngLatClick)
+        $('#pickLngLat').on('click', pickLngLat)
+        $('#mouseGoPicking').on('click', pickLngLatGo)
+        $('#toggleTimeUI').on('click', toggleTimeUI)
         Map_.map.on('mousemove', mouseLngLatMove)
         Map_.map.on('click', urlClick)
     },
@@ -200,11 +201,12 @@ var Coordinates = {
     },
     remove: function () {
         //Clear all the stuffes
+        $('#changeLngLat').off('click', mouseLngLatClick)
+        $('#pickLngLat').off('click', pickLngLat)
+        $('#mouseGoPicking').off('click', pickLngLatGo)
+        $('#toggleTimeUI').off('click', toggleTimeUI)
         Map_.map.off('mousemove', mouseLngLatMove)
-
         Map_.map.off('click', urlClick)
-
-        d3.select('.mouseLngLat').on('click', null)
     },
 }
 
@@ -224,6 +226,7 @@ function mouseLngLatClick() {
             Coordinates.ZZnotAP = false
             Coordinates.DDnotM = false
             break
+        default:
     }
 
     Coordinates.refresh()
@@ -235,8 +238,114 @@ function mouseLngLatMove(e) {
     Coordinates.refresh()
 }
 
+function pickLngLat() {
+    if ($('#pickLngLat').hasClass('active')) {
+        $('.mouseLngLat').css({ display: 'flex' })
+        $('.mouseLngLatPicking').removeClass('active')
+        $('#pickLngLat').removeClass('active')
+    } else {
+        $('.mouseLngLat').css({ display: 'none' })
+        $('.mouseLngLatPicking').addClass('active')
+        $('#pickLngLat').addClass('active')
+
+        const currentDesc = $('#mouseDesc').html()
+        $('#mouseDescPicking').html(currentDesc)
+
+        const currentDescSplit = currentDesc.replace(/ /g, '').split(',')
+
+        const currentText = $('#mouseLngLat').html() || '0,0'
+        const currentTextSplit = currentText.replace(/ /g, '').split(',')
+
+        const unit = Coordinates.DDnotM ? '°' : 'm'
+        // prettier-ignore
+        const markup = [
+            `<input id='mouseLngLatPickingA' placeholder="${currentDescSplit[0]}" type="number" value="${parseFloat(currentTextSplit[0]).toFixed(4)}"/>`,
+            `<div>${unit}</div>`,
+            `<input id='mouseLngLatPickingB' placeholder="${currentDescSplit[1]}" type="number" value="${parseFloat(currentTextSplit[1]).toFixed(4)}"/>`,
+            `<div>${unit}</div>`
+        ].join('\n')
+
+        $('#mouseLngLatPicking').html(markup)
+        $('#mouseLngLatPickingA').focus()
+    }
+}
+
+function pickLngLatGo() {
+    const valA = parseFloat($('#mouseLngLatPickingA').val())
+    const valB = parseFloat($('#mouseLngLatPickingB').val())
+
+    let finalLng = valA
+    let finalLat = valB
+
+    switch (Coordinates.state) {
+        case 0: //00 lnglat
+            finalLng = valA
+            finalLat = valB
+            break
+        case 1: //01 easting northing
+            const valALng = (valA * (180 / Math.PI)) / F_.radiusOfPlanetMajor
+            const valBLat = (valB * (180 / Math.PI)) / F_.radiusOfPlanetMajor
+            finalLng = valALng
+            finalLat = valBLat
+            break
+        case 2: //10 relative easting northing
+            let relativeA = 0
+            let relativeB = 0
+            if (Map_.activeLayer != null) {
+                relativeA = Map_.activeLayer.feature.geometry.coordinates[0]
+                relativeB = Map_.activeLayer.feature.geometry.coordinates[1]
+            }
+            const valALngRel =
+                (valA * (180 / Math.PI)) / F_.radiusOfPlanetMajor + relativeA
+            const valBLatRel =
+                (valB * (180 / Math.PI)) / F_.radiusOfPlanetMajor + relativeB
+
+            finalLng = valALngRel
+            finalLat = valBLatRel
+            break
+        default:
+    }
+
+    Map_.map.setView([finalLat, finalLng], Map_.map.getZoom())
+
+    Map_.rmNotNull(Coordinates.tempIndicatorPoint)
+    Coordinates.tempIndicatorPoint = new L.circleMarker([finalLat, finalLng], {
+        fillColor: '#000',
+        fillOpacity: 0,
+        color: 'lime',
+        weight: 2,
+    })
+        .setRadius(4)
+        .addTo(Map_.map)
+
+    clearTimeout(Coordinates.tempIndicatorPointTimeout)
+    Coordinates.tempIndicatorPointTimeout = setTimeout(() => {
+        Map_.rmNotNull(Coordinates.tempIndicatorPoint)
+    }, 2300)
+}
+
 function urlClick(e) {
     //QueryURL.writeCoordinateURL( e.latlng.lng, e.latlng.lat, Map_.map.getZoom() );
+}
+
+function toggleTimeUI() {
+    const active = $(this).hasClass('active')
+    $(this).toggleClass('active')
+    const newBottom = active ? 0 : 40
+    const timeBottom = active ? -40 : 0
+
+    $('#CoordinatesDiv').css({ bottom: newBottom + 'px' })
+    $('#mapToolBar').css({ bottom: newBottom + 'px' })
+    $('.leaflet-bottom.leaflet-left').css({ bottom: newBottom + 'px' })
+    $('#photosphereAzIndicator').css({
+        bottom: newBottom + 'px',
+        transition: 'bottom 0.2s ease-in',
+    })
+    $('#_lithosphere_controls_bottomleft').css({
+        bottom: newBottom + 10 + 'px',
+        transition: 'bottom 0.2s ease-in',
+    })
+    $('#timeUI').css({ bottom: timeBottom + 'px' })
 }
 
 export default Coordinates

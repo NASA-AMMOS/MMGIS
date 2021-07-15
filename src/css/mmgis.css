@@ -313,14 +313,6 @@ body {
     pointer-events: none !important;
 }
 
-.mouseLngLat {
-    opacity: 0.9;
-    display: flex;
-}
-.mouseLngLat:hover {
-    opacity: 1;
-}
-
 @media screen and (max-width: 600px) {
     .mouseLngLat {
         display: none;
@@ -690,6 +682,10 @@ body {
     background-size: 10px 10px;
 
     background-position: 0 0, 0 0, -5px -5px, 5px 5px;
+}
+
+.leaflet-bottom.leaflet-left {
+    transition: bottom 0.2s ease-in;
 }
 
 .highlightAnim1 {

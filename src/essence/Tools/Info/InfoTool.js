@@ -226,6 +226,8 @@ var InfoTool = {
         $('#infoToolData').empty()
         // Fill out Info
         const depthMultiplier = 10
+
+        let lastWasAHeader = false
         if (
             this.info[this.activeFeatureI].geometry.type.toLowerCase() ===
             'point'
@@ -260,18 +262,18 @@ var InfoTool = {
             this.info[this.activeFeatureI].geometry.type.toLowerCase()
         if (geometryType === 'linestring' || geometryType === 'multilinestring')
             props.Metrics = {
-                Length_m: F_.getFeatureLength(
-                    this.info[this.activeFeatureI]
-                ).toFixed(2),
+                Length: F_.getFeatureLength(
+                    this.info[this.activeFeatureI],
+                    true
+                ),
             }
         else if (geometryType === 'polygon')
             props.Metrics = {
-                Perimeter_m: F_.getFeatureLength(
-                    this.info[this.activeFeatureI]
-                ).toFixed(2),
-                Area_m2: F_.getFeatureArea(
-                    this.info[this.activeFeatureI]
-                ).toFixed(2),
+                Perimeter: F_.getFeatureLength(
+                    this.info[this.activeFeatureI],
+                    true
+                ),
+                Area: F_.getFeatureArea(this.info[this.activeFeatureI], true),
             }
 
         depthTraversal(

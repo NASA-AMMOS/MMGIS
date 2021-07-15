@@ -886,7 +886,10 @@ var Formulae_ = {
             default:
         }
 
-        if (displayFriendly) length2D = `${length2D.toFixed(2)}m`
+        if (displayFriendly) {
+            if (length2D > 1000) length2D = `${(length2D / 1000).toFixed(3)} km`
+            else length2D = `${length2D.toFixed(2)} m`
+        }
         return length2D
     },
     geojsonAddSpatialProperties(geojson) {
@@ -987,7 +990,10 @@ var Formulae_ = {
                     break
                 default:
             }
-            if (displayFriendly) area = `${area.toFixed(2)} ㎡`
+            if (displayFriendly) {
+                if (area > 1000000) area = `${(area / 1000000).toFixed(3)} km²`
+                else area = `${area.toFixed(2)} m²`
+            }
             return area
         }
         function polygonArea(coords) {
