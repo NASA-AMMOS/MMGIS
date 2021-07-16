@@ -1,5 +1,5 @@
 
-import * as D from "./IsochroneTool_DataUtil.js";
+import * as D from "./IsochroneTool_Util";
 const _X = 1, _Y = 0;
 
 const h_getParentIndex = i => Math.ceil(i / 2) - 1;
@@ -91,16 +91,6 @@ const knightMoves = [
     [2, -1], [2, 1]
 ];
 
-function moveToBacklink(move) {
-    return [
-        [ 0,  4,  0,  6,  0],
-        [ 2,  3,  5,  7,  8],
-        [ 0,  1,  0,  9,  0],
-        [16, 15, 13, 11, 10],
-        [ 0, 14,  0, 12,  0]
-    ][move[_Y] + 2][move[_X] + 2];
-}
-
 function pixelPythag(p1, p2) {
     const xDist = Math.abs(p2[_X] - p1[_X]);
     const yDist = Math.abs(p2[_Y] - p1[_Y]);
@@ -122,6 +112,7 @@ function generate(
     maxCost = Infinity,
     knightsMove = true
 ) {
+    //console.log("START", start);
     const moves = knightsMove ? knightMoves : queenMoves;
 
     const width = bounds.width * 256;
@@ -158,16 +149,15 @@ function generate(
             
             if(tPxIndex === -2) {
                 D.setPx(costArr, tPx, cost);
-                D.setPx(linkArr, tPx, moveToBacklink(m));
+                D.setPx(linkArr, tPx, D.moveToBacklink(m));
                 heap.insert(tPx);
             } else if(cost < D.getPx(costArr, tPx)) {
                 D.setPx(costArr, tPx, cost);
-                D.setPx(linkArr, tPx, moveToBacklink(m));
+                D.setPx(linkArr, tPx, D.moveToBacklink(m));
                 heap.bubbleUp(tPxIndex);
             }
         }
     }
-    console.log(costArr);
     return {cost: costArr, backlink: linkArr};
 }
 

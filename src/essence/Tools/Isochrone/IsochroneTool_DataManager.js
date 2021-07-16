@@ -1,7 +1,7 @@
 import F_ from "../../Basics/Formulae_/Formulae_";
 import L_ from "../../Basics/Layers_/Layers_";
 
-import * as D from "./IsochroneTool_DataUtil";
+import * as D from "./IsochroneTool_Util";
 
 const IsochroneTool_DataManager = {
     cache: {},
@@ -43,7 +43,7 @@ const IsochroneTool_DataManager = {
             tilesLoaded++;
 
             if(tilesLoaded >= totalTiles) {
-                console.log("QUERY DATA", queryReturnData);
+                //console.log("QUERY DATA", queryReturnData);
                 callback(queryReturnData);
             } else if(tilesLoaded >= nextStep) {
                 query();

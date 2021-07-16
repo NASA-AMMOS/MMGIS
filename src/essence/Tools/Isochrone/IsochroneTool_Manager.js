@@ -3,7 +3,8 @@ import $ from "jquery";
 import models from "./IsochroneTool_Models";
 import * as IsochroneTool_Algorithm from "./IsochroneTool_Algorithm";
 import Map_ from '../../Basics/Map_/Map_';
-import F_ from '../../Basics/Formulae_/Formulae_'; //lngLatDistBetween
+import { projectTileBounds, unprojectTileBounds } from "./IsochroneTool_Util";
+import F_ from '../../Basics/Formulae_/Formulae_'; //lngLatDistBetween //wait why did i want that???
 
 
 import IsochroneTool_DataManager from "./IsochroneTool_DataManager";
@@ -49,6 +50,7 @@ class IsochroneManager {
         this.startPx = null;
         this.bounds = null;
         this.tileBounds = null;
+        this.tileAlignedBounds = null;
         this.model = null;
         this.minResolution = 0;
         this.maxResolution = 20;
@@ -66,18 +68,10 @@ class IsochroneManager {
         };
         this.cost = null;
         this.backlink = null;
-        this._onChange = () => this.onChange(
-            this.cost,
-            this.options.resolution,
-            this.reprojectTileBounds(17),
-            this.options.maxCost,
-            this.options.color
-        )
     }
 
     handleInput(e, option, action = 0) {
         //TODO rate-limit and queue updates
-        console.log(this);
         if(option !== null) this.options[option] = e.target.value;
         if(this.start !== null) {
             switch(action) {
@@ -91,7 +85,7 @@ class IsochroneManager {
                     this.generateIsochrone();
                 break;
                 case 1:
-                    this._onChange();
+                    this.onChange();
                 break;
                 default:
             }
@@ -119,7 +113,7 @@ class IsochroneManager {
             $(gradientEls[i]).appendTo(colorContainer).on("click", e => {
                 this.options.color = i;
                 $(e.target).prependTo(colorContainer);
-                if(this.start !== null) this._onChange();
+                if(this.start !== null) this.onChange();
             });
         }
 
@@ -197,53 +191,14 @@ class IsochroneManager {
         this.setBounds();
     }
 
-    getTileBounds(resolution = this.options.resolution) {
-        const min = Map_.map
-            .project(this.bounds.getNorthWest(), resolution)
-            .divideBy(256)
-            .floor();
-        const max = Map_.map
-            .project(this.bounds.getSouthEast(), resolution)
-            .divideBy(256)
-            .ceil();
-        const width = max.x - min.x;
-        const height = max.y - min.y;
-        return {min, max, width, height};
-    }
-
-    unprojectTileBounds(resolution = this.options.resolution) {
-        const min = Map_.map
-            .unproject(this.tileBounds.min.multiplyBy(256), resolution);
-        const max = Map_.map
-            .unproject(this.tileBounds.max.multiplyBy(256), resolution);
-        return {min, max};
-    }
-
-    reprojectTileBounds(zoom) {
-        const min = Map_.map
-            .project(this.tileAlignedBounds.min, zoom)
-            .divideBy(256)
-            .floor();
-        const max = Map_.map
-            .project(this.tileAlignedBounds.max, zoom)
-            .divideBy(256)
-            .ceil();
-        const width = max.x - min.x;
-        const height = max.y - min.y;
-        console.log({min, max, width, height});
-        return {min, max, width, height};
-    }
-
     setBounds() {
         this.bounds = this.start.toBounds(this.options.maxRadius * 2);
 
-        this.tileBounds = this.getTileBounds();
-        console.log("TILE BOUNDS", this.tileBounds);
-        this.tileAlignedBounds = this.unprojectTileBounds();
+        this.tileBounds = projectTileBounds(this.bounds, this.options.resolution);
+        this.tileAlignedBounds = unprojectTileBounds(this.tileBounds, this.options.resolution);
         this.startPx = Map_.map.project(this.start, this.options.resolution)
             .subtract(this.tileBounds.min.multiplyBy(256))
             .floor();
-        console.log("START PX", this.startPx);
 
         this.getData();
     }
@@ -253,7 +208,7 @@ class IsochroneManager {
         const zoom = this.options.resolution + dataSource.zoomOffset;
         const bounds = dataSource.zoomOffset === 0
             ? this.tileBounds
-            : this.reprojectTileBounds(zoom);
+            : projectTileBounds(this.tileAlignedBounds, zoom);
         for(let y = bounds.min.y; y < bounds.max.y; y++) {
             for(let x = bounds.min.x; x < bounds.max.x; x++) {
                 //TODO make a circle
@@ -267,7 +222,7 @@ class IsochroneManager {
             }
         }
 
-        console.log("TILE LIST", tileList);
+        //console.log("TILE LIST", tileList);
         return tileList;
     }
 
@@ -294,7 +249,6 @@ class IsochroneManager {
             } else {
                 this.model.data = dataObj;
                 this.generateIsochrone();
-                //console.log(dataObj);
             }
         }
 
@@ -315,7 +269,7 @@ class IsochroneManager {
         );
         this.cost = result.cost;
         this.backlink = result.backlink;
-        this._onChange();
+        this.onChange();
     }
 }
 

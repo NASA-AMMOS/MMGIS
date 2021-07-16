@@ -1,5 +1,5 @@
 import F_ from "../../../Basics/Formulae_/Formulae_";
-import * as D from "../IsochroneTool_DataUtil";
+import * as D from "../IsochroneTool_Util";
 import Model from "./Model";
 
 class Model_Traverse extends Model {

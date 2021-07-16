@@ -2,10 +2,10 @@
 //In the very least, each tool needs to be defined through require.js and return
 // an object with 'make' and 'destroy' functions
 import * as d3 from 'd3';
-import F_ from '../../Basics/Formulae_/Formulae_';
+//import F_ from '../../Basics/Formulae_/Formulae_';
 import L_ from '../../Basics/Layers_/Layers_';
 import Map_ from '../../Basics/Map_/Map_';
-import DataShaders from '../../Ancillary/DataShaders';
+//import DataShaders from '../../Ancillary/DataShaders';
 import $ from 'jquery';
 /*
 import CursorInfo from '../../Ancillary/CursorInfo';
@@ -15,9 +15,8 @@ import shpwrite from '../../../external/SHPWrite/shpwrite';
 import { PlaneGeometry } from '../../../../../MMGIS/src/external/THREE/three118';
 */
 
-//import generate from './IsochroneTool_Algorithm';
 import IsochroneManager from './IsochroneTool_Manager';
-import * as D from "./IsochroneTool_DataUtil.js";
+import * as D from "./IsochroneTool_Util";
 
 import './IsochroneTool.css';
 
@@ -30,30 +29,73 @@ const markup = [
     "</div>"
 ].join('\n');
 
-const RESOLUTION = 32; //Tile resolution
-
-function backlinkToMove(link) {
-    return [ //clockwise from right
-        [0, 1],
-        [1, 2],
-        [1, 1],
-        [2, 1],
-        [1, 0],
-        [2, -1],
-        [1, -1],
-        [1, -2],
-        [0, -1],
-        [-1, -2],
-        [-1, -1],
-        [-2, -1],
-        [-1, 0],
-        [-2, 1],
-        [-1, 1],
-        [-1, 2]
-    ][link];
+//Legacy color mapping function
+function hueMap(val) {
+    const hueToChannel = h => {
+        h = (h + 1530) % 1530;
+        if(h < 255) return h;
+        if(h < 765) return 255;
+        if(h < 1020) return 255 - (h % 255);
+        return 0;
+    }
+    const hue = Math.floor(val * 1050);
+    const r = hueToChannel(hue + 510);
+    const g = hueToChannel(hue);
+    const b = hueToChannel(hue - 510);
+    return [r, g, b];
 }
 
+const RESOLUTION = 32; //Tile resolution
+
 let lastHoverCall = 0;
+
+//https://leafletjs.com/reference-1.7.1.html#gridlayer
+L.IsochroneLayer = L.GridLayer.extend({
+    createTile: function(coords) {
+        const tile = L.DomUtil.create("canvas", "leaflet-tile");
+
+        const size = this.getTileSize();
+        tile.width = size.x;
+        tile.height = size.y;
+
+        const ctx = tile.getContext("2d");
+        const img = ctx.getImageData(0, 0, size.x, size.y);
+
+        const tb = this.options.tileBounds;
+        const tXOffset = coords.x - tb.min.x;
+        const tYOffset = coords.y - tb.min.y;
+
+        const alpha = Math.floor(this.options.opacity * 255);
+
+        //TODO: log and ignore empty tiles?
+        //TODO: could you get fancy with WebGL/GLSL on this?
+        //  check out src/essence/Ancillary/DataShaders to pursue this
+        if(tXOffset >= 0 && tYOffset >= 0 && tXOffset < tb.width && tYOffset < tb.height) {
+            let di = 0; //img data index
+            for(let y = 0; y < size.y; y++) {
+                const yIndex = tYOffset * size.y + y;
+                for(let x = 0; x < size.x; x++) {
+                    const xIndex = (tXOffset * size.x + x) * 3;
+                    const color = this.options.data[yIndex].slice(xIndex, xIndex + 3);
+                    if(color[0] === 0 && color[1] === 0 && color[2] === 0) {
+                        img.data[di] = 0;
+                        img.data[di + 1] = 0;
+                        img.data[di + 2] = 0;
+                        img.data[di + 3] = 0;
+                    } else {
+                        img.data[di] = color[0];
+                        img.data[di + 1] = color[1];
+                        img.data[di + 2] = color[2];
+                        img.data[di + 3] = alpha;
+                    }
+                    di += 4;
+                }
+            }
+        }
+        ctx.putImageData(img, 0, 0);
+        return tile;
+    }
+});
 
 const IsochroneTool = {
     height: 0,
@@ -130,9 +172,11 @@ const IsochroneTool = {
                 src.zoomOffset = zoomOffset;
             }
         }
-        console.log(this.dataSources);
 
-        this.manager = new IsochroneManager(this.dataSources, this.makeDataLayer);
+        this.manager = new IsochroneManager(
+            this.dataSources,
+            () => this.makeDataLayer(this.manager)
+        );
     },
     make: function() {
         this.MMGISInterface = new interfaceWithMMGIS();
@@ -157,18 +201,16 @@ const IsochroneTool = {
         const ramp = this.colorRamps[rampIndex];
         const color = val * (ramp.length - 1);
         const i = Math.min(Math.floor(color), ramp.length - 2);
-        const offset = color % 1;
-        const r = ramp[i][0] * (1 - offset) + ramp[i + 1][0] * offset;
-        const g = ramp[i][1] * (1 - offset) + ramp[i + 1][1] * offset;
-        const b = ramp[i][2] * (1 - offset) + ramp[i + 1][2] * offset;
-        return [r, g, b];
+        const off = color % 1;
+        const getChan = chan =>
+            Math.floor(ramp[i][chan] * (1 - off) + ramp[i + 1][chan] * off);
+        return [getChan(0), getChan(1), getChan(2)];
     },
     makeGradientEls: function() {
         const C_WIDTH = 120, C_HEIGHT = 29;
         const numRamps = this.colorRamps.length;
         let colorEls = [];
         for(let i = 0; i < numRamps; i++) {
-            //console.log(this.colorRamps[i]);
             let canvas = document.createElement("canvas");
             canvas.width = C_WIDTH;
             canvas.height = C_HEIGHT;
@@ -190,213 +232,42 @@ const IsochroneTool = {
         }
         return colorEls;
     },
-    isochrone: function(start, zoom, maxRadius, maxCost) {
-        //For now, just get a square around the start point
-        const bounds = start.toBounds(maxRadius * 2);
-        const tileBounds = IsochroneTool.getTileBoundary(bounds, zoom);
-        const startPx = IsochroneTool.getStartPixel(start, tileBounds, zoom);
-        console.log("START PX", startPx);
-        const requiredTiles = IsochroneTool.getRequiredTilesList(tileBounds, zoom);
-
-        IsochroneTool.queryTiles(tileBounds, requiredTiles, function(data) {
-            //let result = generate(data, startPx, maxCost);
-            //IsochroneTool.makeDataLayer(result, zoom, tileBounds, maxCost);
-            //console.log("RESULT", result);
-        });
-    },
-    getTileBoundary: function(bounds, zoom) {
-        const min = Map_.map
-            .project(bounds.getNorthWest(), zoom)
-            .divideBy(256)
-            .floor();
-        const max = Map_.map
-            .project(bounds.getSouthEast(), zoom)
-            .divideBy(256)
-            .floor();
-        const width = max.x - min.x + 1;
-        const height = max.y - min.y + 1;
-        return {min, max, width, height};
-    },
-    getStartPixel: function(start, tileBounds, zoom) {
-        return Map_.map.project(start, zoom)
-            .subtract(tileBounds.min.multiplyBy(256))
-            .divideBy(256 / RESOLUTION)
-            .floor();
-    },
-    getRequiredTilesList: function(bounds, zoom) {
-        let tileList = [];
-        for(let y = bounds.min.y; y <= bounds.max.y; y++) {
-            for(let x = bounds.min.x; x <= bounds.max.x; x++) {
-                tileList.push({
-                    x,
-                    y,
-                    z: zoom,
-                    relX: x - bounds.min.x,
-                    relY: y - bounds.min.y
-                });
-            }
-        }
-
-        //console.log("TILE LIST", tileList);
-
-        return tileList;
-    },
-    //Based on ViewshedTool_Manager.queryDesiredTiles
-    //TODO follow example of that function to make more robust
-    //  (e.g. cache tiles)
-    queryTiles: function(bounds, requiredTiles, callback) {
-        const totalTiles = requiredTiles.length;
-        const tilesPerStep = 8;
-        let nextStep = tilesPerStep;
-        let tilesQueried = 0, tilesLoaded = 0;
-
-        let queryReturnData = [];
-        for(let y = 0; y < bounds.height * RESOLUTION; y++) {
-            let row = new Array(bounds.width * RESOLUTION).fill(Infinity);
-            queryReturnData.push(row);
-        }
-
-        function eachTile(tileInfo, tileData) {
-            const startX = tileInfo.relX * RESOLUTION;
-            const startY = tileInfo.relY * RESOLUTION;
-            for(let y = 0; y < RESOLUTION; y++) {
-                const yResult = y + startY;
-                let dataRow = tileData.slice(y * RESOLUTION, (y + 1) * RESOLUTION);
-                queryReturnData[yResult].splice(startX, RESOLUTION, ...dataRow);
-            }
-            registerLoadedTile();
-        }
-
-        function registerLoadedTile() {
-            tilesLoaded++;
-
-            if(tilesLoaded >= totalTiles) {
-                console.log("QUERY DATA", queryReturnData);
-                callback(queryReturnData);
-            } else if(tilesLoaded >= nextStep) {
-                query();
-            }
-        }
-
-        const query = () => {
-            let url = this.url;
-            if(!F_.isUrlAbsolute(url)) url = L_.missionPath + url;
-
-            const start = tilesQueried;
-            nextStep = tilesQueried + tilesPerStep;
-            for(let d = start; d < totalTiles && d < nextStep; d++) {
-                tilesQueried++;
-                const queryUrl = F_.populateUrl(url, requiredTiles[d], true);
-
-                window.PNG.load(queryUrl, (d => function(img) {
-                    let rgbaArr = null;
-                    if(img !== false) {
-                        rgbaArr = img.decode();
-                    }
-                    //TODO: check tile against bounding box to minimize 404s
-                    if(rgbaArr == null) {
-                        //TODO: 404s don't reach here; fix
-                        registerLoadedTile();
-                        return;   
-                    }
-
-                    const length = RESOLUTION * RESOLUTION;
-                    let heights = new Float32Array(length);
-                    let p = 0;
-                    for(let i = 0; i < length; i++) {
-                        heights[i] = F_.RGBAto32({
-                            r: rgbaArr[p],
-                            g: rgbaArr[p + 1],
-                            b: rgbaArr[p + 2],
-                            a: rgbaArr[p + 3]
-                        });
-                        p += 4;
-                    }
-
-                    eachTile(requiredTiles[d], heights);
-                })(d), true);
-            }
-        }
-
-        query();
-    },
-    hueMap: function(val) {
-        const hueToChannel = h => {
-            h = (h + 1530) % 1530;
-            if(h < 255) return h;
-            if(h < 765) return 255;
-            if(h < 1020) return 255 - (h % 255);
-            return 0;
-        }
-        const hue = Math.floor(val * 1050);
-        const r = hueToChannel(hue + 510);
-        const g = hueToChannel(hue);
-        const b = hueToChannel(hue - 510);
-        return [r, g, b];
-    },
-    makeDataLayer: function(data, zoom, tileBounds, maxCost, colorRamp) {
-        const canvas = document.createElement("canvas");
-        canvas.width = RESOLUTION;
-        canvas.height = RESOLUTION;
-        const length = RESOLUTION * RESOLUTION;
-        const ctx = canvas.getContext("2d");
-        let cImg = ctx.createImageData(RESOLUTION, RESOLUTION);
-        let cData = cImg.data;
-        let dl = {};
-        zoom += 3;
-        dl[zoom] = {};
-
-        for(let tileX = 0; tileX < tileBounds.width; tileX++) {
-            dl[zoom][tileBounds.min.x + tileX] = {};
-            for(let tileY = 0; tileY < tileBounds.height; tileY++) {
-                const offsetX = tileX * RESOLUTION;
-                const offsetY = tileY * RESOLUTION;
-
-                for(let p = 0; p < length; p++) {
-                    const dix = p % RESOLUTION + offsetX;
-                    const diy = Math.floor(p / RESOLUTION) + offsetY;
-                    const pi = p * 4;
-                    if(data[diy][dix] === Infinity) {
-                        cData[pi] = 0;
-                        cData[pi + 1] = 0;
-                        cData[pi + 2] = 0;
-                        cData[pi + 3] = 0;
-                    } else {
-                        const color =
-                            IsochroneTool.valueToColor(data[diy][dix] / maxCost, colorRamp);
-                        cData[pi] = color[0];
-                        cData[pi + 1] = color[1];
-                        cData[pi + 2] = color[2];
-                        cData[pi + 3] = 128;
-                    }
+    makeDataLayer: function(manager) {
+        const xDim = (manager.tileBounds.max.x - manager.tileBounds.min.x) * 256 * 3;
+        let layerData = [];
+        for(const row of manager.cost) {
+            let layerRow = Array(xDim).fill(0);
+            let li = 0;
+            for(const px of row) {
+                if(px !== Infinity) {
+                    const color = IsochroneTool.valueToColor(
+                        px / manager.options.maxCost,
+                        manager.options.color
+                    );
+                    layerRow[li] = color[0];
+                    layerRow[li + 1] = color[1];
+                    layerRow[li + 2] = color[2];
                 }
-                ctx.putImageData(cImg, 0, 0);
-                dl[zoom][tileBounds.min.x + tileX][tileBounds.min.y + tileY] = canvas.toDataURL();
+                li += 3;
             }
+            layerData.push(layerRow);
         }
-
-        console.log(dl);
         
         const layerName = "isochrone";
 
         Map_.rmNotNull(L_.layersGroup[layerName]);
 
-        L_.layersGroup[layerName] = window.L.tileLayer.gl({
-            options: {
-                tms: false,
-                className: 'nofade',
-                minZoom: zoom,
-                maxNativeZoom: zoom,
-                maxZoom: 20,
-                tileSize: 32
-            },
-            fragmentShader: DataShaders['image'].frag,
-            tileUrls: [dl],
-            uniforms: {},
-            tileUrlsAsDataUrls: true
+        //TODO this will mess with map max/min zooms; fix
+        L_.layersGroup[layerName] = new L.IsochroneLayer({
+            className: "nofade",
+            minNativeZoom: manager.options.resolution,
+            maxNativeZoom: manager.options.resolution,
+            bounds: manager.bounds,
+            tileSize: 256,
+            opacity: 0.6,
+            data: layerData,
+            tileBounds: manager.tileBounds
         });
-
-        console.log(L_.layersGroup[layerName]);
         
         L_.layersGroup[layerName].setZIndex(1000);
         Map_.map.addLayer(L_.layersGroup[layerName]);
@@ -428,8 +299,8 @@ const IsochroneTool = {
                 let step = startVal;
                 let line = [toLinePoint(cx, cy)];
                 let count = 0;
-                while(step !== 0 && count < 50) {
-                    let move = backlinkToMove(step);
+                while(step !== 0 && count < 100) {
+                    let move = D.backlinkToMove(step);
                     cx += move[1];
                     cy += move[0];
                     line.push(toLinePoint(cx, cy));
@@ -468,12 +339,12 @@ function interfaceWithMMGIS() {
     Map_.map.on('click', clickEventContainer);
 
     const moveEventContainer = e => IsochroneTool.hoverLine(e);
-    Map_.map.on('mousemove', moveEventContainer);
+    //Map_.map.on('mousemove', moveEventContainer);
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
     function separateFromMMGIS() {
         Map_.map.off('click', clickEventContainer);
-        Map_.map.off('mousemove', moveEventContainer);
+        //Map_.map.off('mousemove', moveEventContainer);
     }
 }
 
