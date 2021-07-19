@@ -91,19 +91,6 @@ const knightMoves = [
     [2, -1], [2, 1]
 ];
 
-function pixelPythag(p1, p2) {
-    const xDist = Math.abs(p2[_X] - p1[_X]);
-    const yDist = Math.abs(p2[_Y] - p1[_Y]);
-    return Math.sqrt(xDist * xDist + yDist * yDist);
-}
-
-function costFunction(p1, p2, d1, d2) {
-    const dist2d = pixelPythag(p1, p2) * 6;
-    const vDist = (d2 - d1) * 5;
-    return Math.sqrt(vDist * vDist + dist2d * dist2d);
-    //return dist2d;
-}
-
 function generate(
     start,
     bounds,

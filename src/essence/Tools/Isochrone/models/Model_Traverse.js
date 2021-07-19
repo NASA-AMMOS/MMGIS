@@ -33,7 +33,9 @@ class Model_Traverse extends Model {
         else if(slope < 6) velocity = -0.2 * slope + 1.6;
         else if(slope < 15) velocity = -0.039 * slope + 0.634;
         else velocity = 0.5;
-        return velocity * distTotal / 60;
+        const result = velocity * distTotal / 60;
+        //if(isNaN(result)) debugger;
+        return result;
     }
 
     createOptions() {}

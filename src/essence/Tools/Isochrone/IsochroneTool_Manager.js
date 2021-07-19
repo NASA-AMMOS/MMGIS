@@ -46,12 +46,12 @@ class IsochroneManager {
     constructor(dataSources, onChange) {
         this.dataSources = dataSources;
         this.onChange = onChange;
-        this.start = null;
-        this.startPx = null;
-        this.bounds = null;
-        this.tileBounds = null;
-        this.tileAlignedBounds = null;
-        this.model = null;
+        this.start = null; //L.LatLng
+        this.startPx = null; //L.Point
+        this.bounds = null; //L.LatLngBounds
+        this.tileBounds = null; //TileBounds
+        this.tileAlignedBounds = null; //L.LatLngBounds
+        this.model = null; //Model
         this.minResolution = 0;
         this.maxResolution = 20;
         this.optionEls = {};
@@ -72,19 +72,16 @@ class IsochroneManager {
 
     handleInput(e, option, action = 0) {
         //TODO rate-limit and queue updates
-        if(option !== null) this.options[option] = e.target.value;
+        if(option !== null) this.options[option] = parseInt(e.target.value);
         if(this.start !== null) {
             switch(action) {
-                case 4:
+                case 3: //Change requires getting new data
                     this.setBounds();
                 break;
-                case 3:
-                    this.getData();
-                break;
-                case 2:
+                case 2: //Change requires generating new shape on same data
                     this.generateIsochrone();
                 break;
-                case 1:
+                case 1: //Change requires redrawing same shape
                     this.onChange();
                 break;
                 default:
@@ -103,7 +100,7 @@ class IsochroneManager {
             `min="1" step="1" default="250"`
         ).on(
             "change",
-            e => this.handleInput(e, "maxRadius", e.target.value > this.options.maxRadius ? 4 : 0)
+            e => this.handleInput(e, "maxRadius", e.target.value > this.options.maxRadius ? 3 : 0)
         );
 
         this.optionEls.color = gradientEls;
@@ -146,7 +143,7 @@ class IsochroneManager {
             `<input class="nounit" type="number" step="1" value="${this.options.resolution}">`
         ).appendTo(addOption("Resolution", this.sections.data))
          .on("change", e => 
-            this.handleInput(e, "resolution", e.target.value > this.options.resolution ? 3 : 0)
+            this.handleInput(e, "resolution", 3)
         );
         for(const dataType of models[modelIndex].requiredData) {
             this.options[dataType + "_source"] = 0;
@@ -196,9 +193,15 @@ class IsochroneManager {
 
         this.tileBounds = projectTileBounds(this.bounds, this.options.resolution);
         this.tileAlignedBounds = unprojectTileBounds(this.tileBounds, this.options.resolution);
-        this.startPx = Map_.map.project(this.start, this.options.resolution)
+        this.startPx = Map_.map
+            .project(this.start, this.options.resolution)
             .subtract(this.tileBounds.min.multiplyBy(256))
             .floor();
+        /*
+        console.log("BOUNDS", this.bounds);
+        console.log("TILE BOUNDS", this.tileBounds);
+        console.log("START PX", this.startPx);
+        */
 
         this.getData();
     }
@@ -209,6 +212,7 @@ class IsochroneManager {
         const bounds = dataSource.zoomOffset === 0
             ? this.tileBounds
             : projectTileBounds(this.tileAlignedBounds, zoom);
+        
         for(let y = bounds.min.y; y < bounds.max.y; y++) {
             for(let x = bounds.min.x; x < bounds.max.x; x++) {
                 //TODO make a circle

@@ -34,7 +34,7 @@ class Model_Isodistance {
 
     constructor() {
         this.data = null;
-        this.terrainScale = 2;
+        this.terrainScale = 1;
     }
 
     costFunction = (cPx, cLatLng, tPx, tLatLng) => {
@@ -46,8 +46,10 @@ class Model_Isodistance {
         );
         const cEl = D.getPx(this.data.DEM, cPx);
         const tEl = D.getPx(this.data.DEM, tPx);
-        const vDist = (cEl - tEl);
-        return Math.sqrt(vDist * vDist + dist2d * dist2d);
+        const vDist = (cEl - tEl) * this.terrainScale;
+        const result = Math.sqrt(vDist * vDist + dist2d * dist2d);
+        //if(isNaN(result)) debugger;
+        return result;
     }
 
     createOptions(root, onChange) {
@@ -58,8 +60,8 @@ class Model_Isodistance {
             1,
             `min="1" default ="1" step="0.2"`
         ).on("change", e => {
-            this.terrainScale = e.value;
-            //onChange(e, 2);
+            this.terrainScale = parseInt(e.target.value);
+            onChange(e, 2);
         });
     }
 }
