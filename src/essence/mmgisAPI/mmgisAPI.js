@@ -27,52 +27,89 @@ var mmgisAPI_ = {
         // For all MMGIS layers
         for (let key in L_.layersGroup) {
             if (L_.layersGroup[key].hasOwnProperty('_layers')) {
+                // For normal layers
                 const foundFeatures = findFeaturesInLayer(extent, L_.layersGroup[key])
                 features[key] = foundFeatures
+            } else if (key.startsWith('DrawTool_') && Array.isArray(L_.layersGroup[key])) {
+                // If layer is a DrawTool array of layers
+                for (let layer in L_.layersGroup[key]) {
+                    let foundFeatures
+                    if ('getLayers' in L_.layersGroup[key][layer]) {
+                        if (L_.layersGroup[key][layer]?.feature?.properties?.arrow) {
+                            // If the DrawTool sublayer is an arrow 
+                            foundFeatures = findFeaturesInLayer(extent, L_.layersGroup[key][layer])
+
+                            // As long as one of the layers of the arrow layer is in the current Map bounds,
+                            // return the parent arrow layer's feature
+                            if (foundFeatures && foundFeatures.length > 0) {
+                                foundFeatures = L_.layersGroup[key][layer].feature
+                            }
+                        } else {
+                            // If the DrawTool sublayer is Polygon or Line
+                            foundFeatures = findFeaturesInLayer(extent, L_.layersGroup[key][layer])
+                        }
+
+                    } else if ('getLatLng' in L_.layersGroup[key][layer]) {
+                        // If the DrawTool sublayer is a Point
+                        if (isLayerInBounds(L_.layersGroup[key][layer])) {
+                            foundFeatures = [L_.layersGroup[key][layer].feature]
+                        }
+                    } 
+
+                    if (foundFeatures) {
+                        features[key] = key in features ? features[key].concat(foundFeatures) : foundFeatures
+                    }
+                }
             }
         }
 
         return features;
+
+        function isLayerInBounds(layer) {
+            // Use the pixel coordinates instead of latlong as latlong does not work well with polar projections
+            const { x: xMapSize, y: yMapSize } = mmgisAPI_.map.getSize()
+
+            const epsilon = 1e-6
+            const nw = mmgisAPI_.map.project(extent.getNorthWest())
+            const se = mmgisAPI_.map.project(extent.getSouthEast())
+            const ne = mmgisAPI_.map.project(extent.getNorthEast())
+            const sw = mmgisAPI_.map.project(extent.getSouthWest())
+
+            let _extent
+            if (Math.abs((Math.abs(nw.x - se.x) - xMapSize)) < epsilon
+                    && Math.abs((Math.abs(nw.y - se.y) - yMapSize)) < epsilon) {
+                _extent = L.bounds(nw, se)
+            } else {
+                _extent = L.bounds(ne, sw)
+            }
+
+            let found = false
+            if ('getBounds' in layer) {
+                const layerBounds = layer.getBounds()
+                const nwLayer = mmgisAPI_.map.project(layerBounds.getNorthEast())
+                const seLayer = mmgisAPI_.map.project(layerBounds.getSouthWest())
+                const _bounds = L.bounds(nwLayer, seLayer)
+
+                if (_extent.intersects(_bounds)) {
+                    found = true
+                }
+            } else if ('getLatLng' in layer) {
+                const _latLng = mmgisAPI_.map.project(layer.getLatLng())
+
+                if (_extent.contains(_latLng)) {
+                    found = true
+                }
+            }
+
+            return found
+        }
 
         function findFeaturesInLayer(extent, layer) {
             let features = []
             const layers = layer.getLayers()
 
             layers.forEach((layer) => {
-                // Use the pixel coordinates instead of latlong as latlong does not work well with polar projections
-                const { x: xMapSize, y: yMapSize } = mmgisAPI_.map.getSize()
-
-                const epsilon = 1e-6
-                const nw = mmgisAPI_.map.project(extent.getNorthWest())
-                const se = mmgisAPI_.map.project(extent.getSouthEast())
-                const ne = mmgisAPI_.map.project(extent.getNorthEast())
-                const sw = mmgisAPI_.map.project(extent.getSouthWest())
-
-                let _extent
-                if (Math.abs((Math.abs(nw.x - se.x) - xMapSize)) < epsilon
-                        && Math.abs((Math.abs(nw.y - se.y) - yMapSize)) < epsilon) {
-                    _extent = L.bounds(nw, se)
-                } else {
-                    _extent = L.bounds(ne, sw)
-                }
-
-                let found = false
-                if ('getBounds' in layer) {
-                    const layerBounds = layer.getBounds()
-                    const nwLayer = mmgisAPI_.map.project(layerBounds.getNorthEast())
-                    const seLayer = mmgisAPI_.map.project(layerBounds.getSouthWest())
-                    const _bounds = L.bounds(nwLayer, seLayer)
-
-                    if (_extent.intersects(_bounds)) {
-                        found = true
-                    }
-                } else if ('getLatLng' in layer) {
-                    const _latLng = mmgisAPI_.map.project(layer.getLatLng())
-
-                    if (_extent.contains(_latLng)) {
-                        found = true
-                    }
-                }
+                const found = isLayerInBounds(layer)
 
                 if (found) {
                     features.push(layer.feature)
