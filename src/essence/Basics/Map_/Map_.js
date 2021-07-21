@@ -1008,9 +1008,10 @@ function makeLayer(layerObj) {
                     
                     if(true){
                         const featureStyle = leafletLayerObject.style(feature)
-                        let shape = "square"
+                        // let shape = "square"
+                        console.log(layerObj.shape)
                         let svg = ""
-                        switch (shape){
+                        switch (layerObj.shape.toString()){
                             case "square":
                                 svg = [
                                     `<svg style="width:24px;height:24px" viewBox="0 0 24 24">`,
