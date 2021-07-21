@@ -710,8 +710,8 @@ function makeLayerBarAndModal(d, level) {
     timeTypeEl = "block",
     timeFormatEl = "block",
     timeRefreshEl = "none",
-    timeIncrementEl = "none",
-    shapeEl = "block";
+    timeIncrementEl = "none";
+    shapeEl = "none";
 
   // prettier-ignore
   switch( d.type ) {
@@ -941,7 +941,7 @@ function makeLayerBarAndModal(d, level) {
       break;
     default:
   }
-  console.log(d.shape)
+
   var dStyle = {};
   if (d.hasOwnProperty("style")) dStyle = d.style;
   if (!d.hasOwnProperty("position"))
