@@ -12,6 +12,7 @@ import Kinds from '../../Tools/Kinds/Kinds'
 import DataShaders from '../../Ancillary/DataShaders'
 import calls from '../../../pre/calls'
 import TimeControl from '../../Ancillary/TimeControl'
+import { color } from 'd3'
 let L = window.L
 
 let essenceFina = function () {}
@@ -903,7 +904,6 @@ function makeLayer(layerObj) {
             var wei = String(layerObj.style.weight)
             var fiC = layerObj.style.fillColor
             var fiO = String(layerObj.style.fillOpacity)
-
             var leafletLayerObject = {
                 style: function (feature) {
                     if (feature.properties.hasOwnProperty('style')) {
@@ -912,6 +912,7 @@ function makeLayer(layerObj) {
                         layerObj.style = JSON.parse(
                             JSON.stringify(feature.properties.style)
                         )
+
                         layerObj.style.className = className
                         layerObj.style.layerName = layerName
                     } else {
@@ -952,7 +953,6 @@ function makeLayer(layerObj) {
                                   feature.style.fillopacity != null
                                 ? feature.style.fillopacity
                                 : fiO
-
                         var noPointerEventsClass =
                             feature.style && feature.style.nointeraction
                                 ? ' noPointerEvents'
@@ -963,6 +963,7 @@ function makeLayer(layerObj) {
                         layerObj.style.weight = finalWei
                         layerObj.style.fillColor = finalFiC
                         layerObj.style.fillOpacity = finalFiO
+
                     }
                     layerObj.style.className =
                         layerObj.style.className + noPointerEventsClass
@@ -982,7 +983,6 @@ function makeLayer(layerObj) {
                     let markerIconOptions = F_.clone(
                         layerObj.variables.markerIcon
                     )
-
                     if (
                         markerIconOptions.iconUrl &&
                         !F_.isUrlAbsolute(markerIconOptions.iconUrl)
@@ -1004,7 +1004,26 @@ function makeLayer(layerObj) {
                         latlong,
                         leafletLayerObject.style
                     ).setRadius(layerObj.radius)
-
+                    
+                    
+                    if(true){
+                        const featureStyle = leafletLayerObject.style(feature)
+                        let shape = "square"
+                        let svg = ""
+                        switch (shape){
+                            case "square":
+                                svg = [
+                                    `<svg style="width:24px;height:24px" viewBox="0 0 24 24">`,
+                                        `<path fill="${featureStyle.fillColor}" d="M13 2V3H12V9H11V10H9V11H8V12H7V13H5V12H4V11H3V9H2V15H3V16H4V17H5V18H6V22H8V21H7V20H8V19H9V18H10V19H11V22H13V21H12V17H13V16H14V15H15V12H16V13H17V11H15V9H20V8H17V7H22V3H21V2M14 3H15V4H14Z" />`,
+                                    `</svg>`
+                                ]
+                                .join("\n")
+                                break
+                        }
+                        markerIcon = L.divIcon({className : 'leafletMarkerShape', 
+                        iconSize: [24,24],
+                        html: svg});
+                        }
                     if (markerIcon) {
                         layer = L.marker(latlong, { icon: markerIcon })
                         layer.options.layerName = layerObj.name

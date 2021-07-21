@@ -684,6 +684,10 @@ body {
     background-position: 0 0, 0 0, -5px -5px, 5px 5px;
 }
 
+.leafletMarkerShape {
+    background: none;
+}
+
 .highlightAnim1 {
     animation-name: highlightAnim1;
     animation-duration: 1.2s;
