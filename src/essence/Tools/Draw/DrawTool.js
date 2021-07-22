@@ -11,7 +11,12 @@ import * as d3 from 'd3'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
+import Globe_ from '../../Basics/Globe_/Globe_'
+import Viewer_ from '../../Basics/Viewer_/Viewer_'
+import ToolController_ from '../../Basics/ToolController_/ToolController_'
 import CursorInfo from '../../Ancillary/CursorInfo'
+import Description from '../../Ancillary/Description'
+import Kinds from '../../Tools/Kinds/Kinds'
 import turf from 'turf'
 import shp from '../../../external/shpjs/shapefile'
 import shpwrite from '../../../external/SHPWrite/shpwrite'
@@ -689,6 +694,132 @@ var DrawTool = {
     },
     destroy: function () {
         this.MMGISInterface.separateFromMMGIS()
+
+        for (var l in L_.layersGroup) {
+            var s = l.split('_')
+            var onId = s[1] != 'master' ? parseInt(s[1]) : s[1]
+
+            if (s[0] == 'DrawTool' && DrawTool.filesOn.indexOf(onId) != -1) {
+                for (var i = 0; i < L_.layersGroup[l].length; i++) {
+                    var f = L_.layersGroup[l][i]
+
+                    if (!f) continue
+
+                    if (!f.hasOwnProperty('feature') &&
+                        f.hasOwnProperty('_layers')
+                    ) {
+                        // If it's a non point layer
+                        f = f._layers[Object.keys(f._layers)[0]]
+                    }
+
+                    var properties = f.feature.properties
+
+                    if (f.hasOwnProperty('_layers')) f = f._layers
+                    else f = { layer: f }
+
+                    for (let elayer in f) {
+                        let e = f[elayer]
+                        e.off('click')
+                        e.on('click',
+                            function (d) {
+                                if (
+                                    ToolController_.activeTool &&
+                                    ToolController_.activeTool.disableLayerInteractions === true
+                                )
+                                    return
+
+                                let layer = d.target
+                                let found = false
+                                if (!d.target.hasOwnProperty('feature')) {
+                                    for (var _l in L_.layersGroup) {
+                                        if (!_l.startsWith('DrawTool_')) continue
+
+                                        for (var x in L_.layersGroup[l]) {
+                                            var childLayer = L_.layersGroup[l][x]
+                                            if ('hasLayer' in childLayer) {
+                                                if (childLayer.hasOwnProperty('feature') &&
+                                                        childLayer.feature?.properties?.arrow &&
+                                                        childLayer.hasLayer(d.target)) {
+                                                    // This is the parent layer of the arrow
+                                                    layer = childLayer
+                                                    found = true
+                                                    break
+                                                }
+                                            }
+                                        }
+                                        if (found) break
+                                    }
+                                }
+
+                                L_.setLastActivePoint(layer)
+                                L_.resetLayerFills()
+                                L_.highlight(layer)
+                                Map_.activeLayer = layer
+                                Description.updatePoint(Map_.activeLayer)
+
+                                Kinds.use(
+                                    'none',
+                                    Map_,
+                                    layer.feature,
+                                    layer,
+                                    l,
+                                    null,
+                                    d
+                                )
+
+                                Globe_.highlight(
+                                    Globe_.findSpriteObject(
+                                        layer.options.layerName,
+                                        layer.feature.properties.name
+                                    ),
+                                    false
+                                )
+                                Viewer_.highlight(layer)
+                            }
+                        )
+                        //Add a mouseover event to the layer
+                        e.off('mouseover')
+                        e.on('mouseover', function (d) {
+                            let name;
+                            // If the DrawTool layer that is hovered is an arrow, the parent arrow layer knows the name
+                            if (!d.target.hasOwnProperty('feature')) {
+                                for (var _l in L_.layersGroup) {
+                                    if (!_l.startsWith('DrawTool_')) {
+                                        continue
+                                    }
+
+                                    for (var x in L_.layersGroup[l]) {
+                                        var layer = L_.layersGroup[l][x]
+                                        if ('hasLayer' in layer) {
+                                            if (layer.hasOwnProperty('feature') &&
+                                                    layer.feature?.properties?.arrow &&
+                                                    layer.hasLayer(d.target)) {
+                                                name = layer.feature.properties.name
+                                            } 
+                                        }
+                                    }
+                                }
+                            } else {
+                                name = d.target.feature.properties.name
+                            }
+
+                            //Make it turn on CursorInfo and show name and value
+                            CursorInfo.update(
+                                'Name: ' + name,
+                                null,
+                                false
+                            )
+                        })
+                        //Add a mouseout event
+                        e.off('mouseout')
+                        e.on('mouseout', function () {
+                            //Make it turn off CursorInfo
+                            CursorInfo.hide()
+                        })
+                    }
+                }
+            }
+        }
     },
     getUrlString: function () {
         return this.filesOn.toString().replace(/,/g, '.')
@@ -708,6 +839,22 @@ var DrawTool = {
             case 'draw':
                 $('.drawToolContextMenuHeaderClose').click()
                 DrawTool.setDrawing()
+
+                if (DrawTool.filesOn.length > 0) {
+                    // This brings back all of the DrawTools mouse interactions
+                    DrawTool.getFiles(function () {
+                        DrawTool.populateFiles()
+                        DrawTool.populateShapes()
+
+                        //Populate masterFilesIds
+                        DrawTool.masterFileIds = []
+                        for (var f in DrawTool.files) {
+                            if (DrawTool.files[f].is_master)
+                                DrawTool.masterFileIds.push(DrawTool.files[f].id)
+                        }
+                    })
+                }
+
                 $('#drawToolDraw').css('display', 'flex')
                 break
             case 'shapes':

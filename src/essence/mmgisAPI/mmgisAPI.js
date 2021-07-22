@@ -133,7 +133,19 @@ var mmgisAPI_ = {
     },
     // Returns an object with the visiblity state of all layers
     getVisibleLayers: function () {
-        return L_.toggledArray
+        // Also return the visibility of the DrawTool layers
+        var drawToolVisibility = {}
+        for (let l in L_.layersGroup) {
+            if (!(l in L_.toggledArray)) {
+                var s = l.split('_')
+                var onId = s[1] != 'master' ? parseInt(s[1]) : s[1]
+                if (s[0] == 'DrawTool') {
+                    drawToolVisibility[l] = ToolController_.getTool('DrawTool').filesOn.indexOf(onId) != -1
+                }
+            }
+        }
+
+        return { ...L_.toggledArray, ...drawToolVisibility }
     },
     // Adds map event listener
     addEventListener: function (eventName, functionReference) {

@@ -4,6 +4,7 @@ import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Globe_ from '../../Basics/Globe_/Globe_'
 import Map_ from '../../Basics/Map_/Map_'
+import ToolController_ from '../../Basics/ToolController_/ToolController_'
 import CursorInfo from '../../Ancillary/CursorInfo'
 import Modal from '../../Ancillary/Modal'
 
@@ -1023,6 +1024,8 @@ var Files = {
         })
         $('.drawToolDrawFilesListElem').off('mouseleave')
         $('.drawToolDrawFilesListElem').on('mouseleave', function () {
+            const infoTool = ToolController_.getTool('InfoTool')
+
             $(this).find('.drawToolFileEdit').removeClass('shown')
             var fileId = parseInt($(this).attr('file_id'))
             var l = L_.layersGroup['DrawTool_' + fileId]
@@ -1039,21 +1042,35 @@ var Files = {
                                 .properties.style
                     else style = l[i].feature.properties.style
 
+                    let color = style.color;
+                    // Keep the active feature highlighted after mouseleave
+                    if (infoTool.currentLayer) {
+                        if (typeof l[i].setStyle === 'function' &&
+                                ((l[i].hasOwnProperty('_layers') && l[i].hasLayer(infoTool.currentLayer)) ||
+                                infoTool.currentLayer === l[i])) {
+                            color = (L_.configData.look && L_.configData.look.highlightcolor) || 'red'
+                        } else if (l[i].hasOwnProperty('_layers') && infoTool.currentLayer === l[i]) {
+                            color = (L_.configData.look && L_.configData.look.highlightcolor) || 'red'
+                        }
+                    }
+
                     if (typeof l[i].setStyle === 'function')
-                        l[i].setStyle(style)
+                        l[i].setStyle({ ...style, color } )
                     else if (l[i].hasOwnProperty('_layers')) {
                         //Arrow
                         var layers = l[i]._layers
-                        layers[Object.keys(layers)[0]].setStyle({
-                            color: style.color,
-                        })
-                        layers[Object.keys(layers)[1]].setStyle({
-                            color: style.color,
-                        })
-                    } else
+                        layers[Object.keys(layers)[0]].setStyle({ color })
+                        layers[Object.keys(layers)[1]].setStyle({ color })
+                    } else {
                         $('.DrawToolAnnotation_' + fileId).removeClass(
                             'highlight'
                         )
+                        if (infoTool.currentLayer === l[i]) {
+                            $('.DrawToolAnnotation_' + fileId).addClass(
+                                'hovered'
+                            )
+                        }
+                    }
                 }
             }
         })
