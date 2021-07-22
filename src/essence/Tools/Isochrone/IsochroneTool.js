@@ -45,8 +45,6 @@ function hueMap(val) {
     return [r, g, b];
 }
 
-const RESOLUTION = 32; //Tile resolution
-
 let lastHoverCall = 0;
 
 //https://leafletjs.com/reference-1.7.1.html#gridlayer
@@ -105,6 +103,7 @@ const IsochroneTool = {
     manager: null,
     containerEl: null,
     dataSources: null,
+    marker: null,
     hoverPolyline: null,
     colorRamps: [
         [ //Red 5
@@ -175,7 +174,10 @@ const IsochroneTool = {
 
         this.manager = new IsochroneManager(
             this.dataSources,
-            () => this.makeDataLayer(this.manager)
+            () => {
+                this.makeDataLayer(this.manager);
+                this.makeMarker(this.manager);
+            }
         );
     },
     make: function() {
@@ -197,14 +199,20 @@ const IsochroneTool = {
         }
     },
     valueToColor: function(val, rampIndex) {
-        val = Math.min(val, 1);
-        const ramp = this.colorRamps[rampIndex];
-        const color = val * (ramp.length - 1);
-        const i = Math.min(Math.floor(color), ramp.length - 2);
-        const off = color % 1;
-        const getChan = chan =>
-            Math.floor(ramp[i][chan] * (1 - off) + ramp[i + 1][chan] * off);
-        return [getChan(0), getChan(1), getChan(2)];
+        try {
+            val = Math.min(val, 1);
+            const ramp = this.colorRamps[rampIndex];
+            const color = val * (ramp.length - 1);
+            const i = Math.min(Math.floor(color), ramp.length - 2);
+            const off = color % 1;
+            const getChan = chan =>
+                Math.floor(ramp[i][chan] * (1 - off) + ramp[i + 1][chan] * off);
+            return [getChan(0), getChan(1), getChan(2)];
+        } catch(e) {
+            console.log(val);
+            debugger;
+            return [0, 0, 0];
+        }
     },
     makeGradientEls: function() {
         const C_WIDTH = 120, C_HEIGHT = 29;
@@ -254,7 +262,6 @@ const IsochroneTool = {
         }
         
         const layerName = "isochrone";
-
         Map_.rmNotNull(L_.layersGroup[layerName]);
 
         //TODO this will mess with map max/min zooms; fix
@@ -271,6 +278,65 @@ const IsochroneTool = {
         
         L_.layersGroup[layerName].setZIndex(1000);
         Map_.map.addLayer(L_.layersGroup[layerName]);
+    },
+
+    makeMarker: function(manager) { //ViewshedTool.js:948
+        let canvas = document.createElement("canvas");
+        canvas.width = 16;
+        canvas.height = 16;
+        let ctx = canvas.getContext("2d");
+
+        const radius = 7
+        const strokeWeight = 2
+        const ramp = IsochroneTool.colorRamps[manager.options.color];
+        const c = ramp[ramp.length - 1];
+
+        ctx.fillStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, 255)`;
+
+        ctx.strokeStyle = "rgba(255,255,255,255)";
+        ctx.beginPath();
+        ctx.arc(
+            canvas.width / 2,
+            canvas.height / 2,
+            radius,
+            0,
+            2 * Math.PI
+        );
+
+        ctx.fill();
+        ctx.lineWidth = strokeWeight;
+        ctx.stroke();
+        ctx.strokeStyle = "rgba(0,0,0,255)";
+        ctx.beginPath();
+        ctx.arc(
+            canvas.width / 2,
+            canvas.height / 2,
+            radius - strokeWeight,
+            0,
+            2 * Math.PI
+        );
+
+        ctx.fill();
+        ctx.lineWidth = strokeWeight;
+        ctx.stroke();
+
+        let isochroneIcon = L.icon({
+            iconUrl: canvas.toDataURL(),
+            iconSize: [canvas.width, canvas.height],
+            iconAnchor: [canvas.width / 2, canvas.height / 2],
+            popupAnchor: [-3, -76],
+            shadowSize: [68, 95],
+            shadowAnchor: [22, 94],
+        });
+
+        Map_.rmNotNull(IsochroneTool.marker)
+        IsochroneTool.marker = new L.marker(
+            [manager.start.lat, manager.start.lng],
+            {
+                icon: isochroneIcon,
+                draggable: false, //for now... (TODO)
+            }
+        ).addTo(Map_.map)
     },
 
     hoverLine: function(e) {

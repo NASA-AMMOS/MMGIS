@@ -43,7 +43,7 @@ const IsochroneTool_DataManager = {
             tilesLoaded++;
 
             if(tilesLoaded >= totalTiles) {
-                //console.log("QUERY DATA", queryReturnData);
+                console.log("QUERY DATA", queryReturnData);
                 callback(queryReturnData);
             } else if(tilesLoaded >= nextStep) {
                 query();

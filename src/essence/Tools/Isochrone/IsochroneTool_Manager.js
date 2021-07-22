@@ -10,7 +10,7 @@ import F_ from '../../Basics/Formulae_/Formulae_'; //lngLatDistBetween //wait wh
 import IsochroneTool_DataManager from "./IsochroneTool_DataManager";
 
 //Terrible no-good very bad JQuery element creators
-        
+
 const addOption = (title, root) =>
     $(`<div><div>${title}</div></div>`).appendTo(root);
 
@@ -46,6 +46,7 @@ class IsochroneManager {
     constructor(dataSources, onChange) {
         this.dataSources = dataSources;
         this.onChange = onChange;
+
         this.start = null; //L.LatLng
         this.startPx = null; //L.Point
         this.bounds = null; //L.LatLngBounds
