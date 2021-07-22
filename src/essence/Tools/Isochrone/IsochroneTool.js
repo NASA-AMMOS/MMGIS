@@ -280,7 +280,7 @@ const IsochroneTool = {
         Map_.map.addLayer(L_.layersGroup[layerName]);
     },
 
-    makeMarker: function(manager) { //ViewshedTool.js:948
+    makeMarker: function(manager) { //ViewshedTool.js:948 (function viewsheed)
         let canvas = document.createElement("canvas");
         canvas.width = 16;
         canvas.height = 16;
@@ -293,7 +293,7 @@ const IsochroneTool = {
 
         ctx.fillStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, 255)`;
 
-        ctx.strokeStyle = "rgba(255,255,255,255)";
+        ctx.strokeStyle = "rgba(255, 255, 255, 255)";
         ctx.beginPath();
         ctx.arc(
             canvas.width / 2,

@@ -4,7 +4,7 @@ import models from "./IsochroneTool_Models";
 import * as IsochroneTool_Algorithm from "./IsochroneTool_Algorithm";
 import Map_ from '../../Basics/Map_/Map_';
 import { projectTileBounds, unprojectTileBounds } from "./IsochroneTool_Util";
-import F_ from '../../Basics/Formulae_/Formulae_'; //lngLatDistBetween //wait why did i want that???
+import F_ from '../../Basics/Formulae_/Formulae_';
 
 
 import IsochroneTool_DataManager from "./IsochroneTool_DataManager";
@@ -213,22 +213,43 @@ class IsochroneManager {
         const bounds = dataSource.zoomOffset === 0
             ? this.tileBounds
             : projectTileBounds(this.tileAlignedBounds, zoom);
+        const startPoint = Map_.map.project(this.start, zoom);
+        const startTile = startPoint.clone().divideBy(256).floor();
+        console.log(startPoint, startTile);
         
+        //TODO low priority: this is an inefficient circle, consider improving
         for(let y = bounds.min.y; y < bounds.max.y; y++) {
             for(let x = bounds.min.x; x < bounds.max.x; x++) {
-                //TODO make a circle
+                //Measure distance to start from nearest corner/edge
+                let measureX = startPoint.x;
+                if(x > startTile.x) measureX = x * 256;
+                else if (x < startTile.x) measureX = (x + 1) * 256;
+
+                let measureY = startPoint.y;
+                if(y > startTile.y) measureY = y * 256;
+                else if(y < startTile.y) measureY = (y + 1) * 256;
+
+                const measureLatLng = Map_.map.unproject([measureX, measureY], zoom);
+                const dist = F_.lngLatDistBetween(
+                    this.start.lng,
+                    this.start.lat,
+                    measureLatLng.lng,
+                    measureLatLng.lat
+                );
                 tileList.push({
                     x,
                     y,
                     z: zoom,
                     relX: x - bounds.min.x,
-                    relY: y - bounds.min.y
+                    relY: y - bounds.min.y,
+                    dist
                 });
             }
         }
 
-        //console.log("TILE LIST", tileList);
-        return tileList;
+        tileList.sort((a, b) => a.dist - b.dist);
+        const numTiles = tileList.findIndex(a => a.dist > this.options.maxRadius);
+        return tileList.slice(0, numTiles);
     }
 
     getData() {
