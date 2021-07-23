@@ -8,11 +8,6 @@ import Model from "./Model";
 const addOption = (title, root) =>
     $(`<div><div>${title}</div></div>`).appendTo(root);
 
-const addSection = (title, root) => {
-    $(`<div class="sectionhead">${title}</div>`).appendTo(root);
-    return $(`<section></section>`).appendTo(root);
-}
-
 function createInputWithUnit(title, root, unit, value, attr = "") {
     const innerContainer = $(`<div class="flexbetween"></div>`)
         .appendTo(addOption(title, root));
@@ -48,7 +43,6 @@ class Model_Isodistance {
         const tEl = D.getPx(this.data.DEM, tPx);
         const vDist = (cEl - tEl) * this.terrainScale;
         const result = Math.sqrt(vDist * vDist + dist2d * dist2d);
-        //if(isNaN(result)) debugger;
         return result;
     }
 
@@ -58,9 +52,9 @@ class Model_Isodistance {
             root,
             "X",
             1,
-            `min="1" default ="1" step="0.2"`
+            `min="0" default="1" step="0.2"`
         ).on("change", e => {
-            this.terrainScale = parseInt(e.target.value);
+            this.terrainScale = parseFloat(e.target.value);
             onChange(e, 2);
         });
     }

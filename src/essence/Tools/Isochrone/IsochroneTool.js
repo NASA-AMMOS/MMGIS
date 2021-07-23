@@ -306,7 +306,7 @@ const IsochroneTool = {
         ctx.fill();
         ctx.lineWidth = strokeWeight;
         ctx.stroke();
-        ctx.strokeStyle = "rgba(0,0,0,255)";
+        ctx.strokeStyle = "rgba(0, 0, 0, 255)";
         ctx.beginPath();
         ctx.arc(
             canvas.width / 2,
