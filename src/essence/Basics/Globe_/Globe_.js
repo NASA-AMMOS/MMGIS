@@ -25,16 +25,26 @@ let Globe_ = {
             zoom: initialView[2],
         }
 
+        const tmr =
+            L_.configData.projection && L_.configData.projection.custom === true
+                ? {
+                      bounds: L_.configData.projection.bounds,
+                      origin: L_.configData.projection.origin,
+                      crsCode: L_.configData.projection.epsg,
+                      proj: L_.configData.projection.proj,
+                      resunitsperpixel: parseFloat(
+                          L_.configData.projection.resunitsperpixel
+                      ),
+                      reszoomlevel: parseInt(
+                          L_.configData.projection.reszoomlevel
+                      ),
+                  }
+                : null
+
         this.litho = new LithoSphere(containerId, {
             initialView,
             //opt
-            tileMapResource: {
-                bounds: [0, 0, 0, 0],
-                origin: [0, 0],
-                proj: null, // proj4 string describing the global tileset projection: string (opt) | default wgs84
-                resunitsperpixel: 34,
-                reszoomlevel: 0,
-            },
+            tileMapResource: tmr,
             majorRadius: F_.radiusOfPlanetMajor,
             minorRadius: F_.radiusOfPlanetMinor,
             //renderOnlyWhenOpen: false, //default true
@@ -50,6 +60,31 @@ let Globe_ = {
             highlightColor: 'yellow', //css color for vector hover highlights | default 'yellow'
             activeColor: 'red', //css color for active vector features | default 'red'
         })
+
+        /*
+
+        this.litho.addLayer('tile', {
+            name: 'NAC Nobile',
+            order: 1, //Orders are ordered only within the layer type
+            on: true,
+            path: 'https://viperserv.jpl.nasa.gov/lunaserv/?layers=luna_nac_nobile_v5',
+            demPath:
+                'https://viperserv.jpl.nasa.gov/lunaserv/?LAYERS=luna_nac_nobile_dem_v5&FORMAT=image%2Ftiff%3B%20mode=32bit',
+            format: 'wms', // 'wmts' || 'wms' // wms requires a tileMapResource to be set to help compute tile bboxes
+            formatOptions: {},
+            demFormat: 'wms', //
+            demFormatOptions: {
+                // for wms, will query tile 1px taller and wider and interpolate values so that tile boundaries line up
+                correctSeams: true,
+                // GET Parameters to add to the wms query (they can also just be added straight to the demPath string)
+                wmsParams: {},
+            },
+            parser: 'tif',
+            opacity: 1,
+            minZoom: 0,
+            maxZoom: 20,
+        })
+        */
 
         this.litho.addControl('mmgisLithoHome', this.litho.controls.home)
         this.litho.addControl(
@@ -106,7 +141,7 @@ let Globe_ = {
             }
         )
 
-        //console.log(this.litho)
+        console.log(this.litho)
     },
     fina: function (coordinates) {
         // Passes in Coordinates so that LithoSphere can share the same coordinate ui element
