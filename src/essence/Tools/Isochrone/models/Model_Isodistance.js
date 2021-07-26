@@ -17,18 +17,14 @@ function createInputWithUnit(title, root, unit, value, attr = "") {
     return el;
 }
 
-class Model_Isodistance {
+class Model_Isodistance extends Model {
     static nameString = "Isodistance";
     static requiredData = [
         "DEM"
     ];
 
-    static costName = "distance";
-    static costUnitSymbol = "m";
-    static defaultCost = 100;
-
     constructor() {
-        this.data = null;
+        super();
         this.terrainScale = 1;
     }
 

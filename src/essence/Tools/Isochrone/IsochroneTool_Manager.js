@@ -51,7 +51,10 @@ class IsochroneManager {
         this.startPx = null; //L.Point
         this.tileBounds = null; //TileBounds
         this.tileAlignedBounds = null; //L.LatLngBounds
+
+        this.modelProto = null;
         this.model = null; //Model
+
         this.minResolution = 0;
         this.maxResolution = 20;
         this.optionEls = {};
@@ -134,7 +137,8 @@ class IsochroneManager {
     }
 
     setupModel(modelIndex = this.options.model) {
-        this.model = new models[modelIndex]();
+        this.modelProto = models[modelIndex];
+        this.model = new this.modelProto();
 
         this.sections.data.empty();
         this.sections.model.empty();
@@ -145,7 +149,7 @@ class IsochroneManager {
          .on("change", e => 
             this.handleInput(e, "resolution", 3)
         );
-        for(const dataType of models[modelIndex].requiredData) {
+        for(const dataType of this.modelProto.requiredData) {
             this.options[dataType + "_source"] = 0;
             createDropdown(
                 dataType + " source",
@@ -157,13 +161,13 @@ class IsochroneManager {
         this.updateResolutionRange();
         
         createInputWithUnit(
-            "Max " + models[modelIndex].costName,
+            "Max " + this.modelProto.costName,
             this.sections.model,
-            models[modelIndex].costUnitSymbol,
-            models[modelIndex].defaultCost,
+            this.modelProto.costUnitSymbol,
+            this.modelProto.defaultCost,
             `min="0" step="1"`
         ).on("change", e => this.handleInput(e, "maxCost", 2));
-        this.options.maxCost = models[modelIndex].defaultCost;
+        this.options.maxCost = this.modelProto.defaultCost;
         this.model.createOptions(this.sections.model, (e, action) => this.handleInput(e, null, action));
     }
     
@@ -236,21 +240,22 @@ class IsochroneManager {
                     measureLatLng.lng,
                     measureLatLng.lat
                 );
-                tileList.push({
-                    x,
-                    y,
-                    z: zoom,
-                    relX: x - bounds.min.x,
-                    relY: y - bounds.min.y,
-                    dist
-                });
+
+                if(dist <= this.options.maxRadius) {
+                    tileList.push({
+                        x,
+                        y,
+                        z: zoom,
+                        relX: x - bounds.min.x,
+                        relY: y - bounds.min.y,
+                        dist
+                    });
+                }
             }
         }
 
         tileList.sort((a, b) => a.dist - b.dist);
-        const numTiles = tileList.findIndex(a => a.dist > this.options.maxRadius);
-        //console.log(numTiles, tileList);
-        return numTiles < 0 ? tileList : tileList.slice(0, numTiles);
+        return tileList;
     }
 
     getData() {
