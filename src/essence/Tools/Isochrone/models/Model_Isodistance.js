@@ -1,5 +1,5 @@
 import F_ from "../../../Basics/Formulae_/Formulae_";
-import * as D from "../IsochroneTool_Util";
+import { getPx } from "../IsochroneTool_Util";
 import $ from "jquery";
 import Model from "./Model";
 
@@ -35,8 +35,8 @@ class Model_Isodistance extends Model {
             tLatLng.lng,
             tLatLng.lat
         );
-        const cEl = D.getPx(this.data.DEM, cPx);
-        const tEl = D.getPx(this.data.DEM, tPx);
+        const cEl = getPx(this.data.DEM, cPx);
+        const tEl = getPx(this.data.DEM, tPx);
         const vDist = (cEl - tEl) * this.terrainScale;
         const result = Math.sqrt(vDist * vDist + dist2d * dist2d);
         return result;

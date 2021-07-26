@@ -7,8 +7,8 @@ import L_ from '../../Basics/Layers_/Layers_';
 import Map_ from '../../Basics/Map_/Map_';
 //import DataShaders from '../../Ancillary/DataShaders';
 import $ from 'jquery';
+import CursorInfo from '../../Ancillary/CursorInfo'; //update, hide
 /*
-import CursorInfo from '../../Ancillary/CursorInfo';
 import turf from 'turf';
 import shp from '../../../external/shpjs/shapefile';
 import shpwrite from '../../../external/SHPWrite/shpwrite';
@@ -114,7 +114,8 @@ L.IsochroneLayer = L.GridLayer.extend({
                     if(isFinite(currentData)) {
                         const color = IsochroneTool.valueToColor(
                             currentData / this.options.maxCost,
-                            this.options.color
+                            this.options.color,
+                            5
                         );
                         img.data[di] = color[0];
                         img.data[di + 1] = color[1];
@@ -145,6 +146,7 @@ const IsochroneTool = {
     dataSources: null,
     marker: null,
     hoverPolyline: null,
+    hovered: false,
     colorRamps: [
         [ //Red 5
             [254, 229, 217],
@@ -364,7 +366,7 @@ const IsochroneTool = {
         ).addTo(Map_.map);
     },
 
-    hoverLine: function(e) {
+    handleMove: function(e) {
         const MAX_STEPS = 5000;
 
         if(this.manager.backlink === null) return;
@@ -391,31 +393,40 @@ const IsochroneTool = {
         const width = this.manager.backlink[0].length;
         const height = this.manager.backlink.length;
 
-        if(hoveredPx.x >= 0 && hoveredPx.y >= 0 && hoveredPx.x < width && hoveredPx.y < height) {
-            const startVal = this.manager.backlink[hoveredPx.y][hoveredPx.x];
-            if(startVal !== 0) {
-                let cx = hoveredPx.x;
-                let cy = hoveredPx.y;
-                let step = startVal;
-                let line = [toLinePoint(cx, cy)];
-                let lastStep = 0;
-                let count = 0;
-                while(step !== 0 && count < MAX_STEPS) {
-                    let move = D.backlinkToMove(step);
-                    cx += move[1];
-                    cy += move[0];
-                    if(step === lastStep) { //Extend line
-                        line[line.length - 1] = toLinePoint(cx, cy);
-                    } else { //Begin new line
-                        line.push(toLinePoint(cx, cy));
-                    }
-                    lastStep = step;
-                    step = this.manager.backlink[cy][cx];
-                    count++;
+        let startVal = 0;
+        if(hoveredPx.x >= 0 && hoveredPx.y >= 0 && hoveredPx.x < width && hoveredPx.y < height)
+            startVal = this.manager.backlink[hoveredPx.y][hoveredPx.x];
+        
+        if(startVal !== 0) {
+            this.hovered = true;
+            const hoveredCost = this.manager.cost[hoveredPx.y][hoveredPx.x];
+            const tooltipMsg = hoveredCost.toFixed(1) + this.manager.modelProto.costUnitSymbol;
+            CursorInfo.update(tooltipMsg, null, false);
+
+            let cx = hoveredPx.x;
+            let cy = hoveredPx.y;
+            let step = startVal;
+            let line = [toLinePoint(cx, cy)];
+            let lastStep = 0;
+            let count = 0;
+            while(step !== 0 && count < MAX_STEPS) {
+                let move = D.backlinkToMove(step);
+                cx += move[1];
+                cy += move[0];
+                if(step === lastStep) { //Extend line
+                    line[line.length - 1] = toLinePoint(cx, cy);
+                } else { //Begin new line
+                    line.push(toLinePoint(cx, cy));
                 }
-                this.hoverPolyline = window.L.polyline(line);
-                this.hoverPolyline.addTo(Map_.map);
+                lastStep = step;
+                step = this.manager.backlink[cy][cx];
+                count++;
             }
+            this.hoverPolyline = window.L.polyline(line);
+            this.hoverPolyline.addTo(Map_.map);
+        } else if(this.hovered) {
+            this.hovered = false;
+            CursorInfo.hide();
         }
     }
 }
@@ -442,7 +453,7 @@ function interfaceWithMMGIS() {
     const clickEventContainer = e => IsochroneTool.handleClick(e);
     Map_.map.on('click', clickEventContainer);
 
-    const moveEventContainer = e => IsochroneTool.hoverLine(e);
+    const moveEventContainer = e => IsochroneTool.handleMove(e);
     Map_.map.on('mousemove', moveEventContainer);
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
