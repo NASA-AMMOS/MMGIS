@@ -102,8 +102,8 @@ function generate(
     //console.log("START", start);
     const moves = knightsMove ? knightMoves : queenMoves;
 
-    const width = bounds.width * 256;
-    const height = bounds.height * 256;
+    const width = (bounds.max.x - bounds.min.x) * 256;
+    const height = (bounds.max.y - bounds.min.y) * 256;
 
     //Set up dijkstra's
     let costArr = D.createDataArray(width, height, Infinity);
@@ -132,7 +132,7 @@ function generate(
 
             const tLatLng = D.pxToLatLng(tPx, bounds, zoom);
             const cost = costFunction(cPx, cLatLng, tPx, tLatLng) + cCost;
-            if(cost > maxCost) continue;
+            if(cost > maxCost || !isFinite(cost)) continue;
             
             if(tPxIndex === -2) {
                 D.setPx(costArr, tPx, cost);

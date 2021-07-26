@@ -3,7 +3,7 @@ import $ from "jquery";
 import models from "./IsochroneTool_Models";
 import * as IsochroneTool_Algorithm from "./IsochroneTool_Algorithm";
 import Map_ from '../../Basics/Map_/Map_';
-import { projectTileBounds, unprojectTileBounds } from "./IsochroneTool_Util";
+import * as U from "./IsochroneTool_Util";
 import F_ from '../../Basics/Formulae_/Formulae_';
 
 
@@ -49,7 +49,6 @@ class IsochroneManager {
 
         this.start = null; //L.LatLng
         this.startPx = null; //L.Point
-        this.bounds = null; //L.LatLngBounds
         this.tileBounds = null; //TileBounds
         this.tileAlignedBounds = null; //L.LatLngBounds
         this.model = null; //Model
@@ -85,7 +84,7 @@ class IsochroneManager {
                 case 1: //Change requires redrawing same shape
                     this.onChange();
                 break;
-                default:
+                default: //Change changes nothing!
             }
         }
     }
@@ -190,10 +189,12 @@ class IsochroneManager {
     }
 
     setBounds() {
-        this.bounds = this.start.toBounds(this.options.maxRadius * 2);
-
-        this.tileBounds = projectTileBounds(this.bounds, this.options.resolution);
-        this.tileAlignedBounds = unprojectTileBounds(this.tileBounds, this.options.resolution);
+        this.tileBounds = U.createTileBounds(
+            this.start,
+            this.options.maxRadius,
+            this.options.resolution
+        );
+        this.tileAlignedBounds = U.unprojectTileBounds(this.tileBounds, this.options.resolution);
         this.startPx = Map_.map
             .project(this.start, this.options.resolution)
             .subtract(this.tileBounds.min.multiplyBy(256))
@@ -212,10 +213,9 @@ class IsochroneManager {
         const zoom = this.options.resolution + dataSource.zoomOffset;
         const bounds = dataSource.zoomOffset === 0
             ? this.tileBounds
-            : projectTileBounds(this.tileAlignedBounds, zoom);
+            : U.projectTileBounds(this.tileAlignedBounds, zoom);
         const startPoint = Map_.map.project(this.start, zoom);
         const startTile = startPoint.clone().divideBy(256).floor();
-        console.log(startPoint, startTile);
         
         //TODO low priority: this is an inefficient circle, consider improving
         for(let y = bounds.min.y; y < bounds.max.y; y++) {
@@ -249,10 +249,12 @@ class IsochroneManager {
 
         tileList.sort((a, b) => a.dist - b.dist);
         const numTiles = tileList.findIndex(a => a.dist > this.options.maxRadius);
-        return tileList.slice(0, numTiles);
+        //console.log(numTiles, tileList);
+        return numTiles < 0 ? tileList : tileList.slice(0, numTiles);
     }
 
     getData() {
+        U.Timer.start("load");
         let requiredDatasets = [];
         for(const dataType of models[this.options.model].requiredData) {
             const sourceObj = this.dataSources[dataType][this.options[dataType + "_source"]];
@@ -274,6 +276,7 @@ class IsochroneManager {
                 );
             } else {
                 this.model.data = dataObj;
+                U.Timer.stop("load");
                 this.generateIsochrone();
             }
         }
@@ -286,6 +289,7 @@ class IsochroneManager {
     }
 
     generateIsochrone() {
+        U.Timer.start("generate");
         const result = IsochroneTool_Algorithm.generate(
             this.startPx,
             this.tileBounds,
@@ -293,6 +297,7 @@ class IsochroneManager {
             this.options.resolution,
             this.options.maxCost
         );
+        U.Timer.stop("generate");
         this.cost = result.cost;
         this.backlink = result.backlink;
         this.onChange();

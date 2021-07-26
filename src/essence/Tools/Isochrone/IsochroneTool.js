@@ -46,9 +46,47 @@ function hueMap(val) {
 }
 
 let lastHoverCall = 0;
+let drawnBounds = null;
+
+function drawBounds(bounds) {
+    let line = [
+        bounds.getNorthWest(),
+        bounds.getNorthEast(),
+        bounds.getSouthEast(),
+        bounds.getSouthWest(),
+        bounds.getNorthWest()
+    ];
+    Map_.rmNotNull(drawnBounds);
+    drawnBounds = L.polyline(line);
+    drawnBounds.addTo(Map_.map);
+}
+
+function drawTileBounds(bounds, zoom) {
+    const unproj = (x, y) => Map_.map.unproject(L.point(x, y).multiplyBy(256), zoom);
+    let line = [
+        unproj(bounds.min.x, bounds.min.y),
+        unproj(bounds.max.x, bounds.min.y),
+        unproj(bounds.max.x, bounds.max.y),
+        unproj(bounds.min.x, bounds.max.y),
+        unproj(bounds.min.x, bounds.min.y)
+    ];
+    console.log(line);
+    Map_.rmNotNull(drawnBounds);
+    drawnBounds = L.polyline(line);
+    drawnBounds.addTo(Map_.map);
+}
 
 //https://leafletjs.com/reference-1.7.1.html#gridlayer
 L.IsochroneLayer = L.GridLayer.extend({
+    //Override to make layer accept Bounds in place of LatLngBounds
+    //  (for better polar projection support)
+    _isValidTile(coords) {
+        const bounds = this.options.bounds;
+        return coords.x >= bounds.min.x
+            && coords.y >= bounds.min.y
+            && coords.x < bounds.max.x
+            && coords.y < bounds.max.y;
+    },
     createTile: function(coords) {
         const tile = L.DomUtil.create("canvas", "leaflet-tile");
 
@@ -59,32 +97,34 @@ L.IsochroneLayer = L.GridLayer.extend({
         const ctx = tile.getContext("2d");
         const img = ctx.getImageData(0, 0, size.x, size.y);
 
-        const tb = this.options.tileBounds;
-        const tXOffset = coords.x - tb.min.x;
-        const tYOffset = coords.y - tb.min.y;
+        const bounds = this.options.bounds;
+        const boundsSize = bounds.getSize();
+        const tXOffset = coords.x - bounds.min.x;
+        const tYOffset = coords.y - bounds.min.y;
 
         const alpha = Math.floor(this.options.opacity * 255);
 
-        //TODO: log and ignore empty tiles?
-        //TODO: could you get fancy with WebGL/GLSL on this?
-        //  check out src/essence/Ancillary/DataShaders to pursue this
-        if(tXOffset >= 0 && tYOffset >= 0 && tXOffset < tb.width && tYOffset < tb.height) {
+        if(tXOffset >= 0 && tYOffset >= 0 && tXOffset < boundsSize.x && tYOffset < boundsSize.y) {
             let di = 0; //img data index
             for(let y = 0; y < size.y; y++) {
                 const yIndex = tYOffset * size.y + y;
                 for(let x = 0; x < size.x; x++) {
-                    const xIndex = (tXOffset * size.x + x) * 3;
-                    const color = this.options.data[yIndex].slice(xIndex, xIndex + 3);
-                    if(color[0] === 0 && color[1] === 0 && color[2] === 0) {
-                        img.data[di] = 0;
-                        img.data[di + 1] = 0;
-                        img.data[di + 2] = 0;
-                        img.data[di + 3] = 0;
-                    } else {
+                    const xIndex = tXOffset * size.x + x;
+                    const currentData = this.options.data[yIndex][xIndex];
+                    if(isFinite(currentData)) {
+                        const color = IsochroneTool.valueToColor(
+                            currentData / this.options.maxCost,
+                            this.options.color
+                        );
                         img.data[di] = color[0];
                         img.data[di + 1] = color[1];
                         img.data[di + 2] = color[2];
                         img.data[di + 3] = alpha;
+                    } else {
+                        img.data[di] = 0;
+                        img.data[di + 1] = 0;
+                        img.data[di + 2] = 0;
+                        img.data[di + 3] = 0;
                     }
                     di += 4;
                 }
@@ -171,6 +211,9 @@ const IsochroneTool = {
                 src.zoomOffset = zoomOffset;
             }
         }
+    },
+    make: function() {
+        this.MMGISInterface = new interfaceWithMMGIS();
 
         this.manager = new IsochroneManager(
             this.dataSources,
@@ -179,15 +222,18 @@ const IsochroneTool = {
                 this.makeMarker(this.manager);
             }
         );
-    },
-    make: function() {
-        this.MMGISInterface = new interfaceWithMMGIS();
+        
         this.containerEl = $("#isochroneOptionsContainer");
         this.containerEl.append(
             this.manager.makeElement(this.makeGradientEls())
         );
     },
     destroy: function() {
+        Map_.rmNotNull(this.marker);
+        Map_.rmNotNull(L_.layersGroup["isochrone"]);
+        if(this.hoverPolyline !== null)
+            this.hoverPolyline.remove(Map_.map);
+        
         this.MMGISInterface.separateFromMMGIS();
     },
     getUrlString: function() { //TODO?
@@ -198,21 +244,17 @@ const IsochroneTool = {
             this.manager.setStart(e.latlng);
         }
     },
-    valueToColor: function(val, rampIndex) {
-        try {
-            val = Math.min(val, 1);
-            const ramp = this.colorRamps[rampIndex];
-            const color = val * (ramp.length - 1);
-            const i = Math.min(Math.floor(color), ramp.length - 2);
-            const off = color % 1;
-            const getChan = chan =>
-                Math.floor(ramp[i][chan] * (1 - off) + ramp[i + 1][chan] * off);
-            return [getChan(0), getChan(1), getChan(2)];
-        } catch(e) {
-            console.log(val);
-            debugger;
-            return [0, 0, 0];
-        }
+    valueToColor: function(val, rampIndex, steps = 0) {
+        val = Math.min(val, 1);
+        if(steps) val = Math.floor(val * steps) / steps;
+
+        const ramp = this.colorRamps[rampIndex];
+        const color = val * (ramp.length - 1);
+        const i = Math.min(Math.floor(color), ramp.length - 2);
+        const off = color % 1;
+        const getChan = chan =>
+            Math.floor(ramp[i][chan] * (1 - off) + ramp[i + 1][chan] * off);
+        return [getChan(0), getChan(1), getChan(2)];
     },
     makeGradientEls: function() {
         const C_WIDTH = 120, C_HEIGHT = 29;
@@ -241,39 +283,22 @@ const IsochroneTool = {
         return colorEls;
     },
     makeDataLayer: function(manager) {
-        const xDim = (manager.tileBounds.max.x - manager.tileBounds.min.x) * 256 * 3;
-        let layerData = [];
-        for(const row of manager.cost) {
-            let layerRow = Array(xDim).fill(0);
-            let li = 0;
-            for(const px of row) {
-                if(px !== Infinity) {
-                    const color = IsochroneTool.valueToColor(
-                        px / manager.options.maxCost,
-                        manager.options.color
-                    );
-                    layerRow[li] = color[0];
-                    layerRow[li + 1] = color[1];
-                    layerRow[li + 2] = color[2];
-                }
-                li += 3;
-            }
-            layerData.push(layerRow);
-        }
         
         const layerName = "isochrone";
         Map_.rmNotNull(L_.layersGroup[layerName]);
+        //drawTileBounds(manager.tileBounds, manager.options.resolution);
 
         //TODO this will mess with map max/min zooms; fix
         L_.layersGroup[layerName] = new L.IsochroneLayer({
             className: "nofade",
             minNativeZoom: manager.options.resolution,
             maxNativeZoom: manager.options.resolution,
-            bounds: manager.bounds,
+            bounds: manager.tileBounds,
             tileSize: 256,
             opacity: 0.6,
-            data: layerData,
-            tileBounds: manager.tileBounds
+            data: manager.cost,
+            color: manager.options.color,
+            maxCost: manager.options.maxCost
         });
         
         L_.layersGroup[layerName].setZIndex(1000);
@@ -329,18 +354,26 @@ const IsochroneTool = {
             shadowAnchor: [22, 94],
         });
 
-        Map_.rmNotNull(IsochroneTool.marker)
+        Map_.rmNotNull(IsochroneTool.marker);
         IsochroneTool.marker = new L.marker(
             [manager.start.lat, manager.start.lng],
             {
                 icon: isochroneIcon,
-                draggable: false, //for now... (TODO)
+                draggable: false //for now... (TODO)
             }
-        ).addTo(Map_.map)
+        ).addTo(Map_.map);
     },
 
     hoverLine: function(e) {
+        const MAX_STEPS = 5000;
+
         if(this.manager.backlink === null) return;
+        const now = Date.now();
+        if(lastHoverCall + 100 > now) return;
+        lastHoverCall = now;
+
+        if(this.hoverPolyline !== null)
+            this.hoverPolyline.remove(Map_.map);
 
         const toLinePoint = (x, y) => {
             const latlng = D.pxToLatLng(
@@ -351,30 +384,35 @@ const IsochroneTool = {
             return [latlng.lat, latlng.lng];
         }
 
-        const now = Date.now();
-        if(lastHoverCall + 500 < now && e.latlng) {
-            lastHoverCall = now;
-            const hoveredPx = Map_.map
-                .project(e.latlng, this.manager.options.resolution)
-                .subtract(this.manager.tileBounds.min.multiplyBy(256))
-                .floor();
+        const hoveredPx = Map_.map
+            .project(e.latlng, this.manager.options.resolution)
+            .subtract(this.manager.tileBounds.min.multiplyBy(256))
+            .floor();
+        const width = this.manager.backlink[0].length;
+        const height = this.manager.backlink.length;
+
+        if(hoveredPx.x >= 0 && hoveredPx.y >= 0 && hoveredPx.x < width && hoveredPx.y < height) {
             const startVal = this.manager.backlink[hoveredPx.y][hoveredPx.x];
             if(startVal !== 0) {
                 let cx = hoveredPx.x;
                 let cy = hoveredPx.y;
                 let step = startVal;
                 let line = [toLinePoint(cx, cy)];
+                let lastStep = 0;
                 let count = 0;
-                while(step !== 0 && count < 100) {
+                while(step !== 0 && count < MAX_STEPS) {
                     let move = D.backlinkToMove(step);
                     cx += move[1];
                     cy += move[0];
-                    line.push(toLinePoint(cx, cy));
+                    if(step === lastStep) { //Extend line
+                        line[line.length - 1] = toLinePoint(cx, cy);
+                    } else { //Begin new line
+                        line.push(toLinePoint(cx, cy));
+                    }
+                    lastStep = step;
                     step = this.manager.backlink[cy][cx];
                     count++;
                 }
-                if(this.hoverPolyline !== null)
-                    this.hoverPolyline.remove(Map_.map);
                 this.hoverPolyline = window.L.polyline(line);
                 this.hoverPolyline.addTo(Map_.map);
             }
@@ -405,12 +443,12 @@ function interfaceWithMMGIS() {
     Map_.map.on('click', clickEventContainer);
 
     const moveEventContainer = e => IsochroneTool.hoverLine(e);
-    //Map_.map.on('mousemove', moveEventContainer);
+    Map_.map.on('mousemove', moveEventContainer);
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
     function separateFromMMGIS() {
         Map_.map.off('click', clickEventContainer);
-        //Map_.map.off('mousemove', moveEventContainer);
+        Map_.map.off('mousemove', moveEventContainer);
     }
 }
 

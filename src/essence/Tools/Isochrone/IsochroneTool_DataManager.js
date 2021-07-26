@@ -1,3 +1,4 @@
+import Map_ from "../../Basics/Map_/Map_";
 import F_ from "../../Basics/Formulae_/Formulae_";
 import L_ from "../../Basics/Layers_/Layers_";
 
@@ -5,9 +6,7 @@ import * as D from "./IsochroneTool_Util";
 
 const IsochroneTool_DataManager = {
     cache: {},
-    setCache: function() {
-
-    },
+    //TODO: fix all this. yikes!
     queryTiles: function(
         url,
         requiredTiles,
@@ -17,14 +16,17 @@ const IsochroneTool_DataManager = {
     ) {
         if(!F_.isUrlAbsolute(url)) url = L_.missionPath + url;
 
+        const pxWorldBound = Map_.map.getPixelWorldBounds(requiredTiles[0].z);
+        const yTileWorldBound = Math.ceil(pxWorldBound.max.y / 256) - 1;
+
         const totalTiles = requiredTiles.length;
-        const tilesPerStep = 32;
+        const tilesPerStep = 8;
         let nextStep = tilesPerStep;
         let tilesQueried = 0, tilesLoaded = 0;
 
         let queryReturnData = D.createDataArray(
-            bounds.width * 256,
-            bounds.height * 256,
+            (bounds.max.x - bounds.min.x) * 256,
+            (bounds.max.y - bounds.min.y) * 256,
             Infinity
         );
 
@@ -33,7 +35,7 @@ const IsochroneTool_DataManager = {
             const startY = tileInfo.relY * resolution;
             for(let y = 0; y < resolution; y++) {
                 const yResult = y + startY;
-                let dataRow = tileData.slice(y * resolution, (y + 1) * resolution);
+                const dataRow = tileData.slice(y * resolution, (y + 1) * resolution);
                 queryReturnData[yResult].splice(startX, resolution, ...dataRow);
             }
             registerLoadedTile();
@@ -43,7 +45,7 @@ const IsochroneTool_DataManager = {
             tilesLoaded++;
 
             if(tilesLoaded >= totalTiles) {
-                console.log("QUERY DATA", queryReturnData);
+                //console.log("QUERY DATA", queryReturnData);
                 callback(queryReturnData);
             } else if(tilesLoaded >= nextStep) {
                 query();
@@ -57,7 +59,11 @@ const IsochroneTool_DataManager = {
             nextStep = tilesQueried + tilesPerStep;
             for(let d = start; d < totalTiles && d < nextStep; d++) {
                 tilesQueried++;
-                const queryUrl = F_.populateUrl(url, requiredTiles[d], true);
+
+                let queryUrl = url.replace('{x}', requiredTiles[d].x);
+                queryUrl = queryUrl.replace('{y}', yTileWorldBound - requiredTiles[d].y);
+                queryUrl = queryUrl.replace('{z}', requiredTiles[d].z);
+
                 if(IsochroneTool_DataManager.cache[queryUrl] !== undefined) {
                     if(IsochroneTool_DataManager.cache[queryUrl] === null) {
                         registerLoadedTile();
