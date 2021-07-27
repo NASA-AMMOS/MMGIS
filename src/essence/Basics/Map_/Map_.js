@@ -107,7 +107,6 @@ let Map_ = {
                 zoomDelta: 0.05,
                 zoomSnap: 0,
                 fadeAnimation: shouldFade,
-                maxZoom: 40,
                 //wheelPxPerZoomLevel: 500,
             })
 
@@ -159,7 +158,6 @@ let Map_ = {
                 zoomControl: hasZoomControl,
                 editable: true,
                 fadeAnimation: shouldFade,
-                maxZoom: 40,
                 //crs: crs,
                 //zoomDelta: 0.05,
                 //zoomSnap: 0,
@@ -1500,7 +1498,7 @@ function clearOnMapClick(event) {
         let found = false
         // For all MMGIS layers
         for (let key in L_.layersGroup) {
-            let layers;
+            let layers
 
             // Layers can be a LayerGroup or an array of LayerGroup
             if ('getLayers' in L_.layersGroup[key]) {

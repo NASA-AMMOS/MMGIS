@@ -26,7 +26,7 @@ const markup = [
                 "<i class='mdi mdi-target mdi-18px'></i>",
             "</div>",
             "<div id='changeLngLat' title='Change coordinate types.'>",
-                "<i class='mdi mdi-cached mdi-18px'></i>",
+                "<i class='mdi mdi-axis-arrow mdi-18px'></i>",
             "</div>",
         "</div>",
         "<div id='toggleTimeUI'>",
@@ -119,7 +119,7 @@ var Coordinates = {
         this.damCoordSwapped = isSwapped
         this.refresh()
     },
-    refresh: function () {
+    refresh: function (isPartial) {
         if (F_.dam) {
             d3.select('#mouseDesc').html(Coordinates.damCoordLabel)
             if (!Coordinates.damCoordSwapped) {
@@ -192,6 +192,7 @@ var Coordinates = {
                     )
                     break
                 case 'rxy':
+                    let rzVal = 0
                     if (Map_.activeLayer != null) {
                         let keyAsName
                         if (Map_.activeLayer.hasOwnProperty('useKeyAsName')) {
@@ -209,10 +210,15 @@ var Coordinates = {
                                 keyAsName +
                                 ' (X,Y)'
                         )
-                        Coordinates.mouseLngLat[0] -=
-                            Map_.activeLayer.feature.geometry.coordinates[0]
-                        Coordinates.mouseLngLat[1] -=
-                            Map_.activeLayer.feature.geometry.coordinates[1]
+                        if (!isPartial) {
+                            Coordinates.mouseLngLat[0] -=
+                                Map_.activeLayer.feature.geometry.coordinates[0]
+                            Coordinates.mouseLngLat[1] -=
+                                Map_.activeLayer.feature.geometry.coordinates[1]
+                        }
+                        rzVal =
+                            Map_.activeLayer.feature.geometry.coordinates[2] ||
+                            0
                     } else {
                         d3.select('#mouseDesc').html(
                             'Relative to Map Origin (X,Y)'
@@ -234,7 +240,9 @@ var Coordinates = {
                             ).toFixed(3) +
                             'm' +
                             (Coordinates.elevation != null
-                                ? `, ${Coordinates.elevation.toFixed(3)}m`
+                                ? `, ${(Coordinates.elevation - rzVal).toFixed(
+                                      3
+                                  )}m`
                                 : '')
                     )
                     break
@@ -257,10 +265,12 @@ var Coordinates = {
                                 keyAsName +
                                 ' (Y,X)'
                         )
-                        Coordinates.mouseLngLat[0] -=
-                            Map_.activeLayer.feature.geometry.coordinates[0]
-                        Coordinates.mouseLngLat[1] -=
-                            Map_.activeLayer.feature.geometry.coordinates[1]
+                        if (!isPartial) {
+                            Coordinates.mouseLngLat[0] -=
+                                Map_.activeLayer.feature.geometry.coordinates[0]
+                            Coordinates.mouseLngLat[1] -=
+                                Map_.activeLayer.feature.geometry.coordinates[1]
+                        }
                         zVal =
                             Map_.activeLayer.feature.geometry.coordinates[2] ||
                             0
@@ -337,7 +347,7 @@ var Coordinates = {
                         if (data[0] && data[0][1] != null) {
                             Coordinates.elevation = data[0][1]
 
-                            Coordinates.refresh()
+                            Coordinates.refresh(true)
                         }
                     }
                 },
@@ -399,6 +409,8 @@ function pickLngLat() {
         $('.mouseLngLat').css({ display: 'flex' })
         $('.mouseLngLatPicking').removeClass('active')
         $('#pickLngLat').removeClass('active')
+
+        Map_.rmNotNull(Coordinates.tempIndicatorPoint)
     } else {
         $('.mouseLngLat').css({ display: 'none' })
         $('.mouseLngLatPicking').addClass('active')
@@ -494,11 +506,6 @@ function pickLngLatGo() {
     })
         .setRadius(4)
         .addTo(Map_.map)
-
-    clearTimeout(Coordinates.tempIndicatorPointTimeout)
-    Coordinates.tempIndicatorPointTimeout = setTimeout(() => {
-        Map_.rmNotNull(Coordinates.tempIndicatorPoint)
-    }, 2300)
 }
 
 function urlClick(e) {
