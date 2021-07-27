@@ -203,8 +203,8 @@ let DataShaders = {
                                 a: data[i + 3],
                             })
                             const valR = Math.round(value)
-                            histo[valR] = histo[valR] || 0
-                            histo[valR]++
+                            if (!histo[valR]) histo[valR] = 1
+                            else histo[valR]++
                             //if (i < 20) console.log(value)
                             if (value < min && !noDataValues.includes(value)) {
                                 min = value
@@ -266,9 +266,9 @@ let DataShaders = {
                     )
                 }
                 const minRate =
-                    Math.abs(DataShaders.colorize.lastMinMax.min - min) / 18
+                    Math.abs(DataShaders.colorize.lastMinMax.min - min) / 10
                 const maxRate =
-                    Math.abs(DataShaders.colorize.lastMinMax.max - max) / 18
+                    Math.abs(DataShaders.colorize.lastMinMax.max - max) / 10
                 if (DataShaders.colorize.lastMinMax.min > min)
                     DataShaders.colorize.lastMinMax.min -= minRate
                 else if (DataShaders.colorize.lastMinMax.min < min)
@@ -287,7 +287,7 @@ let DataShaders = {
                     DataShaders.colorize.lastMinMax.max
                 )
                 L_.layersGroup[name].reRender()
-            }, 40)
+            }, 50)
         },
         // Like attach immediate events but on layer tool open
         attachEvents: function (name, shaderObj) {

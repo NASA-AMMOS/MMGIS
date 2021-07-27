@@ -143,9 +143,8 @@ var InfoTool = {
             if (!this.info[i].properties) {
                 if (this.info[i].feature) this.info[i] = this.info[i].feature
             }
-            let name = this.info[i].properties[
-                Object.keys(this.info[i].properties)[0]
-            ]
+            let name =
+                this.info[i].properties[Object.keys(this.info[i].properties)[0]]
             if (
                 this.variables &&
                 this.variables.useKeyAsName &&
@@ -236,10 +235,12 @@ var InfoTool = {
             depthTraversal(
                 {
                     Coordinates: {
-                        Longitude: this.info[this.activeFeatureI].geometry
-                            .coordinates[0],
-                        Latitude: this.info[this.activeFeatureI].geometry
-                            .coordinates[1],
+                        Longitude:
+                            this.info[this.activeFeatureI].geometry
+                                .coordinates[0],
+                        Latitude:
+                            this.info[this.activeFeatureI].geometry
+                                .coordinates[1],
                         Elevation:
                             this.info[this.activeFeatureI].geometry
                                 .coordinates[2] || 'unk',
@@ -257,7 +258,30 @@ var InfoTool = {
                 delete props[element]
             })
         }
-        depthTraversal(props, 0, [], true)
+        const geometryType =
+            this.info[this.activeFeatureI].geometry.type.toLowerCase()
+        if (geometryType === 'linestring' || geometryType === 'multilinestring')
+            props.Metrics = {
+                Length: F_.getFeatureLength(
+                    this.info[this.activeFeatureI],
+                    true
+                ),
+            }
+        else if (geometryType === 'polygon')
+            props.Metrics = {
+                Perimeter: F_.getFeatureLength(
+                    this.info[this.activeFeatureI],
+                    true
+                ),
+                Area: F_.getFeatureArea(this.info[this.activeFeatureI], true),
+            }
+
+        depthTraversal(
+            props,
+            0,
+            [],
+            this.vars.sortAlphabetically === false ? false : true
+        )
 
         function depthTraversal(node, depth, path, sort) {
             path = path || []
@@ -269,6 +293,7 @@ var InfoTool = {
             if (InfoTool.hiddenRootFields.indexOf(path[0]) != -1)
                 type = 'infoTool_hidden'
             else if (path[0] == 'Coordinates') type = 'infoTool_geometry'
+            else if (path[0] == 'Metrics') type = 'infoTool_metrics'
 
             for (var i = 0; i < keys.length; i++) {
                 if (path.length == 0) {
@@ -276,6 +301,7 @@ var InfoTool = {
                         type = 'infoTool_hidden'
                     else if (keys[i] == 'Coordinates')
                         type = 'infoTool_geometry'
+                    else if (keys[i] == 'Metrics') type = 'infoTool_metrics'
                     else type = 'infoTool_property'
                 }
 
@@ -395,6 +421,8 @@ function interfaceWithMMGIS() {
     this.separateFromMMGIS = function () {
         separateFromMMGIS()
     }
+
+    InfoTool.vars = L_.getToolVars('info')
 
     //Add event functions and whatnot
     InfoTool.use(

@@ -130,8 +130,6 @@ var wmsExtension = {
 
         var wmsParams = L.extend({}, this.defaultWmsParams)
 
-        //console.log( wmsParams)
-
         // all keys that are not TileLayer options go to WMS params
         for (var i in options) {
             if (!(i in this.extensionOptions)) {

@@ -160,25 +160,26 @@ var UserInterface = {
                 $('.leaflet-control-zoom').css('display', 'none')
                 $('#topBarScreenshotLoading').css('display', 'block')
                 $('#mapToolBar').css('background', 'rgba(0,0,0,0)')
-                HTML2Canvas(document.getElementById('mapScreen'), {allowTaint: true, useCORS: true}).then(
-                    function (canvas) {
-                        canvas.id = 'mmgisScreenshot'
-                        document.body.appendChild(canvas)
-                        F_.downloadCanvas(
-                            canvas.id,
-                            'mmgis-screenshot',
-                            function () {
-                                canvas.remove()
-                                setTimeout(function () {
-                                    $('#topBarScreenshotLoading').css(
-                                        'display',
-                                        'none'
-                                    )
-                                }, 2000)
-                            }
-                        )
-                    }
-                )
+                HTML2Canvas(document.getElementById('mapScreen'), {
+                    allowTaint: true,
+                    useCORS: true,
+                }).then(function (canvas) {
+                    canvas.id = 'mmgisScreenshot'
+                    document.body.appendChild(canvas)
+                    F_.downloadCanvas(
+                        canvas.id,
+                        'mmgis-screenshot',
+                        function () {
+                            canvas.remove()
+                            setTimeout(function () {
+                                $('#topBarScreenshotLoading').css(
+                                    'display',
+                                    'none'
+                                )
+                            }, 2000)
+                        }
+                    )
+                })
                 $('#mapScreen #map .leaflet-tile-pane')
                     .children()
                     .each(function (i, elm) {
@@ -426,6 +427,7 @@ var UserInterface = {
             .style('overflow', 'hidden')
             .style('background', 'rgba(0,0,0,0.15)')
             .style('z-index', '1003')
+            .style('transition', 'bottom 0.2s ease-in')
 
         this.mapTopBar = this.mapScreen
             .append('div')

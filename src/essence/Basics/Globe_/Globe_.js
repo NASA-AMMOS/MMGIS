@@ -25,16 +25,32 @@ let Globe_ = {
             zoom: initialView[2],
         }
 
+        const tmr =
+            L_.configData.projection && L_.configData.projection.custom === true
+                ? {
+                      bounds: L_.configData.projection.bounds,
+                      origin: L_.configData.projection.origin,
+                      crsCode: L_.configData.projection.epsg,
+                      proj: L_.configData.projection.proj,
+                      resunitsperpixel: parseFloat(
+                          L_.configData.projection.resunitsperpixel
+                      ),
+                      reszoomlevel: parseInt(
+                          L_.configData.projection.reszoomlevel
+                      ),
+                  }
+                : {
+                      bounds: [0, 0, 0, 0],
+                      origin: [0, 0],
+                      proj: null, // proj4 string describing the global tileset projection: string (opt) | default wgs84
+                      resunitsperpixel: 32,
+                      reszoomlevel: 0,
+                  }
+
         this.litho = new LithoSphere(containerId, {
             initialView,
             //opt
-            tileMapResource: {
-                bounds: [0, 0, 0, 0],
-                origin: [0, 0],
-                proj: null, // proj4 string describing the global tileset projection: string (opt) | default wgs84
-                resunitsperpixel: 34,
-                reszoomlevel: 0,
-            },
+            tileMapResource: tmr,
             majorRadius: F_.radiusOfPlanetMajor,
             minorRadius: F_.radiusOfPlanetMinor,
             //renderOnlyWhenOpen: false, //default true

@@ -212,13 +212,21 @@ var L_ = {
                         name: s.name,
                         order: 99999 - L_.layersIndex[s.name],
                         on: L_.opacityArray[s.name],
+                        format: s.tileformat || 'tms',
+                        formatOptions: {},
+                        demFormat: s.tileformat || 'tms',
+                        demFormatOptions: {
+                            correctSeams: s.tileformat === 'wms',
+                            wmsParams: {},
+                        },
+                        parser: s.demparser || null,
                         path: layerUrl,
                         demPath: demUrl,
                         opacity: L_.opacityArray[s.name],
                         minZoom: s.minZoom,
                         maxZoom: s.maxNativeZoom,
-                        boundingBox: s.boundingBox,
-                        time: s.time == null ? '' : s.time.end,
+                        //boundingBox: s.boundingBox,
+                        //time: s.time == null ? '' : s.time.end,
                     })
                 } else {
                     L_.Globe_.litho.toggleLayer(s.name, true)
@@ -281,16 +289,21 @@ var L_ = {
                                     name: r[i].name,
                                     order: 99999 - L_.layersIndex[r[i].name],
                                     on: L_.opacityArray[r[i].name],
-                                    format: 'tms',
-                                    demFormat: 'tms',
+                                    format: s.tileformat || 'tms',
+                                    formatOptions: {},
+                                    demFormat: s.tileformat || 'tms',
+                                    demFormatOptions: {
+                                        correctSeams: s.tileformat === 'wms',
+                                        wmsParams: {},
+                                    },
+                                    parser: s.demparser || null,
                                     path: layerUrl,
                                     demPath: demUrl,
                                     opacity: L_.opacityArray[r[i].name],
                                     minZoom: r[i].minZoom,
                                     maxZoom: r[i].maxNativeZoom,
-                                    boundingBox: r[i].boundingBox,
-                                    time:
-                                        r[i].time == null ? '' : r[i].time.end,
+                                    //boundingBox: r[i].boundingBox,
+                                    //time: r[i].time == null ? '' : r[i].time.end,
                                 })
                             } else {
                                 L_.Globe_.litho.toggleLayer(r[i].name, false)
@@ -398,15 +411,21 @@ var L_ = {
                             name: s.name,
                             order: 99999 - L_.layersIndex[s.name],
                             on: L_.opacityArray[s.name],
-                            format: 'tms',
-                            demFormat: 'tms',
+                            format: s.tileformat || 'tms',
+                            formatOptions: {},
+                            demFormat: s.tileformat || 'tms',
+                            demFormatOptions: {
+                                correctSeams: s.tileformat === 'wms',
+                                wmsParams: {},
+                            },
+                            parser: s.demparser || null,
                             path: layerUrl,
                             demPath: demUrl,
                             opacity: L_.opacityArray[s.name],
                             minZoom: s.minZoom,
                             maxZoom: s.maxNativeZoom,
-                            boundingBox: s.boundingBox,
-                            time: s.time == null ? '' : s.time.end,
+                            //boundingBox: s.boundingBox,
+                            //time: s.time == null ? '' : s.time.end,
                         })
                 } else if (L_.layersData[i].type != 'header') {
                     L_.Globe_.litho.addLayer(

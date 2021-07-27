@@ -11,7 +11,8 @@
                 "Line_Alias",
                 "Point_Alias"
             ],
-            "preferredTags": ["preferredTagA", "example1"]
+            "preferredTags": ["preferredTagA", "example1"],
+            "hoverLengthOnLines": false
         }
     },
     "hasVars": true,

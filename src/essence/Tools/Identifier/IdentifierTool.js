@@ -420,7 +420,7 @@ function queryDataValue(url, lng, lat, numBands, callback) {
             //Convert python's Nones to nulls
             data = data.replace(/none/gi, 'null')
             if (data.length > 2) {
-                data = JSON.parse($.parseJSON(data))
+                data = JSON.parse(data)
                 if (typeof callback === 'function') callback(data)
             }
         },
