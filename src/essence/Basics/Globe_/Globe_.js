@@ -39,7 +39,13 @@ let Globe_ = {
                           L_.configData.projection.reszoomlevel
                       ),
                   }
-                : null
+                : {
+                      bounds: [0, 0, 0, 0],
+                      origin: [0, 0],
+                      proj: null, // proj4 string describing the global tileset projection: string (opt) | default wgs84
+                      resunitsperpixel: 32,
+                      reszoomlevel: 0,
+                  }
 
         this.litho = new LithoSphere(containerId, {
             initialView,
