@@ -3,6 +3,8 @@ import $ from 'jquery'
 import * as d3 from 'd3'
 import F_ from '../Basics/Formulae_/Formulae_'
 import Map_ from '../Basics/Map_/Map_'
+import L_ from '../Basics/Layers_/Layers_'
+import calls from '../../pre/calls'
 
 import './Coordinates.css'
 
@@ -40,17 +42,26 @@ var Coordinates = {
     ZZnotAP: true,
     //Boolean indicating coords are displayed in decimal degrees not meters
     DDnotM: true,
-    //00 is ZZnotAP: true and DDnotM: true, 01 is true and false ...
     state: 0,
+    states: [],
     damCoordLabel: 'X, Y',
     damCoordSwapped: false,
     tempIndicatorPoint: null,
+    elevQueryTimes: [],
     init: function () {
         d3.select('#CoordinatesDiv').remove()
         d3.select('body')
             .append('div')
             .attr('id', 'CoordinatesDiv')
             .html(markup)
+
+        if (L_.configData.look) {
+            if (L_.configData.look.coordll) Coordinates.states.push('ll')
+            if (L_.configData.look.coorden) Coordinates.states.push('en')
+            if (L_.configData.look.coordrxy) Coordinates.states.push('rxy')
+            if (L_.configData.look.coordsite) Coordinates.states.push('site')
+        }
+        if (Coordinates.states.length === 0) Coordinates.states = ['ll', 'en']
 
         //true for decimal deg, false for meters
         Coordinates.DDnotM = true
@@ -137,67 +148,205 @@ var Coordinates = {
                 )
             }
         } else {
-            if (!Coordinates.ZZnotAP) {
-                if (Map_.activeLayer != null) {
-                    var keyAsName
-                    if (Map_.activeLayer.hasOwnProperty('useKeyAsName')) {
-                        keyAsName =
-                            Map_.activeLayer.feature.properties[
-                                Map_.activeLayer.useKeyAsName
-                            ]
-                    } else {
-                        keyAsName = Map_.activeLayer.feature.properties[0]
-                    }
-                    d3.select('#mouseDesc').html(
-                        'Relative to ' +
-                            Map_.activeLayer.options.layerName +
-                            ': ' +
-                            keyAsName +
-                            ' (X,Y)'
-                    )
-                    Coordinates.mouseLngLat[0] -=
-                        Map_.activeLayer.feature.geometry.coordinates[0]
-                    Coordinates.mouseLngLat[1] -=
-                        Map_.activeLayer.feature.geometry.coordinates[1]
-                } else {
-                    d3.select('#mouseDesc').html('Relative to Map Origin (X,Y)')
-                }
-            }
-            if (Coordinates.DDnotM) {
-                d3.select('#mouseDesc').html('Longitude, Latitude')
-                d3.select('#mouseLngLat').html(
-                    (
-                        Coordinates.mouseLngLat[0] + Coordinates.coordOffset[0]
-                    ).toFixed(8) +
-                        '&deg, ' +
+            switch (Coordinates.states[Coordinates.state]) {
+                case 'll':
+                    d3.select('#mouseDesc').html('Longitude, Latitude')
+                    d3.select('#mouseLngLat').html(
                         (
-                            Coordinates.mouseLngLat[1] +
-                            Coordinates.coordOffset[1]
+                            Coordinates.mouseLngLat[0] +
+                            Coordinates.coordOffset[0]
                         ).toFixed(8) +
-                        '&deg'
-                )
-            } else {
-                if (Coordinates.ZZnotAP) {
-                    d3.select('#mouseDesc').html('Easting, Northing')
-                }
-                d3.select('#mouseLngLat').html(
-                    (
-                        (Coordinates.mouseLngLat[0] +
-                            Coordinates.coordOffset[0]) *
-                        (Math.PI / 180) *
-                        F_.radiusOfPlanetMajor
-                    ).toFixed(3) +
-                        'm, ' +
+                            '&deg, ' +
+                            (
+                                Coordinates.mouseLngLat[1] +
+                                Coordinates.coordOffset[1]
+                            ).toFixed(8) +
+                            '&deg' +
+                            (Coordinates.elevation != null
+                                ? `, ${Coordinates.elevation.toFixed(3)}m`
+                                : '')
+                    )
+                    break
+                case 'en':
+                    if (Coordinates.ZZnotAP) {
+                        d3.select('#mouseDesc').html('Easting, Northing')
+                    }
+                    d3.select('#mouseLngLat').html(
+                        (
+                            (Coordinates.mouseLngLat[0] +
+                                Coordinates.coordOffset[0]) *
+                            (Math.PI / 180) *
+                            F_.radiusOfPlanetMajor
+                        ).toFixed(3) +
+                            'm, ' +
+                            (
+                                (Coordinates.mouseLngLat[1] +
+                                    Coordinates.coordOffset[0]) *
+                                (Math.PI / 180) *
+                                F_.radiusOfPlanetMajor
+                            ).toFixed(3) +
+                            'm' +
+                            (Coordinates.elevation != null
+                                ? `, ${Coordinates.elevation.toFixed(3)}m`
+                                : '')
+                    )
+                    break
+                case 'rxy':
+                    if (Map_.activeLayer != null) {
+                        let keyAsName
+                        if (Map_.activeLayer.hasOwnProperty('useKeyAsName')) {
+                            keyAsName =
+                                Map_.activeLayer.feature.properties[
+                                    Map_.activeLayer.useKeyAsName
+                                ]
+                        } else {
+                            keyAsName = Map_.activeLayer.feature.properties[0]
+                        }
+                        d3.select('#mouseDesc').html(
+                            'Relative to ' +
+                                Map_.activeLayer.options.layerName +
+                                ': ' +
+                                keyAsName +
+                                ' (X,Y)'
+                        )
+                        Coordinates.mouseLngLat[0] -=
+                            Map_.activeLayer.feature.geometry.coordinates[0]
+                        Coordinates.mouseLngLat[1] -=
+                            Map_.activeLayer.feature.geometry.coordinates[1]
+                    } else {
+                        d3.select('#mouseDesc').html(
+                            'Relative to Map Origin (X,Y)'
+                        )
+                    }
+                    d3.select('#mouseLngLat').html(
+                        (
+                            (Coordinates.mouseLngLat[0] +
+                                Coordinates.coordOffset[0]) *
+                            (Math.PI / 180) *
+                            F_.radiusOfPlanetMajor
+                        ).toFixed(3) +
+                            'm, ' +
+                            (
+                                (Coordinates.mouseLngLat[1] +
+                                    Coordinates.coordOffset[0]) *
+                                (Math.PI / 180) *
+                                F_.radiusOfPlanetMajor
+                            ).toFixed(3) +
+                            'm' +
+                            (Coordinates.elevation != null
+                                ? `, ${Coordinates.elevation.toFixed(3)}m`
+                                : '')
+                    )
+                    break
+                case 'site':
+                    let zVal = 0
+                    if (Map_.activeLayer != null) {
+                        let keyAsName
+                        if (Map_.activeLayer.hasOwnProperty('useKeyAsName')) {
+                            keyAsName =
+                                Map_.activeLayer.feature.properties[
+                                    Map_.activeLayer.useKeyAsName
+                                ]
+                        } else {
+                            keyAsName = Map_.activeLayer.feature.properties[0]
+                        }
+                        d3.select('#mouseDesc').html(
+                            'Site Frame - ' +
+                                Map_.activeLayer.options.layerName +
+                                ': ' +
+                                keyAsName +
+                                ' (Y,X)'
+                        )
+                        Coordinates.mouseLngLat[0] -=
+                            Map_.activeLayer.feature.geometry.coordinates[0]
+                        Coordinates.mouseLngLat[1] -=
+                            Map_.activeLayer.feature.geometry.coordinates[1]
+                        zVal =
+                            Map_.activeLayer.feature.geometry.coordinates[2] ||
+                            0
+                    } else {
+                        d3.select('#mouseDesc').html(
+                            'Site Frame - Map Origin (Y,X)'
+                        )
+                    }
+                    d3.select('#mouseLngLat').html(
                         (
                             (Coordinates.mouseLngLat[1] +
                                 Coordinates.coordOffset[0]) *
                             (Math.PI / 180) *
                             F_.radiusOfPlanetMajor
                         ).toFixed(3) +
-                        'm'
-                )
+                            'm, ' +
+                            (
+                                (Coordinates.mouseLngLat[0] +
+                                    Coordinates.coordOffset[0]) *
+                                (Math.PI / 180) *
+                                F_.radiusOfPlanetMajor
+                            ).toFixed(3) +
+                            'm' +
+                            (Coordinates.elevation != null
+                                ? `, ${(zVal - Coordinates.elevation).toFixed(
+                                      3
+                                  )}m`
+                                : '')
+                    )
+                    break
+                default:
             }
         }
+    },
+    getElevation: function () {
+        clearTimeout(Coordinates.elevationTimeout)
+
+        if (
+            L_.configData.look == null ||
+            L_.configData.look.coordelevurl == null
+        )
+            return
+
+        // Let's be fancy and query more quickly the more the user queries
+        let delay = 1000
+        if (Coordinates.elevQueryTimes.length >= 5) delay = 500
+        if (Coordinates.elevQueryTimes.length >= 10) delay = 250
+
+        Coordinates.elevationTimeout = setTimeout(() => {
+            const now = new Date().getTime()
+            Coordinates.elevQueryTimes.push(now)
+            Coordinates.elevQueryTimes = Coordinates.elevQueryTimes.filter(
+                (v) => v > now - 60000
+            )
+
+            let url = L_.configData.look.coordelevurl
+            if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
+            calls.api(
+                'getbands',
+                {
+                    type: 'band',
+                    x: Coordinates.mouseLngLatRaw[1],
+                    y: Coordinates.mouseLngLatRaw[0],
+                    xyorll: 'll',
+                    bands: '[[1,1]]',
+                    path: url,
+                },
+                function (data) {
+                    Coordinates.elevation = null
+                    //Convert python's Nones to nulls
+                    data = data.replace(/none/gi, 'null')
+                    if (data.length > 2) {
+                        data = JSON.parse(data)
+                        if (data[0] && data[0][1] != null) {
+                            Coordinates.elevation = data[0][1]
+
+                            Coordinates.refresh()
+                        }
+                    }
+                },
+                function () {
+                    console.warn('Coordinates: Failed to query elevation.')
+                    Coordinates.elevation = null
+                }
+            )
+        }, delay)
     },
     remove: function () {
         //Clear all the stuffes
@@ -212,17 +361,21 @@ var Coordinates = {
 
 //Upon clicking the lnglat bar, swap decimal degrees and meters and recalculate
 function mouseLngLatClick() {
-    Coordinates.state = (Coordinates.state + 1) % 3
-    switch (Coordinates.state) {
-        case 0: //00
+    Coordinates.state = (Coordinates.state + 1) % Coordinates.states.length
+    switch (Coordinates.states[Coordinates.state]) {
+        case 'll':
             Coordinates.DDnotM = true
             Coordinates.ZZnotAP = true
             break
-        case 1: //01
+        case 'en':
             Coordinates.ZZnotAP = true
             Coordinates.DDnotM = false
             break
-        case 2: //10
+        case 'rxy':
+            Coordinates.ZZnotAP = false
+            Coordinates.DDnotM = false
+            break
+        case 'site':
             Coordinates.ZZnotAP = false
             Coordinates.DDnotM = false
             break
@@ -234,7 +387,10 @@ function mouseLngLatClick() {
 
 //Update mouse lat long coordinate display on mouse move
 function mouseLngLatMove(e) {
+    Coordinates.mouseLngLatRaw = [e.latlng.lng, e.latlng.lat]
     Coordinates.mouseLngLat = [e.latlng.lng, e.latlng.lat]
+    if (L_.configData.look && L_.configData.look.coordelev === true)
+        Coordinates.getElevation()
     Coordinates.refresh()
 }
 
@@ -271,24 +427,24 @@ function pickLngLat() {
 }
 
 function pickLngLatGo() {
-    const valA = parseFloat($('#mouseLngLatPickingA').val())
-    const valB = parseFloat($('#mouseLngLatPickingB').val())
+    let valA = parseFloat($('#mouseLngLatPickingA').val())
+    let valB = parseFloat($('#mouseLngLatPickingB').val())
 
     let finalLng = valA
     let finalLat = valB
 
-    switch (Coordinates.state) {
-        case 0: //00 lnglat
+    switch (Coordinates.states[Coordinates.state]) {
+        case 'll': //00 lnglat
             finalLng = valA
             finalLat = valB
             break
-        case 1: //01 easting northing
+        case 'en': //01 easting northing
             const valALng = (valA * (180 / Math.PI)) / F_.radiusOfPlanetMajor
             const valBLat = (valB * (180 / Math.PI)) / F_.radiusOfPlanetMajor
             finalLng = valALng
             finalLat = valBLat
             break
-        case 2: //10 relative easting northing
+        case 'rxy': //10 relative easting northing
             let relativeA = 0
             let relativeB = 0
             if (Map_.activeLayer != null) {
@@ -302,6 +458,27 @@ function pickLngLatGo() {
 
             finalLng = valALngRel
             finalLat = valBLatRel
+            break
+        case 'site': //10 relative easting northing
+            let siteRelativeA = 0
+            let siteRelativeB = 0
+            const valSwap = valA
+            valA = valB
+            valB = valSwap
+            if (Map_.activeLayer != null) {
+                siteRelativeA = Map_.activeLayer.feature.geometry.coordinates[0]
+                siteRelativeB = Map_.activeLayer.feature.geometry.coordinates[1]
+            }
+            const valSiteALngRel =
+                (valA * (180 / Math.PI)) / F_.radiusOfPlanetMajor +
+                siteRelativeA
+            const valSiteBLatRel =
+                (valB * (180 / Math.PI)) / F_.radiusOfPlanetMajor +
+                siteRelativeB
+
+            // Swapped to account for swapped Y, X
+            finalLng = valSiteALngRel
+            finalLat = valSiteBLatRel
             break
         default:
     }

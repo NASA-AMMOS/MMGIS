@@ -27,7 +27,8 @@ def getValueAtBand(b):
     try:
         # Get the band
         band = ds.GetRasterBand(b)
-        value = band.ReadAsArray(pixelLatLonPair[0][0], pixelLatLonPair[0][1], 1, 1)[0][0]
+        value = band.ReadAsArray(
+            pixelLatLonPair[0][0], pixelLatLonPair[0][1], 1, 1)[0][0]
 
         bandName = band.GetDescription()
         if isinstance(bandName, str):
@@ -58,7 +59,8 @@ def getRasterDataValues():
     valuesArray = []
     for i in range(0, len(bands)):
         # an int or an array of int
-        if(isinstance(bands[i], int)):  # if part needs work (safer to pass bands: "[[x,y]]" now)
+        # if part needs work (safer to pass bands: "[[x,y]]" now)
+        if(isinstance(bands[i], int)):
             value = getValueAtBand(bands[i])
             print(value)
             valuesArray.append(value)
@@ -134,4 +136,4 @@ else:
 # Find the raster value at each of those points
 valueArray = getRasterDataValues()
 
-print('"', valueArray, '"')
+print(valueArray)
