@@ -1006,65 +1006,62 @@ function makeLayer(layerObj) {
                     ).setRadius(layerObj.radius)
                     
                     
-                    if(true){
-                        const featureStyle = leafletLayerObject.style(feature)
-                        // let shape = "square"
-                        console.log(layerObj.shape)
-                        let svg = ""
-                        switch (layerObj.shape.toString()){
-                            case "circle":
-                                svg = [
-                                    `<svg style="height=12px;width=12px" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="black" stroke-width="2px">`,
-                                        `<circle cx="12" cy="12" r="6"/>`,
-                                    `</svg>`
-                                ]
-                                .join("\n")
-                                break
-                            case "square":
-                                svg = [
-                                    `<svg width="24px;height=24px" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="black" stroke-width="1.5px">`,
-                                        `<rect width="12" height="12"/>`,
-                                    `</svg>`
-                                ]
-                                .join("\n")
-                                break
-                            case "triangle":
-                                svg = [
-                                    `<svg style="height=14px;width=14px" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="black" stroke-width="1px">`,
-                                    `<polygon points="0,0 7,14 14,0"/>`,
-                                    `</svg>`
-                                ]
-                                .join("\n")
-                                break
-                            case "star":
-                                svg = [
-                                    `<svg width="24px";height="24px"  viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="black" stroke-width="1px">`,
-                                        `<polygon points="12,0 4,24 24,12 0,12 20,24"/>`,
-                                    `</svg>`
-                                ]
-                                .join("\n")
-                                break
-                            case "hexagon":
-                                svg = [
-                                    `<svg version="1.1"xmlns="http://www.w3.org/2000/svg" width="18" height="20" viewbox="0 0 17.32050807568877 20" stroke="black" stroke-width="2px">`,
-                                    `<path fill="${featureStyle.fillColor}" d="M8.660254037844386 0L17.32050807568877 5L17.32050807568877 15L8.660254037844386 20L0 15L0 5Z"></path>`,
-                                    `</svg>`
-                                ]
-                                .join("\n")
-                                break
-                            case "dinosaur":
-                                svg = [
-                                    `<svg style="width:24px;height:24px" viewBox="0 0 24 24" stroke="black" stroke-width="1px">`,
-                                        `<path fill="${featureStyle.fillColor}" d="M13 2V3H12V9H11V10H9V11H8V12H7V13H5V12H4V11H3V9H2V15H3V16H4V17H5V18H6V22H8V21H7V20H8V19H9V18H10V19H11V22H13V21H12V17H13V16H14V15H15V12H16V13H17V11H15V9H20V8H17V7H22V3H21V2M14 3H15V4H14Z" />`,
-                                    `</svg>`
-                                ]
-                                .join("\n")
-                                break
-                        }
-                        markerIcon = L.divIcon({className : 'leafletMarkerShape', 
-                        iconSize: [24,24],
-                        html: svg});
-                        }
+                    // Use dynamic symbols based on shape
+                    const featureStyle = leafletLayerObject.style(feature)
+                    let svg = ""
+                    switch (layerObj.shape.toString()){
+                        case "circle":
+                            svg = [
+                                `<svg style="height=12px;width=12px" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="black" stroke-width="2px">`,
+                                    `<circle cx="12" cy="12" r="6"/>`,
+                                `</svg>`
+                            ]
+                            .join("\n")
+                            break
+                        case "square":
+                            svg = [
+                                `<svg width="24px;height=24px" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="black" stroke-width="1.5px">`,
+                                    `<rect width="12" height="12"/>`,
+                                `</svg>`
+                            ]
+                            .join("\n")
+                            break
+                        case "triangle":
+                            svg = [
+                                `<svg style="height=14px;width=14px" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="black" stroke-width="1px">`,
+                                `<polygon points="0,0 7,14 14,0"/>`,
+                                `</svg>`
+                            ]
+                            .join("\n")
+                            break
+                        case "star":
+                            svg = [
+                                `<svg width="24px";height="24px"  viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="black" stroke-width="1px">`,
+                                    `<polygon points="12,0 4,24 24,12 0,12 20,24"/>`,
+                                `</svg>`
+                            ]
+                            .join("\n")
+                            break
+                        case "hexagon":
+                            svg = [
+                                `<svg version="1.1"xmlns="http://www.w3.org/2000/svg" width="18" height="20" viewbox="0 0 17.32050807568877 20" stroke="black" stroke-width="2px">`,
+                                `<path fill="${featureStyle.fillColor}" d="M8.660254037844386 0L17.32050807568877 5L17.32050807568877 15L8.660254037844386 20L0 15L0 5Z"></path>`,
+                                `</svg>`
+                            ]
+                            .join("\n")
+                            break
+                        case "dinosaur":
+                            svg = [
+                                `<svg style="width:24px;height:24px" viewBox="0 0 24 24" stroke="black" stroke-width="1px">`,
+                                    `<path fill="${featureStyle.fillColor}" d="M13 2V3H12V9H11V10H9V11H8V12H7V13H5V12H4V11H3V9H2V15H3V16H4V17H5V18H6V22H8V21H7V20H8V19H9V18H10V19H11V22H13V21H12V17H13V16H14V15H15V12H16V13H17V11H15V9H20V8H17V7H22V3H21V2M14 3H15V4H14Z" />`,
+                                `</svg>`
+                            ]
+                            .join("\n")
+                            break
+                    }
+                    markerIcon = L.divIcon({className : 'leafletMarkerShape', 
+                    iconSize: [24,24],
+                    html: svg});
                     if (markerIcon) {
                         layer = L.marker(latlong, { icon: markerIcon })
                         layer.options.layerName = layerObj.name
