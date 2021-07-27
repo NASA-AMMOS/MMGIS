@@ -4,6 +4,7 @@ import Description from '../../Ancillary/Description'
 import Search from '../../Ancillary/Search'
 import ToolController_ from '../../Basics/ToolController_/ToolController_'
 import $ from 'jquery'
+import * as d3 from 'd3'
 
 var L_ = {
     url: window.location.href,
@@ -472,14 +473,20 @@ var L_ = {
         const color =
             (L_.configData.look && L_.configData.look.highlightcolor) || 'red'
         try {
-            if (layer.feature.geometry.type === 'Point')
-                layer.setStyle({
-                    fillColor: color,
-                })
-            else
+            if (layer.feature?.properties?.annotation) {
+                // Annotation
+                let id = '#DrawToolAnnotation_' + layer.feature.properties._.file_id + '_' + layer.feature.properties._.id
+                d3.select(id).style('color', color)
+            } else if (layer.hasOwnProperty('_layers')) {
+                // Arrow
+                var layers = layer._layers
+                layers[Object.keys(layers)[0]].setStyle({ color })
+                layers[Object.keys(layers)[1]].setStyle({ color })
+            } else {
                 layer.setStyle({
                     color: color,
                 })
+            }
         } catch (err) {
             if (layer._icon)
                 layer._icon.style.filter = `drop-shadow(${color}  2px 0px 0px) drop-shadow(${color}  -2px 0px 0px) drop-shadow(${color}  0px 2px 0px) drop-shadow(${color} 0px -2px 0px)`
@@ -534,11 +541,14 @@ var L_ = {
     },
     resetLayerFills: function () {
         for (let key in this.layersGroup) {
+            var s = key.split('_')
+            var onId = s[1] != 'master' ? parseInt(s[1]) : s[1]
             if (
-                this.layersNamed[key] &&
+                (this.layersNamed[key] &&
                 (this.layersNamed[key].type == 'point' ||
                     (key.toLowerCase().indexOf('draw') == -1 &&
-                        this.layersNamed[key].type == 'vector'))
+                        this.layersNamed[key].type == 'vector'))) ||
+                            (s[0] == 'DrawTool' && !Number.isNaN(onId))
             ) {
                 if (
                     this.layersGroup.hasOwnProperty(key) &&
@@ -564,6 +574,48 @@ var L_ = {
                             if (layer._icon) layer._icon.style.filter = ''
                         }
                     })
+                } else if (s[0] == 'DrawTool') {
+                    for (let k in this.layersGroup[key]) {
+                        if (!this.layersGroup[key][k]) continue
+                        if ('getLayers' in this.layersGroup[key][k]) {
+                            let layer = this.layersGroup[key][k]
+                            if (!layer?.feature?.properties?.arrow) {
+                                // Polygons and lines
+                                layer.eachLayer(function(l) {
+                                    setLayerStyle(l)
+                                })
+                            } else {
+                                // Arrow
+                                let layers = this.layersGroup[key][k]._layers
+                                const style = this.layersGroup[key][k].feature.properties.style
+                                const color = style.color
+                                layers[Object.keys(layers)[0]].setStyle({ color })
+                                layers[Object.keys(layers)[1]].setStyle({ color })
+                            }
+                        } else if (this.layersGroup[key][k].feature?.properties?.annotation) {
+                            // Annotation
+                            let layer = this.layersGroup[key][k]
+                            let id = '#DrawToolAnnotation_' + layer.feature.properties._.file_id + '_' + layer.feature.properties._.id
+                            d3.select(id).style('color', layer.feature.properties.style.fillColor)
+                        } else if ('feature' in this.layersGroup[key][k]) {
+                            // Points (that are not annotations)
+                            let layer = this.layersGroup[key][k]
+                            setLayerStyle(layer)
+                        }
+                    }
+
+                    function setLayerStyle(layer) {
+                        const style = layer.feature.properties.style
+                        const color = style.color
+                        if (layer.feature.geometry.type === 'Point')
+                            layer.setStyle({
+                                fillColor: color,
+                            })
+                        else
+                            layer.setStyle({
+                                color: color,
+                            })
+                    }
                 }
             }
         }

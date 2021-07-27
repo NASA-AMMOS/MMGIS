@@ -1500,34 +1500,56 @@ function clearOnMapClick(event) {
         let found = false
         // For all MMGIS layers
         for (let key in L_.layersGroup) {
-            if ('getLayers' in L_.layersGroup[key]) {
-                const layers = L_.layersGroup[key].getLayers()
-                for (let k in layers) {
-                    const layer = layers[k]
+            let layers;
 
-                    if ('getBounds' in layer) {
-                        // Use the pixel bounds because longitude/latitude conversions for bounds
-                        // may be odd in the case of polar projections
-                        if (
-                            layer._pxBounds &&
-                            layer._pxBounds.contains(event.layerPoint)
-                        ) {
-                            found = true
-                            break
-                        }
-                    } else if ('getLatLng' in layer) {
-                        // A latlng is a latlng, regardless of the projection type
-                        if (layer.getLatLng().equals(latlng)) {
-                            found = true
-                            break
-                        }
-                    }
-                }
+            // Layers can be a LayerGroup or an array of LayerGroup
+            if ('getLayers' in L_.layersGroup[key]) {
+                layers = L_.layersGroup[key].getLayers()
             }
+
+            if (Array.isArray(L_.layersGroup[key])) {
+                layers = L_.layersGroup[key]
+            }
+
+            for (let k in layers) {
+                const layer = layers[k]
+                if (!layer) continue
+                if ('getLayers' in layer) {
+                    const _layer = layer.getLayers()
+                    for (let x in _layer) {
+                        found = checkBounds(_layer[x])
+                        if (found) break
+                    }
+                } else {
+                    found = checkBounds(layer)
+                }
+
+                if (found) break
+            }
+
             if (found) {
                 // If a clicked feature is found, break out early because MMGIS can only select
                 // a single feature at a time (i.e. no group select)
                 break
+            }
+
+            function checkBounds(layer) {
+                if ('getBounds' in layer) {
+                    // Use the pixel bounds because longitude/latitude conversions for bounds
+                    // may be odd in the case of polar projections
+                    if (
+                        layer._pxBounds &&
+                        layer._pxBounds.contains(event.layerPoint)
+                    ) {
+                        return true
+                    }
+                } else if ('getLatLng' in layer) {
+                    // A latlng is a latlng, regardless of the projection type
+                    if (layer.getLatLng().equals(latlng)) {
+                        return true
+                    }
+                }
+                return false
             }
         }
 

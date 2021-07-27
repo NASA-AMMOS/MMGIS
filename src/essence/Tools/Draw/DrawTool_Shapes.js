@@ -174,6 +174,8 @@ var Shapes = {
                         break
                     case 'arrow':
                         shapeType = 'arrow-top-right'
+                        shape.useKeyAsName = 'name'
+                        shape.options.layerName = file.file_name
                         break
                     case 'text':
                         shapeType = 'format-text'
@@ -238,6 +240,14 @@ var Shapes = {
                 var pUpfeature = e.feature
                 if (e.feature == null && shape.feature != null)
                     pUpfeature = shape.feature
+
+                // Save the file name as layerName property to use for the InfoTool display
+                pUpfeature.properties.layerName = file.file_name
+                e.options.layerName = file.file_name
+
+                // Always use the name as the key for DrawTools layers
+                e.useKeyAsName = 'name'
+
                 // create popup contents
                 var customPopup =
                     "<div class='drawToolLabelContent'>" +
@@ -515,24 +525,52 @@ var Shapes = {
             else style = shape.feature.properties.style
             if (style == null) style = shape.options
 
-            if (typeof shape.setStyle === 'function')
-                shape.setStyle({ color: style.color })
+            let color = style.color
+            // Keep the active feature highlighted after mouseleave
+            if (Map_.activeLayer) {
+                if (
+                    typeof shape.setStyle === 'function' &&
+                    ((shape.hasOwnProperty('_layers') &&
+                        shape.hasLayer(Map_.activeLayer)) ||
+                        Map_.activeLayer === shape)
+                ) {
+                    color =
+                        (L_.configData.look &&
+                            L_.configData.look.highlightcolor) ||
+                        'red'
+                } else if (
+                    shape.hasOwnProperty('_layers') &&
+                    Map_.activeLayer === shape
+                ) {
+                    color =
+                        (L_.configData.look &&
+                            L_.configData.look.highlightcolor) ||
+                        'red'
+                }
+            }
+
+            if (typeof shape.setStyle === 'function') shape.setStyle({ color })
             else if (shape.hasOwnProperty('_layers')) {
                 //Arrow
                 var layers = shape._layers
-                layers[Object.keys(layers)[0]].setStyle({
-                    color: style.color,
-                })
-                layers[Object.keys(layers)[1]].setStyle({
-                    color: style.color,
-                })
-            } else
+                layers[Object.keys(layers)[0]].setStyle({ color })
+                layers[Object.keys(layers)[1]].setStyle({ color })
+            } else {
                 $(
                     '#DrawToolAnnotation_' +
                         $(this).attr('layer_id') +
                         '_' +
                         $(this).attr('shape_id')
                 ).removeClass('highlight')
+                if (Map_.activeLayer === l[i]) {
+                    $(
+                        '#DrawToolAnnotation_' +
+                            $(this).attr('layer_id') +
+                            '_' +
+                            $(this).attr('shape_id')
+                    ).addClass('hovered')
+                }
+            }
         })
         $('.drawToolShapeLiItem').on('click', function (e) {
             var layer = $(this).attr('layer')
