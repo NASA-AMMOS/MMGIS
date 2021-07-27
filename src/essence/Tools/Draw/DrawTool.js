@@ -705,7 +705,8 @@ var DrawTool = {
 
                     if (!f) continue
 
-                    if (!f.hasOwnProperty('feature') &&
+                    if (
+                        !f.hasOwnProperty('feature') &&
                         f.hasOwnProperty('_layers')
                     ) {
                         // If it's a non point layer
@@ -720,96 +721,123 @@ var DrawTool = {
                     for (let elayer in f) {
                         let e = f[elayer]
                         e.off('click')
-                        e.on('click',
-                            function (d) {
-                                if (
-                                    ToolController_.activeTool &&
-                                    ToolController_.activeTool.disableLayerInteractions === true
-                                )
-                                    return
+                        e.on(
+                            'click',
+                            (function (l) {
+                                return function (d) {
+                                    if (
+                                        ToolController_.activeTool &&
+                                        ToolController_.activeTool
+                                            .disableLayerInteractions === true
+                                    )
+                                        return
 
-                                let layer = d.target
-                                let found = false
-                                if (!d.target.hasOwnProperty('feature')) {
-                                    for (var _l in L_.layersGroup) {
-                                        if (!_l.startsWith('DrawTool_')) continue
+                                    let layer = d.target
+                                    let found = false
+                                    if (!d.target.hasOwnProperty('feature')) {
+                                        for (var _l in L_.layersGroup) {
+                                            if (!_l.startsWith('DrawTool_'))
+                                                continue
 
-                                        for (var x in L_.layersGroup[l]) {
-                                            var childLayer = L_.layersGroup[l][x]
-                                            if ('hasLayer' in childLayer) {
-                                                if (childLayer.hasOwnProperty('feature') &&
-                                                        childLayer.feature?.properties?.arrow &&
-                                                        childLayer.hasLayer(d.target)) {
-                                                    // This is the parent layer of the arrow
-                                                    layer = childLayer
-                                                    found = true
-                                                    break
+                                            for (var x in L_.layersGroup[l]) {
+                                                var childLayer =
+                                                    L_.layersGroup[l][x]
+                                                if ('hasLayer' in childLayer) {
+                                                    if (
+                                                        childLayer.hasOwnProperty(
+                                                            'feature'
+                                                        ) &&
+                                                        childLayer.feature
+                                                            ?.properties
+                                                            ?.arrow &&
+                                                        childLayer.hasLayer(
+                                                            d.target
+                                                        )
+                                                    ) {
+                                                        // This is the parent layer of the arrow
+                                                        layer = childLayer
+                                                        found = true
+                                                        break
+                                                    }
                                                 }
                                             }
+                                            if (found) break
                                         }
-                                        if (found) break
                                     }
+
+                                    L_.setLastActivePoint(layer)
+                                    L_.resetLayerFills()
+                                    L_.highlight(layer)
+                                    Map_.activeLayer = layer
+                                    Description.updatePoint(Map_.activeLayer)
+
+                                    Kinds.use(
+                                        'none',
+                                        Map_,
+                                        layer.feature,
+                                        layer,
+                                        l,
+                                        null,
+                                        d
+                                    )
+
+                                    Globe_.highlight(
+                                        Globe_.findSpriteObject(
+                                            layer.options.layerName,
+                                            layer.feature.properties.name
+                                        ),
+                                        false
+                                    )
+                                    Viewer_.highlight(layer)
                                 }
-
-                                L_.setLastActivePoint(layer)
-                                L_.resetLayerFills()
-                                L_.highlight(layer)
-                                Map_.activeLayer = layer
-                                Description.updatePoint(Map_.activeLayer)
-
-                                Kinds.use(
-                                    'none',
-                                    Map_,
-                                    layer.feature,
-                                    layer,
-                                    l,
-                                    null,
-                                    d
-                                )
-
-                                Globe_.highlight(
-                                    Globe_.findSpriteObject(
-                                        layer.options.layerName,
-                                        layer.feature.properties.name
-                                    ),
-                                    false
-                                )
-                                Viewer_.highlight(layer)
-                            }
+                            })(l)
                         )
                         //Add a mouseover event to the layer
                         e.off('mouseover')
-                        e.on('mouseover', function (d) {
-                            let name;
-                            // If the DrawTool layer that is hovered is an arrow, the parent arrow layer knows the name
-                            if (!d.target.hasOwnProperty('feature')) {
-                                for (var _l in L_.layersGroup) {
-                                    if (!_l.startsWith('DrawTool_')) {
-                                        continue
-                                    }
+                        e.on(
+                            'mouseover',
+                            (function (l) {
+                                return function (d) {
+                                    let name
+                                    // If the DrawTool layer that is hovered is an arrow, the parent arrow layer knows the name
+                                    if (!d.target.hasOwnProperty('feature')) {
+                                        for (var _l in L_.layersGroup) {
+                                            if (!_l.startsWith('DrawTool_')) {
+                                                continue
+                                            }
 
-                                    for (var x in L_.layersGroup[l]) {
-                                        var layer = L_.layersGroup[l][x]
-                                        if ('hasLayer' in layer) {
-                                            if (layer.hasOwnProperty('feature') &&
-                                                    layer.feature?.properties?.arrow &&
-                                                    layer.hasLayer(d.target)) {
-                                                name = layer.feature.properties.name
-                                            } 
+                                            for (var x in L_.layersGroup[l]) {
+                                                var layer = L_.layersGroup[l][x]
+                                                if ('hasLayer' in layer) {
+                                                    if (
+                                                        layer.hasOwnProperty(
+                                                            'feature'
+                                                        ) &&
+                                                        layer.feature
+                                                            ?.properties
+                                                            ?.arrow &&
+                                                        layer.hasLayer(d.target)
+                                                    ) {
+                                                        name =
+                                                            layer.feature
+                                                                .properties.name
+                                                    }
+                                                }
+                                            }
                                         }
+                                    } else {
+                                        name = d.target.feature.properties.name
                                     }
-                                }
-                            } else {
-                                name = d.target.feature.properties.name
-                            }
 
-                            //Make it turn on CursorInfo and show name and value
-                            CursorInfo.update(
-                                'Name: ' + name,
-                                null,
-                                false
-                            )
-                        })
+                                    //Make it turn on CursorInfo and show name and value
+                                    CursorInfo.update(
+                                        'Name: ' + name,
+                                        null,
+                                        false
+                                    )
+                                }
+                            })(l)
+                        )
                         //Add a mouseout event
                         e.off('mouseout')
                         e.on('mouseout', function () {
@@ -850,7 +878,9 @@ var DrawTool = {
                         DrawTool.masterFileIds = []
                         for (var f in DrawTool.files) {
                             if (DrawTool.files[f].is_master)
-                                DrawTool.masterFileIds.push(DrawTool.files[f].id)
+                                DrawTool.masterFileIds.push(
+                                    DrawTool.files[f].id
+                                )
                         }
                     })
                 }

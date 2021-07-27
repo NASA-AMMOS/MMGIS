@@ -1024,8 +1024,6 @@ var Files = {
         })
         $('.drawToolDrawFilesListElem').off('mouseleave')
         $('.drawToolDrawFilesListElem').on('mouseleave', function () {
-            const infoTool = ToolController_.getTool('InfoTool')
-
             $(this).find('.drawToolFileEdit').removeClass('shown')
             var fileId = parseInt($(this).attr('file_id'))
             var l = L_.layersGroup['DrawTool_' + fileId]
@@ -1042,20 +1040,32 @@ var Files = {
                                 .properties.style
                     else style = l[i].feature.properties.style
 
-                    let color = style.color;
+                    let color = style.color
                     // Keep the active feature highlighted after mouseleave
-                    if (infoTool.currentLayer) {
-                        if (typeof l[i].setStyle === 'function' &&
-                                ((l[i].hasOwnProperty('_layers') && l[i].hasLayer(infoTool.currentLayer)) ||
-                                infoTool.currentLayer === l[i])) {
-                            color = (L_.configData.look && L_.configData.look.highlightcolor) || 'red'
-                        } else if (l[i].hasOwnProperty('_layers') && infoTool.currentLayer === l[i]) {
-                            color = (L_.configData.look && L_.configData.look.highlightcolor) || 'red'
+                    if (Map_.activeLayer) {
+                        if (
+                            typeof l[i].setStyle === 'function' &&
+                            ((l[i].hasOwnProperty('_layers') &&
+                                l[i].hasLayer(Map_.activeLayer)) ||
+                                Map_.activeLayer === l[i])
+                        ) {
+                            color =
+                                (L_.configData.look &&
+                                    L_.configData.look.highlightcolor) ||
+                                'red'
+                        } else if (
+                            l[i].hasOwnProperty('_layers') &&
+                            Map_.activeLayer === l[i]
+                        ) {
+                            color =
+                                (L_.configData.look &&
+                                    L_.configData.look.highlightcolor) ||
+                                'red'
                         }
                     }
 
                     if (typeof l[i].setStyle === 'function')
-                        l[i].setStyle({ ...style, color } )
+                        l[i].setStyle({ ...style, color })
                     else if (l[i].hasOwnProperty('_layers')) {
                         //Arrow
                         var layers = l[i]._layers
@@ -1065,7 +1075,7 @@ var Files = {
                         $('.DrawToolAnnotation_' + fileId).removeClass(
                             'highlight'
                         )
-                        if (infoTool.currentLayer === l[i]) {
+                        if (Map_.activeLayer === l[i]) {
                             $('.DrawToolAnnotation_' + fileId).addClass(
                                 'hovered'
                             )
@@ -1160,7 +1170,10 @@ var Files = {
                         }
                     }
 
-                    var features = data.geojson.features
+                    let features = data.geojson.features
+                    let coreFeatures = JSON.parse(JSON.stringify(data.geojson))
+                    coreFeatures.features = []
+
                     for (var i = 0; i < features.length; i++) {
                         if (!features[i].properties.hasOwnProperty('style')) {
                             features[i].properties.style = F_.clone(
@@ -1306,17 +1319,24 @@ var Files = {
                                 layer = Object.assign({}, llast)
                             }
 
-                            Globe_.litho.addLayer(
-                                'clamped',
-                                {
-                                    id: 'camptool_' + layerId + '_' + last,
-                                    on: true,
-                                    layers: [layer],
-                                },
-                                true
-                            )
+                            coreFeatures.features.push(layer.feature)
                         }
                     }
+                    if (coreFeatures.features.length > 0) {
+                        Globe_.litho.addLayer(
+                            'clamped',
+                            {
+                                name: 'camptool_' + layerId + '_' + last,
+                                on: true,
+                                geojson: coreFeatures,
+                                opacity: 1,
+                                minZoom: 0,
+                                maxZoom: 30,
+                            },
+                            true
+                        )
+                    }
+
                     if (populateShapesAfter)
                         DrawTool.populateShapes(id, selectedFeatureIds)
 

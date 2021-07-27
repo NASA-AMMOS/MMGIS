@@ -526,21 +526,31 @@ var Shapes = {
             else style = shape.feature.properties.style
             if (style == null) style = shape.options
 
-            let color = style.color;
+            let color = style.color
             // Keep the active feature highlighted after mouseleave
-            const infoTool = ToolController_.getTool('InfoTool')
-            if (infoTool.currentLayer) {
-                if (typeof shape.setStyle === 'function' &&
-                        ((shape.hasOwnProperty('_layers') && shape.hasLayer(infoTool.currentLayer)) ||
-                        infoTool.currentLayer === shape)) {
-                    color = (L_.configData.look && L_.configData.look.highlightcolor) || 'red'
-                } else if (shape.hasOwnProperty('_layers') && infoTool.currentLayer === shape) {
-                    color = (L_.configData.look && L_.configData.look.highlightcolor) || 'red'
+            if (Map_.activeLayer) {
+                if (
+                    typeof shape.setStyle === 'function' &&
+                    ((shape.hasOwnProperty('_layers') &&
+                        shape.hasLayer(Map_.activeLayer)) ||
+                        Map_.activeLayer === shape)
+                ) {
+                    color =
+                        (L_.configData.look &&
+                            L_.configData.look.highlightcolor) ||
+                        'red'
+                } else if (
+                    shape.hasOwnProperty('_layers') &&
+                    Map_.activeLayer === shape
+                ) {
+                    color =
+                        (L_.configData.look &&
+                            L_.configData.look.highlightcolor) ||
+                        'red'
                 }
             }
 
-            if (typeof shape.setStyle === 'function')
-                shape.setStyle({ color })
+            if (typeof shape.setStyle === 'function') shape.setStyle({ color })
             else if (shape.hasOwnProperty('_layers')) {
                 //Arrow
                 var layers = shape._layers
@@ -553,7 +563,7 @@ var Shapes = {
                         '_' +
                         $(this).attr('shape_id')
                 ).removeClass('highlight')
-                if (infoTool.currentLayer === l[i]) {
+                if (Map_.activeLayer === l[i]) {
                     $(
                         '#DrawToolAnnotation_' +
                             $(this).attr('layer_id') +
