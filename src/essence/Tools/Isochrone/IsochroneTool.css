@@ -90,6 +90,14 @@
     width: 120px;
 }
 
+#isochroneTool .slider2 {
+    width: 120px !important;
+    height: 29px;
+    background: var(--color-i);
+    opacity: 1 !important;
+    margin: 0;
+}
+
 #isochroneTool .sectionhead {
     font-variant: small-caps;
     font-size: 16px;

@@ -51,7 +51,7 @@ export function createTileBounds(start, radius, zoom) {
     min = min.divideBy(256);
     max = max.divideBy(256);
 
-    return L.bounds(min, max);
+    return window.L.bounds(min, max);
 }
 
 //USE WITH CAUTION - LatLngBounds are not to be trusted with polar maps
@@ -64,7 +64,7 @@ export function projectTileBounds(bounds, zoom) {
         .project(bounds.getSouthEast(), zoom)
         .divideBy(256)
         .ceil();
-    return L.bounds(min, max);
+    return window.L.bounds(min, max);
 }
 
 export function unprojectTileBounds(tileBounds, zoom) {

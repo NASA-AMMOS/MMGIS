@@ -51,7 +51,7 @@ class Model_Isodistance extends Model {
             `min="0" default="1" step="0.2"`
         ).on("change", e => {
             this.terrainScale = parseFloat(e.target.value);
-            onChange(e, 2);
+            onChange(e, 2); //Doesn't use e - maybe change
         });
     }
 }

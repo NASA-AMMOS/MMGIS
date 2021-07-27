@@ -64,8 +64,9 @@ class IsochroneManager {
         };
         this.options = {
             color: 0,
+            opacity: 0.6,
             maxRadius: 250,
-            resolution: 17,
+            resolution: 10,
             model: 0,
             maxCost: 100
         };
@@ -75,7 +76,7 @@ class IsochroneManager {
 
     handleInput(e, option, action = 0) {
         //TODO rate-limit and queue updates
-        if(option !== null) this.options[option] = parseInt(e.target.value);
+        if(option !== null) this.options[option] = parseFloat(e.target.value);
         if(this.start !== null) {
             switch(action) {
                 case 3: //Change requires getting new data
@@ -116,6 +117,11 @@ class IsochroneManager {
                 if(this.start !== null) this.onChange();
             });
         }
+
+        this.optionEls.opacity =
+            $(`<input class="slider2" type="range" min="0" max="1" step="0.01" value="${this.options.opacity}" default="0.4"></input>`)
+            .on("change", e => this.handleInput(e, "opacity", 1))
+            .appendTo(addOption("Opacity", root));
 
         this.optionEls.model = createDropdown(
             "Model",

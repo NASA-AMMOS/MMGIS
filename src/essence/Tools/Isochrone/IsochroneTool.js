@@ -114,8 +114,7 @@ L.IsochroneLayer = L.GridLayer.extend({
                     if(isFinite(currentData)) {
                         const color = IsochroneTool.valueToColor(
                             currentData / this.options.maxCost,
-                            this.options.color,
-                            5
+                            this.options.color
                         );
                         img.data[di] = color[0];
                         img.data[di + 1] = color[1];
@@ -297,10 +296,10 @@ const IsochroneTool = {
             maxNativeZoom: manager.options.resolution,
             bounds: manager.tileBounds,
             tileSize: 256,
-            opacity: 0.6,
-            data: manager.cost,
+            opacity: manager.options.opacity,
             color: manager.options.color,
-            maxCost: manager.options.maxCost
+            maxCost: manager.options.maxCost,
+            data: manager.cost
         });
         
         L_.layersGroup[layerName].setZIndex(1000);
@@ -371,7 +370,7 @@ const IsochroneTool = {
 
         if(this.manager.backlink === null) return;
         const now = Date.now();
-        if(lastHoverCall + 100 > now) return;
+        if(lastHoverCall + 50 > now) return;
         lastHoverCall = now;
 
         if(this.hoverPolyline !== null)
@@ -422,7 +421,7 @@ const IsochroneTool = {
                 step = this.manager.backlink[cy][cx];
                 count++;
             }
-            this.hoverPolyline = window.L.polyline(line);
+            this.hoverPolyline = window.L.polyline(line, {interactive: false});
             this.hoverPolyline.addTo(Map_.map);
         } else if(this.hovered) {
             this.hovered = false;
