@@ -710,8 +710,8 @@ function makeLayerBarAndModal(d, level) {
     timeTypeEl = "block",
     timeFormatEl = "block",
     timeRefreshEl = "none",
-    timeIncrementEl = "none",
-    shapeEl = "block";
+    timeIncrementEl = "none";
+    shapeEl = "none";
 
   // prettier-ignore
   switch( d.type ) {
@@ -928,7 +928,10 @@ function makeLayerBarAndModal(d, level) {
 
   var shapCircleSel = "",
     shapSquareSel = "",
-    shapTriangleSel = "";
+    shapTriangleSel = "",
+    shapStarSel = "",
+    shapHexagonSel = "",
+    shapDinosaurSel = "";
   switch (d.shape) {
     case "circle":
       shapCircleSel = "selected";
@@ -939,9 +942,18 @@ function makeLayerBarAndModal(d, level) {
     case "square":
       shapSquareSel = "selected";
       break;
+    case "star":
+      shapStarSel = "selected";
+      break;
+    case "hexagon":
+      shapHexagonSel = "selected";
+      break;
+    case "dinosaur":
+      shapDinosaurSel = "selected";
+      break;
     default:
   }
-  console.log(d.shape)
+
   var dStyle = {};
   if (d.hasOwnProperty("style")) dStyle = d.style;
   if (!d.hasOwnProperty("position"))
@@ -1207,6 +1219,9 @@ function makeLayerBarAndModal(d, level) {
                 "<option value='circle' " + shapCircleSel + ">Circle</option>" +
                 "<option value='square' " + shapSquareSel + ">Square</option>" +
                 "<option value='triangle' " + shapTriangleSel + ">Triangle</option>" +
+                "<option value='star' " + shapStarSel + ">Star</option>" +
+                "<option value='hexagon' " + shapHexagonSel + ">Hexagon</option>" +
+                "<option value='dinosaur' " + shapDinosaurSel + ">Dinosaur</option>" +
               "</select>" +
               "<label>Shape</label>" +
             "</div>" +
@@ -1340,7 +1355,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
       maxnzEl = "block", maxzEl = "block", strcolEl = "block", filcolEl = "block",
       weightEl = "block", opacityEl = "block", radiusEl = "block", variableEl = "block",
       vtLayerEl = "none", vtIdEl = "none", vtKeyEl = "none", vtLayerSetStylesEl = "none",
-      timeEl = 'block', timeTypeEl = 'block', timeFormatEl = 'block', timeRefreshEl = 'none', timeIncrementEl = 'none',
+      timeEl = 'block', timeTypeEl = 'block', timeFormatEl = 'block', timeRefreshEl = 'none', timeIncrementEl = 'none', 
       shapeEl = 'block';
   //Kind of a repeat of above =\
 
@@ -1388,7 +1403,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
         timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
-        shapeEl = 'none';
+        shapeEl = 'none';  
       break;
     case "point": barColor = "#892f45";
         nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; controlledEl = "none"; legendEl = "block";
@@ -1474,7 +1489,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
   mainThis.find("#timeFormatEl").css("display", timeFormatEl);
   mainThis.find("#timeRefreshEl").css("display", timeRefreshEl);
   mainThis.find("#timeIncrementEl").css("display", timeIncrementEl);
-  mainThis.find("#shapeEl").css("display", shapeEl);
+  mainThis.find("#shapeEl").css("display", shapeEl); 
 }
 function mmgisLinkModalsToLayersVisChange(e) {
   var mainThis = $(this).parent().parent().parent();
@@ -1749,10 +1764,10 @@ function save() {
           .text()
           .toLowerCase();
         var modalTimeFormat = modal.find("#timeFormatEl input").val();
-        var modalShape = modal
-          .find("#shapeEl select option:selected")
-          .text()
-          .toLowerCase();
+        var modalShape = modal 
+        .find("#shapeEl select option:selected") 
+        .text() 
+        .toLowerCase(); 
 
         layerObject.name = modalName;
         if (
@@ -1881,9 +1896,9 @@ function save() {
         layerObject.time.refresh = "1 hours"; // refresh when the layer becomes stale
         layerObject.time.increment = "5 minutes"; // time bar steps
 
-        // shape property
-        layerObject.shape = modalShape; // circle, square, triangle
-
+        // shape property 
+        layerObject.shape = modalShape; // circle, square, triangle, star, hexagon, dinosaur 
+ 
         if (!validName(modalName)) {
           isInvalidData = true;
           Materialize.toast(
