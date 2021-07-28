@@ -781,6 +781,12 @@ var DrawTool = {
                                         d
                                     )
 
+                                    // Fire a click event for the DrawTool text annotations
+                                    // to make sure the 'onClick' listener in the MMGIS API will be triggered
+                                    if (layer.feature?.properties?.annotation) {
+                                        Map_.map.fireEvent('click')
+                                    }
+
                                     Globe_.highlight(
                                         Globe_.findSpriteObject(
                                             layer.options.layerName,
