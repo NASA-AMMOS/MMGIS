@@ -28,7 +28,7 @@ function createInputWithUnit(title, root, unit, value, attr = "") {
     return el;
 }
 
-function createDropdown(title, root, options) {
+function createDropdown(title, root, options = []) {
     let el = $(`<select class="dropdown"></select>`)
         .appendTo(addOption(title, root))
     const numOptions = options.length;
@@ -42,6 +42,9 @@ function createDropdown(title, root, options) {
     return el;
 }
 
+const GLOBAL_MIN_RESOLUTION = 5;
+const GLOBAL_MAX_RESOLUTION = 20;
+
 class IsochroneManager {
     constructor(dataSources, onChange) {
         this.dataSources = dataSources;
@@ -54,8 +57,8 @@ class IsochroneManager {
         this.modelProto = null;
         this.model = null; //Model
 
-        this.minResolution = 0;
-        this.maxResolution = 20;
+        this.minResolution = GLOBAL_MIN_RESOLUTION;
+        this.maxResolution = GLOBAL_MAX_RESOLUTION;
         this.optionEls = {};
         this.sections = {
             data: null,
@@ -65,17 +68,33 @@ class IsochroneManager {
             color: 0,
             opacity: 0.6,
             maxRadius: 250,
-            resolution: 10,
+            resolution: GLOBAL_MIN_RESOLUTION,
             model: 0,
             maxCost: 100
         };
+        this.updateTimeout = 0;
+
         this.cost = null;
         this.backlink = null;
     }
 
+    /******************** UI AND INPUT ********************/
+
     handleInput(e, option, action = 0) {
-        //TODO rate-limit and queue updates
-        if(option !== null) this.options[option] = parseFloat(e.target.value);
+        window.clearTimeout(this.updateTimeout);
+        this.updateTimeout = window.setTimeout(
+            () => this._handleInput(e, option, action),
+            100
+        );
+    }
+    _handleInput(e, option, action) {
+        if(option !== null) {
+            if(typeof e === "object") {
+                this.options[option] = parseFloat(e.target.value);
+            } else {
+                this.options[option] = e;
+            }
+        }
         if(this.start !== null) {
             switch(action) {
                 case 3: //Change requires getting new data
@@ -164,12 +183,10 @@ class IsochroneManager {
         this.sections.data.empty();
         this.sections.model.empty();
 
-        this.optionEls.resolution =
-            $(`<input class="nounit" type="number" step="1" value="${this.options.resolution}">`)
-            .appendTo(addOption("Resolution", this.sections.data))
-            .on("change", e => 
-                this.handleInput(e, "resolution", 3)
-            );
+        this.optionEls.resolution = createDropdown(
+           "Resolution",
+           this.sections.data
+        ).on("change", e => this.handleInput(e, "resolution", 3));
         
         for(const dataType of this.modelProto.requiredData) {
             this.options[dataType + "_source"] = 0;
@@ -177,7 +194,11 @@ class IsochroneManager {
                 dataType + " source",
                 this.sections.data,
                 this.dataSources[dataType].map(s => s.name)
-            ).on("change", e => this.handleInput(e, dataType + "_source", 3));
+            ).on("change", e => {
+                this.options[dataType + "_source"] = parseInt(e.target.value);
+                this.updateResolutionRange();
+                this.handleInput(e, null, 3);
+            });
         }
 
         this.updateResolutionRange();
@@ -190,26 +211,33 @@ class IsochroneManager {
             `min="0" step="1"`
         ).on("change", e => this.handleInput(e, "maxCost", parseFloat(e.target.value) < this.options.maxCost ? 1 : 2));
         this.options.maxCost = this.modelProto.defaultCost;
+
         this.model.createOptions(this.sections.model, (e, action) => this.handleInput(e, null, action));
 
         return reuseData;
     }
     
     updateResolutionRange() {
-        let max = 25;
-        let min = 0;
-        for(const dataType of models[this.options.model].requiredData) {
+        let max = GLOBAL_MAX_RESOLUTION;
+        let min = GLOBAL_MIN_RESOLUTION;
+        for(const dataType of this.modelProto.requiredData) {
             const sourceObj = this.dataSources[dataType][this.options[dataType + "_source"]];
             max = Math.min(max, sourceObj.maxResolution);
             min = Math.max(min, sourceObj.minResolution);
         }
-        const current = this.optionEls.resolution.attr("value");
-        const newVal = Math.max(min, Math.min(max, current));
-        this.optionEls.resolution.attr("min", min);
-        this.optionEls.resolution.attr("max", max);
-        this.optionEls.resolution.attr("value", newVal);
+        const newVal = Math.max(min, Math.min(max, this.options.resolution));
+        this.optionEls.resolution.empty();
+        for(let e = min; e <= max; e++) {
+            $(`<option value=${e}${e === newVal ? " selected" : ""}>${e}</option>`)
+                .appendTo(this.optionEls.resolution);
+        }
+        this.minResolution = min;
+        this.maxResolution = max;
+        this.optionEls.resolution.value = newVal;
         this.options.resolution = newVal;
     }
+
+    /******************** ISOCHRONE GENERATION ********************/
 
     setStart(latlng) {
         this.start = latlng;
@@ -240,7 +268,7 @@ class IsochroneManager {
         let bounds = this.tileBounds;
         if(zoomOffset !== 0) { //Handle lower-res tiles
             const scaleFactor = Math.pow(2, zoomOffset);
-            bounds = L.bounds(
+            bounds = window.L.bounds(
                 this.tileBounds.min.multiplyBy(scaleFactor),
                 this.tileBounds.max.multiplyBy(scaleFactor)
             );
@@ -248,7 +276,6 @@ class IsochroneManager {
         const startPoint = Map_.map.project(this.start, zoom);
         const startTile = startPoint.clone().divideBy(256).floor();
         
-        //TODO low priority: this is an inefficient circle, consider improving
         for(let y = bounds.min.y; y < bounds.max.y; y++) {
             for(let x = bounds.min.x; x < bounds.max.x; x++) {
                 //Measure distance to start from nearest corner/edge
@@ -282,13 +309,14 @@ class IsochroneManager {
         }
 
         tileList.sort((a, b) => a.dist - b.dist);
+        console.log(tileList);
         return tileList;
     }
 
     getData() {
         console.time("load");
         let requiredDatasets = [];
-        for(const dataType of models[this.options.model].requiredData) {
+        for(const dataType of this.modelProto.requiredData) {
             const sourceObj = this.dataSources[dataType][this.options[dataType + "_source"]];
             requiredDatasets.push({
                 tileList: this.getRequiredTilesList(sourceObj),

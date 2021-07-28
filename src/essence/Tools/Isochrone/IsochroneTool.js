@@ -171,7 +171,7 @@ const IsochroneTool = {
                         zoomOffset = 3;
                     break;
                     default:
-                        console.warn(`IsochroneTool: ${dataType} source ${src.name} has undefined or nonstandard resolution: ${src.resolution}!`);
+                        console.warn(`IsochroneTool: ${dataType} source "${src.name}" has undefined or nonstandard resolution: ${src.resolution}!`);
                 }
                 src.minResolution = src.minZoom - zoomOffset;
                 src.maxResolution = src.maxNativeZoom - zoomOffset;
@@ -185,8 +185,8 @@ const IsochroneTool = {
         this.manager = new IsochroneManager(
             this.dataSources,
             () => {
+                this.makeMarker(this.manager.start, this.manager.options.color);
                 this.makeDataLayer(this.manager);
-                this.makeMarker(this.manager);
             }
         );
         
@@ -208,6 +208,7 @@ const IsochroneTool = {
     },
     handleClick:  function(e) {
         if(e && e.latlng) {
+            this.makeMarker(e.latlng, this.manager.options.color);
             this.manager.setStart(e.latlng);
         }
     },
@@ -273,7 +274,7 @@ const IsochroneTool = {
         Map_.map.addLayer(L_.layersGroup[layerName]);
     },
 
-    makeMarker: function(manager) { //ViewshedTool.js:948 (function viewsheed)
+    makeMarker: function(start, color) { //ViewshedTool.js:948 (function viewsheed)
         let canvas = document.createElement("canvas");
         canvas.width = 16;
         canvas.height = 16;
@@ -281,7 +282,7 @@ const IsochroneTool = {
 
         const radius = 7
         const strokeWeight = 2
-        const ramp = IsochroneTool.colorRamps[manager.options.color];
+        const ramp = IsochroneTool.colorRamps[color];
         const c = ramp[ramp.length - 1];
 
         ctx.fillStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, 255)`;
@@ -324,7 +325,7 @@ const IsochroneTool = {
 
         Map_.rmNotNull(IsochroneTool.marker);
         IsochroneTool.marker = new L.marker(
-            [manager.start.lat, manager.start.lng],
+            [start.lat, start.lng],
             {
                 icon: isochroneIcon,
                 draggable: false //for now... (TODO)
