@@ -969,7 +969,7 @@ function makeLayerBarAndModal(d, level) {
     shapTriangleSel = "",
     shapStarSel = "",
     shapHexagonSel = "",
-    shapDinosaurSel = "";
+    shapNoneSel = ""
   switch (d.shape) {
     case "circle":
       shapCircleSel = "selected";
@@ -986,8 +986,8 @@ function makeLayerBarAndModal(d, level) {
     case "hexagon":
       shapHexagonSel = "selected";
       break;
-    case "dinosaur":
-      shapDinosaurSel = "selected";
+    case "none":
+      shapNoneSel = "selected";
       break;
     default:
   }
@@ -1269,7 +1269,7 @@ function makeLayerBarAndModal(d, level) {
                 "<option value='triangle' " + shapTriangleSel + ">Triangle</option>" +
                 "<option value='star' " + shapStarSel + ">Star</option>" +
                 "<option value='hexagon' " + shapHexagonSel + ">Hexagon</option>" +
-                "<option value='dinosaur' " + shapDinosaurSel + ">Dinosaur</option>" +
+                "<option value='none' " + shapNoneSel + ">None</option>" +
               "</select>" +
               "<label>Shape</label>" +
             "</div>" +
@@ -1960,7 +1960,7 @@ function save() {
         layerObject.time.increment = "5 minutes"; // time bar steps
 
         // shape property 
-        layerObject.shape = modalShape; // circle, square, triangle, star, hexagon, dinosaur 
+        layerObject.shape = modalShape; // circle, square, triangle, star, hexagon
  
         if (!validName(modalName)) {
           isInvalidData = true;
