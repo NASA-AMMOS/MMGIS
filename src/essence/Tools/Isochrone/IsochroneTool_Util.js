@@ -36,6 +36,7 @@ export function createTileBounds(start, radius, zoom) {
             ptLatLng.lng,
             ptLatLng.lat
         );
+
         return dist < radius;
     }
 
@@ -52,25 +53,6 @@ export function createTileBounds(start, radius, zoom) {
     max = max.divideBy(256);
 
     return window.L.bounds(min, max);
-}
-
-//USE WITH CAUTION - LatLngBounds are not to be trusted with polar maps
-export function projectTileBounds(bounds, zoom) {
-    const min = Map_.map
-        .project(bounds.getNorthWest(), zoom)
-        .divideBy(256)
-        .floor();
-    const max = Map_.map
-        .project(bounds.getSouthEast(), zoom)
-        .divideBy(256)
-        .ceil();
-    return window.L.bounds(min, max);
-}
-
-export function unprojectTileBounds(tileBounds, zoom) {
-    const min = Map_.map.unproject(tileBounds.min.multiplyBy(256), zoom);
-    const max = Map_.map.unproject(tileBounds.max.multiplyBy(256), zoom);
-    return window.L.latLngBounds(min, max);
 }
 
 //Clockwise from the right
@@ -103,20 +85,4 @@ export function backlinkToMove(link) {
         [-1, 1],
         [-1, 2]
     ][link - 1];
-}
-
-export const Timer = {
-    times: {},
-    start: function(name) {
-        this.times[name] = Date.now();
-    },
-    stop: function(name) {
-        if(this.times[name]) {
-            const duration = Date.now() - this.times[name];
-            console.log(`${name} finished in ${duration / 1000} seconds`);
-            this.times[name] = null;
-        } else {
-            console.log(`Attempt to stop ${name} timer that was never started or already stopped!`);
-        }
-    }
 }

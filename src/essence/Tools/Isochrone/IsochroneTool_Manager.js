@@ -49,8 +49,7 @@ class IsochroneManager {
 
         this.start = null; //L.LatLng
         this.startPx = null; //L.Point
-        this.tileBounds = null; //TileBounds
-        this.tileAlignedBounds = null; //L.LatLngBounds
+        this.tileBounds = null; //L.Bounds
 
         this.modelProto = null;
         this.model = null; //Model
@@ -104,7 +103,7 @@ class IsochroneManager {
             `min="1" step="1" default="250"`
         ).on(
             "change",
-            e => this.handleInput(e, "maxRadius", e.target.value > this.options.maxRadius ? 3 : 0)
+            e => this.handleInput(e, "maxRadius", parseFloat(e.target.value) > this.options.maxRadius ? 3 : 0)
         );
 
         this.optionEls.color = gradientEls;
@@ -130,8 +129,8 @@ class IsochroneManager {
         ).on(
             "change",
             e => {
-                this.setupModel(e.target.value);
-                this.handleInput(e, "model", 3);
+                const reuseData = this.setupModel(e.target.value);
+                this.handleInput(e, "model", reuseData ? 2 : 3);
             }
         );
         
@@ -143,18 +142,35 @@ class IsochroneManager {
     }
 
     setupModel(modelIndex = this.options.model) {
-        this.modelProto = models[modelIndex];
-        this.model = new this.modelProto();
+        const newModelProto = models[modelIndex];
+
+        let reuseData = false;
+        if(this.modelProto !== null) {
+            reuseData = newModelProto.requiredData.reduce(
+                (a, c) => a && this.modelProto.requiredData.indexOf(c) !== -1,
+                true
+            );
+        }
+
+        let newModel = new newModelProto();
+        if(reuseData) {
+            for(const d of newModelProto.requiredData) {
+                newModel.data[d] = this.model.data[d];
+            }
+        }
+        this.modelProto = newModelProto;
+        this.model = newModel;
 
         this.sections.data.empty();
         this.sections.model.empty();
 
-        this.optionEls.resolution = $(
-            `<input class="nounit" type="number" step="1" value="${this.options.resolution}">`
-        ).appendTo(addOption("Resolution", this.sections.data))
-         .on("change", e => 
-            this.handleInput(e, "resolution", 3)
-        );
+        this.optionEls.resolution =
+            $(`<input class="nounit" type="number" step="1" value="${this.options.resolution}">`)
+            .appendTo(addOption("Resolution", this.sections.data))
+            .on("change", e => 
+                this.handleInput(e, "resolution", 3)
+            );
+        
         for(const dataType of this.modelProto.requiredData) {
             this.options[dataType + "_source"] = 0;
             createDropdown(
@@ -172,9 +188,11 @@ class IsochroneManager {
             this.modelProto.costUnitSymbol,
             this.modelProto.defaultCost,
             `min="0" step="1"`
-        ).on("change", e => this.handleInput(e, "maxCost", 2));
+        ).on("change", e => this.handleInput(e, "maxCost", parseFloat(e.target.value) < this.options.maxCost ? 1 : 2));
         this.options.maxCost = this.modelProto.defaultCost;
         this.model.createOptions(this.sections.model, (e, action) => this.handleInput(e, null, action));
+
+        return reuseData;
     }
     
     updateResolutionRange() {
@@ -204,26 +222,29 @@ class IsochroneManager {
             this.options.maxRadius,
             this.options.resolution
         );
-        this.tileAlignedBounds = U.unprojectTileBounds(this.tileBounds, this.options.resolution);
         this.startPx = Map_.map
             .project(this.start, this.options.resolution)
             .subtract(this.tileBounds.min.multiplyBy(256))
             .floor();
         /*
-        console.log("BOUNDS", this.bounds);
         console.log("TILE BOUNDS", this.tileBounds);
         console.log("START PX", this.startPx);
-        */
+        //*/
 
         this.getData();
     }
 
-    getRequiredTilesList(dataSource) {
+    getRequiredTilesList({zoomOffset}) {
         let tileList = [];
-        const zoom = this.options.resolution + dataSource.zoomOffset;
-        const bounds = dataSource.zoomOffset === 0
-            ? this.tileBounds
-            : U.projectTileBounds(this.tileAlignedBounds, zoom);
+        const zoom = this.options.resolution + zoomOffset;
+        let bounds = this.tileBounds;
+        if(zoomOffset !== 0) { //Handle lower-res tiles
+            const scaleFactor = Math.pow(2, zoomOffset);
+            bounds = L.bounds(
+                this.tileBounds.min.multiplyBy(scaleFactor),
+                this.tileBounds.max.multiplyBy(scaleFactor)
+            );
+        }
         const startPoint = Map_.map.project(this.start, zoom);
         const startTile = startPoint.clone().divideBy(256).floor();
         
@@ -265,7 +286,7 @@ class IsochroneManager {
     }
 
     getData() {
-        U.Timer.start("load");
+        console.time("load");
         let requiredDatasets = [];
         for(const dataType of models[this.options.model].requiredData) {
             const sourceObj = this.dataSources[dataType][this.options[dataType + "_source"]];
@@ -287,7 +308,7 @@ class IsochroneManager {
                 );
             } else {
                 this.model.data = dataObj;
-                U.Timer.stop("load");
+                console.timeEnd("load");
                 this.generateIsochrone();
             }
         }
@@ -300,7 +321,7 @@ class IsochroneManager {
     }
 
     generateIsochrone() {
-        U.Timer.start("generate");
+        console.time("generate");
         const result = IsochroneTool_Algorithm.generate(
             this.startPx,
             this.tileBounds,
@@ -308,7 +329,8 @@ class IsochroneManager {
             this.options.resolution,
             this.options.maxCost
         );
-        U.Timer.stop("generate");
+        console.timeEnd("generate");
+        //console.log("RESULT", result.cost);
         this.cost = result.cost;
         this.backlink = result.backlink;
         this.onChange();

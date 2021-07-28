@@ -7,7 +7,7 @@ export default class Model {
     static defaultCost = 100;
 
     constructor() {
-        this.data = null;
+        this.data = {};
     }
 
     costFunction = (cPx, cLatLng, tPx, tLatLng) => 1;

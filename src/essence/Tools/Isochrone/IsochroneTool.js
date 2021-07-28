@@ -2,23 +2,18 @@
 //In the very least, each tool needs to be defined through require.js and return
 // an object with 'make' and 'destroy' functions
 import * as d3 from 'd3';
-//import F_ from '../../Basics/Formulae_/Formulae_';
 import L_ from '../../Basics/Layers_/Layers_';
 import Map_ from '../../Basics/Map_/Map_';
-//import DataShaders from '../../Ancillary/DataShaders';
 import $ from 'jquery';
-import CursorInfo from '../../Ancillary/CursorInfo'; //update, hide
-/*
-import turf from 'turf';
-import shp from '../../../external/shpjs/shapefile';
-import shpwrite from '../../../external/SHPWrite/shpwrite';
-import { PlaneGeometry } from '../../../../../MMGIS/src/external/THREE/three118';
-*/
+import CursorInfo from '../../Ancillary/CursorInfo';
+//import F_ from '../../Basics/Formulae_/Formulae_';
+//import turf from 'turf';
 
 import IsochroneManager from './IsochroneTool_Manager';
-import * as D from "./IsochroneTool_Util";
+import * as D from './IsochroneTool_Util';
 
 import './IsochroneTool.css';
+const L = window.L;
 
 //Add the tool markup if you want to do it this way
 // prettier-ignore
@@ -46,35 +41,6 @@ function hueMap(val) {
 }
 
 let lastHoverCall = 0;
-let drawnBounds = null;
-
-function drawBounds(bounds) {
-    let line = [
-        bounds.getNorthWest(),
-        bounds.getNorthEast(),
-        bounds.getSouthEast(),
-        bounds.getSouthWest(),
-        bounds.getNorthWest()
-    ];
-    Map_.rmNotNull(drawnBounds);
-    drawnBounds = L.polyline(line);
-    drawnBounds.addTo(Map_.map);
-}
-
-function drawTileBounds(bounds, zoom) {
-    const unproj = (x, y) => Map_.map.unproject(L.point(x, y).multiplyBy(256), zoom);
-    let line = [
-        unproj(bounds.min.x, bounds.min.y),
-        unproj(bounds.max.x, bounds.min.y),
-        unproj(bounds.max.x, bounds.max.y),
-        unproj(bounds.min.x, bounds.max.y),
-        unproj(bounds.min.x, bounds.min.y)
-    ];
-    console.log(line);
-    Map_.rmNotNull(drawnBounds);
-    drawnBounds = L.polyline(line);
-    drawnBounds.addTo(Map_.map);
-}
 
 //https://leafletjs.com/reference-1.7.1.html#gridlayer
 L.IsochroneLayer = L.GridLayer.extend({
@@ -284,22 +250,23 @@ const IsochroneTool = {
         return colorEls;
     },
     makeDataLayer: function(manager) {
+        const {cost, tileBounds, options} = manager;
         
         const layerName = "isochrone";
         Map_.rmNotNull(L_.layersGroup[layerName]);
-        //drawTileBounds(manager.tileBounds, manager.options.resolution);
 
-        //TODO this will mess with map max/min zooms; fix
         L_.layersGroup[layerName] = new L.IsochroneLayer({
             className: "nofade",
-            minNativeZoom: manager.options.resolution,
-            maxNativeZoom: manager.options.resolution,
-            bounds: manager.tileBounds,
+            minZoom: Math.min(options.resolution, Map_.map.getMinZoom()),
+            maxZoom: Map_.map.getMaxZoom(),
+            minNativeZoom: options.resolution,
+            maxNativeZoom: options.resolution,
+            bounds: tileBounds,
             tileSize: 256,
-            opacity: manager.options.opacity,
-            color: manager.options.color,
-            maxCost: manager.options.maxCost,
-            data: manager.cost
+            opacity: options.opacity,
+            color: options.color,
+            maxCost: options.maxCost,
+            data: cost
         });
         
         L_.layersGroup[layerName].setZIndex(1000);
@@ -370,7 +337,7 @@ const IsochroneTool = {
 
         if(this.manager.backlink === null) return;
         const now = Date.now();
-        if(lastHoverCall + 50 > now) return;
+        if(lastHoverCall + 65 > now) return;
         lastHoverCall = now;
 
         if(this.hoverPolyline !== null)
