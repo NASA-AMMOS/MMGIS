@@ -607,14 +607,9 @@ var L_ = {
                     function setLayerStyle(layer) {
                         const style = layer.feature.properties.style
                         const color = style.color
-                        if (layer.feature.geometry.type === 'Point')
-                            layer.setStyle({
-                                fillColor: color,
-                            })
-                        else
-                            layer.setStyle({
-                                color: color,
-                            })
+                        layer.setStyle({
+                            color: color,
+                        })
                     }
                 }
             }
