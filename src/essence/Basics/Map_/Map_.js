@@ -1002,15 +1002,16 @@ function makeLayer(layerObj) {
                 }
                 leafletLayerObject.pointToLayer = function (feature, latlong) {
                     //We'll use leaflet's circleMarker for this
-                    let layer = L.circleMarker(
-                        latlong,
-                        leafletLayerObject.style
-                    ).setRadius(layerObj.radius)
+                    // let layer = L.circleMarker(
+                    //     latlong,
+                    //     leafletLayerObject.style
+                    // ).setRadius(layerObj.radius)
                     
                     
                     // Use dynamic symbols based on shape
                     const featureStyle = leafletLayerObject.style(feature)
                     let svg = ""
+                    let layer = null
                     switch (layerObj.shape.toString()){
                         case "circle":
                             svg = [
@@ -1019,7 +1020,6 @@ function makeLayer(layerObj) {
                                 `</svg>`
                             ]
                             .join("\n")
-                            console.log(layer)
                             break
                         case "square":
                             svg = [
@@ -1054,15 +1054,27 @@ function makeLayer(layerObj) {
                             .join("\n")
                             break
                         case "none":
+                            default:
+                                layer = L.circleMarker(
+                                    latlong,
+                                    leafletLayerObject.style
+                                ).setRadius(layerObj.radius)
                             break
                     }
-                    markerIcon = L.divIcon({className : 'leafletMarkerShape', 
-                    iconSize: [24,24],
-                    html: svg});
-                    if (markerIcon) {
-                        layer = L.marker(latlong, { icon: markerIcon })
-                        layer.options.layerName = layerObj.name
+                    if(layer == null && svg != null) {
+                                markerIcon = L.divIcon({className : 'leafletMarkerShape', 
+                                iconSize: [24,24],
+                                html: svg});
+                                layer = L.marker(latlong, { icon: markerIcon })
                     }
+                    layer.options.layerName = layerObj.name
+                    // markerIcon = L.divIcon({className : 'leafletMarkerShape', 
+                    // iconSize: [24,24],
+                    // html: svg});
+                    // if (markerIcon) {
+                    //     layer = L.marker(latlong, { icon: markerIcon })
+                    //     layer.options.layerName = layerObj.name
+                    // }
 
                     return layer
                 }
