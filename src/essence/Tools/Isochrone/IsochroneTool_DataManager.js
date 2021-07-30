@@ -12,7 +12,8 @@ const IsochroneTool_DataManager = {
         requiredTiles,
         bounds,
         resolution,
-        callback
+        callback,
+        progFunc
     ) {
         if(!F_.isUrlAbsolute(url)) url = L_.missionPath + url;
 
@@ -20,7 +21,7 @@ const IsochroneTool_DataManager = {
         const yTileWorldBound = Math.ceil(pxWorldBound.max.y / 256) - 1;
 
         const totalTiles = requiredTiles.length;
-        const tilesPerStep = 8;
+        const tilesPerStep = 16;
         let nextStep = tilesPerStep;
         let tilesQueried = 0, tilesLoaded = 0;
 
@@ -44,7 +45,8 @@ const IsochroneTool_DataManager = {
         function registerLoadedTile() {
             tilesLoaded++;
 
-            if(tilesLoaded >= totalTiles) {
+            progFunc(tilesLoaded / totalTiles);
+            if(tilesLoaded === totalTiles) {
                 //console.log("QUERY DATA", queryReturnData);
                 callback(queryReturnData);
             } else if(tilesLoaded >= nextStep) {

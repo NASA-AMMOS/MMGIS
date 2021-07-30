@@ -4,7 +4,7 @@ export default class Model {
     
     static costName = "distance";
     static costUnitSymbol = "m";
-    static defaultCost = 100;
+    static defaultCost = 1000;
 
     constructor() {
         this.data = {};

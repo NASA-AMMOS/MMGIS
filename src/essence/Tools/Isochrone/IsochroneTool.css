@@ -105,3 +105,28 @@
     line-height: 20px;
     background-color: var(--color-b);
 }
+
+#isochroneTool div.loading {
+    position: absolute;
+    width: 100%;
+    padding-left: 0px;
+    opacity: 0;
+}
+
+#isochroneTool div.loading.on {
+    opacity: 1;
+}
+
+#isochroneTool div.loading div {
+    width: 0%;
+    position: absolute;
+    left: 0;
+    height: 29px;
+    /*background: rgb(2, 187, 2);*/
+    background: #3b5981;
+}
+
+#isochroneTool div.loading span {
+    margin-left: 5px;
+    z-index: 100;
+}

@@ -15,6 +15,12 @@ import * as D from './IsochroneTool_Util';
 import './IsochroneTool.css';
 const L = window.L;
 
+/*
+Handles map events, sidebar management, drawing layers and markers.
+Individual isochrones, from data gathering and modeling to analysis,
+are handled in IsochroneTool_Manager and its imports.
+*/
+
 //Add the tool markup if you want to do it this way
 // prettier-ignore
 const markup = [
@@ -45,7 +51,7 @@ let lastHoverCall = 0;
 //https://leafletjs.com/reference-1.7.1.html#gridlayer
 L.IsochroneLayer = L.GridLayer.extend({
     //Override to make layer accept Bounds in place of LatLngBounds
-    //  (for better polar projection support)
+    //  (cleaner, supports polar projections better)
     _isValidTile(coords) {
         const bounds = this.options.bounds;
         return coords.x >= bounds.min.x
@@ -64,36 +70,34 @@ L.IsochroneLayer = L.GridLayer.extend({
         const img = ctx.getImageData(0, 0, size.x, size.y);
 
         const bounds = this.options.bounds;
-        const boundsSize = bounds.getSize();
         const tXOffset = coords.x - bounds.min.x;
         const tYOffset = coords.y - bounds.min.y;
 
         const alpha = Math.floor(this.options.opacity * 255);
 
-        if(tXOffset >= 0 && tYOffset >= 0 && tXOffset < boundsSize.x && tYOffset < boundsSize.y) {
-            let di = 0; //img data index
-            for(let y = 0; y < size.y; y++) {
-                const yIndex = tYOffset * size.y + y;
-                for(let x = 0; x < size.x; x++) {
-                    const xIndex = tXOffset * size.x + x;
-                    const currentData = this.options.data[yIndex][xIndex];
-                    if(isFinite(currentData)) {
-                        const color = IsochroneTool.valueToColor(
-                            currentData / this.options.maxCost,
-                            this.options.color
-                        );
-                        img.data[di] = color[0];
-                        img.data[di + 1] = color[1];
-                        img.data[di + 2] = color[2];
-                        img.data[di + 3] = alpha;
-                    } else {
-                        img.data[di] = 0;
-                        img.data[di + 1] = 0;
-                        img.data[di + 2] = 0;
-                        img.data[di + 3] = 0;
-                    }
-                    di += 4;
+        let di = 0; //img data index
+        for(let y = 0; y < size.y; y++) {
+            const yIndex = tYOffset * size.y + y;
+            for(let x = 0; x < size.x; x++) {
+                const xIndex = tXOffset * size.x + x;
+                const currentData = this.options.data[yIndex][xIndex];
+                if(isFinite(currentData)) {
+                    const color = IsochroneTool.valueToColor(
+                        currentData / this.options.maxCost,
+                        this.options.color,
+                        this.options.steps
+                    );
+                    img.data[di] = color[0];
+                    img.data[di + 1] = color[1];
+                    img.data[di + 2] = color[2];
+                    img.data[di + 3] = alpha;
+                } else {
+                    img.data[di] = 0;
+                    img.data[di + 1] = 0;
+                    img.data[di + 2] = 0;
+                    img.data[di + 3] = 0;
                 }
+                di += 4;
             }
         }
         ctx.putImageData(img, 0, 0);
@@ -112,6 +116,7 @@ const IsochroneTool = {
     marker: null,
     hoverPolyline: null,
     hovered: false,
+
     colorRamps: [
         [ //Red 5
             [254, 229, 217],
@@ -149,6 +154,7 @@ const IsochroneTool = {
             [129, 15, 124]
         ]
     ],
+
     initialize: function() {
         this.vars = L_.getToolVars('isochrone');
 
@@ -179,13 +185,14 @@ const IsochroneTool = {
             }
         }
     },
+
     make: function() {
         this.MMGISInterface = new interfaceWithMMGIS();
 
         this.manager = new IsochroneManager(
             this.dataSources,
             () => {
-                this.makeMarker(this.manager.start, this.manager.options.color);
+                this.makeMarker(this.manager, true);
                 this.makeDataLayer(this.manager);
             }
         );
@@ -195,6 +202,7 @@ const IsochroneTool = {
             this.manager.makeElement(this.makeGradientEls())
         );
     },
+
     destroy: function() {
         Map_.rmNotNull(this.marker);
         Map_.rmNotNull(L_.layersGroup["isochrone"]);
@@ -206,12 +214,15 @@ const IsochroneTool = {
     getUrlString: function() { //TODO?
         return '';
     },
+
     handleClick:  function(e) {
         if(e && e.latlng) {
-            this.makeMarker(e.latlng, this.manager.options.color);
-            this.manager.setStart(e.latlng);
+            this.manager.start = e.latlng;
+            this.makeMarker(this.manager, false);
+            this.manager.setBounds();
         }
     },
+
     valueToColor: function(val, rampIndex, steps = 0) {
         val = Math.min(val, 1);
         if(steps) val = Math.floor(val * steps) / steps;
@@ -224,6 +235,7 @@ const IsochroneTool = {
             Math.floor(ramp[i][chan] * (1 - off) + ramp[i + 1][chan] * off);
         return [getChan(0), getChan(1), getChan(2)];
     },
+
     makeGradientEls: function() {
         const C_WIDTH = 120, C_HEIGHT = 29;
         const numRamps = this.colorRamps.length;
@@ -250,6 +262,7 @@ const IsochroneTool = {
         }
         return colorEls;
     },
+
     makeDataLayer: function(manager) {
         const {cost, tileBounds, options} = manager;
         
@@ -267,6 +280,7 @@ const IsochroneTool = {
             opacity: options.opacity,
             color: options.color,
             maxCost: options.maxCost,
+            steps: options.steps,
             data: cost
         });
         
@@ -274,7 +288,9 @@ const IsochroneTool = {
         Map_.map.addLayer(L_.layersGroup[layerName]);
     },
 
-    makeMarker: function(start, color) { //ViewshedTool.js:948 (function viewsheed)
+    makeMarker: function(manager, draggable) { //ViewshedTool.js:948 (function viewsheed)
+        const {start, options} = manager;
+        console.log(manager);
         let canvas = document.createElement("canvas");
         canvas.width = 16;
         canvas.height = 16;
@@ -282,7 +298,7 @@ const IsochroneTool = {
 
         const radius = 7
         const strokeWeight = 2
-        const ramp = IsochroneTool.colorRamps[color];
+        const ramp = IsochroneTool.colorRamps[options.color];
         const c = ramp[ramp.length - 1];
 
         ctx.fillStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, 255)`;
@@ -328,9 +344,16 @@ const IsochroneTool = {
             [start.lat, start.lng],
             {
                 icon: isochroneIcon,
-                draggable: false //for now... (TODO)
+                draggable
             }
-        ).addTo(Map_.map);
+        );
+        if(draggable) {
+            IsochroneTool.marker.on("dragend", e => {
+                this.manager.start = e.target._latlng;
+                this.manager.setBounds();
+            });
+        }
+        IsochroneTool.marker.addTo(Map_.map);
     },
 
     handleMove: function(e) {

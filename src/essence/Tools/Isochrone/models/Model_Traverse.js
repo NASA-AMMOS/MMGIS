@@ -17,8 +17,6 @@ class Model_Traverse extends Model {
             tLatLng.lng,
             tLatLng.lat
         );
-        const cEl = getPx(this.data.DEM, cPx);
-        const tEl = getPx(this.data.DEM, tPx);
         const distVert = getPx(this.data.DEM, cPx) - getPx(this.data.DEM, tPx);
         const distTotal = Math.sqrt(distVert * distVert + dist2d * dist2d);
         const slope = Math.tan(distVert / dist2d) * (180 / Math.PI);

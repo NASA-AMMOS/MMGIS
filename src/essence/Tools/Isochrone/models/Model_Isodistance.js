@@ -22,6 +22,7 @@ class Model_Isodistance extends Model {
     static requiredData = [
         "DEM"
     ];
+    static defaultCost = 5000;
 
     constructor() {
         super();

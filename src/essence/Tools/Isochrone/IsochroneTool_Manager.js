@@ -1,6 +1,6 @@
 import $ from "jquery";
 
-import models from "./IsochroneTool_Models";
+import models from "./models";
 import * as IsochroneTool_Algorithm from "./IsochroneTool_Algorithm";
 import Map_ from '../../Basics/Map_/Map_';
 import * as U from "./IsochroneTool_Util";
@@ -42,7 +42,7 @@ function createDropdown(title, root, options = []) {
     return el;
 }
 
-const GLOBAL_MIN_RESOLUTION = 5;
+const GLOBAL_MIN_RESOLUTION = 4;
 const GLOBAL_MAX_RESOLUTION = 20;
 
 class IsochroneManager {
@@ -67,10 +67,10 @@ class IsochroneManager {
         this.options = {
             color: 0,
             opacity: 0.6,
-            maxRadius: 250,
+            maxRadius: 5000,
             resolution: GLOBAL_MIN_RESOLUTION,
             model: 0,
-            maxCost: 100
+            maxCost: 5000
         };
         this.updateTimeout = 0;
 
@@ -138,8 +138,15 @@ class IsochroneManager {
 
         this.optionEls.opacity =
             $(`<input class="slider2" type="range" min="0" max="1" step="0.01" value="${this.options.opacity}" default="0.4"></input>`)
-            .on("change", e => this.handleInput(e, "opacity", 1))
-            .appendTo(addOption("Opacity", root));
+            .appendTo(addOption("Opacity", root))
+            .on("change", e => this.handleInput(e, "opacity", 1));
+        
+        //*
+        this.optionEls.steps =
+            $(`<input class="nounit" type="number" min="0" step="1" value="0">`)
+            .appendTo(addOption("Steps", root))
+            .on("change", e => this.handleInput(e, "steps", 1));
+        //*/
 
         this.optionEls.model = createDropdown(
             "Model",
@@ -156,6 +163,12 @@ class IsochroneManager {
         this.sections.data = addSection("Data Properties", root);
         this.sections.model = addSection("Model Properties", root);
         this.setupModel();
+
+        const loadingContainer = $(`<div class="loading"></div>`)
+            .appendTo(root);
+        this.optionEls.loadMsg = $(`<span></span>`).appendTo(loadingContainer);
+        this.optionEls.loadBar = $(`<div></div>`).appendTo(loadingContainer);
+        this.optionEls.loadEl = loadingContainer;
         
         return root;
     }
@@ -309,7 +322,6 @@ class IsochroneManager {
         }
 
         tileList.sort((a, b) => a.dist - b.dist);
-        console.log(tileList);
         return tileList;
     }
 
@@ -330,21 +342,30 @@ class IsochroneManager {
             dataObj[dataName] = result;
             if(queryList.length > 0) {
                 const nextQuery = queryList.shift();
+                this.optionEls.loadMsg.html("Loading " + nextQuery.dataType);
+                this.optionEls.loadBar.css({width: "0%"});
                 IsochroneTool_DataManager.queryTiles(
                     nextQuery.url, nextQuery.tileList, nextQuery.resolution,
-                    d => dataCallback(d, nextQuery.dataType, queryList, dataObj)
+                    d => dataCallback(d, nextQuery.dataType, queryList, dataObj),
+                    prog => this.optionEls.loadBar.css({width: prog * 100 + "%"})
                 );
             } else {
                 this.model.data = dataObj;
                 console.timeEnd("load");
-                this.generateIsochrone();
+                this.optionEls.loadMsg.html("Analyzing...");
+                window.requestAnimationFrame(() => this.generateIsochrone());
             }
         }
 
+        this.optionEls.loadBar.css({width: "0%"});
+        this.optionEls.loadEl.addClass("on");
+
         const firstQuery = requiredDatasets.shift();
+        this.optionEls.loadMsg.html("Loading " + firstQuery.dataType);
         IsochroneTool_DataManager.queryTiles(
             firstQuery.url, firstQuery.tileList, this.tileBounds, firstQuery.resolution,
-            d => dataCallback(d, firstQuery.dataType, requiredDatasets, {})
+            d => dataCallback(d, firstQuery.dataType, requiredDatasets, {}),
+            prog => this.optionEls.loadBar.css({width: prog * 100 + "%"})
         );
     }
 
@@ -357,6 +378,8 @@ class IsochroneManager {
             this.options.resolution,
             this.options.maxCost
         );
+        this.optionEls.loadBar.css({width: "0%"});
+        this.optionEls.loadEl.removeClass("on");
         console.timeEnd("generate");
         //console.log("RESULT", result.cost);
         this.cost = result.cost;
