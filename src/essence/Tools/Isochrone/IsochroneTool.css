@@ -109,12 +109,8 @@
 #isochroneTool div.loading {
     position: absolute;
     width: 100%;
+    overflow: visible;
     padding-left: 0px;
-    opacity: 0;
-}
-
-#isochroneTool div.loading.on {
-    opacity: 1;
 }
 
 #isochroneTool div.loading div {

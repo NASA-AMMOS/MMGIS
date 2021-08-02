@@ -1,5 +1,5 @@
 
-import * as D from "./IsochroneTool_Util";
+import * as U from "./IsochroneTool_Util";
 const _X = 1, _Y = 0;
 
 const h_getParentIndex = i => Math.ceil(i / 2) - 1;
@@ -15,14 +15,14 @@ class PxHeap {
     compare(i, j) {
         const iVal = this.contents[i];
         const jVal = this.contents[j];
-        return D.getPx(this.valueArr, iVal) > D.getPx(this.valueArr, jVal);
+        return U.getPx(this.valueArr, iVal) > U.getPx(this.valueArr, jVal);
     }
 
     swap(i, j) {
         const iVal = this.contents[i];
         const jVal = this.contents[j];
-        D.setPx(this.indexArr, iVal, j);
-        D.setPx(this.indexArr, jVal, i);
+        U.setPx(this.indexArr, iVal, j);
+        U.setPx(this.indexArr, jVal, i);
         this.contents[i] = jVal;
         this.contents[j] = iVal;
     }
@@ -60,17 +60,17 @@ class PxHeap {
     insert(px) {
         let index = this.contents.length;
         this.contents.push(px);
-        D.setPx(this.indexArr, px, index);
+        U.setPx(this.indexArr, px, index);
         this.bubbleUp(index);
     }
 
     remove() {
         const result = this.contents[0];
-        D.setPx(this.indexArr, result, -1);
+        U.setPx(this.indexArr, result, -1);
         const lastPx = this.contents.pop();
         if(this.contents.length > 0) {
             this.contents[0] = lastPx;
-            D.setPx(this.indexArr, lastPx, 0);
+            U.setPx(this.indexArr, lastPx, 0);
             this.bubbleDown();
         }
         return result;
@@ -106,9 +106,9 @@ function generate(
     const height = (bounds.max.y - bounds.min.y) * 256;
 
     //Set up dijkstra's
-    let costArr = D.createDataArray(width, height, Infinity);
-    let linkArr = D.createDataArray(width, height, 0);
-    let indexArr = D.createDataArray(width, height, -2);
+    let costArr = U.createDataArray(width, height, Infinity, Float32Array);
+    let linkArr = U.createDataArray(width, height, 0, Uint8Array);
+    let indexArr = U.createDataArray(width, height, -2, Int32Array);
         //-2: px is unvisited; -1: px has been removed
     
     let heap = new PxHeap(costArr, indexArr);
@@ -119,28 +119,28 @@ function generate(
     //Do dijkstra's to it
     while(heap.isNotEmpty()) {
         const cPx = heap.remove(); //current pixel
-        const cCost = D.getPx(costArr, cPx);
-        const cLatLng = D.pxToLatLng(cPx, bounds, zoom);
+        const cCost = U.getPx(costArr, cPx);
+        const cLatLng = U.pxToLatLng(cPx, bounds, zoom);
         for(const m of moves) {
             const tPx = [cPx[_Y] + m[_Y], cPx[_X] + m[_X]]; //target pixel
             if(tPx[_Y] < 0 || tPx[_X] < 0
                 || tPx[_Y] >= height || tPx[_X] >= width)
                 continue;
 
-            const tPxIndex = D.getPx(indexArr, tPx);
+            const tPxIndex = U.getPx(indexArr, tPx);
             if(tPxIndex === -1) continue;
 
-            const tLatLng = D.pxToLatLng(tPx, bounds, zoom);
+            const tLatLng = U.pxToLatLng(tPx, bounds, zoom);
             const cost = costFunction(cPx, cLatLng, tPx, tLatLng) + cCost;
             if(cost > maxCost || !isFinite(cost)) continue;
             
             if(tPxIndex === -2) {
-                D.setPx(costArr, tPx, cost);
-                D.setPx(linkArr, tPx, D.moveToBacklink(m));
+                U.setPx(costArr, tPx, cost);
+                U.setPx(linkArr, tPx, U.moveToBacklink(m));
                 heap.insert(tPx);
-            } else if(cost < D.getPx(costArr, tPx)) {
-                D.setPx(costArr, tPx, cost);
-                D.setPx(linkArr, tPx, D.moveToBacklink(m));
+            } else if(cost < U.getPx(costArr, tPx)) {
+                U.setPx(costArr, tPx, cost);
+                U.setPx(linkArr, tPx, U.moveToBacklink(m));
                 heap.bubbleUp(tPxIndex);
             }
         }

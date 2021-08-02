@@ -7,7 +7,7 @@ import * as U from "./IsochroneTool_Util";
 import F_ from '../../Basics/Formulae_/Formulae_';
 
 
-import IsochroneTool_DataManager from "./IsochroneTool_DataManager";
+import QueryJob from "./IsochroneTool_Query";
 
 //Terrible no-good very bad JQuery element creators
 
@@ -42,6 +42,12 @@ function createDropdown(title, root, options = []) {
     return el;
 }
 
+function createLoadBar(msg, root) {
+    const container = $(`<div class="loading"></div>`).appendTo(root);
+    $(`<span>${msg}</span>`).appendTo(container);
+    return $(`<div></div>`).appendTo(container);
+}
+
 const GLOBAL_MIN_RESOLUTION = 4;
 const GLOBAL_MAX_RESOLUTION = 20;
 
@@ -56,6 +62,8 @@ class IsochroneManager {
 
         this.modelProto = null;
         this.model = null; //Model
+
+        this.queryJobs = [];
 
         this.minResolution = GLOBAL_MIN_RESOLUTION;
         this.maxResolution = GLOBAL_MAX_RESOLUTION;
@@ -113,6 +121,7 @@ class IsochroneManager {
 
     makeElement(gradientEls) {
         let root = $("<li></li>").addClass("isochroneOptions");
+        this.optionEls.root = root;
 
         this.optionEls.maxRadius = createInputWithUnit(
             "Max radius",
@@ -163,12 +172,6 @@ class IsochroneManager {
         this.sections.data = addSection("Data Properties", root);
         this.sections.model = addSection("Model Properties", root);
         this.setupModel();
-
-        const loadingContainer = $(`<div class="loading"></div>`)
-            .appendTo(root);
-        this.optionEls.loadMsg = $(`<span></span>`).appendTo(loadingContainer);
-        this.optionEls.loadBar = $(`<div></div>`).appendTo(loadingContainer);
-        this.optionEls.loadEl = loadingContainer;
         
         return root;
     }
@@ -252,11 +255,6 @@ class IsochroneManager {
 
     /******************** ISOCHRONE GENERATION ********************/
 
-    setStart(latlng) {
-        this.start = latlng;
-        this.setBounds();
-    }
-
     setBounds() {
         this.tileBounds = U.createTileBounds(
             this.start,
@@ -275,8 +273,8 @@ class IsochroneManager {
         this.getData();
     }
 
-    getRequiredTilesList({zoomOffset}) {
-        let tileList = [];
+    getRequiredTilesList(source) {
+        const {zoomOffset} = source;
         const zoom = this.options.resolution + zoomOffset;
         let bounds = this.tileBounds;
         if(zoomOffset !== 0) { //Handle lower-res tiles
@@ -289,6 +287,7 @@ class IsochroneManager {
         const startPoint = Map_.map.project(this.start, zoom);
         const startTile = startPoint.clone().divideBy(256).floor();
         
+        let tileList = [];
         for(let y = bounds.min.y; y < bounds.max.y; y++) {
             for(let x = bounds.min.x; x < bounds.max.x; x++) {
                 //Measure distance to start from nearest corner/edge
@@ -327,46 +326,33 @@ class IsochroneManager {
 
     getData() {
         console.time("load");
-        let requiredDatasets = [];
+        
+        this.queryJobs.map(job => job.stop());
+        this.queryJobs = [];
+
+        const promises = [];
         for(const dataType of this.modelProto.requiredData) {
-            const sourceObj = this.dataSources[dataType][this.options[dataType + "_source"]];
-            requiredDatasets.push({
-                tileList: this.getRequiredTilesList(sourceObj),
-                dataType,
-                url: sourceObj.tileurl,
-                resolution: sourceObj.resolution
-            });
+            const sourceIndex = this.options[dataType +"_source"];
+            const source = this.dataSources[dataType][sourceIndex];
+            const requiredTiles = this.getRequiredTilesList(source);
+
+            const job = new QueryJob(source, requiredTiles, this.tileBounds);
+            this.queryJobs.push(job);
+            let bar;
+            promises.push(job.start(
+                () => bar = createLoadBar(`Loading ${dataType}...`, this.optionEls.root),
+                prog => bar.css({width: `${prog * 100}%`}),
+                () => bar.parent().remove()
+            ));
         }
 
-        const dataCallback = (result, dataName, queryList, dataObj) => {
-            dataObj[dataName] = result;
-            if(queryList.length > 0) {
-                const nextQuery = queryList.shift();
-                this.optionEls.loadMsg.html("Loading " + nextQuery.dataType);
-                this.optionEls.loadBar.css({width: "0%"});
-                IsochroneTool_DataManager.queryTiles(
-                    nextQuery.url, nextQuery.tileList, nextQuery.resolution,
-                    d => dataCallback(d, nextQuery.dataType, queryList, dataObj),
-                    prog => this.optionEls.loadBar.css({width: prog * 100 + "%"})
-                );
-            } else {
-                this.model.data = dataObj;
-                console.timeEnd("load");
-                this.optionEls.loadMsg.html("Analyzing...");
-                window.requestAnimationFrame(() => this.generateIsochrone());
-            }
-        }
-
-        this.optionEls.loadBar.css({width: "0%"});
-        this.optionEls.loadEl.addClass("on");
-
-        const firstQuery = requiredDatasets.shift();
-        this.optionEls.loadMsg.html("Loading " + firstQuery.dataType);
-        IsochroneTool_DataManager.queryTiles(
-            firstQuery.url, firstQuery.tileList, this.tileBounds, firstQuery.resolution,
-            d => dataCallback(d, firstQuery.dataType, requiredDatasets, {}),
-            prog => this.optionEls.loadBar.css({width: prog * 100 + "%"})
-        );
+        Promise.all(promises).then(result => {
+            const dataArr = this.modelProto.requiredData.map((d, i) => [d, result[i]]);
+            this.model.data = Object.fromEntries(dataArr);
+            this.queryJobs = [];
+            console.timeEnd("load");
+            this.generateIsochrone();
+        }).catch(console.log);
     }
 
     generateIsochrone() {
@@ -378,8 +364,6 @@ class IsochroneManager {
             this.options.resolution,
             this.options.maxCost
         );
-        this.optionEls.loadBar.css({width: "0%"});
-        this.optionEls.loadEl.removeClass("on");
         console.timeEnd("generate");
         //console.log("RESULT", result.cost);
         this.cost = result.cost;

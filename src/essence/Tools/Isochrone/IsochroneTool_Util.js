@@ -6,10 +6,10 @@ const _X = 1, _Y = 0;
 export const getPx = (arr, px) => arr[px[_Y]][px[_X]];
 export const setPx = (arr, px, val) => arr[px[_Y]][px[_X]] = val;
 
-export function createDataArray(width, height, fillWith = null) {
+export function createDataArray(width, height, fillWith = null, type = Array) {
     let resultArr = [];
     for(let y = 0; y < height; y++) {
-        resultArr.push(Array(width).fill(fillWith));
+        resultArr.push(new type(width).fill(fillWith));
     }
     return resultArr;
 }

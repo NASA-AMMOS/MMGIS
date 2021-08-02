@@ -13,11 +13,11 @@ import IsochroneManager from './IsochroneTool_Manager';
 import * as D from './IsochroneTool_Util';
 
 import './IsochroneTool.css';
-const L = window.L;
+const L = window.L; //shhh, eslint...
 
 /*
 Handles map events, sidebar management, drawing layers and markers.
-Individual isochrones, from data gathering and modeling to analysis,
+Individual isochrones, from data gathering to modeling to analysis,
 are handled in IsochroneTool_Manager and its imports.
 */
 
@@ -81,7 +81,7 @@ L.IsochroneLayer = L.GridLayer.extend({
             for(let x = 0; x < size.x; x++) {
                 const xIndex = tXOffset * size.x + x;
                 const currentData = this.options.data[yIndex][xIndex];
-                if(isFinite(currentData)) {
+                if(isFinite(currentData) && currentData < this.options.maxCost) {
                     const color = IsochroneTool.valueToColor(
                         currentData / this.options.maxCost,
                         this.options.color,
@@ -112,7 +112,7 @@ const IsochroneTool = {
     vars: null,
     manager: null,
     containerEl: null,
-    dataSources: null,
+    dataSources: {},
     marker: null,
     hoverPolyline: null,
     hovered: false,
@@ -159,11 +159,12 @@ const IsochroneTool = {
         this.vars = L_.getToolVars('isochrone');
 
         //add info for scaling low-res tiles
-        this.dataSources = this.vars.data;
         for(const dataType in this.vars.data) {
-            for(let src of this.vars.data[dataType]) {
+            this.dataSources[dataType] = [];
+            for(const src of this.vars.data[dataType]) {
+                const {name, tileurl, minZoom, maxNativeZoom, resolution} = src;
                 let zoomOffset = 0;
-                switch(src.resolution) {
+                switch(resolution) {
                     case 256:
                         zoomOffset = 0;
                     break;
@@ -179,9 +180,21 @@ const IsochroneTool = {
                     default:
                         console.warn(`IsochroneTool: ${dataType} source "${src.name}" has undefined or nonstandard resolution: ${src.resolution}!`);
                 }
-                src.minResolution = src.minZoom - zoomOffset;
-                src.maxResolution = src.maxNativeZoom - zoomOffset;
-                src.zoomOffset = zoomOffset;
+                
+                const minResolution = Math.max(minZoom - zoomOffset, 0);
+                const maxResolution = maxNativeZoom - zoomOffset;
+
+                //Data source interface! In case this tool gets ts-ified
+                this.dataSources[dataType].push({
+                    name, //string
+                    tileurl, //string
+                    minZoom, //number
+                    maxNativeZoom, //number
+                    resolution, //number
+                    minResolution, //number
+                    maxResolution, //number
+                    zoomOffset //number
+                });
             }
         }
     },
@@ -213,14 +226,6 @@ const IsochroneTool = {
     },
     getUrlString: function() { //TODO?
         return '';
-    },
-
-    handleClick:  function(e) {
-        if(e && e.latlng) {
-            this.manager.start = e.latlng;
-            this.makeMarker(this.manager, false);
-            this.manager.setBounds();
-        }
     },
 
     valueToColor: function(val, rampIndex, steps = 0) {
@@ -290,7 +295,6 @@ const IsochroneTool = {
 
     makeMarker: function(manager, draggable) { //ViewshedTool.js:948 (function viewsheed)
         const {start, options} = manager;
-        console.log(manager);
         let canvas = document.createElement("canvas");
         canvas.width = 16;
         canvas.height = 16;
@@ -354,6 +358,14 @@ const IsochroneTool = {
             });
         }
         IsochroneTool.marker.addTo(Map_.map);
+    },
+
+    handleClick: function(e) {
+        if(e && e.latlng) {
+            this.manager.start = e.latlng;
+            this.makeMarker(this.manager, false);
+            this.manager.setBounds();
+        }
     },
 
     handleMove: function(e) {
