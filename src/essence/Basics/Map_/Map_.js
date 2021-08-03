@@ -1001,54 +1001,48 @@ function makeLayer(layerObj) {
                     markerIcon = new L.icon(markerIconOptions)
                 }
                 leafletLayerObject.pointToLayer = function (feature, latlong) {
-                    //We'll use leaflet's circleMarker for this
-                    // let layer = L.circleMarker(
-                    //     latlong,
-                    //     leafletLayerObject.style
-                    // ).setRadius(layerObj.radius)
-                    
-                    
-                    // Use dynamic symbols based on shape
+
                     const featureStyle = leafletLayerObject.style(feature)
                     let svg = ""
                     let layer = null
+                    const pixelBuffer = featureStyle.weight
                     switch (layerObj.shape.toString()){
                         case "circle":
                             svg = [
-                                `<svg style="height=12px;width=12px" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
-                                    `<circle cx="12" cy="12" r="6"/>`,
+                                `<svg style="height=100%;width=100%" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                                    `<circle cx="12" cy="12" r="${12 - pixelBuffer}"/>`,
                                 `</svg>`
                             ]
                             .join("\n")
                             break
                         case "square":
                             svg = [
-                                `<svg width="24px;height=24px" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
-                                    `<rect width="12" height="12"/>`,
+                                `<svg style="width=100%;height=100%" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                                    `<rect width="${24 - (pixelBuffer * 2)}" height="${24 - (pixelBuffer * 2)}"/>`,
                                 `</svg>`
                             ]
                             .join("\n")
                             break
                         case "triangle":
                             svg = [
-                                `<svg style="height=14px;width=14px" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
-                                `<polygon points="0,0 7,14 14,0"/>`,
+                                `<svg style="height=100%px;width=100%px" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                                `<path d="M1,21H23L12,2" />`,
                                 `</svg>`
                             ]
                             .join("\n")
                             break
                         case "star":
                             svg = [
-                                `<svg width="24px";height="24px"  viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
-                                    `<polygon points="12,0 4,24 24,12 0,12 20,24"/>`,
+                                `<svg style="height=100%;width=100%"  viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                                    `<path d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z" />`,
                                 `</svg>`
                             ]
                             .join("\n")
                             break
                         case "hexagon":
                             svg = [
-                                `<svg version="1.1"xmlns="http://www.w3.org/2000/svg" width="18" height="20" viewbox="0 0 17.32050807568877 20" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
-                                `<path fill="${featureStyle.fillColor}" d="M8.660254037844386 0L17.32050807568877 5L17.32050807568877 15L8.660254037844386 20L0 15L0 5Z"></path>`,
+                                `<svg  style="height=100%;width=100%" viewbox="0 0 24 24" fill="${featureStyle.fillColor} "stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                                `<path d="M21,16.5C21,16.88 20.79,17.21 20.47,17.38L12.57,21.82C12.41,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L3.53,17.38C3.21,17.21 3,16.88 3,16.5V7.5C3,7.12 3.21,6.79 3.53,6.62L11.43,2.18C11.59,2.06 11.79,2 12,2C12.21,2 12.41,2.06 12.57,2.18L20.47,6.62C20.79,6.79 21,7.12 21,7.5V16.5Z" />`,
                                 `</svg>`
                             ]
                             .join("\n")
@@ -1063,18 +1057,12 @@ function makeLayer(layerObj) {
                     }
                     if(layer == null && svg != null) {
                                 markerIcon = L.divIcon({className : 'leafletMarkerShape', 
-                                iconSize: [24,24],
+                                iconSize: [(layerObj.radius + pixelBuffer) * 2,(layerObj.radius + pixelBuffer) * 2],
                                 html: svg});
                                 layer = L.marker(latlong, { icon: markerIcon })
+                                layer.options.layerName = layerObj.name
                     }
-                    layer.options.layerName = layerObj.name
-                    // markerIcon = L.divIcon({className : 'leafletMarkerShape', 
-                    // iconSize: [24,24],
-                    // html: svg});
-                    // if (markerIcon) {
-                    //     layer = L.marker(latlong, { icon: markerIcon })
-                    //     layer.options.layerName = layerObj.name
-                    // }
+                    // layer.options.layerName = layerObj.name
 
                     return layer
                 }
