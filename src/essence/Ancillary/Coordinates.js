@@ -38,6 +38,7 @@ var Coordinates = {
     //[ lng, lat ]
     mouseLngLat: [0, 0],
     coordOffset: [0, 0],
+    coordENMultiplier: [1, 1],
     //Boolean indicating coords are displayed relative to 0, 0 and not active point
     ZZnotAP: true,
     //Boolean indicating coords are displayed in decimal degrees not meters
@@ -60,6 +61,36 @@ var Coordinates = {
             if (L_.configData.look.coorden) Coordinates.states.push('en')
             if (L_.configData.look.coordrxy) Coordinates.states.push('rxy')
             if (L_.configData.look.coordsite) Coordinates.states.push('site')
+            if (
+                L_.configData.look.coordlngoffset != null &&
+                !isNaN(L_.configData.look.coordlngoffset)
+            )
+                Coordinates.coordOffset[0] = parseFloat(
+                    L_.configData.look.coordlngoffset || 0
+                )
+            if (
+                L_.configData.look.coordlatoffset != null &&
+                !isNaN(L_.configData.look.coordlatoffset)
+            )
+                Coordinates.coordOffset[1] = parseFloat(
+                    L_.configData.look.coordlatoffset || 0
+                )
+            if (
+                L_.configData.look.coordeastmult != null &&
+                !isNaN(L_.configData.look.coordeastmult)
+            )
+                Coordinates.coordENMultiplier[0] = parseFloat(
+                    L_.configData.look.coordeastmult || 1
+                )
+            if (
+                L_.configData.look.coordnorthmult != null &&
+                !isNaN(L_.configData.look.coordnorthmult)
+            )
+                Coordinates.coordENMultiplier[1] = parseFloat(
+                    L_.configData.look.coordnorthmult || 1
+                )
+            console.log(L_.configData.look)
+            console.log(Coordinates)
         }
         if (Coordinates.states.length === 0) Coordinates.states = ['ll', 'en']
 
@@ -83,25 +114,27 @@ var Coordinates = {
     getAllCoordinates: function () {
         return {
             longitude: {
-                value: Coordinates.mouseLngLat[0],
+                value: Coordinates.mouseLngLat[0] + Coordinates.coordOffset[0],
                 unit: 'degree',
             },
             latitude: {
-                value: Coordinates.mouseLngLat[1],
+                value: Coordinates.mouseLngLat[1] + Coordinates.coordOffset[1],
                 unit: 'degree',
             },
             easting: {
                 value:
                     (Coordinates.mouseLngLat[0] + Coordinates.coordOffset[0]) *
                     (Math.PI / 180) *
-                    F_.radiusOfPlanetMajor,
+                    F_.radiusOfPlanetMajor *
+                    Coordinates.coordENMultiplier[0],
                 unit: 'meter',
             },
             northing: {
                 value:
-                    (Coordinates.mouseLngLat[1] + Coordinates.coordOffset[0]) *
+                    (Coordinates.mouseLngLat[1] + Coordinates.coordOffset[1]) *
                     (Math.PI / 180) *
-                    F_.radiusOfPlanetMajor,
+                    F_.radiusOfPlanetMajor *
+                    Coordinates.coordENMultiplier[1],
                 unit: 'meter',
             },
         }
@@ -176,14 +209,16 @@ var Coordinates = {
                             (Coordinates.mouseLngLat[0] +
                                 Coordinates.coordOffset[0]) *
                             (Math.PI / 180) *
-                            F_.radiusOfPlanetMajor
+                            F_.radiusOfPlanetMajor *
+                            Coordinates.coordENMultiplier[0]
                         ).toFixed(3) +
                             'm, ' +
                             (
                                 (Coordinates.mouseLngLat[1] +
-                                    Coordinates.coordOffset[0]) *
+                                    Coordinates.coordOffset[1]) *
                                 (Math.PI / 180) *
-                                F_.radiusOfPlanetMajor
+                                F_.radiusOfPlanetMajor *
+                                Coordinates.coordENMultiplier[1]
                             ).toFixed(3) +
                             'm' +
                             (Coordinates.elevation != null
@@ -234,7 +269,7 @@ var Coordinates = {
                             'm, ' +
                             (
                                 (Coordinates.mouseLngLat[1] +
-                                    Coordinates.coordOffset[0]) *
+                                    Coordinates.coordOffset[1]) *
                                 (Math.PI / 180) *
                                 F_.radiusOfPlanetMajor
                             ).toFixed(3) +
@@ -282,7 +317,7 @@ var Coordinates = {
                     d3.select('#mouseLngLat').html(
                         (
                             (Coordinates.mouseLngLat[1] +
-                                Coordinates.coordOffset[0]) *
+                                Coordinates.coordOffset[1]) *
                             (Math.PI / 180) *
                             F_.radiusOfPlanetMajor
                         ).toFixed(3) +
@@ -447,14 +482,14 @@ function pickLngLatGo() {
 
     switch (Coordinates.states[Coordinates.state]) {
         case 'll': //00 lnglat
-            finalLng = valA
-            finalLat = valB
+            finalLng = valA - Coordinates.coordOffset[0]
+            finalLat = valB - Coordinates.coordOffset[1]
             break
         case 'en': //01 easting northing
             const valALng = (valA * (180 / Math.PI)) / F_.radiusOfPlanetMajor
             const valBLat = (valB * (180 / Math.PI)) / F_.radiusOfPlanetMajor
-            finalLng = valALng
-            finalLat = valBLat
+            finalLng = valALng / Coordinates.coordENMultiplier[0]
+            finalLat = valBLat / Coordinates.coordENMultiplier[1]
             break
         case 'rxy': //10 relative easting northing
             let relativeA = 0

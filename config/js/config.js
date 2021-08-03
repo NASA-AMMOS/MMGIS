@@ -363,6 +363,18 @@ function initialize() {
                 $("#tab_look #look_coordelevurl").val(
                   cData.look ? cData.look.coordelevurl : ""
                 );
+                $("#tab_look #look_coordlngoffset").val(
+                  cData.look ? cData.look.coordlngoffset : ""
+                );
+                $("#tab_look #look_coordlatoffset").val(
+                  cData.look ? cData.look.coordlatoffset : ""
+                );
+                $("#tab_look #look_coordeastmult").val(
+                  cData.look ? cData.look.coordeastmult : ""
+                );
+                $("#tab_look #look_coordnorthmult").val(
+                  cData.look ? cData.look.coordnorthmult : ""
+                );
                 //look colors
                 $("#tab_look #look_primarycolor").val(
                   cData.look ? cData.look.primarycolor : ""
@@ -1613,6 +1625,10 @@ function save() {
     json.look["coordsite"] = $("#tab_look #look_coordsite").prop("checked");
     json.look["coordelev"] = $("#tab_look #look_coordelev").prop("checked");
     json.look["coordelevurl"] = $("#tab_look #look_coordelevurl").val();
+    json.look["coordlngoffset"] = $("#tab_look #look_coordlngoffset").val();
+    json.look["coordlatoffset"] = $("#tab_look #look_coordlatoffset").val();
+    json.look["coordeastmult"] = $("#tab_look #look_coordeastmult").val();
+    json.look["coordnorthmult"] = $("#tab_look #look_coordnorthmult").val();
     //look colors
     json.look["primarycolor"] = $("#tab_look #look_primarycolor").val();
     json.look["secondarycolor"] = $("#tab_look #look_secondarycolor").val();
