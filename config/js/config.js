@@ -747,6 +747,7 @@ function makeLayerBarAndModal(d, level) {
     timeFormatEl = "block",
     timeRefreshEl = "none",
     timeIncrementEl = "none";
+    shapeEl = "none";
 
   // prettier-ignore
   switch( d.type ) {
@@ -759,7 +760,7 @@ function makeLayerBarAndModal(d, level) {
         maxnzEl = "none"; maxzEl = "none"; strcolEl = "none"; filcolEl = "none";
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
-        timeEl = "none"; timeTypeEl = "none"; timeFormatEl = "none"; timeRefreshEl = "none"; timeIncrementEl = "none";
+        timeEl = "none"; timeTypeEl = "none"; timeFormatEl = "none"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
       break;
     case "tile":
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "none"; legendEl = "block";
@@ -770,7 +771,7 @@ function makeLayerBarAndModal(d, level) {
         maxnzEl = "block"; maxzEl = "block"; strcolEl = "none"; filcolEl = "none";
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
-        timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none";
+        timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
       break;
     case "vectortile":
         nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "none"; legendEl = "block";
@@ -781,7 +782,7 @@ function makeLayerBarAndModal(d, level) {
         maxnzEl = "block"; maxzEl = "block"; strcolEl = "none"; filcolEl = "none";
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "block"; vtIdEl = "block"; vtKeyEl = "block"; vtLayerSetStylesEl = "block";
-        timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none";
+        timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "block";
       break;
     case "data":
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "none"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "none"; legendEl = "block";
@@ -792,7 +793,7 @@ function makeLayerBarAndModal(d, level) {
         maxnzEl = "block"; maxzEl = "block"; strcolEl = "none"; filcolEl = "none";
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none"; 
-        timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none";
+        timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
       break;
     case "point":
         nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; demparserEl = "none"; controlledEl = "none"; legendEl = "block";
@@ -803,7 +804,7 @@ function makeLayerBarAndModal(d, level) {
         maxnzEl = "none"; maxzEl = "none"; strcolEl = "block"; filcolEl = "block";
         weightEl = "block"; opacityEl = "block"; radiusEl = "block"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none"; 
-        timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none";
+        timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
       break;
     case "vector":
         nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; controlledEl = "block"; demtileurlEl = "none";  demparserEl = "none"; legendEl = "block";
@@ -814,7 +815,7 @@ function makeLayerBarAndModal(d, level) {
         maxnzEl = "none"; maxzEl = "none"; strcolEl = "block"; filcolEl = "block";
         weightEl = "block"; opacityEl = "block"; radiusEl = "block"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
-        timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none";
+        timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "block";
       break;
     case "model":
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; demparserEl = "none"; controlledEl = "none"; legendEl = "none";
@@ -825,7 +826,7 @@ function makeLayerBarAndModal(d, level) {
         maxnzEl = "none"; maxzEl = "none"; strcolEl = "none"; filcolEl = "none";
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
-        timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none";
+        timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
       break; 
     default:
       console.warn(`Unknown layer type: ${d.type}`)
@@ -975,12 +976,41 @@ function makeLayerBarAndModal(d, level) {
     }
   } else togwheadTrueSel = "selected";
 
+  var shapCircleSel = "",
+    shapSquareSel = "",
+    shapTriangleSel = "",
+    shapStarSel = "",
+    shapHexagonSel = "",
+    shapNoneSel = ""
+  switch (d.shape) {
+    case "circle":
+      shapCircleSel = "selected";
+      break;
+    case "triangle":
+      shapTriangleSel = "selected";
+      break;
+    case "square":
+      shapSquareSel = "selected";
+      break;
+    case "star":
+      shapStarSel = "selected";
+      break;
+    case "hexagon":
+      shapHexagonSel = "selected";
+      break;
+    case "none":
+      shapNoneSel = "selected";
+      break;
+    default:
+  }
+
   var dStyle = {};
   if (d.hasOwnProperty("style")) dStyle = d.style;
   if (!d.hasOwnProperty("position"))
     d.position = { longitude: 0, latitude: 0, elevation: 0 };
   if (!d.hasOwnProperty("rotation")) d.rotation = { x: 0, y: 0, z: 0 };
   if (!d.hasOwnProperty("scale")) d.scale = 1;
+  if (!d.hasOwnProperty("shape")) d.shape = "circle";
 
   //Build Kinds
   let kindsOptions = [];
@@ -1244,6 +1274,20 @@ function makeLayerBarAndModal(d, level) {
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
+            "<div id='shapeEl' class='input-field col s2 push-s1' style='display: " + shapeEl + "'>" +
+              "<select>" +
+                "<option value='circle' " + shapCircleSel + ">Circle</option>" +
+                "<option value='square' " + shapSquareSel + ">Square</option>" +
+                "<option value='triangle' " + shapTriangleSel + ">Triangle</option>" +
+                "<option value='star' " + shapStarSel + ">Star</option>" +
+                "<option value='hexagon' " + shapHexagonSel + ">Hexagon</option>" +
+                "<option value='none' " + shapNoneSel + ">None</option>" +
+              "</select>" +
+              "<label>Shape</label>" +
+            "</div>" +
+          "</div>" +
+
+          "<div class='row' style='margin-bottom: 0px;'>" +
             "<div id='variableEl' class='input-field col s10 push-s1' style='display: " + variableEl + "'>" +
               "<span>Raw Variables:</span>" + 
               "<textarea id='Variable" + n + "'></textarea>" +
@@ -1371,7 +1415,8 @@ function mmgisLinkModalsToLayersTypeChange(e) {
       maxnzEl = "block", maxzEl = "block", strcolEl = "block", filcolEl = "block",
       weightEl = "block", opacityEl = "block", radiusEl = "block", variableEl = "block",
       vtLayerEl = "none", vtIdEl = "none", vtKeyEl = "none", vtLayerSetStylesEl = "none",
-      timeEl = 'block', timeTypeEl = 'block', timeFormatEl = 'block', timeRefreshEl = 'none', timeIncrementEl = 'none';
+      timeEl = 'block', timeTypeEl = 'block', timeFormatEl = 'block', timeRefreshEl = 'none', timeIncrementEl = 'none', 
+      shapeEl = 'block';
   //Kind of a repeat of above =\
 
   // prettier-ignore
@@ -1385,6 +1430,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none"; 
         timeEl = 'none'; timeTypeEl = 'none'; timeFormatEl = 'none'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
+        shapeEl = 'none';
       break;
     case "tile": barColor = "rgb(119, 15, 189)";
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "none"; legendEl = "block";
@@ -1395,6 +1441,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
         timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
+        shapeEl = 'none';
       break;
     case "vectortile": barColor = "#bd0f8e";
         nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "none"; legendEl = "block";
@@ -1405,6 +1452,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "block"; vtIdEl = "block"; vtKeyEl = "block"; vtLayerSetStylesEl = "block";  
         timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
+        shapeEl = 'block';
       break;
     case "data": barColor = "rgb(189, 15, 50)";
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "none"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "none"; legendEl = "block";
@@ -1414,7 +1462,8 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         maxzEl = "block"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
         opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
-        timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';  
+        timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
+        shapeEl = 'none';  
       break;
     case "point": barColor = "#892f45";
         nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; demparserEl = "none"; controlledEl = "none"; legendEl = "block";
@@ -1425,6 +1474,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         opacityEl = "block"; radiusEl = "block"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
         timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
+        shapeEl = 'none';
       break;
     case "vector": barColor = "rgb(15, 119, 189)";
         nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; demparserEl = "none"; controlledEl = "block"; legendEl = "block";
@@ -1435,6 +1485,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         opacityEl = "block"; radiusEl = "block"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
         timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
+        shapeEl = 'block';
       break;
     case "model": barColor = "rgb(189, 189, 15)";
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; demparserEl = "none"; controlledEl = "none"; legendEl = "none";
@@ -1445,6 +1496,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
         timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
+        shapeEl = 'none';
       break;
     default:
       console.warn(`Unknown selected layer type`)
@@ -1498,6 +1550,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
   mainThis.find("#timeFormatEl").css("display", timeFormatEl);
   mainThis.find("#timeRefreshEl").css("display", timeRefreshEl);
   mainThis.find("#timeIncrementEl").css("display", timeIncrementEl);
+  mainThis.find("#shapeEl").css("display", shapeEl); 
 }
 function mmgisLinkModalsToLayersVisChange(e) {
   var mainThis = $(this).parent().parent().parent();
@@ -1788,6 +1841,10 @@ function save() {
           .text()
           .toLowerCase();
         var modalTimeFormat = modal.find("#timeFormatEl input").val();
+        var modalShape = modal 
+        .find("#shapeEl select option:selected") 
+        .text() 
+        .toLowerCase(); 
 
         layerObject.name = modalName;
         if (
@@ -1918,6 +1975,9 @@ function save() {
         layerObject.time.refresh = "1 hours"; // refresh when the layer becomes stale
         layerObject.time.increment = "5 minutes"; // time bar steps
 
+        // shape property 
+        layerObject.shape = modalShape; // circle, square, triangle, star, hexagon
+ 
         if (!validName(modalName)) {
           isInvalidData = true;
           Materialize.toast(
