@@ -135,13 +135,16 @@ class IsochroneManager {
         );
 
         this.optionEls.color = gradientEls;
+        $(this.optionEls.color[0]).addClass("selected");
         const colorContainer = $(`<div class="dropdown color"></div>`)
             .appendTo(addOption("Color", root));
         for(const i in gradientEls) {
             $(gradientEls[i]).appendTo(colorContainer).on("click", e => {
-                this.options.color = i;
-                $(e.target).prependTo(colorContainer);
-                if(this.start !== null) this.onChange();
+                if(this.options.color !== i) {
+                    $(this.optionEls.color[this.options.color]).removeClass("selected");
+                    $(e.target).addClass("selected");
+                    this.handleInput(i, "color", 1);
+                }
             });
         }
 
@@ -265,10 +268,6 @@ class IsochroneManager {
             .project(this.start, this.options.resolution)
             .subtract(this.tileBounds.min.multiplyBy(256))
             .floor();
-        /*
-        console.log("TILE BOUNDS", this.tileBounds);
-        console.log("START PX", this.startPx);
-        //*/
 
         this.getData();
     }

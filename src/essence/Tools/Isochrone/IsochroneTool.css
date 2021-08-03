@@ -30,8 +30,8 @@
 .isochroneOptions > div, .isochroneOptions > section > div {
     display: flex;
     justify-content: space-between;
-    height: 30px;
-    line-height: 30px;
+    height: 26px;
+    line-height: 26px;
     padding-left: 5px;
     border-bottom: 1px solid var(--color-e);
     font-size: 15px;
@@ -42,10 +42,9 @@
     background-color: var(--color-i);
     color: #ededed;
     border: none;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
     border-radius: 0;
     width: 120px;
-    height: 29px;
+    height: 25px;
     font-size: 14px;
     transition: height 0.2s linear;
 }
@@ -53,15 +52,20 @@
 #isochroneTool .dropdown.color {
     position: absolute;
     right: 0;
-    overflow: hidden;
+    border: none;
 }
 
 #isochroneTool .dropdown.color canvas {
-    vertical-align: bottom;
+    vertical-align: top;
 }
 
-#isochroneTool .dropdown.color:hover {
-    height: fit-content;
+#isochroneTool .dropdown.color:hover canvas.selected {
+    outline: 3px solid #fff;
+    outline-offset: -3px;
+}
+
+#isochroneTool .dropdown.color:not(:hover) canvas:not(.selected) {
+    height: 0px;
 }
 
 #isochroneTool .unit {
@@ -71,7 +75,7 @@
     border-left: 1px solid var(--color-e);
     color: #bfbfbf;
     font-size: 14px;
-    line-height: 28px;
+    line-height: 26px;
 }
 
 #isochroneTool input[type='number'] {
@@ -79,8 +83,8 @@
     border-bottom: 1px solid rgba(0, 0, 0, 0.3);
     border-radius: 0;
     padding: 0px 6px;
-    height: 29px;
-    width: 86px;
+    height: 26px;
+    width: 87px;
     background: var(--color-i);
     text-align: right;
     color: #ededed;
@@ -92,10 +96,11 @@
 
 #isochroneTool .slider2 {
     width: 120px !important;
-    height: 29px;
+    height: 25px;
     background: var(--color-i);
     opacity: 1 !important;
     margin: 0;
+    border-radius: 0;
 }
 
 #isochroneTool .sectionhead {
@@ -107,7 +112,6 @@
 }
 
 #isochroneTool div.loading {
-    position: absolute;
     width: 100%;
     overflow: visible;
     padding-left: 0px;
@@ -117,8 +121,7 @@
     width: 0%;
     position: absolute;
     left: 0;
-    height: 29px;
-    /*background: rgb(2, 187, 2);*/
+    height: 25px;
     background: #3b5981;
 }
 

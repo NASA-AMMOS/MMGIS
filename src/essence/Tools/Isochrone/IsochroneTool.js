@@ -242,7 +242,7 @@ const IsochroneTool = {
     },
 
     makeGradientEls: function() {
-        const C_WIDTH = 120, C_HEIGHT = 29;
+        const C_WIDTH = 120, C_HEIGHT = 25;
         const numRamps = this.colorRamps.length;
         let colorEls = [];
         for(let i = 0; i < numRamps; i++) {

@@ -71,7 +71,7 @@ const QueryManager = {
                 return null;
             });
             const data = this.decodePNG(png);
-            this.cache[url] = data;
+            this.addToCache(url, data);
             return data;
         }
     }
