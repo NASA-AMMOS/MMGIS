@@ -89,8 +89,6 @@ var Coordinates = {
                 Coordinates.coordENMultiplier[1] = parseFloat(
                     L_.configData.look.coordnorthmult || 1
                 )
-            console.log(L_.configData.look)
-            console.log(Coordinates)
         }
         if (Coordinates.states.length === 0) Coordinates.states = ['ll', 'en']
 

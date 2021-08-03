@@ -747,7 +747,7 @@ function makeLayerBarAndModal(d, level) {
     timeFormatEl = "block",
     timeRefreshEl = "none",
     timeIncrementEl = "none";
-    shapeEl = "none";
+  shapeEl = "none";
 
   // prettier-ignore
   switch( d.type ) {
@@ -981,7 +981,7 @@ function makeLayerBarAndModal(d, level) {
     shapTriangleSel = "",
     shapStarSel = "",
     shapHexagonSel = "",
-    shapNoneSel = ""
+    shapNoneSel = "";
   switch (d.shape) {
     case "circle":
       shapCircleSel = "selected";
@@ -1002,6 +1002,8 @@ function makeLayerBarAndModal(d, level) {
       shapNoneSel = "selected";
       break;
     default:
+      shapNoneSel = "selected";
+      break;
   }
 
   var dStyle = {};
@@ -1276,12 +1278,12 @@ function makeLayerBarAndModal(d, level) {
           "<div class='row' style='margin-bottom: 0px;'>" +
             "<div id='shapeEl' class='input-field col s2 push-s1' style='display: " + shapeEl + "'>" +
               "<select>" +
+                "<option value='none' " + shapNoneSel + ">Default</option>" +
                 "<option value='circle' " + shapCircleSel + ">Circle</option>" +
                 "<option value='square' " + shapSquareSel + ">Square</option>" +
                 "<option value='triangle' " + shapTriangleSel + ">Triangle</option>" +
                 "<option value='star' " + shapStarSel + ">Star</option>" +
                 "<option value='hexagon' " + shapHexagonSel + ">Hexagon</option>" +
-                "<option value='none' " + shapNoneSel + ">None</option>" +
               "</select>" +
               "<label>Shape</label>" +
             "</div>" +
@@ -1550,7 +1552,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
   mainThis.find("#timeFormatEl").css("display", timeFormatEl);
   mainThis.find("#timeRefreshEl").css("display", timeRefreshEl);
   mainThis.find("#timeIncrementEl").css("display", timeIncrementEl);
-  mainThis.find("#shapeEl").css("display", shapeEl); 
+  mainThis.find("#shapeEl").css("display", shapeEl);
 }
 function mmgisLinkModalsToLayersVisChange(e) {
   var mainThis = $(this).parent().parent().parent();
@@ -1841,10 +1843,7 @@ function save() {
           .text()
           .toLowerCase();
         var modalTimeFormat = modal.find("#timeFormatEl input").val();
-        var modalShape = modal 
-        .find("#shapeEl select option:selected") 
-        .text() 
-        .toLowerCase(); 
+        var modalShape = modal.find("#shapeEl select option:selected").val();
 
         layerObject.name = modalName;
         if (
@@ -1975,9 +1974,9 @@ function save() {
         layerObject.time.refresh = "1 hours"; // refresh when the layer becomes stale
         layerObject.time.increment = "5 minutes"; // time bar steps
 
-        // shape property 
+        // shape property
         layerObject.shape = modalShape; // circle, square, triangle, star, hexagon
- 
+
         if (!validName(modalName)) {
           isInvalidData = true;
           Materialize.toast(
