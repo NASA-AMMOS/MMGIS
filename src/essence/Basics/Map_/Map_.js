@@ -1000,7 +1000,6 @@ function makeLayer(layerObj) {
 
                 leafletLayerObject.pointToLayer = function (feature, latlong) {
                     const featureStyle = leafletLayerObject.style(feature)
-
                     let svg = ''
                     let layer = null
                     const pixelBuffer = featureStyle.weight || 0
@@ -1092,15 +1091,16 @@ function makeLayer(layerObj) {
                     if (markerIcon) {
                         layer = L.marker(latlong, { icon: markerIcon })
                     } else if (layer == null && svg != null) {
-                        markerIcon = L.divIcon({
-                            className: 'leafletMarkerShape',
-                            iconSize: [
-                                (layerObj.radius + pixelBuffer) * 2,
-                                (layerObj.radius + pixelBuffer) * 2,
-                            ],
-                            html: svg,
+                        layer = L.marker(latlong, {
+                            icon: L.divIcon({
+                                className: 'leafletMarkerShape',
+                                iconSize: [
+                                    (layerObj.radius + pixelBuffer) * 2,
+                                    (layerObj.radius + pixelBuffer) * 2,
+                                ],
+                                html: svg,
+                            }),
                         })
-                        layer = L.marker(latlong, { icon: markerIcon })
                     }
 
                     if (layer == null) return
