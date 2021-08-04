@@ -44,9 +44,16 @@ var LayersTool = {
     width: 250,
     vars: {},
     MMGISInterface: null,
-    make: function () {
+    initialize: function () {
         //Get tool variables
         this.vars = L_.getToolVars('layers')
+
+        // set custom width
+        if (this.vars.width) {
+            this.width = this.vars.width
+        }
+    },
+    make: function () {
         this.MMGISInterface = new interfaceWithMMGIS()
     },
     destroy: function () {
