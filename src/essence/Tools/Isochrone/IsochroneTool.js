@@ -10,7 +10,6 @@ import CursorInfo from '../../Ancillary/CursorInfo';
 //import turf from 'turf';
 
 import IsochroneManager from './IsochroneTool_Manager';
-import * as D from './IsochroneTool_Util';
 
 import './IsochroneTool.css';
 const L = window.L; //shhh, eslint...
@@ -25,7 +24,13 @@ are handled in IsochroneTool_Manager and its imports.
 // prettier-ignore
 const markup = [
     "<div id='isochroneTool'>",
-        "<div id='isochroneToolTitle'>Isochrone</div>",
+        "<div id='isochroneToolHeader'>",
+            "<span id='isochroneToolTitle'>Isochrone</span>",
+            "<span id='iscNew'>",
+                "New",
+                "<i class='mdi mdi-plus mdi-18px'></i>",
+            "</span>",
+        "</div>",
         "<ul id='isochroneOptionsContainer'></ul>",
     "</div>"
 ].join('\n');
@@ -45,8 +50,6 @@ function hueMap(val) {
     const b = hueToChannel(hue - 510);
     return [r, g, b];
 }
-
-let lastHoverCall = 0;
 
 //https://leafletjs.com/reference-1.7.1.html#gridlayer
 L.IsochroneLayer = L.GridLayer.extend({
@@ -105,17 +108,44 @@ L.IsochroneLayer = L.GridLayer.extend({
     }
 });
 
+function backlinkToMove(link) {
+    return [
+        [0, 1],
+        [1, 2],
+        [1, 1],
+        [2, 1],
+        [1, 0],
+        [2, -1],
+        [1, -1],
+        [1, -2],
+        [0, -1],
+        [-1, -2],
+        [-1, -1],
+        [-2, -1],
+        [-1, 0],
+        [-2, 1],
+        [-1, 1],
+        [-1, 2]
+    ][link - 1];
+}
+
+/////////////////////////////////////////////////
+
 const IsochroneTool = {
     height: 0,
     width: 250,
     MMGISInterface: null,
     vars: null,
-    manager: null,
-    containerEl: null,
     dataSources: {},
-    marker: null,
-    hoverPolyline: null,
+    containerEl: null,
+
+    managers: [],
+    activeManager: null,
+    managerCounter: 0,
+
     hovered: false,
+    lastHoverCall: 0,
+    hoverPolyline: null,
 
     colorRamps: [
         [ //Red 5
@@ -201,29 +231,28 @@ const IsochroneTool = {
 
     make: function() {
         this.MMGISInterface = new interfaceWithMMGIS();
-
-        this.manager = new IsochroneManager(
-            this.dataSources,
-            () => {
-                this.makeMarker(this.manager, true);
-                this.makeDataLayer(this.manager);
-            }
-        );
         
+        $("#iscNew").on("click", () => this.addIsochrone());
         this.containerEl = $("#isochroneOptionsContainer");
-        this.containerEl.append(
-            this.manager.makeElement(this.makeGradientEls())
-        );
+        this.addIsochrone();
     },
 
     destroy: function() {
-        Map_.rmNotNull(this.marker);
-        Map_.rmNotNull(L_.layersGroup["isochrone"]);
-        if(this.hoverPolyline !== null)
+        for(const {marker, layerName} of this.managers) {
+            Map_.rmNotNull(marker);
+            Map_.rmNotNull(L_.layersGroup[layerName]);
+        }
+
+        if(this.hoverPolyline !== null) {
             this.hoverPolyline.remove(Map_.map);
+        }
         
+        this.managers = [];
+        this.activeManager = null;
+        this.managerCounter = 0;
         this.MMGISInterface.separateFromMMGIS();
     },
+
     getUrlString: function() { //TODO?
         return '';
     },
@@ -268,14 +297,52 @@ const IsochroneTool = {
         return colorEls;
     },
 
+    managerOnChange: function(manager) {
+        this.makeMarker(manager, true);
+        this.makeDataLayer(manager);
+    },
+    managerOnFocus: function(manager) {
+        if(this.activeManager === manager) return;
+        if(this.activeManager !== null) {
+            this.activeManager.unfocus();
+        }
+        this.activeManager = manager;
+        this.activeManager.focus();
+    },
+    managerOnDelete: function(manager) {
+
+    },
+
+    addIsochrone: function() {
+        const newManager = new IsochroneManager(
+            this.managerCounter + 1,
+            this.dataSources,
+            {color: this.managerCounter % this.colorRamps.length}
+        );
+        this.managerCounter++;
+
+        newManager.onChange = m => this.managerOnChange(m);
+        newManager.onFocus = m => this.managerOnFocus(m);
+        newManager.onDelete = m => this.managerOnDelete(m);
+
+        this.managers.push(newManager);
+
+        const optionsEl = newManager.makeElement(this.makeGradientEls());
+        this.containerEl.append(optionsEl);
+        this.managerOnFocus(newManager);
+
+        return newManager;
+    },
+
     makeDataLayer: function(manager) {
-        const {cost, tileBounds, options} = manager;
+        const {layerName, cost, tileBounds, options} = manager;
         
-        const layerName = "isochrone";
         Map_.rmNotNull(L_.layersGroup[layerName]);
 
+        if(!manager.options.visible) return;
+
         L_.layersGroup[layerName] = new L.IsochroneLayer({
-            className: "nofade",
+            className: "nofade", //Borrowed from viewshed... but is it actually doing anything?
             minZoom: Math.min(options.resolution, Map_.map.getMinZoom()),
             maxZoom: Map_.map.getMaxZoom(),
             minNativeZoom: options.resolution,
@@ -293,7 +360,7 @@ const IsochroneTool = {
         Map_.map.addLayer(L_.layersGroup[layerName]);
     },
 
-    makeMarker: function(manager, draggable) { //ViewshedTool.js:948 (function viewsheed)
+    makeMarker: function(manager, draggable) { //ViewshedTool.js:948 (function viewshed)
         const {start, options} = manager;
         let canvas = document.createElement("canvas");
         canvas.width = 16;
@@ -343,66 +410,68 @@ const IsochroneTool = {
             shadowAnchor: [22, 94],
         });
 
-        Map_.rmNotNull(IsochroneTool.marker);
-        IsochroneTool.marker = new L.marker(
-            [start.lat, start.lng],
-            {
-                icon: isochroneIcon,
-                draggable
-            }
-        );
+        Map_.rmNotNull(manager.marker);
+        manager.marker = new L.marker([start.lat, start.lng], {
+            icon: isochroneIcon,
+            draggable
+        });
+
+        manager.marker.on("click", e => this.managerOnFocus(manager));
         if(draggable) {
-            IsochroneTool.marker.on("dragend", e => {
-                this.manager.start = e.target._latlng;
-                this.manager.setBounds();
+            manager.marker.on("dragend", e => {
+                manager.start = e.target._latlng;
+                manager.setBounds();
+                this.managerOnFocus(manager);
             });
         }
-        IsochroneTool.marker.addTo(Map_.map);
+        manager.marker.addTo(Map_.map);
     },
 
     handleClick: function(e) {
         if(e && e.latlng) {
-            this.manager.start = e.latlng;
-            this.makeMarker(this.manager, false);
-            this.manager.setBounds();
+            this.activeManager.start = e.latlng;
+            this.makeMarker(this.activeManager, false);
+            this.activeManager.setBounds();
         }
     },
 
     handleMove: function(e) {
         const MAX_STEPS = 5000;
+        const manager = this.activeManager;
 
-        if(this.manager.backlink === null) return;
+        if(manager.backlink === null || manager.currentStage > 0 || !manager.options.visible)
+            return;
+        
         const now = Date.now();
-        if(lastHoverCall + 65 > now) return;
-        lastHoverCall = now;
+        if(this.lastHoverCall + 65 > now) return;
+        this.lastHoverCall = now;
 
         if(this.hoverPolyline !== null)
             this.hoverPolyline.remove(Map_.map);
 
         const toLinePoint = (x, y) => {
-            const latlng = D.pxToLatLng(
-                [y, x],
-                this.manager.tileBounds,
-                this.manager.options.resolution
-            );
+            const point = manager.tileBounds.min
+                .multiplyBy(256)
+                .add([x + 0.5, y + 0.5]);
+            const latlng = Map_.map.unproject(point, manager.options.resolution);
             return [latlng.lat, latlng.lng];
         }
 
         const hoveredPx = Map_.map
-            .project(e.latlng, this.manager.options.resolution)
-            .subtract(this.manager.tileBounds.min.multiplyBy(256))
+            .project(e.latlng, manager.options.resolution)
+            .subtract(manager.tileBounds.min.multiplyBy(256))
             .floor();
-        const width = this.manager.backlink[0].length;
-        const height = this.manager.backlink.length;
+        const width = manager.backlink[0].length;
+        const height = manager.backlink.length;
 
         let startVal = 0;
         if(hoveredPx.x >= 0 && hoveredPx.y >= 0 && hoveredPx.x < width && hoveredPx.y < height)
-            startVal = this.manager.backlink[hoveredPx.y][hoveredPx.x];
+            startVal = manager.backlink[hoveredPx.y][hoveredPx.x];
         
         if(startVal !== 0) {
             this.hovered = true;
-            const hoveredCost = this.manager.cost[hoveredPx.y][hoveredPx.x];
-            const tooltipMsg = hoveredCost.toFixed(1) + this.manager.modelProto.costUnitSymbol;
+            const hoveredCost = manager.cost[hoveredPx.y][hoveredPx.x];
+            const tooltipMsg = hoveredCost.toFixed(1) + manager.modelProto.costUnitSymbol;
             CursorInfo.update(tooltipMsg, null, false);
 
             let cx = hoveredPx.x;
@@ -412,7 +481,7 @@ const IsochroneTool = {
             let lastStep = 0;
             let count = 0;
             while(step !== 0 && count < MAX_STEPS) {
-                let move = D.backlinkToMove(step);
+                let move = backlinkToMove(step);
                 cx += move[1];
                 cy += move[0];
                 if(step === lastStep) { //Extend line
@@ -421,10 +490,10 @@ const IsochroneTool = {
                     line.push(toLinePoint(cx, cy));
                 }
                 lastStep = step;
-                step = this.manager.backlink[cy][cx];
+                step = manager.backlink[cy][cx];
                 count++;
             }
-            this.hoverPolyline = window.L.polyline(line, {interactive: false});
+            this.hoverPolyline = L.polyline(line, {interactive: false});
             this.hoverPolyline.addTo(Map_.map);
         } else if(this.hovered) {
             this.hovered = false;

@@ -1,6 +1,7 @@
 import F_ from "../../../Basics/Formulae_/Formulae_";
-import { getPx } from "../IsochroneTool_Util";
 import Model from "./Model";
+
+const getPx = (arr, px) => arr[px[0]][px[1]];
 
 class Model_Traverse extends Model {
     static nameString = "Traverse Time";

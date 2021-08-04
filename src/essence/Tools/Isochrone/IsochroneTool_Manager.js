@@ -1,12 +1,10 @@
 import $ from "jquery";
 
-import models from "./models";
-import * as IsochroneTool_Algorithm from "./IsochroneTool_Algorithm";
 import Map_ from '../../Basics/Map_/Map_';
-import * as U from "./IsochroneTool_Util";
 import F_ from '../../Basics/Formulae_/Formulae_';
 
-
+import models from "./models";
+import generateIsochrone from "./IsochroneTool_Algorithm";
 import QueryJob from "./IsochroneTool_Query";
 
 //Terrible no-good very bad JQuery element creators
@@ -52,38 +50,51 @@ const GLOBAL_MIN_RESOLUTION = 4;
 const GLOBAL_MAX_RESOLUTION = 20;
 
 class IsochroneManager {
-    constructor(dataSources, onChange) {
+    constructor(id, dataSources, options = {}) {
+        this.id = id;
         this.dataSources = dataSources;
-        this.onChange = onChange;
-
-        this.start = null; //L.LatLng
-        this.startPx = null; //L.Point
-        this.tileBounds = null; //L.Bounds
-
-        this.modelProto = null;
-        this.model = null; //Model
-
-        this.queryJobs = [];
-
-        this.minResolution = GLOBAL_MIN_RESOLUTION;
-        this.maxResolution = GLOBAL_MAX_RESOLUTION;
-        this.optionEls = {};
-        this.sections = {
-            data: null,
-            model: null
-        };
+        
         this.options = {
+            visible: true,
             color: 0,
-            opacity: 0.6,
+            opacity: 0.8,
             maxRadius: 5000,
             resolution: GLOBAL_MIN_RESOLUTION,
             model: 0,
             maxCost: 5000
         };
+        Object.assign(this.options, options);
+
+        this.optionEls = {};
+        this.sections = {
+            data: null,
+            model: null
+        };
+
+        this.onChange = () => {};
+        this.onDelete = () => {};
+        this.onFocus = () => {};
+
+        this.minResolution = GLOBAL_MIN_RESOLUTION;
+        this.maxResolution = GLOBAL_MAX_RESOLUTION;
+        this.start = null; //L.LatLng
+        this.startPx = null; //L.Point
+        this.tileBounds = null; //L.Bounds
+
+        this.queryJobs = [];
+        this.currentStage = 0;
+
+        this.modelProto = null;
+        this.model = null; //Model
+
         this.updateTimeout = 0;
 
         this.cost = null;
         this.backlink = null;
+
+        this.layerName = "isochrone_" + this.id;
+        //this is assigned by IsochroneTool... which may indicate poor distinction of responsibilities
+        this.marker = null;
     }
 
     /******************** UI AND INPUT ********************/
@@ -103,7 +114,10 @@ class IsochroneManager {
                 this.options[option] = e;
             }
         }
-        if(this.start !== null) {
+
+        this.onFocus(this);
+
+        if(this.start !== null && action > this.currentStage) {
             switch(action) {
                 case 3: //Change requires getting new data
                     this.setBounds();
@@ -112,7 +126,7 @@ class IsochroneManager {
                     this.generateIsochrone();
                 break;
                 case 1: //Change requires redrawing same shape
-                    this.onChange();
+                    this.onChange(this);
                 break;
                 default: //Change changes nothing!
             }
@@ -120,12 +134,29 @@ class IsochroneManager {
     }
 
     makeElement(gradientEls) {
-        let root = $("<li></li>").addClass("isochroneOptions");
+        let root = $("<li></li>");
+        let header = $("<div class='isochroneHeader'></div>").appendTo(root);
+        let options = $("<div class='isochroneOptions'></div>").appendTo(root);
+        this.optionEls.options = options;
         this.optionEls.root = root;
+
+        header.on("click", () => this.onFocus(this));
+
+        $("<div class='checkbox on'></div>").appendTo(header).on("click", e => {
+            let target = $(e.target);
+            const visible = !target.hasClass("on");
+            if(visible) {
+                target.addClass("on");
+            } else {
+                target.removeClass("on");
+            }
+            this.handleInput(visible, "visible", 1);
+        });
+        $(`<div class='title'>Isochrone ${this.id}</div>`).appendTo(header);
 
         this.optionEls.maxRadius = createInputWithUnit(
             "Max radius",
-            root,
+            options,
             "m",
             this.options.maxRadius,
             `min="1" step="1" default="250"`
@@ -135,9 +166,9 @@ class IsochroneManager {
         );
 
         this.optionEls.color = gradientEls;
-        $(this.optionEls.color[0]).addClass("selected");
+        $(this.optionEls.color[this.options.color]).addClass("selected");
         const colorContainer = $(`<div class="dropdown color"></div>`)
-            .appendTo(addOption("Color", root));
+            .appendTo(addOption("Color", options));
         for(const i in gradientEls) {
             $(gradientEls[i]).appendTo(colorContainer).on("click", e => {
                 if(this.options.color !== i) {
@@ -150,19 +181,19 @@ class IsochroneManager {
 
         this.optionEls.opacity =
             $(`<input class="slider2" type="range" min="0" max="1" step="0.01" value="${this.options.opacity}" default="0.4"></input>`)
-            .appendTo(addOption("Opacity", root))
+            .appendTo(addOption("Opacity", options))
             .on("change", e => this.handleInput(e, "opacity", 1));
         
         //*
         this.optionEls.steps =
             $(`<input class="nounit" type="number" min="0" step="1" value="0">`)
-            .appendTo(addOption("Steps", root))
+            .appendTo(addOption("Steps", options))
             .on("change", e => this.handleInput(e, "steps", 1));
         //*/
 
         this.optionEls.model = createDropdown(
             "Model",
-            root,
+            options,
             models.map(m => m.nameString)
         ).on(
             "change",
@@ -172,8 +203,8 @@ class IsochroneManager {
             }
         );
         
-        this.sections.data = addSection("Data Properties", root);
-        this.sections.model = addSection("Model Properties", root);
+        this.sections.data = addSection("Data Properties", options);
+        this.sections.model = addSection("Model Properties", options);
         this.setupModel();
         
         return root;
@@ -235,6 +266,14 @@ class IsochroneManager {
 
         return reuseData;
     }
+
+    focus() {
+        this.optionEls.root.addClass("focused");
+    }
+
+    unfocus() {
+        this.optionEls.root.removeClass("focused");
+    }
     
     updateResolutionRange() {
         let max = GLOBAL_MAX_RESOLUTION;
@@ -259,11 +298,40 @@ class IsochroneManager {
     /******************** ISOCHRONE GENERATION ********************/
 
     setBounds() {
-        this.tileBounds = U.createTileBounds(
-            this.start,
-            this.options.maxRadius,
-            this.options.resolution
-        );
+        this.currentStage = 3;
+
+        //TODO: this process could use improvement (are the loops necessary?)
+        const startPoint = Map_.map.project(this.start, this.options.resolution);
+        const startTile = startPoint.divideBy(256);
+        let min = startTile.floor().multiplyBy(256);
+        let max = startTile.ceil().multiplyBy(256);
+
+        const isWithinBounds = (ptX, ptY) => {
+            const ptLatLng = Map_.map.unproject([ptX, ptY], this.options.resolution);
+            const dist = F_.lngLatDistBetween(
+                this.start.lng,
+                this.start.lat,
+                ptLatLng.lng,
+                ptLatLng.lat
+            );
+
+            return dist < this.options.maxRadius;
+        }
+
+        while(isWithinBounds(min.x, startPoint.y))
+            min.x -= 256;
+        while(isWithinBounds(startPoint.x, min.y))
+            min.y -= 256;
+        while(isWithinBounds(max.x, startPoint.y))
+            max.x += 256;
+        while(isWithinBounds(startPoint.x, max.y))
+            max.y += 256;
+        
+        min = min.divideBy(256);
+        max = max.divideBy(256);
+
+        this.tileBounds = window.L.bounds(min, max);
+
         this.startPx = Map_.map
             .project(this.start, this.options.resolution)
             .subtract(this.tileBounds.min.multiplyBy(256))
@@ -329,7 +397,7 @@ class IsochroneManager {
         this.queryJobs.map(job => job.stop());
         this.queryJobs = [];
 
-        const promises = [];
+        let promises = [];
         for(const dataType of this.modelProto.requiredData) {
             const sourceIndex = this.options[dataType +"_source"];
             const source = this.dataSources[dataType][sourceIndex];
@@ -338,11 +406,12 @@ class IsochroneManager {
             const job = new QueryJob(source, requiredTiles, this.tileBounds);
             this.queryJobs.push(job);
             let bar;
-            promises.push(job.start(
-                () => bar = createLoadBar(`Loading ${dataType}...`, this.optionEls.root),
+            const promise = job.start(
+                () => bar = createLoadBar(`Loading ${dataType}...`, this.optionEls.options),
                 prog => bar.css({width: `${prog * 100}%`}),
                 () => bar.parent().remove()
-            ));
+            );
+            promises.push(promise);
         }
 
         Promise.all(promises).then(result => {
@@ -355,8 +424,9 @@ class IsochroneManager {
     }
 
     generateIsochrone() {
+        this.currentStage = 2;
         console.time("generate");
-        const result = IsochroneTool_Algorithm.generate(
+        const result = generateIsochrone(
             this.startPx,
             this.tileBounds,
             this.model.costFunction,
@@ -364,10 +434,11 @@ class IsochroneManager {
             this.options.maxCost
         );
         console.timeEnd("generate");
-        //console.log("RESULT", result.cost);
         this.cost = result.cost;
         this.backlink = result.backlink;
-        this.onChange();
+        this.currentStage = 1;
+        this.onChange(this);
+        this.currentStage = 0;
     }
 }
 

@@ -1,6 +1,10 @@
 
-import * as U from "./IsochroneTool_Util";
+import Map_ from "../../Basics/Map_/Map_";
 const _X = 1, _Y = 0;
+
+//px contains array indices [y, x]
+const getPx = (arr, px) => arr[px[_Y]][px[_X]];
+const setPx = (arr, px, val) => arr[px[_Y]][px[_X]] = val;
 
 const h_getParentIndex = i => Math.ceil(i / 2) - 1;
 const h_getChildIndex = i => i * 2 + 1;
@@ -15,20 +19,16 @@ class PxHeap {
     compare(i, j) {
         const iVal = this.contents[i];
         const jVal = this.contents[j];
-        return U.getPx(this.valueArr, iVal) > U.getPx(this.valueArr, jVal);
+        return getPx(this.valueArr, iVal) > getPx(this.valueArr, jVal);
     }
 
     swap(i, j) {
         const iVal = this.contents[i];
         const jVal = this.contents[j];
-        U.setPx(this.indexArr, iVal, j);
-        U.setPx(this.indexArr, jVal, i);
+        setPx(this.indexArr, iVal, j);
+        setPx(this.indexArr, jVal, i);
         this.contents[i] = jVal;
         this.contents[j] = iVal;
-    }
-
-    isNotEmpty() {
-        return this.contents.length > 0;
     }
 
     bubbleUp(index) {
@@ -60,21 +60,47 @@ class PxHeap {
     insert(px) {
         let index = this.contents.length;
         this.contents.push(px);
-        U.setPx(this.indexArr, px, index);
+        setPx(this.indexArr, px, index);
         this.bubbleUp(index);
     }
 
     remove() {
         const result = this.contents[0];
-        U.setPx(this.indexArr, result, -1);
+        setPx(this.indexArr, result, -1);
         const lastPx = this.contents.pop();
         if(this.contents.length > 0) {
             this.contents[0] = lastPx;
-            U.setPx(this.indexArr, lastPx, 0);
+            setPx(this.indexArr, lastPx, 0);
             this.bubbleDown();
         }
         return result;
     }
+}
+
+function createDataArray(width, height, fillWith = null, type = Array) {
+    let resultArr = [];
+    for(let y = 0; y < height; y++) {
+        resultArr.push(new type(width).fill(fillWith));
+    }
+    return resultArr;
+}
+
+function pxToLatLng(px, tileBounds, zoom) {
+    const point = tileBounds.min
+        .multiplyBy(256)
+        .add([px[_X] + 0.5, px[_Y] + 0.5]);
+    return Map_.map.unproject(point, zoom);
+}
+
+//Clockwise from the right
+function moveToBacklink(move) {
+    return [
+        [ 0,  4,  0,  6,  0],
+        [ 2,  3,  5,  7,  8],
+        [ 0,  1,  0,  9,  0],
+        [16, 15, 13, 11, 10],
+        [ 0, 14,  0, 12,  0]
+    ][move[_Y] + 2][move[_X] + 2];
 }
 
 const queenMoves = [
@@ -91,65 +117,57 @@ const knightMoves = [
     [2, -1], [2, 1]
 ];
 
-function generate(
-    start,
-    bounds,
+export default function generateIsochrone(
+    startPx, //L.Point
+    bounds, //L.Bounds
     costFunction,
     zoom,
     maxCost = Infinity,
     knightsMove = true
 ) {
-    //console.log("START", start);
     const moves = knightsMove ? knightMoves : queenMoves;
 
     const width = (bounds.max.x - bounds.min.x) * 256;
     const height = (bounds.max.y - bounds.min.y) * 256;
 
     //Set up dijkstra's
-    let costArr = U.createDataArray(width, height, Infinity, Float32Array);
-    let linkArr = U.createDataArray(width, height, 0, Uint8Array);
-    let indexArr = U.createDataArray(width, height, -2, Int32Array);
+    let costArr = createDataArray(width, height, Infinity, Float32Array);
+    let linkArr = createDataArray(width, height, 0, Uint8Array);
+    let indexArr = createDataArray(width, height, -2, Int32Array);
         //-2: px is unvisited; -1: px has been removed
     
     let heap = new PxHeap(costArr, indexArr);
 
-    costArr[start.y][start.x] = 0;
-    heap.insert([start.y, start.x]);
+    costArr[startPx.y][startPx.x] = 0;
+    heap.insert([startPx.y, startPx.x]);
 
     //Do dijkstra's to it
-    while(heap.isNotEmpty()) {
+    while(heap.contents.length > 0) {
         const cPx = heap.remove(); //current pixel
-        const cCost = U.getPx(costArr, cPx);
-        const cLatLng = U.pxToLatLng(cPx, bounds, zoom);
+        const cCost = getPx(costArr, cPx);
+        const cLatLng = pxToLatLng(cPx, bounds, zoom);
         for(const m of moves) {
             const tPx = [cPx[_Y] + m[_Y], cPx[_X] + m[_X]]; //target pixel
-            if(tPx[_Y] < 0 || tPx[_X] < 0
-                || tPx[_Y] >= height || tPx[_X] >= width)
+            if(tPx[_Y] < 0 || tPx[_X] < 0 || tPx[_Y] >= height || tPx[_X] >= width)
                 continue;
-
-            const tPxIndex = U.getPx(indexArr, tPx);
+            
+            const tPxIndex = getPx(indexArr, tPx);
             if(tPxIndex === -1) continue;
 
-            const tLatLng = U.pxToLatLng(tPx, bounds, zoom);
+            const tLatLng = pxToLatLng(tPx, bounds, zoom);
             const cost = costFunction(cPx, cLatLng, tPx, tLatLng) + cCost;
             if(cost > maxCost || !isFinite(cost)) continue;
             
             if(tPxIndex === -2) {
-                U.setPx(costArr, tPx, cost);
-                U.setPx(linkArr, tPx, U.moveToBacklink(m));
+                setPx(costArr, tPx, cost);
+                setPx(linkArr, tPx, moveToBacklink(m));
                 heap.insert(tPx);
-            } else if(cost < U.getPx(costArr, tPx)) {
-                U.setPx(costArr, tPx, cost);
-                U.setPx(linkArr, tPx, U.moveToBacklink(m));
+            } else if(cost < getPx(costArr, tPx)) {
+                setPx(costArr, tPx, cost);
+                setPx(linkArr, tPx, moveToBacklink(m));
                 heap.bubbleUp(tPxIndex);
             }
         }
     }
     return {cost: costArr, backlink: linkArr};
 }
-
-
-
-
-
-export {generate};

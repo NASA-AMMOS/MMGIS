@@ -1,7 +1,8 @@
 import F_ from "../../../Basics/Formulae_/Formulae_";
-import { getPx } from "../IsochroneTool_Util";
 import $ from "jquery";
 import Model from "./Model";
+
+const getPx = (arr, px) => arr[px[0]][px[1]];
 
 //Terrible no-good very bad JQuery element creators
         

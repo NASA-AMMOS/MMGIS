@@ -2,13 +2,12 @@ import Map_ from "../../Basics/Map_/Map_";
 import F_ from "../../Basics/Formulae_/Formulae_";
 import L_ from "../../Basics/Layers_/Layers_";
 
-import * as D from "./IsochroneTool_Util";
-
 const MAX_WORKERS = 8;
 
 const QueryManager = {
     cache: {},
-    //TODO: centralize job queue?
+    //TODO: queue jobs here
+    //(so e.g. two isochrones will load in sequence w/o slowing each other down)
     jobQueue: [],
     jobInProgress: false,
     numWorkers: 0,
@@ -19,6 +18,7 @@ const QueryManager = {
     addToCache: (url, data) => QueryManager.cache[url] = data,
 
     fillUrl: function(url, tile) {
+        //NOTE: F_.populateUrl is unsafe for polar maps
         const pxWorldBound = Map_.map.getPixelWorldBounds(tile.z);
         const yTileWorldBound = Math.ceil(pxWorldBound.max.y / 256) - 1;
 
@@ -29,7 +29,7 @@ const QueryManager = {
     },
 
     getPNG: function(url) {
-        //Basically just promisifying png.js
+        //just promisifying png.js
         const queryPromise = new Promise((resolve, reject) => {
             window.PNG.load(url, resolve, reject);
         });
@@ -92,12 +92,12 @@ class QueryJob {
         this.numWorkers = 0;
         this.numTiles = tileList.length;
 
-        this.result = D.createDataArray(
-            (bounds.max.x - bounds.min.x) * 256,
-            (bounds.max.y - bounds.min.y) * 256,
-            Infinity,
-            Float32Array
-        );
+        this.result = [];
+        const width = (bounds.max.x - bounds.min.x) * 256;
+        const height = (bounds.max.y - bounds.min.y) * 256;
+        for(let y = 0; y < height; y++) {
+            this.result.push(new Float32Array(width).fill(Infinity));
+        }
     }
 
     start(onStart = emptyFunc, onProgress = emptyFunc, onEnd = emptyFunc) {
@@ -147,7 +147,6 @@ class QueryJob {
 
     stop() {
         this.active = false;
-        //QueryManager.onJobFinish();
     }
 }
 
