@@ -127,32 +127,11 @@ var Coordinates = {
     },
     getAllCoordinates: function () {
         return {
-            longitude: {
-                value: Coordinates.mouseLngLat[0] + Coordinates.coordOffset[0],
-                unit: 'degree',
-            },
-            latitude: {
-                value: Coordinates.mouseLngLat[1] + Coordinates.coordOffset[1],
-                unit: 'degree',
-            },
-            easting: {
-                value:
-                    Coordinates.mouseLngLat[0] *
-                        (Math.PI / 180) *
-                        F_.radiusOfPlanetMajor *
-                        Coordinates.coordENMultiplier[0] +
-                    Coordinates.coordENOffset[0],
-                unit: 'meter',
-            },
-            northing: {
-                value:
-                    Coordinates.mouseLngLat[1] *
-                        (Math.PI / 180) *
-                        F_.radiusOfPlanetMajor *
-                        Coordinates.coordENMultiplier[1] +
-                    Coordinates.coordENOffset[1],
-                unit: 'meter',
-            },
+            description: d3.select('#mouseDesc').html(),
+            coordinates: [
+                ...d3.select('#mouseLngLat').html().split(','),
+                d3.select('#mouseElev').html(),
+            ].map((c) => parseFloat(c.replace(/,/g, ''))),
         }
     },
     //rawLngLat is same type as mouseLngLat and coordsString is whatever
@@ -263,7 +242,9 @@ var Coordinates = {
                                 Map_.activeLayer.options.layerName +
                                 ': ' +
                                 keyAsName +
-                                ' (X,Y)'
+                                `(X,Y${
+                                    Coordinates.elevation != null ? ',Z' : ''
+                                })`
                         )
                         if (!isPartial) {
                             Coordinates.mouseLngLat[0] -=
@@ -276,7 +257,9 @@ var Coordinates = {
                             0
                     } else {
                         d3.select('#mouseDesc').html(
-                            'Relative to Map Origin (X,Y)'
+                            `Relative to Map Origin (X,Y${
+                                Coordinates.elevation != null ? ',Z' : ''
+                            })`
                         )
                     }
                     d3.select('#mouseLngLat').html(
@@ -317,7 +300,9 @@ var Coordinates = {
                                 Map_.activeLayer.options.layerName +
                                 ': ' +
                                 keyAsName +
-                                ' (Y,X)'
+                                ` (X,Y${
+                                    Coordinates.elevation != null ? ',Z' : ''
+                                })`
                         )
                         if (!isPartial) {
                             Coordinates.mouseLngLat[0] -=
@@ -330,7 +315,9 @@ var Coordinates = {
                             0
                     } else {
                         d3.select('#mouseDesc').html(
-                            'Site Frame - Map Origin (Y,X)'
+                            `Site Frame - Map Origin (X,Y${
+                                Coordinates.elevation != null ? ',Z' : ''
+                            })`
                         )
                     }
                     d3.select('#mouseLngLat').html(
