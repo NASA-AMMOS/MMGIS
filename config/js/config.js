@@ -2651,7 +2651,17 @@ function projectionToggleCustom(force) {
 }
 
 function tilelayerPopulateFromXML(modalId) {
-  var xmlPath = $("#Url" + modalId).val();
+  let modalType = "tile";
+  try {
+    modalType = $(`#layers_${modalId}`)
+      .find("#typeEl select option:selected")
+      .val()
+      .toLowerCase();
+  } catch (err) {}
+  let xmlPath =
+    modalType != "data"
+      ? $("#Url" + modalId).val()
+      : $("#DemTileUrl" + modalId).val();
   xmlPath = xmlPath.replace("{z}/{x}/{y}.png", "tilemapresource.xml");
   xmlPath = missionPath.replace("config.json", "") + xmlPath;
   $.ajax({

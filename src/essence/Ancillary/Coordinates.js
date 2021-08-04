@@ -361,9 +361,9 @@ var Coordinates = {
             return
 
         // Let's be fancy and query more quickly the more the user queries
-        let delay = 1000
-        if (Coordinates.elevQueryTimes.length >= 10) delay = 500
-        if (Coordinates.elevQueryTimes.length >= 20) delay = 250
+        let delay = 800
+        if (Coordinates.elevQueryTimes.length >= 10) delay = 400
+        if (Coordinates.elevQueryTimes.length >= 20) delay = 200
 
         Coordinates.elevationTimeout = setTimeout(() => {
             const now = new Date().getTime()
