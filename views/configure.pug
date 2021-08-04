@@ -294,13 +294,22 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
             #look_coordelevurlEl.input-field.col.s6.push-s2
               input#look_coordelevurl.validate(type='text' value='')
               label(for='look_coordelevurl') DEM URL
-          li.row.checkboxRow
+          li.row.title
+            .col.s2.push-s2 Coordinate Display Alterations
+          li.row
             #look_coordlngoffsetEl.input-field.col.s2.push-s2
               input#look_coordlngoffset.validate(type='text' value='')
               label(for='look_coordlngoffset') Longitude Display Offset
             #look_coordlatoffsetEl.input-field.col.s2.push-s2
               input#look_coordlatoffset.validate(type='text' value='')
               label(for='look_coordlatoffset') Latitude Display Offset
+          li.row
+            #look_coordeastoffsetEl.input-field.col.s2.push-s2
+              input#look_coordeastoffset.validate(type='text' value='')
+              label(for='look_coordeastoffset') Easting Display Offset
+            #look_coordnorthoffsetEl.input-field.col.s2.push-s2
+              input#look_coordnorthoffset.validate(type='text' value='')
+              label(for='look_coordnorthoffset') Northing Display Offset
             #look_coordeastmultEl.input-field.col.s2.push-s2
               input#look_coordeastmult.validate(type='text' value='')
               label(for='look_coordeastmult') Easting Display Multiplier

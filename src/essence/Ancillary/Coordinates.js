@@ -38,6 +38,7 @@ var Coordinates = {
     //[ lng, lat ]
     mouseLngLat: [0, 0],
     coordOffset: [0, 0],
+    coordENOffset: [0, 0],
     coordENMultiplier: [1, 1],
     //Boolean indicating coords are displayed relative to 0, 0 and not active point
     ZZnotAP: true,
@@ -74,6 +75,20 @@ var Coordinates = {
             )
                 Coordinates.coordOffset[1] = parseFloat(
                     L_.configData.look.coordlatoffset || 0
+                )
+            if (
+                L_.configData.look.coordeastoffset != null &&
+                !isNaN(L_.configData.look.coordeastoffset)
+            )
+                Coordinates.coordENOffset[0] = parseFloat(
+                    L_.configData.look.coordeastoffset || 0
+                )
+            if (
+                L_.configData.look.coordnorthoffset != null &&
+                !isNaN(L_.configData.look.coordnorthoffset)
+            )
+                Coordinates.coordENOffset[1] = parseFloat(
+                    L_.configData.look.coordnorthoffset || 0
                 )
             if (
                 L_.configData.look.coordeastmult != null &&
@@ -121,18 +136,20 @@ var Coordinates = {
             },
             easting: {
                 value:
-                    (Coordinates.mouseLngLat[0] + Coordinates.coordOffset[0]) *
-                    (Math.PI / 180) *
-                    F_.radiusOfPlanetMajor *
-                    Coordinates.coordENMultiplier[0],
+                    Coordinates.mouseLngLat[0] *
+                        (Math.PI / 180) *
+                        F_.radiusOfPlanetMajor *
+                        Coordinates.coordENMultiplier[0] +
+                    Coordinates.coordENOffset[0],
                 unit: 'meter',
             },
             northing: {
                 value:
-                    (Coordinates.mouseLngLat[1] + Coordinates.coordOffset[1]) *
-                    (Math.PI / 180) *
-                    F_.radiusOfPlanetMajor *
-                    Coordinates.coordENMultiplier[1],
+                    Coordinates.mouseLngLat[1] *
+                        (Math.PI / 180) *
+                        F_.radiusOfPlanetMajor *
+                        Coordinates.coordENMultiplier[1] +
+                    Coordinates.coordENOffset[1],
                 unit: 'meter',
             },
         }
@@ -204,19 +221,19 @@ var Coordinates = {
                     }
                     d3.select('#mouseLngLat').html(
                         (
-                            (Coordinates.mouseLngLat[0] +
-                                Coordinates.coordOffset[0]) *
-                            (Math.PI / 180) *
-                            F_.radiusOfPlanetMajor *
-                            Coordinates.coordENMultiplier[0]
+                            Coordinates.mouseLngLat[0] *
+                                (Math.PI / 180) *
+                                F_.radiusOfPlanetMajor *
+                                Coordinates.coordENMultiplier[0] +
+                            Coordinates.coordENOffset[0]
                         ).toFixed(3) +
                             'm, ' +
                             (
-                                (Coordinates.mouseLngLat[1] +
-                                    Coordinates.coordOffset[1]) *
-                                (Math.PI / 180) *
-                                F_.radiusOfPlanetMajor *
-                                Coordinates.coordENMultiplier[1]
+                                Coordinates.mouseLngLat[1] *
+                                    (Math.PI / 180) *
+                                    F_.radiusOfPlanetMajor *
+                                    Coordinates.coordENMultiplier[1] +
+                                Coordinates.coordENOffset[1]
                             ).toFixed(3) +
                             'm' +
                             (Coordinates.elevation != null
@@ -259,15 +276,13 @@ var Coordinates = {
                     }
                     d3.select('#mouseLngLat').html(
                         (
-                            (Coordinates.mouseLngLat[0] +
-                                Coordinates.coordOffset[0]) *
+                            Coordinates.mouseLngLat[0] *
                             (Math.PI / 180) *
                             F_.radiusOfPlanetMajor
                         ).toFixed(3) +
                             'm, ' +
                             (
-                                (Coordinates.mouseLngLat[1] +
-                                    Coordinates.coordOffset[1]) *
+                                Coordinates.mouseLngLat[1] *
                                 (Math.PI / 180) *
                                 F_.radiusOfPlanetMajor
                             ).toFixed(3) +
@@ -314,15 +329,13 @@ var Coordinates = {
                     }
                     d3.select('#mouseLngLat').html(
                         (
-                            (Coordinates.mouseLngLat[1] +
-                                Coordinates.coordOffset[1]) *
+                            Coordinates.mouseLngLat[1] *
                             (Math.PI / 180) *
                             F_.radiusOfPlanetMajor
                         ).toFixed(3) +
                             'm, ' +
                             (
-                                (Coordinates.mouseLngLat[0] +
-                                    Coordinates.coordOffset[0]) *
+                                Coordinates.mouseLngLat[0] *
                                 (Math.PI / 180) *
                                 F_.radiusOfPlanetMajor
                             ).toFixed(3) +
@@ -349,8 +362,8 @@ var Coordinates = {
 
         // Let's be fancy and query more quickly the more the user queries
         let delay = 1000
-        if (Coordinates.elevQueryTimes.length >= 5) delay = 500
-        if (Coordinates.elevQueryTimes.length >= 10) delay = 250
+        if (Coordinates.elevQueryTimes.length >= 10) delay = 500
+        if (Coordinates.elevQueryTimes.length >= 20) delay = 250
 
         Coordinates.elevationTimeout = setTimeout(() => {
             const now = new Date().getTime()
@@ -484,8 +497,12 @@ function pickLngLatGo() {
             finalLat = valB - Coordinates.coordOffset[1]
             break
         case 'en': //01 easting northing
-            const valALng = (valA * (180 / Math.PI)) / F_.radiusOfPlanetMajor
-            const valBLat = (valB * (180 / Math.PI)) / F_.radiusOfPlanetMajor
+            const valALng =
+                ((valA - Coordinates.coordENOffset[0]) * (180 / Math.PI)) /
+                F_.radiusOfPlanetMajor
+            const valBLat =
+                ((valB - Coordinates.coordENOffset[1]) * (180 / Math.PI)) /
+                F_.radiusOfPlanetMajor
             finalLng = valALng / Coordinates.coordENMultiplier[0]
             finalLat = valBLat / Coordinates.coordENMultiplier[1]
             break

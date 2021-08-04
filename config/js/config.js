@@ -369,6 +369,12 @@ function initialize() {
                 $("#tab_look #look_coordlatoffset").val(
                   cData.look ? cData.look.coordlatoffset : ""
                 );
+                $("#tab_look #look_coordeastoffset").val(
+                  cData.look ? cData.look.coordeastoffset : ""
+                );
+                $("#tab_look #look_coordnorthoffset").val(
+                  cData.look ? cData.look.coordnorthoffset : ""
+                );
                 $("#tab_look #look_coordeastmult").val(
                   cData.look ? cData.look.coordeastmult : ""
                 );
@@ -977,10 +983,15 @@ function makeLayerBarAndModal(d, level) {
   } else togwheadTrueSel = "selected";
 
   var shapCircleSel = "",
-    shapSquareSel = "",
     shapTriangleSel = "",
-    shapStarSel = "",
+    shapTriangleFSel = "",
+    shapSquareSel = "",
+    shapDiamondSel = "",
+    shapPentagonSel = "",
     shapHexagonSel = "",
+    shapStarSel = "",
+    shapPlusSel = "",
+    shapPinSel = "",
     shapNoneSel = "";
   switch (d.shape) {
     case "circle":
@@ -989,14 +1000,29 @@ function makeLayerBarAndModal(d, level) {
     case "triangle":
       shapTriangleSel = "selected";
       break;
+    case "triangle-flipped":
+      shapTriangleFSel = "selected";
+      break;
     case "square":
       shapSquareSel = "selected";
+      break;
+    case "diamond":
+      shapDiamondSel = "selected";
+      break;
+    case "pentagon":
+      shapPentagonSel = "selected";
+      break;
+    case "hexagon":
+      shapHexagonSel = "selected";
       break;
     case "star":
       shapStarSel = "selected";
       break;
-    case "hexagon":
-      shapHexagonSel = "selected";
+    case "plus":
+      shapPlusSel = "selected";
+      break;
+    case "pin":
+      shapPinSel = "selected";
       break;
     case "none":
       shapNoneSel = "selected";
@@ -1012,7 +1038,7 @@ function makeLayerBarAndModal(d, level) {
     d.position = { longitude: 0, latitude: 0, elevation: 0 };
   if (!d.hasOwnProperty("rotation")) d.rotation = { x: 0, y: 0, z: 0 };
   if (!d.hasOwnProperty("scale")) d.scale = 1;
-  if (!d.hasOwnProperty("shape")) d.shape = "circle";
+  if (!d.hasOwnProperty("shape")) d.shape = "none";
 
   //Build Kinds
   let kindsOptions = [];
@@ -1280,10 +1306,14 @@ function makeLayerBarAndModal(d, level) {
               "<select>" +
                 "<option value='none' " + shapNoneSel + ">Default</option>" +
                 "<option value='circle' " + shapCircleSel + ">Circle</option>" +
-                "<option value='square' " + shapSquareSel + ">Square</option>" +
                 "<option value='triangle' " + shapTriangleSel + ">Triangle</option>" +
-                "<option value='star' " + shapStarSel + ">Star</option>" +
+                "<option value='triangle-flipped' " + shapTriangleFSel + ">Triangle Flipped</option>" +
+                "<option value='square' " + shapSquareSel + ">Square</option>" +
+                "<option value='pentagon' " + shapPentagonSel + ">Pentagon</option>" +
                 "<option value='hexagon' " + shapHexagonSel + ">Hexagon</option>" +
+                "<option value='star' " + shapStarSel + ">Star</option>" +
+                "<option value='plus' " + shapPlusSel + ">Plus</option>" +
+                "<option value='pin' " + shapPinSel + ">Pin</option>" +
               "</select>" +
               "<label>Shape</label>" +
             "</div>" +
@@ -1682,6 +1712,8 @@ function save() {
     json.look["coordelevurl"] = $("#tab_look #look_coordelevurl").val();
     json.look["coordlngoffset"] = $("#tab_look #look_coordlngoffset").val();
     json.look["coordlatoffset"] = $("#tab_look #look_coordlatoffset").val();
+    json.look["coordeastoffset"] = $("#tab_look #look_coordeastoffset").val();
+    json.look["coordnorthoffset"] = $("#tab_look #look_coordnorthoffset").val();
     json.look["coordeastmult"] = $("#tab_look #look_coordeastmult").val();
     json.look["coordnorthmult"] = $("#tab_look #look_coordnorthmult").val();
     //look colors
