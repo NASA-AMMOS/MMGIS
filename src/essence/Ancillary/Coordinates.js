@@ -13,6 +13,7 @@ const markup = [
         "<div class='mouseLngLat'>",
             "<div id='mouseDesc'></div>",
             "<div id='mouseLngLat'></div>",
+            "<div id='mouseElev'></div>",
         "</div>",
         "<div class='mouseLngLatPicking'>",
             "<div id='mouseDescPicking'></div>",
@@ -209,10 +210,12 @@ var Coordinates = {
                                 Coordinates.mouseLngLat[1] +
                                 Coordinates.coordOffset[1]
                             ).toFixed(8) +
-                            '&deg' +
-                            (Coordinates.elevation != null
-                                ? `, ${Coordinates.elevation.toFixed(3)}m`
-                                : '')
+                            '&deg'
+                    )
+                    d3.select('#mouseElev').html(
+                        Coordinates.elevation != null
+                            ? `, ${Coordinates.elevation.toFixed(3)}m`
+                            : ''
                     )
                     break
                 case 'en':
@@ -235,10 +238,12 @@ var Coordinates = {
                                     Coordinates.coordENMultiplier[1] +
                                 Coordinates.coordENOffset[1]
                             ).toFixed(3) +
-                            'm' +
-                            (Coordinates.elevation != null
-                                ? `, ${Coordinates.elevation.toFixed(3)}m`
-                                : '')
+                            'm'
+                    )
+                    d3.select('#mouseElev').html(
+                        Coordinates.elevation != null
+                            ? `, ${Coordinates.elevation.toFixed(3)}m`
+                            : ''
                     )
                     break
                 case 'rxy':
@@ -286,12 +291,13 @@ var Coordinates = {
                                 (Math.PI / 180) *
                                 F_.radiusOfPlanetMajor
                             ).toFixed(3) +
-                            'm' +
-                            (Coordinates.elevation != null
-                                ? `, ${(Coordinates.elevation - rzVal).toFixed(
-                                      3
-                                  )}m`
-                                : '')
+                            'm'
+                    )
+
+                    d3.select('#mouseElev').html(
+                        Coordinates.elevation != null
+                            ? `, ${(Coordinates.elevation - rzVal).toFixed(3)}m`
+                            : ''
                     )
                     break
                 case 'site':
@@ -339,17 +345,19 @@ var Coordinates = {
                                 (Math.PI / 180) *
                                 F_.radiusOfPlanetMajor
                             ).toFixed(3) +
-                            'm' +
-                            (Coordinates.elevation != null
-                                ? `, ${(zVal - Coordinates.elevation).toFixed(
-                                      3
-                                  )}m`
-                                : '')
+                            'm'
                     )
+                    d3.select('#mouseElev').html(
+                        Coordinates.elevation != null
+                            ? `, ${(zVal - Coordinates.elevation).toFixed(3)}m`
+                            : ''
+                    )
+
                     break
                 default:
             }
         }
+        if (Coordinates.elevation != null) $('#mouseElev').css({ opacity: 1 })
     },
     getElevation: function () {
         clearTimeout(Coordinates.elevationTimeout)
@@ -448,6 +456,7 @@ function mouseLngLatMove(e) {
     if (L_.configData.look && L_.configData.look.coordelev === true)
         Coordinates.getElevation()
     Coordinates.refresh()
+    $('#mouseElev').css({ opacity: 0.6 })
 }
 
 function pickLngLat() {

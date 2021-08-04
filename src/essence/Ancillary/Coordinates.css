@@ -31,6 +31,13 @@
     color: white;
     text-align: center;
 }
+#CoordinatesDiv #mouseElev {
+    font-size: 15px;
+    line-height: 30px;
+    color: white;
+    text-align: center;
+    transition: opacity 0.1s ease-out;
+}
 
 #CoordinatesDiv .mouseLngLatPicking {
     height: 30px;
