@@ -427,7 +427,7 @@ var UserInterface = {
             .style('overflow', 'hidden')
             .style('background', 'rgba(0,0,0,0.15)')
             .style('z-index', '1003')
-            .style('transition', 'bottom 0.2s ease-in')
+            .style('transition', 'bottom 0.2s ease-out')
 
         this.mapTopBar = this.mapScreen
             .append('div')
@@ -890,30 +890,23 @@ var UserInterface = {
                 duration: duration,
             }
         )
-        $('#mapToolBar').animate(
-            {
-                bottom: UserInterface.pxIsTools + 'px',
-            },
-            {
-                duration: duration,
-            }
-        )
-        $('.leaflet-control-scalefactor').animate(
-            {
-                bottom: UserInterface.pxIsTools + 25 + 'px',
-            },
-            {
-                duration: duration,
-            }
-        )
-        $('.mouseLngLat').animate(
-            {
-                bottom: UserInterface.pxIsTools + 'px',
-            },
-            {
-                duration: duration,
-            }
-        )
+        let timeUIActive = false
+        if ($('#timeUI').length) {
+            timeUIActive = $('#timeUI').hasClass('active')
+        }
+
+        $('#mapToolBar').css({
+            bottom: UserInterface.pxIsTools + (timeUIActive ? 40 : 0) + 'px',
+        })
+        $('.leaflet-control-scalefactor').css({
+            bottom: UserInterface.pxIsTools + 24 + 'px',
+        })
+        $('#CoordinatesDiv').css({
+            bottom: UserInterface.pxIsTools + (timeUIActive ? 40 : 0) + 'px',
+        })
+        $('#timeUI').css({
+            bottom: UserInterface.pxIsTools + (timeUIActive ? 0 : -40) + 'px',
+        })
 
         //The tools slider
         $('#toolsSplit').animate(

@@ -565,6 +565,7 @@ body {
     left: 10px;
     display: flex;
     margin-left: 2px !important;
+    transition: bottom 0.2s ease-out;
 }
 .leaflet-control-scalefactor-line {
     background: #161616;

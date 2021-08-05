@@ -9,7 +9,13 @@
     padding: 4px 8px;
     z-index: 20;
     font-size: 14px;
-    transition: bottom 0.2s ease-in;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s ease-in;
+}
+#timeUI.active {
+    opacity: 1;
+    pointer-events: all;
 }
 
 #timeUI > label {

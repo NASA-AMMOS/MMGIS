@@ -4,6 +4,7 @@ import * as d3 from 'd3'
 import F_ from '../Basics/Formulae_/Formulae_'
 import Map_ from '../Basics/Map_/Map_'
 import L_ from '../Basics/Layers_/Layers_'
+import UserInterface from '../Basics/UserInterface_/UserInterface_'
 import calls from '../../pre/calls'
 
 import './Coordinates.css'
@@ -561,21 +562,30 @@ function urlClick(e) {
 function toggleTimeUI() {
     const active = $(this).hasClass('active')
     $(this).toggleClass('active')
+    $('#timeUI').toggleClass('active')
     const newBottom = active ? 0 : 40
     const timeBottom = active ? -40 : 0
 
-    $('#CoordinatesDiv').css({ bottom: newBottom + 'px' })
-    $('#mapToolBar').css({ bottom: newBottom + 'px' })
-    $('.leaflet-bottom.leaflet-left').css({ bottom: newBottom + 'px' })
-    $('#photosphereAzIndicator').css({
+    $('#CoordinatesDiv').css({
+        bottom: newBottom + (UserInterface.pxIsTools || 0) + 'px',
+    })
+    $('#mapToolBar').css({
+        bottom: newBottom + (UserInterface.pxIsTools || 0) + 'px',
+    })
+    $('.leaflet-bottom.leaflet-left').css({
         bottom: newBottom + 'px',
+    })
+    $('#photosphereAzIndicator').css({
+        bottom: newBottom + (UserInterface.pxIsTools || 0) + 'px',
         transition: 'bottom 0.2s ease-in',
     })
     $('#_lithosphere_controls_bottomleft').css({
-        bottom: newBottom + 10 + 'px',
+        bottom: newBottom + (UserInterface.pxIsTools || 0) + 10 + 'px',
         transition: 'bottom 0.2s ease-in',
     })
-    $('#timeUI').css({ bottom: timeBottom + 'px' })
+    $('#timeUI').css({
+        bottom: timeBottom + (UserInterface.pxIsTools || 0) + 'px',
+    })
 }
 
 export default Coordinates

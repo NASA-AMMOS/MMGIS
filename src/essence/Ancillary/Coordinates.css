@@ -130,7 +130,7 @@
 
 #CoordinatesDiv #toggleTimeUI {
     width: 36px;
-    height: 42px;
+    height: 32px;
     margin-bottom: 0;
     position: absolute;
     right: -36px;
@@ -158,4 +158,5 @@
     color: var(--color-mmgis);
     border-top-right-radius: 4px;
     border-top-left-radius: 4px;
+    height: 42px;
 }
