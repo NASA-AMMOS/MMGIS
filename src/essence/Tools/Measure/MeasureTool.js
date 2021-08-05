@@ -124,9 +124,10 @@ const Measure = () => {
                 <Line
                     ref={refLine}
                     data={{
-                        labels: MeasureTool.lastData.map((d) =>
-                            parseInt(d[2], 10)
-                        ),
+                        labels: MeasureTool.lastData.map((d) => {
+                            const xAxes = parseInt(d[2], 10)
+                            return distDisplayUnit == 'kilometers' ? (xAxes/1000).toFixed(2) : xAxes
+                        }),
                         datasets: [
                             {
                                 label: 'Profile',
@@ -186,7 +187,7 @@ const Measure = () => {
                             callbacks: {
                                 label: (item) => `${item.yLabel}m`,
                                 title: (item) =>
-                                    `${item[0].xLabel}m from start`,
+                                    distDisplayUnit == 'meters' ? `${item[0].xLabel}m from start` : `${item[0].xLabel}km from start,`
                             },
                         },
                         onHover: (e, el, el2) => {
