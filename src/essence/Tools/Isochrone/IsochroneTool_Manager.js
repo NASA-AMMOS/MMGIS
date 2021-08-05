@@ -101,10 +101,7 @@ class IsochroneManager {
 
     handleInput(e, option, action = 0) {
         window.clearTimeout(this.updateTimeout);
-        this.updateTimeout = window.setTimeout(
-            () => this._handleInput(e, option, action),
-            100
-        );
+        this.updateTimeout = window.setTimeout(() => this._handleInput(e, option, action), 100);
     }
     _handleInput(e, option, action) {
         if(option !== null) {
@@ -300,7 +297,8 @@ class IsochroneManager {
     setBounds() {
         this.currentStage = 3;
 
-        //TODO: this process could use improvement (are the loops necessary?)
+        //There's almost certainly a smart, not brute-force mathematical solution to this problem...
+        //TODO work out what that is
         const startPoint = Map_.map.project(this.start, this.options.resolution);
         const startTile = startPoint.divideBy(256);
         let min = startTile.floor().multiplyBy(256);

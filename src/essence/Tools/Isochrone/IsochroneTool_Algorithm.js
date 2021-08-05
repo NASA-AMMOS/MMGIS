@@ -77,14 +77,6 @@ class PxHeap {
     }
 }
 
-function createDataArray(width, height, fillWith = null, type = Array) {
-    let resultArr = [];
-    for(let y = 0; y < height; y++) {
-        resultArr.push(new type(width).fill(fillWith));
-    }
-    return resultArr;
-}
-
 function pxToLatLng(px, tileBounds, zoom) {
     const point = tileBounds.min
         .multiplyBy(256)
@@ -131,9 +123,16 @@ export default function generateIsochrone(
     const height = (bounds.max.y - bounds.min.y) * 256;
 
     //Set up dijkstra's
-    let costArr = createDataArray(width, height, Infinity, Float32Array);
-    let linkArr = createDataArray(width, height, 0, Uint8Array);
-    let indexArr = createDataArray(width, height, -2, Int32Array);
+    const makeDataArray = (type, fillWith) => {
+        let arr = [];
+        for(let y = 0; y < height; y++) {
+            arr.push(new type(width).fill(fillWith));
+        }
+        return arr;
+    }
+    let costArr = makeDataArray(Float32Array, Infinity);
+    let linkArr = makeDataArray(Uint8Array, 0);
+    let indexArr = makeDataArray(Int32Array, -2);
         //-2: px is unvisited; -1: px has been removed
     
     let heap = new PxHeap(costArr, indexArr);
