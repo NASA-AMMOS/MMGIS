@@ -34,7 +34,9 @@ import ScaleBar from './Ancillary/ScaleBar'
 import ScaleBox from './Ancillary/ScaleBox'
 //import Swap from './Ancillary/Swap'
 import QueryURL from './Ancillary/QueryURL'
+import TimeControl from './Ancillary/TimeControl'
 import calls from '../pre/calls'
+import { mmgisAPI_, mmgisAPI } from './mmgisAPI/mmgisAPI'
 import { makeMissionNotFoundDiv } from './LandingPage/LandingPage'
 import { stylize } from './Ancillary/Stylize'
 //Requiring UserInterface_ initializes itself
@@ -180,6 +182,9 @@ var essence = {
         //Now that the map is made
         Coordinates.init()
         ContextMenu.init()
+        
+        //Make the time control
+        TimeControl.init()
 
         if (!swapping) {
             Description.init(L_.mission, L_.site, Map_, L_)
@@ -287,6 +292,8 @@ var essence = {
         UserInterface_.fina(L_, Viewer_, Map_, Globe_)
         //Finalize the Viewer
         Viewer_.fina(Map_)
+        // Finalize the mmgisAPI
+        mmgisAPI_.fina(Map_)
 
         stylize()
     },

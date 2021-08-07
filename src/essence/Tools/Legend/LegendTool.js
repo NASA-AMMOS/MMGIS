@@ -86,7 +86,8 @@ function interfaceWithMMWebGIS() {
                         if (
                             shape == 'circle' ||
                             shape == 'square' ||
-                            shape == 'rect'
+                            shape == 'rect'   ||
+                            shape == 'triangle'
                         ) {
                             // finalize discreet and continuous
                             if (lastContinues.length > 0) {
@@ -144,6 +145,24 @@ function interfaceWithMMWebGIS() {
                                         .attr('width', 20)
                                         .attr('height', 10)
                                         .attr('y', 5)
+                                        .attr(
+                                            'fill',
+                                            L_.layersLegendsData[l][d].color
+                                        )
+                                        .attr('opacity', L_.opacityArray[l])
+                                        .attr(
+                                            'stroke',
+                                            L_.layersLegendsData[l][d]
+                                                .strokecolor
+                                        )
+                                    break
+                                case 'triangle':
+                                    var trianglePoints = '0 0, 10 20, 20 0'
+                                    svg.append('polyline')
+                                        .attr('class', l + '_legendshape')
+                                        .attr('width',20)
+                                        .attr('height',20)
+                                        .attr('points', trianglePoints)
                                         .attr(
                                             'fill',
                                             L_.layersLegendsData[l][d].color

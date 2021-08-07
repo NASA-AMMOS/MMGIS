@@ -128,6 +128,21 @@ _type:_ string _optional_
 A comma separated string defining the tileset's `minimumLonDeg,minimumLatDeg,maximumLonDeg,maximumLatDeg`. Setting a bounding box improves performance by limiting requests for tiles to only those that fit the bounds.  
 _Note: This field can be automatically populate with "Populate from XML". "Populate from XML" uses looks for a `tilemapresource.xml` in the tileset directory specified by the URL field._
 
+#### Time Enabled
+
+_type:_ bool  
+True if the layer is time enabled. URLs that contain `{time}` will be dynamically replaced by their set values when the layer is fetched.
+
+#### Time Type
+
+_type:_ enum [Global, Individual]  
+Whether the layer should use global time values or function independently with its own time values.
+
+#### Time Format
+
+_type:_ string _optional_  
+The string format to be used in the URL for `{time}`. Defaults to `%Y-%m-%dT%H:%M:%SZ`.
+
 # Vector Tile
 
 A mix between Tile and Vector. Useful when rendering tons of features since features are rendered based on viewport instead of all at once at the start.
@@ -195,6 +210,21 @@ _Note: This field can be automatically populate with "Populate from XML". "Popul
 _type:_ integer  
 The highest (largest number) zoom level to see in MMGIS. This value is at least as high as Maximum Native Zoom. This allows zooms level higher than that of the tileset. Instead of rendering new tile image, it scales them in instead.
 
+#### Time Enabled
+
+_type:_ bool  
+True if the layer is time enabled. URLs that contain `{time}` will be dynamically replaced by their set values when the layer is fetched.
+
+#### Time Type
+
+_type:_ enum [Global, Individual]  
+Whether the layer should use global time values or function independently with its own time values.
+
+#### Time Format
+
+_type:_ string _optional_  
+The string format to be used in the URL for `{time}`. Defaults to `YYYY-MM-DDTHH:mm:ssZ`.
+
 #### Vector Tile Feature Unique Id Key
 
 _type:_ string
@@ -227,7 +257,7 @@ Example:
 
 # Data
 
-An experimental layer type. Uses WebGL shaders to generate tiles on the fly. Only a flood shader with hardcoded values is supported at this moment. The flood height can be adjusted in real time under the layer's setting in MMGIS.
+Data layers use WebGL shaders to generate tiles on the fly.
 
 #### Layer Name
 
@@ -272,6 +302,54 @@ _type:_ string _optional_
 A comma separated string defining the tileset's `minimumLonDeg,minimumLatDeg,maximumLonDeg,maximumLatDeg`. Setting a bounding box improves performance by limiting requests for tiles to only those that fit the bounds.  
 _Note: This field can be automatically populate with "Populate from XML". "Populate from XML" uses looks for a `tilemapresource.xml` in the tileset directory specified by the URL field._
 
+#### Time Enabled
+
+_type:_ bool  
+True if the layer is time enabled. URLs that contain `{starttime}` or `{endtime}` will be dynamically replaced by their set values when the layer is fetched.
+
+#### Time Type
+
+_type:_ enum [Global, Individual]  
+Whether the layer should use global time values or function independently with its own time values.
+
+#### Time Format
+
+_type:_ string _optional_  
+The string format to be used in the URL for `{starttime}` and `{endtime}`. Defaults to `YYYY-MM-DDTHH:mm:ssZ`.
+
+#### Raw Variables
+
+Data layers need a configured `shader` raw variable to be effective. Supported shader types are as follows:
+
+- "colorize": Allows users to apply and configure dynamic color ramps to the data. Uses the current minimum and maximum viewport data values to adjust color ramps into the most relevant range.
+  - units: A string to append to user displayed data values.
+  - noDataValues: Values to exclude from minimum and maximum calculations.
+  - sigfigs: How many significant figures to round user displayed values.
+  - ramps: An array of arrays of hex color strings. "transparent" is a special keyword for a fully transparent ramp color.
+- "image": (Default) Simply shows the underlying raw data in an image form. Mainly for testing, it can also be useful for development for internal pass-tile-canvas-instead-of-url layers.
+
+Example:
+
+```javascript
+{
+    "shader": {
+        "type": "colorize",
+        "units": "m",
+        "noDataValues": [
+            0
+        ],
+        "sigfigs": 3,
+        "ramps": [
+            [
+                "#FF0000",
+                "transparent",
+                "#0000FF"
+            ]
+        ]
+    }
+}
+```
+
 # Vector
 
 A [geojson](https://geojson.org/) layer.
@@ -290,6 +368,11 @@ A special kind of interaction for the layer. Please see the Kinds page for more.
 
 _type:_ string  
 A file path that points to a geojson. If the path is relative, it will be relative to the mission's directory. The URL must contain a proper placeholder ending such as: `{z}/{x}/{y}.png`. Alternatively vectors can be served with Geodatasets. Simply go to "Manage Geodatasets" at the bottom left, upload a geojson and link to it in this URL field with "geodatasets:{geodataset\*name}"
+
+#### Controlled
+
+_type:_ bool
+Whether the layer can be dynamically updated or not. If true, the layer can be dynamically updated and the URL is not required.
 
 #### Legend
 
@@ -310,6 +393,21 @@ If set, this vector layer will be hidden if the current zoom level is less than 
 
 _type:_ float  
 A value from 0 to 1 of the layer's initial opacity. 1 is fully opaque.
+
+#### Time Enabled
+
+_type:_ bool  
+True if the layer is time enabled. URLs that contain `{starttime}` or `{endtime}` will be dynamically replaced by their set values when the layer is fetched.
+
+#### Time Type
+
+_type:_ enum [Global, Individual]  
+Whether the layer should use global time values or function independently with its own time values.
+
+#### Time Format
+
+_type:_ string _optional_  
+The string format to be used in the URL for `{starttime}` and `{endtime}`. Defaults to `YYYY-MM-DDTHH:mm:ssZ`.
 
 #### Stroke Color
 
@@ -463,6 +561,21 @@ Whether the layer is on initially.
 
 _type:_ float  
 A value from 0 to 1 of the layer's initial opacity. 1 is fully opaque.
+
+#### Time Enabled
+
+_type:_ bool  
+True if the layer is time enabled. URLs that contain `{starttime}` or `{endtime}` will be dynamically replaced by their set values when the layer is fetched.
+
+#### Time Type
+
+_type:_ enum [Global, Individual]  
+Whether the layer should use global time values or function independently with its own time values.
+
+#### Time Format
+
+_type:_ string _optional_  
+The string format to be used in the URL for `{starttime}` and `{endtime}`. Defaults to `YYYY-MM-DDTHH:mm:ssZ`.
 
 ---
 

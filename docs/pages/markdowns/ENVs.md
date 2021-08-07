@@ -69,6 +69,14 @@ Potentially logs a bunch of extra stuff for development purposes | bool | defaul
 
 Sets the `Content-Security-Policy: frame-ancestors` header to allow the embedding of MMGIS in the specified external sites | string[] | default `null`
 
+#### `PUBLIC_URL=`
+
+Set MMGIS to be deployed under a subpath. Use full and absolute paths only to the project's build directory. For example if serving at the subpath 'mmgis/' is desired, set PUBLIC_URL to 'https://{domain}/mmgis/build' | string | default `null` (domain root build '/build')
+
+#### `CLEARANCE_NUMBER=`
+
+Sets a clearance for the website | string | default `CL##-####`
+
 #### `DISABLE_LINK_SHORTENER=`
 
 If true, users that use the 'Copy Link' feature will receive a full-length deep link. Writing new short links will be disabled but expanding existing ones will still work. | bool | default `false`

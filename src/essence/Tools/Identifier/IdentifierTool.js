@@ -59,9 +59,9 @@ var IdentifierTool = {
     },
     idPixelGlobe: function (e) {
         IdentifierTool.idPixel(e, [
-            Globe_.mouseLngLat.Lng,
-            Globe_.mouseLngLat.Lat,
-            Globe_.zoom,
+            Globe_.litho.mouse.lng,
+            Globe_.litho.mouse.lat,
+            Globe_.litho.zoom,
         ])
     },
     idValueMap: function (e) {
@@ -74,7 +74,7 @@ var IdentifierTool = {
     idValueGlobe: function (e) {
         IdentifierTool.idPixel(
             e,
-            [Globe_.mouseLngLat.Lng, Globe_.mouseLngLat.Lat, Globe_.zoom],
+            [Globe_.litho.mouse.lng, Globe_.litho.mouse.lat, Globe_.litho.zoom],
             true
         )
     },
@@ -356,10 +356,12 @@ function interfaceWithMMWebGIS() {
     d3.select('#map').style('cursor', 'crosshair')
 
     Map_.map.on('mousemove', IdentifierTool.idPixelMap)
-    Globe_.globe.on('mousemove', IdentifierTool.idPixelGlobe)
-    Globe_.shouldRaycastSprites = false
+    Globe_.litho
+        .getContainer()
+        .addEventListener('mousemove', IdentifierTool.idPixelGlobe, false)
+    //Globe_.shouldRaycastSprites = false
 
-    Globe_.globe.css({ cursor: 'crosshair' })
+    Globe_.litho.getContainer().style.cursor = 'crosshair'
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
     function separateFromMMWebGIS() {
@@ -367,11 +369,13 @@ function interfaceWithMMWebGIS() {
 
         d3.select('#map').style('cursor', previousCursor)
 
-        Globe_.shouldRaycastSprites = true
-        Globe_.globe.css({ cursor: 'default' })
+        //Globe_.shouldRaycastSprites = true
+        Globe_.litho.getContainer().style.cursor = 'default'
 
         Map_.map.off('mousemove', IdentifierTool.idPixelMap)
-        Globe_.globe.off('mousemove', IdentifierTool.idPixelGlobe)
+        Globe_.litho
+            .getContainer()
+            .removeEventListener('mousemove', IdentifierTool.idPixelGlobe)
     }
 }
 
@@ -416,7 +420,7 @@ function queryDataValue(url, lng, lat, numBands, callback) {
             //Convert python's Nones to nulls
             data = data.replace(/none/gi, 'null')
             if (data.length > 2) {
-                data = JSON.parse($.parseJSON(data))
+                data = JSON.parse(data)
                 if (typeof callback === 'function') callback(data)
             }
         },

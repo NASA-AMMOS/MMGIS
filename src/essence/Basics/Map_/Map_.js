@@ -11,6 +11,8 @@ import QueryURL from '../../Ancillary/QueryURL'
 import Kinds from '../../Tools/Kinds/Kinds'
 import DataShaders from '../../Ancillary/DataShaders'
 import calls from '../../../pre/calls'
+import TimeControl from '../../Ancillary/TimeControl'
+import { color } from 'd3'
 let L = window.L
 
 let essenceFina = function () {}
@@ -73,7 +75,6 @@ let Map_ = {
         if (this.map != null) this.map.remove()
 
         let shouldFade = true
-        if (L_.hasTool('viewshed')) shouldFade = false
 
         if (
             L_.configData.projection &&
@@ -164,6 +165,7 @@ let Map_ = {
                 //wheelPxPerZoomLevel: 500,
             })
         }
+
         if (this.map.zoomControl) this.map.zoomControl.setPosition('topright')
 
         if (Map_.mapScaleZoom) {
@@ -217,25 +219,25 @@ let Map_ = {
             enforceVisibilityCutoffs()
         })
 
-        Map_.map.on('move', function (e) {
-            if (L_.mapAndGlobeLinked || window.mmgisglobal.ctrlDown) {
-                if (L_.Globe_ != null) {
-                    var c = Map_.map.getCenter()
-                    L_.Globe_.setCenter([c.lat, c.lng])
-                }
-            }
+        this.map.on('move', (e) => {
+            const c = this.map.getCenter()
+            Globe_.controls.link.linkMove(c.lng, c.lat)
         })
-        Map_.map.on('mousemove', function (e) {
-            if (L_.mapAndGlobeLinked || window.mmgisglobal.ctrlDown) {
-                if (L_.Globe_ != null) L_.Globe_.setLink(e.latlng)
-            }
+        this.map.on('mousemove', (e) => {
+            Globe_.controls.link.linkMouseMove(e.latlng.lng, e.latlng.lat)
         })
-        Map_.map.on('mouseout', function (e) {
-            if (L_.Globe_ != null) L_.Globe_.setLink('off')
+        this.map.on('mouseout', (e) => {
+            Globe_.controls.link.linkMouseOut()
         })
+
+        // Clear the selected feature if clicking on the map where there are no features
+        Map_.map.addEventListener('click', clearOnMapClick)
 
         //Build the toolbar
         buildToolBar()
+
+        //Set the time for any time enabled layers
+        TimeControl.updateLayersTime()
     },
     clear: function () {
         this.map.eachLayer(function (layer) {
@@ -313,6 +315,27 @@ let Map_ = {
             Map_.map.addLayer(L_.layersGroup[L_.layersOrdered[hasIndex[i]]])
         }
     },
+    refreshLayer: function (layerObj) {
+        // We need to find and remove all points on the map that belong to the layer
+        // Not sure if there is a cleaner way of doing this
+        for (var i = L_.layersOrdered.length - 1; i >= 0; i--) {
+            if (Map_.hasLayer(L_.layersOrdered[i])) {
+                if (
+                    L_.layersNamed[L_.layersOrdered[i]] &&
+                    L_.layersNamed[L_.layersOrdered[i]].type == 'vector' &&
+                    L_.layersNamed[L_.layersOrdered[i]].name == layerObj.name
+                ) {
+                    Map_.map.removeLayer(L_.layersGroup[L_.layersOrdered[i]])
+                    L_.layersLoaded[
+                        L_.layersOrdered.indexOf(layerObj.name)
+                    ] = false
+                }
+            }
+        }
+        Map_.allLayersLoadedPassed = false
+        makeLayer(layerObj)
+        allLayersLoaded()
+    },
     setPlayerArrow(lng, lat, rot) {
         var playerMapArrowOffsets = [
             [0.06, 0],
@@ -379,6 +402,33 @@ let Map_ = {
             seLatLng.lat
         )
     },
+    getCurrentTileXYZs() {
+        const bounds = Map_.map.getBounds()
+        const zoom = Map_.map.getZoom()
+
+        const min = Map_.map
+                .project(bounds.getNorthWest(), zoom)
+                .divideBy(256)
+                .floor(),
+            max = Map_.map
+                .project(bounds.getSouthEast(), zoom)
+                .divideBy(256)
+                .floor(),
+            xyzs = [],
+            mod = Math.pow(2, zoom)
+
+        for (var i = min.x; i <= max.x; i++) {
+            for (var j = min.y; j <= max.y; j++) {
+                var x = ((i % mod) + mod) % mod
+                var y = ((j % mod) + mod) % mod
+                var coords = new L.Point(x, y)
+                coords.z = zoom
+                xyzs.push(coords)
+            }
+        }
+
+        return xyzs
+    },
 }
 
 //Specific internal functions likely only to be used once
@@ -397,11 +447,12 @@ function getLayersChosenNamePropVal(feature, layer) {
         ) {
             propertyName = l.variables['useKeyAsName']
             if (feature.properties.hasOwnProperty(propertyName)) {
-                propertyValue = feature.properties[propertyName]
-                foundThroughVariables = true
+                propertyValue = F_.getIn(feature.properties, propertyName)
+                if (propertyValue != null) foundThroughVariables = true
             }
         }
     }
+    // Use first key
     if (!foundThroughVariables) {
         for (var key in feature.properties) {
             //Store the current feature's key
@@ -547,9 +598,10 @@ function makeLayer(layerObj) {
                                         )
                                     }
                                     //remove duplicates
-                                    layer.feature.properties.images = F_.removeDuplicatesInArrayOfObjects(
-                                        layer.feature.properties.images
-                                    )
+                                    layer.feature.properties.images =
+                                        F_.removeDuplicatesInArrayOfObjects(
+                                            layer.feature.properties.images
+                                        )
                                 } else {
                                     layer.feature.properties._data =
                                         d[i].results
@@ -680,6 +732,19 @@ function makeLayer(layerObj) {
     //Pretty much like makePointLayer but without the pointToLayer stuff
     function makeVectorLayer() {
         var layerUrl = layerObj.url
+        // Give time enabled layers a default start and end time to avoid errors
+        var layerTimeFormat =
+            layerObj.time == null
+                ? d3.utcFormat('%Y-%m-%dT%H:%M:%SZ')
+                : d3.utcFormat(layerObj.time.format)
+        var startTime = layerTimeFormat(Date.parse(TimeControl.getStartTime()))
+        var endTime = layerTimeFormat(Date.parse(TimeControl.getEndTime()))
+        if (typeof layerObj.time != 'undefined') {
+            layerUrl = layerObj.url
+                .replace('{starttime}', startTime)
+                .replace('{endtime}', endTime)
+                .replace('{time}', endTime)
+        }
         if (!F_.isUrlAbsolute(layerUrl)) layerUrl = L_.missionPath + layerUrl
         let urlSplit = layerObj.url.split(':')
 
@@ -789,23 +854,37 @@ function makeLayer(layerObj) {
                 }
             )
         } else {
-            $.getJSON(layerUrl, function (data) {
-                add(data)
-            }).fail(function (jqXHR, textStatus, errorThrown) {
-                //Tell the console council about what happened
-                console.warn(
-                    'ERROR! ' +
-                        textStatus +
-                        ' in ' +
-                        layerObj.url +
-                        ' /// ' +
-                        errorThrown
-                )
-                //Say that this layer was loaded, albeit erroneously
-                L_.layersLoaded[L_.layersOrdered.indexOf(layerObj.name)] = true
-                //Check again to see if all layers have loaded
-                allLayersLoaded()
-            })
+            // If there is no url to a JSON file but the "controlled" option is checked in the layer config,
+            // create the geoJSON layer with empty GeoJSON data
+            var layerData = L_.layersDataByName[layerObj.name]
+            if (L_.missionPath === layerUrl && layerData.controlled) {
+                // Empty GeoJSON data
+                var geojson = { type: 'FeatureCollection', features: [] }
+                add(geojson)
+            } else {
+                $.getJSON(layerUrl, function (data) {
+                    add(data)
+                }).fail(function (jqXHR, textStatus, errorThrown) {
+                    //Tell the console council about what happened
+                    console.warn(
+                        'ERROR! ' +
+                            textStatus +
+                            ' in ' +
+                            layerObj.url +
+                            ' /// ' +
+                            errorThrown
+                    )
+                    //Say that this layer was loaded, albeit erroneously
+                    L_.layersLoaded[
+                        L_.layersOrdered.indexOf(layerObj.name)
+                    ] = true
+                    //Check again to see if all layers have loaded
+                    allLayersLoaded()
+                })
+                if (typeof layerObj.time != 'undefined') {
+                    layerUrl = layerObj.url
+                }
+            }
         }
 
         function add(data) {
@@ -825,7 +904,6 @@ function makeLayer(layerObj) {
             var wei = String(layerObj.style.weight)
             var fiC = layerObj.style.fillColor
             var fiO = String(layerObj.style.fillOpacity)
-
             var leafletLayerObject = {
                 style: function (feature) {
                     if (feature.properties.hasOwnProperty('style')) {
@@ -834,6 +912,7 @@ function makeLayer(layerObj) {
                         layerObj.style = JSON.parse(
                             JSON.stringify(feature.properties.style)
                         )
+
                         layerObj.style.className = className
                         layerObj.style.layerName = layerName
                     } else {
@@ -874,7 +953,6 @@ function makeLayer(layerObj) {
                                   feature.style.fillopacity != null
                                 ? feature.style.fillopacity
                                 : fiO
-
                         var noPointerEventsClass =
                             feature.style && feature.style.nointeraction
                                 ? ' noPointerEvents'
@@ -904,7 +982,6 @@ function makeLayer(layerObj) {
                     let markerIconOptions = F_.clone(
                         layerObj.variables.markerIcon
                     )
-
                     if (
                         markerIconOptions.iconUrl &&
                         !F_.isUrlAbsolute(markerIconOptions.iconUrl)
@@ -920,17 +997,115 @@ function makeLayer(layerObj) {
 
                     markerIcon = new L.icon(markerIconOptions)
                 }
+
                 leafletLayerObject.pointToLayer = function (feature, latlong) {
-                    //We'll use leaflet's circleMarker for this
-                    let layer = L.circleMarker(
-                        latlong,
-                        leafletLayerObject.style
-                    ).setRadius(layerObj.radius)
+                    const featureStyle = leafletLayerObject.style(feature)
+                    let svg = ''
+                    let layer = null
+                    const pixelBuffer = featureStyle.weight || 0
+
+                    switch (layerObj.shape) {
+                        case 'circle':
+                            svg = [
+                                `<svg style="height=100%;width=100%" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                                `<circle cx="12" cy="12" r="${
+                                    12 - pixelBuffer
+                                }"/>`,
+                                `</svg>`,
+                            ].join('\n')
+                            break
+                        case 'triangle':
+                            svg = [
+                                `<svg style="height=100%px;width=100%px" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                                `<path d="M1,21H23L12,2Z" />`,
+                                `</svg>`,
+                            ].join('\n')
+                            break
+                        case 'triangle-flipped':
+                            svg = [
+                                `<svg style="height=100%px;width=100%px;transform:rotate(180deg);" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                                `<path d="M1,21H23L12,2Z" />`,
+                                `</svg>`,
+                            ].join('\n')
+                            break
+                        case 'square':
+                            svg = [
+                                `<svg style="width=100%;height=100%" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                                `<rect x="${pixelBuffer}" y="${pixelBuffer}" width="${
+                                    24 - pixelBuffer * 2
+                                }" height="${24 - pixelBuffer * 2}"/>`,
+                                `</svg>`,
+                            ].join('\n')
+                            break
+                        case 'diamond':
+                            svg = [
+                                `<svg  style="height=100%;width=100%" viewBox="0 0 24 24" fill="${featureStyle.fillColor} "stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                                `<path d="M19,12L12,22L5,12L12,2" />`,
+                                `</svg>`,
+                            ].join('\n')
+                            break
+                        case 'pentagon':
+                            svg = [
+                                `<svg  style="height=100%;width=100%" viewBox="0 0 24 24" fill="${featureStyle.fillColor} "stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                                `<path d="M12,2.5L2,9.8L5.8,21.5H18.2L22,9.8L12,2.5Z" />`,
+                                `</svg>`,
+                            ].join('\n')
+                            break
+                        case 'hexagon':
+                            svg = [
+                                `<svg  style="height=100%;width=100%" viewBox="0 0 24 24" fill="${featureStyle.fillColor} "stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                                `<path d="M21,16.5C21,16.88 20.79,17.21 20.47,17.38L12.57,21.82C12.41,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L3.53,17.38C3.21,17.21 3,16.88 3,16.5V7.5C3,7.12 3.21,6.79 3.53,6.62L11.43,2.18C11.59,2.06 11.79,2 12,2C12.21,2 12.41,2.06 12.57,2.18L20.47,6.62C20.79,6.79 21,7.12 21,7.5V16.5Z" />`,
+                                `</svg>`,
+                            ].join('\n')
+                            break
+                        case 'star':
+                            svg = [
+                                `<svg style="height=100%;width=100%"  viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                                `<path d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z" />`,
+                                `</svg>`,
+                            ].join('\n')
+                            break
+                        case 'plus':
+                            svg = [
+                                `<svg style="height=100%;width=100%" viewBox="0 0 24 24" fill="${featureStyle.fillColor} "stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                                `<path d="M20 14H14V20H10V14H4V10H10V4H14V10H20V14Z" />`,
+                                `</svg>`,
+                            ].join('\n')
+                            break
+                        case 'pin':
+                            svg = [
+                                `<svg style="height=100%;width=100%" viewBox="0 0 24 24" fill="${featureStyle.fillColor} "stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                                `<path d="M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z" />`,
+                                `</svg>`,
+                            ].join('\n')
+                            break
+                        case 'none':
+                        default:
+                            layer = L.circleMarker(
+                                latlong,
+                                leafletLayerObject.style
+                            ).setRadius(layerObj.radius)
+                            break
+                    }
 
                     if (markerIcon) {
                         layer = L.marker(latlong, { icon: markerIcon })
-                        layer.options.layerName = layerObj.name
+                    } else if (layer == null && svg != null) {
+                        layer = L.marker(latlong, {
+                            icon: L.divIcon({
+                                className: 'leafletMarkerShape',
+                                iconSize: [
+                                    (layerObj.radius + pixelBuffer) * 2,
+                                    (layerObj.radius + pixelBuffer) * 2,
+                                ],
+                                html: svg,
+                            }),
+                        })
                     }
+
+                    if (layer == null) return
+
+                    layer.options.layerName = layerObj.name
 
                     return layer
                 }
@@ -1008,6 +1183,11 @@ function makeLayer(layerObj) {
             continuousWorld: true,
             reuseTiles: true,
             bounds: bb,
+            time: typeof layerObj.time === 'undefined' ? '' : layerObj.time.end,
+            starttime:
+                typeof layerObj.time === 'undefined' ? '' : layerObj.time.start,
+            endtime:
+                typeof layerObj.time === 'undefined' ? '' : layerObj.time.end,
         })
 
         L_.setLayerOpacity(layerObj.name, L_.opacityArray[layerObj.name])
@@ -1194,10 +1374,10 @@ function makeLayer(layerObj) {
     }
 
     function makeDataLayer() {
-        var layerUrl = layerObj.url
+        let layerUrl = layerObj.demtileurl
         if (!F_.isUrlAbsolute(layerUrl)) layerUrl = L_.missionPath + layerUrl
 
-        var bb = null
+        let bb = null
         if (layerObj.hasOwnProperty('boundingBox')) {
             bb = L.latLngBounds(
                 L.latLng(layerObj.boundingBox[3], layerObj.boundingBox[2]),
@@ -1205,20 +1385,29 @@ function makeLayer(layerObj) {
             )
         }
 
+        const shader = F_.getIn(layerObj, 'variables.shader') || {}
+        const shaderType = shader.type || 'image'
+
         var uniforms = {}
-        for (var i = 0; i < DataShaders['flood'].settings.length; i++) {
-            uniforms[DataShaders['flood'].settings[i].parameter] =
-                DataShaders['flood'].settings[i].value
+        for (let i = 0; i < DataShaders[shaderType].settings.length; i++) {
+            uniforms[DataShaders[shaderType].settings[i].parameter] =
+                DataShaders[shaderType].settings[i].value
         }
 
         L_.layersGroup[layerObj.name] = L.tileLayer.gl({
             options: {
                 tms: true,
+                bounds: bb,
             },
-            fragmentShader: DataShaders['flood'].frag,
+            fragmentShader: DataShaders[shaderType].frag,
             tileUrls: [layerUrl],
+            pixelPerfect: true,
             uniforms: uniforms,
         })
+
+        if (DataShaders[shaderType].attachImmediateEvents) {
+            DataShaders[shaderType].attachImmediateEvents(layerObj.name, shader)
+        }
 
         L_.setLayerOpacity(layerObj.name, L_.opacityArray[layerObj.name])
 
@@ -1390,6 +1579,82 @@ function buildToolBar() {
         .attr('id', 'scaleBar')
         .attr('width', '270px')
         .attr('height', '36px')
+}
+
+function clearOnMapClick(event) {
+    // Skip if there is no actively selected feature
+    const infoTool = ToolController_.getTool('InfoTool')
+    if (!infoTool.currentLayer) {
+        return
+    }
+
+    if ('latlng' in event) {
+        // Position of clicked element
+        const latlng = event.latlng
+
+        let found = false
+        // For all MMGIS layers
+        for (let key in L_.layersGroup) {
+            let layers
+
+            // Layers can be a LayerGroup or an array of LayerGroup
+            if ('getLayers' in L_.layersGroup[key]) {
+                layers = L_.layersGroup[key].getLayers()
+            }
+
+            if (Array.isArray(L_.layersGroup[key])) {
+                layers = L_.layersGroup[key]
+            }
+
+            for (let k in layers) {
+                const layer = layers[k]
+                if (!layer) continue
+                if ('getLayers' in layer) {
+                    const _layer = layer.getLayers()
+                    for (let x in _layer) {
+                        found = checkBounds(_layer[x])
+                        if (found) break
+                    }
+                } else {
+                    found = checkBounds(layer)
+                }
+
+                if (found) break
+            }
+
+            if (found) {
+                // If a clicked feature is found, break out early because MMGIS can only select
+                // a single feature at a time (i.e. no group select)
+                break
+            }
+
+            function checkBounds(layer) {
+                if ('getBounds' in layer) {
+                    // Use the pixel bounds because longitude/latitude conversions for bounds
+                    // may be odd in the case of polar projections
+                    if (
+                        layer._pxBounds &&
+                        layer._pxBounds.contains(event.layerPoint)
+                    ) {
+                        return true
+                    }
+                } else if ('getLatLng' in layer) {
+                    // A latlng is a latlng, regardless of the projection type
+                    if (layer.getLatLng().equals(latlng)) {
+                        return true
+                    }
+                }
+                return false
+            }
+        }
+
+        // If no feature was selected by this click event, clear the currently selected item
+        if (!found) {
+            Map_.activeLayer = null
+            L_.resetLayerFills()
+            L_.clearVectorLayerInfo()
+        }
+    }
 }
 
 export default Map_

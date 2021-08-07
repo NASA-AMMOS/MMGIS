@@ -378,9 +378,9 @@ if (fullAccess)
             : r.config;
         req.body.mission = req.body.cloneMission;
         execFile(
-          "php",
+          "python",
           [
-            "private/api/create_mission.php",
+            "private/api/create_mission.py",
             encodeURIComponent(req.body.cloneMission),
           ],
           function (error, stdout, stderr) {

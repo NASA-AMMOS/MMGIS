@@ -109,6 +109,8 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
             a(href='#tab_look') Look
           li.tab.col.s1
             a(href='#tab_panels') Panels
+          li.tab.col.s1
+            a(href='#tab_time') Time
       #tab_overall.col.s12
         a.helpFromDocs(href='docs/?page=Overall_Tab' target='__blank' rel='noopener')
           i.mdi.mdi-help.mdi-14px
@@ -236,6 +238,7 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
             #look_graticuleEl.input-field.col.s2.push-s2
               input#look_graticule.filled-in.checkbox-color(type='checkbox')
               label(for='look_graticule' style='color: black;') Map Graticule
+
           li.row.title
             .col.s2.push-s2 Colors 
           li.row
@@ -268,6 +271,52 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
             #look_highlightcolorEl.input-field.col.s2.push-s2
               input#look_highlightcolor.validate(type='text' value='')
               label(for='look_highlightcolor') Highlight Color
+
+          li.row.title
+            .col.s2.push-s2 Coordinates
+          li.row.checkboxRow
+            #look_coordllEl.input-field.col.s2.push-s2
+              input#look_coordll.filled-in.checkbox-color(type='checkbox')
+              label(for='look_coordll' style='color: black;') Longitude, Latitude
+            #look_coordenEl.input-field.col.s2.push-s2
+              input#look_coorden.filled-in.checkbox-color(type='checkbox')
+              label(for='look_coorden' style='color: black;') Easting, Northing
+            #look_coordrxyEl.input-field.col.s2.push-s2
+              input#look_coordrxy.filled-in.checkbox-color(type='checkbox')
+              label(for='look_coordrxy' style='color: black;') Relative X, Y, (Z)
+            #look_coordsiteEl.input-field.col.s2.push-s2
+              input#look_coordsite.filled-in.checkbox-color(type='checkbox')
+              label(for='look_coordsite' style='color: black;') Relative Y, X, (-Z)
+          li.row.checkboxRow(style='padding-bottom: 0px;')
+            #look_coordelevEl.input-field.col.s2.push-s2
+              input#look_coordelev.filled-in.checkbox-color(type='checkbox')
+              label(for='look_coordelev' style='color: black;') With Elevation
+            #look_coordelevurlEl.input-field.col.s6.push-s2
+              input#look_coordelevurl.validate(type='text' value='')
+              label(for='look_coordelevurl') DEM URL
+          li.row.title
+            .col.s2.push-s2 Coordinate Display Alterations
+          li.row
+            #look_coordlngoffsetEl.input-field.col.s2.push-s2
+              input#look_coordlngoffset.validate(type='text' value='')
+              label(for='look_coordlngoffset') Longitude Display Offset
+            #look_coordlatoffsetEl.input-field.col.s2.push-s2
+              input#look_coordlatoffset.validate(type='text' value='')
+              label(for='look_coordlatoffset') Latitude Display Offset
+          li.row
+            #look_coordeastoffsetEl.input-field.col.s2.push-s2
+              input#look_coordeastoffset.validate(type='text' value='')
+              label(for='look_coordeastoffset') Easting Display Offset
+            #look_coordnorthoffsetEl.input-field.col.s2.push-s2
+              input#look_coordnorthoffset.validate(type='text' value='')
+              label(for='look_coordnorthoffset') Northing Display Offset
+            #look_coordeastmultEl.input-field.col.s2.push-s2
+              input#look_coordeastmult.validate(type='text' value='')
+              label(for='look_coordeastmult') Easting Display Multiplier
+            #look_coordnorthmultEl.input-field.col.s2.push-s2
+              input#look_coordnorthmult.validate(type='text' value='')
+              label(for='look_coordnorthmult') Northing Display Multiplier
+
           li.row.title
             .col.s2.push-s2 Secondary tools 
           li.row.checkboxRow
@@ -302,6 +351,25 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
         p
           input#panels_globe.filled-in.checkbox-color(type='checkbox')
           label(for='panels_globe' style='color: black;') Globe
+
+      #tab_time.col.s12
+        a.helpFromDocs(href='docs/?page=Time_Tab' target='__blank' rel='noopener')
+          i.mdi.mdi-help.mdi-14px
+        ul#tab_time_rows
+          li.row.title
+            .col.s2.push-s2 User Interface 
+          li.row.checkboxRow.col.s2.push-s2
+            p
+              input#time_enabled.filled-in.checkbox-color(type='checkbox')
+              label(for='time_enabled' style='color: black;') Enabled
+            p
+              input#time_visible.filled-in.checkbox-color(type='checkbox')
+              label(for='time_visible' style='color: black;') Visible
+          li.row
+            #time_format_row.input-field.col.s4.push-s2
+              input#time_format.validate(type='text' value='%Y-%m-%dT%H:%M:%SZ')
+              label(for='time_format') Time Format
+
       #tab_tools.col.s12
         a.helpFromDocs(href='docs/?page=Tools_Tab' target='__blank' rel='noopener')
           i.mdi.mdi-help.mdi-14px

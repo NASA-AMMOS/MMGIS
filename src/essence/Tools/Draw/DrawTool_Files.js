@@ -527,9 +527,10 @@ var Files = {
                                         i++
                                     ) {
                                         var newIntent = null
-                                        var t = geojson.features[
-                                            i
-                                        ].geometry.type.toLowerCase()
+                                        var t =
+                                            geojson.features[
+                                                i
+                                            ].geometry.type.toLowerCase()
                                         if (
                                             t == 'polygon' ||
                                             t == 'multipolygon'
@@ -967,7 +968,7 @@ var Files = {
                                                 L_.layersGroup[layerId][i]
                                             )
                                             //And from the Globe
-                                            Globe_.removeVectorTileLayer(
+                                            Globe_.litho.removeLayer(
                                                 'camptool_' + layerId + '_' + i
                                             )
                                         }
@@ -1038,21 +1039,47 @@ var Files = {
                                 .properties.style
                     else style = l[i].feature.properties.style
 
+                    let color = style.color
+                    // Keep the active feature highlighted after mouseleave
+                    if (Map_.activeLayer) {
+                        if (
+                            typeof l[i].setStyle === 'function' &&
+                            ((l[i].hasOwnProperty('_layers') &&
+                                l[i].hasLayer(Map_.activeLayer)) ||
+                                Map_.activeLayer === l[i])
+                        ) {
+                            color =
+                                (L_.configData.look &&
+                                    L_.configData.look.highlightcolor) ||
+                                'red'
+                        } else if (
+                            l[i].hasOwnProperty('_layers') &&
+                            Map_.activeLayer === l[i]
+                        ) {
+                            color =
+                                (L_.configData.look &&
+                                    L_.configData.look.highlightcolor) ||
+                                'red'
+                        }
+                    }
+
                     if (typeof l[i].setStyle === 'function')
-                        l[i].setStyle(style)
+                        l[i].setStyle({ ...style, color })
                     else if (l[i].hasOwnProperty('_layers')) {
                         //Arrow
                         var layers = l[i]._layers
-                        layers[Object.keys(layers)[0]].setStyle({
-                            color: style.color,
-                        })
-                        layers[Object.keys(layers)[1]].setStyle({
-                            color: style.color,
-                        })
-                    } else
+                        layers[Object.keys(layers)[0]].setStyle({ color })
+                        layers[Object.keys(layers)[1]].setStyle({ color })
+                    } else {
                         $('.DrawToolAnnotation_' + fileId).removeClass(
                             'highlight'
                         )
+                        if (Map_.activeLayer === l[i]) {
+                            $('.DrawToolAnnotation_' + fileId).addClass(
+                                'hovered'
+                            )
+                        }
+                    }
                 }
             }
         })
@@ -1136,13 +1163,16 @@ var Files = {
                             Map_.rmNotNull(L_.layersGroup[layerId][i])
                             L_.layersGroup[layerId][i] = null
                             //And from the Globe
-                            Globe_.removeVectorTileLayer(
+                            Globe_.litho.removeLayer(
                                 'camptool_' + layerId + '_' + i
                             )
                         }
                     }
 
-                    var features = data.geojson.features
+                    let features = data.geojson.features
+                    let coreFeatures = JSON.parse(JSON.stringify(data.geojson))
+                    coreFeatures.features = []
+
                     for (var i = 0; i < features.length; i++) {
                         if (!features[i].properties.hasOwnProperty('style')) {
                             features[i].properties.style = F_.clone(
@@ -1182,7 +1212,7 @@ var Files = {
 
                             var s = features[i].properties.style
                             var styleString =
-                                (s.color
+                                (s.color != null
                                     ? 'text-shadow: ' +
                                       F_.getTextShadowString(
                                           s.color,
@@ -1191,10 +1221,10 @@ var Files = {
                                       ) +
                                       '; '
                                     : '') +
-                                (s.fillColor
+                                (s.fillColor != null
                                     ? 'color: ' + s.fillColor + '; '
                                     : '') +
-                                (s.fontSize
+                                (s.fontSize != null
                                     ? 'font-size: ' + s.fontSize + '; '
                                     : '')
                             L_.layersGroup[layerId].push(
@@ -1288,16 +1318,24 @@ var Files = {
                                 layer = Object.assign({}, llast)
                             }
 
-                            Globe_.addVectorTileLayer(
-                                {
-                                    id: 'camptool_' + layerId + '_' + last,
-                                    on: true,
-                                    layers: [layer],
-                                },
-                                true
-                            )
+                            coreFeatures.features.push(layer.feature)
                         }
                     }
+                    if (coreFeatures.features.length > 0) {
+                        Globe_.litho.addLayer(
+                            'clamped',
+                            {
+                                name: 'camptool_' + layerId + '_' + last,
+                                on: true,
+                                geojson: coreFeatures,
+                                opacity: 1,
+                                minZoom: 0,
+                                maxZoom: 30,
+                            },
+                            true
+                        )
+                    }
+
                     if (populateShapesAfter)
                         DrawTool.populateShapes(id, selectedFeatureIds)
 
@@ -1361,9 +1399,7 @@ var Files = {
                 for (var i = 0; i < L_.layersGroup[layerId].length; i++) {
                     Map_.rmNotNull(L_.layersGroup[layerId][i])
                     //And from the Globe
-                    Globe_.removeVectorTileLayer(
-                        'camptool_' + layerId + '_' + i
-                    )
+                    Globe_.litho.removeLayer('camptool_' + layerId + '_' + i)
                 }
             }
 

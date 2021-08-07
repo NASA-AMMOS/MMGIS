@@ -62,6 +62,14 @@ body {
     --color-mh: #ffdd5c;
     --color-mw: #f8f8f8;
     --color-mw2: #efefef;
+
+    --color-r1: #b30000;
+    --color-r2: #7c1158;
+    --color-r3: #4421af;
+    --color-r4: #1a53ff;
+    --color-r5: #00b7c7;
+    --color-r6: #8be04e;
+    --color-r7: #ebdc78;
 }
 
 #nodeenv {
@@ -303,14 +311,6 @@ body {
 }
 .noPointerEventsImportant {
     pointer-events: none !important;
-}
-
-.mouseLngLat {
-    opacity: 0.9;
-    display: flex;
-}
-.mouseLngLat:hover {
-    opacity: 1;
 }
 
 @media screen and (max-width: 600px) {
@@ -565,6 +565,7 @@ body {
     left: 10px;
     display: flex;
     margin-left: 2px !important;
+    transition: bottom 0.2s ease-out;
 }
 .leaflet-control-scalefactor-line {
     background: #161616;
@@ -673,6 +674,25 @@ body {
     text-decoration: underline;
 }
 
+.checkeredTransparent {
+    background-image: linear-gradient(45deg, #555 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #555 75%),
+        linear-gradient(45deg, transparent 75%, #555 75%),
+        linear-gradient(45deg, #555 25%, #999 25%);
+
+    background-size: 10px 10px;
+
+    background-position: 0 0, 0 0, -5px -5px, 5px 5px;
+}
+
+.leafletMarkerShape {
+    background: none;
+}
+
+.leaflet-bottom.leaflet-left {
+    transition: bottom 0.2s ease-in;
+}
+
 .highlightAnim1 {
     animation-name: highlightAnim1;
     animation-duration: 1.2s;
@@ -690,4 +710,8 @@ body {
     100% {
         background-color: #008321;
     }
+}
+
+#_lithosphere_controls_topleft {
+    top: 40px !important;
 }

@@ -144,13 +144,16 @@
 }
 
 #infoToolData > li.infoTool_property {
-    border-left: 2px solid var(--color-mmgis);
+    border-left: 3px solid var(--color-mmgis);
 }
 #infoToolData > li.infoTool_geometry {
-    border-left: 2px solid var(--color-yellow);
+    border-left: 3px solid var(--color-yellow);
 }
 #infoToolData > li.infoTool_hidden {
-    border-left: 2px solid black;
+    border-left: 3px solid black;
+}
+#infoToolData > li.infoTool_metrics {
+    border-left: 3px solid var(--color-orange);
 }
 
 #infoToolData > li > div:first-child {

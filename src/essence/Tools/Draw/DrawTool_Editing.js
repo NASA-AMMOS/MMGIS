@@ -168,6 +168,10 @@ var Editing = {
 
         var featureType
 
+        var hasLengthMetric = false
+        var hasPerimeterMetric = false
+        var hasAreaMetric = false
+
         var hasStrokeColor = false
         var hasStrokeOpacity = false
         var hasStrokeStyle = false
@@ -230,6 +234,8 @@ var Editing = {
             //Line
             featureType = 'line'
 
+            hasLengthMetric = true
+
             hasStrokeColor = true
             hasStrokeOpacity = true
             hasStrokeStyle = true
@@ -239,6 +245,9 @@ var Editing = {
         } else {
             //Polygon
             featureType = 'polygon'
+
+            hasPerimeterMetric = true
+            hasAreaMetric = true
 
             hasStrokeColor = true
             hasStrokeOpacity = true
@@ -259,7 +268,8 @@ var Editing = {
 
         if (!deselecting) {
             if (typeof DrawTool.contextMenuLayer.toGeoJSON === 'function')
-                DrawTool.contextMenuLayerOriginalGeoJSON = DrawTool.contextMenuLayer.toGeoJSON()
+                DrawTool.contextMenuLayerOriginalGeoJSON =
+                    DrawTool.contextMenuLayer.toGeoJSON()
             else
                 DrawTool.contextMenuLayerOriginalGeoJSON =
                     DrawTool.contextMenuLayer.feature
@@ -276,13 +286,22 @@ var Editing = {
                 fallbackStyle = L_.layersStyles[kindLayerName]
             //Set blank styles to
             style.color = style.color || fallbackStyle.color || 'black'
-            style.opacity = style.opacity || fallbackStyle.opacity || '1'
+            style.opacity =
+                style.opacity != null
+                    ? style.opacity
+                    : fallbackStyle.opacity != null
+                    ? fallbackStyle.opacity
+                    : '1'
             style.dashArray = style.dashArray || fallbackStyle.dashArray || ''
             style.weight = style.weight || fallbackStyle.weight || '4'
             style.fillColor =
                 style.fillColor || fallbackStyle.fillColor || 'black'
             style.fillOpacity =
-                style.fillOpacity || fallbackStyle.fillOpacity || '0.2'
+                style.fillOpacity != null
+                    ? style.fillOpacity
+                    : fallbackStyle.fillOpacity != null
+                    ? fallbackStyle.fillOpacity
+                    : '0.2'
             style.symbol = style.symbol || fallbackStyle.symbol || ''
             style.radius = style.radius || fallbackStyle.radius || ''
 
@@ -357,7 +376,8 @@ var Editing = {
             if (DrawTool.contextMenuLayers.length > 0) {
                 DrawTool.contextMenuLayer = DrawTool.contextMenuLayers[0].layer
                 if (typeof DrawTool.contextMenuLayer.toGeoJSON === 'function')
-                    DrawTool.contextMenuLayerOriginalGeoJSON = DrawTool.contextMenuLayer.toGeoJSON()
+                    DrawTool.contextMenuLayerOriginalGeoJSON =
+                        DrawTool.contextMenuLayer.toGeoJSON()
                 else
                     DrawTool.contextMenuLayerOriginalGeoJSON =
                         DrawTool.contextMenuLayer.feature
@@ -374,14 +394,23 @@ var Editing = {
                     fallbackStyle = L_.layersStyles[kindLayerName]
                 //Set blank styles to
                 style.color = style.color || fallbackStyle.color || 'black'
-                style.opacity = style.opacity || fallbackStyle.opacity || '1'
+                style.opacity =
+                    style.opacity != null
+                        ? style.opacity
+                        : fallbackStyle.opacity != null
+                        ? fallbackStyle.opacity
+                        : '1'
                 style.dashArray =
                     style.dashArray || fallbackStyle.dashArray || ''
                 style.weight = style.weight || fallbackStyle.weight || '4'
                 style.fillColor =
                     style.fillColor || fallbackStyle.fillColor || 'black'
                 style.fillOpacity =
-                    style.fillOpacity || fallbackStyle.fillOpacity || '0.2'
+                    style.fillOpacity != null
+                        ? style.fillOpacity
+                        : fallbackStyle.fillOpacity != null
+                        ? fallbackStyle.fillOpacity
+                        : '0.2'
                 style.symbol = style.symbol || fallbackStyle.symbol || ''
                 style.radius = style.radius || fallbackStyle.radius || ''
 
@@ -519,12 +548,30 @@ var Editing = {
                 "<div class='drawToolContextMenuProperties'>",
                     "<div class='drawToolContextMenuPropertiesName flexbetween'>",
                         "<div>Name</div>",
-                        "<input id='drawToolContextMenuPropertiesName' type='text' value='" + defaultName + "'/>",
+                        "<input id='drawToolContextMenuPropertiesName' style='width: 220px;' type='text' value='" + defaultName + "'/>",
                     "</div>",
                     "<div class='drawToolContextMenuPropertiesDescription flexbetween'>",
                         "<div>Description</div>",
                         "<textarea id='drawToolContextMenuPropertiesDescription' rows='5'></textarea>",
                     "</div>",
+                    (hasLengthMetric) ? [
+                        "<div class='flexbetween' style='margin: 4px 0px;'>",
+                            "<div>Length</div>",
+                            `<div>${F_.getFeatureLength(DrawTool.contextMenuLayer.feature, true)}</div>`,
+                        "</div>",
+                    ].join('\n') : "",
+                    (hasPerimeterMetric) ? [
+                        "<div class='flexbetween' style='margin: 4px 0px;'>",
+                            "<div>Perimeter</div>",
+                            `<div>${F_.getFeatureLength(DrawTool.contextMenuLayer.feature, true)}</div>`,
+                        "</div>",
+                    ].join('\n') : "",
+                    (hasAreaMetric) ? [
+                        "<div class='flexbetween' style='margin-bottom: 4px;'>",
+                            "<div>Area</div>",
+                            `<div>${F_.getFeatureArea(DrawTool.contextMenuLayer.feature, true)}</div>`,
+                        "</div>",
+                    ].join('\n') : "",
                     (!displayOnly) ? ["<div class='drawToolContextMenuPropertiesReassignUUID flexbetween'>",
                         "<div id='drawToolContextMenuPropertiesReassignUUIDValue'>" + uuid + "</div>",
                         "<div id='drawToolContextMenuPropertiesReassignUUID' class='drawToolButton1'>Reassign</div>",
@@ -976,7 +1023,7 @@ var Editing = {
 
                 //Remove from globe
                 var lif = DrawTool.lastContextLayerIndexFileId
-                Globe_.removeVectorTileLayer(
+                Globe_.litho.removeLayer(
                     'camptool_' + lif.layer + '_' + lif.index
                 )
                 DrawTool.populateShapes()
@@ -1433,7 +1480,7 @@ var Editing = {
             updateFillOpacity(v)
         })
         function updateFillOpacity(v, layer) {
-            v = v || 0.2
+            v = v != null ? v : 0.2
             var t = v * 100 + '%'
 
             DrawTool.contextMenuChanges.style.fillOpacity = true
@@ -1903,10 +1950,11 @@ var Editing = {
                 ) {
                     if (DrawTool.snapping) {
                         try {
-                            DrawTool.contextMenuLayer.snapediting = new L.Handler.PolylineSnap(
-                                Map_.map,
-                                DrawTool.contextMenuLayer
-                            )
+                            DrawTool.contextMenuLayer.snapediting =
+                                new L.Handler.PolylineSnap(
+                                    Map_.map,
+                                    DrawTool.contextMenuLayer
+                                )
                             var guides = DrawTool.getSnapGuides(
                                 DrawTool.contextMenuLayer
                             )
@@ -1915,8 +1963,10 @@ var Editing = {
                                     guides[g]
                                 )
 
-                            DrawTool.contextMenuLayer.snapediting._poly.options.editing = {}
-                            DrawTool.contextMenuLayer.snapediting._poly.options.original = {}
+                            DrawTool.contextMenuLayer.snapediting._poly.options.editing =
+                                {}
+                            DrawTool.contextMenuLayer.snapediting._poly.options.original =
+                                {}
                             DrawTool.contextMenuLayer.snapediting.enable()
                         } catch (e) {
                             console.log(e)
@@ -2010,7 +2060,8 @@ var Editing = {
             if (!grouping) {
                 //Then just a regular single save
                 if (typeof DrawTool.contextMenuLayer.toGeoJSON === 'function')
-                    DrawTool.contextMenuLayerOriginalGeoJSON = DrawTool.contextMenuLayer.toGeoJSON()
+                    DrawTool.contextMenuLayerOriginalGeoJSON =
+                        DrawTool.contextMenuLayer.toGeoJSON()
                 else
                     DrawTool.contextMenuLayerOriginalGeoJSON =
                         DrawTool.contextMenuLayer.feature

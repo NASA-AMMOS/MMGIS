@@ -230,6 +230,7 @@ var QueryURL = {
       "tools=camp$1.3.4,"
     */
     writeCoordinateURL: function (
+        shortenURL = true,
         mapLon,
         mapLat,
         mapZoom,
@@ -250,10 +251,10 @@ var QueryURL = {
         if (mapLat === undefined) mapLat = L_.Map_.map.getCenter().lat
         if (mapZoom === undefined) mapZoom = L_.Map_.map.getZoom()
 
-        var globeCenter = L_.Globe_.getCenter()
+        var globeCenter = L_.Globe_.litho.getCenter()
         if (globeLon === undefined) globeLon = globeCenter.lon
         if (globeLat === undefined) globeLat = globeCenter.lat
-        if (globeZoom === undefined) globeZoom = L_.Globe_.zoom
+        if (globeZoom === undefined) globeZoom = L_.Globe_.litho.zoom
 
         var viewerImg = L_.Viewer_.getLastImageId()
         var viewerLoc = L_.Viewer_.getLocation()
@@ -283,7 +284,7 @@ var QueryURL = {
         urlAppendage += '&globeZoom=' + globeZoom
 
         //globeCamera
-        var orbit = L_.Globe_.getCameras().orbit
+        var orbit = L_.Globe_.litho.getCameras().orbit
         var cam = orbit.camera
         var con = orbit.controls
 
@@ -340,25 +341,28 @@ var QueryURL = {
         if (urlTools !== false) urlAppendage += '&tools=' + urlTools
 
         var url = urlAppendage
+        if (shortenURL) {
+            calls.api(
+                'shortener_shorten',
+                {
+                    url: url,
+                },
+                function (s) {
+                    //Set and update the short url
+                    L_.url = window.location.href.split('?')[0] + '?s=' + s.body.url
+                    window.history.replaceState('', '', L_.url)
+                    if (typeof callback === 'function') callback()
+                },
+                function (e) {
+                    //Set and update the full url
+                    L_.url = window.location.href.split('?')[0] + url
+                    window.history.replaceState('', '', L_.url)
+                    if (typeof callback === 'function') callback()
+                }
+            )
+        }
 
-        calls.api(
-            'shortener_shorten',
-            {
-                url: url,
-            },
-            function (s) {
-                //Set and update the short url
-                L_.url = window.location.href.split('?')[0] + '?s=' + s.body.url
-                window.history.replaceState('', '', L_.url)
-                if (typeof callback === 'function') callback()
-            },
-            function (e) {
-                //Set and update the full url
-                L_.url = window.location.href.split('?')[0] + url
-                window.history.replaceState('', '', L_.url)
-                if (typeof callback === 'function') callback()
-            }
-        )
+        return window.location.href.split('?')[0] + url
     },
     writeSearchURL: function (searchStrs, searchFile) {
         return //!!!!!!!!!!!!!!!!

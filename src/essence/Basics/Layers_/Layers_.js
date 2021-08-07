@@ -2,7 +2,9 @@
 import F_ from '../Formulae_/Formulae_'
 import Description from '../../Ancillary/Description'
 import Search from '../../Ancillary/Search'
+import ToolController_ from '../../Basics/ToolController_/ToolController_'
 import $ from 'jquery'
+import * as d3 from 'd3'
 
 var L_ = {
     url: window.location.href,
@@ -165,7 +167,7 @@ var L_ = {
                 if (this.FUTURES.activePoint == null) {
                     L_.Map_.resetView(newView)
                     if (!dontSetGlobe && L_.hasGlobe) {
-                        L_.Globe_.setCenter(newView)
+                        L_.Globe_.litho.setCenter(newView)
                     }
                 }
             }
@@ -185,9 +187,9 @@ var L_ = {
                     L_.Map_.map.removeLayer(L_.layersGroup[s.name])
                 }
                 if (s.type == 'tile') {
-                    L_.Globe_.removeTileLayer(s.name)
+                    L_.Globe_.litho.removeLayer(s.name)
                 } else {
-                    L_.Globe_.toggleLayer(s.name, false)
+                    L_.Globe_.litho.toggleLayer(s.name, false)
                 }
             } else {
                 if (L_.layersGroup[s.name]) {
@@ -207,19 +209,28 @@ var L_ = {
                         demUrl = L_.missionPath + demUrl
                     if (s.demtileurl == undefined || s.demtileurl.length == 0)
                         demUrl = undefined
-                    L_.Globe_.addTileLayer({
+                    L_.Globe_.litho.addLayer('tile', {
                         name: s.name,
-                        order: L_.layersIndex[s.name],
+                        order: 99999 - L_.layersIndex[s.name],
                         on: L_.opacityArray[s.name],
+                        format: s.tileformat || 'tms',
+                        formatOptions: {},
+                        demFormat: s.tileformat || 'tms',
+                        demFormatOptions: {
+                            correctSeams: s.tileformat === 'wms',
+                            wmsParams: {},
+                        },
+                        parser: s.demparser || null,
                         path: layerUrl,
                         demPath: demUrl,
                         opacity: L_.opacityArray[s.name],
                         minZoom: s.minZoom,
                         maxZoom: s.maxNativeZoom,
-                        boundingBox: s.boundingBox,
+                        //boundingBox: s.boundingBox,
+                        //time: s.time == null ? '' : s.time.end,
                     })
                 } else {
-                    L_.Globe_.toggleLayer(s.name, true)
+                    L_.Globe_.litho.toggleLayer(s.name, true)
                 }
             }
         }
@@ -249,9 +260,9 @@ var L_ = {
                                 )
                             }
                             if (r[i].type == 'tile') {
-                                L_.Globe_.removeTileLayer(r[i].name)
+                                L_.Globe_.litho.removeLayer(r[i].name)
                             } else {
-                                L_.Globe_.toggleLayer(r[i].name, true)
+                                L_.Globe_.litho.toggleLayer(r[i].name, true)
                             }
                             L_.toggledArray[r[i].name] = false
                         } else {
@@ -275,19 +286,28 @@ var L_ = {
                                     demUrl = L_.missionPath + demUrl
                                 if (s.demtileurl == undefined)
                                     demUrl = undefined
-                                L_.Globe_.addTileLayer({
+                                L_.Globe_.litho.addLayer('tile', {
                                     name: r[i].name,
-                                    order: L_.layersIndex[r[i].name],
+                                    order: 99999 - L_.layersIndex[r[i].name],
                                     on: L_.opacityArray[r[i].name],
+                                    format: s.tileformat || 'tms',
+                                    formatOptions: {},
+                                    demFormat: s.tileformat || 'tms',
+                                    demFormatOptions: {
+                                        correctSeams: s.tileformat === 'wms',
+                                        wmsParams: {},
+                                    },
+                                    parser: s.demparser || null,
                                     path: layerUrl,
                                     demPath: demUrl,
                                     opacity: L_.opacityArray[r[i].name],
                                     minZoom: r[i].minZoom,
                                     maxZoom: r[i].maxNativeZoom,
-                                    boundingBox: r[i].boundingBox,
+                                    //boundingBox: r[i].boundingBox,
+                                    //time: r[i].time == null ? '' : r[i].time.end,
                                 })
                             } else {
-                                L_.Globe_.toggleLayer(r[i].name, false)
+                                L_.Globe_.litho.toggleLayer(r[i].name, false)
                             }
                             L_.toggledArray[r[i].name] = true
                         }
@@ -344,7 +364,17 @@ var L_ = {
             map = map.map
         }
         for (var i = L_.layersData.length - 1; i >= 0; i--) {
-            if (L_.toggledArray[L_.layersData[i].name] == true) {
+            if (L_.toggledArray[L_.layersData[i].name] === true) {
+                if (L_.layersData[i].type === 'tile') {
+                    // Make sure all tile layers follow z-index order at start instead of element order
+                    L_.layersGroup[L_.layersData[i].name].setZIndex(
+                        L_.layersOrdered.length +
+                            1 -
+                            L_.layersOrdered.indexOf(L_.layersData[i].name)
+                    )
+                }
+
+                // Add Map layers
                 if (L_.layersGroup[L_.layersData[i].name]) {
                     try {
                         map.addLayer(L_.layersGroup[L_.layersData[i].name])
@@ -356,32 +386,80 @@ var L_ = {
                         )
                     }
                 }
-                if (L_.layersData[i].type == 'tile') {
+
+                // Add Globe layers
+                const s = L_.layersData[i]
+                let layerUrl = s.url
+                if (!F_.isUrlAbsolute(layerUrl))
+                    layerUrl = L_.missionPath + layerUrl
+                if (
+                    L_.layersData[i].type === 'tile' ||
+                    L_.layersData[i].type === 'data'
+                ) {
                     // Make sure all tile layers follow z-index order at start instead of element order
                     L_.layersGroup[L_.layersData[i].name].setZIndex(
                         L_.layersOrdered.length +
                             1 -
                             L_.layersOrdered.indexOf(L_.layersData[i].name)
                     )
-                    var s = L_.layersData[i]
-                    var layerUrl = s.url
-                    if (!F_.isUrlAbsolute(layerUrl))
-                        layerUrl = L_.missionPath + layerUrl
-                    var demUrl = s.demtileurl
+
+                    let demUrl = s.demtileurl
                     if (!F_.isUrlAbsolute(demUrl))
                         demUrl = L_.missionPath + demUrl
                     if (s.demtileurl == undefined) demUrl = undefined
-                    L_.Globe_.addTileLayer({
-                        name: s.name,
-                        order: L_.layersIndex[s.name],
-                        on: L_.opacityArray[s.name],
-                        path: layerUrl,
-                        demPath: demUrl,
-                        opacity: L_.opacityArray[s.name],
-                        minZoom: s.minZoom,
-                        maxZoom: s.maxNativeZoom,
-                        boundingBox: s.boundingBox,
-                    })
+                    if (L_.layersData[i].type === 'tile')
+                        L_.Globe_.litho.addLayer('tile', {
+                            name: s.name,
+                            order: 99999 - L_.layersIndex[s.name],
+                            on: L_.opacityArray[s.name],
+                            format: s.tileformat || 'tms',
+                            formatOptions: {},
+                            demFormat: s.tileformat || 'tms',
+                            demFormatOptions: {
+                                correctSeams: s.tileformat === 'wms',
+                                wmsParams: {},
+                            },
+                            parser: s.demparser || null,
+                            path: layerUrl,
+                            demPath: demUrl,
+                            opacity: L_.opacityArray[s.name],
+                            minZoom: s.minZoom,
+                            maxZoom: s.maxNativeZoom,
+                            //boundingBox: s.boundingBox,
+                            //time: s.time == null ? '' : s.time.end,
+                        })
+                } else if (L_.layersData[i].type != 'header') {
+                    L_.Globe_.litho.addLayer(
+                        L_.layersData[i].type == 'vector'
+                            ? 'clamped'
+                            : L_.layersData[i].type,
+                        {
+                            name: s.name,
+                            order: 1000 - L_.layersIndex[s.name], // Since higher order in litho is on top
+                            on: L_.opacityArray[s.name] ? true : false,
+                            geojsonPath: layerUrl,
+                            onClick: (feature, lnglat, layer) => {
+                                this.selectFeature(layer.name, feature)
+                            },
+                            useKeyAsHoverName: s.useKeyAsName,
+                            style: {
+                                // Prefer feature[f].properties.style values
+                                letPropertiesStyleOverride: true, // default false
+                                default: {
+                                    fillColor: s.style.fillColor, //Use only rgb and hex. No css color names
+                                    fillOpacity: parseFloat(
+                                        s.style.fillOpacity
+                                    ),
+                                    color: s.style.color,
+                                    weight: s.style.weight,
+                                    radius: s.radius,
+                                },
+                            },
+                            opacity: L_.opacityArray[s.name],
+                            minZoom: 0, //s.minZoom,
+                            maxZoom: 100, //s.maxNativeZoom,
+                        }
+                    )
                 }
             }
         }
@@ -395,14 +473,20 @@ var L_ = {
         const color =
             (L_.configData.look && L_.configData.look.highlightcolor) || 'red'
         try {
-            if (layer.feature.geometry.type === 'Point')
-                layer.setStyle({
-                    fillColor: color,
-                })
-            else
+            if (layer.feature?.properties?.annotation) {
+                // Annotation
+                let id = '#DrawToolAnnotation_' + layer.feature.properties._.file_id + '_' + layer.feature.properties._.id
+                d3.select(id).style('color', color)
+            } else if (layer.hasOwnProperty('_layers')) {
+                // Arrow
+                var layers = layer._layers
+                layers[Object.keys(layers)[0]].setStyle({ color })
+                layers[Object.keys(layers)[1]].setStyle({ color })
+            } else {
                 layer.setStyle({
                     color: color,
                 })
+            }
         } catch (err) {
             if (layer._icon)
                 layer._icon.style.filter = `drop-shadow(${color}  2px 0px 0px) drop-shadow(${color}  -2px 0px 0px) drop-shadow(${color}  0px 2px 0px) drop-shadow(${color} 0px -2px 0px)`
@@ -410,7 +494,7 @@ var L_ = {
     },
 
     setLayerOpacity: function (name, newOpacity) {
-        if (L_.Globe_) L_.Globe_.setLayerOpacity(name, newOpacity)
+        if (L_.Globe_) L_.Globe_.litho.setLayerOpacity(name, newOpacity)
         var l = L_.layersGroup[name]
         if (l) {
             try {
@@ -457,11 +541,14 @@ var L_ = {
     },
     resetLayerFills: function () {
         for (let key in this.layersGroup) {
+            var s = key.split('_')
+            var onId = s[1] != 'master' ? parseInt(s[1]) : s[1]
             if (
-                this.layersNamed[key] &&
+                (this.layersNamed[key] &&
                 (this.layersNamed[key].type == 'point' ||
                     (key.toLowerCase().indexOf('draw') == -1 &&
-                        this.layersNamed[key].type == 'vector'))
+                        this.layersNamed[key].type == 'vector'))) ||
+                            (s[0] == 'DrawTool' && !Number.isNaN(onId))
             ) {
                 if (
                     this.layersGroup.hasOwnProperty(key) &&
@@ -487,13 +574,50 @@ var L_ = {
                             if (layer._icon) layer._icon.style.filter = ''
                         }
                     })
+                } else if (s[0] == 'DrawTool') {
+                    for (let k in this.layersGroup[key]) {
+                        if (!this.layersGroup[key][k]) continue
+                        if ('getLayers' in this.layersGroup[key][k]) {
+                            let layer = this.layersGroup[key][k]
+                            if (!layer?.feature?.properties?.arrow) {
+                                // Polygons and lines
+                                layer.eachLayer(function(l) {
+                                    setLayerStyle(l)
+                                })
+                            } else {
+                                // Arrow
+                                let layers = this.layersGroup[key][k]._layers
+                                const style = this.layersGroup[key][k].feature.properties.style
+                                const color = style.color
+                                layers[Object.keys(layers)[0]].setStyle({ color })
+                                layers[Object.keys(layers)[1]].setStyle({ color })
+                            }
+                        } else if (this.layersGroup[key][k].feature?.properties?.annotation) {
+                            // Annotation
+                            let layer = this.layersGroup[key][k]
+                            let id = '#DrawToolAnnotation_' + layer.feature.properties._.file_id + '_' + layer.feature.properties._.id
+                            d3.select(id).style('color', layer.feature.properties.style.fillColor)
+                        } else if ('feature' in this.layersGroup[key][k]) {
+                            // Points (that are not annotations)
+                            let layer = this.layersGroup[key][k]
+                            setLayerStyle(layer)
+                        }
+                    }
+
+                    function setLayerStyle(layer) {
+                        const style = layer.feature.properties.style
+                        const color = style.color
+                        layer.setStyle({
+                            color: color,
+                        })
+                    }
                 }
             }
         }
     },
     home() {
         L_.Map_.resetView(L_.configData.msv.view)
-        L_.Globe_.setCenter(L_.configData.msv.view)
+        L_.Globe_.litho.setCenter(L_.configData.msv.view)
     },
     hasTool: function (toolName) {
         for (var i = 0; i < L_.tools.length; i++) {
@@ -547,6 +671,29 @@ var L_ = {
             }
         }
     },
+    selectFeature(layerName, feature) {
+        const layer = L_.layersGroup[layerName]
+        if (layer) {
+            const layers = layer._layers
+            for (let l in layers) {
+                if (
+                    F_.isEqual(
+                        layers[l].feature.geometry,
+                        feature.geometry,
+                        true
+                    ) &&
+                    F_.isEqual(
+                        layers[l].feature.properties,
+                        feature.properties,
+                        true
+                    )
+                ) {
+                    layers[l].fireEvent('click')
+                    return
+                }
+            }
+        }
+    },
     /**
      * @param {object} - activePoint { layerName: , lat: lon: }
      * @returns {bool} - true only if successful
@@ -597,7 +744,7 @@ var L_ = {
 
                             L_.Map_.resetView(newView)
                             if (L_.hasGlobe) {
-                                L_.Globe_.setCenter(newView)
+                                L_.Globe_.litho.setCenter(newView)
                             }
                         }
                         return true
@@ -653,7 +800,7 @@ var L_ = {
                                     L_.Map_.resetView(newView)
                                 }, 50)
                                 if (L_.hasGlobe) {
-                                    L_.Globe_.setCenter(newView)
+                                    L_.Globe_.litho.setCenter(newView)
                                 }
                             }
                             return true
@@ -663,6 +810,78 @@ var L_ = {
             }
         }
         return false
+    },
+    clearVectorLayer: function (layerName) {
+        try {
+            L_.layersGroup[layerName].clearLayers()
+            L_.clearVectorLayerInfo()
+        } catch (e) {
+            console.log(e)
+            console.warn('Warning: Unable to clear vector layer: ' + layerName)
+        }
+    },
+    updateVectorLayer: function (layerName, inputData, keepN) {
+        // Validate input for keepN
+        const keepNum = parseInt(keepN)
+        if (keepN && Number.isNaN(Number(keepNum))) {
+            console.warn(
+                'Warning: Unable to update vector layer `' +
+                    layerName +
+                    '` as keepN == ' +
+                    keepN +
+                    ' and is not a valid integer'
+            )
+            return
+        }
+
+        if (layerName in L_.layersGroup) {
+            const updateLayer = L_.layersGroup[layerName]
+
+            try {
+                // Add data
+                updateLayer.addData(inputData)
+            } catch (e) {
+                console.log(e)
+                console.warn(
+                    'Warning: Unable to update vector layer as the input data is invalid: ' +
+                        layerName
+                )
+            }
+
+            const infoTool = ToolController_.getTool('InfoTool')
+
+            // Keep N elements if greater than 0 else keep all elements
+            if (keepN && keepNum > 0) {
+                var layers = updateLayer.getLayers()
+                while (layers.length > keepNum) {
+                    // If we remove a layer but its properties are displayed in the InfoTool
+                    // and description (i.e. it was clicked), clear the InfoTool and description
+                    const removeLayer = layers[0]
+                    if (infoTool.currentLayer === removeLayer) {
+                        L_.clearVectorLayerInfo()
+                    }
+
+                    // Remove the layer
+                    updateLayer.removeLayer(removeLayer)
+                    layers = updateLayer.getLayers()
+                }
+            }
+        } else {
+            console.warn(
+                'Warning: Unable to update vector layer as it does not exist: ' +
+                    layerName
+            )
+        }
+    },
+    clearVectorLayerInfo: function () {
+        // Clear the InfoTools data
+        const infoTool = ToolController_.getTool('InfoTool')
+        if (infoTool.hasOwnProperty('clearInfo')) {
+            infoTool.clearInfo()
+        }
+
+        // Clear the description
+        Description.clearDescription()
     },
 }
 

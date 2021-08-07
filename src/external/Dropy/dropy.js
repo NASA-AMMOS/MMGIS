@@ -19,7 +19,7 @@ export default {
                 `<dt class="dropy__title"><span>${items[selectedIndex] || placeholder}</span></dt>`,
                 '<dd class="dropy__content">',
                     '<ul>',
-                        `<li><a class="dropy__header" style="pointer-events: none;">${placeholder}</a></li>`,
+                        placeholder ? `<li><a class="dropy__header" style="pointer-events: none;">${placeholder}</a></li>` : '',
                         items.map((item, i) => `<li><a${ i === selectedIndex ? ' class="selected"' : ""} idx=${i}>${item}</a></li>`).join('\n'),
                     '</ul>',
                 '</dd>',
@@ -27,7 +27,7 @@ export default {
             '</dl>'].join('\n')
     },
     // onChange(index, value, element)
-    init: function (dropyElm, onChange) {
+    init: function (dropyElm, onChange, onOpen, onClose) {
         var self = this
 
         dropyElm = dropyElm.find('.dropy')
@@ -36,6 +36,9 @@ export default {
         dropyElm.find('.dropy__title').click(function () {
             $('.dropy').removeClass(self.openClass)
             $(this).parents('.dropy').addClass(self.openClass)
+            if (typeof onOpen === 'function') {
+                onOpen()
+            }
         })
 
         // Click on a dropy list
@@ -66,6 +69,10 @@ export default {
             // Close dropdown
             $dropy.removeClass(self.openClass)
 
+            if (typeof onClose === 'function') {
+                onClose()
+            }
+
             if (typeof onChange === 'function') {
                 onChange(parseInt($that.attr('idx')), $that.text(), $that)
             }
@@ -75,6 +82,9 @@ export default {
         $(document).bind('click', function (e) {
             if (!$(e.target).parents().hasClass('dropy')) {
                 $('.dropy').removeClass(self.openClass)
+                if (typeof onClose === 'function') {
+                    onClose()
+                }
             }
         })
     },

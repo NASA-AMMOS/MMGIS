@@ -56,6 +56,13 @@ export default {
                 .append('i')
                 .attr('class', 'mdi mdi-information-outline mdi-14px')
 
+            if (window.mmgisglobal.CLEARANCE_NUMBER) {
+                background
+                    .append('div')
+                    .attr('class', 'clearance')
+                    .text(window.mmgisglobal.CLEARANCE_NUMBER)
+            }
+
             var mainDiv = background
                 .append('div')
                 .style('position', 'absolute')
@@ -202,7 +209,7 @@ export default {
                                     "<a class='attributionTitle_library' href='' target='_blank' rel='noreferrer'><img src='" + mmgisLogoURL + "' alt='Full logo' height='20px' alt='MMGIS logo'/></a>",
                                     "<div class='attributionTitle_version'>v" +
                                         window.mmgisglobal.version +
-                                        '</div>',
+                                    '</div>',
                                     '</div>',
                                     '<div>',
                                     "<div class='attributionTitle_by'></div>",
@@ -210,7 +217,7 @@ export default {
                                     "<div class='attributionTitle_under'>, under</div>",
                                     "<a class='attributionTitle_license' href='https://www.apache.org/licenses/LICENSE-2.0' target='_blank' rel='noreferrer'>" +
                                         'Apache-2.0' +
-                                        '</a>',
+                                    '</a>',
                                     "<a class='attributionTitle_github mdi mdi-github-circle mdi-36px' href='https://github.com/NASA-AMMOS/MMGIS' target='_blank' rel='noreferrer'></a>",
                                 '</div>',
                             '</div>',

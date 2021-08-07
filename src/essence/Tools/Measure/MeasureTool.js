@@ -25,6 +25,7 @@ let measureToolLayer = null
 let clickedLatLngs = []
 let distLineToMouse = null
 let distMousePoint = null
+let distDisplayUnit = "meters"
 let mode = 'segment'
 let steps = 100
 let profileData = []
@@ -43,9 +44,10 @@ const Measure = () => {
             .on('click', MeasureTool.clickMap)
             .on('mousemove', MeasureTool.moveMap)
             .on('mouseout', MeasureTool.mouseOutMap)
-        Globe_.globe
-            .on('click', MeasureTool.clickGlobe)
-            .on('mousemove', MeasureTool.moveGlobe)
+
+        const globeCont = Globe_.litho.getContainer()
+        globeCont.addEventListener('click', MeasureTool.clickGlobe, false)
+        globeCont.addEventListener('mousemove', MeasureTool.moveGlobe, false)
 
         Viewer_.imageViewerMap.addHandler(
             'canvas-click',
@@ -101,6 +103,17 @@ const Measure = () => {
                         <option value='2000'>2000</option>
                     </select>
                 </div>
+                <div id='measureUnit'>
+                    <div>Unit</div>
+                    <select
+                        className='dropdown'
+                        defaultValue='meters'
+                        onChange={MeasureTool.changeDistDisplayUnit}
+                    >
+                        <option value='meters'>M</option>
+                        <option value='kilometers'>KM</option>
+                    </select>
+                </div>
             </div>
             <div
                 id='measureGraph'
@@ -111,9 +124,10 @@ const Measure = () => {
                 <Line
                     ref={refLine}
                     data={{
-                        labels: MeasureTool.lastData.map((d) =>
-                            parseInt(d[2], 10)
-                        ),
+                        labels: MeasureTool.lastData.map((d) => {
+                            const xAxes = parseInt(d[2], 10)
+                            return distDisplayUnit == 'kilometers' ? (xAxes/1000).toFixed(2) : xAxes
+                        }),
                         datasets: [
                             {
                                 label: 'Profile',
@@ -173,7 +187,7 @@ const Measure = () => {
                             callbacks: {
                                 label: (item) => `${item.yLabel}m`,
                                 title: (item) =>
-                                    `${item[0].xLabel}m from start`,
+                                    distDisplayUnit == 'meters' ? `${item[0].xLabel}m from start` : `${item[0].xLabel}km from start,`
                             },
                         },
                         onHover: (e, el, el2) => {
@@ -262,9 +276,10 @@ let MeasureTool = {
             .off('mousemove', MeasureTool.moveMap)
             .off('mouseout', MeasureTool.mouseOutMap)
 
-        Globe_.globe
-            .off('click', MeasureTool.clickGlobe)
-            .off('mousemove', MeasureTool.moveGlobe)
+        // Globe_.litho
+        //     .getContainer()
+        //     .removeEventListener('click', MeasureTool.clickGlobe)
+        //     .removeEventListener('mousemove', MeasureTool.moveGlobe)
 
         Viewer_.imageViewerMap.removeHandler(
             'canvas-click',
@@ -277,8 +292,8 @@ let MeasureTool = {
         Map_.rmNotNull(distMousePoint)
         Map_.rmNotNull(measureToolLayer)
 
-        Globe_.removeVectorLayer('measure')
-        Globe_.removeVectorLayer('MeasureToolGlobeFocusMarker')
+        Globe_.litho.removeLayer('_measure')
+        Globe_.litho.removeLayer('_MeasureToolGlobeFocusMarker')
 
         CursorInfo.hide()
 
@@ -333,7 +348,7 @@ let MeasureTool = {
         CursorInfo.hide()
         MeasureTool.clearFocusPoint()
 
-        var xy = { x: Globe_.mouseLngLat.Lat, y: Globe_.mouseLngLat.Lng }
+        var xy = { x: Globe_.litho.mouse.lat, y: Globe_.litho.mouse.lng }
         clickedLatLngs.push(xy)
 
         makeMeasureToolLayer()
@@ -342,10 +357,10 @@ let MeasureTool = {
     moveGlobe: function (e) {
         if (
             (mode === 'continuous' || clickedLatLngs.length === 1) &&
-            Globe_.mouseLngLat.Lng != null &&
-            Globe_.mouseLngLat.Lat != null
+            Globe_.litho.mouse.lng != null &&
+            Globe_.litho.mouse.lat != null
         ) {
-            makeGhostLine(Globe_.mouseLngLat.Lng, Globe_.mouseLngLat.Lat)
+            makeGhostLine(Globe_.litho.mouse.lng, Globe_.litho.mouse.lat)
         }
     },
     clickViewer: function (e) {
@@ -354,9 +369,10 @@ let MeasureTool = {
             e.position
         )
         // Convert from viewport coordinates to image coordinates.
-        var xy = Viewer_.imageViewerMap.viewport.viewportToImageCoordinates(
-            viewportPoint
-        )
+        var xy =
+            Viewer_.imageViewerMap.viewport.viewportToImageCoordinates(
+                viewportPoint
+            )
         xy.x = parseInt(xy.x)
         xy.y = parseInt(xy.y)
         makeBandProfile(xy)
@@ -371,16 +387,31 @@ let MeasureTool = {
         })
             .setRadius(6)
             .addTo(Map_.map)
-        Globe_.addVectorLayer(
+        Globe_.litho.addLayer(
+            'vector',
             {
-                name: 'MeasureToolGlobeFocusMarker',
-                id: 'MeasureToolGlobeFocusMarker',
+                name: '_MeasureToolGlobeFocusMarker',
+                id: '_MeasureToolGlobeFocusMarker',
                 on: true,
+                opacity: 1,
+                minZoom: 0,
+                maxZoom: 30,
                 style: {
                     fillColor: 'yellow',
                     color: '#000',
                 },
-                geometry: [[lat, lng, z]],
+                geojson: {
+                    type: 'FeatureCollection',
+                    features: [
+                        {
+                            type: 'Feature',
+                            geometry: {
+                                type: 'Point',
+                                coordinates: [[lat, lng, z]],
+                            },
+                        },
+                    ],
+                },
             },
             1
         )
@@ -406,8 +437,8 @@ let MeasureTool = {
             )
 
         makeMeasureToolLayer()
-        Globe_.removeVectorLayer('measure')
-        Globe_.removeVectorLayer('measurePoint')
+        Globe_.litho.removeLayer('_measure')
+        Globe_.litho.removeLayer('_measurePoint')
 
         MeasureTool.clearFocusPoint()
 
@@ -422,8 +453,8 @@ let MeasureTool = {
         Map_.rmNotNull(distLineToMouse)
         Map_.rmNotNull(distMousePoint)
         Map_.rmNotNull(measureToolLayer)
-        Globe_.removeVectorLayer('measure')
-        Globe_.removeVectorLayer('measurePoint')
+        Globe_.litho.removeLayer('_measure')
+        Globe_.litho.removeLayer('_measurePoint')
 
         d3.select('#' + profileDivId)
             .selectAll('*')
@@ -449,6 +480,10 @@ let MeasureTool = {
         }
         steps = parseInt(e.target.value, 10) || 100
         makeProfile()
+    },
+    changeDistDisplayUnit: function (e) {
+        MeasureTool.reset()
+        distDisplayUnit = e.target.value
     },
     download: function (e) {
         F_.downloadArrayAsCSV(
@@ -505,15 +540,27 @@ function makeMeasureToolLayer() {
                 ) / rAm
             if (distAzimuth < 0) distAzimuth = 360 + distAzimuth //Map to 0 to 360 degrees
             if (i == clickedLatLngs.length - 1) {
-                temp.bindTooltip(
-                    '' + roundedTotalDist + 'm ' + distAzimuth + '&deg;',
-                    {
-                        permanent: true,
-                        direction: 'right',
-                        className: 'distLabel',
-                        offset: [4, 0],
-                    }
-                )
+                if(distDisplayUnit == 'meters'){
+                    temp.bindTooltip(
+                        '' + roundedTotalDist + 'm ' + distAzimuth + '&deg;',
+                        {
+                            permanent: true,
+                            direction: 'right',
+                            className: 'distLabel',
+                            offset: [4, 0],
+                        }
+                    )
+                }else if(distDisplayUnit == "kilometers"){
+                    temp.bindTooltip(
+                        '' + (roundedTotalDist/1000).toFixed(2) + 'km ' + distAzimuth + '&deg;',
+                        {
+                            permanent: true,
+                            direction: 'right',
+                            className: 'distLabel',
+                            offset: [4, 0],
+                        }
+                    )
+                }
             }
         }
         pointsAndPathArr.push(temp)
@@ -582,8 +629,10 @@ function makeProfile() {
                     return
                 }
                 try {
-                    data = JSON.parse(JSON.parse(data))
+                    data = data.replace(/[\n\r]/g, '')
+                    data = JSON.parse(data)
                 } catch (err) {
+                    console.log(err)
                     // Fake a line between the most then
                     data = [
                         [elevPoints[0].y, elevPoints[0].x, 0],
@@ -626,7 +675,7 @@ function makeProfile() {
 
                 updateProfileData(profileData)
 
-                Globe_.removeVectorLayer('measurePoint')
+                Globe_.litho.removeLayer('_measurePoint')
 
                 makeMeasureToolLayer()
                 //getCorrectedProfileData();
@@ -760,13 +809,23 @@ function makeGhostLine(lng, lat) {
         //distMousePoint.bindTooltip("" + roundedTotalDist + "m\n (+" + roundedDist + "m) " + distAzimuth + "&deg;",
         //  {permanent: true, direction: 'right', className: "distLabel", className: "noPointerEvents", offset: [15,-15]})
         //distMousePoint.addTo(Map_.map);
-        CursorInfo.update(
-            `${roundedTotalDist}m ${
-                mode === 'continuous' ? `(+${roundedDist}m)` : ''
-            } ${distAzimuth}&deg;`,
-            null,
-            false
-        )
+        if(distDisplayUnit == 'meters'){
+            CursorInfo.update(
+                `${roundedTotalDist}m ${
+                    mode === 'continuous' ? `(+${roundedDist}m)` : ''
+                } ${distAzimuth}&deg;`,
+                null,
+                false
+            )
+        }else if (distDisplayUnit == "kilometers"){
+            CursorInfo.update(
+                `${(roundedTotalDist/1000).toFixed(2)}km ${
+                    mode === 'continuous' ? `(+${(roundedDist/1000).toFixed(2)}km)` : ''
+                } ${distAzimuth}&deg;`,
+                null,
+                false
+            )
+        }
     }
 }
 

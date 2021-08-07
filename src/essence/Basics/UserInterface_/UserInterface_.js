@@ -121,7 +121,7 @@ var UserInterface = {
             .style('cursor', 'pointer')
             .on('click', function () {
                 const linkButton = $(this)
-                QueryURL.writeCoordinateURL(function () {
+                QueryURL.writeCoordinateURL(true, function () {
                     F_.copyToClipboard(L_.url)
 
                     linkButton.removeClass('mdi-open-in-new')
@@ -160,25 +160,26 @@ var UserInterface = {
                 $('.leaflet-control-zoom').css('display', 'none')
                 $('#topBarScreenshotLoading').css('display', 'block')
                 $('#mapToolBar').css('background', 'rgba(0,0,0,0)')
-                HTML2Canvas(document.getElementById('mapScreen')).then(
-                    function (canvas) {
-                        canvas.id = 'mmgisScreenshot'
-                        document.body.appendChild(canvas)
-                        F_.downloadCanvas(
-                            canvas.id,
-                            'camp-screenshot',
-                            function () {
-                                canvas.remove()
-                                setTimeout(function () {
-                                    $('#topBarScreenshotLoading').css(
-                                        'display',
-                                        'none'
-                                    )
-                                }, 2000)
-                            }
-                        )
-                    }
-                )
+                HTML2Canvas(document.getElementById('mapScreen'), {
+                    allowTaint: true,
+                    useCORS: true,
+                }).then(function (canvas) {
+                    canvas.id = 'mmgisScreenshot'
+                    document.body.appendChild(canvas)
+                    F_.downloadCanvas(
+                        canvas.id,
+                        'mmgis-screenshot',
+                        function () {
+                            canvas.remove()
+                            setTimeout(function () {
+                                $('#topBarScreenshotLoading').css(
+                                    'display',
+                                    'none'
+                                )
+                            }, 2000)
+                        }
+                    )
+                })
                 $('#mapScreen #map .leaflet-tile-pane')
                     .children()
                     .each(function (i, elm) {
@@ -426,6 +427,7 @@ var UserInterface = {
             .style('overflow', 'hidden')
             .style('background', 'rgba(0,0,0,0.15)')
             .style('z-index', '1003')
+            .style('transition', 'bottom 0.2s ease-out')
 
         this.mapTopBar = this.mapScreen
             .append('div')
@@ -888,30 +890,23 @@ var UserInterface = {
                 duration: duration,
             }
         )
-        $('#mapToolBar').animate(
-            {
-                bottom: UserInterface.pxIsTools + 'px',
-            },
-            {
-                duration: duration,
-            }
-        )
-        $('.leaflet-control-scalefactor').animate(
-            {
-                bottom: UserInterface.pxIsTools + 25 + 'px',
-            },
-            {
-                duration: duration,
-            }
-        )
-        $('.mouseLngLat').animate(
-            {
-                bottom: UserInterface.pxIsTools + 'px',
-            },
-            {
-                duration: duration,
-            }
-        )
+        let timeUIActive = false
+        if ($('#timeUI').length) {
+            timeUIActive = $('#timeUI').hasClass('active')
+        }
+
+        $('#mapToolBar').css({
+            bottom: UserInterface.pxIsTools + (timeUIActive ? 40 : 0) + 'px',
+        })
+        $('.leaflet-control-scalefactor').css({
+            bottom: UserInterface.pxIsTools + 24 + 'px',
+        })
+        $('#CoordinatesDiv').css({
+            bottom: UserInterface.pxIsTools + (timeUIActive ? 40 : 0) + 'px',
+        })
+        $('#timeUI').css({
+            bottom: UserInterface.pxIsTools + (timeUIActive ? 0 : -40) + 'px',
+        })
 
         //The tools slider
         $('#toolsSplit').animate(
@@ -1497,7 +1492,7 @@ function resize() {
     //resize map
     if (Map_ != null) Map_.map.invalidateSize()
     //resize globe
-    if (Globe_ != null) Globe_.invalidateSize()
+    if (Globe_ != null) Globe_.litho.invalidateSize()
 
     shouldRotateSplitterText()
 }

@@ -7,6 +7,7 @@ import calls from '../../../pre/calls'
 // often referred to as F_
 var temp = new Float32Array(1)
 
+// eslint-disable-next-line no-extend-native
 Object.defineProperty(Object.prototype, 'getFirst', {
     value: function () {
         return this[Object.keys(this)[0]]
@@ -396,13 +397,20 @@ var Formulae_ = {
      * @param {*} obj
      * @param {*} keyArray
      */
-    getIn: function (obj, keyArray) {
-        if (keyArray == null) return null
+    getIn: function (obj, keyArray, notSetValue) {
+        // eslint-disable-next-line no-eq-null, eqeqeq
+        if (obj == null) return notSetValue != null ? notSetValue : null
+        // eslint-disable-next-line no-eq-null, eqeqeq
+        if (keyArray == null) return notSetValue != null ? notSetValue : null
+        if (typeof keyArray === 'string') keyArray = keyArray.split('.')
         let object = Object.assign({}, obj)
-        for (let i = 0; i < keyArray.length; i++) {
-            if (object.hasOwnProperty(keyArray[i])) object = object[keyArray[i]]
-            else return null
-        }
+        for (let i = 0; i < keyArray.length; i++)
+            // eslint-disable-next-line no-prototype-builtins,no-eq-null, eqeqeq
+            if (object != null && object.hasOwnProperty(keyArray[i]))
+                object = object[keyArray[i]]
+            // eslint-disable-next-line no-eq-null, eqeqeq
+            else return notSetValue != null ? notSetValue : null
+
         return object
     },
     getKeyByValue: function (obj, value) {
@@ -670,16 +678,18 @@ var Formulae_ = {
                                                         'Lazy depth traversal failed'
                                                     )
                                                 } else {
-                                                    var newCoords = Object.assign(
-                                                        [],
-                                                        coords[i][j][k][l][m]
-                                                    )
+                                                    var newCoords =
+                                                        Object.assign(
+                                                            [],
+                                                            coords[i][j][k][l][
+                                                                m
+                                                            ]
+                                                        )
                                                     var swap = newCoords[0]
                                                     newCoords[0] = newCoords[1]
                                                     newCoords[1] = swap
-                                                    coords[i][j][k][l][
-                                                        m
-                                                    ] = newCoords
+                                                    coords[i][j][k][l][m] =
+                                                        newCoords
                                                 }
                                             }
                                         } else {
@@ -822,6 +832,7 @@ var Formulae_ = {
                     }
                 }
                 break
+            default:
         }
         return feature
     },
@@ -845,14 +856,13 @@ var Formulae_ = {
         )
     },
     //Current only supports a single feature: {type:"feature", ...}
-    geojsonAddSpatialProperties(geojson) {
-        var g = geojson.geometry.coordinates[0]
+    getFeatureLength(feature, displayFriendly) {
+        let g = feature.geometry.coordinates
+        let length2D = 0
 
-        switch (geojson.geometry.type.toLowerCase()) {
-            case 'multilinestring':
-                //length2D
-                var length2D = 0
-                for (var i = 1; i < g.length; i++) {
+        switch (feature.geometry.type.toLowerCase()) {
+            case 'linestring':
+                for (let i = 1; i < g.length; i++) {
                     length2D += this.lngLatDistBetween(
                         g[i - 1][0],
                         g[i - 1][1],
@@ -860,25 +870,39 @@ var Formulae_ = {
                         g[i][1]
                     )
                 }
-                geojson.properties.length2D = length2D
                 break
             case 'polygon':
-                //perimeter2D
-                var perimeter2D = 0
-                for (var i = 1; i < g.length; i++) {
-                    perimeter2D += this.lngLatDistBetween(
+            case 'multilinestring':
+                g = g[0]
+                for (let i = 1; i < g.length; i++) {
+                    length2D += this.lngLatDistBetween(
                         g[i - 1][0],
                         g[i - 1][1],
                         g[i][0],
                         g[i][1]
                     )
                 }
-
-                geojson.properties.perimeter2D = perimeter2D
-                //area2D
-                var area2D = this.geoJSONArea(geojson.geometry)
-                geojson.properties.area2D = area2D
                 break
+            default:
+        }
+
+        if (displayFriendly) {
+            if (length2D > 1000) length2D = `${(length2D / 1000).toFixed(3)} km`
+            else length2D = `${length2D.toFixed(2)} m`
+        }
+        return length2D
+    },
+    geojsonAddSpatialProperties(geojson) {
+        switch (geojson.geometry.type.toLowerCase()) {
+            case 'linestring':
+            case 'multilinestring':
+                geojson.properties.length2D = this.getFeatureLength(geojson)
+                break
+            case 'polygon':
+                geojson.properties.perimeter2D = this.getFeatureLength(geojson)
+                geojson.properties.area2D = this.getFeatureArea(geojson)
+                break
+            default:
         }
         return geojson
     },
@@ -938,7 +962,8 @@ var Formulae_ = {
         }
     },
     //https://github.com/mapbox/geojson-area/blob/master/index.js
-    geoJSONArea(g) {
+    getFeatureArea(feature, displayFriendly) {
+        const g = feature.geometry
         return geometry(g)
 
         function geometry(_) {
@@ -946,23 +971,30 @@ var Formulae_ = {
                 i
             switch (_.type) {
                 case 'Polygon':
-                    return polygonArea(_.coordinates)
+                    area = polygonArea(_.coordinates)
+                    break
                 case 'MultiPolygon':
                     for (i = 0; i < _.coordinates.length; i++) {
                         area += polygonArea(_.coordinates[i])
                     }
-                    return area
+                    break
                 case 'Point':
                 case 'MultiPoint':
                 case 'LineString':
                 case 'MultiLineString':
-                    return 0
+                    break
                 case 'GeometryCollection':
                     for (i = 0; i < _.geometries.length; i++) {
                         area += geometry(_.geometries[i])
                     }
-                    return area
+                    break
+                default:
             }
+            if (displayFriendly) {
+                if (area > 1000000) area = `${(area / 1000000).toFixed(3)} km²`
+                else area = `${area.toFixed(2)} m²`
+            }
+            return area
         }
         function polygonArea(coords) {
             var area = 0
@@ -1178,7 +1210,32 @@ var Formulae_ = {
 
         return a
     },
-
+    // From https://javascript.plainenglish.io/4-ways-to-compare-objects-in-javascript-97fe9b2a949c
+    isEqual(obj1, obj2, isSimple) {
+        if (isSimple) {
+            return JSON.stringify(obj1) === JSON.stringify(obj2)
+        } else {
+            let props1 = Object.getOwnPropertyNames(obj1)
+            let props2 = Object.getOwnPropertyNames(obj2)
+            if (props1.length != props2.length) {
+                return false
+            }
+            for (let i = 0; i < props1.length; i++) {
+                let prop = props1[i]
+                let bothAreObjects =
+                    typeof obj1[prop] === 'object' &&
+                    typeof obj2[prop] === 'object'
+                if (
+                    (!bothAreObjects && obj1[prop] !== obj2[prop]) ||
+                    (bothAreObjects &&
+                        !Formulae_.isEqual(obj1[prop], obj2[prop]))
+                ) {
+                    return false
+                }
+            }
+            return true
+        }
+    },
     scaleImageInHalf(image, width, height) {
         var newWidth = Math.floor(width / 2)
         var newHeight = Math.floor(height / 2)

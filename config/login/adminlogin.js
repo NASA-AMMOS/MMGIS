@@ -98,8 +98,12 @@ function setupLogin() {
   });
 }
 
+// Is used in views/configure.pug
 function back() {
-  window.location = "/";
+  window.location = window.location.substring(
+    0,
+    window.location.lastIndexOf("/")
+  );
 }
 
 $(document).ready(function () {

@@ -218,7 +218,6 @@ var Test = {
             name: 'Can reach initial drawing state',
             subtests: 5,
             test: function (c) {
-                //Ignore lnglats_to_demtile_elevs in tests
                 Test.tool.vars.demtilesets = null
 
                 Test.tool.showContent('draw')
@@ -273,6 +272,7 @@ var Test = {
                 var oldLength = L_.layersGroup['DrawTool_7'].length
                 Test_.mapEvent('click')
                 Test_.fireEvent('mousemove', 300, 300)
+                Test.tool.drawing.polygon.move()
                 Test.tool.drawing.polygon.shape._latlngs = [
                     { lat: -4, lng: 137 },
                     { lat: -4, lng: 138 },
@@ -300,6 +300,7 @@ var Test = {
                 var oldLength = F_.noNullLength(L_.layersGroup['DrawTool_7'])
                 Test_.mapEvent('click')
                 Test_.fireEvent('mousemove', 300, 300)
+                Test.tool.drawing.line.move()
                 Test.tool.drawing.line.shape._latlngs = [
                     { lat: -5, lng: 137.5 },
                     { lat: -4.5, lng: 137.5 },
@@ -850,22 +851,23 @@ var Test = {
                     ).click()
                     c(
                         'Can open file popup',
-                        $(
-                            '#drawToolDrawFilesList > li:nth-child(2) .drawToolFileEditOn'
-                        ).css('display') != 'none'
+                        $('#mmgisModal .drawToolFileEditOn').css('display') !=
+                            'none'
                     )
 
+                    $('#mmgisModal .drawToolFileNameInput').val(
+                        'Test Trail Altered'
+                    )
+                    $('#mmgisModal .drawToolFileDesc').text(
+                        'Description Altered'
+                    )
+                    $('#mmgisModal #drawToolFileEditOnPublicityDropdown').val(
+                        'private'
+                    )
+                    $('#mmgisModal .drawToolFileSave').click()
+
                     $(
-                        '#drawToolDrawFilesList > li:nth-child(2) .drawToolFileNameInput'
-                    ).val('Test Trail Altered')
-                    $(
-                        '#drawToolDrawFilesList > li:nth-child(2) .drawToolFileDesc'
-                    ).text('Description Altered')
-                    $(
-                        '#drawToolDrawFilesList > li:nth-child(2) .drawToolFilePublic'
-                    ).click()
-                    $(
-                        '#drawToolDrawFilesList > li:nth-child(2) .drawToolFileSave'
+                        '#drawToolDrawFilesList > li:nth-child(2) .drawToolFileEdit'
                     ).click()
 
                     setTimeout(function () {
@@ -877,22 +879,22 @@ var Test = {
                         )
                         c(
                             'File name input updates',
-                            $(
-                                '#drawToolDrawFilesList > li:nth-child(2) .drawToolFileNameInput'
-                            ).val() === 'Test Trail Altered'
+                            $('#mmgisModal .drawToolFileNameInput').val() ===
+                                'Test Trail Altered'
                         )
                         c(
                             'File description updates',
-                            $(
-                                '#drawToolDrawFilesList > li:nth-child(2) .drawToolFileDesc'
-                            ).text() === 'Description Altered'
+                            $('#mmgisModal .drawToolFileDesc').text() ===
+                                'Description Altered'
                         )
                         c(
                             'File publicity updates',
                             $(
-                                '#drawToolDrawFilesList > li:nth-child(2) .drawToolFilePublic > i'
-                            ).attr('public') == 0
+                                '#mmgisModal #drawToolFileEditOnPublicityDropdown'
+                            ).val() == 'private'
                         )
+
+                        $('#mmgisModal .drawToolFileCancel').click()
                     }, Test.timeout)
                 }, Test.timeout)
             },
@@ -1374,6 +1376,7 @@ var Test = {
                 var oldLength = L_.layersGroup[layerId].length
                 Test_.mapEvent('click')
                 Test_.fireEvent('mousemove', 300, 300)
+                Test.tool.drawing.polygon.move()
                 Test.tool.drawing.polygon.shape._latlngs = [
                     { lat: -4, lng: 138 },
                     { lat: -4, lng: 137 },
@@ -1398,6 +1401,7 @@ var Test = {
                     oldLength = L_.layersGroup[layerId].filter(Boolean).length
                     Test_.mapEvent('click')
                     Test_.fireEvent('mousemove', 300, 300)
+                    Test.tool.drawing.polygon.move()
                     Test.tool.drawing.polygon.shape._latlngs = [
                         { lat: -4.25, lng: 137.75 },
                         { lat: -4.25, lng: 137.25 },
@@ -1422,10 +1426,11 @@ var Test = {
                             ).hasClass('active')
                         )
 
-                        oldLength = L_.layersGroup[layerId].filter(Boolean)
-                            .length
+                        oldLength =
+                            L_.layersGroup[layerId].filter(Boolean).length
                         Test_.mapEvent('click')
                         Test_.fireEvent('mousemove', 300, 300)
+                        Test.tool.drawing.polygon.move()
                         Test.tool.drawing.polygon.shape._latlngs = [
                             { lat: -4.5, lng: 139 },
                             { lat: -4.5, lng: 137.5 },
@@ -1463,6 +1468,7 @@ var Test = {
                 var oldLength = L_.layersGroup[layerId].filter(Boolean).length
                 Test_.mapEvent('click')
                 Test_.fireEvent('mousemove', 300, 300)
+                Test.tool.drawing.line.move()
                 Test.tool.drawing.line.shape._latlngs = [
                     { lat: -5, lng: 137.5 },
                     { lat: -4.5, lng: 137.5 },
@@ -1635,10 +1641,11 @@ var Test = {
                         '#drawToolDrawFilesList > li:last-child .drawToolFileSelector'
                     ).click()
                     let layerId = 'DrawTool_7'
-                    let oldLength = L_.layersGroup[layerId].filter(Boolean)
-                        .length
+                    let oldLength =
+                        L_.layersGroup[layerId].filter(Boolean).length
                     Test_.mapEvent('click')
                     Test_.fireEvent('mousemove', 300, 300)
+                    Test.tool.drawing.polygon.move()
                     Test.tool.drawing.polygon.shape._latlngs = [
                         { lat: -5, lng: 140 },
                         { lat: -5, lng: 138 },
@@ -1716,10 +1723,11 @@ var Test = {
                     $('.drawToolDrawingTypePolygon').hasClass('active')
                 )
 
-                var oldLength = L_.layersGroup['DrawTool_1'].filter(Boolean)
-                    .length
+                var oldLength =
+                    L_.layersGroup['DrawTool_1'].filter(Boolean).length
                 Test_.mapEvent('click')
                 Test_.fireEvent('mousemove', 300, 300)
+                Test.tool.drawing.polygon.move()
                 Test.tool.drawing.polygon.shape._latlngs = [
                     { lat: -4, lng: 138 },
                     { lat: -4, lng: 137 },
@@ -1747,10 +1755,11 @@ var Test = {
                     'Starts on polygon drawing',
                     $('.drawToolDrawingTypePolygon').hasClass('active')
                 )
-                var oldLength = L_.layersGroup['DrawTool_2'].filter(Boolean)
-                    .length
+                var oldLength =
+                    L_.layersGroup['DrawTool_2'].filter(Boolean).length
                 Test_.mapEvent('click')
                 Test_.fireEvent('mousemove', 300, 300)
+                Test.tool.drawing.polygon.move()
                 Test.tool.drawing.polygon.shape._latlngs = [
                     { lat: -4.25, lng: 137.5 },
                     { lat: -4.25, lng: 137.1 },
@@ -1767,6 +1776,7 @@ var Test = {
 
                     Test_.mapEvent('click')
                     Test_.fireEvent('mousemove', 300, 300)
+                    Test.tool.drawing.polygon.move()
                     Test.tool.drawing.polygon.shape._latlngs = [
                         { lat: -4.25, lng: 136.5 },
                         { lat: -4.25, lng: 136.1 },
@@ -1796,10 +1806,11 @@ var Test = {
                     'Starts on polygon drawing',
                     $('.drawToolDrawingTypePolygon').hasClass('active')
                 )
-                var oldLength = L_.layersGroup['DrawTool_3'].filter(Boolean)
-                    .length
+                var oldLength =
+                    L_.layersGroup['DrawTool_3'].filter(Boolean).length
                 Test_.mapEvent('click')
                 Test_.fireEvent('mousemove', 300, 300)
+                Test.tool.drawing.polygon.move()
                 Test.tool.drawing.polygon.shape._latlngs = [
                     { lat: -4.4, lng: 137.6 },
                     { lat: -4.4, lng: 137.4 },
@@ -1827,10 +1838,11 @@ var Test = {
                     'Starts on line drawing',
                     $('.drawToolDrawingTypeLine').hasClass('active')
                 )
-                var oldLength = L_.layersGroup['DrawTool_4'].filter(Boolean)
-                    .length
+                var oldLength =
+                    L_.layersGroup['DrawTool_4'].filter(Boolean).length
                 Test_.mapEvent('click')
                 Test_.fireEvent('mousemove', 300, 300)
+                Test.tool.drawing.line.move()
                 Test.tool.drawing.line.shape._latlngs = [
                     { lat: -4.7, lng: 136.8 },
                     { lat: -4.7, lng: 138.2 },
@@ -1856,8 +1868,8 @@ var Test = {
                     'Starts on point drawing',
                     $('.drawToolDrawingTypePoint').hasClass('active')
                 )
-                var oldLength = L_.layersGroup['DrawTool_5'].filter(Boolean)
-                    .length
+                var oldLength =
+                    L_.layersGroup['DrawTool_5'].filter(Boolean).length
                 Test.tool.drawing.point.shape = { lat: -4.45, lng: 137.45 }
                 Test_.mapEvent('draw:drawstop')
                 setTimeout(function () {

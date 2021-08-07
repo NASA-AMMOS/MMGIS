@@ -1,25 +1,39 @@
 import os
 import sys
 import subprocess
-from osgeo import gdal,ogr,osr
+from osgeo import gdal
+from pathlib import Path
 
 raster = sys.argv[1]
 splitfilenameR = os.path.splitext(raster)
 colorfile = sys.argv[2]
-splitfilenameC = os.path.splitext(colorfile)
+splitfilenameC = os.path.basename(colorfile).split(".")
 discrete = ""
 values = []
 
 if len(sys.argv) > 3:
     discrete = sys.argv[3]
 
-#
+
 def colorRelief(raster, colorfile, discrete):
     exactOrNearest = ""
     if discrete == "-discrete":
         exactOrNearest = "-nearest_color_entry"
-    gdalDEMcr= "gdaldem color-relief " + exactOrNearest + " " + raster + " " + colorfile + " " + splitfilenameR[0] + "_" + splitfilenameC[0] + splitfilenameR[1]
-    subprocess.Popen(gdalDEMcr)
+    input_file = str(Path(raster).absolute())
+    output_file = str(Path(splitfilenameR[0] + "_" + splitfilenameC[0] + splitfilenameR[1]).absolute())
+    colorfile_path = str(Path(colorfile).absolute())
+    if exactOrNearest == "":
+        gdalDEMcr = ["gdaldem", "color-relief", input_file, colorfile_path, output_file]
+    else:
+        gdalDEMcr = ["gdaldem", "color-relief", exactOrNearest, input_file, colorfile_path, output_file]
+    print("Running:", " ".join(gdalDEMcr))
+    process = subprocess.Popen(gdalDEMcr, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process.wait()
+    for output in process.stdout:
+        print(output.decode())
+    for error in process.stderr:
+        print(error.decode())
+
 
 def colorToLegend(colorfile, min, max, discrete):
     legend = open(splitfilenameR[0] + "_" + splitfilenameC[0] + "_legend.csv", "w")
@@ -84,19 +98,23 @@ def colorToLegend(colorfile, min, max, discrete):
             if value[-1:] == "%":
                 value = split[0][:-1]
             if split[0].lower() != "nv":
-                legend.write("\n" + rgb_to_hex(tuple(map(int, split[1].split()))) + ",black,square," + str(int(mapPercent(float(value)/100, min, max))))
+                legend.write("\n" + rgb_to_hex(tuple(map(int, split[1].split()))) + ",black,square," +
+                             str(int(mapPercent(float(value)/100, min, max))))
     legend.close()
     cf.close()
 
-#helper functions
+
+# helper functions
 def rgb_to_hex(rgb):
     return '#%02x%02x%02x' % rgb
+
+
 def mapPercent(p, min, max):
     return ((max - min) * p) + min
 
 
 r = gdal.Open(raster)
-#stats[0] is min, stats[1] is max
+# stats[0] is min, stats[1] is max
 stats = r.GetRasterBand(1).GetStatistics(1, 1)
 
 colorRelief(raster, colorfile, discrete)

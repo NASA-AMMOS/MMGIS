@@ -6,7 +6,7 @@
     display: flex;
     flex-flow: column;
     background: var(--color-a);
-    background-image: url(/../public/images/PIA20461.jpg);
+    background-image: url(/public/images/PIA20461.jpg);
     background-size: cover;
     background-position: center;
     padding: 40px;
@@ -85,6 +85,19 @@
 }
 .landingPage .imagecredit a:hover {
     color: #fff;
+}
+
+.landingPage .clearance {
+    font-family: 'roboto';
+    font-size: 11px;
+    color: #bbb;
+    position: absolute;
+    bottom: 20px;
+    left: 0px;
+    width: 315px;
+    display: flex;
+    justify-content: center;
+    z-index: 20;
 }
 
 .landingPage #title img {

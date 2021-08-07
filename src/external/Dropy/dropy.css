@@ -44,7 +44,6 @@ dd {
     border-color: #868686;
 }
 .dropy__title:after {
-    content: '';
     position: absolute;
     right: 0.9375em;
     top: 50%;
@@ -115,7 +114,7 @@ dd {
 
 .dropy.open .dropy__content ul {
     max-height: 18.75em;
-    overflow-y: scroll;
+    overflow-y: auto;
     opacity: 1;
 }
 

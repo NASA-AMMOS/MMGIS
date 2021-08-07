@@ -130,8 +130,6 @@ var wmsExtension = {
 
         var wmsParams = L.extend({}, this.defaultWmsParams)
 
-        //console.log( wmsParams)
-
         // all keys that are not TileLayer options go to WMS params
         for (var i in options) {
             if (!(i in this.extensionOptions)) {
@@ -167,9 +165,10 @@ var wmsExtension = {
             ),
             min = bounds.min,
             max = bounds.max,
-            bbox = (this._wmsVersion >= 1.3 && this._crs === L.CRS.EPSG4326
-                ? [min.y, min.x, max.y, max.x]
-                : [min.x, min.y, max.x, max.y]
+            bbox = (
+                this._wmsVersion >= 1.3 && this._crs === L.CRS.EPSG4326
+                    ? [min.y, min.x, max.y, max.x]
+                    : [min.x, min.y, max.x, max.y]
             ).join(','),
             url = L.TileLayer.prototype.getTileUrl.call(this, coords)
 

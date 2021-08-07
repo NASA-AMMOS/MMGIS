@@ -1,5 +1,12 @@
 //Form nav
-let pages = ["README", "AR_and_VR", "Deep_Linking", "Development", "ENVs"];
+let pages = [
+  "README",
+  "JavaScript_API",
+  "AR_and_VR",
+  "Deep_Linking",
+  "Development",
+  "ENVs",
+];
 let configure = [
   "Configure",
   "Overall_Tab",
@@ -9,6 +16,7 @@ let configure = [
   "Projection_Tab",
   "Look_Tab",
   "Panels_Tab",
+  "Time_Tab",
   "Kinds",
   "Vector_Styling",
   "Keys",
@@ -27,8 +35,8 @@ let tools = [
   "Viewshed",
 ];
 let apis = [
-  { name: "Main", path: "/api/docs/main" },
-  { name: "Spatial", path: "/api/docs/spatial/" },
+  { name: "Main", path: "../api/docs/main" },
+  { name: "Spatial", path: "../api/docs/spatial/" },
 ];
 
 pages.forEach((v) => {
@@ -138,8 +146,8 @@ function setPage(page) {
       options
     );
   });
-  let path = "/docs/pages/markdowns/" + page + ".md";
-  if (page == "README") path = "/README.md";
+  let path = "../docs/pages/markdowns/" + page + ".md";
+  if (page == "README") path = "../README.md";
   xhr.open("GET", path);
   xhr.send();
 }

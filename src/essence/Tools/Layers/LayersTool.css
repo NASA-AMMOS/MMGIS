@@ -41,7 +41,7 @@
 }
 #layersTool #filterLayers > .right > div {
     width: 24px;
-    height: 24px;
+    height: 28px;
     padding: 2px;
     margin: 8px 3px;
     text-align: center;
@@ -58,28 +58,22 @@
     color: #ccc;
 }
 #layersTool #filterLayers div.vector.on {
-    border: 1px solid rgba(15, 119, 189, 0.75);
-    background: rgba(15, 119, 189, 0.5);
+    border-bottom: 4px solid rgba(15, 119, 189, 1);
 }
 #layersTool #filterLayers div.tile.on {
-    border: 1px solid rgba(119, 15, 189, 0.75);
-    background: rgba(119, 15, 189, 0.5);
+    border-bottom: 4px solid rgba(119, 15, 189, 1);
 }
 #layersTool #filterLayers div.vectortile.on {
-    border: 1px solid #bd0f8e;
-    background: #bd0f8e;
+    border-bottom: 4px solid #bd0f8e;
 }
 #layersTool #filterLayers div.data.on {
-    border: 1px solid rgba(189, 15, 50, 0.75);
-    background: rgba(189, 15, 50, 0.5);
+    border-bottom: 4px solid rgba(189, 15, 50, 1);
 }
 #layersTool #filterLayers div.model.on {
-    border: 1px solid rgba(189, 189, 15, 0.75);
-    background: rgba(189, 189, 15, 0.5);
+    border-bottom: 4px solid rgba(189, 189, 15, 1);
 }
 #layersTool #filterLayers div.visible.on {
-    border: 1px solid rgba(160, 160, 160, 0.75);
-    background: rgba(160, 160, 160, 0.5);
+    border-bottom: 4px solid rgba(255, 255, 255, 1);
 }
 #layersTool #searchLayers input {
     background: #111;
@@ -187,6 +181,10 @@
     padding: 0;
     margin: 0;
 }
+#layersTool .settings ul > li {
+    height: 24px;
+    line-height: 24px;
+}
 #layersTool .settings ul > li > div {
     display: flex;
     justify-content: space-between;
@@ -202,8 +200,17 @@
     display: flex;
     justify-content: space-between;
 }
+
+#layersTool .settings ul > li input[type='number'] {
+    background: #222;
+    width: 80px;
+    color: #ccc;
+    text-align: right;
+    padding: 0px 3px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
 #layersTool .settings ul > li input[type='range'] {
-    width: 70px;
+    width: 100px;
     margin-right: 0;
 }
 #layersTool .settings span {
@@ -337,6 +344,21 @@
     border: 0px solid #777;
 }
 
+#layersTool .checkboxSmall {
+    margin: 3px;
+    width: 12px;
+    height: 13px;
+    border: 2px solid #777;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
+        border 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+#layersTool .checkboxSmall.on {
+    background: white;
+    border: 0px solid #777;
+}
+
 #layersettings {
     height: 33px;
     padding: 5px;
@@ -400,8 +422,8 @@
     background-color: #222;
     border: none;
     margin-top: 1px;
-    width: 70px;
-    height: 15px;
+    width: 100px;
+    height: 20px;
     font-size: 12px;
     color: var(--color-f);
     padding-left: 3px;

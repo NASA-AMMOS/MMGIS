@@ -314,7 +314,7 @@
 }
 
 #drawToolShapesCopyDiv select {
-    height: 23px !important;
+    height: 24px !important;
     padding: unset !important;
 }
 
@@ -326,8 +326,8 @@
     cursor: not-allowed;
 }
 #drawToolShapesCopyDropdown > .dropdown {
-    min-width: 108px !important;
-    max-width: 108px !important;
+    min-width: 134px !important;
+    max-width: 134px !important;
 }
 #drawToolShapesCopyMessageDiv {
     position: absolute;
@@ -1218,9 +1218,10 @@
     margin-bottom: 4px;
 }
 #drawToolContextMenuPropertiesDescription {
-    height: 37px;
+    width: 220px;
     resize: vertical;
     box-sizing: border-box;
+    margin-bottom: 4px;
 }
 .drawToolContextMenuPropertiesReassignUUID {
     height: 27px;
