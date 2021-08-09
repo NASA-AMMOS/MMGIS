@@ -128,6 +128,8 @@ function escapeRegex(value) {
 function initializeSearch() {
     $('#auto_search').autocomplete({
         lookup: Search.arrayToSearch,
+        lookupLimit: 100,
+        minChars: 2,
         onSelect: function (event) {
             searchBoth(event.value)
         },
@@ -137,16 +139,14 @@ function initializeSearch() {
         if (e.keyCode == 13) searchBoth()
     })
 
-    $('.autocomplete-suggestions')
-        .css({
-            'max-height': '60vh',
-            'overflow-y': 'auto',
-            'overflow-x': 'hidden',
-            border: '1px solid var(--color-mmgis)',
-            'border-top': 'none',
-            'background-color': 'var(--color-a)',
-        })
-        .addClass('mmgisScrollbar')
+    $('.autocomplete-suggestions').css({
+        'max-height': '60vh',
+        'overflow-y': 'auto',
+        'overflow-x': 'hidden',
+        border: '1px solid var(--color-mmgis)',
+        'border-top': 'none',
+        'background-color': 'var(--color-a)',
+    })
 }
 
 function changeSearchField(val, selectedPlaceholder) {
@@ -170,9 +170,8 @@ function changeSearchField(val, selectedPlaceholder) {
             $('#SearchSelect').css({ display: 'inherit' })
             $('#SearchBoth').css({ display: 'inherit' })
             if (document.getElementById('auto_search') != null) {
-                document.getElementById(
-                    'auto_search'
-                ).placeholder = getSearchFieldKeys(Search.lname)
+                document.getElementById('auto_search').placeholder =
+                    getSearchFieldKeys(Search.lname)
             }
 
             initializeSearch()
@@ -200,9 +199,8 @@ function changeSearchField(val, selectedPlaceholder) {
                     else Search.arrayToSearch.sort()
                 }
                 if (document.getElementById('auto_search') != null) {
-                    document.getElementById(
-                        'auto_search'
-                    ).placeholder = getSearchFieldKeys(Search.lname)
+                    document.getElementById('auto_search').placeholder =
+                        getSearchFieldKeys(Search.lname)
                 }
 
                 initializeSearch()
@@ -446,28 +444,8 @@ function searchWithURLParams() {
 function getMapZoomCoordinate(layers) {
     //The zoom levels are defined at http://wiki.openstreetmap.org/wiki/Zoom_levels
     var zoomLevels = [
-        360,
-        180,
-        90,
-        45,
-        22.5,
-        11.25,
-        5.625,
-        2.813,
-        1.406,
-        0.703,
-        0.352,
-        0.176,
-        0.088,
-        0.044,
-        0.022,
-        0.011,
-        0.005,
-        0.003,
-        0.001,
-        0.0005,
-        0.0003,
-        0.0001,
+        360, 180, 90, 45, 22.5, 11.25, 5.625, 2.813, 1.406, 0.703, 0.352, 0.176,
+        0.088, 0.044, 0.022, 0.011, 0.005, 0.003, 0.001, 0.0005, 0.0003, 0.0001,
     ]
     var boundingBoxNorth = 90
     var boundingBoxSouth = -90

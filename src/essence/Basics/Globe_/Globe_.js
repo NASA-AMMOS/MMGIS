@@ -1,15 +1,17 @@
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
+import $ from 'jquery'
 
 import LithoSphere from 'lithosphere'
 
 let Globe_ = {
     litho: null,
+    id: 'globe',
     controls: {
         link: null,
     },
     init: function () {
-        const containerId = 'globe'
+        const containerId = this.id
         let initialView = null
         if (L_.FUTURES.globeView != null) {
             initialView = L_.FUTURES.globeView
@@ -127,6 +129,10 @@ let Globe_ = {
     fina: function (coordinates) {
         // Passes in Coordinates so that LithoSphere can share the same coordinate ui element
         // as the rest of the application
+        console.log(coordinates)
+        $(`#${this.id}`).on('mousemove', () => {
+            coordinates.hideElevation()
+        })
     },
     reset: function () {},
     setLink: function () {},

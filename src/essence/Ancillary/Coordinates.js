@@ -361,6 +361,8 @@ var Coordinates = {
         if (Coordinates.elevQueryTimes.length >= 10) delay = 400
         if (Coordinates.elevQueryTimes.length >= 20) delay = 200
 
+        Coordinates.showElevation()
+
         Coordinates.elevationTimeout = setTimeout(() => {
             const now = new Date().getTime()
             Coordinates.elevQueryTimes.push(now)
@@ -370,6 +372,9 @@ var Coordinates = {
 
             let url = L_.configData.look.coordelevurl
             if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
+
+            if ($('#mouseElev').css('display') === 'none') return
+
             calls.api(
                 'getbands',
                 {
@@ -388,7 +393,6 @@ var Coordinates = {
                         data = JSON.parse(data)
                         if (data[0] && data[0][1] != null) {
                             Coordinates.elevation = data[0][1]
-
                             Coordinates.refresh(true)
                         }
                     }
@@ -399,6 +403,12 @@ var Coordinates = {
                 }
             )
         }, delay)
+    },
+    hideElevation: function () {
+        $('#mouseElev').css({ display: 'none' })
+    },
+    showElevation: function () {
+        $('#mouseElev').css({ display: 'block' })
     },
     remove: function () {
         //Clear all the stuffes
