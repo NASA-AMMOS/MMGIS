@@ -53,14 +53,14 @@ let ViewshedTool_Manager = {
                     : true,
                 hasDataCurved: false,
                 zoom: Math.min(
-                    Map_.map.getZoom() + resolution,
+                    Math.round(Map_.map.getZoom()) + resolution,
                     dataLayer.maxNativeZoom
                 ),
                 options: options,
                 result: [],
             }
             this.data[viewshedId].resolution =
-                this.data[viewshedId].zoom - Map_.map.getZoom()
+                this.data[viewshedId].zoom - Math.round(Map_.map.getZoom())
 
             this.updateDesiredTiles(viewshedId)
             this.refreshData(viewshedId)
@@ -69,12 +69,9 @@ let ViewshedTool_Manager = {
                 ViewshedTool_Manager.interpolateSeams(viewshedId)
                 ViewshedTool_Manager.finishUp(viewshedId)
                 ViewshedTool_Manager.data[viewshedId].result =
-                    ViewshedTool_Manager.cleanupSeams(
-                        viewshedId,
-                        ViewshedTool_Algorithm.viewshed(
-                            ViewshedTool_Manager.data[viewshedId],
-                            options
-                        )
+                    ViewshedTool_Algorithm.viewshed(
+                        ViewshedTool_Manager.data[viewshedId],
+                        options
                     )
                 cb(dv)
             })
@@ -83,12 +80,9 @@ let ViewshedTool_Manager = {
             this.data[viewshedId].options = options
             this.locateSource(viewshedId)
             ViewshedTool_Manager.data[viewshedId].result =
-                ViewshedTool_Manager.cleanupSeams(
-                    viewshedId,
-                    ViewshedTool_Algorithm.viewshed(
-                        ViewshedTool_Manager.data[viewshedId],
-                        options
-                    )
+                ViewshedTool_Algorithm.viewshed(
+                    ViewshedTool_Manager.data[viewshedId],
+                    options
                 )
             cb(this.data[viewshedId])
         }
@@ -101,18 +95,15 @@ let ViewshedTool_Manager = {
         // Find all tiles between the bounds of the viewport and the bounds of the source point
 
         //viewport
-        let bounds = Map_.map.getBounds()
-        let viewportCenter = bounds.getCenter()
+        let viewBounds = Map_.map.getPixelBounds()
         let zoom = this.data[viewshedId].zoom
+        let boundsNW = Map_.map.unproject(viewBounds.getTopLeft())
+        let boundsSE = Map_.map.unproject(viewBounds.getBottomRight())
+        let minPx = Map_.map.project(boundsNW, zoom)
+        let maxPx = Map_.map.project(boundsSE, zoom)
 
-        let min = Map_.map
-            .project(bounds.getNorthWest(), zoom)
-            .divideBy(256)
-            .floor()
-        let max = Map_.map
-            .project(bounds.getSouthEast(), zoom)
-            .divideBy(256)
-            .floor()
+        let min = minPx.divideBy(256).floor()
+        let max = maxPx.divideBy(256).floor()
 
         let viewportDesiredTiles = []
         for (let i = min.x; i <= max.x; i++) {
@@ -124,28 +115,10 @@ let ViewshedTool_Manager = {
         }
 
         //source
-        let boundsNW = bounds.getNorthWest()
-        let boundsSE = bounds.getSouthEast()
-        let halfLat = (boundsNW.lat - boundsSE.lat) / 2
-        let halfLng = (boundsSE.lng - boundsNW.lng) / 2
-        let sourceCenter = this.data[viewshedId].source
-        let sourceBoundsNW = {
-            lat: sourceCenter.lat + halfLat,
-            lng: sourceCenter.lng - halfLng,
-        }
-        let sourceBoundsSE = {
-            lat: sourceCenter.lat - halfLat,
-            lng: sourceCenter.lng + halfLng,
-        }
-
-        let sourceMin = Map_.map
-            .project(sourceBoundsNW, zoom)
-            .divideBy(256)
-            .floor()
-        let sourceMax = Map_.map
-            .project(sourceBoundsSE, zoom)
-            .divideBy(256)
-            .floor()
+        let halfViewport = L.bounds(minPx, maxPx).getSize().divideBy(2)
+        let sourceCenter = Map_.map.project(this.data[viewshedId].source, zoom)
+        let sourceMin = sourceCenter.subtract(halfViewport).divideBy(256).floor()
+        let sourceMax = sourceCenter.add(halfViewport).divideBy(256).floor()
 
         let sourceDesiredTiles = []
         for (let i = sourceMin.x; i <= sourceMax.x; i++) {
@@ -248,17 +221,13 @@ let ViewshedTool_Manager = {
     locateSource: function (viewshedId) {
         // Locate source
         let dv = this.data[viewshedId]
-        let tileXYZ = G_.litho.projection.latLngZ2TileXYZ(
-            dv.source.lat,
-            dv.source.lng,
-            dv.zoom,
-            true
-        )
 
-        this.data[viewshedId].dataSource = {
-            x: Math.floor((tileXYZ.x - dv.topLeftTile.x) * dv.tileResolution),
-            y: Math.floor((tileXYZ.y - dv.topLeftTile.y) * dv.tileResolution),
-        }
+        let topLeftTile = new L.Point(dv.topLeftTile.x, dv.topLeftTile.y)
+        let sourcePoint = Map_.map.project(dv.source, dv.zoom).divideBy(256)
+        this.data[viewshedId].dataSource = sourcePoint
+            .subtract(topLeftTile)
+            .multiplyBy(dv.tileResolution)
+            .floor()
     },
     queryDesiredTiles: function (viewshedId, progcb, cb) {
         let url = this.data[viewshedId].dataLayer.demtileurl
@@ -354,12 +323,15 @@ let ViewshedTool_Manager = {
                 if (existingHeights) {
                     eachTile(d, start, existingHeights)
                 } else {
+                    const tile = this.data[viewshedId].desiredTiles[d]
+                    const pxWorldBound = Map_.map.getPixelWorldBounds(tile.z)
+                    const yTileWorldBound = Math.ceil(pxWorldBound.max.y / 256) - 1
+
+                    let filledUrl = url.replace('{x}', tile.x)
+                    filledUrl = filledUrl.replace('{y}', yTileWorldBound - tile.y)
+                    filledUrl = filledUrl.replace('{z}', tile.z)
                     PNG.load(
-                        F_.populateUrl(
-                            url,
-                            this.data[viewshedId].desiredTiles[d],
-                            true
-                        ),
+                        filledUrl,
                         (function (d) {
                             return function (img) {
                                 const tileResolution =
@@ -456,7 +428,7 @@ let ViewshedTool_Manager = {
         }
     },
     finishUp(viewshedId) {
-        const outputZoom = Map_.map.getZoom()
+        const outputZoom = Math.round(Map_.map.getZoom())
         const zoom = this.data[viewshedId].zoom
 
         const dif = zoom - outputZoom
@@ -482,7 +454,7 @@ let ViewshedTool_Manager = {
     },
     getTilesetBounds: function (tiles) {
         //Assumes tiles are a grid
-        let bounds = { minX: Infinity, maxX: 0, minY: Infinity, maxY: 0 }
+        let bounds = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity }
         for (let i = 0; i < tiles.length; i++) {
             if (tiles[i].x < bounds.minX) bounds.minX = tiles[i].x
             if (tiles[i].x > bounds.maxX) bounds.maxX = tiles[i].x
@@ -492,7 +464,6 @@ let ViewshedTool_Manager = {
         return bounds
     },
     cleanupSeams: function (viewshedId, result) {
-        return result
         const tileRes = this.data[viewshedId].tileResolution
 
         // Vertical fill | |
