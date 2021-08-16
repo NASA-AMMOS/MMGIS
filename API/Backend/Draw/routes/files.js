@@ -775,11 +775,11 @@ const compile = function (req, res, callback) {
             " " +
             "AND a.id != b.id" +
             " " +
-            "AND ((ST_OVERLAPS(a.geom, b.geom)" +
+            "AND ((ST_OVERLAPS(ST_BUFFER(a.geom, -0.000005, 'join=mitre'), b.geom)" +
             " " +
             "AND NOT ST_Touches(a.geom, b.geom))" +
             " " +
-            "OR ST_CROSSES(a.geom, b.geom))" +
+            "OR ST_CROSSES(ST_BUFFER(a.geom, -0.000005, 'join=mitre'), b.geom))" +
             " " +
             "UNION ALL" +
             " " +

@@ -4326,6 +4326,7 @@
         // Given a pixel coordinate relative to the [origin pixel](#map-getpixelorigin),
         // returns the corresponding geographical coordinate (for the current zoom level).
         layerPointToLatLng: function (point) {
+            console.log('layerPointToLatLng', point, this.getPixelOrigin())
             var projectedPoint = toPoint(point).add(this.getPixelOrigin())
             return this.unproject(projectedPoint)
         },

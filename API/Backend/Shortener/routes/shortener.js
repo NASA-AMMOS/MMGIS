@@ -30,7 +30,9 @@ router.post("/shorten", function (req, res, next) {
 
   shorten();
   function shorten() {
-    var short = Math.random().toString(36).substr(2, 4);
+    var short = Math.random()
+      .toString(36)
+      .substr(2, 5 + loop);
 
     let newUrlShortened = {
       full: encodeURIComponent(req.body.url),
