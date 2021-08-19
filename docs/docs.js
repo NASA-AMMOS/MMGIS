@@ -28,6 +28,7 @@ let tools = [
   "Draw",
   "Identifier",
   "Info",
+  "Isochrone",
   "Layers",
   "Legend",
   "Measure",
