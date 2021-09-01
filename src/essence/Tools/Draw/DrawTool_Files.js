@@ -1322,18 +1322,18 @@ var Files = {
                         }
                     }
                     if (coreFeatures.features.length > 0) {
-                        Globe_.litho.addLayer(
-                            'clamped',
-                            {
-                                name: 'camptool_' + layerId + '_' + last,
-                                on: true,
-                                geojson: coreFeatures,
-                                opacity: 1,
-                                minZoom: 0,
-                                maxZoom: 30,
+                        Globe_.litho.addLayer('clamped', {
+                            name: 'camptool_' + layerId + '_' + last,
+                            on: true,
+                            geojson: coreFeatures,
+                            opacity: 1,
+                            minZoom: 0,
+                            maxZoom: 30,
+                            style: {
+                                // Prefer feature[f].properties.style values
+                                letPropertiesStyleOverride: true,
                             },
-                            true
-                        )
+                        })
                     }
 
                     if (populateShapesAfter)

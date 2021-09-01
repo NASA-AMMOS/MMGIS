@@ -451,6 +451,17 @@ function initialize() {
                     true
                   );
                 }
+                $("#tab_panels #panels_globeDemFallbackPath").val(
+                  cData.panelSettings ? cData.panelSettings.demFallbackPath : ""
+                );
+                $("#tab_panels #panels_globeDemFallbackFormat").val(
+                  cData.panelSettings
+                    ? cData.panelSettings.demFallbackFormat
+                    : ""
+                );
+                $("#tab_panels #panels_globeDemFallbackType").val(
+                  cData.panelSettings ? cData.panelSettings.demFallbackType : ""
+                );
 
                 //time
                 if (typeof cData.time != "undefined") {
@@ -1649,6 +1660,7 @@ function save() {
       projection: {},
       look: {},
       panels: [],
+      panelSettings: {},
       tools: [],
       layers: [],
       time: {},
@@ -1733,6 +1745,7 @@ function save() {
     json.look["help"] = $("#tab_look #look_help").prop("checked");
     json.look["logourl"] = $("#tab_look #look_logourl").val();
     json.look["helpurl"] = $("#tab_look #look_helpurl").val();
+    json.look["highlightcolor"] = $("#tab_look #look_highlightcolor").val();
 
     //Panels
     if ($("#tab_panels #panels_viewer").prop("checked"))
@@ -1740,6 +1753,17 @@ function save() {
     if ($("#tab_panels #panels_map").prop("checked")) json.panels.push("map");
     if ($("#tab_panels #panels_globe").prop("checked"))
       json.panels.push("globe");
+
+    json.panelSettings["demFallbackPath"] = $(
+      "#tab_panels #panels_globeDemFallbackPath"
+    ).val();
+    json.panelSettings["demFallbackFormat"] = $(
+      "#tab_panels #panels_globeDemFallbackFormat"
+    ).val();
+    json.panelSettings["demFallbackType"] = $(
+      "#tab_panels #panels_globeDemFallbackType"
+    ).val();
+
     //Time
     if ($("#tab_time #time_enabled").prop("checked")) {
       json.time.enabled = true;

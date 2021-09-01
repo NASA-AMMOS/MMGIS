@@ -49,7 +49,7 @@ let Globe_ = {
                       reszoomlevel: 0,
                   }
 
-        this.litho = new LithoSphere(containerId, {
+        const lithoConfig = {
             initialView,
             //opt
             tileMapResource: tmr,
@@ -67,7 +67,26 @@ let Globe_ = {
             },
             highlightColor: 'yellow', //css color for vector hover highlights | default 'yellow'
             activeColor: 'red', //css color for active vector features | default 'red'
-        })
+        }
+
+        if (
+            L_.configData.panelSettings &&
+            L_.configData.panelSettings.demFallbackPath
+        )
+            lithoConfig.demFallback = {
+                demPath: !F_.isUrlAbsolute(
+                    L_.configData.panelSettings.demFallbackPath
+                )
+                    ? L_.missionPath +
+                      L_.configData.panelSettings.demFallbackPath
+                    : L_.configData.panelSettings.demFallbackPath,
+                format: L_.configData.panelSettings.demFallbackFormat || 'tms',
+                parserType:
+                    L_.configData.panelSettings.demFallbackType || 'rgba',
+            }
+
+        // CONSTRUCTOR
+        this.litho = new LithoSphere(containerId, lithoConfig)
 
         this.litho.addControl('mmgisLithoHome', this.litho.controls.home)
         this.litho.addControl(
@@ -129,7 +148,6 @@ let Globe_ = {
     fina: function (coordinates) {
         // Passes in Coordinates so that LithoSphere can share the same coordinate ui element
         // as the rest of the application
-        console.log(coordinates)
         $(`#${this.id}`).on('mousemove', () => {
             coordinates.hideElevation()
         })

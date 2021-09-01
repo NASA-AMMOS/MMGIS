@@ -186,11 +186,7 @@ var L_ = {
                 if (L_.Map_.map.hasLayer(L_.layersGroup[s.name])) {
                     L_.Map_.map.removeLayer(L_.layersGroup[s.name])
                 }
-                if (s.type == 'tile') {
-                    L_.Globe_.litho.removeLayer(s.name)
-                } else {
-                    L_.Globe_.litho.toggleLayer(s.name, false)
-                }
+                L_.Globe_.litho.removeLayer(s.name)
             } else {
                 if (L_.layersGroup[s.name]) {
                     L_.Map_.map.addLayer(L_.layersGroup[s.name])
@@ -230,7 +226,35 @@ var L_ = {
                         //time: s.time == null ? '' : s.time.end,
                     })
                 } else {
-                    L_.Globe_.litho.toggleLayer(s.name, true)
+                    L_.Globe_.litho.addLayer(
+                        s.type == 'vector' ? 'clamped' : s.type,
+                        {
+                            name: s.name,
+                            order: 1000 - L_.layersIndex[s.name], // Since higher order in litho is on top
+                            on: L_.opacityArray[s.name] ? true : false,
+                            geojson: L_.layersGroup[s.name].toGeoJSON(),
+                            onClick: (feature, lnglat, layer) => {
+                                this.selectFeature(layer.name, feature)
+                            },
+                            useKeyAsHoverName: s.useKeyAsName,
+                            style: {
+                                // Prefer feature[f].properties.style values
+                                letPropertiesStyleOverride: true, // default false
+                                default: {
+                                    fillColor: s.style.fillColor, //Use only rgb and hex. No css color names
+                                    fillOpacity: parseFloat(
+                                        s.style.fillOpacity
+                                    ),
+                                    color: s.style.color,
+                                    weight: s.style.weight,
+                                    radius: s.radius,
+                                },
+                            },
+                            opacity: L_.opacityArray[s.name],
+                            minZoom: 0, //s.minZoom,
+                            maxZoom: 100, //s.maxNativeZoom,
+                        }
+                    )
                 }
             }
         }
@@ -437,7 +461,7 @@ var L_ = {
                             name: s.name,
                             order: 1000 - L_.layersIndex[s.name], // Since higher order in litho is on top
                             on: L_.opacityArray[s.name] ? true : false,
-                            geojsonPath: layerUrl,
+                            geojson: L_.layersGroup[s.name].toGeoJSON(),
                             onClick: (feature, lnglat, layer) => {
                                 this.selectFeature(layer.name, feature)
                             },
@@ -475,7 +499,11 @@ var L_ = {
         try {
             if (layer.feature?.properties?.annotation) {
                 // Annotation
-                let id = '#DrawToolAnnotation_' + layer.feature.properties._.file_id + '_' + layer.feature.properties._.id
+                let id =
+                    '#DrawToolAnnotation_' +
+                    layer.feature.properties._.file_id +
+                    '_' +
+                    layer.feature.properties._.id
                 d3.select(id).style('color', color)
             } else if (layer.hasOwnProperty('_layers')) {
                 // Arrow
@@ -545,10 +573,10 @@ var L_ = {
             var onId = s[1] != 'master' ? parseInt(s[1]) : s[1]
             if (
                 (this.layersNamed[key] &&
-                (this.layersNamed[key].type == 'point' ||
-                    (key.toLowerCase().indexOf('draw') == -1 &&
-                        this.layersNamed[key].type == 'vector'))) ||
-                            (s[0] == 'DrawTool' && !Number.isNaN(onId))
+                    (this.layersNamed[key].type == 'point' ||
+                        (key.toLowerCase().indexOf('draw') == -1 &&
+                            this.layersNamed[key].type == 'vector'))) ||
+                (s[0] == 'DrawTool' && !Number.isNaN(onId))
             ) {
                 if (
                     this.layersGroup.hasOwnProperty(key) &&
@@ -581,22 +609,38 @@ var L_ = {
                             let layer = this.layersGroup[key][k]
                             if (!layer?.feature?.properties?.arrow) {
                                 // Polygons and lines
-                                layer.eachLayer(function(l) {
+                                layer.eachLayer(function (l) {
                                     setLayerStyle(l)
                                 })
                             } else {
                                 // Arrow
                                 let layers = this.layersGroup[key][k]._layers
-                                const style = this.layersGroup[key][k].feature.properties.style
+                                const style =
+                                    this.layersGroup[key][k].feature.properties
+                                        .style
                                 const color = style.color
-                                layers[Object.keys(layers)[0]].setStyle({ color })
-                                layers[Object.keys(layers)[1]].setStyle({ color })
+                                layers[Object.keys(layers)[0]].setStyle({
+                                    color,
+                                })
+                                layers[Object.keys(layers)[1]].setStyle({
+                                    color,
+                                })
                             }
-                        } else if (this.layersGroup[key][k].feature?.properties?.annotation) {
+                        } else if (
+                            this.layersGroup[key][k].feature?.properties
+                                ?.annotation
+                        ) {
                             // Annotation
                             let layer = this.layersGroup[key][k]
-                            let id = '#DrawToolAnnotation_' + layer.feature.properties._.file_id + '_' + layer.feature.properties._.id
-                            d3.select(id).style('color', layer.feature.properties.style.fillColor)
+                            let id =
+                                '#DrawToolAnnotation_' +
+                                layer.feature.properties._.file_id +
+                                '_' +
+                                layer.feature.properties._.id
+                            d3.select(id).style(
+                                'color',
+                                layer.feature.properties.style.fillColor
+                            )
                         } else if ('feature' in this.layersGroup[key][k]) {
                             // Points (that are not annotations)
                             let layer = this.layersGroup[key][k]
