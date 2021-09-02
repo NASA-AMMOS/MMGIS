@@ -967,11 +967,11 @@ var Files = {
                                             Map_.rmNotNull(
                                                 L_.layersGroup[layerId][i]
                                             )
-                                            //And from the Globe
-                                            Globe_.litho.removeLayer(
-                                                'camptool_' + layerId + '_' + i
-                                            )
                                         }
+                                        //And from the Globe
+                                        Globe_.litho.removeLayer(
+                                            'camptool_' + layerId
+                                        )
                                     }
                                     //Remove from filesOn
                                     let f = DrawTool.filesOn.indexOf(
@@ -1162,11 +1162,9 @@ var Files = {
 
                             Map_.rmNotNull(L_.layersGroup[layerId][i])
                             L_.layersGroup[layerId][i] = null
-                            //And from the Globe
-                            Globe_.litho.removeLayer(
-                                'camptool_' + layerId + '_' + i
-                            )
                         }
+                        //And from the Globe
+                        Globe_.litho.removeLayer('camptool_' + layerId)
                     }
 
                     let features = data.geojson.features
@@ -1323,7 +1321,7 @@ var Files = {
                     }
                     if (coreFeatures.features.length > 0) {
                         Globe_.litho.addLayer('clamped', {
-                            name: 'camptool_' + layerId + '_' + last,
+                            name: 'camptool_' + layerId,
                             on: true,
                             geojson: coreFeatures,
                             opacity: 1,
@@ -1398,9 +1396,9 @@ var Files = {
             if (L_.layersGroup.hasOwnProperty(layerId)) {
                 for (var i = 0; i < L_.layersGroup[layerId].length; i++) {
                     Map_.rmNotNull(L_.layersGroup[layerId][i])
-                    //And from the Globe
-                    Globe_.litho.removeLayer('camptool_' + layerId + '_' + i)
                 }
+                //And from the Globe
+                Globe_.litho.removeLayer('camptool_' + layerId)
             }
 
             DrawTool.refreshMasterCheckbox()
