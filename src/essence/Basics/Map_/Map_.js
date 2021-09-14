@@ -953,6 +953,13 @@ function makeLayer(layerObj) {
                                   feature.style.fillopacity != null
                                 ? feature.style.fillopacity
                                 : fiO
+
+                        // Check for radius property if radius=1 (default/prop:radius)
+                        layerObj.style.radius = 
+                            layerObj.radius == 1
+                                ? parseFloat(feature.properties['radius'])
+                                : layerObj.radius
+                        
                         var noPointerEventsClass =
                             feature.style && feature.style.nointeraction
                                 ? ' noPointerEvents'
@@ -1095,8 +1102,8 @@ function makeLayer(layerObj) {
                             icon: L.divIcon({
                                 className: 'leafletMarkerShape',
                                 iconSize: [
-                                    (layerObj.radius + pixelBuffer) * 2,
-                                    (layerObj.radius + pixelBuffer) * 2,
+                                    (featureStyle.radius + pixelBuffer) * 2,
+                                    (featureStyle.radius + pixelBuffer) * 2,
                                 ],
                                 html: svg,
                             }),

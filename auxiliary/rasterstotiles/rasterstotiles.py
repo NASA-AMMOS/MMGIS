@@ -85,9 +85,9 @@ def tile(raster, outputDir=None):
     # reproject to EPSG:4326 if it's a projection we can't handle downstream
     projection = osr.SpatialReference(wkt=ds.GetProjection()).GetName()
     if projection == "unnamed":
-        gdal_warp = "gdalwarp -t_srs EPSG:4326 " + raster + " " + raster[:-4] + "_espg4326" + raster[-4:]
+        gdal_warp = "gdalwarp -t_srs EPSG:4326 " + raster + " " + raster[:-4] + "_epsg4326" + raster[-4:]
         print(gdal_warp)
-        raster = raster[:-4] + "_espg4326" + raster[-4:]
+        raster = raster[:-4] + "_epsg4326" + raster[-4:]
     gdal_warp_process = subprocess.Popen(gdal_warp, shell=True)
     gdal_warp_process.wait()
     ds = gdal.Open(raster)

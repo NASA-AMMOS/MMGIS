@@ -28,8 +28,9 @@ def process_tiffs(input_dir, process_dir, colormap_dir, legends_dir, prefix=''):
             colormap_key = os.path.basename(colormap_file).split('_')[1].split('.')[0]
             colormap_dict[colormap_key] = colormap_file
     else:
-        print('Error: ' + colormap_dir + ' directory does not exist')
-        sys.exit()
+        print('Warning: ' + colormap_dir + ' directory does not exist')
+        print('Processing without colormap')
+        # sys.exit()
     if not os.path.exists(process_dir):
         os.makedirs(process_dir)
     for input_file in input_files:
@@ -203,6 +204,10 @@ output_dirs = create_tiles(output_tiffs, args.output_dir)
 
 # Generate JSON layer configurations if specified
 if args.json_config is not None:
-    create_configs(output_dirs, args.json_config, args.prefix)
+    if args.prefix != '':
+        json_config = args.json_config.replace('.json', '_' + args.prefix + '.json')
+    else:
+        json_config = args.json_config
+    create_configs(output_dirs, json_config, args.prefix)
 
 sys.exit()
