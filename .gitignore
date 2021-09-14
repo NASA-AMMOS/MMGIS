@@ -17,6 +17,8 @@
 /src/pre/tools.js
 
 /build/*
+/data/*
+*__pycache__
 
 sessions
 
