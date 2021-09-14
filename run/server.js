@@ -527,6 +527,11 @@ setups.getBackendSetups(function (setups) {
   app.get("/docs", ensureUser(), ensureGroup(permissions.users), (req, res) => {
     res.render("docs", {});
   });
+  
+  //help
+  app.get("/help", ensureUser(), ensureGroup(permissions.users), (req, res) => {
+    res.render("help", {});
+  });
 
   // API
   //TEST
