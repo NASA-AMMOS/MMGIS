@@ -76,7 +76,7 @@ var CursorInfo = {
                 return isError ? '1px solid var(--color-a)' : 'none'
             })
             .style('display', 'block')
-            .html(message)
+            .text(message)
 
         if (time != null) {
             setTimeout(function () {

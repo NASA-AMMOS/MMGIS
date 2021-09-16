@@ -180,9 +180,34 @@ let Map_ = {
         //Initialize the view to that set in config
         if (L_.FUTURES.mapView != null) {
             this.resetView(L_.FUTURES.mapView)
+            if (L_.FUTURES.centerPin != null) {
+                this._centerPin = new L.circleMarker(
+                    [L_.FUTURES.mapView[0], L_.FUTURES.mapView[1]],
+                    {
+                        fillColor: '#000',
+                        fillOpacity: 0,
+                        color: 'lime',
+                        weight: 2,
+                    }
+                )
+                    .setRadius(4)
+                    .addTo(this.map)
+                if (
+                    L_.FUTURES.centerPin.length > 0 &&
+                    L_.FUTURES.centerPin != 'true'
+                ) {
+                    this._centerPin.on('mouseover', function () {
+                        CursorInfo.update(L_.FUTURES.centerPin, null, false)
+                    })
+                    this._centerPin.on('mouseout', function () {
+                        CursorInfo.hide()
+                    })
+                }
+            }
         } else {
             this.resetView(L_.view)
         }
+
         //Remove attribution
         d3.select('.leaflet-control-attribution').remove()
 
@@ -261,7 +286,11 @@ let Map_ = {
         var lon = parseFloat(latlonzoom[1])
         if (isNaN(lon)) lon = 0
         var zoom = parseInt(latlonzoom[2])
-        if (isNaN(zoom)) zoom = this.map.getZoom()
+        if (zoom == null || isNaN(zoom))
+            zoom =
+                this.map.getZoom() ||
+                L_.configData.msv.mapscale ||
+                L_.configData.msv.view[2]
         this.map.setView([lat, lon], zoom)
         this.map.invalidateSize()
     },
@@ -955,11 +984,11 @@ function makeLayer(layerObj) {
                                 : fiO
 
                         // Check for radius property if radius=1 (default/prop:radius)
-                        layerObj.style.radius = 
+                        layerObj.style.radius =
                             layerObj.radius == 1
                                 ? parseFloat(feature.properties['radius'])
                                 : layerObj.radius
-                        
+
                         var noPointerEventsClass =
                             feature.style && feature.style.nointeraction
                                 ? ' noPointerEvents'
