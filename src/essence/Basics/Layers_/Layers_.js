@@ -126,6 +126,7 @@ var L_ = {
             globeCamera: null,
             panelPercents: null,
             activePoint: null,
+            centerPin: null,
         }
         L_.searchStrings = null
         L_.searchFile = null

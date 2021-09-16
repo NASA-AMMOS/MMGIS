@@ -24,7 +24,7 @@ let Globe_ = {
         initialView = {
             lat: initialView[0],
             lng: initialView[1],
-            zoom: initialView[2],
+            zoom: initialView[2] != null ? initialView[2] : L_.view[2],
         }
 
         const tmr =
