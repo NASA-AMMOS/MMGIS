@@ -1,7 +1,7 @@
 FROM node:12
 
 # Install GDAL with Python bindings
-RUN apt-get update
+RUN apt-get -y update
 RUN apt-get install -y gdal-bin libgdal-dev python3-pip python3-gdal
 
 # Use Python3 for python
