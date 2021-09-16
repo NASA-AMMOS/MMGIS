@@ -64,7 +64,10 @@ export function stylize() {
         if (L_.configData.look.mapcolor && L_.configData.look.mapcolor != '')
             $('#map').css({ background: L_.configData.look.mapcolor })
         if (L_.configData.look.logourl && L_.configData.look.logourl != '') {
-            $('#mmgislogo img').attr('src', L_.configData.look.logourl)
+            $('#mmgislogo').css({ padding: '7px 3px' })
+            $('#mmgislogo').html(
+                `<img src="${L_.configData.look.logourl}" alt="Logo" width="32px">`
+            )
             $('#favicon').attr('href', L_.configData.look.logourl)
         }
         if (L_.configData.look.helpurl && L_.configData.look.helpurl != '') {

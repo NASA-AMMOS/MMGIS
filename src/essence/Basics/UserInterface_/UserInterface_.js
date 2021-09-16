@@ -736,7 +736,7 @@ var UserInterface = {
             .append('div')
             .attr('id', 'mmgislogo')
             .style('display', this.topSize == 0 ? 'inherit' : 'none')
-            .style('padding', '7px 3px')
+            .style('padding', '9px 6px')
             .style('cursor', 'pointer')
             .style('width', '40px')
             .style('height', '40px')
@@ -745,7 +745,11 @@ var UserInterface = {
             .style('left', '0px')
             .style('z-index', '2005')
             .style('image-rendering', 'pixelated')
-            .html("<img src='" + logoURL + "' alt='Logo' width='32px' />")
+            .html(
+                `<svg width="27" height="27" viewBox="0 0 231 137" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M0.222266 9.21339C-0.277832 14.7126 0.222266 133.713 0.222266 133.713H26.2223V45.7134C26.2223 45.7134 100.722 127.712 106.222 132.713C109.171 135.395 112.12 136.782 115.222 136.645C118.325 136.782 121.274 135.395 124.222 132.713C129.722 127.712 204.222 45.7134 204.222 45.7134V133.713H230.222C230.222 133.713 230.722 14.7126 230.222 9.21339C229.722 3.71413 218.222 -3.28766 210.222 1.71339C202.222 6.71444 115.222 104.713 115.222 104.713C115.222 104.713 28.2224 6.71444 20.2223 1.71339C12.2222 -3.28766 0.722363 3.71413 0.222266 9.21339Z" fill="#26A8FF"></path>
+</svg>`
+            )
             .on('click', F_.toHostForceLanding)
 
         //ViewerSplit is immovable
