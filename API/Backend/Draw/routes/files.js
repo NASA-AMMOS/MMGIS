@@ -698,7 +698,14 @@ const compile = function (req, res, callback) {
     where: {
       is_master: true,
       intent: {
-        [Sequelize.Op.in]: ["roi", "campaign", "campsite", "trail", "signpost"],
+        [Sequelize.Op.in]: [
+          "roi",
+          "campaign",
+          "campsite",
+          "trail",
+          "signpost",
+          "all",
+        ],
       },
     },
   }).then((files) => {
@@ -1478,7 +1485,7 @@ router.post("/publish", function (req, res, next) {
         logger("error", "Failed to publish. " + message, req.originalUrl, req);
         res.send({
           status: "failure",
-          message: "Failed to publish." + message,
+          message: "Failed to publish. " + message,
           body: {},
         });
       }
@@ -1580,7 +1587,14 @@ router.post("/publish", function (req, res, next) {
                   cb(true);
                   return null;
                 })
-                .catch(function (error) {
+                .catch(function (err) {
+                  logger(
+                    "error",
+                    "Error adding to published.",
+                    req.originalUrl,
+                    req,
+                    err
+                  );
                   cb(false);
                   return null;
                 });

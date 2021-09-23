@@ -177,31 +177,23 @@ var L_ = {
     //Takes in config layer obj
     //Toggles a layer on and off and accounts for sublayers
     //Takes in a config layer object
-    toggleLayer: function (s) {
+    toggleLayer: async function (s) {
         if (s == null) return
-        var on //if on -> turn off //if off -> turn on
-        if (L_.toggledArray[s.name] == true) on = true
+        let on //if on -> turn off //if off -> turn on
+        if (L_.toggledArray[s.name] === true) on = true
         else on = false
-        if (s.type != 'header') {
+        if (s.type !== 'header') {
             if (on) {
                 if (L_.Map_.map.hasLayer(L_.layersGroup[s.name])) {
                     L_.Map_.map.removeLayer(L_.layersGroup[s.name])
                 }
                 L_.Globe_.litho.removeLayer(s.name)
             } else {
-                if (L_.layersGroup[s.name]) {
-                    L_.Map_.map.addLayer(L_.layersGroup[s.name])
-                    L_.layersGroup[s.name].setZIndex(
-                        L_.layersOrdered.length +
-                            1 -
-                            L_.layersOrdered.indexOf(s.name)
-                    )
-                }
-                if (s.type == 'tile') {
-                    var layerUrl = s.url
+                if (s.type === 'tile') {
+                    let layerUrl = s.url
                     if (!F_.isUrlAbsolute(layerUrl))
                         layerUrl = L_.missionPath + layerUrl
-                    var demUrl = s.demtileurl
+                    let demUrl = s.demtileurl
                     if (!F_.isUrlAbsolute(demUrl))
                         demUrl = L_.missionPath + demUrl
                     if (s.demtileurl == undefined || s.demtileurl.length == 0)
@@ -227,35 +219,45 @@ var L_ = {
                         //time: s.time == null ? '' : s.time.end,
                     })
                 } else {
-                    L_.Globe_.litho.addLayer(
-                        s.type == 'vector' ? 'clamped' : s.type,
-                        {
-                            name: s.name,
-                            order: 1000 - L_.layersIndex[s.name], // Since higher order in litho is on top
-                            on: L_.opacityArray[s.name] ? true : false,
-                            geojson: L_.layersGroup[s.name].toGeoJSON(),
-                            onClick: (feature, lnglat, layer) => {
-                                this.selectFeature(layer.name, feature)
-                            },
-                            useKeyAsHoverName: s.useKeyAsName,
-                            style: {
-                                // Prefer feature[f].properties.style values
-                                letPropertiesStyleOverride: true, // default false
-                                default: {
-                                    fillColor: s.style.fillColor, //Use only rgb and hex. No css color names
-                                    fillOpacity: parseFloat(
-                                        s.style.fillOpacity
-                                    ),
-                                    color: s.style.color,
-                                    weight: s.style.weight,
-                                    radius: s.radius,
+                    if (L_.layersGroup[s.name] === false)
+                        await L_.Map_.makeLayer(s, true)
+                    if (L_.layersGroup[s.name]) {
+                        L_.Map_.map.addLayer(L_.layersGroup[s.name])
+                        L_.layersGroup[s.name].setZIndex(
+                            L_.layersOrdered.length +
+                                1 -
+                                L_.layersOrdered.indexOf(s.name)
+                        )
+                        L_.Globe_.litho.addLayer(
+                            s.type === 'vector' ? 'clamped' : s.type,
+                            {
+                                name: s.name,
+                                order: 1000 - L_.layersIndex[s.name], // Since higher order in litho is on top
+                                on: L_.opacityArray[s.name] ? true : false,
+                                geojson: L_.layersGroup[s.name].toGeoJSON(),
+                                onClick: (feature, lnglat, layer) => {
+                                    this.selectFeature(layer.name, feature)
                                 },
-                            },
-                            opacity: L_.opacityArray[s.name],
-                            minZoom: 0, //s.minZoom,
-                            maxZoom: 100, //s.maxNativeZoom,
-                        }
-                    )
+                                useKeyAsHoverName: s.useKeyAsName,
+                                style: {
+                                    // Prefer feature[f].properties.style values
+                                    letPropertiesStyleOverride: true, // default false
+                                    default: {
+                                        fillColor: s.style.fillColor, //Use only rgb and hex. No css color names
+                                        fillOpacity: parseFloat(
+                                            s.style.fillOpacity
+                                        ),
+                                        color: s.style.color,
+                                        weight: s.style.weight,
+                                        radius: s.radius,
+                                    },
+                                },
+                                opacity: L_.opacityArray[s.name],
+                                minZoom: 0, //s.minZoom,
+                                maxZoom: 100, //s.maxNativeZoom,
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -263,93 +265,7 @@ var L_ = {
         if (on) L_.toggledArray[s.name] = false
         if (!on) L_.toggledArray[s.name] = true
 
-        var sNext = getSublayers(s)
-        if (sNext != 0) toggleSubRecur(sNext, on)
-
-        // Possibly deprecated because group layer toggling is no longer supported in the UI
-        function toggleSubRecur(r, on) {
-            for (var i = 0; i < r.length; i++) {
-                //( if it doesn't have it ) or ( if it has it and it's true )
-                if (
-                    !r[i].hasOwnProperty('togglesWithHeader') ||
-                    (r[i].hasOwnProperty('togglesWithHeader') &&
-                        r[i].togglesWithHeader)
-                ) {
-                    if (r[i].type != 'header') {
-                        if (on) {
-                            if (
-                                L_.Map_.map.hasLayer(L_.layersGroup[r[i].name])
-                            ) {
-                                L_.Map_.map.removeLayer(
-                                    L_.layersGroup[r[i].name]
-                                )
-                            }
-                            if (r[i].type == 'tile') {
-                                L_.Globe_.litho.removeLayer(r[i].name)
-                            } else {
-                                L_.Globe_.litho.toggleLayer(r[i].name, true)
-                            }
-                            L_.toggledArray[r[i].name] = false
-                        } else {
-                            if (L_.layersGroup[r[i].name]) {
-                                L_.Map_.map.addLayer(L_.layersGroup[r[i].name])
-                                if (r[i].type == 'vector') {
-                                    L_.Map_.orderedBringToFront()
-                                }
-                                L_.layersGroup[r[i].name].setZIndex(
-                                    L_.layersOrdered.length +
-                                        1 -
-                                        L_.layersOrdered.indexOf(r[i].name)
-                                )
-                            }
-                            if (r[i].type == 'tile') {
-                                var layerUrl = r[i].url
-                                if (!F_.isUrlAbsolute(layerUrl))
-                                    layerUrl = L_.missionPath + layerUrl
-                                var demUrl = s.demtileurl
-                                if (!F_.isUrlAbsolute(demUrl))
-                                    demUrl = L_.missionPath + demUrl
-                                if (s.demtileurl == undefined)
-                                    demUrl = undefined
-                                L_.Globe_.litho.addLayer('tile', {
-                                    name: r[i].name,
-                                    order: 99999 - L_.layersIndex[r[i].name],
-                                    on: L_.opacityArray[r[i].name],
-                                    format: s.tileformat || 'tms',
-                                    formatOptions: {},
-                                    demFormat: s.tileformat || 'tms',
-                                    demFormatOptions: {
-                                        correctSeams: s.tileformat === 'wms',
-                                        wmsParams: {},
-                                    },
-                                    parser: s.demparser || null,
-                                    path: layerUrl,
-                                    demPath: demUrl,
-                                    opacity: L_.opacityArray[r[i].name],
-                                    minZoom: r[i].minZoom,
-                                    maxZoom: r[i].maxNativeZoom,
-                                    //boundingBox: r[i].boundingBox,
-                                    //time: r[i].time == null ? '' : r[i].time.end,
-                                })
-                            } else {
-                                L_.Globe_.litho.toggleLayer(r[i].name, false)
-                            }
-                            L_.toggledArray[r[i].name] = true
-                        }
-                    } else {
-                        if (on) L_.toggledArray[r[i].name] = false
-                        else L_.toggledArray[r[i].name] = true
-                    }
-                    var rNext = getSublayers(r[i])
-                    if (rNext != 0) toggleSubRecur(rNext, on)
-                }
-            }
-        }
-        function getSublayers(d) {
-            if (d.hasOwnProperty('sublayers')) return d.sublayers
-            else return 0
-        }
-        if (!on && s.type == 'vector') {
+        if (!on && s.type === 'vector') {
             L_.Map_.orderedBringToFront()
         }
     },
@@ -389,7 +305,10 @@ var L_ = {
             map = map.map
         }
         for (var i = L_.layersData.length - 1; i >= 0; i--) {
-            if (L_.toggledArray[L_.layersData[i].name] === true) {
+            if (
+                L_.toggledArray[L_.layersData[i].name] === true &&
+                L_.layersGroup[L_.layersData[i].name] != null
+            ) {
                 if (L_.layersData[i].type === 'tile') {
                     // Make sure all tile layers follow z-index order at start instead of element order
                     L_.layersGroup[L_.layersData[i].name].setZIndex(
@@ -521,7 +440,249 @@ var L_ = {
                 layer._icon.style.filter = `drop-shadow(${color}  2px 0px 0px) drop-shadow(${color}  -2px 0px 0px) drop-shadow(${color}  0px 2px 0px) drop-shadow(${color} 0px -2px 0px)`
         }
     },
+    addArrowToMap: function (
+        layerId,
+        start,
+        end,
+        style,
+        feature,
+        index,
+        indexedCallback
+    ) {
+        var line
 
+        var length
+        if (isNaN(style.length)) length = false
+        else length = parseInt(style.length)
+
+        line = new L.Polyline([end, start], {
+            color: style.color,
+            weight: style.width + style.weight,
+        })
+        var arrowBodyOutline
+        if (length === false) {
+            arrowBodyOutline = new L.Polyline([start, end], {
+                color: style.color,
+                weight: style.width + style.weight,
+                dashArray: style.dashArray,
+                lineCap: style.lineCap,
+                lineJoin: style.lineJoin,
+            })
+        } else {
+            arrowBodyOutline = L.polylineDecorator(line, {
+                patterns: [
+                    {
+                        offset: length / 2 + 'px',
+                        repeat: 0,
+                        symbol: L.Symbol.dash({
+                            pixelSize: style.length,
+                            polygon: false,
+                            pathOptions: {
+                                stroke: true,
+                                color: style.color,
+                                weight: style.width + style.weight,
+                                dashArray: style.dashArray,
+                                lineCap: style.lineCap,
+                                lineJoin: style.lineJoin,
+                            },
+                        }),
+                    },
+                ],
+            })
+        }
+        line = new L.Polyline([start, end], {
+            color: style.color,
+            weight: style.width + style.weight,
+        })
+        var arrowHeadOutline = L.polylineDecorator(line, {
+            patterns: [
+                {
+                    offset: '100%',
+                    repeat: 0,
+                    symbol: L.Symbol.arrowHead({
+                        pixelSize: style.radius,
+                        polygon: false,
+                        pathOptions: {
+                            stroke: true,
+                            color: style.color,
+                            weight: style.width + style.weight,
+                            lineCap: style.lineCap,
+                            lineJoin: style.lineJoin,
+                        },
+                    }),
+                },
+            ],
+        })
+        line = new L.Polyline([end, start], {
+            color: style.fillColor,
+            weight: style.width,
+        })
+        var arrowBody
+        if (length === false) {
+            arrowBody = new L.Polyline([start, end], {
+                color: style.fillColor,
+                weight: style.width,
+                dashArray: style.dashArray,
+                lineCap: style.lineCap,
+                lineJoin: style.lineJoin,
+            })
+        } else {
+            arrowBody = L.polylineDecorator(line, {
+                patterns: [
+                    {
+                        offset: length / 2 + 'px',
+                        repeat: 0,
+                        symbol: L.Symbol.dash({
+                            pixelSize: style.length,
+                            polygon: false,
+                            pathOptions: {
+                                stroke: true,
+                                color: style.fillColor,
+                                weight: style.width,
+                                dashArray: style.dashArray,
+                                lineCap: style.lineCap,
+                                lineJoin: style.lineJoin,
+                            },
+                        }),
+                    },
+                ],
+            })
+        }
+        line = new L.Polyline([start, end], {
+            color: style.fillColor,
+            weight: style.width,
+        })
+        var arrowHead = L.polylineDecorator(line, {
+            patterns: [
+                {
+                    offset: '100%',
+                    repeat: 0,
+                    symbol: L.Symbol.arrowHead({
+                        pixelSize: style.radius,
+                        polygon: false,
+                        pathOptions: {
+                            stroke: true,
+                            color: style.fillColor,
+                            weight: style.width,
+                            lineCap: style.lineCap,
+                            lineJoin: style.lineJoin,
+                        },
+                    }),
+                },
+            ],
+        })
+
+        if (layerId == null) {
+            const arrowLayer = L.layerGroup([
+                arrowBodyOutline,
+                arrowHeadOutline,
+                arrowBody,
+                arrowHead,
+            ])
+            arrowLayer.start = start
+            arrowLayer.end = end
+            arrowLayer.feature = feature
+            return arrowLayer
+        }
+        if (index != null) {
+            L_.Map_.rmNotNull(L_.layersGroup[layerId][index])
+            L_.layersGroup[layerId][index] = L.layerGroup([
+                arrowBodyOutline,
+                arrowHeadOutline,
+                arrowBody,
+                arrowHead,
+            ]).addTo(L_.Map_.map)
+            L_.layersGroup[layerId][index].start = start
+            L_.layersGroup[layerId][index].end = end
+            L_.layersGroup[layerId][index].feature = feature
+            if (typeof indexedCallback === 'function') indexedCallback()
+        } else {
+            L_.layersGroup[layerId].push(
+                L.layerGroup([
+                    arrowBodyOutline,
+                    arrowHeadOutline,
+                    arrowBody,
+                    arrowHead,
+                ]).addTo(L_.Map_.map)
+            )
+            L_.layersGroup[layerId][L_.layersGroup[layerId].length - 1].start =
+                start
+            L_.layersGroup[layerId][L_.layersGroup[layerId].length - 1].end =
+                end
+            L_.layersGroup[layerId][
+                L_.layersGroup[layerId].length - 1
+            ].feature = feature
+        }
+    },
+    createAnnotation: function (
+        feature,
+        className,
+        layerId,
+        id1,
+        id2,
+        andAddToMap
+    ) {
+        if (id2 == null) id2 = 0
+
+        console.log(feature, className, layerId, id1, id2)
+        className = className.replace(/ /g, '_')
+        //Remove previous annotation if any
+        $(`#${className}_${id1}_${id2}`)
+            .parent()
+            .parent()
+            .parent()
+            .parent()
+            .remove()
+
+        const s = feature.properties.style
+        const styleString =
+            (s.color != null
+                ? 'text-shadow: ' +
+                  F_.getTextShadowString(s.color, s.strokeOpacity, s.weight) +
+                  '; '
+                : '') +
+            (s.fillColor != null ? 'color: ' + s.fillColor + '; ' : '') +
+            (s.fontSize != null ? 'font-size: ' + s.fontSize + '; ' : '') +
+            (s.rotation != null
+                ? 'transform: rotateX)' + s.rotation + 'deg); '
+                : '')
+
+        // prettier-ignore
+        const popup = L.popup({
+            className: 'leaflet-popup-annotation',
+            closeButton: false,
+            autoClose: false,
+            closeOnEscapeKey: false,
+            closeOnClick: false,
+            autoPan: false,
+            offset: new L.point(0, 3),
+        })
+            .setLatLng(
+                new L.LatLng(
+                    feature.geometry.coordinates[1],
+                    feature.geometry.coordinates[0]
+                )
+            )
+            .setContent(
+                '<div>' +
+                    "<div id='" + className + '_' + id1 + '_' + id2 +
+                    "' class='drawToolAnnotation " + className + '_' + id1 + "  blackTextBorder'" +
+                    " layer='" + id1 +
+                    "' index='" + L_.layersGroup[layerId].length +
+                    "' style='" + styleString + "'>" +
+                    `${feature.properties.name.replace(/\W/g, '')}`,
+                    '</div>' +
+                '</div>'
+            )
+        if (andAddToMap) {
+            popup.addTo(L_.Map_.map)
+            L_.layersGroup[layerId].push(popup)
+            L_.layersGroup[layerId][
+                L_.layersGroup[layerId].length - 1
+            ].feature = feature
+        }
+        return popup
+    },
     setLayerOpacity: function (name, newOpacity) {
         if (L_.Globe_) L_.Globe_.litho.setLayerOpacity(name, newOpacity)
         var l = L_.layersGroup[name]
@@ -550,9 +711,9 @@ var L_ = {
 
         var opacity
         try {
-            opacity = l.options.style.opacity
+            opacity = l.options?.style.opacity
         } catch (error) {
-            opacity = l.options.opacity
+            opacity = l.options?.opacity
         }
         return opacity
     },

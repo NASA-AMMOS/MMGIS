@@ -84,8 +84,10 @@ var Drawing = {
                         let newGeometry
                         let noChange = false
                         try {
-                            newGeometry = turf.difference(geojson, d.shape)
-                                .geometry
+                            newGeometry = turf.difference(
+                                geojson,
+                                d.shape
+                            ).geometry
                             if (
                                 JSON.stringify(newGeometry) ==
                                 JSON.stringify(geojson)
@@ -469,12 +471,10 @@ var Drawing = {
                     arrowHead,
                 ]).addTo(Map_.map)
             )
-            L_.layersGroup[layerId][
-                L_.layersGroup[layerId].length - 1
-            ].start = start
-            L_.layersGroup[layerId][
-                L_.layersGroup[layerId].length - 1
-            ].end = end
+            L_.layersGroup[layerId][L_.layersGroup[layerId].length - 1].start =
+                start
+            L_.layersGroup[layerId][L_.layersGroup[layerId].length - 1].end =
+                end
             L_.layersGroup[layerId][
                 L_.layersGroup[layerId].length - 1
             ].feature = feature
