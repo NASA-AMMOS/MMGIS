@@ -65,7 +65,9 @@ let Globe_ = {
             atmosphere: {
                 color: '#0c0c0c',
             },
+            canBecomeHighlighted: false,
             highlightColor: 'yellow', //css color for vector hover highlights | default 'yellow'
+            canBecomeActive: false,
             activeColor: 'red', //css color for active vector features | default 'red'
         }
 
