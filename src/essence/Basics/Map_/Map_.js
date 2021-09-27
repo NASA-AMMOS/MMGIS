@@ -1502,6 +1502,7 @@ function clearOnMapClick(event) {
         let found = false
         // For all MMGIS layers
         for (let key in L_.layersGroup) {
+            if (L_.layersGroup[key] === false) continue
             let layers
 
             // Layers can be a LayerGroup or an array of LayerGroup

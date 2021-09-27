@@ -189,6 +189,7 @@ var L_ = {
                 }
                 L_.Globe_.litho.removeLayer(s.name)
             } else {
+                console.log(s.type)
                 if (s.type === 'tile') {
                     let layerUrl = s.url
                     if (!F_.isUrlAbsolute(layerUrl))
@@ -218,6 +219,7 @@ var L_ = {
                         //boundingBox: s.boundingBox,
                         //time: s.time == null ? '' : s.time.end,
                     })
+                } else if (s.type === 'data') {
                 } else {
                     if (L_.layersGroup[s.name] === false)
                         await L_.Map_.makeLayer(s, true)
@@ -734,7 +736,8 @@ var L_ = {
             var s = key.split('_')
             var onId = s[1] != 'master' ? parseInt(s[1]) : s[1]
             if (
-                (this.layersNamed[key] &&
+                (this.layersGroup[key] &&
+                    this.layersNamed[key] &&
                     (this.layersNamed[key].type == 'point' ||
                         (key.toLowerCase().indexOf('draw') == -1 &&
                             this.layersNamed[key].type == 'vector'))) ||
