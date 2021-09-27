@@ -249,14 +249,14 @@ var QueryURL = {
         }
 
         //Defaults
-        if (mapLon === undefined) mapLon = L_.Map_.map.getCenter().lng
-        if (mapLat === undefined) mapLat = L_.Map_.map.getCenter().lat
-        if (mapZoom === undefined) mapZoom = L_.Map_.map.getZoom()
+        if (mapLon == undefined) mapLon = L_.Map_.map.getCenter().lng
+        if (mapLat == undefined) mapLat = L_.Map_.map.getCenter().lat
+        if (mapZoom == undefined) mapZoom = L_.Map_.map.getZoom()
 
         var globeCenter = L_.Globe_.litho.getCenter()
-        if (globeLon === undefined) globeLon = globeCenter.lon
-        if (globeLat === undefined) globeLat = globeCenter.lat
-        if (globeZoom === undefined) globeZoom = L_.Globe_.litho.zoom
+        if (globeLon == undefined) globeLon = globeCenter.lng
+        if (globeLat == undefined) globeLat = globeCenter.lat
+        if (globeZoom == undefined) globeZoom = L_.Globe_.litho.zoom
 
         var viewerImg = L_.Viewer_.getLastImageId()
         var viewerLoc = L_.Viewer_.getLocation()
