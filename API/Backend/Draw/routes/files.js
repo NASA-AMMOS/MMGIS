@@ -113,7 +113,9 @@ router.post("/getfile", function (req, res, next) {
           (req.body.test === "true" ? "publisheds_test" : "publisheds") +
           "" +
           (req.body.intent && req.body.intent.length > 0
-            ? " WHERE intent=:intent"
+            ? req.body.intent === "all"
+              ? " WHERE intent IN ('polygon', 'line', 'point', 'text', 'arrow')"
+              : " WHERE intent=:intent"
             : ""),
         {
           replacements: {

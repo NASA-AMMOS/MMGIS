@@ -19,6 +19,7 @@ let configure = [
   "Time_Tab",
   "Kinds",
   "Vector_Styling",
+  "Layer_URLs",
   "Keys",
   "Manage_Datasets",
   "Manage_Geodatasets",

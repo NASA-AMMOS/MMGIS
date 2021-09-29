@@ -35,6 +35,7 @@ export const captureVector = (layerObj, options, cb) => {
     if (!F_.isUrlAbsolute(layerUrl)) layerUrl = L_.missionPath + layerUrl
 
     let done = true
+    let urlSplitRaw = layerObj.url.split(':')
     let urlSplit = layerObj.url.toLowerCase().split(':')
 
     switch (urlSplit[0]) {
@@ -42,7 +43,7 @@ export const captureVector = (layerObj, options, cb) => {
             calls.api(
                 'geodatasets_get',
                 {
-                    layer: urlSplit[1],
+                    layer: urlSplitRaw[1],
                     type: 'geojson',
                 },
                 function (data) {

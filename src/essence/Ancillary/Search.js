@@ -1,4 +1,5 @@
 import $ from 'jquery'
+import F_ from '../Basics/Formulae_/Formulae_'
 //jqueryUI
 import * as d3 from 'd3'
 
@@ -149,7 +150,7 @@ function initializeSearch() {
     })
 }
 
-function changeSearchField(val, selectedPlaceholder) {
+async function changeSearchField(val, selectedPlaceholder) {
     if (selectedPlaceholder || val == null) {
         // We're on the placeholder
         Search.arrayToSearch = []
@@ -161,51 +162,43 @@ function changeSearchField(val, selectedPlaceholder) {
     if (Map_ != null) {
         Search.lname = val
 
-        let urlSplit = L_.layersNamed[Search.lname].url.split(':')
-
         Search.layerType = L_.layersNamed[Search.lname].type
-        if (urlSplit[0] == 'geodatasets' && urlSplit[1] != null) {
-            Search.type = 'geodatasets'
-            Search.lastGeodatasetLayerName = urlSplit[1]
-            $('#SearchSelect').css({ display: 'inherit' })
-            $('#SearchBoth').css({ display: 'inherit' })
-            if (document.getElementById('auto_search') != null) {
-                document.getElementById('auto_search').placeholder =
-                    getSearchFieldKeys(Search.lname)
-            }
-
-            initializeSearch()
-        } else {
-            Search.type = 'geojson'
-            $('#SearchSelect').css({ display: 'inherit' })
-            $('#SearchBoth').css({ display: 'inherit' })
-
-            var searchFile = L_.layersNamed[Search.lname].url
-
-            $.getJSON(L_.missionPath + searchFile, function (data) {
-                Search.arrayToSearch = []
-                var props
-                for (var i = 0; i < data.features.length; i++) {
-                    props = data.features[i].properties
-                    Search.arrayToSearch.push(
-                        getSearchFieldStringForFeature(Search.lname, props)
-                    )
-                }
-                if (Search.arrayToSearch[0]) {
-                    if (!isNaN(Search.arrayToSearch[0]))
-                        Search.arrayToSearch.sort(function (a, b) {
-                            return a - b
-                        })
-                    else Search.arrayToSearch.sort()
-                }
-                if (document.getElementById('auto_search') != null) {
-                    document.getElementById('auto_search').placeholder =
-                        getSearchFieldKeys(Search.lname)
-                }
-
-                initializeSearch()
-            })
+        if (L_.toggledArray[Search.lname] !== true) {
+            await L_.toggleLayer(L_.layersNamed[Search.lname])
         }
+
+        Search.type = 'geojson'
+        $('#SearchSelect').css({ display: 'inherit' })
+        $('#SearchBoth').css({ display: 'inherit' })
+
+        Search.arrayToSearch = []
+        let data
+        try {
+            data = L_.layersGroup[Search.lname].toGeoJSON()
+        } catch (err) {
+            data = { features: [] }
+        }
+        var props
+        for (var i = 0; i < data.features.length; i++) {
+            props = data.features[i].properties
+            Search.arrayToSearch.push(
+                getSearchFieldStringForFeature(Search.lname, props)
+            )
+        }
+        if (Search.arrayToSearch[0]) {
+            if (!isNaN(Search.arrayToSearch[0]))
+                Search.arrayToSearch.sort(function (a, b) {
+                    return a - b
+                })
+            else Search.arrayToSearch.sort()
+        }
+        if (document.getElementById('auto_search') != null) {
+            document.getElementById('auto_search').placeholder =
+                getSearchFieldKeys(Search.lname)
+        }
+
+        initializeSearch()
+        //}
     }
 }
 
@@ -409,13 +402,13 @@ function getSearchFieldStringForFeature(name, props) {
         for (var i = 0; i < sf.length; i++) {
             switch (sf[i][0].toLowerCase()) {
                 case '': //no function
-                    str += props[sf[i][1]]
+                    str += F_.getIn(props, sf[i][1])
                     break
                 case 'round':
-                    str += Math.round(props[sf[i][1]])
+                    str += Math.round(F_.getIn(props, sf[i][1]))
                     break
                 case 'rmunder':
-                    str += props[sf[i][1]].replace('_', ' ')
+                    str += F_.getIn(props, sf[i][1]).replace('_', ' ')
                     break
             }
             if (i != sf.length - 1) str += ' '

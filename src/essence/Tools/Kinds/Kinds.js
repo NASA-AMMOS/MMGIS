@@ -31,7 +31,7 @@ var Kinds = {
                 var lngM = F_.metersToDegrees(wm) / 2
                 var latM = lngM * (h / w)
                 var center = [layer._latlng.lng, layer._latlng.lat]
-                var angle = -layer.feature.properties.yaw_rad
+                var angle = -layer.feature.properties.yaw_rad || 0
                 var topLeft = F_.rotatePoint(
                     {
                         y: layer._latlng.lat + latM,
@@ -71,12 +71,15 @@ var Kinds = {
                     [bottomRight.y, bottomRight.x],
                     [bottomLeft.y, bottomLeft.x],
                 ]
-                Map_.tempOverlayImage = L.imageTransform(
-                    'public/images/rovers/PerseveranceTopDown.png',
-                    anchors,
-                    { opacity: 1, clip: anchors }
-                )
-                Map_.tempOverlayImage.addTo(Map_.map).bringToBack()
+
+                try {
+                    Map_.tempOverlayImage = L.imageTransform(
+                        'public/images/rovers/PerseveranceTopDown.png',
+                        anchors,
+                        { opacity: 1, clip: anchors }
+                    )
+                    Map_.tempOverlayImage.addTo(Map_.map).bringToBack()
+                } catch (err) {}
 
                 useInfo(false)
                 break

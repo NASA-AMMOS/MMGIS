@@ -13,10 +13,10 @@ const Geodatasets = geodatasets.Geodatasets;
 const makeNewGeodatasetTable = geodatasets.makeNewGeodatasetTable;
 
 //Returns a geodataset table as a geojson
-router.post("/get", function(req, res, next) {
+router.post("/get", function (req, res, next) {
   get("post", req, res, next);
 });
-router.get("/get", function(req, res, next) {
+router.get("/get", function (req, res, next) {
   get("get", req, res, next);
 });
 
@@ -31,7 +31,7 @@ function get(reqtype, req, res, next) {
       xyz = {
         x: parseInt(req.body.x),
         y: parseInt(req.body.y),
-        z: parseInt(req.body.z)
+        z: parseInt(req.body.z),
       };
     }
   } else if (reqtype == "get") {
@@ -41,13 +41,13 @@ function get(reqtype, req, res, next) {
       xyz = {
         x: parseInt(req.query.x),
         y: parseInt(req.query.y),
-        z: parseInt(req.query.z)
+        z: parseInt(req.query.z),
       };
     }
   }
   //First Find the table name
   Geodatasets.findOne({ where: { name: layer } })
-    .then(result => {
+    .then((result) => {
       if (result) {
         let table = result.dataValues.table;
         if (type == "geojson") {
@@ -55,7 +55,7 @@ function get(reqtype, req, res, next) {
             .query(
               "SELECT properties, ST_AsGeoJSON(geom)" + " " + "FROM " + table
             )
-            .spread(results => {
+            .spread((results) => {
               let geojson = { type: "FeatureCollection", features: [] };
               for (let i = 0; i < results.length; i++) {
                 let properties = results[i].properties;
@@ -71,14 +71,14 @@ function get(reqtype, req, res, next) {
               if (reqtype == "post") {
                 res.send({
                   status: "success",
-                  body: geojson
+                  body: geojson,
                 });
               } else {
                 res.send(geojson);
               }
               return null;
             })
-            .catch(error => {
+            .catch((error) => {
               res.send({ status: "failure", message: "a" });
             });
         } else if (
@@ -89,11 +89,11 @@ function get(reqtype, req, res, next) {
         ) {
           let ne = {
             lat: tile2Lat(xyz.y, xyz.z),
-            lng: tile2Lng(xyz.x + 1, xyz.z)
+            lng: tile2Lng(xyz.x + 1, xyz.z),
           };
           let sw = {
             lat: tile2Lat(xyz.y + 1, xyz.z),
-            lng: tile2Lng(xyz.x, xyz.z)
+            lng: tile2Lng(xyz.x, xyz.z),
           };
 
           //We make these slightly large bounds for our initial bounds of data,
@@ -151,25 +151,25 @@ function get(reqtype, req, res, next) {
                 ") AS q;",
               {
                 replacements: {
-                  table: table
-                }
+                  table: table,
+                },
               }
             )
-            .spread(results => {
+            .spread((results) => {
               res.setHeader("Content-Type", "application/x-protobuf");
               res.setHeader("Access-Control-Allow-Origin", "*");
 
               if (reqtype == "post") {
                 res.send({
                   status: "success",
-                  body: results
+                  body: results,
                 });
               } else {
                 res.send(Buffer.from(results[0].st_asmvt, "binary"));
               }
               return null;
             })
-            .catch(err => {
+            .catch((err) => {
               logger(
                 "error",
                 "Geodataset SQL error.",
@@ -182,25 +182,25 @@ function get(reqtype, req, res, next) {
         } else {
           res.send({
             status: "failure",
-            message: "Unknown type or missing xyz."
+            message: "Unknown type or missing xyz.",
           });
         }
       } else {
-        res.send({ status: "failure", message: "c" });
+        res.send({ status: "failure", message: "Not Found" });
       }
 
       return null;
     })
-    .catch(err => {
+    .catch((err) => {
       logger("error", "Failure finding geodataset.", req.originalUrl, req, err);
       res.send({ status: "failure", message: "d" });
     });
 }
 
 //Returns a list of entries in the geodatasets table
-router.post("/entries", function(req, res, next) {
+router.post("/entries", function (req, res, next) {
   Geodatasets.findAll()
-    .then(sets => {
+    .then((sets) => {
       if (sets && sets.length > 0) {
         let entries = [];
         for (let i = 0; i < sets.length; i++) {
@@ -208,15 +208,15 @@ router.post("/entries", function(req, res, next) {
         }
         res.send({
           status: "success",
-          body: { entries: entries }
+          body: { entries: entries },
         });
       } else {
         res.send({
-          status: "failure"
+          status: "failure",
         });
       }
     })
-    .catch(err => {
+    .catch((err) => {
       logger(
         "error",
         "Failure finding geodatasets.",
@@ -225,7 +225,7 @@ router.post("/entries", function(req, res, next) {
         err
       );
       res.send({
-        status: "failure"
+        status: "failure",
       });
     });
 });
@@ -235,10 +235,10 @@ router.post("/entries", function(req, res, next) {
  * req.body.key
  * req.body.value
  */
-router.post("/search", function(req, res, next) {
+router.post("/search", function (req, res, next) {
   //First Find the table name
   Geodatasets.findOne({ where: { name: req.body.layer } })
-    .then(result => {
+    .then((result) => {
       if (result) {
         let table = result.dataValues.table;
 
@@ -250,11 +250,11 @@ router.post("/search", function(req, res, next) {
             {
               replacements: {
                 key: req.body.key,
-                value: req.body.value.replace(/[`;'"]/gi, "")
-              }
+                value: req.body.value.replace(/[`;'"]/gi, ""),
+              },
             }
           )
-          .spread(results => {
+          .spread((results) => {
             let r = [];
             for (let i = 0; i < results.length; i++) {
               let feature = JSON.parse(results[i].st_asgeojson);
@@ -264,12 +264,12 @@ router.post("/search", function(req, res, next) {
 
             res.send({
               status: "success",
-              body: r
+              body: r,
             });
 
             return null;
           })
-          .catch(err => {
+          .catch((err) => {
             logger(
               "error",
               "SQL error search through geodataset.",
@@ -279,27 +279,27 @@ router.post("/search", function(req, res, next) {
             );
             res.send({
               status: "failure",
-              message: "SQL error."
+              message: "SQL error.",
             });
           });
       } else {
         res.send({
           status: "failure",
-          message: "Layer not found."
+          message: "Layer not found.",
         });
       }
 
       return null;
     })
-    .catch(err => {
+    .catch((err) => {
       logger("error", "Failure finding geodataset.", req.originalUrl, req, err);
       res.send({
-        status: "failure"
+        status: "failure",
       });
     });
 });
 
-router.post("/recreate", function(req, res, next) {
+router.post("/recreate", function (req, res, next) {
   let features = null;
   try {
     features = JSON.parse(req.body.geojson).features;
@@ -308,19 +308,19 @@ router.post("/recreate", function(req, res, next) {
     res.send({
       status: "failure",
       message: "Failure: Malformed file.",
-      body: {}
+      body: {},
     });
   }
 
   makeNewGeodatasetTable(
     req.body.name,
-    function(result) {
+    function (result) {
       let checkEnding = result.table.split("_");
       if (checkEnding[checkEnding.length - 1] !== "geodatasets") {
         logger("error", "Malformed table name.", req.originalUrl, req);
         res.send({
           status: "failed",
-          message: "Malformed table name"
+          message: "Malformed table name",
         });
         return;
       }
@@ -328,22 +328,26 @@ router.post("/recreate", function(req, res, next) {
       sequelize
         .query("TRUNCATE TABLE " + result.table + " RESTART IDENTITY")
         .then(() => {
-          populateGeodatasetTable(result.tableObj, features, function(success) {
-            res.send({
-              status: success == true ? "success" : "failure",
-              message: "",
-              body: {}
-            });
-          });
+          populateGeodatasetTable(
+            result.tableObj,
+            features,
+            function (success) {
+              res.send({
+                status: success == true ? "success" : "failure",
+                message: "",
+                body: {},
+              });
+            }
+          );
 
           return null;
         })
-        .catch(err => {
+        .catch((err) => {
           logger("error", "Recreation error.", req.originalUrl, req, err);
           res.send(result);
         });
     },
-    function(result) {
+    function (result) {
       res.send(result);
     }
   );
@@ -358,17 +362,17 @@ router.post("/recreate", function(req, res, next) {
         geom: {
           crs: { type: "name", properties: { name: "EPSG:4326" } },
           type: features[i].geometry.type,
-          coordinates: features[i].geometry.coordinates
-        }
+          coordinates: features[i].geometry.coordinates,
+        },
       });
     }
 
     Table.bulkCreate(rows, { returning: true })
-      .then(function(response) {
+      .then(function (response) {
         cb(true);
         return null;
       })
-      .catch(function(err) {
+      .catch(function (err) {
         logger(
           "error",
           "Geodatasets: Failed to populate a geodataset table!",
