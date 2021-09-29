@@ -9,7 +9,8 @@
                 "Polygon_2_Alias",
                 "Polygon_3_Alias",
                 "Line_Alias",
-                "Point_Alias"
+                "Point_Alias",
+                "All_Alias"
             ],
             "preferredTags": ["preferredTagA", "example1"],
             "hoverLengthOnLines": false

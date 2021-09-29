@@ -307,10 +307,10 @@ var DrawTool = {
         'all',
     ],
     intentOrder: [
-        'all',
         'roi',
         'campaign',
         'campsite',
+        'all',
         'trail',
         'signpost',
         'note',
@@ -377,7 +377,6 @@ var DrawTool = {
             opacity: 1,
             fontSize: '18px',
         },
-
         all: {
             color: 'rgb(255, 255, 255)',
             radius: 2,
@@ -419,11 +418,11 @@ var DrawTool = {
         },
         arrow: {
             color: 'rgb(0, 0, 0)',
-            radius: 30, //used as arrowhead limb pixel length
+            radius: 20, //used as arrowhead limb pixel length
             fillColor: 'rgb(255, 255, 255)',
-            width: 8, //width of line
+            width: 4, //width of line
             length: 'Full', //length of line body
-            weight: 2, //outline
+            weight: 4, //outline
             opacity: 1,
             fillOpacity: 1,
             dashArray: '',
@@ -450,6 +449,8 @@ var DrawTool = {
                 this.intentNameMapping.trail = this.vars.intents[3]
             if (this.vars.intents[4])
                 this.intentNameMapping.signpost = this.vars.intents[4]
+            if (this.vars.intents[5])
+                this.intentNameMapping.all = this.vars.intents[5]
         }
 
         //Bring in other scripts
