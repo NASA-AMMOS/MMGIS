@@ -234,6 +234,7 @@ var L_ = {
                     let hadToMake = false
                     if (L_.layersGroup[s.name] === false) {
                         await L_.Map_.makeLayer(s, true)
+                        Description.updateInfo()
                         hadToMake = true
                     }
                     if (L_.layersGroup[s.name]) {

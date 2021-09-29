@@ -89,6 +89,7 @@ var Description = {
         for (let layer in this.L_.layersNamed) {
             let l = this.L_.layersNamed[layer]
             if (
+                this.L_.layersGroup[layer] &&
                 l.hasOwnProperty('variables') &&
                 l.variables.hasOwnProperty('info') &&
                 l.variables.info.hasOwnProperty('length')
