@@ -240,8 +240,10 @@ var L_ = {
                     if (L_.layersGroup[s.name]) {
                         if (!hadToMake) {
                             // Refresh annotation popups
-                            Object.keys(L_.layersGroup[s.name]._layers).forEach(
-                                (key) => {
+                            if (L_.layersGroup[s.name]._layers)
+                                Object.keys(
+                                    L_.layersGroup[s.name]._layers
+                                ).forEach((key) => {
                                     const l =
                                         L_.layersGroup[s.name]._layers[key]
                                     if (l._isAnnotation) {
@@ -253,8 +255,7 @@ var L_ = {
                                                 l._annotationParams.id1
                                             )
                                     }
-                                }
-                            )
+                                })
                         }
                         L_.Map_.map.addLayer(L_.layersGroup[s.name])
                         L_.layersGroup[s.name].setZIndex(
