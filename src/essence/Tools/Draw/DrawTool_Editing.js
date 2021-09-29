@@ -516,7 +516,7 @@ var Editing = {
         "<div class='drawToolContextMenuHeader'>",
         "<div class='flexbetween'>",
             "<div class='flexbetween'>",
-            "<div class='drawToolContextMenuHeaderName " + titleClass + "''>" + title + "</div>",
+            "<div class='drawToolContextMenuHeaderName " + titleClass + "'>" + F_.sanitize(title) + "</div>",
             "<div class='drawToolContextMenuHeaderCount " + countClass + "'>",
                 "<span>x" + DrawTool.contextMenuLayers.length + "</span>", 
             "</div>",
@@ -526,8 +526,8 @@ var Editing = {
             "</div>",
         "</div>",
         "<div class='drawToolContextMenuHeader1 flexbetween'>",
-            "<div class='drawToolContextMenuHeaderOwner'>by <span>" + file.file_owner + "</span></div>",
-            "<div class='drawToolContextMenuHeaderFile'>from<span>" + file.file_name + "</span></div>",
+            "<div class='drawToolContextMenuHeaderOwner'>by <span>" + F_.sanitize(file.file_owner) + "</span></div>",
+            "<div class='drawToolContextMenuHeaderFile'>from<span>" + F_.sanitize(file.file_name) + "</span></div>",
         "</div>",
         "</div>",
 
@@ -548,7 +548,7 @@ var Editing = {
                 "<div class='drawToolContextMenuProperties'>",
                     "<div class='drawToolContextMenuPropertiesName flexbetween'>",
                         "<div>Name</div>",
-                        "<input id='drawToolContextMenuPropertiesName' style='width: 220px;' type='text' value='" + defaultName + "'/>",
+                        "<input id='drawToolContextMenuPropertiesName' style='width: 220px;' type='text' value='" + F_.sanitize(defaultName) + "'/>",
                     "</div>",
                     "<div class='drawToolContextMenuPropertiesDescription flexbetween'>",
                         "<div>Description</div>",
@@ -928,13 +928,16 @@ var Editing = {
                 L_.layersGroup[l.l_i_f.layer][l.l_i_f.index] != null &&
                 l.properties.arrow == true
             ) {
-                DrawTool.addArrowToMap(
+                L_.addArrowToMap(
                     l.l_i_f.layer,
                     l.shape.start,
                     l.shape.end,
                     l.properties.style,
                     l.shape.feature,
-                    l.l_i_f.index
+                    l.l_i_f.index,
+                    () => {
+                        DrawTool.populateShapes()
+                    }
                 )
             } else {
                 DrawTool.contextMenuLayer.resetGeoJSON()
@@ -1094,13 +1097,16 @@ var Editing = {
                                 s.feature.properties.style
                             )
                             style = setProperties({ style: style }).style
-                            DrawTool.addArrowToMap(
+                            L_.addArrowToMap(
                                 lif.layer,
                                 s.start,
                                 s.end,
                                 style,
                                 s.feature,
-                                lif.index
+                                lif.index,
+                                () => {
+                                    DrawTool.populateShapes()
+                                }
                             )
                         }
                     }
@@ -1183,13 +1189,16 @@ var Editing = {
                                 s.feature.properties.style
                             )
                             style = setProperties({ style: style }).style
-                            DrawTool.addArrowToMap(
+                            L_.addArrowToMap(
                                 lif.layer,
                                 s.start,
                                 s.end,
                                 style,
                                 s.feature,
-                                lif.index
+                                lif.index,
+                                () => {
+                                    DrawTool.populateShapes()
+                                }
                             )
                         }
                     }
@@ -1241,13 +1250,16 @@ var Editing = {
                                 s.feature.properties.style
                             )
                             style = setProperties({ style: style }).style
-                            DrawTool.addArrowToMap(
+                            L_.addArrowToMap(
                                 lif.layer,
                                 s.start,
                                 s.end,
                                 style,
                                 s.feature,
-                                lif.index
+                                lif.index,
+                                () => {
+                                    DrawTool.populateShapes()
+                                }
                             )
                         }
                     }
@@ -1320,13 +1332,16 @@ var Editing = {
                                 s.feature.properties.style
                             )
                             style = setProperties({ style: style }).style
-                            DrawTool.addArrowToMap(
+                            L_.addArrowToMap(
                                 lif.layer,
                                 s.start,
                                 s.end,
                                 style,
                                 s.feature,
-                                lif.index
+                                lif.index,
+                                () => {
+                                    DrawTool.populateShapes()
+                                }
                             )
                         }
                     }
@@ -1414,13 +1429,16 @@ var Editing = {
                                 s.feature.properties.style
                             )
                             style = setProperties({ style: style }).style
-                            DrawTool.addArrowToMap(
+                            L_.addArrowToMap(
                                 lif.layer,
                                 s.start,
                                 s.end,
                                 style,
                                 s.feature,
-                                lif.index
+                                lif.index,
+                                () => {
+                                    DrawTool.populateShapes()
+                                }
                             )
                         }
                     }
@@ -1503,13 +1521,16 @@ var Editing = {
                                 s.feature.properties.style
                             )
                             style = setProperties({ style: style }).style
-                            DrawTool.addArrowToMap(
+                            L_.addArrowToMap(
                                 lif.layer,
                                 s.start,
                                 s.end,
                                 style,
                                 s.feature,
-                                lif.index
+                                lif.index,
+                                () => {
+                                    DrawTool.populateShapes()
+                                }
                             )
                         }
                     }
@@ -1589,13 +1610,16 @@ var Editing = {
                                 s.feature.properties.style
                             )
                             style = setProperties({ style: style }).style
-                            DrawTool.addArrowToMap(
+                            L_.addArrowToMap(
                                 lif.layer,
                                 s.start,
                                 s.end,
                                 style,
                                 s.feature,
-                                lif.index
+                                lif.index,
+                                () => {
+                                    DrawTool.populateShapes()
+                                }
                             )
                         }
                     }
@@ -1649,13 +1673,16 @@ var Editing = {
                                 s.feature.properties.style
                             )
                             style = setProperties({ style: style }).style
-                            DrawTool.addArrowToMap(
+                            L_.addArrowToMap(
                                 lif.layer,
                                 s.start,
                                 s.end,
                                 style,
                                 s.feature,
-                                lif.index
+                                lif.index,
+                                () => {
+                                    DrawTool.populateShapes()
+                                }
                             )
                         }
                     }
@@ -1705,13 +1732,16 @@ var Editing = {
                                 s.feature.properties.style
                             )
                             style = setProperties({ style: style }).style
-                            DrawTool.addArrowToMap(
+                            L_.addArrowToMap(
                                 lif.layer,
                                 s.start,
                                 s.end,
                                 style,
                                 s.feature,
-                                lif.index
+                                lif.index,
+                                () => {
+                                    DrawTool.populateShapes()
+                                }
                             )
                         }
                     }
@@ -1763,13 +1793,16 @@ var Editing = {
                                 s.feature.properties.style
                             )
                             style = setProperties({ style: style }).style
-                            DrawTool.addArrowToMap(
+                            L_.addArrowToMap(
                                 lif.layer,
                                 s.start,
                                 s.end,
                                 style,
                                 s.feature,
-                                lif.index
+                                lif.index,
+                                () => {
+                                    DrawTool.populateShapes()
+                                }
                             )
                         }
                     }
@@ -1821,13 +1854,16 @@ var Editing = {
                                 s.feature.properties.style
                             )
                             style = setProperties({ style: style }).style
-                            DrawTool.addArrowToMap(
+                            L_.addArrowToMap(
                                 lif.layer,
                                 s.start,
                                 s.end,
                                 style,
                                 s.feature,
-                                lif.index
+                                lif.index,
+                                () => {
+                                    DrawTool.populateShapes()
+                                }
                             )
                         }
                     }

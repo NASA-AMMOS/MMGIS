@@ -70,7 +70,7 @@ var SetOperations = {
             lis.push(
                     [
                         "<li shape_id='" + DrawTool.contextMenuLayers[i].properties._.id + "'>",
-                            "<div>" + DrawTool.contextMenuLayers[i].properties.name + "</div>",
+                            "<div>" + F_.sanitize(DrawTool.contextMenuLayers[i].properties.name) + "</div>",
                             "<div class='drawToolContextMenuTabSOMergeCheckbox'></div>",
                         "</li>"
                     ].join('\n')

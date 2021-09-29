@@ -97,7 +97,6 @@ var Kinds = {
                     true,
                     layerName
                 )
-
                 useInfo(false)
                 break
             default:

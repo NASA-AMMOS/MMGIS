@@ -449,11 +449,15 @@ function interfaceWithMMGIS() {
 
     //Add event functions and whatnot
     //Makes layers clickable on and off
-    $('#layersToolList > li > .title .checkbox').on('click', function () {
+    $('#layersToolList > li > .title .checkbox').on('click', async function () {
         let li = $(this).parent().parent().parent()
-        if (li.attr('type') != 'header') {
-            $(this).toggleClass('on')
-            L_.toggleLayer(L_.layersNamed[li.attr('name')])
+        if (li.attr('type') !== 'header') {
+            $(this).addClass('loading')
+            await L_.toggleLayer(L_.layersNamed[li.attr('name')])
+            $(this).removeClass('loading')
+            if (L_.layersGroup[li.attr('name')]) $(this).toggleClass('on')
+            else if (L_.layersGroup[li.attr('name')] == null)
+                li.addClass('layernotfound')
         }
     })
 

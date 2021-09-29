@@ -1,6 +1,6 @@
 /* @preserve
- * Leaflet 1.6.0+Detached: bd88f73e8ddb90eb945a28bc1de9eb07f7386118.bd88f73, a JS library for interactive maps. http://leafletjs.com
- * (c) 2010-2019 Vladimir Agafonkin, (c) 2010-2011 CloudMade
+ * Leaflet 1.5.1, a JS library for interactive maps. http://leafletjs.com
+ * (c) 2010-2018 Vladimir Agafonkin, (c) 2010-2011 CloudMade
  */
 
 ;(function (global, factory) {
@@ -12,13 +12,18 @@
 })(this, function (exports) {
     'use strict'
 
-    var version = '1.6.0'
+    var version = '1.5.1'
 
     /*
      * @namespace Util
      *
      * Various utility functions, used by Leaflet internally.
      */
+
+    var freeze = Object.freeze
+    Object.freeze = function (obj) {
+        return obj
+    }
 
     // @function extend(dest: Object, src?: Object): Object
     // Merges the properties of the `src` object (or multiple objects) into `dest` object and returns the latter. Has an `L.extend` shortcut.
@@ -133,8 +138,8 @@
     // @function formatNum(num: Number, digits?: Number): Number
     // Returns the number `num` rounded to `digits` decimals, or to 6 decimals by default.
     function formatNum(num, digits) {
-        var pow = Math.pow(10, digits === undefined ? 6 : digits)
-        return Math.round(num * pow) / pow
+        digits = digits === undefined ? 6 : digits
+        return +(Math.round(num + ('e+' + digits)) + ('e-' + digits))
     }
 
     // @function trim(str: String): String
@@ -152,7 +157,7 @@
     // @function setOptions(obj: Object, options: Object): Object
     // Merges the given properties to the `options` of the `obj` object, returning the resulting options. See `Class options`. Has an `L.setOptions` shortcut.
     function setOptions(obj, options) {
-        if (!Object.prototype.hasOwnProperty.call(obj, 'options')) {
+        if (!obj.hasOwnProperty('options')) {
             obj.options = obj.options ? create(obj.options) : {}
         }
         for (var i in options) {
@@ -282,7 +287,8 @@
         }
     }
 
-    var Util = {
+    var Util = (Object.freeze || Object)({
+        freeze: freeze,
         extend: extend,
         create: create,
         bind: bind,
@@ -304,7 +310,7 @@
         cancelFn: cancelFn,
         requestAnimFrame: requestAnimFrame,
         cancelAnimFrame: cancelAnimFrame,
-    }
+    })
 
     // @class Class
     // @aka L.Class
@@ -340,7 +346,7 @@
         // inherit parent's statics
         for (var i in this) {
             if (
-                Object.prototype.hasOwnProperty.call(this, i) &&
+                this.hasOwnProperty(i) &&
                 i !== 'prototype' &&
                 i !== '__super__'
             ) {
@@ -757,7 +763,7 @@
      * map.panBy(L.point(200, 300));
      * ```
      *
-     * Note that `Point` does not inherit from Leaflet's `Class` object,
+     * Note that `Point` does not inherit from Leafet's `Class` object,
      * which means new classes can't inherit from it, and new methods
      * can't be added to it with the `include` function.
      */
@@ -979,7 +985,7 @@
      * otherBounds.intersects([[10, 10], [40, 60]]);
      * ```
      *
-     * Note that `Bounds` does not inherit from Leaflet's `Class` object,
+     * Note that `Bounds` does not inherit from Leafet's `Class` object,
      * which means new classes can't inherit from it, and new methods
      * can't be added to it with the `include` function.
      */
@@ -1165,7 +1171,7 @@
      *
      * Caution: if the area crosses the antimeridian (often confused with the International Date Line), you must specify corners _outside_ the [-180, 180] degrees longitude range.
      *
-     * Note that `LatLngBounds` does not inherit from Leaflet's `Class` object,
+     * Note that `LatLngBounds` does not inherit from Leafet's `Class` object,
      * which means new classes can't inherit from it, and new methods
      * can't be added to it with the `include` function.
      */
@@ -1351,7 +1357,7 @@
             return latIntersects && lngIntersects
         },
 
-        // @method overlaps(otherBounds: LatLngBounds): Boolean
+        // @method overlaps(otherBounds: Bounds): Boolean
         // Returns `true` if the rectangle overlaps the given bounds. Two bounds overlap if their intersection is an area.
         overlaps: function (bounds) {
             bounds = toLatLngBounds(bounds)
@@ -1566,7 +1572,7 @@
      * CRS not defined by default, take a look at the
      * [Proj4Leaflet](https://github.com/kartena/Proj4Leaflet) plugin.
      *
-     * Note that the CRS instances do not inherit from Leaflet's `Class` object,
+     * Note that the CRS instances do not inherit from Leafet's `Class` object,
      * and can't be instantiated. Also, new classes can't inherit from them,
      * and methods can't be added to them with the `include` function.
      */
@@ -1585,18 +1591,11 @@
         // The inverse of `latLngToPoint`. Projects pixel coordinates on a given
         // zoom into geographical coordinates.
         pointToLatLng: function (point, zoom) {
-            console.log('pointToLatLng:', point, zoom)
             var scale = this.scale(zoom),
                 untransformedPoint = this.transformation.untransform(
                     point,
                     scale
                 )
-            console.log(
-                'scale:',
-                scale,
-                'untransformedPoint:',
-                untransformedPoint
-            )
 
             return this.projection.unproject(untransformedPoint)
         },
@@ -1836,15 +1835,6 @@
         // by the given scale. Only accepts actual `L.Point` instances, not arrays.
         untransform: function (point, scale) {
             scale = scale || 1
-            console.log(
-                'UNTRANSFORM',
-                point,
-                scale,
-                this._a,
-                this._b,
-                this._c,
-                this._d
-            )
             return new Point(
                 (point.x / scale - this._b) / this._a,
                 (point.y / scale - this._d) / this._c
@@ -1982,7 +1972,7 @@
     var opera = !!window.opera
 
     // @property chrome: Boolean; `true` for the Chrome browser.
-    var chrome = !edge && userAgentContains('chrome')
+    var chrome = userAgentContains('chrome')
 
     // @property gecko: Boolean; `true` for gecko-based browsers like Firefox.
     var gecko = userAgentContains('gecko') && !webkit && !opera && !ie
@@ -2062,25 +2052,6 @@
         (window.devicePixelRatio ||
             window.screen.deviceXDPI / window.screen.logicalXDPI) > 1
 
-    // @property passiveEvents: Boolean
-    // `true` for browsers that support passive events.
-    var passiveEvents = (function () {
-        var supportsPassiveOption = false
-        try {
-            var opts = Object.defineProperty({}, 'passive', {
-                get: function () {
-                    // eslint-disable-line getter-return
-                    supportsPassiveOption = true
-                },
-            })
-            window.addEventListener('testPassiveEventSupport', falseFn, opts)
-            window.removeEventListener('testPassiveEventSupport', falseFn, opts)
-        } catch (e) {
-            // Errors can safely be ignored since this is only a browser support test.
-        }
-        return supportsPassiveOption
-    })()
-
     // @property canvas: Boolean
     // `true` when the browser supports [`<canvas>`](https://developer.mozilla.org/docs/Web/API/Canvas_API).
     var canvas = (function () {
@@ -2113,7 +2084,7 @@
         return navigator.userAgent.toLowerCase().indexOf(str) >= 0
     }
 
-    var Browser = {
+    var Browser = (Object.freeze || Object)({
         ie: ie,
         ielt9: ielt9,
         edge: edge,
@@ -2141,11 +2112,10 @@
         mobileOpera: mobileOpera,
         mobileGecko: mobileGecko,
         retina: retina,
-        passiveEvents: passiveEvents,
         canvas: canvas,
         svg: svg,
         vml: vml,
-    }
+    })
 
     /*
      * Extends L.DomEvent to provide touch support for Internet Explorer and Windows-based devices.
@@ -2155,9 +2125,13 @@
     var POINTER_MOVE = msPointer ? 'MSPointerMove' : 'pointermove'
     var POINTER_UP = msPointer ? 'MSPointerUp' : 'pointerup'
     var POINTER_CANCEL = msPointer ? 'MSPointerCancel' : 'pointercancel'
+    var TAG_WHITE_LIST = ['INPUT', 'SELECT', 'OPTION']
 
     var _pointers = {}
     var _pointerDocListener = false
+
+    // DomEvent.DoubleTap needs to know about this
+    var _pointersCount = 0
 
     // Provides a touch events wrapper for (ms)pointer events.
     // ref http://www.w3.org/TR/pointerevents/ https://www.w3.org/Bugs/Public/show_bug.cgi?id=22890
@@ -2191,12 +2165,19 @@
 
     function _addPointerStart(obj, handler, id) {
         var onDown = bind(function (e) {
-            // IE10 specific: MsTouch needs preventDefault. See #2000
             if (
-                e.MSPOINTER_TYPE_TOUCH &&
-                e.pointerType === e.MSPOINTER_TYPE_TOUCH
+                e.pointerType !== 'mouse' &&
+                e.MSPOINTER_TYPE_MOUSE &&
+                e.pointerType !== e.MSPOINTER_TYPE_MOUSE
             ) {
-                preventDefault(e)
+                // In IE11, some touch events needs to fire for form controls, or
+                // the controls will stop working. We keep a whitelist of tag names that
+                // need these events. For other target tags, we prevent default on the event.
+                if (TAG_WHITE_LIST.indexOf(e.target.tagName) < 0) {
+                    preventDefault(e)
+                } else {
+                    return
+                }
             }
 
             _handlePointer(e, handler)
@@ -2207,11 +2188,27 @@
 
         // need to keep track of what pointers and how many are active to provide e.touches emulation
         if (!_pointerDocListener) {
-            // we listen document as any drags that end by moving the touch off the screen get fired there
-            document.addEventListener(POINTER_DOWN, _globalPointerDown, true)
-            document.addEventListener(POINTER_MOVE, _globalPointerMove, true)
-            document.addEventListener(POINTER_UP, _globalPointerUp, true)
-            document.addEventListener(POINTER_CANCEL, _globalPointerUp, true)
+            // we listen documentElement as any drags that end by moving the touch off the screen get fired there
+            document.documentElement.addEventListener(
+                POINTER_DOWN,
+                _globalPointerDown,
+                true
+            )
+            document.documentElement.addEventListener(
+                POINTER_MOVE,
+                _globalPointerMove,
+                true
+            )
+            document.documentElement.addEventListener(
+                POINTER_UP,
+                _globalPointerUp,
+                true
+            )
+            document.documentElement.addEventListener(
+                POINTER_CANCEL,
+                _globalPointerUp,
+                true
+            )
 
             _pointerDocListener = true
         }
@@ -2219,6 +2216,7 @@
 
     function _globalPointerDown(e) {
         _pointers[e.pointerId] = e
+        _pointersCount++
     }
 
     function _globalPointerMove(e) {
@@ -2229,6 +2227,7 @@
 
     function _globalPointerUp(e) {
         delete _pointers[e.pointerId]
+        _pointersCount--
     }
 
     function _handlePointer(e, handler) {
@@ -2245,7 +2244,8 @@
         var onMove = function (e) {
             // don't fire touch moves when mouse isn't down
             if (
-                e.pointerType === (e.MSPOINTER_TYPE_MOUSE || 'mouse') &&
+                (e.pointerType === e.MSPOINTER_TYPE_MOUSE ||
+                    e.pointerType === 'mouse') &&
                 e.buttons === 0
             ) {
                 return
@@ -2292,14 +2292,18 @@
             delay = 250
 
         function onTouchStart(e) {
+            var count
+
             if (pointer) {
-                if (!e.isPrimary) {
+                if (!edge || e.pointerType === 'mouse') {
                     return
                 }
-                if (e.pointerType === 'mouse') {
-                    return
-                } // mouse fires native dblclick
-            } else if (e.touches.length > 1) {
+                count = _pointersCount
+            } else {
+                count = e.touches.length
+            }
+
+            if (count > 1) {
                 return
             }
 
@@ -2314,7 +2318,7 @@
         function onTouchEnd(e) {
             if (doubleTap && !touch$$1.cancelBubble) {
                 if (pointer) {
-                    if (e.pointerType === 'mouse') {
+                    if (!edge || e.pointerType === 'mouse') {
                         return
                     }
                     // work around .type being readonly with MSPointer* events
@@ -2340,16 +2344,8 @@
         obj[_pre + _touchend + id] = onTouchEnd
         obj[_pre + 'dblclick' + id] = handler
 
-        obj.addEventListener(
-            _touchstart,
-            onTouchStart,
-            passiveEvents ? { passive: false } : false
-        )
-        obj.addEventListener(
-            _touchend,
-            onTouchEnd,
-            passiveEvents ? { passive: false } : false
-        )
+        obj.addEventListener(_touchstart, onTouchStart, false)
+        obj.addEventListener(_touchend, onTouchEnd, false)
 
         // On some platforms (notably, chrome<55 on win10 + touchscreen + mouse),
         // the browser doesn't fire touchend/pointerup events but does fire
@@ -2365,17 +2361,11 @@
             touchend = obj[_pre + _touchend + id],
             dblclick = obj[_pre + 'dblclick' + id]
 
-        obj.removeEventListener(
-            _touchstart,
-            touchstart,
-            passiveEvents ? { passive: false } : false
-        )
-        obj.removeEventListener(
-            _touchend,
-            touchend,
-            passiveEvents ? { passive: false } : false
-        )
-        obj.removeEventListener('dblclick', dblclick, false)
+        obj.removeEventListener(_touchstart, touchstart, false)
+        obj.removeEventListener(_touchend, touchend, false)
+        if (!edge) {
+            obj.removeEventListener('dblclick', dblclick, false)
+        }
 
         return this
     }
@@ -2700,7 +2690,8 @@
         off(window, 'dragstart', preventDefault)
     }
 
-    var _outlineElement, _outlineStyle
+    var _outlineElement
+    var _outlineStyle
     // @function preventOutline(el: HTMLElement)
     // Makes the [outline](https://developer.mozilla.org/docs/Web/CSS/outline)
     // of the element `el` invisible. Used internally by Leaflet to prevent
@@ -2755,7 +2746,7 @@
         }
     }
 
-    var DomUtil = {
+    var DomUtil = (Object.freeze || Object)({
         TRANSFORM: TRANSFORM,
         TRANSITION: TRANSITION,
         TRANSITION_END: TRANSITION_END,
@@ -2784,7 +2775,7 @@
         restoreOutline: restoreOutline,
         getSizedParentNode: getSizedParentNode,
         getScale: getScale,
-    }
+    })
 
     /*
      * @namespace DomEvent
@@ -2849,19 +2840,6 @@
         return this
     }
 
-    function browserFiresNativeDblClick() {
-        // See https://github.com/w3c/pointerevents/issues/171
-        if (pointer) {
-            return !(edge || safari)
-        }
-    }
-
-    var mouseSubst = {
-        mouseenter: 'mouseover',
-        mouseleave: 'mouseout',
-        wheel: !('onwheel' in window) && 'mousewheel',
-    }
-
     function addOne(obj, type, fn, context) {
         var id = type + stamp(fn) + (context ? '_' + stamp(context) : '')
 
@@ -2881,20 +2859,18 @@
         } else if (
             touch &&
             type === 'dblclick' &&
-            !browserFiresNativeDblClick()
+            addDoubleTapListener &&
+            !(pointer && chrome)
         ) {
+            // Chrome >55 does not need the synthetic dblclicks from addDoubleTapListener
+            // See #5180
             addDoubleTapListener(obj, handler, id)
         } else if ('addEventListener' in obj) {
-            if (
-                type === 'touchstart' ||
-                type === 'touchmove' ||
-                type === 'wheel' ||
-                type === 'mousewheel'
-            ) {
+            if (type === 'mousewheel') {
                 obj.addEventListener(
-                    mouseSubst[type] || type,
+                    'onwheel' in obj ? 'wheel' : 'mousewheel',
                     handler,
-                    passiveEvents ? { passive: false } : false
+                    false
                 )
             } else if (type === 'mouseenter' || type === 'mouseleave') {
                 handler = function (e) {
@@ -2903,9 +2879,18 @@
                         originalHandler(e)
                     }
                 }
-                obj.addEventListener(mouseSubst[type], handler, false)
+                obj.addEventListener(
+                    type === 'mouseenter' ? 'mouseover' : 'mouseout',
+                    handler,
+                    false
+                )
             } else {
-                obj.addEventListener(type, originalHandler, false)
+                if (type === 'click' && android) {
+                    handler = function (e) {
+                        filterClick(e, originalHandler)
+                    }
+                }
+                obj.addEventListener(type, handler, false)
             }
         } else if ('attachEvent' in obj) {
             obj.attachEvent('on' + type, handler)
@@ -2928,11 +2913,28 @@
         } else if (
             touch &&
             type === 'dblclick' &&
-            !browserFiresNativeDblClick()
+            removeDoubleTapListener &&
+            !(pointer && chrome)
         ) {
             removeDoubleTapListener(obj, id)
         } else if ('removeEventListener' in obj) {
-            obj.removeEventListener(mouseSubst[type] || type, handler, false)
+            if (type === 'mousewheel') {
+                obj.removeEventListener(
+                    'onwheel' in obj ? 'wheel' : 'mousewheel',
+                    handler,
+                    false
+                )
+            } else {
+                obj.removeEventListener(
+                    type === 'mouseenter'
+                        ? 'mouseover'
+                        : type === 'mouseleave'
+                        ? 'mouseout'
+                        : type,
+                    handler,
+                    false
+                )
+            }
         } else if ('detachEvent' in obj) {
             obj.detachEvent('on' + type, handler)
         }
@@ -2962,9 +2964,9 @@
     }
 
     // @function disableScrollPropagation(el: HTMLElement): this
-    // Adds `stopPropagation` to the element's `'wheel'` events (plus browser variants).
+    // Adds `stopPropagation` to the element's `'mousewheel'` events (plus browser variants).
     function disableScrollPropagation(el) {
-        addOne(el, 'wheel', stopPropagation)
+        addOne(el, 'mousewheel', stopPropagation)
         return this
     }
 
@@ -3028,7 +3030,7 @@
             : 1
 
     // @function getWheelDelta(ev: DOMEvent): Number
-    // Gets normalized wheel delta from a wheel DOM event, in vertical
+    // Gets normalized wheel delta from a mousewheel DOM event, in vertical
     // pixels scrolled (negative if scrolling down).
     // Events from pointing devices without precise scrolling are mapped to
     // a best guess of 60 pixels.
@@ -3084,7 +3086,32 @@
         return related !== el
     }
 
-    var DomEvent = {
+    var lastClick
+
+    // this is a horrible workaround for a bug in Android where a single touch triggers two click events
+    function filterClick(e, handler) {
+        var timeStamp =
+                e.timeStamp || (e.originalEvent && e.originalEvent.timeStamp),
+            elapsed = lastClick && timeStamp - lastClick
+
+        // are they closer together than 500ms yet more than 100ms?
+        // Android typically triggers them ~300ms apart while multiple listeners
+        // on the same event should be triggered far faster;
+        // or check if click is simulated on the element, and if it is, reject any non-simulated events
+
+        if (
+            (elapsed && elapsed > 100 && elapsed < 500) ||
+            (e.target._simulatedClick && !e._simulated)
+        ) {
+            stop(e)
+            return
+        }
+        lastClick = timeStamp
+
+        handler(e)
+    }
+
+    var DomEvent = (Object.freeze || Object)({
         on: on,
         off: off,
         stopPropagation: stopPropagation,
@@ -3099,7 +3126,7 @@
         isExternalTarget: isExternalTarget,
         addListener: on,
         removeListener: off,
-    }
+    })
 
     /*
      * @class PosAnimation
@@ -3695,7 +3722,7 @@
             return this.flyTo(target.center, target.zoom, options)
         },
 
-        // @method setMaxBounds(bounds: LatLngBounds): this
+        // @method setMaxBounds(bounds: Bounds): this
         // Restricts the map view to the given bounds (see the [maxBounds](#map-maxbounds) option).
         setMaxBounds: function (bounds) {
             bounds = toLatLngBounds(bounds)
@@ -4052,7 +4079,6 @@
         // Destroys the map and clears all related event listeners.
         remove: function () {
             this._initEvents(true)
-            this.off('moveend', this._panInsideMaxBounds)
 
             if (this._containerId !== this._container._leaflet_id) {
                 throw new Error(
@@ -4310,14 +4336,12 @@
         // the CRS origin.
         project: function (latlng, zoom) {
             zoom = zoom === undefined ? this._zoom : zoom
-            console.log('project:pointToLatLng')
             return this.options.crs.latLngToPoint(toLatLng(latlng), zoom)
         },
 
         // @method unproject(point: Point, zoom: Number): LatLng
         // Inverse of [`project`](#map-project).
         unproject: function (point, zoom) {
-            console.log('unproject:pointToLatLng', point)
             zoom = zoom === undefined ? this._zoom : zoom
             return this.options.crs.pointToLatLng(toPoint(point), zoom)
         },
@@ -4326,7 +4350,6 @@
         // Given a pixel coordinate relative to the [origin pixel](#map-getpixelorigin),
         // returns the corresponding geographical coordinate (for the current zoom level).
         layerPointToLatLng: function (point) {
-            console.log('layerPointToLatLng', point, this.getPixelOrigin())
             var projectedPoint = toPoint(point).add(this.getPixelOrigin())
             return this.unproject(projectedPoint)
         },
@@ -4496,10 +4519,10 @@
             // Pane for `GridLayer`s and `TileLayer`s
             this.createPane('tilePane')
             // @pane overlayPane: HTMLElement = 400
-            // Pane for overlay shadows (e.g. `Marker` shadows)
+            // Pane for vectors (`Path`s, like `Polyline`s and `Polygon`s), `ImageOverlay`s and `VideoOverlay`s
             this.createPane('shadowPane')
             // @pane shadowPane: HTMLElement = 500
-            // Pane for vectors (`Path`s, like `Polyline`s and `Polygon`s), `ImageOverlay`s and `VideoOverlay`s
+            // Pane for overlay shadows (e.g. `Marker` shadows)
             this.createPane('overlayPane')
             // @pane markerPane: HTMLElement = 600
             // Pane for `Icon`s of `Marker`s
@@ -5058,25 +5081,26 @@
                 this
             )
 
-            this.on('load moveend', this._animMoveEnd, this)
+            this.on(
+                'load moveend',
+                function () {
+                    var c = this.getCenter(),
+                        z = this.getZoom()
+                    setTransform(
+                        this._proxy,
+                        this.project(c, z),
+                        this.getZoomScale(z, 1)
+                    )
+                },
+                this
+            )
 
             this._on('unload', this._destroyAnimProxy, this)
         },
 
         _destroyAnimProxy: function () {
             remove(this._proxy)
-            this.off('load moveend', this._animMoveEnd, this)
             delete this._proxy
-        },
-
-        _animMoveEnd: function () {
-            var c = this.getCenter(),
-                z = this.getZoom()
-            setTransform(
-                this._proxy,
-                this.project(c, z),
-                this.getZoomScale(z, 1)
-            )
         },
 
         _catchTransitionEnd: function (e) {
@@ -5143,7 +5167,6 @@
                 addClass(this._mapPane, 'leaflet-zoom-anim')
             }
 
-            // @section Other Events
             // @event zoomanim: ZoomAnimEvent
             // Fired at least once per zoom animation. For continuous zoom, like pinch zooming, fired once per frame during zoom.
             this.fire('zoomanim', {
@@ -5685,11 +5708,11 @@
             // @namespace Map
             // @section Layer events
             // @event baselayerchange: LayersControlEvent
-            // Fired when the base layer is changed through the [layers control](#control-layers).
+            // Fired when the base layer is changed through the [layer control](#control-layers).
             // @event overlayadd: LayersControlEvent
-            // Fired when an overlay is selected through the [layers control](#control-layers).
+            // Fired when an overlay is selected through the [layer control](#control-layers).
             // @event overlayremove: LayersControlEvent
-            // Fired when an overlay is deselected through the [layers control](#control-layers).
+            // Fired when an overlay is deselected through the [layer control](#control-layers).
             // @namespace Control.Layers
             var type = obj.overlay
                 ? e.type === 'add'
@@ -5834,7 +5857,7 @@
     })
 
     // @factory L.control.layers(baselayers?: Object, overlays?: Object, options?: Control.Layers options)
-    // Creates a layers control with the given layers. Base layers will be switched with radio buttons, while overlays will be switched with checkboxes. Note that all base layers should be passed in the base layers object, but only one should be added to the map during map instantiation.
+    // Creates an attribution control with the given layers. Base layers will be switched with radio buttons, while overlays will be switched with checkboxes. Note that all base layers should be passed in the base layers object, but only one should be added to the map during map instantiation.
     var layers = function (baseLayers, overlays, options) {
         return new Layers(baseLayers, overlays, options)
     }
@@ -6265,9 +6288,9 @@
     control.attribution = attribution
 
     /*
-  	L.Handler is a base class for handler classes that are used internally to inject
-  	interaction features like dragging to classes like Map and Marker.
-  */
+	L.Handler is a base class for handler classes that are used internally to inject
+	interaction features like dragging to classes like Map and Marker.
+*/
 
     // @class Handler
     // @aka L.Handler
@@ -6517,7 +6540,7 @@
                 // if necessary
                 if (
                     window.SVGElementInstance &&
-                    this._lastTarget instanceof window.SVGElementInstance
+                    this._lastTarget instanceof SVGElementInstance
                 ) {
                     this._lastTarget = this._lastTarget.correspondingUseElement
                 }
@@ -6851,7 +6874,7 @@
         return isFlat(latlngs)
     }
 
-    var LineUtil = {
+    var LineUtil = (Object.freeze || Object)({
         simplify: simplify,
         pointToSegmentDistance: pointToSegmentDistance,
         closestPointOnSegment: closestPointOnSegment,
@@ -6861,7 +6884,7 @@
         _sqClosestPointOnSegment: _sqClosestPointOnSegment,
         isFlat: isFlat,
         _flat: _flat,
-    }
+    })
 
     /*
      * @namespace PolyUtil
@@ -6922,9 +6945,9 @@
         return points
     }
 
-    var PolyUtil = {
+    var PolyUtil = (Object.freeze || Object)({
         clipPolygon: clipPolygon,
-    }
+    })
 
     /*
      * @namespace Projection
@@ -7007,33 +7030,33 @@
     }
 
     /*
-   * @class Projection
+ * @class Projection
 
-   * An object with methods for projecting geographical coordinates of the world onto
-   * a flat surface (and back). See [Map projection](http://en.wikipedia.org/wiki/Map_projection).
+ * An object with methods for projecting geographical coordinates of the world onto
+ * a flat surface (and back). See [Map projection](http://en.wikipedia.org/wiki/Map_projection).
 
-   * @property bounds: Bounds
-   * The bounds (specified in CRS units) where the projection is valid
+ * @property bounds: Bounds
+ * The bounds (specified in CRS units) where the projection is valid
 
-   * @method project(latlng: LatLng): Point
-   * Projects geographical coordinates into a 2D point.
-   * Only accepts actual `L.LatLng` instances, not arrays.
+ * @method project(latlng: LatLng): Point
+ * Projects geographical coordinates into a 2D point.
+ * Only accepts actual `L.LatLng` instances, not arrays.
 
-   * @method unproject(point: Point): LatLng
-   * The inverse of `project`. Projects a 2D point into a geographical location.
-   * Only accepts actual `L.Point` instances, not arrays.
+ * @method unproject(point: Point): LatLng
+ * The inverse of `project`. Projects a 2D point into a geographical location.
+ * Only accepts actual `L.Point` instances, not arrays.
 
-   * Note that the projection instances do not inherit from Leaflet's `Class` object,
-   * and can't be instantiated. Also, new classes can't inherit from them,
-   * and methods can't be added to them with the `include` function.
+ * Note that the projection instances do not inherit from Leafet's `Class` object,
+ * and can't be instantiated. Also, new classes can't inherit from them,
+ * and methods can't be added to them with the `include` function.
 
-   */
+ */
 
-    var index = {
+    var index = (Object.freeze || Object)({
         LonLat: LonLat,
         Mercator: Mercator,
         SphericalMercator: SphericalMercator,
-    }
+    })
 
     /*
      * @namespace CRS
@@ -7166,10 +7189,6 @@
 
         // @method removeFrom(map: Map): this
         // Removes the layer from the given map
-        //
-        // @alternative
-        // @method removeFrom(group: LayerGroup): this
-        // Removes the layer from the given `LayerGroup`
         removeFrom: function (obj) {
             if (obj) {
                 obj.removeLayer(this)
@@ -7484,12 +7503,11 @@
         // @method hasLayer(id: Number): Boolean
         // Returns `true` if the given internal ID is currently added to the group.
         hasLayer: function (layer) {
-            if (!layer) {
-                return false
-            }
-            var layerId =
-                typeof layer === 'number' ? layer : this.getLayerId(layer)
-            return layerId in this._layers
+            return (
+                !!layer &&
+                (layer in this._layers ||
+                    this.getLayerId(layer) in this._layers)
+            )
         },
 
         // @method clearLayers(): this
@@ -7660,10 +7678,10 @@
         },
     })
 
-    // @factory L.featureGroup(layers?: Layer[], options?: Object)
-    // Create a feature group, optionally given an initial set of layers and an `options` object.
-    var featureGroup = function (layers, options) {
-        return new FeatureGroup(layers, options)
+    // @factory L.featureGroup(layers: Layer[])
+    // Create a feature group, optionally given an initial set of layers.
+    var featureGroup = function (layers) {
+        return new FeatureGroup(layers)
     }
 
     /*
@@ -8010,11 +8028,7 @@
             // Fired when the marker starts moving (because of dragging).
 
             this._oldLatLng = this._marker.getLatLng()
-
-            // When using ES6 imports it could not be set when `Popup` was not imported as well
-            this._marker.closePopup && this._marker.closePopup()
-
-            this._marker.fire('movestart').fire('dragstart')
+            this._marker.closePopup().fire('movestart').fire('dragstart')
         },
 
         _onPreDrag: function (e) {
@@ -8117,7 +8131,7 @@
             // `Map pane` where the markers icon will be added.
             pane: 'markerPane',
 
-            // @option shadowPane: String = 'shadowPane'
+            // @option pane: String = 'shadowPane'
             // `Map pane` where the markers shadow will be added.
             shadowPane: 'shadowPane',
 
@@ -8341,9 +8355,7 @@
         },
 
         _setPos: function (pos) {
-            if (this._icon) {
-                setPosition(this._icon, pos)
-            }
+            setPosition(this._icon, pos)
 
             if (this._shadow) {
                 setPosition(this._shadow, pos)
@@ -8355,9 +8367,7 @@
         },
 
         _updateZIndex: function (offset) {
-            if (this._icon) {
-                this._icon.style.zIndex = this._zIndex + offset
-            }
+            this._icon.style.zIndex = this._zIndex + offset
         },
 
         _animateZoom: function (opt) {
@@ -8543,11 +8553,7 @@
             setOptions(this, style)
             if (this._renderer) {
                 this._renderer._updateStyle(this)
-                if (
-                    this.options.stroke &&
-                    style &&
-                    Object.prototype.hasOwnProperty.call(style, 'weight')
-                ) {
+                if (this.options.stroke && style.hasOwnProperty('weight')) {
                     this._updateBounds()
                 }
             }
@@ -8619,16 +8625,9 @@
         // @method setLatLng(latLng: LatLng): this
         // Sets the position of a circle marker to a new location.
         setLatLng: function (latlng) {
-            var oldLatLng = this._latlng
             this._latlng = toLatLng(latlng)
             this.redraw()
-
-            // @event move: Event
-            // Fired when the marker is moved via [`setLatLng`](#circlemarker-setlatlng). Old and new coordinates are included in event arguments as `oldLatLng`, `latlng`.
-            return this.fire('move', {
-                oldLatLng: oldLatLng,
-                latlng: this._latlng,
-            })
+            return this.fire('move', { latlng: this._latlng })
         },
 
         // @method getLatLng(): LatLng
@@ -8982,7 +8981,7 @@
             return this._bounds
         },
 
-        // @method addLatLng(latlng: LatLng, latlngs?: LatLng[]): this
+        // @method addLatLng(latlng: LatLng, latlngs? LatLng[]): this
         // Adds a given point to the polyline. By default, adds to the first ring of
         // the polyline in case of a multi-polyline, but can be overridden by passing
         // a specific ring as a LatLng array (that you can earlier access with [`getLatLngs`](#polyline-getlatlngs)).
@@ -9464,9 +9463,6 @@
          * @option coordsToLatLng: Function = *
          * A `Function` that will be used for converting GeoJSON coordinates to `LatLng`s.
          * The default is the `coordsToLatLng` static method.
-         *
-         * @option markersInheritOptions: Boolean = false
-         * Whether default Markers for "Point" type Features inherit from group options.
          */
 
         initialize: function (geojson, options) {
@@ -9525,13 +9521,9 @@
             return this.addLayer(layer)
         },
 
-        // @method resetStyle( <Path> layer? ): this
+        // @method resetStyle( <Path> layer ): this
         // Resets the given vector layer's style to the original GeoJSON style, useful for resetting style after hover events.
-        // If `layer` is omitted, the style of all features in the current layer is reset.
         resetStyle: function (layer) {
-            if (layer === undefined) {
-                return this.eachLayer(this.resetStyle, this)
-            }
             // reset any custom styles
             layer.options = extend({}, layer.defaultOptions)
             this._setLayerStyle(layer, this.options.style)
@@ -9582,13 +9574,17 @@
         switch (geometry.type) {
             case 'Point':
                 latlng = _coordsToLatLng(coords)
-                return _pointToLayer(pointToLayer, geojson, latlng, options)
+                return pointToLayer
+                    ? pointToLayer(geojson, latlng)
+                    : new Marker(latlng)
 
             case 'MultiPoint':
                 for (i = 0, len = coords.length; i < len; i++) {
                     latlng = _coordsToLatLng(coords[i])
                     layers.push(
-                        _pointToLayer(pointToLayer, geojson, latlng, options)
+                        pointToLayer
+                            ? pointToLayer(geojson, latlng)
+                            : new Marker(latlng)
                     )
                 }
                 return new FeatureGroup(layers)
@@ -9631,15 +9627,6 @@
             default:
                 throw new Error('Invalid GeoJSON object.')
         }
-    }
-
-    function _pointToLayer(pointToLayerFn, geojson, latlng, options) {
-        return pointToLayerFn
-            ? pointToLayerFn(geojson, latlng)
-            : new Marker(
-                  latlng,
-                  options && options.markersInheritOptions && options
-              )
     }
 
     // @function coordsToLatLng(coords: Array): LatLng
@@ -9742,7 +9729,6 @@
     }
 
     // @namespace Marker
-    // @section Other methods
     // @method toGeoJSON(precision?: Number): Object
     // `precision` is the number of decimal places for coordinates.
     // The default value is 6 places.
@@ -10195,10 +10181,6 @@
             // Whether the video will save aspect ratio after the projection.
             // Relevant for supported browsers. Browser compatibility- https://developer.mozilla.org/en-US/docs/Web/CSS/object-fit
             keepAspectRatio: true,
-
-            // @option muted: Boolean = false
-            // Whether the video starts on mute when loaded.
-            muted: false,
         },
 
         _initImage: function () {
@@ -10210,9 +10192,6 @@
             addClass(vid, 'leaflet-image-layer')
             if (this._zoomAnimated) {
                 addClass(vid, 'leaflet-zoom-animated')
-            }
-            if (this.options.className) {
-                addClass(vid, this.options.className)
             }
 
             vid.onselectstart = falseFn
@@ -10239,13 +10218,12 @@
 
             if (
                 !this.options.keepAspectRatio &&
-                Object.prototype.hasOwnProperty.call(vid.style, 'objectFit')
+                vid.style.hasOwnProperty('objectFit')
             ) {
                 vid.style['objectFit'] = 'fill'
             }
             vid.autoplay = !!this.options.autoplay
             vid.loop = !!this.options.loop
-            vid.muted = !!this.options.muted
             for (var i = 0; i < this._url.length; i++) {
                 var source = create$1('source')
                 source.src = this._url[i]
@@ -10278,12 +10256,9 @@
      * @example
      *
      * ```js
-     * var svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-     * svgElement.setAttribute('xmlns', "http://www.w3.org/2000/svg");
-     * svgElement.setAttribute('viewBox', "0 0 200 200");
-     * svgElement.innerHTML = '<rect width="200" height="200"/><rect x="75" y="23" width="50" height="50" style="fill:red"/><rect x="75" y="123" width="50" height="50" style="fill:#0013ff"/>';
-     * var svgElementBounds = [ [ 32, -130 ], [ 13, -100 ] ];
-     * L.svgOverlay(svgElement, svgElementBounds).addTo(map);
+     * var element = '<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><image xlink:href="https://mdn.mozillademos.org/files/6457/mdn_logo_only_color.png" height="200" width="200"/></svg>',
+     * 		 elementBounds = [ [ 32, -130 ], [ 13, -100 ] ];
+     * L.svgOverlay(element, elementBounds).addTo(map);
      * ```
      */
 
@@ -10294,9 +10269,6 @@
             addClass(el, 'leaflet-image-layer')
             if (this._zoomAnimated) {
                 addClass(el, 'leaflet-zoom-animated')
-            }
-            if (this.options.className) {
-                addClass(el, this.options.className)
             }
 
             el.onselectstart = falseFn
@@ -10415,7 +10387,7 @@
         },
 
         // @method getElement: String|HTMLElement
-        // Returns the HTML container of the popup.
+        // Alias for [getContent()](#popup-getcontent)
         getElement: function () {
             return this._container
         },
@@ -10741,9 +10713,9 @@
             ))
             this._contentNode = create$1('div', prefix + '-content', wrapper)
 
-            disableClickPropagation(container)
+            disableClickPropagation(wrapper)
             disableScrollPropagation(this._contentNode)
-            on(container, 'contextmenu', stopPropagation)
+            on(wrapper, 'contextmenu', stopPropagation)
 
             this._tipContainer = create$1(
                 'div',
@@ -11227,9 +11199,7 @@
         _adjustPan: function () {},
 
         _setPosition: function (pos) {
-            var subX,
-                subY,
-                map = this._map,
+            var map = this._map,
                 container = this._container,
                 centerPoint = map.latLngToContainerPoint(map.getCenter()),
                 tooltipPoint = map.layerPointToContainerPoint(pos),
@@ -11240,34 +11210,47 @@
                 anchor = this._getAnchor()
 
             if (direction === 'top') {
-                subX = tooltipWidth / 2
-                subY = tooltipHeight
+                pos = pos.add(
+                    toPoint(
+                        -tooltipWidth / 2 + offset.x,
+                        -tooltipHeight + offset.y + anchor.y,
+                        true
+                    )
+                )
             } else if (direction === 'bottom') {
-                subX = tooltipWidth / 2
-                subY = 0
+                pos = pos.subtract(
+                    toPoint(tooltipWidth / 2 - offset.x, -offset.y, true)
+                )
             } else if (direction === 'center') {
-                subX = tooltipWidth / 2
-                subY = tooltipHeight / 2
-            } else if (direction === 'right') {
-                subX = 0
-                subY = tooltipHeight / 2
-            } else if (direction === 'left') {
-                subX = tooltipWidth
-                subY = tooltipHeight / 2
-            } else if (tooltipPoint.x < centerPoint.x) {
+                pos = pos.subtract(
+                    toPoint(
+                        tooltipWidth / 2 + offset.x,
+                        tooltipHeight / 2 - anchor.y + offset.y,
+                        true
+                    )
+                )
+            } else if (
+                direction === 'right' ||
+                (direction === 'auto' && tooltipPoint.x < centerPoint.x)
+            ) {
                 direction = 'right'
-                subX = 0
-                subY = tooltipHeight / 2
+                pos = pos.add(
+                    toPoint(
+                        offset.x + anchor.x,
+                        anchor.y - tooltipHeight / 2 + offset.y,
+                        true
+                    )
+                )
             } else {
                 direction = 'left'
-                subX = tooltipWidth + (offset.x + anchor.x) * 2
-                subY = tooltipHeight / 2
+                pos = pos.subtract(
+                    toPoint(
+                        tooltipWidth + anchor.x - offset.x,
+                        tooltipHeight / 2 - anchor.y - offset.y,
+                        true
+                    )
+                )
             }
-
-            pos = pos
-                .subtract(toPoint(subX, subY, true))
-                .add(offset)
-                .add(anchor)
 
             removeClass(container, 'leaflet-tooltip-right')
             removeClass(container, 'leaflet-tooltip-left')
@@ -11988,7 +11971,6 @@
             }
 
             for (var z in this._levels) {
-                z = Number(z)
                 if (this._levels[z].el.children.length || z === zoom) {
                     this._levels[z].el.style.zIndex =
                         maxZoom - Math.abs(zoom - z)
@@ -12103,7 +12085,7 @@
         _invalidateAll: function () {
             for (var z in this._levels) {
                 remove(this._levels[z].el)
-                this._onRemoveLevel(Number(z))
+                this._onRemoveLevel(z)
                 delete this._levels[z]
             }
             this._removeAllTiles()
@@ -12193,7 +12175,7 @@
         },
 
         _setView: function (center, zoom, noPrune, noUpdate) {
-            var tileZoom = Math.round(zoom)
+            var tileZoom = this._clampZoom(Math.round(zoom))
             if (
                 (this.options.maxZoom !== undefined &&
                     tileZoom > this.options.maxZoom) ||
@@ -12201,8 +12183,6 @@
                     tileZoom < this.options.minZoom)
             ) {
                 tileZoom = undefined
-            } else {
-                tileZoom = this._clampZoom(tileZoom)
             }
 
             var tileZoomChanged =
@@ -12446,8 +12426,6 @@
                 sePoint = nwPoint.add(tileSize),
                 nw = map.unproject(nwPoint, coords.z),
                 se = map.unproject(sePoint, coords.z)
-            console.log(coords, 'tc2Nw:', nwPoint, nw)
-            console.log(coords, 'tc2Se:', sePoint, se)
             return [nw, se]
         },
 
@@ -12784,15 +12762,15 @@
             }
 
             /*
-  		 Alt tag is set to empty string to keep screen readers from reading URL and for compliance reasons
-  		 http://www.w3.org/TR/WCAG20-TECHS/H67
-  		*/
+		 Alt tag is set to empty string to keep screen readers from reading URL and for compliance reasons
+		 http://www.w3.org/TR/WCAG20-TECHS/H67
+		*/
             tile.alt = ''
 
             /*
-  		 Set role="presentation" to force screen readers to ignore this
-  		 https://www.w3.org/TR/wai-aria/roles#textalternativecomputation
-  		*/
+		 Set role="presentation" to force screen readers to ignore this
+		 https://www.w3.org/TR/wai-aria/roles#textalternativecomputation
+		*/
             tile.setAttribute('role', 'presentation')
 
             tile.src = this.getTileUrl(coords)
@@ -13254,7 +13232,12 @@
         _initContainer: function () {
             var container = (this._container = document.createElement('canvas'))
 
-            on(container, 'mousemove', this._onMouseMove, this)
+            on(
+                container,
+                'mousemove',
+                throttle(this._onMouseMove, 32, this),
+                this
+            )
             on(
                 container,
                 'click dblclick mousedown mouseup contextmenu',
@@ -13450,15 +13433,12 @@
                 var size = bounds.getSize()
                 this._ctx.clearRect(bounds.min.x, bounds.min.y, size.x, size.y)
             } else {
-                this._ctx.save()
-                this._ctx.setTransform(1, 0, 0, 1, 0, 0)
                 this._ctx.clearRect(
                     0,
                     0,
                     this._container.width,
                     this._container.height
                 )
-                this._ctx.restore()
             }
         },
 
@@ -13583,13 +13563,12 @@
 
             for (var order = this._drawFirst; order; order = order.next) {
                 layer = order.layer
-                if (layer.options.interactive && layer._containsPoint(point)) {
-                    if (
-                        !(e.type === 'click' || e.type !== 'preclick') ||
-                        !this._map._draggableMoved(layer)
-                    ) {
-                        clickedLayer = layer
-                    }
+                if (
+                    layer.options.interactive &&
+                    layer._containsPoint(point) &&
+                    !this._map._draggableMoved(layer)
+                ) {
+                    clickedLayer = layer
                 }
             }
             if (clickedLayer) {
@@ -13618,15 +13597,10 @@
                 removeClass(this._container, 'leaflet-interactive')
                 this._fireEvent([layer], e, 'mouseout')
                 this._hoveredLayer = null
-                this._mouseHoverThrottled = false
             }
         },
 
         _handleMouseHover: function (e, point) {
-            if (this._mouseHoverThrottled) {
-                return
-            }
-
             var layer, candidateHoveredLayer
 
             for (var order = this._drawFirst; order; order = order.next) {
@@ -13649,14 +13623,6 @@
             if (this._hoveredLayer) {
                 this._fireEvent([this._hoveredLayer], e)
             }
-
-            this._mouseHoverThrottled = true
-            setTimeout(
-                bind(function () {
-                    this._mouseHoverThrottled = false
-                }, this),
-                32
-            )
         },
 
         _fireEvent: function (layers, e, type) {
@@ -14909,7 +14875,7 @@
     // @namespace Map
     // @section Interaction Options
     Map.mergeOptions({
-        // @section Mouse wheel options
+        // @section Mousewheel options
         // @option scrollWheelZoom: Boolean|String = true
         // Whether the map can be zoomed by using the mouse wheel. If passed `'center'`,
         // it will zoom to the center of the view regardless of where the mouse was.
@@ -14929,13 +14895,13 @@
 
     var ScrollWheelZoom = Handler.extend({
         addHooks: function () {
-            on(this._map._container, 'wheel', this._onWheelScroll, this)
+            on(this._map._container, 'mousewheel', this._onWheelScroll, this)
 
             this._delta = 0
         },
 
         removeHooks: function () {
-            off(this._map._container, 'wheel', this._onWheelScroll, this)
+            off(this._map._container, 'mousewheel', this._onWheelScroll, this)
         },
 
         _onWheelScroll: function (e) {
@@ -15148,7 +15114,7 @@
     // @section Handlers
     // @property tap: Handler
     // Mobile touch hacks (quick tap and touch hold) handler.
-    if (touch && (!pointer || safari)) {
+    if (touch && !pointer) {
         Map.addInitHook('addHandler', 'tap', Tap)
     }
 
@@ -15287,8 +15253,8 @@
             this._zooming = false
             cancelAnimFrame(this._animRequest)
 
-            off(document, 'touchmove', this._onTouchMove, this)
-            off(document, 'touchend', this._onTouchEnd, this)
+            off(document, 'touchmove', this._onTouchMove)
+            off(document, 'touchend', this._onTouchEnd)
 
             // Pinch updates GridLayers' levels only when zoomSnap is off, so zoomSnap becomes noUpdate.
             if (this._map.options.zoomAnimation) {
@@ -15319,6 +15285,8 @@
     Map.ScrollWheelZoom = ScrollWheelZoom
     Map.Tap = Tap
     Map.TouchZoom = TouchZoom
+
+    Object.freeze = freeze
 
     exports.version = version
     exports.Control = Control
