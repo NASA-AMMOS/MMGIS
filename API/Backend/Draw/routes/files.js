@@ -817,6 +817,7 @@ const compile = function (req, res, callback) {
         .spread((results) => {
           let hierarchy = [];
           let intentOrder = ["roi", "campaign", "campsite", "signpost"];
+          let excludeIntents = ["polygon", "line", "point", "text", "arrow"];
           let flatHierarchy = [];
           let issues = [];
           let changes = [];
@@ -826,32 +827,36 @@ const compile = function (req, res, callback) {
             let intersects = [];
             let contains = [];
             let children = [];
-            for (let r = 0; r < results.length; r++) {
-              if (results[r].id == features[f].id) {
-                let childProps = JSON.parse(results[r].associated_properties);
-                if (results[r].association === "intersects") {
-                  intersects.push({
-                    name: childProps.name,
-                    uuid: childProps.uuid,
-                    id: results[r].associated_id,
-                    intent: results[r].associated_intent,
-                  });
-                } else if (results[r].association === "contains") {
-                  contains.push({
-                    name: childProps.name,
-                    uuid: childProps.uuid,
-                    id: results[r].associated_id,
-                    intent: results[r].associated_intent,
-                  });
-                  children.push({
-                    name: childProps.name,
-                    uuid: childProps.uuid,
-                    id: results[r].associated_id,
-                    intent: results[r].associated_intent,
-                  });
+
+            if (!excludeIntents.includes(features[f].intent)) {
+              for (let r = 0; r < results.length; r++) {
+                if (results[r].id == features[f].id) {
+                  let childProps = JSON.parse(results[r].associated_properties);
+                  if (results[r].association === "intersects") {
+                    intersects.push({
+                      name: childProps.name,
+                      uuid: childProps.uuid,
+                      id: results[r].associated_id,
+                      intent: results[r].associated_intent,
+                    });
+                  } else if (results[r].association === "contains") {
+                    contains.push({
+                      name: childProps.name,
+                      uuid: childProps.uuid,
+                      id: results[r].associated_id,
+                      intent: results[r].associated_intent,
+                    });
+                    children.push({
+                      name: childProps.name,
+                      uuid: childProps.uuid,
+                      id: results[r].associated_id,
+                      intent: results[r].associated_intent,
+                    });
+                  }
                 }
               }
             }
+
             let featureProps = JSON.parse(features[f].properties);
             flatHierarchy.push({
               feature: features[f],
@@ -983,28 +988,32 @@ const compile = function (req, res, callback) {
           //Build the root of the trees
           for (let f = 0; f < features.length; f++) {
             let isCovered = false;
-            for (let r = 0; r < results.length; r++) {
-              if (
-                results[r].association === "contains" &&
-                results[r].associated_id == features[f].id
-              ) {
-                isCovered = true;
-                break;
+            if (!excludeIntents.includes(features[f].intent)) {
+              for (let r = 0; r < results.length; r++) {
+                if (
+                  !excludeIntents.includes(results[r].intent) &&
+                  results[r].association === "contains" &&
+                  results[r].associated_id == features[f].id
+                ) {
+                  isCovered = true;
+                  break;
+                }
               }
-            }
-            if (!isCovered) {
-              let featureProps = JSON.parse(features[f].properties);
-              hierarchy.push({
-                intent: features[f].intent,
-                id: features[f].id,
-                name: featureProps.name,
-                uuid: featureProps.uuid,
-                children: {
-                  intersects: [],
-                  contains: [],
-                },
-              });
-              continue;
+
+              if (!isCovered) {
+                let featureProps = JSON.parse(features[f].properties);
+                hierarchy.push({
+                  intent: features[f].intent,
+                  id: features[f].id,
+                  name: featureProps.name,
+                  uuid: featureProps.uuid,
+                  children: {
+                    intersects: [],
+                    contains: [],
+                  },
+                });
+                continue;
+              }
             }
           }
 
@@ -1106,7 +1115,7 @@ const compile = function (req, res, callback) {
               }
             }
 
-            //The Saviorng
+            //The Savioring
             depthTraversalB(hierarchy, 0);
             function depthTraversalB(node, depth) {
               for (let i = 0; i < node.length; i++) {
@@ -1162,6 +1171,8 @@ const compile = function (req, res, callback) {
               let node = flatHierarchy[i];
               let intent = node.intent;
               let props = JSON.parse(node.feature.properties);
+
+              if (excludeIntents.includes(intent)) continue;
 
               //Check for duplicate uuids
               if (props.uuid == null) {

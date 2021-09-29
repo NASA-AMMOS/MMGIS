@@ -9,7 +9,7 @@ import ToolController_ from '../ToolController_/ToolController_'
 import CursorInfo from '../../Ancillary/CursorInfo'
 import Description from '../../Ancillary/Description'
 import QueryURL from '../../Ancillary/QueryURL'
-import Kinds from '../../Tools/Kinds/Kinds'
+import { Kinds } from '../../../pre/tools'
 import DataShaders from '../../Ancillary/DataShaders'
 import calls from '../../../pre/calls'
 import TimeControl from '../../Ancillary/TimeControl'
@@ -343,6 +343,8 @@ let Map_ = {
         for (var i = 0; i < hasIndex.length; i++) {
             Map_.map.addLayer(L_.layersGroup[L_.layersOrdered[hasIndex[i]]])
         }
+
+        enforceVisibilityCutoffs()
     },
     refreshLayer: function (layerObj) {
         // We need to find and remove all points on the map that belong to the layer
@@ -1034,11 +1036,12 @@ async function makeLayer(layerObj, evenIfOff) {
         Object.keys(layer._layers).forEach((idx) => {
             let l = layer._layers[idx]
             if (l.feature?.properties?.arrow === true) {
+                const c = l.feature.geometry.coordinates
                 const savedUseKeyAsName = l.useKeyAsName
                 const savedOptions = l.options
-                const c = l.feature.geometry.coordinates
                 const start = new L.LatLng(c[0][1], c[0][0])
                 const end = new L.LatLng(c[1][1], c[1][0])
+
                 layer._layers[idx] = L_.addArrowToMap(
                     null,
                     start,
@@ -1048,6 +1051,17 @@ async function makeLayer(layerObj, evenIfOff) {
                 )
                 layer._layers[idx].useKeyAsName = savedUseKeyAsName
                 layer._layers[idx].options = savedOptions
+                Object.keys(layer._layers[idx]._layers).forEach((idx2) => {
+                    layer._layers[idx]._layers[idx2].options.layerName =
+                        savedOptions.layerName
+                    layer._layers[idx]._layers[idx2].feature = l.feature
+                    layer._layers[idx]._layers[idx2].useKeyAsName =
+                        savedUseKeyAsName
+                    Map_.onEachFeatureDefault(
+                        l.feature,
+                        layer._layers[idx]._layers[idx2]
+                    )
+                })
             } else if (l.feature?.properties?.annotation === true) {
                 layer._layers[idx] = L_.createAnnotation(
                     l.feature,
@@ -1055,9 +1069,9 @@ async function makeLayer(layerObj, evenIfOff) {
                     layer._layers[idx].options.layerName,
                     idx
                 )
-                layer._layers[idx].feature = l.feature
             }
         })
+
         return layer
     }
 

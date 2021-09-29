@@ -185,11 +185,13 @@ var L_ = {
         if (s.type !== 'header') {
             if (on) {
                 if (L_.Map_.map.hasLayer(L_.layersGroup[s.name])) {
+                    try {
+                        $('.drawToolContextMenuHeaderClose').click()
+                    } catch (err) {}
                     L_.Map_.map.removeLayer(L_.layersGroup[s.name])
                 }
                 L_.Globe_.litho.removeLayer(s.name)
             } else {
-                console.log(s.type)
                 if (s.type === 'tile') {
                     let layerUrl = s.url
                     if (!F_.isUrlAbsolute(layerUrl))
@@ -221,9 +223,30 @@ var L_ = {
                     })
                 } else if (s.type === 'data') {
                 } else {
-                    if (L_.layersGroup[s.name] === false)
+                    let hadToMake = false
+                    if (L_.layersGroup[s.name] === false) {
                         await L_.Map_.makeLayer(s, true)
+                        hadToMake = true
+                    }
                     if (L_.layersGroup[s.name]) {
+                        if (!hadToMake) {
+                            // Refresh annotation popups
+                            Object.keys(L_.layersGroup[s.name]._layers).forEach(
+                                (key) => {
+                                    const l =
+                                        L_.layersGroup[s.name]._layers[key]
+                                    if (l._isAnnotation) {
+                                        L_.layersGroup[s.name]._layers[key] =
+                                            L_.createAnnotation(
+                                                l._annotationParams.feature,
+                                                l._annotationParams.className,
+                                                l._annotationParams.layerId,
+                                                l._annotationParams.id1
+                                            )
+                                    }
+                                }
+                            )
+                        }
                         L_.Map_.map.addLayer(L_.layersGroup[s.name])
                         L_.layersGroup[s.name].setZIndex(
                             L_.layersOrdered.length +
@@ -626,7 +649,6 @@ var L_ = {
     ) {
         if (id2 == null) id2 = 0
 
-        console.log(feature, className, layerId, id1, id2)
         className = className.replace(/ /g, '_')
         //Remove previous annotation if any
         $(`#${className}_${id1}_${id2}`)
@@ -672,16 +694,23 @@ var L_ = {
                     " layer='" + id1 +
                     "' index='" + L_.layersGroup[layerId].length +
                     "' style='" + styleString + "'>" +
-                    `${feature.properties.name.replace(/\W/g, '')}`,
+                    `${feature.properties.name.replace(/[<>;{}]/g, '')}`,
                     '</div>' +
                 '</div>'
             )
+        popup._isAnnotation = true
+        popup._annotationParams = {
+            feature,
+            className,
+            layerId,
+            id1,
+            id2,
+            andAddToMap,
+        }
+        popup.feature = feature
         if (andAddToMap) {
             popup.addTo(L_.Map_.map)
             L_.layersGroup[layerId].push(popup)
-            L_.layersGroup[layerId][
-                L_.layersGroup[layerId].length - 1
-            ].feature = feature
         }
         return popup
     },

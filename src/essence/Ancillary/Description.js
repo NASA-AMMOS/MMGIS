@@ -168,7 +168,11 @@ var Description = {
             },
             80
         )
-        if (activeLayer != null && activeLayer.hasOwnProperty('options')) {
+        if (
+            activeLayer != null &&
+            activeLayer.feature &&
+            activeLayer.hasOwnProperty('options')
+        ) {
             var keyAsName
             var links = "<span style='padding-left: 4px;'></span>"
 
@@ -176,8 +180,8 @@ var Description = {
                 this.L_.layersNamed[activeLayer.options.layerName] &&
                 this.L_.layersNamed[activeLayer.options.layerName].variables
             ) {
-                let v = this.L_.layersNamed[activeLayer.options.layerName]
-                    .variables
+                let v =
+                    this.L_.layersNamed[activeLayer.options.layerName].variables
                 if (v.links) {
                     links = ''
                     for (let i = 0; i < v.links.length; i++) {
