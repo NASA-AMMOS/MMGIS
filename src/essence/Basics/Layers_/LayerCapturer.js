@@ -72,12 +72,17 @@ export const captureVector = (layerObj, options, cb) => {
                         function (data) {
                             data.body.features.sort((a, b) => {
                                 let intentOrder = [
-                                    'all',
+                                    'polygon',
                                     'roi',
                                     'campaign',
                                     'campsite',
+                                    'all',
+                                    'line',
                                     'trail',
+                                    'point',
                                     'signpost',
+                                    'arrow',
+                                    'text',
                                     'note',
                                     'master',
                                 ]

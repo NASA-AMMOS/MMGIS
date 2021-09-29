@@ -305,6 +305,15 @@ var Coordinates = {
                                     Coordinates.elevation != null ? ',Z' : ''
                                 })`
                         )
+                        d3.select('#mouseDescPicking').html(
+                            'Site Frame - ' +
+                                Map_.activeLayer.options.layerName +
+                                ': ' +
+                                keyAsName +
+                                ` (X,Y${
+                                    Coordinates.elevation != null ? ',Z' : ''
+                                })`
+                        )
                         if (!isPartial) {
                             Coordinates.mouseLngLat[0] -=
                                 Map_.activeLayer.feature.geometry.coordinates[0]
@@ -316,6 +325,11 @@ var Coordinates = {
                             0
                     } else {
                         d3.select('#mouseDesc').html(
+                            `Site Frame - Map Origin (X,Y${
+                                Coordinates.elevation != null ? ',Z' : ''
+                            })`
+                        )
+                        d3.select('#mouseDescPicking').html(
                             `Site Frame - Map Origin (X,Y${
                                 Coordinates.elevation != null ? ',Z' : ''
                             })`

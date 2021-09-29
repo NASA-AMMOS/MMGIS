@@ -1035,10 +1035,10 @@ async function makeLayer(layerObj, evenIfOff) {
 
         Object.keys(layer._layers).forEach((idx) => {
             let l = layer._layers[idx]
+            const savedUseKeyAsName = l.useKeyAsName
+            const savedOptions = l.options
             if (l.feature?.properties?.arrow === true) {
                 const c = l.feature.geometry.coordinates
-                const savedUseKeyAsName = l.useKeyAsName
-                const savedOptions = l.options
                 const start = new L.LatLng(c[0][1], c[0][0])
                 const end = new L.LatLng(c[1][1], c[1][0])
 
@@ -1057,6 +1057,8 @@ async function makeLayer(layerObj, evenIfOff) {
                     layer._layers[idx]._layers[idx2].feature = l.feature
                     layer._layers[idx]._layers[idx2].useKeyAsName =
                         savedUseKeyAsName
+                    l.feature.style = l.feature.style || {}
+                    l.feature.style.noclick = true
                     Map_.onEachFeatureDefault(
                         l.feature,
                         layer._layers[idx]._layers[idx2]

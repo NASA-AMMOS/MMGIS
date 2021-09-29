@@ -192,6 +192,14 @@ var L_ = {
                 }
                 L_.Globe_.litho.removeLayer(s.name)
             } else {
+                if (L_.layersGroup[s.name]) {
+                    L_.Map_.map.addLayer(L_.layersGroup[s.name])
+                    L_.layersGroup[s.name].setZIndex(
+                        L_.layersOrdered.length +
+                            1 -
+                            L_.layersOrdered.indexOf(s.name)
+                    )
+                }
                 if (s.type === 'tile') {
                     let layerUrl = s.url
                     if (!F_.isUrlAbsolute(layerUrl))
@@ -712,6 +720,7 @@ var L_ = {
             popup.addTo(L_.Map_.map)
             L_.layersGroup[layerId].push(popup)
         }
+
         return popup
     },
     setLayerOpacity: function (name, newOpacity) {
@@ -779,12 +788,13 @@ var L_ = {
                     this.layersStyles[key] != undefined &&
                     this.layersStyles[key].hasOwnProperty('fillColor')
                 ) {
-                    var fillColor = this.layersStyles[key].fillColor
-                    this.layersGroup[key].eachLayer(function (layer) {
+                    this.layersGroup[key].eachLayer((layer) => {
+                        var fillColor = this.layersStyles[key].fillColor
                         var opacity = layer.options.opacity
                         var fillOpacity = layer.options.fillOpacity
                         var weight = layer.options.weight
-                        L_.layersGroup[key].resetStyle(layer)
+                        if (!layer._isAnnotation)
+                            L_.layersGroup[key].resetStyle(layer)
                         try {
                             layer.setStyle({
                                 opacity: opacity,
