@@ -263,9 +263,8 @@ var L_ = {
                                 1 -
                                 L_.layersOrdered.indexOf(s.name)
                         )
-                        L_.Globe_.litho.addLayer(
-                            s.type === 'vector' ? 'clamped' : s.type,
-                            {
+                        if (s.type === 'vector')
+                            L_.Globe_.litho.addLayer('clamped', {
                                 name: s.name,
                                 order: 1000 - L_.layersIndex[s.name], // Since higher order in litho is on top
                                 on: L_.opacityArray[s.name] ? true : false,
@@ -290,8 +289,7 @@ var L_ = {
                                 opacity: L_.opacityArray[s.name],
                                 minZoom: 0, //s.minZoom,
                                 maxZoom: 100, //s.maxNativeZoom,
-                            }
-                        )
+                            })
                     }
                 }
             }
