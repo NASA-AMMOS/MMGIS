@@ -297,7 +297,7 @@ var Coordinates = {
                             keyAsName = Map_.activeLayer.feature.properties[0]
                         }
                         d3.select('#mouseDesc').html(
-                            'Site Frame - ' +
+                            'Local Level - ' +
                                 Map_.activeLayer.options.layerName +
                                 ': ' +
                                 keyAsName +
@@ -306,7 +306,7 @@ var Coordinates = {
                                 })`
                         )
                         d3.select('#mouseDescPicking').html(
-                            'Site Frame - ' +
+                            'Local Level - ' +
                                 Map_.activeLayer.options.layerName +
                                 ': ' +
                                 keyAsName +
@@ -325,12 +325,12 @@ var Coordinates = {
                             0
                     } else {
                         d3.select('#mouseDesc').html(
-                            `Site Frame - Map Origin (X,Y${
+                            `Local Level - Map Origin (X,Y${
                                 Coordinates.elevation != null ? ',Z' : ''
                             })`
                         )
                         d3.select('#mouseDescPicking').html(
-                            `Site Frame - Map Origin (X,Y${
+                            `Local Level - Map Origin (X,Y${
                                 Coordinates.elevation != null ? ',Z' : ''
                             })`
                         )

@@ -1,6 +1,7 @@
 import $ from 'jquery'
 import F_ from '../Basics/Formulae_/Formulae_'
 //jqueryUI
+import turf from 'turf'
 import * as d3 from 'd3'
 
 import Dropy from '../../external/Dropy/dropy'
@@ -130,7 +131,30 @@ function initializeSearch() {
     $('#auto_search').autocomplete({
         lookup: Search.arrayToSearch,
         lookupLimit: 100,
-        minChars: 2,
+        minChars: 1,
+        transformResult: function (response, originalQuery) {
+            let resultSuggestions = []
+            $.map(response, function (jsonItem) {
+                if (typeof jsonItem != 'string') {
+                    $.map(jsonItem, function (suggestionItem) {
+                        resultSuggestions.push(suggestionItem)
+                    })
+                }
+            })
+            resultSuggestions.sort(function (a, b) {
+                const aStart = String(a.value).match(
+                        new RegExp(originalQuery, 'i')
+                    ) || { index: -1 },
+                    bStart = String(b.value).match(
+                        new RegExp(originalQuery, 'i')
+                    ) || { index: -1 }
+                if (aStart.index != bStart.index)
+                    return aStart.index - bStart.index
+                else return a > b ? 1 : -1
+            })
+            response.suggestions = resultSuggestions
+            return response
+        },
         onSelect: function (event) {
             searchBoth(event.value)
         },
@@ -448,8 +472,10 @@ function getMapZoomCoordinate(layers) {
     var longitudeValidRange = [-180, 180]
 
     for (var i = 0; i < layers.length; i++) {
-        var latitude = layers[i].feature.geometry.coordinates[1]
-        var longitude = layers[i].feature.geometry.coordinates[0]
+        const center = turf.center(layers[0].feature)?.geometry
+            ?.coordinates || [0, 0]
+        var latitude = center[1]
+        var longitude = center[0]
 
         //make sure latitude and longitude are in [-90, 90] and [-180, 180]
         if (
