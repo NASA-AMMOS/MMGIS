@@ -195,6 +195,8 @@ async function changeSearchField(val, selectedPlaceholder) {
         $('#SearchSelect').css({ display: 'inherit' })
         $('#SearchBoth').css({ display: 'inherit' })
 
+        $('#auto_search').val('')
+
         Search.arrayToSearch = []
         let data
         try {
@@ -472,8 +474,8 @@ function getMapZoomCoordinate(layers) {
     var longitudeValidRange = [-180, 180]
 
     for (var i = 0; i < layers.length; i++) {
-        const center = turf.center(layers[0].feature)?.geometry
-            ?.coordinates || [0, 0]
+        const center = turf.center(layers[i].feature)?.geometry
+            ?.coordinates || [-1001, -1001]
         var latitude = center[1]
         var longitude = center[0]
 
