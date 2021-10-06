@@ -693,6 +693,10 @@ body {
     transition: bottom 0.2s ease-in;
 }
 
+.leaflet-popup-annotation > .leaflet-popup-content-wrapper {
+    overflow: visible;
+}
+
 .highlightAnim1 {
     animation-name: highlightAnim1;
     animation-duration: 1.2s;

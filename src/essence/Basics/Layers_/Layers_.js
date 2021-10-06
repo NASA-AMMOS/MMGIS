@@ -676,12 +676,14 @@ var L_ = {
             (s.fillColor != null ? 'color: ' + s.fillColor + '; ' : '') +
             (s.fontSize != null ? 'font-size: ' + s.fontSize + '; ' : '') +
             (s.rotation != null
-                ? 'transform: rotateX)' + s.rotation + 'deg); '
+                ? 'transform: rotateZ(' +
+                  parseInt(!isNaN(s.rotation) ? s.rotation : 0) * -1 +
+                  'deg) translateY(-20%); '
                 : '')
 
         // prettier-ignore
         const popup = L.popup({
-            className: 'leaflet-popup-annotation',
+            className: `leaflet-popup-annotation${!andAddToMap ? ' noPointerEvents' : ''}`,
             closeButton: false,
             autoClose: false,
             closeOnEscapeKey: false,
@@ -696,7 +698,7 @@ var L_ = {
                 )
             )
             .setContent(
-                '<div>' +
+                "<div>" +
                     "<div id='" + className + '_' + id1 + '_' + id2 +
                     "' class='drawToolAnnotation " + className + '_' + id1 + "  blackTextBorder'" +
                     " layer='" + id1 +

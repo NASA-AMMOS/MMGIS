@@ -212,7 +212,7 @@
     padding: 0px 4px;
     margin: 7px 0px 7px 0px;
     height: 30px;
-    width: 70px;
+    width: 80px;
     color: #bbb;
     background: var(--color-a);
 }
@@ -222,7 +222,7 @@
     padding: 0px 4px;
     margin: 7px 0px 7px 0px;
     height: 30px;
-    width: 80px;
+    width: 96px;
     background: var(--color-a);
     color: #ededed;
 }
@@ -1242,7 +1242,7 @@
 }
 
 .drawToolFileInfo {
-    width: 164px;
+    width: 160px;
     cursor: pointer;
     padding-left: 8px;
     white-space: nowrap;
@@ -1755,7 +1755,8 @@
     white-space: nowrap;
     cursor: pointer;
     transform: translateY(-20%);
-    transition: all 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+    transition: all 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95),
+        transform 0s ease-in-out;
 }
 .drawToolAnnotation.highlight {
     color: #7fff00 !important;

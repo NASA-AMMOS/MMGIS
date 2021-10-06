@@ -379,12 +379,12 @@ var Files = {
         }
 
         function addFileToList(file) {
-            var checkState = '-blank-outline'
+            var checkState = ''
             var onState = ' on'
             var shieldState = ''
             var ownedByUser = false
 
-            if (DrawTool.currentFileId == file.id) checkState = '-intermediate'
+            if (DrawTool.currentFileId == file.id) checkState = ' checked'
 
             if (DrawTool.filesOn.indexOf(file.id) == -1) onState = ''
 
@@ -420,7 +420,7 @@ var Files = {
             if (file.is_master) {
                 d3.select('#drawToolDrawFilesListMaster')
                     .append('li')
-                    .attr('class', 'drawToolDrawFilesListElem')
+                    .attr('class', `drawToolDrawFilesListElem${checkState}`)
                     .attr('file_id', file.id)
                     .attr('file_name', file.file_name)
                     .attr('file_owner', file.file_owner)
@@ -441,7 +441,7 @@ var Files = {
             } else {
                 d3.select('#drawToolDrawFilesList')
                     .append('li')
-                    .attr('class', 'drawToolDrawFilesListElem')
+                    .attr('class', `drawToolDrawFilesListElem${checkState}`)
                     .attr('file_id', file.id)
                     .attr('file_name', file.file_name)
                     .attr('file_owner', file.file_owner)

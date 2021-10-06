@@ -185,6 +185,7 @@ var Editing = {
         var hasLineCap = false
         var hasLineJoin = false
         var hasFontSize = false
+        var hasRotation = false
 
         if (DrawTool.contextMenuLayer.feature.properties.arrow === true) {
             //Arrow
@@ -212,6 +213,7 @@ var Editing = {
             hasStrokeWeight = true
             hasFillColor = true
             hasFontSize = true
+            hasRotation = true
         } else if (
             DrawTool.contextMenuLayer.feature.geometry.type.toLowerCase() ===
             'point'
@@ -652,7 +654,7 @@ var Editing = {
                 "<div class='picking strokeweightpick strokeWeightPicker column medium' style='display: " + ( (hasStrokeWeight) ? 'flex' : 'none' ) + "'>",
                 "<div value='0'>None</div>",
                 "<div value='1'><svg width='100%' height='100%'><line x1='0' y1='10' x2='310' y2='10' stroke='#222' stroke-width='1' /></svg></div>",
-                "<div value='2' style='display: " + ( (featureType == 'note') ? 'none' : 'inline' ) + ";'><svg width='100%' height='100%'><line x1='0' y1='10' x2='310' y2='10' stroke='#222' stroke-width='2' /></svg></div>",
+                "<div value='2'><svg width='100%' height='100%'><line x1='0' y1='10' x2='310' y2='10' stroke='#222' stroke-width='2' /></svg></div>",
                 "<div value='4' style='display: " + ( (featureType == 'note') ? 'none' : 'inline' ) + ";'><svg width='100%' height='100%'><line x1='0' y1='10' x2='310' y2='10' stroke='#222' stroke-width='4' /></svg></div>",
                 "<div value='8' style='display: " + ( (featureType == 'note') ? 'none' : 'inline' ) + ";'><svg width='100%' height='100%'><line x1='0' y1='10' x2='310' y2='10' stroke='#222' stroke-width='8' /></svg></div>",
                 "<div value='12' style='display: " + ( (featureType == 'note') ? 'none' : 'inline' ) + ";'><svg width='100%' height='100%'><line x1='0' y1='10' x2='310' y2='10' stroke='#222' stroke-width='12' /></svg></div>",
@@ -743,6 +745,15 @@ var Editing = {
                 "<div>32px</div>",
                 "<div>42px</div>",
                 "<div>54px</div>",
+                "</div>",
+
+
+                "<div class='styleprop flexbetween' style='display: " + ( (hasRotation) ? 'flex' : 'none' ) + "'>",
+                "<div class='flexbetween'>Rotation<div class='drawToolStyleHighlight'></div></div>",
+                "<div v='" + (style.rotation || '0') + "' pick='rotationpick' class='picker rotation stylevalue'>" + (style.rotation || '0') + "deg</div>",
+                "</div>",
+                "<div class='picking rotationpick rotationPicker' style='display: " + ( (hasRotation) ? 'flex' : 'none' ) + "'>",
+                    "<input class='slider3' type='range' min='-90' max='90' step='2' value='" + (style.rotation || 0) + "'/>",
                 "</div>",
             "</div>",
             "</div>",
@@ -916,6 +927,7 @@ var Editing = {
                     updateWidth(l.properties.style.width, l.shape)
 
                     updateFontSize(l.properties.style.fontSize, l.shape)
+                    updateRotation(l.properties.style.rotation, l.shape)
 
                     if (justThis != null) break
                 }
@@ -1930,6 +1942,49 @@ var Editing = {
             else $('.fontsize').prev().css('background', 'inherit')
         }
 
+        //ROTATION
+        $('.rotationpick > input').on('input', function () {
+            const v = $(this).val()
+            updateRotation(v)
+        })
+        function updateRotation(v, layer) {
+            if (v == null) return
+
+            DrawTool.contextMenuChanges.style.rotation = true
+
+            $('.rotation.stylevalue').text(v + 'deg')
+            $('.rotation.stylevalue').attr('v', v)
+
+            for (var c in DrawTool.contextMenuLayers) {
+                var s = DrawTool.contextMenuLayers[c].shape
+                var p = s.feature.properties._
+                $('#DrawToolAnnotation_' + p.file_id + '_' + p.id).css(
+                    'transform',
+                    `rotateZ(${
+                        parseInt(!isNaN(v) ? v : 0) * -1
+                    }deg) translateY(-20%)`
+                )
+            }
+
+            if (properties && v != properties.style.rotation)
+                $('.rotation')
+                    .parent()
+                    .find('.drawToolStyleHighlight')
+                    .css('background', DrawTool.highlightColor)
+            else
+                $('.rotation')
+                    .parent()
+                    .find('.drawToolStyleHighlight')
+                    .css('background', 'inherit')
+
+            //Group change
+            if (!layer && DrawTool.contextMenuChanges.use)
+                $('.rotation')
+                    .prev()
+                    .css('background', DrawTool.highlightGradient)
+            else $('.rotation').prev().css('background', 'inherit')
+        }
+
         //CLOSE
         $('.drawToolContextMenuHeaderClose').on('click', function () {
             if (DrawTool.contextMenuLayer && !displayOnly) {
@@ -2381,6 +2436,14 @@ var Editing = {
                 )
                     .attr('v')
                     .toLowerCase()
+            if (
+                hasRotation &&
+                (force || DrawTool.contextMenuChanges.style.rotation)
+            )
+                newProperties.style.rotation = $(
+                    '.drawToolContextMenu .rotationPicker > input'
+                ).val()
+
             return newProperties
         }
     },

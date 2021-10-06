@@ -25,7 +25,7 @@ let measureToolLayer = null
 let clickedLatLngs = []
 let distLineToMouse = null
 let distMousePoint = null
-let distDisplayUnit = "meters"
+let distDisplayUnit = 'meters'
 let mode = 'segment'
 let steps = 100
 let profileData = []
@@ -126,7 +126,9 @@ const Measure = () => {
                     data={{
                         labels: MeasureTool.lastData.map((d) => {
                             const xAxes = parseInt(d[2], 10)
-                            return distDisplayUnit == 'kilometers' ? (xAxes/1000).toFixed(2) : xAxes
+                            return distDisplayUnit == 'kilometers'
+                                ? (xAxes / 1000).toFixed(2)
+                                : xAxes
                         }),
                         datasets: [
                             {
@@ -187,7 +189,9 @@ const Measure = () => {
                             callbacks: {
                                 label: (item) => `${item.yLabel}m`,
                                 title: (item) =>
-                                    distDisplayUnit == 'meters' ? `${item[0].xLabel}m from start` : `${item[0].xLabel}km from start,`
+                                    distDisplayUnit == 'meters'
+                                        ? `${item[0].xLabel}m from start`
+                                        : `${item[0].xLabel}km from start,`,
                             },
                         },
                         onHover: (e, el, el2) => {
@@ -540,7 +544,7 @@ function makeMeasureToolLayer() {
                 ) / rAm
             if (distAzimuth < 0) distAzimuth = 360 + distAzimuth //Map to 0 to 360 degrees
             if (i == clickedLatLngs.length - 1) {
-                if(distDisplayUnit == 'meters'){
+                if (distDisplayUnit == 'meters') {
                     temp.bindTooltip(
                         '' + roundedTotalDist + 'm ' + distAzimuth + '&deg;',
                         {
@@ -550,9 +554,13 @@ function makeMeasureToolLayer() {
                             offset: [4, 0],
                         }
                     )
-                }else if(distDisplayUnit == "kilometers"){
+                } else if (distDisplayUnit == 'kilometers') {
                     temp.bindTooltip(
-                        '' + (roundedTotalDist/1000).toFixed(2) + 'km ' + distAzimuth + '&deg;',
+                        '' +
+                            (roundedTotalDist / 1000).toFixed(2) +
+                            'km ' +
+                            distAzimuth +
+                            '&deg;',
                         {
                             permanent: true,
                             direction: 'right',
@@ -809,21 +817,31 @@ function makeGhostLine(lng, lat) {
         //distMousePoint.bindTooltip("" + roundedTotalDist + "m\n (+" + roundedDist + "m) " + distAzimuth + "&deg;",
         //  {permanent: true, direction: 'right', className: "distLabel", className: "noPointerEvents", offset: [15,-15]})
         //distMousePoint.addTo(Map_.map);
-        if(distDisplayUnit == 'meters'){
+        if (distDisplayUnit == 'meters') {
             CursorInfo.update(
                 `${roundedTotalDist}m ${
                     mode === 'continuous' ? `(+${roundedDist}m)` : ''
                 } ${distAzimuth}&deg;`,
                 null,
-                false
+                false,
+                null,
+                null,
+                null,
+                true
             )
-        }else if (distDisplayUnit == "kilometers"){
+        } else if (distDisplayUnit == 'kilometers') {
             CursorInfo.update(
-                `${(roundedTotalDist/1000).toFixed(2)}km ${
-                    mode === 'continuous' ? `(+${(roundedDist/1000).toFixed(2)}km)` : ''
+                `${(roundedTotalDist / 1000).toFixed(2)}km ${
+                    mode === 'continuous'
+                        ? `(+${(roundedDist / 1000).toFixed(2)}km)`
+                        : ''
                 } ${distAzimuth}&deg;`,
                 null,
-                false
+                false,
+                null,
+                null,
+                null,
+                true
             )
         }
     }

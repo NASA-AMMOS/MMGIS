@@ -918,6 +918,42 @@ blink {
     cursor: pointer;
 }
 
+/*Slider3*/
+
+.slider3 {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 17px;
+    background: #ccc;
+    border: 1px solid #aaa;
+    border-radius: 8px;
+    outline: none;
+    opacity: 0.8;
+    transition: opacity 0.4s;
+}
+
+.slider3:hover {
+    opacity: 1;
+}
+
+.slider3::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: #111;
+    cursor: pointer;
+}
+
+.slider3::-moz-range-thumb {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: #111;
+    cursor: pointer;
+}
+
 /*=====+==*/
 
 /*Other*/
