@@ -702,7 +702,7 @@ var L_ = {
                     "<div id='" + className + '_' + id1 + '_' + id2 +
                     "' class='drawToolAnnotation " + className + '_' + id1 + "  blackTextBorder'" +
                     " layer='" + id1 +
-                    "' index='" + L_.layersGroup[layerId].length +
+                    (L_.layersGroup[layerId] != null ? "' index='" + L_.layersGroup[layerId].length : '') +
                     "' style='" + styleString + "'>" +
                     `${feature.properties.name.replace(/[<>;{}]/g, '')}`,
                     '</div>' +
