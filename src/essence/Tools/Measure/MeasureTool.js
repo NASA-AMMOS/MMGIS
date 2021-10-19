@@ -280,10 +280,9 @@ let MeasureTool = {
             .off('mousemove', MeasureTool.moveMap)
             .off('mouseout', MeasureTool.mouseOutMap)
 
-        // Globe_.litho
-        //     .getContainer()
-        //     .removeEventListener('click', MeasureTool.clickGlobe)
-        //     .removeEventListener('mousemove', MeasureTool.moveGlobe)
+        const globeCont = Globe_.litho.getContainer()
+        globeCont.removeEventListener('click', MeasureTool.clickGlobe, false)
+        globeCont.removeEventListener('mousemove', MeasureTool.moveGlobe, false)
 
         Viewer_.imageViewerMap.removeHandler(
             'canvas-click',
@@ -297,7 +296,7 @@ let MeasureTool = {
         Map_.rmNotNull(measureToolLayer)
 
         Globe_.litho.removeLayer('_measure')
-        Globe_.litho.removeLayer('_MeasureToolGlobeFocusMarker')
+        Globe_.litho.removeLayer('_measurePoint')
 
         CursorInfo.hide()
 
@@ -394,15 +393,20 @@ let MeasureTool = {
         Globe_.litho.addLayer(
             'vector',
             {
-                name: '_MeasureToolGlobeFocusMarker',
-                id: '_MeasureToolGlobeFocusMarker',
+                name: '_measurePoint',
+                id: '_measurePoint',
                 on: true,
                 opacity: 1,
+                order: 2,
                 minZoom: 0,
                 maxZoom: 30,
                 style: {
-                    fillColor: 'yellow',
-                    color: '#000',
+                    default: {
+                        fillColor: 'yellow',
+                        color: '#000',
+                        weight: 2,
+                        radius: 8,
+                    },
                 },
                 geojson: {
                     type: 'FeatureCollection',
@@ -411,7 +415,7 @@ let MeasureTool = {
                             type: 'Feature',
                             geometry: {
                                 type: 'Point',
-                                coordinates: [[lat, lng, z]],
+                                coordinates: [[lng, lat, 3 + z]],
                             },
                         },
                     ],
@@ -422,6 +426,7 @@ let MeasureTool = {
     },
     clearFocusPoint() {
         Map_.rmNotNull(MeasureTool.mapFocusMarker)
+        Globe_.litho.removeLayer('_measurePoint')
     },
     undo: function (e) {
         clickedLatLngs.pop()
@@ -814,6 +819,59 @@ function makeGhostLine(lng, lat) {
             { lat: lat, lng: lng },
             { className: 'noPointerEvents', color: 'red' }
         ).setRadius(3)
+
+        Globe_.litho.removeLayer('_measure')
+
+        Globe_.litho.addLayer(
+            'vector',
+            {
+                name: '_measure',
+                id: '_measure',
+                on: true,
+                order: 2,
+                opacity: 1,
+                minZoom: 0,
+                maxZoom: 30,
+                style: {
+                    default: {
+                        fillColor: 'white',
+                        weight: 5,
+                    },
+                },
+                geojson: {
+                    type: 'FeatureCollection',
+                    features: [
+                        {
+                            type: 'Feature',
+                            geometry: {
+                                type: 'LineString',
+                                coordinates: [
+                                    [
+                                        endDC['y'],
+                                        endDC['x'],
+                                        3 +
+                                            Globe_.litho.getElevationAtLngLat(
+                                                endDC['y'],
+                                                endDC['x']
+                                            ),
+                                    ],
+                                    [
+                                        lng,
+                                        lat,
+                                        3 +
+                                            Globe_.litho.getElevationAtLngLat(
+                                                lng,
+                                                lat
+                                            ),
+                                    ],
+                                ],
+                            },
+                        },
+                    ],
+                },
+            },
+            1
+        )
         //distMousePoint.bindTooltip("" + roundedTotalDist + "m\n (+" + roundedDist + "m) " + distAzimuth + "&deg;",
         //  {permanent: true, direction: 'right', className: "distLabel", className: "noPointerEvents", offset: [15,-15]})
         //distMousePoint.addTo(Map_.map);
