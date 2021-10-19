@@ -296,7 +296,7 @@ let MeasureTool = {
         Map_.rmNotNull(measureToolLayer)
 
         Globe_.litho.removeLayer('_measure')
-        Globe_.litho.removeLayer('_MeasureToolGlobeFocusMarker')
+        Globe_.litho.removeLayer('_measurePoint')
 
         CursorInfo.hide()
 
