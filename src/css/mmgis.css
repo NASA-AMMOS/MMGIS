@@ -445,8 +445,8 @@ body {
 }
 
 .leaflet-popup-annotation {
-    left: 0 !important;
-    top: -10px !important;
+    left: 0px !important;
+    top: -15px !important;
 }
 .leaflet-popup-annotation > .leaflet-popup-content-wrapper {
     background: transparent;
@@ -456,6 +456,10 @@ body {
 .leaflet-popup-annotation .leaflet-popup-content {
     margin: 0;
     width: auto !important;
+}
+.leaflet-popup-annotation .leaflet-popup-content > div {
+    position: relative;
+    left: -50%;
 }
 .leaflet-popup-annotation textarea {
     background: rgba(0, 0, 0, 0.4);

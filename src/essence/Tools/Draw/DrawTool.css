@@ -1754,7 +1754,6 @@
     padding: 2px;
     white-space: nowrap;
     cursor: pointer;
-    transform: translateY(-20%);
     transition: all 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95),
         transform 0s ease-in-out;
 }

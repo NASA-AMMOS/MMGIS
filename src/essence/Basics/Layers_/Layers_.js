@@ -678,7 +678,7 @@ var L_ = {
             (s.rotation != null
                 ? 'transform: rotateZ(' +
                   parseInt(!isNaN(s.rotation) ? s.rotation : 0) * -1 +
-                  'deg) translateY(-20%); '
+                  'deg); '
                 : '')
 
         // prettier-ignore

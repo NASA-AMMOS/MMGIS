@@ -189,6 +189,17 @@ async function changeSearchField(val, selectedPlaceholder) {
         Search.layerType = L_.layersNamed[Search.lname].type
         if (L_.toggledArray[Search.lname] !== true) {
             await L_.toggleLayer(L_.layersNamed[Search.lname])
+
+            const layerCheck = $(
+                `#LayersTool${Search.lname.replace(
+                    /\s/g,
+                    ''
+                )} .title .checkboxcont .checkbox`
+            )
+            if (layerCheck.length > 0) {
+                $(layerCheck[0]).removeClass('off')
+                $(layerCheck[0]).addClass('on')
+            }
         }
 
         Search.type = 'geojson'
@@ -290,6 +301,16 @@ function searchGeodatasets() {
             if (!L_.toggledArray[Search.lname]) {
                 wasOff = true
                 L_.toggleLayer(L_.layersNamed[Search.lname])
+                const layerCheck = $(
+                    `#LayersTool${Search.lname.replace(
+                        /\s/g,
+                        ''
+                    )} .title .checkboxcont .checkbox`
+                )
+                if (layerCheck.length > 0) {
+                    $(layerCheck[0]).removeClass('off')
+                    $(layerCheck[0]).addClass('on')
+                }
             }
 
             function selectFeature() {
@@ -337,11 +358,21 @@ function doWithSearch(doX, forceX, forceSTS, isURLSearch, value) {
     var markers = L_.layersGroup[Search.lname]
     var selectLayers = []
     var gotoLayers = []
-    var targetsID
 
     // Turn the layer on if it's off
-    if (!L_.toggledArray[Search.lname])
+    if (!L_.toggledArray[Search.lname]) {
         L_.toggleLayer(L_.layersNamed[Search.lname])
+        const layerCheck = $(
+            `#LayersTool${Search.lname.replace(
+                /\s/g,
+                ''
+            )} .title .checkboxcont .checkbox`
+        )
+        if (layerCheck.length > 0) {
+            $(layerCheck[0]).removeClass('off')
+            $(layerCheck[0]).addClass('on')
+        }
+    }
 
     if (doX == 'both' || doX == 'select') {
         L_.resetLayerFills()

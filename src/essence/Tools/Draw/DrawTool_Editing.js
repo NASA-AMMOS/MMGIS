@@ -1960,9 +1960,7 @@ var Editing = {
                 var p = s.feature.properties._
                 $('#DrawToolAnnotation_' + p.file_id + '_' + p.id).css(
                     'transform',
-                    `rotateZ(${
-                        parseInt(!isNaN(v) ? v : 0) * -1
-                    }deg) translateY(-20%)`
+                    `rotateZ(${parseInt(!isNaN(v) ? v : 0) * -1}deg)`
                 )
             }
 
