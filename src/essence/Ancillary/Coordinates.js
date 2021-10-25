@@ -267,13 +267,15 @@ var Coordinates = {
                         (
                             Coordinates.mouseLngLat[0] *
                             (Math.PI / 180) *
-                            F_.radiusOfPlanetMajor
+                            F_.radiusOfPlanetMajor *
+                            Coordinates.coordENMultiplier[0]
                         ).toFixed(3) +
                             'm, ' +
                             (
                                 Coordinates.mouseLngLat[1] *
                                 (Math.PI / 180) *
-                                F_.radiusOfPlanetMajor
+                                F_.radiusOfPlanetMajor *
+                                Coordinates.coordENMultiplier[1]
                             ).toFixed(3) +
                             'm'
                     )
@@ -339,13 +341,15 @@ var Coordinates = {
                         (
                             Coordinates.mouseLngLat[1] *
                             (Math.PI / 180) *
-                            F_.radiusOfPlanetMajor
+                            F_.radiusOfPlanetMajor *
+                            Coordinates.coordENMultiplier[1]
                         ).toFixed(3) +
                             'm, ' +
                             (
                                 Coordinates.mouseLngLat[0] *
                                 (Math.PI / 180) *
-                                F_.radiusOfPlanetMajor
+                                F_.radiusOfPlanetMajor *
+                                Coordinates.coordENMultiplier[0]
                             ).toFixed(3) +
                             'm'
                     )
@@ -534,6 +538,8 @@ function pickLngLatGo() {
                 relativeA = Map_.activeLayer.feature.geometry.coordinates[0]
                 relativeB = Map_.activeLayer.feature.geometry.coordinates[1]
             }
+            valA /= Coordinates.coordENMultiplier[0]
+            valB /= Coordinates.coordENMultiplier[1]
             const valALngRel =
                 (valA * (180 / Math.PI)) / F_.radiusOfPlanetMajor + relativeA
             const valBLatRel =
@@ -552,6 +558,8 @@ function pickLngLatGo() {
                 siteRelativeA = Map_.activeLayer.feature.geometry.coordinates[0]
                 siteRelativeB = Map_.activeLayer.feature.geometry.coordinates[1]
             }
+            valA /= Coordinates.coordENMultiplier[0]
+            valB /= Coordinates.coordENMultiplier[1]
             const valSiteALngRel =
                 (valA * (180 / Math.PI)) / F_.radiusOfPlanetMajor +
                 siteRelativeA
