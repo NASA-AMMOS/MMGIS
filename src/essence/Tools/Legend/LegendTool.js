@@ -181,7 +181,7 @@ function interfaceWithMMWebGIS() {
                             )
                             r.append('div')
                                 .style('margin-left', '5px')
-                                .style('height', '20px')
+                                .style('height', '100%')
                                 .style('line-height', '21px')
                                 .style('font-size', '14px')
                                 .html(L_.layersLegendsData[l][d].value)
