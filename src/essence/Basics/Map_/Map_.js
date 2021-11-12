@@ -801,7 +801,7 @@ async function makeLayer(layerObj, evenIfOff) {
                         } else {
                             // Priority to prop, prop.color, then style color.
                             var finalCol =
-                                col.toLowerCase().substring(0, 4) == 'prop'
+                                col.toLowerCase().substring(0, 4) === 'prop'
                                     ? F_.parseColor(
                                           feature.properties[col.substring(5)]
                                       ) || '#FFF'
@@ -810,7 +810,7 @@ async function makeLayer(layerObj, evenIfOff) {
                                     ? feature.style.stroke
                                     : col
                             var finalOpa =
-                                opa.toLowerCase().substring(0, 4) == 'prop'
+                                opa.toLowerCase().substring(0, 4) === 'prop'
                                     ? feature.properties[opa.substring(5)] ||
                                       '1'
                                     : feature.style &&
@@ -818,7 +818,7 @@ async function makeLayer(layerObj, evenIfOff) {
                                     ? feature.style.opacity
                                     : opa
                             var finalWei =
-                                wei.toLowerCase().substring(0, 4) == 'prop'
+                                wei.toLowerCase().substring(0, 4) === 'prop'
                                     ? feature.properties[wei.substring(5)] ||
                                       '1'
                                     : feature.style &&
@@ -827,7 +827,7 @@ async function makeLayer(layerObj, evenIfOff) {
                                     : wei
                             if (!isNaN(parseInt(wei))) finalWei = parseInt(wei)
                             var finalFiC =
-                                fiC.toLowerCase().substring(0, 4) == 'prop'
+                                fiC.toLowerCase().substring(0, 4) === 'prop'
                                     ? F_.parseColor(
                                           feature.properties[fiC.substring(5)]
                                       ) || '#000'
@@ -836,7 +836,7 @@ async function makeLayer(layerObj, evenIfOff) {
                                     ? feature.style.fill
                                     : fiC
                             var finalFiO =
-                                fiO.toLowerCase().substring(0, 4) == 'prop'
+                                fiO.toLowerCase().substring(0, 4) === 'prop'
                                     ? feature.properties[fiO.substring(5)] ||
                                       '1'
                                     : feature.style &&
@@ -904,6 +904,26 @@ async function makeLayer(layerObj, evenIfOff) {
                         let layer = null
                         const pixelBuffer = featureStyle.weight || 0
 
+                        //check for a bearing
+                        let yaw = 0
+                        if (
+                            layerObj.hasOwnProperty('variables') &&
+                            layerObj.variables.hasOwnProperty('markerBearing')
+                        ) {
+                            const markerBearing =
+                                layerObj.variables.markerBearing.split(':')
+                            const unit = markerBearing[0]
+                            const bearingProp = markerBearing[1]
+
+                            yaw = parseFloat(
+                                F_.getIn(feature.properties, bearingProp)
+                            )
+                            if (unit === 'rad') {
+                                yaw = yaw * (180 / Math.PI)
+                            }
+                            layerObj.shape = 'directional_circle'
+                        }
+
                         switch (layerObj.shape) {
                             case 'circle':
                                 svg = [
@@ -912,6 +932,26 @@ async function makeLayer(layerObj, evenIfOff) {
                                         12 - pixelBuffer
                                     }"/>`,
                                     `</svg>`,
+                                ].join('\n')
+                                break
+                            case 'directional_circle':
+                                svg = [
+                                    `<div style="transform: rotateZ(${yaw}deg); transform-origin: center;">`,
+                                    `<svg style="height=100%;width=100%;overflow: visible;" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                                    `<path d="M12,6L4.5,20.29L5.21,21L12,18L18.79,21L19.5,20.29L12,6Z" transform="translate(0 ${-(
+                                        12 -
+                                        pixelBuffer +
+                                        6
+                                    )})"fill="${
+                                        layerObj.variables
+                                            ?.markerBearingColor ||
+                                        featureStyle.color
+                                    }" stroke-width="1"/>`,
+                                    `<circle cx="12" cy="12" r="${
+                                        12 - pixelBuffer
+                                    }"/>`,
+                                    `</svg>`,
+                                    `</div>`,
                                 ].join('\n')
                                 break
                             case 'triangle':
@@ -1005,8 +1045,43 @@ async function makeLayer(layerObj, evenIfOff) {
 
                         if (layer == null) return
 
+                        // Support marker bearings
+                        if (
+                            layerObj.hasOwnProperty('variables') &&
+                            layerObj.variables.hasOwnProperty('markerBearing')
+                        ) {
+                            const markerBearing =
+                                layerObj.variables.markerBearing.split(':')
+                            const unit = markerBearing[0]
+                            const bearingProp = markerBearing[1]
+                            let yaw = parseFloat(
+                                F_.getIn(feature.properties, bearingProp)
+                            )
+                            if (unit === 'rad') yaw = yaw * (180 / Math.PI)
+                            const size =
+                                (featureStyle.radius + featureStyle.weight) * 2
+                            const bearing = L.marker(latlong, {
+                                icon: L.divIcon({
+                                    className: 'leafletMarkerBearing',
+                                    iconSize: [size, size],
+                                    html: [
+                                        `<div style="width: ${size}px; height: ${size}px; transform: rotateZ(${yaw}deg); transform-origin: center;">`,
+                                        `<svg style="width: ${size}px;height: ${size}px; transform: translateY(${
+                                            size * -0.66
+                                        }px);" viewBox="0 0 24 24" fill="${
+                                            featureStyle.fillColor
+                                        }" stroke="${
+                                            featureStyle.color
+                                        }" stroke-width="${1}">`,
+                                        `<path d="M12,12L4.5,20.29L5.21,21L12,18L18.79,21L19.5,20.29L12,12Z"/>`,
+                                        `</svg>`,
+                                        `</div>`,
+                                    ].join('\n'),
+                                }),
+                            })
+                            layer = L.featureGroup([bearing, layer])
+                        }
                         layer.options.layerName = layerObj.name
-
                         return layer
                     }
                 }

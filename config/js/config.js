@@ -2751,6 +2751,11 @@ function layerPopulateVariable(modalId, layerType) {
           };
     } else {
       currentLayerVars.useKeyAsName = currentLayerVars.useKeyAsName || "prop";
+      currentLayerVars.markerBearing =
+        currentLayerVars.markerBearing ||
+        "unit:prop (unit is either deg or rad)";
+      currentLayerVars.markerBearingColor =
+        currentLayerVars.markerBearingColor || "#FFFFFF";
       currentLayerVars.datasetLinks = currentLayerVars.datasetLinks || [
         {
           prop: "{prop}",
