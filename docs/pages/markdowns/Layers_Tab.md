@@ -507,7 +507,7 @@ Example:
   - `value`: A name to display. All `{prop}`s will be replaced by their corresponding `features[which].properties[prop]` value.
 - `markerBearing`: Sets the bearing direction of this layer's point markers (or markerIcons if set). `{unit}` is either `deg` or `rad` and `{prop}` is the dot notated path to the feature properties that contains the desired rotation angle. Ex. `deg:headings.yaw`.
 - `markerBearingColor`: A css color for the directional arrow for non-markerIcon bearings.
-- `markerIcon`: Uses an icon image instead of an svg for all of the layer's point markers.
+- `markerIcon`: Uses an icon image instead of an svg for all of the layer's point markers. If you're using this as a bearing marker, make sure the base icon is pointing north.
 - `search`: This requires the "Minimalist" option in the Look Tab to be unchecked. When set, this layer will become searchable through the search bar at the top. The search will look for and autocomplete on the properties specified. All properties are enclosed by parentheses and space-separated. `round` can be used like a function to round the property beforehand. `rmunder` works similarly but removes all underscores instead.
 
 # Model
