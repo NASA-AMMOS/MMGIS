@@ -938,7 +938,7 @@ async function makeLayer(layerObj, evenIfOff) {
                                 svg = [
                                     `<div style="transform: rotateZ(${yaw}deg); transform-origin: center;">`,
                                     `<svg style="height=100%;width=100%;overflow: visible;" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
-                                    `<path d="M12,6L4.5,20.29L5.21,21L12,18L18.79,21L19.5,20.29L12,6Z" transform="translate(0 ${-(
+                                    `<path d="M12,8L4.5,20.29L5.21,21L18.79,21L19.5,20.29L12,8Z" transform="translate(0 ${-(
                                         12 -
                                         pixelBuffer +
                                         6
@@ -1029,7 +1029,14 @@ async function makeLayer(layerObj, evenIfOff) {
                         }
 
                         if (markerIcon) {
-                            layer = L.marker(latlong, { icon: markerIcon })
+                            const markerOptions = {
+                                icon: markerIcon,
+                            }
+                            if (yaw != null && yaw !== 0)
+                                markerOptions.rotationAngle = yaw
+                            if (markerIcon.options?.iconAnchor?.length >= 2)
+                                markerOptions.rotationOrigin = `${markerIcon.options.iconAnchor[0]}px ${markerIcon.options.iconAnchor[1]}px`
+                            layer = L.marker(latlong, markerOptions)
                         } else if (layer == null && svg != null) {
                             layer = L.marker(latlong, {
                                 icon: L.divIcon({
@@ -1045,42 +1052,6 @@ async function makeLayer(layerObj, evenIfOff) {
 
                         if (layer == null) return
 
-                        // Support marker bearings
-                        if (
-                            layerObj.hasOwnProperty('variables') &&
-                            layerObj.variables.hasOwnProperty('markerBearing')
-                        ) {
-                            const markerBearing =
-                                layerObj.variables.markerBearing.split(':')
-                            const unit = markerBearing[0]
-                            const bearingProp = markerBearing[1]
-                            let yaw = parseFloat(
-                                F_.getIn(feature.properties, bearingProp)
-                            )
-                            if (unit === 'rad') yaw = yaw * (180 / Math.PI)
-                            const size =
-                                (featureStyle.radius + featureStyle.weight) * 2
-                            const bearing = L.marker(latlong, {
-                                icon: L.divIcon({
-                                    className: 'leafletMarkerBearing',
-                                    iconSize: [size, size],
-                                    html: [
-                                        `<div style="width: ${size}px; height: ${size}px; transform: rotateZ(${yaw}deg); transform-origin: center;">`,
-                                        `<svg style="width: ${size}px;height: ${size}px; transform: translateY(${
-                                            size * -0.66
-                                        }px);" viewBox="0 0 24 24" fill="${
-                                            featureStyle.fillColor
-                                        }" stroke="${
-                                            featureStyle.color
-                                        }" stroke-width="${1}">`,
-                                        `<path d="M12,12L4.5,20.29L5.21,21L12,18L18.79,21L19.5,20.29L12,12Z"/>`,
-                                        `</svg>`,
-                                        `</div>`,
-                                    ].join('\n'),
-                                }),
-                            })
-                            layer = L.featureGroup([bearing, layer])
-                        }
                         layer.options.layerName = layerObj.name
                         return layer
                     }

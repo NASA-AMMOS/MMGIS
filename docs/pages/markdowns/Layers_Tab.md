@@ -478,6 +478,8 @@ Example:
             "value": "Prop: {prop}"
         }
     ],
+    "markerBearing": "unit:prop",
+    "markerBearingColor": "css color",
     "markerIcon": { //See: https://leafletjs.com/reference-1.7.1.html#icon-l-icon
         iconUrl: "pathToMainIconImage.png",
         shadowUrl: "(opt)pathToShadowImage.png",
@@ -503,6 +505,9 @@ Example:
   - `which`: This only supports the value `last` at this point.
   - `icon`: Any [Material Design Icon](http://materialdesignicons.com/) name
   - `value`: A name to display. All `{prop}`s will be replaced by their corresponding `features[which].properties[prop]` value.
+- `markerBearing`: Sets the bearing direction of this layer's point markers (or markerIcons if set). `{unit}` is either `deg` or `rad` and `{prop}` is the dot notated path to the feature properties that contains the desired rotation angle. Ex. `deg:headings.yaw`.
+- `markerBearingColor`: A css color for the directional arrow for non-markerIcon bearings.
+- `markerIcon`: Uses an icon image instead of an svg for all of the layer's point markers.
 - `search`: This requires the "Minimalist" option in the Look Tab to be unchecked. When set, this layer will become searchable through the search bar at the top. The search will look for and autocomplete on the properties specified. All properties are enclosed by parentheses and space-separated. `round` can be used like a function to round the property beforehand. `rmunder` works similarly but removes all underscores instead.
 
 # Model
@@ -579,4 +584,4 @@ The string format to be used in the URL for `{starttime}` and `{endtime}`. Defau
 
 ---
 
-_Note:_ Additional vector layer stylings can be found on the [Meaningful GeoJSON Styles](Meaningful-GeoJSON-Styles) page.
+_Note:_ Additional vector layer stylings can be found on the [Vector Styling](Vector_Styling) page.
