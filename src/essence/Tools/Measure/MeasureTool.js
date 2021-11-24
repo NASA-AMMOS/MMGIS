@@ -659,7 +659,7 @@ function makeProfile() {
                     MeasureTool.data = MeasureTool.data.concat(F_.clone(data))
                 }
 
-                MeasureTool.lastData = F_.clone(data)
+                MeasureTool.lastData = F_.clone(MeasureTool.data)
 
                 for (let i = 0; i < MeasureTool.lastData.length; i++) {
                     let distance = 0
@@ -676,8 +676,8 @@ function makeProfile() {
                 }
 
                 profileData = []
-                for (var i = 0; i < data.length; i++) {
-                    profileData.push(data[i][2])
+                for (var i = 0; i < MeasureTool.data.length; i++) {
+                    profileData.push(MeasureTool.data[i][2])
                 }
                 //profileData = profileData.concat(data);
                 //var latestDistPerStep = latLongDistBetween(elevPoints[0].y, elevPoints[0].x, elevPoints[1].y, elevPoints[1].x) / steps;
