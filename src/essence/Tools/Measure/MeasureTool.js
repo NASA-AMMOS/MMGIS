@@ -134,8 +134,19 @@ const Measure = () => {
                             {
                                 label: 'Profile',
                                 data: profileData,
-                                backgroundColor: ['rgba(255, 90, 119, 0.2)'],
-                                borderColor: ['rgba(255, 90, 119, 1)'],
+                                borderColor: ['rgba(255, 0, 47, 1)'],
+                                segment: {
+                                    backgroundColor: (ctx) => {
+                                        const i =
+                                            MeasureTool.datasetMapping[
+                                                ctx.p0DataIndex
+                                            ]
+                                        return i % 2 === 0
+                                            ? 'rgba(255, 0, 47, 0.2)'
+                                            : 'rgba(255, 0, 47, 0.1)'
+                                    },
+                                },
+                                spanGaps: true,
                                 borderWidth: 1,
                                 fill: 'start',
                                 pointRadius: 6,
@@ -149,9 +160,12 @@ const Measure = () => {
                     }}
                     height={150}
                     options={{
+                        responsive: true,
                         maintainAspectRatio: false,
-                        legend: {
-                            display: false,
+                        plugins: {
+                            legend: {
+                                display: false,
+                            },
                         },
                         layout: {
                             padding: {
@@ -162,23 +176,17 @@ const Measure = () => {
                             },
                         },
                         scales: {
-                            yAxes: [
-                                {
-                                    gridLines: {
-                                        color: 'rgba(255,255,255,0.05)',
-                                    },
-                                    ticks: {
-                                        callback: function (
-                                            value,
-                                            index,
-                                            values
-                                        ) {
-                                            return `${value}m`
-                                        },
-                                        lineHeight: 1.5,
-                                    },
+                            y: {
+                                grid: {
+                                    color: 'rgba(255,255,255,0.05)',
                                 },
-                            ],
+                                ticks: {
+                                    callback: function (value, index, values) {
+                                        return `${value}m`
+                                    },
+                                    lineHeight: 1.5,
+                                },
+                            },
                         },
                         tooltips: {
                             intersect: false,
@@ -189,23 +197,22 @@ const Measure = () => {
                             callbacks: {
                                 label: (item) => `${item.yLabel}m`,
                                 title: (item) =>
-                                    distDisplayUnit == 'meters'
+                                    distDisplayUnit === 'meters'
                                         ? `${item[0].xLabel}m from start`
                                         : `${item[0].xLabel}km from start,`,
                             },
                         },
                         onHover: (e, el, el2) => {
                             if (el[0]) {
-                                const d = MeasureTool.lastData[el[0]._index]
+                                const d = MeasureTool.lastData[el[0].index]
                                 MeasureTool.makeFocusPoint(d[1], d[0], d[3])
-                            } else if (refLine && e.layerX != null) {
-                                const chartArea =
-                                    refLine.current.chartInstance.chartArea
+                            } else if (refLine && e.x != null) {
+                                const chartArea = refLine.current.chartArea
                                 const bestIndex = Math.round(
                                     F_.linearScale(
                                         [chartArea.left, chartArea.right],
                                         [0, profileData.length],
-                                        e.layerX
+                                        e.x
                                     )
                                 )
                                 if (
@@ -266,6 +273,7 @@ let MeasureTool = {
         Map_.rmNotNull(measureToolLayer)
         MeasureTool.data = []
         MeasureTool.lastData = []
+        MeasureTool.datasetMapping = []
 
         //Get tool variables
         this.vars = L_.getToolVars('measure')
@@ -309,6 +317,7 @@ let MeasureTool = {
             updateProfileData(profileData)
             MeasureTool.data = []
             MeasureTool.lastData = []
+            MeasureTool.datasetMapping = []
             MeasureTool.clearFocusPoint()
             Map_.rmNotNull(distLineToMouse)
             Map_.rmNotNull(distMousePoint)
@@ -458,6 +467,7 @@ let MeasureTool = {
         profileData = []
         MeasureTool.data = []
         MeasureTool.lastData = []
+        MeasureTool.datasetMapping = []
 
         Map_.rmNotNull(distLineToMouse)
         Map_.rmNotNull(distMousePoint)
@@ -660,18 +670,36 @@ function makeProfile() {
                 }
 
                 MeasureTool.lastData = F_.clone(MeasureTool.data)
+                MeasureTool.datasetMapping = MeasureTool.datasetMapping || []
+                MeasureTool.datasetMapping = MeasureTool.datasetMapping.concat(
+                    new Array(steps).fill(numOfPts - 1)
+                )
 
+                let currentDataset = 0
+                let currentDatasetStart = 0
+                let lastDistance = 0
+                let currentDatasetDistanceStart = 0
                 for (let i = 0; i < MeasureTool.lastData.length; i++) {
                     let distance = 0
-                    if (i > 0 && i < MeasureTool.lastData.length) {
-                        distance = F_.lngLatDistBetween(
-                            MeasureTool.lastData[i][0],
-                            MeasureTool.lastData[i][1],
-                            MeasureTool.lastData[0][0],
-                            MeasureTool.lastData[0][1]
-                        )
-                        if (F_.dam) distance = F_.metersToDegrees(distance)
+                    if (MeasureTool.datasetMapping[i] - 1 !== currentDataset) {
+                        currentDataset = MeasureTool.datasetMapping[i] - 1
+                        currentDatasetStart = i
+                        currentDatasetDistanceStart = lastDistance
                     }
+                    if (i > 0 && i < MeasureTool.lastData.length) {
+                        distance =
+                            F_.lngLatDistBetween(
+                                MeasureTool.lastData[i][0],
+                                MeasureTool.lastData[i][1],
+                                MeasureTool.lastData[currentDatasetStart][0],
+                                MeasureTool.lastData[currentDatasetStart][1]
+                            ) + currentDatasetDistanceStart
+                        if (F_.dam)
+                            distance =
+                                F_.metersToDegrees(distance) +
+                                currentDatasetDistanceStart
+                    }
+                    lastDistance = distance
                     MeasureTool.lastData[i].splice(2, 0, distance)
                 }
 
