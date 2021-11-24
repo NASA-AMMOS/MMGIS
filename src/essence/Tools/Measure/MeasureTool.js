@@ -274,6 +274,9 @@ let MeasureTool = {
         MeasureTool.data = []
         MeasureTool.lastData = []
         MeasureTool.datasetMapping = []
+        distDisplayUnit = 'meters'
+        mode = 'segment'
+        steps = 100
 
         //Get tool variables
         this.vars = L_.getToolVars('measure')
@@ -468,6 +471,7 @@ let MeasureTool = {
         MeasureTool.data = []
         MeasureTool.lastData = []
         MeasureTool.datasetMapping = []
+        distDisplayUnit = 'meters'
 
         Map_.rmNotNull(distLineToMouse)
         Map_.rmNotNull(distMousePoint)
