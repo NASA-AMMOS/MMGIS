@@ -2751,11 +2751,31 @@ function layerPopulateVariable(modalId, layerType) {
           };
     } else {
       currentLayerVars.useKeyAsName = currentLayerVars.useKeyAsName || "prop";
-      currentLayerVars.markerBearing =
-        currentLayerVars.markerBearing ||
-        "unit:prop (unit is either deg or rad)";
-      currentLayerVars.markerBearingColor =
-        currentLayerVars.markerBearingColor || "#FFFFFF";
+      currentLayerVars.markerAttachments =
+        currentLayerVars.markerAttachments || {
+          bearing: {
+            angleProp: "path.to.angle.prop",
+            angleUnit: "deg || rad",
+            color: "#FFFFFF",
+          },
+          uncertainty: {
+            xAxisProp: "path.to.x.prop",
+            yAxisProp: "path.to.y.prop",
+            axisUnit: "meters || kilometers",
+            angleProp: "path.to.angle.prop",
+            angleUnit: "deg || rad",
+            color: "#888888",
+          },
+          rover: {
+            image:
+              "url to top-down ortho image. ex. public/images/rovers/PerseveranceTopDown.png",
+            widthMeters: 2.6924,
+            widthPixels: 420,
+            heightPixels: 600,
+            angleProp: "path.to.angle.prop",
+            angleUnit: "deg || rad",
+          },
+        };
       currentLayerVars.datasetLinks = currentLayerVars.datasetLinks || [
         {
           prop: "{prop}",

@@ -1,5 +1,6 @@
 import $ from 'jquery'
 import * as d3 from 'd3'
+import { ellipse } from '@turf/turf'
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
 import { captureVector } from '../Layers_/LayerCapturer'
@@ -541,6 +542,12 @@ async function makeLayer(layerObj, evenIfOff) {
     //Default is onclick show full properties and onhover show 1st property
     Map_.onEachFeatureDefault = onEachFeatureDefault
     function onEachFeatureDefault(feature, layer) {
+        if (layer._layers) {
+            for (let lid in layer._layers) {
+                const lidl = layer._layers[lid]
+                if (lidl.isSublayer === true) lidl.setStyle(lidl.options.style)
+            }
+        }
         var pv = getLayersChosenNamePropVal(feature, layer)
 
         layer['useKeyAsName'] = pv.name
@@ -904,24 +911,25 @@ async function makeLayer(layerObj, evenIfOff) {
                         let layer = null
                         const pixelBuffer = featureStyle.weight || 0
 
-                        //check for a bearing
+                        // Bearing Attachment
                         let yaw = 0
-                        if (
-                            layerObj.hasOwnProperty('variables') &&
-                            layerObj.variables.hasOwnProperty('markerBearing')
-                        ) {
-                            const markerBearing =
-                                layerObj.variables.markerBearing.split(':')
-                            const unit = markerBearing[0]
-                            const bearingProp = markerBearing[1]
+                        const bearingVar = F_.getIn(
+                            layerObj,
+                            'variables.markerAttachments.bearing'
+                        )
+                        if (bearingVar) {
+                            const unit = bearingVar.angleUnit || 'deg'
+                            const bearingProp = bearingVar.angleProp || false
 
-                            yaw = parseFloat(
-                                F_.getIn(feature.properties, bearingProp)
-                            )
-                            if (unit === 'rad') {
-                                yaw = yaw * (180 / Math.PI)
+                            if (bearingProp !== false) {
+                                yaw = parseFloat(
+                                    F_.getIn(feature.properties, bearingProp)
+                                )
+                                if (unit === 'rad') {
+                                    yaw = yaw * (180 / Math.PI)
+                                }
+                                layerObj.shape = 'directional_circle'
                             }
-                            layerObj.shape = 'directional_circle'
                         }
 
                         switch (layerObj.shape) {
@@ -943,8 +951,8 @@ async function makeLayer(layerObj, evenIfOff) {
                                         pixelBuffer +
                                         6
                                     )})"fill="${
-                                        layerObj.variables
-                                            ?.markerBearingColor ||
+                                        layerObj.variables?.markerAttachments
+                                            ?.bearing?.color ||
                                         featureStyle.color
                                     }" stroke-width="1"/>`,
                                     `<circle cx="12" cy="12" r="${
@@ -1051,6 +1059,66 @@ async function makeLayer(layerObj, evenIfOff) {
                         }
 
                         if (layer == null) return
+
+                        // Marker Attachment Uncertainty
+                        const uncertaintyVar = F_.getIn(
+                            layerObj,
+                            'variables.markerAttachments.uncertainty'
+                        )
+                        let uncertaintyEllipse
+                        if (uncertaintyVar) {
+                            let uncertaintyAngle = parseFloat(
+                                F_.getIn(
+                                    feature.properties,
+                                    uncertaintyVar.angleProp,
+                                    0
+                                )
+                            )
+                            if (uncertaintyVar.angleUnit === 'rad')
+                                uncertaintyAngle =
+                                    uncertaintyAngle * (180 / Math.PI)
+                            uncertaintyEllipse = ellipse(
+                                [latlong.lng, latlong.lat],
+                                F_.getIn(
+                                    feature.properties,
+                                    uncertaintyVar.xAxisProp,
+                                    Math.random() + 0.5
+                                ),
+                                F_.getIn(
+                                    feature.properties,
+                                    uncertaintyVar.yAxisProp,
+                                    Math.random() + 1
+                                ),
+                                {
+                                    units: uncertaintyVar.axisUnits || 'meters',
+                                    steps: 32,
+                                    angle: uncertaintyAngle,
+                                }
+                            )
+                            uncertaintyEllipse = L.geoJSON(uncertaintyEllipse, {
+                                style: {
+                                    fillOpacity: 0.25,
+                                    fillColor:
+                                        uncertaintyVar.color ||
+                                        featureStyle.fillColor,
+                                    color: featureStyle.color,
+                                    weight: 1,
+                                    opacity: 0.8,
+                                    className: 'noPointerEventsImportant',
+                                },
+                            })
+                            uncertaintyEllipse.isSublayer = true
+                        }
+
+                        if (uncertaintyEllipse) {
+                            const groupedLayer = L.featureGroup([
+                                layer,
+                                uncertaintyEllipse,
+                            ])
+                            groupedLayer._latlng = layer._latlng
+                            groupedLayer.options.layerName = layerObj.name
+                            return groupedLayer
+                        }
 
                         layer.options.layerName = layerObj.name
                         return layer
@@ -1194,7 +1262,14 @@ async function makeLayer(layerObj, evenIfOff) {
                 if (L_.layersGroup[l]) {
                     var highlight = L_.layersGroup[l].highlight
                     if (highlight) {
-                        L_.layersGroup[l].resetFeatureStyle(highlight)
+                        const layer = L_.layersGroup[l]
+                        if (layer._layers) {
+                            for (let lid in layer._layers) {
+                                const lidl = layer._layers[lid]
+                                if (lidl.isSublayer !== true)
+                                    layer.resetFeatureStyle(highlight)
+                            }
+                        } else L_.layersGroup[l].resetFeatureStyle(highlight)
                     }
                     L_.layersGroup[l].highlight = null
                 }

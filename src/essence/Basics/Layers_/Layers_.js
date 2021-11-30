@@ -443,7 +443,14 @@ var L_ = {
     },
     setStyle(layer, newStyle) {
         try {
-            layer.setStyle(newStyle)
+            if (layer._layers) {
+                for (let lid in layer._layers) {
+                    const lidl = layer._layers[lid]
+                    if (lidl.isSublayer === true)
+                        lidl.setStyle(lidl.options.style)
+                    else lidl.setStyle(newStyle)
+                }
+            } else layer.setStyle(newStyle)
         } catch (err) {}
     },
     highlight(layer) {
@@ -471,6 +478,13 @@ var L_ = {
         } catch (err) {
             if (layer._icon)
                 layer._icon.style.filter = `drop-shadow(${color}  2px 0px 0px) drop-shadow(${color}  -2px 0px 0px) drop-shadow(${color}  0px 2px 0px) drop-shadow(${color} 0px -2px 0px)`
+        }
+
+        if (layer._layers) {
+            for (let lid in layer._layers) {
+                const lidl = layer._layers[lid]
+                if (lidl.isSublayer === true) lidl.setStyle(lidl.options.style)
+            }
         }
     },
     addArrowToMap: function (
@@ -791,6 +805,8 @@ var L_ = {
                     this.layersStyles[key].hasOwnProperty('fillColor')
                 ) {
                     this.layersGroup[key].eachLayer((layer) => {
+                        console.log('RESUME CODING HERE')
+                        if (true) return
                         var fillColor = this.layersStyles[key].fillColor
                         var opacity = layer.options.opacity
                         var fillOpacity = layer.options.fillOpacity
@@ -802,7 +818,7 @@ var L_ = {
                                 opacity: opacity,
                                 fillOpacity: fillOpacity,
                                 fillColor: layer.options.fillColor || fillColor,
-                                weight: weight,
+                                weight: parseInt(weight),
                             })
                         } catch (err) {
                             if (layer._icon) layer._icon.style.filter = ''
