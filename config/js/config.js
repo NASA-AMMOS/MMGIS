@@ -2759,6 +2759,7 @@ function layerPopulateVariable(modalId, layerType) {
             color: "#FFFFFF",
           },
           uncertainty: {
+            initialVisibility: true,
             xAxisProp: "path.to.x.prop",
             yAxisProp: "path.to.y.prop",
             axisUnit: "meters || kilometers",

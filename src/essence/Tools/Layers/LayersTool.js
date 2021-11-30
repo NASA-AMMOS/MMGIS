@@ -201,6 +201,17 @@ function interfaceWithMMGIS() {
                                             '<div>Opacity</div>',
                                                 '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.opacityArray[node[i].name] + '">',
                                             '</div>',
+                                            L_.layersGroupSublayers[node[i].name] ? Object.keys(L_.layersGroupSublayers[node[i].name]).map((function(i){return function(s) {
+                                                return [
+                                                    '<div class="sublayer">',
+                                                        `<div>${F_.prettifyName(s)}</div>`,
+                                                            '<div class="checkboxcont">',
+                                                                `<div class="checkbox ${(L_.layersGroupSublayers[node[i].name][s].on ? 'on' : 'off')}" layername="${node[i].name}" sublayername="${s}" style="margin: 5px 0px 5px 10px;"></div>`,
+                                                            '</div>',
+                                                        '</div>',
+                                                    '</div>',
+                                                ].join('\n')
+                                            }})(i)).join('\n') : null,
                                         '</div>',
                                     '</li>',
                                 '</ul>',
@@ -460,6 +471,25 @@ function interfaceWithMMGIS() {
                 li.addClass('layernotfound')
         }
     })
+
+    //Makes sublayers clickable on and off
+    $('#layersToolList > li > .settings .sublayer .checkbox').on(
+        'click',
+        async function () {
+            const layerName = $(this).attr('layername')
+            const sublayerName = $(this).attr('sublayername')
+            await L_.toggleSublayer(layerName, sublayerName)
+
+            if (
+                L_.layersGroupSublayers[layerName] &&
+                L_.layersGroupSublayers[layerName][sublayerName]
+            ) {
+                if (L_.layersGroupSublayers[layerName][sublayerName].on)
+                    $(this).addClass('on')
+                else $(this).removeClass('on')
+            }
+        }
+    )
 
     //Collapse header
     $('.layersToolHeader').on('click', function () {

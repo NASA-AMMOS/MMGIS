@@ -29,6 +29,8 @@ var L_ = {
     layersNamed: {}, //was namedLayersData
     //Name -> leaflet layer
     layersGroup: {}, //was mainLayerGroup
+    //Name -> sublayer group
+    layersGroupSublayers: {},
     //Index -> layer name
     layersOrdered: [], //was mainLayerOrder
     //Index -> layerName (an unchanging layersOrdered)
@@ -189,10 +191,33 @@ var L_ = {
                         $('.drawToolContextMenuHeaderClose').click()
                     } catch (err) {}
                     L_.Map_.map.removeLayer(L_.layersGroup[s.name])
+                    if (L_.layersGroupSublayers[s.name]) {
+                        for (let sub in L_.layersGroupSublayers[s.name]) {
+                            L_.Map_.rmNotNull(
+                                L_.layersGroupSublayers[s.name][sub].layer
+                            )
+                        }
+                    }
                 }
                 L_.Globe_.litho.removeLayer(s.name)
             } else {
                 if (L_.layersGroup[s.name]) {
+                    if (L_.layersGroupSublayers[s.name]) {
+                        for (let sub in L_.layersGroupSublayers[s.name]) {
+                            if (L_.layersGroupSublayers[s.name][sub].on) {
+                                L_.Map_.map.addLayer(
+                                    L_.layersGroupSublayers[s.name][sub].layer
+                                )
+                                L_.layersGroupSublayers[s.name][
+                                    sub
+                                ].layer.setZIndex(
+                                    L_.layersOrdered.length +
+                                        1 -
+                                        L_.layersOrdered.indexOf(s.name)
+                                )
+                            }
+                        }
+                    }
                     L_.Map_.map.addLayer(L_.layersGroup[s.name])
                     L_.layersGroup[s.name].setZIndex(
                         L_.layersOrdered.length +
@@ -302,6 +327,24 @@ var L_ = {
             L_.Map_.orderedBringToFront()
         }
     },
+    toggleSublayer: function (layerName, sublayerName) {
+        const sublayers = L_.layersGroupSublayers[layerName] || {}
+        const sublayer = sublayers[sublayerName]
+        if (sublayer) {
+            if (sublayer.on === true) {
+                L_.Map_.rmNotNull(sublayer.layer)
+                sublayer.on = false
+            } else {
+                L_.Map_.map.addLayer(sublayer.layer)
+                sublayer.layer.setZIndex(
+                    L_.layersOrdered.length +
+                        1 -
+                        L_.layersOrdered.indexOf(layerName)
+                )
+                sublayer.on = true
+            }
+        }
+    },
     disableAllBut: function (name, skipDisabling) {
         if (L_.layersNamed.hasOwnProperty(name)) {
             var l
@@ -330,7 +373,9 @@ var L_ = {
         var map = map_
         if (map == null) {
             if (L_.Map_ == null) {
-                console.warn('Null addVisible')
+                console.warn(
+                    "Can't addVisible layers before Map_ is initialized."
+                )
                 return
             }
             map = L_.Map_.map
@@ -354,6 +399,23 @@ var L_ = {
                 // Add Map layers
                 if (L_.layersGroup[L_.layersData[i].name]) {
                     try {
+                        if (L_.layersGroupSublayers[L_.layersData[i].name]) {
+                            for (let s in L_.layersGroupSublayers[
+                                L_.layersData[i].name
+                            ]) {
+                                if (
+                                    L_.layersGroupSublayers[
+                                        L_.layersData[i].name
+                                    ][s].on
+                                ) {
+                                    map.addLayer(
+                                        L_.layersGroupSublayers[
+                                            L_.layersData[i].name
+                                        ][s].layer
+                                    )
+                                }
+                            }
+                        }
                         map.addLayer(L_.layersGroup[L_.layersData[i].name])
                     } catch (e) {
                         console.log(e)
@@ -443,14 +505,7 @@ var L_ = {
     },
     setStyle(layer, newStyle) {
         try {
-            if (layer._layers) {
-                for (let lid in layer._layers) {
-                    const lidl = layer._layers[lid]
-                    if (lidl.isSublayer === true)
-                        lidl.setStyle(lidl.options.style)
-                    else lidl.setStyle(newStyle)
-                }
-            } else layer.setStyle(newStyle)
+            layer.setStyle(newStyle)
         } catch (err) {}
     },
     highlight(layer) {
@@ -478,13 +533,6 @@ var L_ = {
         } catch (err) {
             if (layer._icon)
                 layer._icon.style.filter = `drop-shadow(${color}  2px 0px 0px) drop-shadow(${color}  -2px 0px 0px) drop-shadow(${color}  0px 2px 0px) drop-shadow(${color} 0px -2px 0px)`
-        }
-
-        if (layer._layers) {
-            for (let lid in layer._layers) {
-                const lidl = layer._layers[lid]
-                if (lidl.isSublayer === true) lidl.setStyle(lidl.options.style)
-            }
         }
     },
     addArrowToMap: function (
@@ -740,6 +788,7 @@ var L_ = {
         return popup
     },
     setLayerOpacity: function (name, newOpacity) {
+        newOpacity = parseFloat(newOpacity)
         if (L_.Globe_) L_.Globe_.litho.setLayerOpacity(name, newOpacity)
         var l = L_.layersGroup[name]
         if (l) {
@@ -747,6 +796,11 @@ var L_ = {
                 l.setOpacity(newOpacity)
             } catch (error) {
                 l.setStyle({ opacity: newOpacity, fillOpacity: newOpacity })
+                $(
+                    `.leafletMarkerShape_${name
+                        .replace(/\s/g, '')
+                        .toLowerCase()}`
+                ).css({ opacity: newOpacity })
             }
             try {
                 l.options.fillOpacity = newOpacity
@@ -805,12 +859,10 @@ var L_ = {
                     this.layersStyles[key].hasOwnProperty('fillColor')
                 ) {
                     this.layersGroup[key].eachLayer((layer) => {
-                        console.log('RESUME CODING HERE')
-                        if (true) return
-                        var fillColor = this.layersStyles[key].fillColor
-                        var opacity = layer.options.opacity
-                        var fillOpacity = layer.options.fillOpacity
-                        var weight = layer.options.weight
+                        let fillColor = this.layersStyles[key].fillColor
+                        let opacity = layer.options.opacity
+                        let fillOpacity = layer.options.fillOpacity
+                        let weight = layer.options.weight
                         if (!layer._isAnnotation)
                             L_.layersGroup[key].resetStyle(layer)
                         try {

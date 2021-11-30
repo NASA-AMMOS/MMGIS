@@ -17,21 +17,62 @@ var Kinds = {
     ) {
         if (typeof kind !== 'string') return
 
+        const layerVar = L_.layersNamed[layer.options.layerName].variables
+
         switch (kind.toLowerCase()) {
             case 'info':
                 useInfo(true)
                 break
             case 'waypoint':
+                let roverSettings = {
+                    image: F_.getIn(
+                        layerVar,
+                        'markerAttachments.rover.image',
+                        'public/images/rovers/PerseveranceTopDown.png'
+                    ),
+                    widthMeters: F_.getIn(
+                        layerVar,
+                        'markerAttachments.rover.widthMeters',
+                        2.6924
+                    ),
+                    widthPixels: F_.getIn(
+                        layerVar,
+                        'markerAttachments.rover.widthPixels',
+                        420
+                    ),
+                    heightPixels: F_.getIn(
+                        layerVar,
+                        'markerAttachments.rover.heightPixels',
+                        600
+                    ),
+                    angleProp: F_.getIn(
+                        layerVar,
+                        'markerAttachments.rover.angleProp',
+                        'yaw_rad'
+                    ),
+                    angleUnit: F_.getIn(
+                        layerVar,
+                        'markerAttachments.rover.angleUnit',
+                        'rad'
+                    ),
+                }
                 //Make rover image curiosity
                 Map_.rmNotNull(Map_.tempOverlayImage)
                 //256 x 338, 256 is 2.8m
-                var wm = 2.6924
-                var w = 420
-                var h = 600
-                var lngM = F_.metersToDegrees(wm) / 2
-                var latM = lngM * (h / w)
-                var center = [layer._latlng.lng, layer._latlng.lat]
-                var angle = -layer.feature.properties.yaw_rad || 0
+                let wm = parseFloat(roverSettings.widthMeters)
+                let w = parseFloat(roverSettings.widthPixels)
+                let h = parseFloat(roverSettings.heightPixels)
+                let lngM = F_.metersToDegrees(wm) / 2
+                let latM = lngM * (h / w)
+                let center = [layer._latlng.lng, layer._latlng.lat]
+                let angle = -F_.getIn(
+                    layer.feature.properties,
+                    roverSettings.angleProp,
+                    0
+                )
+                if (roverSettings.angleProp === 'deg')
+                    angle = angle * (Math.PI / 180)
+
                 var topLeft = F_.rotatePoint(
                     {
                         y: layer._latlng.lat + latM,
@@ -74,7 +115,7 @@ var Kinds = {
 
                 try {
                     Map_.tempOverlayImage = L.imageTransform(
-                        'public/images/rovers/PerseveranceTopDown.png',
+                        roverSettings.image,
                         anchors,
                         { opacity: 1, clip: anchors }
                     )
