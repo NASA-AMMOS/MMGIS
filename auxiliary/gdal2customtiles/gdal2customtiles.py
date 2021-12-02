@@ -54,6 +54,8 @@ def binary(num):  # 1bto4b
 # 1bto4b
 
 
+
+
 def getTilePxBounds(self, tx, ty, tz, ds):
 
     querysize = self.tilesize
@@ -1988,7 +1990,6 @@ class GDAL2Tiles(object):
                                 data3s += struct.pack('B', data3[indx])
                                 data4s += struct.pack('B', data4[indx])
                                 indx += 1
-
                             dstile.GetRasterBand(1).WriteRaster(
                                 wx, wy, wxsize + 1, wysize + 1, data1s, buf_type=gdal.GDT_Byte)
                             dstile.GetRasterBand(2).WriteRaster(
