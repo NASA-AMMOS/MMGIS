@@ -44,11 +44,11 @@
 .MeasureTool #measureMode > select,
 .MeasureTool #measureSamples > select,
 .MeasureTool #measureUnit > select {
-    width: 100px;
+    width: 135px;
 }
 
 .MeasureTool #measureLeft {
-    width: 180px;
+    width: 220px;
     height: 100%;
     display: flex;
     flex-flow: column;
