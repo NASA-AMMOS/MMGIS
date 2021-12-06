@@ -8,7 +8,7 @@ var markup = [].join('\n')
 
 var LegendTool = {
     height: 0,
-    width: 180,
+    width: 200,
     activeLayerNames: null,
     MMWebGISInterface: null,
     make: function () {
@@ -184,6 +184,7 @@ function interfaceWithMMWebGIS() {
                                 .style('height', '100%')
                                 .style('line-height', '21px')
                                 .style('font-size', '14px')
+                                .style('overflow', 'auto')
                                 .html(L_.layersLegendsData[l][d].value)
                         } else if (
                             shape == 'continuous' ||
