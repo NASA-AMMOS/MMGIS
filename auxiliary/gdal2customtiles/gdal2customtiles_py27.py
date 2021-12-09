@@ -49,7 +49,7 @@ import struct  # 1bto4b
 
 def binary(num):  # 1bto4b
     # 1bto4b
-    return ''.join(bin(c).replace('0b', '').rjust(8, '0') for c in struct.pack('!f', num))
+    return ''.join(bin(ord(c)).replace('0b', '').rjust(8, '0') for c in struct.pack('!f', num))
 
 # 1bto4b
 
@@ -1976,10 +1976,10 @@ class GDAL2Tiles(object):
                                 data3.append(int(f[16:24], 2))
                                 data4.append(int(f[24:], 2))
 
-                            data1s = b''
-                            data2s = b''
-                            data3s = b''
-                            data4s = b''
+                            data1s = ''
+                            data2s = ''
+                            data3s = ''
+                            data4s = ''
                             indx = 0
                             for v in data1:
                                 data1s += struct.pack('B', data1[indx])
@@ -2021,10 +2021,10 @@ class GDAL2Tiles(object):
                                 data3.append(int(f[16:24], 2))
                                 data4.append(int(f[24:], 2))
 
-                            data1s = b''
-                            data2s = b''
-                            data3s = b''
-                            data4s = b''
+                            data1s = ''
+                            data2s = ''
+                            data3s = ''
+                            data4s = ''
                             indx = 0
                             for v in data1:
                                 data1s += struct.pack('B', data1[indx])
