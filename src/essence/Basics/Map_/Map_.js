@@ -563,6 +563,7 @@ async function makeLayer(layerObj, evenIfOff) {
                 break
             case 'model':
                 //Globe only
+                makeModelLayer()
                 break
             default:
                 console.warn('Unknown layer type: ' + layerObj.type)
@@ -1049,6 +1050,11 @@ async function makeLayer(layerObj, evenIfOff) {
 
         L_.setLayerOpacity(layerObj.name, L_.opacityArray[layerObj.name])
 
+        L_.layersLoaded[L_.layersOrdered.indexOf(layerObj.name)] = true
+        allLayersLoaded()
+    }
+
+    function makeModelLayer() {
         L_.layersLoaded[L_.layersOrdered.indexOf(layerObj.name)] = true
         allLayersLoaded()
     }
