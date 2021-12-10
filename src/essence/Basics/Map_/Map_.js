@@ -1142,14 +1142,18 @@ function enforceVisibilityCutoffs() {
             if (vc > 0) {
                 if (Map_.map.getZoom() < vc && settingsEnforceVC) {
                     layerElements.attr('display', 'none')
+                    layerElements.style('display', 'none')
                 } else {
                     layerElements.attr('display', 'inherit')
+                    layerElements.style('display', 'inherit')
                 }
             } else {
                 if (Map_.map.getZoom() > Math.abs(vc) && settingsEnforceVC) {
                     layerElements.attr('display', 'none')
+                    layerElements.style('display', 'none')
                 } else {
                     layerElements.attr('display', 'inherit')
+                    layerElements.style('display', 'inherit')
                 }
             }
         }

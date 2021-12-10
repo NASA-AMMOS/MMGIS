@@ -194,6 +194,7 @@ function interfaceWithMMGIS() {
                     currentOpacity = L_.getLayerOpacity(node[i].name)
                     if (currentOpacity == null)
                         currentOpacity = L_.opacityArray[node[i].name]
+
                     // prettier-ignore
                     settings = [
                                 '<ul>',
@@ -206,9 +207,8 @@ function interfaceWithMMGIS() {
                                                 return [
                                                     '<div class="sublayer">',
                                                         `<div>${F_.prettifyName(s)}</div>`,
-                                                            '<div class="checkboxcont">',
-                                                                `<div class="checkbox ${(L_.layersGroupSublayers[node[i].name][s].on ? 'on' : 'off')}" layername="${node[i].name}" sublayername="${s}" style="margin: 5px 0px 5px 10px;"></div>`,
-                                                            '</div>',
+                                                        '<div class="checkboxcont">',
+                                                            `<div class="checkbox ${(L_.layersGroupSublayers[node[i].name][s].on ? 'on' : 'off')}" layername="${node[i].name}" sublayername="${s}" style="margin: 5px 0px 5px 10px;"></div>`,
                                                         '</div>',
                                                     '</div>',
                                                 ].join('\n')

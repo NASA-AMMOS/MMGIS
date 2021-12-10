@@ -259,6 +259,8 @@ export const constructVectorLayer = (
                     icon: L.divIcon({
                         className: `leafletMarkerShape leafletMarkerShape_${layerObj.name
                             .replace(/\s/g, '')
+                            .toLowerCase()} ${layerObj.name
+                            .replace(/\s/g, '')
                             .toLowerCase()}`,
                         iconSize: [
                             (featureStyle.radius + pixelBuffer) * 2,
@@ -323,6 +325,7 @@ export const constructVectorLayer = (
 }
 
 export const constructSublayers = (geojson, layerObj) => {
+    //UNCERTAINTY
     const uncertaintyVar = F_.getIn(
         layerObj,
         'variables.markerAttachments.uncertainty'
@@ -368,6 +371,123 @@ export const constructSublayers = (geojson, layerObj) => {
         },
     }
 
+    // IMAGE
+    const imageVar = F_.getIn(layerObj, 'variables.markerAttachments.image')
+    const imageShow = F_.getIn(
+        layerObj,
+        'variables.markerAttachments.image.show',
+        'click'
+    )
+    const leafletLayerObjectImageOverlay = {
+        pointToLayer: (feature, latlong) => {
+            const path = F_.getIn(
+                layerObj,
+                'variables.markerAttachments.image.path',
+                'public/images/rovers/PerseveranceTopDown.png'
+            )
+            let imageSettings = {
+                image: F_.getIn(
+                    feature.properties,
+                    F_.getIn(
+                        layerObj,
+                        'variables.markerAttachments.image.pathProp',
+                        path
+                    ),
+                    path
+                ),
+                widthMeters: F_.getIn(
+                    layerObj,
+                    'variables.markerAttachments.image.widthMeters',
+                    2.6924
+                ),
+                widthPixels: F_.getIn(
+                    layerObj,
+                    'variables.markerAttachments.image.widthPixels',
+                    420
+                ),
+                heightPixels: F_.getIn(
+                    layerObj,
+                    'variables.markerAttachments.image.heightPixels',
+                    600
+                ),
+                angleProp: F_.getIn(
+                    layerObj,
+                    'variables.markerAttachments.image.angleProp',
+                    'yaw_rad'
+                ),
+                angleUnit: F_.getIn(
+                    layerObj,
+                    'variables.markerAttachments.image.angleUnit',
+                    'rad'
+                ),
+                show: F_.getIn(
+                    layerObj,
+                    'variables.markerAttachments.image.show',
+                    'click'
+                ),
+            }
+            let wm = parseFloat(imageSettings.widthMeters)
+            let w = parseFloat(imageSettings.widthPixels)
+            let h = parseFloat(imageSettings.heightPixels)
+            let lngM = F_.metersToDegrees(wm) / 2
+            let latM = lngM * (h / w)
+            let center = [latlong.lng, latlong.lat]
+            let angle = -F_.getIn(
+                feature.properties,
+                imageSettings.angleProp,
+                0
+            )
+            if (imageSettings.angleProp === 'deg')
+                angle = angle * (Math.PI / 180)
+
+            var topLeft = F_.rotatePoint(
+                {
+                    y: latlong.lat + latM,
+                    x: latlong.lng - lngM,
+                },
+                center,
+                angle
+            )
+            var topRight = F_.rotatePoint(
+                {
+                    y: latlong.lat + latM,
+                    x: latlong.lng + lngM,
+                },
+                center,
+                angle
+            )
+            var bottomRight = F_.rotatePoint(
+                {
+                    y: latlong.lat - latM,
+                    x: latlong.lng + lngM,
+                },
+                center,
+                angle
+            )
+            var bottomLeft = F_.rotatePoint(
+                {
+                    y: latlong.lat - latM,
+                    x: latlong.lng - lngM,
+                },
+                center,
+                angle
+            )
+
+            var anchors = [
+                [topLeft.y, topLeft.x],
+                [topRight.y, topRight.x],
+                [bottomRight.y, bottomRight.x],
+                [bottomLeft.y, bottomLeft.x],
+            ]
+            return L.layerGroup([
+                L.imageTransform(imageSettings.image, anchors, {
+                    opacity: 1,
+                    clip: anchors,
+                }),
+            ])
+        },
+    }
+
     const sublayers = {
         uncertainty_ellipses: uncertaintyVar
             ? {
@@ -381,6 +501,16 @@ export const constructSublayers = (geojson, layerObj) => {
                   ),
               }
             : false,
+        image_overlays:
+            imageVar && imageShow === 'always'
+                ? {
+                      on:
+                          imageVar.initialVisibility != null
+                              ? imageVar.initialVisibility
+                              : true,
+                      layer: L.geoJson(geojson, leafletLayerObjectImageOverlay),
+                  }
+                : false,
     }
 
     const sublayerArray = []

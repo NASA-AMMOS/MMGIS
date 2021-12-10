@@ -478,15 +478,57 @@ Example:
             "value": "Prop: {prop}"
         }
     ],
-    "markerBearing": "unit:prop",
-    "markerBearingColor": "css color",
+    "markerAttachments": {
+        "bearing": {
+          "angleProp": "path.to.angle.prop",
+          "angleUnit": "deg || rad",
+          "color": "#FFFFFF",
+        },
+        "uncertainty": {
+          "initialVisibility": true,
+          "xAxisProp": "path.to.x.prop",
+          "yAxisProp": "path.to.y.prop",
+          "axisUnit": "meters || kilometers",
+          "angleProp": "path.to.angle.prop",
+          "angleUnit": "deg || rad",
+          "color": "#888888",
+        },
+        "image": {
+          "initialVisibility": true,
+          "path": "url to top-down ortho image. ex. public/images/rovers/PerseveranceTopDown.png",
+          "pathProp": "path to image. take priority over path",
+          "widthMeters": 2.6924,
+          "widthPixels": 420,
+          "heightPixels": 600,
+          "angleProp": "path.to.angle.prop",
+          "angleUnit": "deg || rad",
+          "show": "click || always",
+        },
+        "model": {
+          "path": "path to model (.dae, .glb, .gltf, .obj)",
+          "pathProp": "path to model. take priority over path",
+          "mtlPath": "if .obj, path to material file (.mtl)",
+          "yawProp": "path.to.yaw.prop",
+          "yawUnit": "deg || rad",
+          "invertYaw": false,
+          "pitchProp": "path.to.pitch.prop",
+          "pitchUnit": "deg || rad",
+          "invertPitch": true,
+          "rollProp": "path.to.roll.prop",
+          "rollUnit": "deg || rad",
+          "invertRoll": false,
+          "elevationProp": "path.to.elev.prop",
+          "scaleProp": "path.to.scale.prop",
+          "show": "click || always",
+        },
+    },
     "markerIcon": { //See: https://leafletjs.com/reference-1.7.1.html#icon-l-icon
-        iconUrl: "pathToMainIconImage.png",
-        shadowUrl: "(opt)pathToShadowImage.png",
-        iconSize:     [38, 95], // size of the icon
-        shadowSize:   [50, 64], // size of the shadow
-        iconAnchor:   [22, 94], // point of the icon which will correspond to marker's location
-        shadowAnchor: [4, 62],  // the same for the shadow
+        "iconUrl": "pathToMainIconImage.png",
+        "shadowUrl": "(opt)pathToShadowImage.png",
+        "iconSize":     [38, 95], // size of the icon
+        "shadowSize":   [50, 64], // size of the shadow
+        "iconAnchor":   [22, 94], // point of the icon which will correspond to marker's location
+        "shadowAnchor": [4, 62],  // the same for the shadow
     }.
     "search": "(prop1) round(prop2.1) rmunder(prop_3)"
 }
@@ -506,7 +548,45 @@ Example:
   - `icon`: Any [Material Design Icon](http://materialdesignicons.com/) name
   - `value`: A name to display. All `{prop}`s will be replaced by their corresponding `features[which].properties[prop]` value.
 - `markerBearing`: Sets the bearing direction of this layer's point markers (or markerIcons if set). `{unit}` is either `deg` or `rad` and `{prop}` is the dot notated path to the feature properties that contains the desired rotation angle. Ex. `deg:headings.yaw`.
-- `markerBearingColor`: A css color for the directional arrow for non-markerIcon bearings.
+- `markerAttachments`: An object for attaching dynamic items to point features.
+  - `bearing`: Sets the bearing direction of this layer's point markers (or markerIcons if set). Overrides the layer's shape dropdown value.
+    - `angleProp`: The dot notated path to the feature properties that contains the desired rotation angle. Ex. `headings.yaw`.
+    - `angleUnit`: Unit of the value of `angleProp`. Either `deg` or `rad`.
+    - `color`: A css color for the directional arrow for non-markerIcon bearings.
+  - `uncertainty`: A sublayer feature that places ellipses about point features to indicate positional uncertainty
+    - `initialVisibility`: Whether the uncertainty sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.
+    - `xAxisProp`: Prop path to the x axis radius value of the ellipse.
+    - `yAxisProp`: Prop path to the y axis radius value of the ellipse.
+    - `axisUnit`: "meters || kilometers",
+    - `angleProp`: Prop path to the rotation of the ellipse.
+    - `angleUnit`: "deg || rad"
+    - `color`: A css fill color. Will be made more transparent than set.
+  - `image`: Places a scaled and orientated image under each marker. A sublayer.
+    - `initialVisibility`: Whether the image sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.
+    - `path`: A url to a (preferably) top-down north-facing orthographic image.
+    - `pathProp`: A prop path to an image url. Take priority over path. Useful if the path is feature specific.
+    - `widthMeters`: Width of image in meters in order to calculate scale.
+    - `widthPixels`: Image width in pixels.
+    - `heightPixels`: Image height in pixel.
+    - `angleProp`: Prop path to the rotation of the image.
+    - `angleUnit`: "deg || rad"
+    - `show`: "click || always". If set to "always", overrides the Waypoints Kind (if set) and always renders the image under the marker. "click" just shows the image on click and requires the layer to have the Waypoints Kind.
+  - `model`:
+    - `path`: Path to model (.dae, .glb, .gltf, .obj)
+    - `pathProp`: A prop path to a model. Takes priority over path. Useful if model is feature specific.
+    - `mtlPath`: If .obj, the path to its material file (.mtl)
+    - `yawProp`: Prop path to the model's yaw. If this value is a number, uses it directly.
+    - `yawUnit`: "deg || rad"
+    - `invertYaw`: Boolean that, if true, multiplies yaw by -1.
+    - `pitchProp`: Prop path to the model's pitch. If this value is a number, uses it directly.
+    - `pitchUnit`: "deg || rad"
+    - `invertPitch`: Boolean that, if true, multiplies pitch by -1.
+    - `rollProp`: Prop path to the model's roll. If this value is a number, uses it directly.
+    - `rollUnit`: "deg || rad"
+    - `invertRoll`: Boolean that, if true, multiplies roll by -1.
+    - `elevationProp`: Prop path to the model's elevation (in meters). If this value is a number, uses it directly. Default 0.
+    - `scaleProp`: Prop path to the model's scale. If this value is a number, uses it directly. Default 1.
+    - `show`: "click || always",
 - `markerIcon`: Uses an icon image instead of an svg for all of the layer's point markers. If you're using this as a bearing marker, make sure the base icon is pointing north.
 - `search`: This requires the "Minimalist" option in the Look Tab to be unchecked. When set, this layer will become searchable through the search bar at the top. The search will look for and autocomplete on the properties specified. All properties are enclosed by parentheses and space-separated. `round` can be used like a function to round the property beforehand. `rmunder` works similarly but removes all underscores instead.
 

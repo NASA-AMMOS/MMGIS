@@ -2767,14 +2767,33 @@ function layerPopulateVariable(modalId, layerType) {
             angleUnit: "deg || rad",
             color: "#888888",
           },
-          rover: {
-            image:
-              "url to top-down ortho image. ex. public/images/rovers/PerseveranceTopDown.png",
+          image: {
+            initialVisibility: true,
+            path: "url to top-down ortho image. ex. public/images/rovers/PerseveranceTopDown.png",
+            pathProp: "path to image. take priority over path",
             widthMeters: 2.6924,
             widthPixels: 420,
             heightPixels: 600,
             angleProp: "path.to.angle.prop",
             angleUnit: "deg || rad",
+            show: "click || always",
+          },
+          model: {
+            path: "path to model (.dae, .glb, .gltf, .obj)",
+            pathProp: "path to model. take priority over path",
+            mtlPath: "if .obj, path to material file (.mtl)",
+            yawProp: "path.to.yaw.prop",
+            yawUnit: "deg || rad",
+            invertYaw: false,
+            pitchProp: "path.to.pitch.prop",
+            pitchUnit: "deg || rad",
+            invertPitch: true,
+            rollProp: "path.to.roll.prop",
+            rollUnit: "deg || rad",
+            invertRoll: false,
+            elevationProp: "path.to.elev.prop",
+            scaleProp: "path.to.scale.prop",
+            show: "click || always",
           },
         };
       currentLayerVars.datasetLinks = currentLayerVars.datasetLinks || [
