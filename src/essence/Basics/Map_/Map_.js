@@ -363,12 +363,18 @@ let Map_ = {
                         L_.layersGroupSublayers[L_.layersOrdered[hasIndex[i]]][
                             s
                         ].on
-                    )
-                        Map_.map.addLayer(
+                    ) {
+                        if (
                             L_.layersGroupSublayers[
                                 L_.layersOrdered[hasIndex[i]]
-                            ][s].layer
+                            ][s].type !== 'model'
                         )
+                            Map_.map.addLayer(
+                                L_.layersGroupSublayers[
+                                    L_.layersOrdered[hasIndex[i]]
+                                ][s].layer
+                            )
+                    }
                 }
             }
 

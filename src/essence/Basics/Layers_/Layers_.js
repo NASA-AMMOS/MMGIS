@@ -193,9 +193,18 @@ var L_ = {
                     L_.Map_.map.removeLayer(L_.layersGroup[s.name])
                     if (L_.layersGroupSublayers[s.name]) {
                         for (let sub in L_.layersGroupSublayers[s.name]) {
-                            L_.Map_.rmNotNull(
-                                L_.layersGroupSublayers[s.name][sub].layer
-                            )
+                            if (
+                                L_.layersGroupSublayers[s.name][sub].type ===
+                                'model'
+                            ) {
+                                L_.Globe_.litho.removeLayer(
+                                    L_.layersGroupSublayers[s.name][sub].layerId
+                                )
+                            } else {
+                                L_.Map_.rmNotNull(
+                                    L_.layersGroupSublayers[s.name][sub].layer
+                                )
+                            }
                         }
                     }
                 }
@@ -207,16 +216,28 @@ var L_ = {
                     if (L_.layersGroupSublayers[s.name]) {
                         for (let sub in L_.layersGroupSublayers[s.name]) {
                             if (L_.layersGroupSublayers[s.name][sub].on) {
-                                L_.Map_.map.addLayer(
-                                    L_.layersGroupSublayers[s.name][sub].layer
-                                )
-                                L_.layersGroupSublayers[s.name][
-                                    sub
-                                ].layer.setZIndex(
-                                    L_.layersOrdered.length +
-                                        1 -
-                                        L_.layersOrdered.indexOf(s.name)
-                                )
+                                if (
+                                    L_.layersGroupSublayers[s.name][sub]
+                                        .type === 'model'
+                                ) {
+                                    L_.Globe_.litho.addLayer(
+                                        'model',
+                                        L_.layersGroupSublayers[s.name][sub]
+                                            .modelOptions
+                                    )
+                                } else {
+                                    L_.Map_.map.addLayer(
+                                        L_.layersGroupSublayers[s.name][sub]
+                                            .layer
+                                    )
+                                    L_.layersGroupSublayers[s.name][
+                                        sub
+                                    ].layer.setZIndex(
+                                        L_.layersOrdered.length +
+                                            1 -
+                                            L_.layersOrdered.indexOf(s.name)
+                                    )
+                                }
                             }
                         }
                     }
@@ -366,15 +387,23 @@ var L_ = {
         const sublayer = sublayers[sublayerName]
         if (sublayer) {
             if (sublayer.on === true) {
-                L_.Map_.rmNotNull(sublayer.layer)
+                if (sublayer.type === 'model') {
+                    L_.Globe_.litho.removeLayer(sublayer.layerId)
+                } else {
+                    L_.Map_.rmNotNull(sublayer.layer)
+                }
                 sublayer.on = false
             } else {
-                L_.Map_.map.addLayer(sublayer.layer)
-                sublayer.layer.setZIndex(
-                    L_.layersOrdered.length +
-                        1 -
-                        L_.layersOrdered.indexOf(layerName)
-                )
+                if (sublayer.type === 'model') {
+                    L_.Globe_.litho.addLayer('model', sublayer.modelOptions)
+                } else {
+                    L_.Map_.map.addLayer(sublayer.layer)
+                    sublayer.layer.setZIndex(
+                        L_.layersOrdered.length +
+                            1 -
+                            L_.layersOrdered.indexOf(layerName)
+                    )
+                }
                 sublayer.on = true
             }
         }
@@ -438,16 +467,19 @@ var L_ = {
                             for (let s in L_.layersGroupSublayers[
                                 L_.layersData[i].name
                             ]) {
-                                if (
+                                const sublayer =
                                     L_.layersGroupSublayers[
                                         L_.layersData[i].name
-                                    ][s].on
-                                ) {
-                                    map.addLayer(
-                                        L_.layersGroupSublayers[
-                                            L_.layersData[i].name
-                                        ][s].layer
-                                    )
+                                    ][s]
+                                if (sublayer.on) {
+                                    if (sublayer.type === 'model') {
+                                        L_.Globe_.litho.addLayer(
+                                            'model',
+                                            sublayer.modelOptions
+                                        )
+                                    } else {
+                                        map.addLayer(sublayer.layer)
+                                    }
                                 }
                             }
                         }

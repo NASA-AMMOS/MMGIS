@@ -520,6 +520,7 @@ Example:
           "elevationProp": "path.to.elev.prop",
           "scaleProp": "path.to.scale.prop",
           "show": "click || always",
+          "onlyLastN": false
         },
     },
     "markerIcon": { //See: https://leafletjs.com/reference-1.7.1.html#icon-l-icon
@@ -586,7 +587,8 @@ Example:
     - `invertRoll`: Boolean that, if true, multiplies roll by -1.
     - `elevationProp`: Prop path to the model's elevation (in meters). If this value is a number, uses it directly. Default 0.
     - `scaleProp`: Prop path to the model's scale. If this value is a number, uses it directly. Default 1.
-    - `show`: "click || always",
+    - `show`: "click || always"
+    - `onlyLastN`: If false, shows models at all points. If a number, only shows models for the last n points.
 - `markerIcon`: Uses an icon image instead of an svg for all of the layer's point markers. If you're using this as a bearing marker, make sure the base icon is pointing north.
 - `search`: This requires the "Minimalist" option in the Look Tab to be unchecked. When set, this layer will become searchable through the search bar at the top. The search will look for and autocomplete on the properties specified. All properties are enclosed by parentheses and space-separated. `round` can be used like a function to round the property beforehand. `rmunder` works similarly but removes all underscores instead.
 

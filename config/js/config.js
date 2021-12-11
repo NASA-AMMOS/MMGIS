@@ -2794,6 +2794,7 @@ function layerPopulateVariable(modalId, layerType) {
             elevationProp: "path.to.elev.prop",
             scaleProp: "path.to.scale.prop",
             show: "click || always",
+            onlyLastN: false,
           },
         };
       currentLayerVars.datasetLinks = currentLayerVars.datasetLinks || [
