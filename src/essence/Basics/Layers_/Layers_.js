@@ -29,6 +29,8 @@ var L_ = {
     layersNamed: {}, //was namedLayersData
     //Name -> leaflet layer
     layersGroup: {}, //was mainLayerGroup
+    //Name -> sublayer group
+    layersGroupSublayers: {},
     //Index -> layer name
     layersOrdered: [], //was mainLayerOrder
     //Index -> layerName (an unchanging layersOrdered)
@@ -189,10 +191,56 @@ var L_ = {
                         $('.drawToolContextMenuHeaderClose').click()
                     } catch (err) {}
                     L_.Map_.map.removeLayer(L_.layersGroup[s.name])
+                    if (L_.layersGroupSublayers[s.name]) {
+                        for (let sub in L_.layersGroupSublayers[s.name]) {
+                            if (
+                                L_.layersGroupSublayers[s.name][sub].type ===
+                                'model'
+                            ) {
+                                L_.Globe_.litho.removeLayer(
+                                    L_.layersGroupSublayers[s.name][sub].layerId
+                                )
+                            } else {
+                                L_.Map_.rmNotNull(
+                                    L_.layersGroupSublayers[s.name][sub].layer
+                                )
+                            }
+                        }
+                    }
                 }
-                L_.Globe_.litho.removeLayer(s.name)
+                if (s.type === 'model') {
+                    L_.Globe_.litho.toggleLayer(s.name, false)
+                } else L_.Globe_.litho.removeLayer(s.name)
             } else {
                 if (L_.layersGroup[s.name]) {
+                    if (L_.layersGroupSublayers[s.name]) {
+                        for (let sub in L_.layersGroupSublayers[s.name]) {
+                            if (L_.layersGroupSublayers[s.name][sub].on) {
+                                if (
+                                    L_.layersGroupSublayers[s.name][sub]
+                                        .type === 'model'
+                                ) {
+                                    L_.Globe_.litho.addLayer(
+                                        'model',
+                                        L_.layersGroupSublayers[s.name][sub]
+                                            .modelOptions
+                                    )
+                                } else {
+                                    L_.Map_.map.addLayer(
+                                        L_.layersGroupSublayers[s.name][sub]
+                                            .layer
+                                    )
+                                    L_.layersGroupSublayers[s.name][
+                                        sub
+                                    ].layer.setZIndex(
+                                        L_.layersOrdered.length +
+                                            1 -
+                                            L_.layersOrdered.indexOf(s.name)
+                                    )
+                                }
+                            }
+                        }
+                    }
                     L_.Map_.map.addLayer(L_.layersGroup[s.name])
                     L_.layersGroup[s.name].setZIndex(
                         L_.layersOrdered.length +
@@ -230,6 +278,33 @@ var L_ = {
                         //time: s.time == null ? '' : s.time.end,
                     })
                 } else if (s.type === 'data') {
+                } else if (s.type === 'model') {
+                    if (L_.Globe_.litho.hasLayer(s.name)) {
+                        L_.Globe_.litho.toggleLayer(s.name, true)
+                    } else {
+                        let modelUrl = s.url
+                        if (!F_.isUrlAbsolute(modelUrl))
+                            modelUrl = L_.missionPath + modelUrl
+                        L_.Globe_.litho.addLayer('model', {
+                            name: s.name,
+                            order: 1,
+                            on: true,
+                            path: modelUrl,
+                            opacity: s.initialOpacity,
+                            position: {
+                                longitude: s.position?.longitude || 0,
+                                latitude: s.position?.latitude || 0,
+                                elevation: s.position?.elevation || 0,
+                            },
+                            scale: s.scale || 1,
+                            rotation: {
+                                // y-up is away from planet center. x is pitch, y is yaw, z is roll
+                                x: s.rotation?.x || 0,
+                                y: s.rotation?.y || 0,
+                                z: s.rotation?.z || 0,
+                            },
+                        })
+                    }
                 } else {
                     let hadToMake = false
                     if (L_.layersGroup[s.name] === false) {
@@ -263,7 +338,7 @@ var L_ = {
                                 1 -
                                 L_.layersOrdered.indexOf(s.name)
                         )
-                        if (s.type === 'vector')
+                        if (s.type === 'vector') {
                             L_.Globe_.litho.addLayer('clamped', {
                                 name: s.name,
                                 order: 1000 - L_.layersIndex[s.name], // Since higher order in litho is on top
@@ -285,11 +360,16 @@ var L_ = {
                                         weight: s.style.weight,
                                         radius: s.radius,
                                     },
+                                    bearing: s.variables?.markerAttachments
+                                        ?.bearing
+                                        ? s.variables.markerAttachments.bearing
+                                        : null,
                                 },
                                 opacity: L_.opacityArray[s.name],
                                 minZoom: 0, //s.minZoom,
                                 maxZoom: 100, //s.maxNativeZoom,
                             })
+                        }
                     }
                 }
             }
@@ -300,6 +380,32 @@ var L_ = {
 
         if (!on && s.type === 'vector') {
             L_.Map_.orderedBringToFront()
+        }
+    },
+    toggleSublayer: function (layerName, sublayerName) {
+        const sublayers = L_.layersGroupSublayers[layerName] || {}
+        const sublayer = sublayers[sublayerName]
+        if (sublayer) {
+            if (sublayer.on === true) {
+                if (sublayer.type === 'model') {
+                    L_.Globe_.litho.removeLayer(sublayer.layerId)
+                } else {
+                    L_.Map_.rmNotNull(sublayer.layer)
+                }
+                sublayer.on = false
+            } else {
+                if (sublayer.type === 'model') {
+                    L_.Globe_.litho.addLayer('model', sublayer.modelOptions)
+                } else {
+                    L_.Map_.map.addLayer(sublayer.layer)
+                    sublayer.layer.setZIndex(
+                        L_.layersOrdered.length +
+                            1 -
+                            L_.layersOrdered.indexOf(layerName)
+                    )
+                }
+                sublayer.on = true
+            }
         }
     },
     disableAllBut: function (name, skipDisabling) {
@@ -330,7 +436,9 @@ var L_ = {
         var map = map_
         if (map == null) {
             if (L_.Map_ == null) {
-                console.warn('Null addVisible')
+                console.warn(
+                    "Can't addVisible layers before Map_ is initialized."
+                )
                 return
             }
             map = L_.Map_.map
@@ -340,7 +448,8 @@ var L_ = {
         for (var i = L_.layersData.length - 1; i >= 0; i--) {
             if (
                 L_.toggledArray[L_.layersData[i].name] === true &&
-                L_.layersGroup[L_.layersData[i].name] != null
+                (L_.layersData[i].type === 'model' ||
+                    L_.layersGroup[L_.layersData[i].name] != null)
             ) {
                 if (L_.layersData[i].type === 'tile') {
                     // Make sure all tile layers follow z-index order at start instead of element order
@@ -354,6 +463,26 @@ var L_ = {
                 // Add Map layers
                 if (L_.layersGroup[L_.layersData[i].name]) {
                     try {
+                        if (L_.layersGroupSublayers[L_.layersData[i].name]) {
+                            for (let s in L_.layersGroupSublayers[
+                                L_.layersData[i].name
+                            ]) {
+                                const sublayer =
+                                    L_.layersGroupSublayers[
+                                        L_.layersData[i].name
+                                    ][s]
+                                if (sublayer.on) {
+                                    if (sublayer.type === 'model') {
+                                        L_.Globe_.litho.addLayer(
+                                            'model',
+                                            sublayer.modelOptions
+                                        )
+                                    } else {
+                                        map.addLayer(sublayer.layer)
+                                    }
+                                }
+                            }
+                        }
                         map.addLayer(L_.layersGroup[L_.layersData[i].name])
                     } catch (e) {
                         console.log(e)
@@ -405,6 +534,26 @@ var L_ = {
                             //boundingBox: s.boundingBox,
                             //time: s.time == null ? '' : s.time.end,
                         })
+                } else if (L_.layersData[i].type === 'model') {
+                    L_.Globe_.litho.addLayer('model', {
+                        name: s.name,
+                        order: 99999 - L_.layersIndex[s.name],
+                        on: true,
+                        path: layerUrl,
+                        opacity: L_.opacityArray[s.name],
+                        position: {
+                            longitude: s.position?.longitude || 0,
+                            latitude: s.position?.latitude || 0,
+                            elevation: s.position?.elevation || 0,
+                        },
+                        scale: s.scale || 1,
+                        rotation: {
+                            // y-up is away from planet center. x is pitch, y is yaw, z is roll
+                            x: s.rotation?.x || 0,
+                            y: s.rotation?.y || 0,
+                            z: s.rotation?.z || 0,
+                        },
+                    })
                 } else if (L_.layersData[i].type != 'header') {
                     L_.Globe_.litho.addLayer(
                         L_.layersData[i].type == 'vector'
@@ -431,6 +580,9 @@ var L_ = {
                                     weight: s.style.weight,
                                     radius: s.radius,
                                 },
+                                bearing: s.variables?.markerAttachments?.bearing
+                                    ? s.variables.markerAttachments.bearing
+                                    : null,
                             },
                             opacity: L_.opacityArray[s.name],
                             minZoom: 0, //s.minZoom,
@@ -726,6 +878,7 @@ var L_ = {
         return popup
     },
     setLayerOpacity: function (name, newOpacity) {
+        newOpacity = parseFloat(newOpacity)
         if (L_.Globe_) L_.Globe_.litho.setLayerOpacity(name, newOpacity)
         var l = L_.layersGroup[name]
         if (l) {
@@ -733,6 +886,11 @@ var L_ = {
                 l.setOpacity(newOpacity)
             } catch (error) {
                 l.setStyle({ opacity: newOpacity, fillOpacity: newOpacity })
+                $(
+                    `.leafletMarkerShape_${name
+                        .replace(/\s/g, '')
+                        .toLowerCase()}`
+                ).css({ opacity: newOpacity })
             }
             try {
                 l.options.fillOpacity = newOpacity
@@ -791,10 +949,10 @@ var L_ = {
                     this.layersStyles[key].hasOwnProperty('fillColor')
                 ) {
                     this.layersGroup[key].eachLayer((layer) => {
-                        var fillColor = this.layersStyles[key].fillColor
-                        var opacity = layer.options.opacity
-                        var fillOpacity = layer.options.fillOpacity
-                        var weight = layer.options.weight
+                        let fillColor = this.layersStyles[key].fillColor
+                        let opacity = layer.options.opacity
+                        let fillOpacity = layer.options.fillOpacity
+                        let weight = layer.options.weight
                         if (!layer._isAnnotation)
                             L_.layersGroup[key].resetStyle(layer)
                         try {
@@ -802,7 +960,7 @@ var L_ = {
                                 opacity: opacity,
                                 fillOpacity: fillOpacity,
                                 fillColor: layer.options.fillColor || fillColor,
-                                weight: weight,
+                                weight: parseInt(weight),
                             })
                         } catch (err) {
                             if (layer._icon) layer._icon.style.filter = ''
