@@ -5,6 +5,7 @@ import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
 
 import DataShaders from '../../Ancillary/DataShaders'
+import Filtering from './Filtering/Filtering'
 
 import './LayersTool.css'
 
@@ -42,7 +43,7 @@ var markup = [
 
 var LayersTool = {
     height: 0,
-    width: 250,
+    width: 280,
     vars: {},
     MMGISInterface: null,
     initialize: function () {
@@ -518,11 +519,20 @@ function interfaceWithMMGIS() {
     //Enables the setting dialogue box
     $('.layerName, .gears').on('click', function () {
         var li = $(this).parent().parent()
-        if (li.attr('type') == 'header') return
+        const type = li.attr('type')
+        const layerName = li.attr('name')
+        if (type === 'header') return
+
         var wasOn = li.hasClass('gears_on')
         $('.layerDownload').parent().parent().removeClass('download_on')
         $('.gears').parent().parent().removeClass('gears_on')
         if (!wasOn) li.addClass('gears_on')
+
+        //Support Filtering
+        if (['vector', 'query'].includes(type)) {
+            Filtering.destroy($('.gears').parent().parent())
+            if (!wasOn) Filtering.make(li, layerName)
+        }
     })
     //Enables the time dialogue box
     $('.layerName, .time').on('click', function () {

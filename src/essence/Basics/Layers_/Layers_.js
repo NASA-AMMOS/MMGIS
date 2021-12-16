@@ -484,6 +484,15 @@ var L_ = {
                             }
                         }
                         map.addLayer(L_.layersGroup[L_.layersData[i].name])
+                        // Set markerDiv based opacities if any
+                        $(
+                            `.leafletMarkerShape_${L_.layersData[i].name
+                                .replace(/\s/g, '')
+                                .toLowerCase()}`
+                        ).css({
+                            opacity:
+                                L_.opacityArray[L_.layersData[i].name] || 0,
+                        })
                     } catch (e) {
                         console.log(e)
                         console.warn(

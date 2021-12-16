@@ -116,13 +116,14 @@
 }
 
 #layersToolList > li {
+    height: 30px;
     cursor: pointer;
     display: flex;
     flex-flow: column;
     font-size: 14px;
     margin: 1px 0px;
+    color: var(--color-f);
     background: var(--color-j);
-    overflow: hidden;
 }
 #layersToolList > li.forceOff {
     height: 0 !important;
@@ -139,8 +140,8 @@
 }
 
 #layersToolList .title {
-    height: 24px;
-    line-height: 24px;
+    height: 30px;
+    line-height: 30px;
     justify-content: space-between;
     display: flex;
     width: 100%;
@@ -182,7 +183,7 @@
     margin: 0;
 }
 #layersTool .settings ul > li {
-    line-height: 24px;
+    line-height: 30px;
 }
 #layersTool .settings ul > li > div {
     display: flex;
@@ -192,7 +193,7 @@
     color: white;
 }
 #layersTool .settings ul > li > div > div {
-    font-size: 13px;
+    font-size: 14px;
     color: #ddd;
 }
 #layersTool .settings ul > li .right {
@@ -209,8 +210,8 @@
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 #layersTool .settings ul > li input[type='range'] {
-    width: 100px;
-    margin-right: 0;
+    width: 120px;
+    margin: 6px 0px;
 }
 #layersTool .settings span {
     font-size: 12px;
@@ -233,18 +234,24 @@
 #layersTool .reset,
 #layersTool .layerDownload,
 #layersTool .gears {
-    width: 24px;
+    width: 30px;
     height: 100%;
     text-align: center;
-    line-height: 24px;
+    line-height: 30px;
     cursor: pointer;
     color: #ccc;
-    transition: color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+    transition: color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95),
+        background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
 }
 
 #layersTool .layerDownload,
 #layersTool .gears {
     color: transparent;
+}
+#layersTool .reset:hover,
+#layersTool .layerDownload:hover,
+#layersTool .gears:hover {
+    background: var(--color-k);
 }
 #layersTool .reset {
     display: none;
@@ -274,7 +281,7 @@
 }
 
 #layersTool .layerName {
-    line-height: 25px;
+    line-height: 31px;
     height: 100%;
     flex: 1;
     user-select: none;
@@ -326,13 +333,13 @@
 }
 
 #layersTool .checkboxcont {
-    width: 24px;
-    height: 24px;
+    width: 30px;
+    height: 30px;
 }
 #layersTool .checkbox {
     margin: 5px;
-    width: 14px;
-    height: 14px;
+    width: 20px;
+    height: 20px;
     border: 2px solid #777;
     border-radius: 3px;
     transition: background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
@@ -342,6 +349,9 @@
 #layersTool .checkbox.on {
     background: white;
     border: 0px solid #777;
+}
+#layersTool .checkbox:not(.on):hover {
+    background: rgba(255, 255, 255, 0.1);
 }
 #layersTool .checkbox.loading {
     background: transparent;
@@ -428,13 +438,20 @@
 #layersTool .dropdown {
     background-color: #222;
     border: none;
-    margin-top: 1px;
-    width: 100px;
-    height: 20px;
-    font-size: 12px;
+    margin: 1px 0px;
+    width: 120px;
+    height: 28px;
+    font-size: 14px;
     color: var(--color-f);
-    padding-left: 3px;
-    appearance: none;
+    padding: 0px 2px;
+}
+#layersTool .dropdown2 {
+    background-color: #222;
+    border: none;
+    height: 30px;
+    font-size: 14px;
+    color: var(--color-f);
+    padding-left: 10px;
 }
 
 #layersTool .layernotfound {

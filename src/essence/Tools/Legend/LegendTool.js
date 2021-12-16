@@ -47,9 +47,8 @@ function interfaceWithMMWebGIS() {
     tools = tools
         .append('div')
         .attr('id', 'LegendTool')
-        .attr('class', 'mmgisScrollbar')
         .style('color', '#dcdcdc')
-        .style('height', '100%')
+        .style('height', 'calc(100% - 40px)')
         .style('overflow-y', 'auto')
 
     //Add the markup to tools or do it manually
@@ -86,7 +85,7 @@ function interfaceWithMMWebGIS() {
                         if (
                             shape == 'circle' ||
                             shape == 'square' ||
-                            shape == 'rect'   ||
+                            shape == 'rect' ||
                             shape == 'triangle'
                         ) {
                             // finalize discreet and continuous
@@ -160,8 +159,8 @@ function interfaceWithMMWebGIS() {
                                     var trianglePoints = '0 0, 10 20, 20 0'
                                     svg.append('polyline')
                                         .attr('class', l + '_legendshape')
-                                        .attr('width',20)
-                                        .attr('height',20)
+                                        .attr('width', 20)
+                                        .attr('height', 20)
                                         .attr('points', trianglePoints)
                                         .attr(
                                             'fill',

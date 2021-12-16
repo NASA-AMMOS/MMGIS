@@ -108,6 +108,22 @@
     background-color: #fffdf5;
 }
 
+/*Button5*/
+.mmgisButton5 {
+    height: 30px;
+    line-height: 30px;
+    padding: 0px 4px;
+    font-size: 14px;
+    text-align: center;
+    cursor: pointer;
+    display: flex;
+    transition: all 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+.mmgisButton5:hover {
+    color: var(--color-mmgis);
+    background: var(--color-m1);
+}
+
 /*RadioBar*/
 .mmgisRadioBar {
     display: inline-block;

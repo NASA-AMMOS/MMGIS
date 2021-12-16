@@ -1,0 +1,92 @@
+#layersTool_filtering {
+    border-top: 1px solid var(--color-k);
+    border-left: 6px solid #0f77bd;
+}
+#layersTool_filtering_header {
+    display: flex;
+    justify-content: space-between;
+    height: 30px;
+    line-height: 30px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+#layersTool_filtering_title {
+    font-size: 16px;
+    padding-left: 8px;
+}
+
+#layersTool_filtering_footer {
+    display: flex;
+    justify-content: space-between;
+    height: 30px;
+    line-height: 30px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+#layersTool_filtering_adds {
+    display: flex;
+    justify-content: space-between;
+}
+#layersTool_filtering_adds > div > div {
+    padding-left: 2px;
+}
+
+.layersTool_filtering_value {
+    display: flex;
+    height: 30px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+.layersTool_filtering_value .layersTool_filtering_value_key {
+    flex: 1;
+}
+.layersTool_filtering_value .layersTool_filtering_value_operator {
+}
+.layersTool_filtering_value .layersTool_filtering_value_value {
+    flex: 1;
+}
+#layersTool_filtering input {
+    background: #111;
+    color: #ccc;
+    width: calc(100% - 2px);
+    box-sizing: border-box;
+    height: 30px;
+    padding-left: 8px;
+    border: 0px solid rgba(255, 255, 255, 0);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+#layersTool_filtering select {
+    background: #111;
+    color: #ccc;
+    height: 30px;
+}
+.layersTool_filtering_value_operator_select {
+    background: var(--color-a);
+    color: var(--color-f);
+    border: none;
+    border-right: 1px solid var(--color-b);
+    cursor: pointer;
+    height: 30px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.layersTool_filtering_value_remove .mmgisButton5 {
+    width: 22px;
+}
+
+#layersTool_filtering .dropy,
+#layersTool_filtering .dropy__title {
+    height: 30px;
+}
+#layersTool_filtering .dropy__title span {
+    padding: 6px;
+}
+#layersTool_filtering .dropy .dropy__content li a {
+    padding: 6px;
+    border-top: 1px solid var(--color-m);
+    margin-bottom: 0px;
+    height: 30px;
+}
+#layersTool_filtering .dropy__content .dropy__header {
+    display: none;
+}
+#layersTool_filtering .dropy__content ul {
+    transition: none;
+}
