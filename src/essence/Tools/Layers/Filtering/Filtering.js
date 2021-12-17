@@ -39,7 +39,6 @@ const Filtering = {
         Filtering.filters[layerName] = Filtering.filters[layerName] || {
             spatial: {},
             values: [],
-            geojson: L_.layersGroup[layerName].toGeoJSON(),
         }
         Filtering.current = {
             layerName: layerName,
@@ -48,6 +47,15 @@ const Filtering = {
         }
 
         if (Filtering.current.type === 'vector') {
+            try {
+                Filtering.filters[layerName].geojson =
+                    L_.layersGroup[layerName].toGeoJSON()
+            } catch (err) {
+                console.warn(
+                    `Filtering - Cannot find GeoJSON to filter on for layer: ${layerName}`
+                )
+                return
+            }
             Filtering.filters[layerName].aggs = LocalFilterer.getAggregations(
                 Filtering.filters[layerName].geojson
             )
@@ -58,7 +66,10 @@ const Filtering = {
         const markup = [
             "<div id='layersTool_filtering'>",
                 "<div id='layersTool_filtering_header'>",
-                    "<div id='layersTool_filtering_title'>Filter</div>",
+                    "<div id='layersTool_filtering_title_left'>",
+                        "<div id='layersTool_filtering_title'>Filter</div>",
+                        "<div id='layersTool_filtering_count'></div>",
+                    "</div>",
                     "<div id='layersTool_filtering_adds'>",
                         "<div id='layersTool_filtering_add_value' class='mmgisButton5'><i class='mdi mdi-plus mdi-18px'></i></div>",
                     "</div>",
@@ -68,7 +79,7 @@ const Filtering = {
                     "</ul>",
                     "<ul id='layerTool_filtering_filters_list'></ul>",
                 "</div>",
-                "<div id='layersTool_filtering_footer'>",
+                `<div id='layersTool_filtering_footer'>`,
                     "<div id='layersTool_filtering_clear' class='mmgisButton5'><div>Clear</div></i></div>",
                     "<div id='layersTool_filtering_submit' class='mmgisButton5'><div>Submit</div><i class='mdi mdi-arrow-right mdi-18px'></i></div>",
                 "</div>",
@@ -80,6 +91,12 @@ const Filtering = {
         Filtering.filters[layerName].values.forEach((v) => {
             Filtering.addValue(layerName, v)
         })
+
+        // Show footer iff value rows exist
+        $('#layersTool_filtering_footer').css(
+            'display',
+            Filtering.filters[layerName].values.length === 0 ? 'none' : 'flex'
+        )
 
         // Add Spatial
         $('#layersTool_filtering_add_spatial').on('click', function () {
@@ -98,9 +115,9 @@ const Filtering = {
         let id, key, op, val
         if (value) {
             id = value.id
-            key = ` value='${value.key}'`
+            key = value.key != null ? ` value='${value.key}'` : ''
             op = value.op
-            val = ` value='${value.value}'`
+            val = value.value != null ? ` value='${value.value}'` : ''
         } else id = Filtering.filters[layerName].values.length
 
         // prettier-ignore
@@ -114,6 +131,10 @@ const Filtering = {
                 "</div>",
                 "<div class='layersTool_filtering_value_value'>",
                     `<input id='layersTool_filtering_value_value_input_${layerName}_${id}' class='layersTool_filtering_value_value_input' spellcheck='false' type='text'${val} placeholder='Value...'></input>`,
+                    `<div class='layersTool_filtering_value_value_type'>`,
+                        `<i id='layersTool_filtering_value_value_type_number_${layerName}_${id}' style='display: none;' class='mdi mdi-numeric mdi-18px'></i>`,
+                        `<i id='layersTool_filtering_value_value_type_string_${layerName}_${id}' style='display: none;'class='mdi mdi-alphabetical-variant mdi-18px'></i>`,
+                    `</div>`,
                 "</div>",
             "</div>",
         ].join('\n')
@@ -131,6 +152,12 @@ const Filtering = {
         }
 
         Filtering.attachEvents(id, layerName, { op: op })
+
+        // Show footer iff value rows exist
+        $('#layersTool_filtering_footer').css(
+            'display',
+            Filtering.filters[layerName].values.length === 0 ? 'none' : 'flex'
+        )
     },
     attachEvents: function (id, layerName, options) {
         Filtering.attachValueEvents(id, layerName, options)
@@ -152,6 +179,19 @@ const Filtering = {
                 $(`#layersTool_filtering_value_${layerName}_${v.id}`).remove()
                 return false
             })
+
+            if (Filtering.current.type === 'vector') {
+                LocalFilterer.filter(Filtering.filters[layerName], layerName)
+            } else if (Filtering.current.type === 'query') {
+            }
+
+            // Show footer iff value rows exist
+            $('#layersTool_filtering_footer').css(
+                'display',
+                Filtering.filters[layerName].values.length === 0
+                    ? 'none'
+                    : 'flex'
+            )
         })
     },
     attachValueEvents: function (id, layerName, options) {
@@ -197,7 +237,22 @@ const Filtering = {
                 Filtering.filters[layerName].values[id].type = property.type
                 Filtering.filters[layerName].values[id].key = event.value
                 Filtering.updateValuesAutoComplete(id, layerName)
+                $(this).css('border', 'none')
             },
+        })
+
+        $(elmId).on('blur', function (event) {
+            const property = Filtering.filters[layerName].aggs[event.value]
+            if (property) {
+                if (
+                    Filtering.filters[layerName].values[id].key !== event.value
+                ) {
+                    Filtering.filters[layerName].values[id].key = event.value
+                    Filtering.filters[layerName].values[id].type = property.type
+                    Filtering.updateValuesAutoComplete(id, layerName)
+                }
+                $(this).css('border', 'none')
+            } else $(this).css('border', '1px solid red')
         })
 
         // Operator Dropdown
@@ -279,6 +334,24 @@ const Filtering = {
             'border-top': 'none',
             'background-color': 'var(--color-a)',
         })
+
+        // Change type indicator icons too
+        const numberElmId = `#layersTool_filtering_value_value_type_number_${layerName}_${id}`
+        const stringElmId = `#layersTool_filtering_value_value_type_string_${layerName}_${id}`
+        switch (Filtering.filters[layerName].values[id].type) {
+            case 'number':
+                $(numberElmId).css('display', 'inherit')
+                $(stringElmId).css('display', 'none')
+                break
+            case 'string':
+                $(stringElmId).css('display', 'inherit')
+                $(numberElmId).css('display', 'none')
+                break
+            default:
+                $(numberElmId).css('display', 'none')
+                $(stringElmId).css('display', 'none')
+                break
+        }
     },
 }
 

@@ -120,8 +120,8 @@
     transition: all 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
 }
 .mmgisButton5:hover {
-    color: var(--color-mmgis);
-    background: var(--color-m1);
+    color: white;
+    background: var(--color-k);
 }
 
 /*RadioBar*/

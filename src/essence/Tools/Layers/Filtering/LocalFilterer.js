@@ -63,22 +63,27 @@ const LocalFilterer = {
         return aggs
     },
     filter: function (filter, layerName) {
-        console.log(filter, layerName)
-
         const geojson = filter.geojson
-        console.log(geojson)
         const filteredGeoJSON = JSON.parse(JSON.stringify(geojson))
         filteredGeoJSON.features = []
 
+        // Filter
         geojson.features.forEach((f) => {
             if (LocalFilterer.match(f, filter)) filteredGeoJSON.features.push(f)
         })
-        console.log(filteredGeoJSON)
 
+        // Set count
+        $('#layersTool_filtering_count').text(
+            `(${filteredGeoJSON.features.length}/${geojson.features.length})`
+        )
+
+        // Update layer
         L_.clearVectorLayer(layerName)
         L_.updateVectorLayer(layerName, filteredGeoJSON)
     },
     match: function (feature, filter) {
+        if (filter.values.length === 0) return true
+
         let matches = false
         for (let i = 0; i < filter.values.length; i++) {
             const v = filter.values[i]

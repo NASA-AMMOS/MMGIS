@@ -43,7 +43,7 @@ var markup = [
 
 var LayersTool = {
     height: 0,
-    width: 280,
+    width: 290,
     vars: {},
     MMGISInterface: null,
     initialize: function () {
@@ -465,22 +465,25 @@ function interfaceWithMMGIS() {
         }
     }
 
-    //Add event functions and whatnot
-    //Makes layers clickable on and off
-    $('#layersToolList > li > .title .checkbox').on('click', async function () {
-        let li = $(this).parent().parent().parent()
+    async function toggleLayer(checkbox) {
+        let li = checkbox.parent().parent().parent()
         if (li.attr('type') !== 'header') {
-            $(this).addClass('loading')
+            checkbox.addClass('loading')
             await L_.toggleLayer(L_.layersNamed[li.attr('name')])
-            $(this).removeClass('loading')
+            checkbox.removeClass('loading')
             if (li.attr('type') === 'model' || L_.layersGroup[li.attr('name')])
-                $(this).toggleClass('on')
+                checkbox.toggleClass('on')
             else if (
                 li.attr('type') !== 'model' &&
                 L_.layersGroup[li.attr('name')] == null
             )
                 li.addClass('layernotfound')
         }
+    }
+    //Add event functions and whatnot
+    //Makes layers clickable on and off
+    $('#layersToolList > li > .title .checkbox').on('click', function () {
+        toggleLayer($(this))
     })
 
     //Makes sublayers clickable on and off
@@ -517,21 +520,33 @@ function interfaceWithMMGIS() {
         if (!wasOn) li.addClass('download_on')
     })
     //Enables the setting dialogue box
-    $('.layerName, .gears').on('click', function () {
-        var li = $(this).parent().parent()
+    $('.layerName, .gears').on('click', async function () {
+        const li = $(this).parent().parent()
         const type = li.attr('type')
         const layerName = li.attr('name')
         if (type === 'header') return
 
-        var wasOn = li.hasClass('gears_on')
+        const wasOn = li.hasClass('gears_on')
         $('.layerDownload').parent().parent().removeClass('download_on')
         $('.gears').parent().parent().removeClass('gears_on')
         if (!wasOn) li.addClass('gears_on')
 
-        //Support Filtering
-        if (['vector', 'query'].includes(type)) {
-            Filtering.destroy($('.gears').parent().parent())
-            if (!wasOn) Filtering.make(li, layerName)
+        //Support Filtering 1
+        if (!wasOn) {
+            if (['vector', 'query'].includes(type)) {
+                Filtering.destroy($('.gears').parent().parent())
+            }
+        }
+
+        // Turn layer on if off
+        const checkbox = $(this).parent().find('.checkboxcont .checkbox')
+        if (!checkbox.hasClass('on')) await toggleLayer(checkbox)
+
+        //Support Filtering 2
+        if (!wasOn) {
+            if (['vector', 'query'].includes(type)) {
+                if (!wasOn) Filtering.make(li, layerName)
+            }
         }
     })
     //Enables the time dialogue box

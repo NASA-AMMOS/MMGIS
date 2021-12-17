@@ -77,7 +77,7 @@
 }
 #layersTool #searchLayers input {
     background: #111;
-    width: 187px;
+    width: 229px;
     color: #ccc;
     padding-left: 12px;
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -117,7 +117,6 @@
 
 #layersToolList > li {
     height: 30px;
-    cursor: pointer;
     display: flex;
     flex-flow: column;
     font-size: 14px;
@@ -151,29 +150,8 @@
 #layersTool .settings {
     height: 0px;
     opacity: 0;
-    border-left: 6px solid transparent;
     overflow: hidden;
     color: #ccc;
-}
-#layersTool .layerExport.vector,
-#layersTool .settings.vector {
-    border-color: rgb(15, 119, 189);
-}
-#layersTool .layerExport.tile,
-#layersTool .settings.tile {
-    border-color: rgb(119, 15, 189);
-}
-#layersTool .layerExport.vectortile,
-#layersTool .settings.vectortile {
-    border-color: #bd0f8e;
-}
-#layersTool .layerExport.data,
-#layersTool .settings.data {
-    border-color: rgb(189, 15, 50);
-}
-#layersTool .layerExport.model,
-#layersTool .settings.model {
-    border-color: rgb(189, 189, 15);
 }
 
 #layersTool .layerExport ul,
@@ -228,7 +206,7 @@
 #layersTool #layersToolList > li.gears_on .settings {
     height: auto;
     opacity: 1;
-    padding: 2px 6px;
+    padding: 2px 6px 2px 12px;
 }
 
 #layersTool .reset,
@@ -281,6 +259,7 @@
 }
 
 #layersTool .layerName {
+    cursor: pointer;
     line-height: 31px;
     height: 100%;
     flex: 1;
@@ -335,6 +314,7 @@
 #layersTool .checkboxcont {
     width: 30px;
     height: 30px;
+    cursor: pointer;
 }
 #layersTool .checkbox {
     margin: 5px;

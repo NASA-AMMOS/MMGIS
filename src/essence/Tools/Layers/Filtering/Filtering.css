@@ -1,17 +1,23 @@
 #layersTool_filtering {
     border-top: 1px solid var(--color-k);
-    border-left: 6px solid #0f77bd;
 }
 #layersTool_filtering_header {
     display: flex;
     justify-content: space-between;
     height: 30px;
     line-height: 30px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+#layersTool_filtering_title_left {
+    display: flex;
 }
 #layersTool_filtering_title {
     font-size: 16px;
-    padding-left: 8px;
+    padding-left: 14px;
+}
+#layersTool_filtering_count {
+    font-size: 12px;
+    padding: 0px 4px;
+    color: #d6d6d6;
 }
 
 #layersTool_filtering_footer {
@@ -19,7 +25,6 @@
     justify-content: space-between;
     height: 30px;
     line-height: 30px;
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 #layersTool_filtering_adds {
     display: flex;
@@ -32,7 +37,7 @@
 .layersTool_filtering_value {
     display: flex;
     height: 30px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    border-bottom: 1px solid var(--color-k);
 }
 .layersTool_filtering_value .layersTool_filtering_value_key {
     flex: 1;
@@ -41,16 +46,36 @@
 }
 .layersTool_filtering_value .layersTool_filtering_value_value {
     flex: 1;
+    position: relative;
 }
+
+.layersTool_filtering_value_value_type {
+    position: absolute;
+    right: 0;
+    top: 0;
+    pointer-events: none;
+    height: 30px;
+    line-height: 30px;
+    width: 30px;
+    text-align: center;
+    color: #999;
+}
+.layersTool_filtering_value_value_type > i:first-child {
+    color: var(--color-yellow);
+}
+.layersTool_filtering_value_value_type > i:last-child {
+    color: var(--color-green);
+}
+
 #layersTool_filtering input {
     background: #111;
     color: #ccc;
-    width: calc(100% - 2px);
+    width: 100%;
     box-sizing: border-box;
     height: 30px;
     padding-left: 8px;
-    border: 0px solid rgba(255, 255, 255, 0);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    border: none;
+    font-size: 14px;
 }
 #layersTool_filtering select {
     background: #111;
@@ -58,22 +83,31 @@
     height: 30px;
 }
 .layersTool_filtering_value_operator_select {
-    background: var(--color-a);
+    background: #111111;
     color: var(--color-f);
     border: none;
-    border-right: 1px solid var(--color-b);
     cursor: pointer;
     height: 30px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    transition: background 0.2s cubic-bezier(0.785, 0.135, 0.15, 0.86);
+}
+.layersTool_filtering_value_operator_select:hover {
+    background: var(--color-r4);
 }
 
 .layersTool_filtering_value_remove .mmgisButton5 {
     width: 22px;
 }
+#layersTool_filtering_clear {
+    padding: 0px 14px;
+}
+#layersTool_filtering_submit {
+    padding: 0px 8px;
+}
 
 #layersTool_filtering .dropy,
 #layersTool_filtering .dropy__title {
     height: 30px;
+    border: none;
 }
 #layersTool_filtering .dropy__title span {
     padding: 6px;
