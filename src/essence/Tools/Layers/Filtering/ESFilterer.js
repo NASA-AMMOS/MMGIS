@@ -121,9 +121,9 @@ const ESFilterer = {
             method: 'POST',
             headers: {
                 accept: 'application/json',
-                credentials: 'include',
                 ...(config.headers || {}),
             },
+            credentials: config.withCredentials ? 'include' : '',
             body: finalBody,
         })
             .then((res) => res.json())

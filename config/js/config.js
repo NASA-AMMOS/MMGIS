@@ -2792,6 +2792,7 @@ function layerPopulateVariable(modalId, layerType) {
       currentLayerVars.query = {
         bodyWrapper: `{"preference":"site"}\n{BODY}\n`,
         stringifyBody: true,
+        withCredentials: false,
         headers: {
           "Content-Type": "application/x-ndjson",
         },
