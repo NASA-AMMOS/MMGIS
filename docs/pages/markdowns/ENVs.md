@@ -71,7 +71,7 @@ Sets the `Content-Security-Policy: frame-ancestors` header to allow the embeddin
 
 #### `PUBLIC_URL=`
 
-Set MMGIS to be deployed under a subpath. Use full and absolute paths only to the project's build directory. For example if serving at the subpath 'mmgis/' is desired, set PUBLIC_URL to 'https://{domain}/mmgis/build' | string | default `null` (domain root build '/build')
+Set MMGIS to be deployed under a subpath. Use full and absolute paths only to the project's build directory. For example if serving at the subpath 'mmgis/' is desired, set PUBLIC_URL to 'https://{domain}/mmgis/build'. Changing PUBLIC_URL required a rebuild. | string | default `null` (domain root build '/build')
 
 #### `CLEARANCE_NUMBER=`
 

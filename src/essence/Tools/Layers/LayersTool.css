@@ -66,6 +66,9 @@
 #layersTool #filterLayers div.vectortile.on {
     border-bottom: 4px solid #bd0f8e;
 }
+#layersTool #filterLayers div.query.on {
+    border-bottom: 4px solid rgba(15, 189, 77, 1);
+}
 #layersTool #filterLayers div.data.on {
     border-bottom: 4px solid rgba(189, 15, 50, 1);
 }
@@ -123,16 +126,19 @@
     margin: 1px 0px;
     color: var(--color-f);
     background: var(--color-j);
+    overflow: hidden;
 }
 #layersToolList > li.forceOff {
     height: 0 !important;
     margin-top: 0 !important;
     margin-bottom: 0 !important;
+    overflow: hidden;
 }
 #layersToolList > li.forceOff2 {
     height: 0 !important;
     margin-top: 0 !important;
     margin-bottom: 0 !important;
+    overflow: hidden;
 }
 #layersTool #layersToolList > li:first-child {
     margin-top: 0px !important;
@@ -293,6 +299,9 @@
 }
 .layersToolColor.vectortile {
     background: #bd0f8e;
+}
+.layersToolColor.query {
+    background: rgb(15, 189, 77);
 }
 .layersToolColor.data {
     background: rgb(189, 15, 50);

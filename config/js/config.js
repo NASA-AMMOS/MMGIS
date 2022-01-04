@@ -734,37 +734,39 @@ function makeLayerBarAndModal(d, level) {
   var nameEl = "block", kindEl = "block", typeEl = "block", urlEl = "block", demtileurlEl = "block", demparserEl = "block", controlledEl = "block", legendEl = "block",
       visEl = "block", viscutEl = "block", initOpacEl = "block", togwheadEl = "block", minzEl = "block",
       tileformatEl = "block",
-    visEl = "block",
-    viscutEl = "block",
-    togwheadEl = "block",
-    minzEl = "block",
-    modelLonEl = "block",
-    modelLatEl = "block",
-    modelElevEl = "block",
-    modelRotXEl = "block",
-    modelRotYEl = "block",
-    modelRotZEl = "block",
-    modelScaleEl = "block",
-    maxnzEl = "block",
-    maxzEl = "block",
-    strcolEl = "block",
-    filcolEl = "block",
-    weightEl = "block",
-    opacityEl = "block",
-    radiusEl = "block",
-    variableEl = "block",
-    xmlEl = "block",
-    bbEl = "block",
-    vtLayerEl = "block",
-    vtIdEl = "block",
-    vtKeyEl = "block",
-    vtLayerSetStylesEl = "block",
-    timeEl = "block",
-    timeTypeEl = "block",
-    timeFormatEl = "block",
-    timeRefreshEl = "none",
-    timeIncrementEl = "none";
-  shapeEl = "none";
+      visEl = "block",
+      viscutEl = "block",
+      togwheadEl = "block",
+      minzEl = "block",
+      modelLonEl = "block",
+      modelLatEl = "block",
+      modelElevEl = "block",
+      modelRotXEl = "block",
+      modelRotYEl = "block",
+      modelRotZEl = "block",
+      modelScaleEl = "block",
+      maxnzEl = "block",
+      maxzEl = "block",
+      strcolEl = "block",
+      filcolEl = "block",
+      weightEl = "block",
+      opacityEl = "block",
+      radiusEl = "block",
+      variableEl = "block",
+      xmlEl = "block",
+      bbEl = "block",
+      vtLayerEl = "block",
+      vtIdEl = "block",
+      vtKeyEl = "block",
+      vtLayerSetStylesEl = "block",
+      timeEl = "block",
+      timeTypeEl = "block",
+      timeFormatEl = "block",
+      timeRefreshEl = "none",
+      timeIncrementEl = "none",
+      shapeEl = "none",
+      queryEndpointEl = "none",
+      queryTypeEl = "none";
 
   // prettier-ignore
   switch( d.type ) {
@@ -778,6 +780,7 @@ function makeLayerBarAndModal(d, level) {
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
         timeEl = "none"; timeTypeEl = "none"; timeFormatEl = "none"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
+        queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "tile":
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "none"; legendEl = "block";
@@ -789,6 +792,7 @@ function makeLayerBarAndModal(d, level) {
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
         timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
+        queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "vectortile":
         nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "none"; legendEl = "block";
@@ -800,6 +804,7 @@ function makeLayerBarAndModal(d, level) {
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "block"; vtIdEl = "block"; vtKeyEl = "block"; vtLayerSetStylesEl = "block";
         timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "block";
+        queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "data":
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "none"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "none"; legendEl = "block";
@@ -811,17 +816,19 @@ function makeLayerBarAndModal(d, level) {
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none"; 
         timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
+        queryEndpointEl = "none"; queryTypeEl = "none";
       break;
-    case "point":
-        nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; demparserEl = "none"; controlledEl = "none"; legendEl = "block";
-        visEl = "block"; viscutEl = "block"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "none";
+    case "query":
+        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "none"; demtileurlEl = "none"; demparserEl = "none"; controlledEl = "none"; legendEl = "none";
+        visEl = "none"; viscutEl = "none"; initOpacEl = "none"; togwheadEl = "none"; minzEl = "none";
         tileformatEl = "none";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxnzEl = "none"; maxzEl = "none"; strcolEl = "block"; filcolEl = "block";
         weightEl = "block"; opacityEl = "block"; radiusEl = "block"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none"; 
-        timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
+        timeEl = "none"; timeTypeEl = "none"; timeFormatEl = "none"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
+        queryEndpointEl = "block"; queryTypeEl = "block";
       break;
     case "vector":
         nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; controlledEl = "block"; demtileurlEl = "none";  demparserEl = "none"; legendEl = "block";
@@ -844,6 +851,7 @@ function makeLayerBarAndModal(d, level) {
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
         timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
+        queryEndpointEl = "none"; queryTypeEl = "none";
       break; 
     default:
       console.warn(`Unknown layer type: ${d.type}`)
@@ -854,7 +862,7 @@ function makeLayerBarAndModal(d, level) {
     tileSel = "",
     vectortileSel = "",
     dataSel = "",
-    pointSel = "",
+    querySel = "",
     vectorSel = "",
     modelSel = "";
 
@@ -875,9 +883,9 @@ function makeLayerBarAndModal(d, level) {
       barColor = "rgb(189, 15, 50)";
       dataSel = "selected";
       break;
-    case "point":
-      barColor = "#892f45";
-      pointSel = "selected";
+    case "query":
+      barColor = "#0fbd4d";
+      querySel = "selected";
       break;
     case "vector":
       barColor = "rgb(15, 119, 189)";
@@ -890,6 +898,8 @@ function makeLayerBarAndModal(d, level) {
     default:
       console.warn(`Unknown layer type: ${d.type}`);
   }
+
+  var queryTypeESSel = "selected";
 
   var tileformatTMSSel = "",
     tileformatWMTSSel = "",
@@ -1080,7 +1090,7 @@ function makeLayerBarAndModal(d, level) {
   // prettier-ignore
   $( "#modal_divs" ).append(
     "<div id='layers_" + n + "' class='modal mmgisScrollbar' modalId='" + n + "'>" +
-      "<div class='modal-content' style='padding-bottom: 0; margin-bottom: " + ((d.type === 'header') ? '200px' : '0') + ";'>" +
+      "<div class='modal-content' style='padding-bottom: 0; margin-bottom: " + ((d.type === 'header') ? '260px' : '0') + ";'>" +
         "<div class='modal-title'>" +
           "<h4 id='modal_name'>" + d.name + "</h4>" +
           "<div class='clone'><i class='mdi mdi-content-duplicate mdi-24px' title='Clone Layer'></i></div>" +
@@ -1108,7 +1118,7 @@ function makeLayerBarAndModal(d, level) {
                   "<option value='tile' " + tileSel + ">Tile</option>" +
                   "<option value='vectortile' " + vectortileSel + ">Vector Tile</option>" +
                   "<option value='data' " + dataSel + ">Data</option>" +
-                  //"<option value='point' " + pointSel + ">Point</option>" +
+                  "<option value='query' " + querySel + ">Query</option>" +
                   "<option value='vector' " + vectorSel + ">Vector</option>" +
                   "<option value='model' " + modelSel + ">Model</option>" +
                 "</optgroup>" +
@@ -1133,6 +1143,20 @@ function makeLayerBarAndModal(d, level) {
             "<div id='controlledEl' class='input-field col s3 push-s1' style='display: " + controlledEl + "'>" +
               "<input id='Controlled" + n + "' type='checkbox' class='filled-in checkbox-color'" +  (d.controlled ? 'checked' : '') + "/>" +
               "<label for='Controlled" + n + "' style='color: black;'>" + "Controlled" + "</label>" +
+            "</div>" +
+          "</div>" +
+
+          // Query Core
+          "<div class='row' style='margin-bottom: 0px;'>" +
+            "<div id='queryEndpointEl' class='input-field col s8 push-s1' style='display: " + queryEndpointEl + "'>" +
+              "<input id='QueryEndpoint" + n + "' type='text' class='validate' value='" + (d.query != null ? unescape(d.query.endpoint) : '') + "'>" +
+              "<label for='QueryEndpoint" + n + "'>Endpoint</label>" +
+            "</div>" +
+            "<div id='queryTypeEl' class='input-field col s2 push-s1' style='display: " + queryTypeEl + "'>" +
+              "<select>" +
+                "<option value='elasticsearch' " + queryTypeESSel + ">ElasticSearch</option>" +
+              "</select>" +
+              "<label>Type</label>" +
             "</div>" +
           "</div>" +
 
@@ -1459,7 +1483,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
       weightEl = "block", opacityEl = "block", radiusEl = "block", variableEl = "block",
       vtLayerEl = "none", vtIdEl = "none", vtKeyEl = "none", vtLayerSetStylesEl = "none",
       timeEl = 'block', timeTypeEl = 'block', timeFormatEl = 'block', timeRefreshEl = 'none', timeIncrementEl = 'none', 
-      shapeEl = 'block';
+      shapeEl = 'block', queryEndpointEl = "none", queryTypeEl = "none";
   //Kind of a repeat of above =\
 
   // prettier-ignore
@@ -1473,7 +1497,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none"; 
         timeEl = 'none'; timeTypeEl = 'none'; timeFormatEl = 'none'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
-        shapeEl = 'none';
+        shapeEl = 'none'; queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "tile": barColor = "rgb(119, 15, 189)";
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "none"; legendEl = "block";
@@ -1484,7 +1508,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
         timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
-        shapeEl = 'none';
+        shapeEl = 'none'; queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "vectortile": barColor = "#bd0f8e";
         nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "none"; legendEl = "block";
@@ -1495,7 +1519,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "block"; vtIdEl = "block"; vtKeyEl = "block"; vtLayerSetStylesEl = "block";  
         timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
-        shapeEl = 'block';
+        shapeEl = 'block'; queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "data": barColor = "rgb(189, 15, 50)";
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "none"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "none"; legendEl = "block";
@@ -1506,18 +1530,18 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
         timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
-        shapeEl = 'none';  
+        shapeEl = 'none'; queryEndpointEl = "none"; queryTypeEl = "none";
       break;
-    case "point": barColor = "#892f45";
-        nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; demparserEl = "none"; controlledEl = "none"; legendEl = "block";
-        tileformatEl = "none"; visEl = "block"; viscutEl = "block"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "none"; maxnzEl = "none";
+    case "query": barColor = "#0fbd4d";
+        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "none"; demtileurlEl = "none"; demparserEl = "none"; controlledEl = "none"; legendEl = "none";
+        tileformatEl = "none"; visEl = "none"; viscutEl = "none"; initOpacEl = "none"; togwheadEl = "none"; minzEl = "none"; maxnzEl = "none";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxzEl = "none"; strcolEl = "block"; filcolEl = "block"; weightEl = "block";
         opacityEl = "block"; radiusEl = "block"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
-        timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
-        shapeEl = 'none';
+        timeEl = 'none'; timeTypeEl = 'none'; timeFormatEl = 'none'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
+        shapeEl = 'none'; queryEndpointEl = "block"; queryTypeEl = "block";
       break;
     case "vector": barColor = "rgb(15, 119, 189)";
         nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; demparserEl = "none"; controlledEl = "block"; legendEl = "block";
@@ -1528,7 +1552,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         opacityEl = "block"; radiusEl = "block"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
         timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
-        shapeEl = 'block';
+        shapeEl = 'block'; queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "model": barColor = "rgb(189, 189, 15)";
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; demparserEl = "none"; controlledEl = "none"; legendEl = "none";
@@ -1539,7 +1563,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
         timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
-        shapeEl = 'none';
+        shapeEl = 'none'; queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     default:
       console.warn(`Unknown selected layer type`)
@@ -1594,6 +1618,8 @@ function mmgisLinkModalsToLayersTypeChange(e) {
   mainThis.find("#timeRefreshEl").css("display", timeRefreshEl);
   mainThis.find("#timeIncrementEl").css("display", timeIncrementEl);
   mainThis.find("#shapeEl").css("display", shapeEl);
+  mainThis.find("#queryEndpointEl").css("display", queryEndpointEl);
+  mainThis.find("#queryTypeEl").css("display", queryTypeEl);
 }
 function mmgisLinkModalsToLayersVisChange(e) {
   var mainThis = $(this).parent().parent().parent();
@@ -1901,11 +1927,16 @@ function save() {
         var modalTimeFormat = modal.find("#timeFormatEl input").val();
         var modalShape = modal.find("#shapeEl select option:selected").val();
 
+        const modalQueryEndpoint = modal.find("#queryEndpointEl input").val();
+        const modalQueryType = modal
+          .find("#queryTypeEl select option:selected")
+          .val();
+
         layerObject.name = modalName;
         if (
           modalType == "vectortile" ||
           modalType == "vector" ||
-          modalType == "point"
+          modalType == "query"
         ) {
           layerObject.kind = modalKind;
         }
@@ -1953,7 +1984,7 @@ function save() {
           layerObject.scale = !isNaN(modalModelScale) ? modalModelScale : 1;
         }
         if (
-          modalType == "point" ||
+          modalType == "query" ||
           modalType == "vector" ||
           modalType == "vectortile" ||
           modalType == "data"
@@ -2032,6 +2063,13 @@ function save() {
 
         // shape property
         layerObject.shape = modalShape; // circle, square, triangle, star, hexagon
+
+        if (modalType === "query") {
+          layerObject.query = {
+            endpoint: modalQueryEndpoint,
+            type: modalQueryType,
+          };
+        }
 
         if (!validName(modalName)) {
           isInvalidData = true;
@@ -2317,28 +2355,28 @@ function save() {
                 .css("background-color", "#a11717");
             }
             break;
-          case "point":
+          case "query":
             if (modalName == "undefined") {
               isInvalidData = true;
               Materialize.toast(
-                "<span id='toast_warningp1'>WARNING: point with undefined name.</span>",
+                "<span id='toast_warningp1'>WARNING: query with undefined name.</span>",
                 5000
               );
               $("#toast_warningp1").parent().css("background-color", "#a11717");
             } else if (modalName.length < 1) {
               isInvalidData = true;
               Materialize.toast(
-                "<span id='toast_warningp2'>WARNING: point with no name.</span>",
+                "<span id='toast_warningp2'>WARNING: query with no name.</span>",
                 5000
               );
               $("#toast_warningp2").parent().css("background-color", "#a11717");
             }
-            if (modalUrl == "undefined" || modalUrl == "") {
+            if (modalQueryEndpoint == "undefined" || modalQueryEndpoint == "") {
               isInvalidData = true;
               Materialize.toast(
                 "<span id='toast_warningp3'>WARNING: " +
                   modalName +
-                  " has undefined url.</span>",
+                  " has undefined endpoint.</span>",
                 5000
               );
               $("#toast_warningp3").parent().css("background-color", "#a11717");
@@ -2749,6 +2787,24 @@ function layerPopulateVariable(modalId, layerType) {
               ramps: [["#ffffcc", "#a1dab4", "#41b6c4", "#2c7fb8", "#253494"]],
             },
           };
+    } else if (layerType == "query") {
+      currentLayerVars.useKeyAsName = currentLayerVars.useKeyAsName || "prop";
+      currentLayerVars.query = {
+        bodyWrapper: `{"preference":"site"}\n{BODY}\n`,
+        stringifyBody: true,
+        headers: {
+          "Content-Type": "application/x-ndjson",
+        },
+        fields: ["field1", "field2"],
+        must: [
+          {
+            match: {
+              type: "footprint",
+            },
+          },
+        ],
+        size: 1000,
+      };
     } else {
       currentLayerVars.useKeyAsName = currentLayerVars.useKeyAsName || "prop";
       currentLayerVars.markerAttachments =

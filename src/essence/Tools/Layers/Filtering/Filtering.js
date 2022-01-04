@@ -31,7 +31,7 @@ const filters = {
 const Filtering = {
     filters: {},
     current: {},
-    make: function (container, layerName) {
+    make: async function (container, layerName) {
         const layerObj = L_.layersNamed[layerName]
 
         if (layerObj == null) return
@@ -60,6 +60,11 @@ const Filtering = {
                 Filtering.filters[layerName].geojson
             )
         } else if (Filtering.current.type === 'query') {
+            Filtering.filters[layerName].aggs =
+                await ESFilterer.getAggregations(
+                    layerName,
+                    Filtering.getConfig()
+                )
         }
 
         // prettier-ignore
@@ -172,7 +177,7 @@ const Filtering = {
         })
 
         // Clear
-        $(`#layersTool_filtering_clear`).on('click', () => {
+        $(`#layersTool_filtering_clear`).on('click', async () => {
             Filtering.filters[layerName].values = Filtering.filters[
                 layerName
             ].values.filter((v) => {
@@ -181,8 +186,13 @@ const Filtering = {
             })
 
             if (Filtering.current.type === 'vector') {
-                LocalFilterer.filter(Filtering.filters[layerName], layerName)
+                LocalFilterer.filter(layerName, Filtering.filters[layerName])
             } else if (Filtering.current.type === 'query') {
+                await ESFilterer.filter(
+                    layerName,
+                    Filtering.filters[layerName],
+                    Filtering.getConfig()
+                )
             }
 
             // Show footer iff value rows exist
@@ -352,6 +362,21 @@ const Filtering = {
                 $(stringElmId).css('display', 'none')
                 break
         }
+    },
+    getConfig: function () {
+        if (
+            Filtering.current.layerObj.type === 'query' &&
+            Filtering.current.layerObj.query
+        ) {
+            return {
+                endpoint: Filtering.current.layerObj.query.endpoint,
+                type: Filtering.current.layerObj.query.type || 'elasticsearch',
+                ...(Filtering.current.layerObj.variables
+                    ? Filtering.current.layerObj.variables.query || {}
+                    : {}),
+            }
+        }
+        return {}
     },
 }
 

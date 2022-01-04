@@ -564,6 +564,9 @@ async function makeLayer(layerObj, evenIfOff) {
             case 'vectortile':
                 makeVectorTileLayer()
                 break
+            case 'query':
+                makeQueryLayer()
+                break
             case 'data':
                 makeDataLayer()
                 break
@@ -1061,6 +1064,11 @@ async function makeLayer(layerObj, evenIfOff) {
     }
 
     function makeModelLayer() {
+        L_.layersLoaded[L_.layersOrdered.indexOf(layerObj.name)] = true
+        allLayersLoaded()
+    }
+
+    function makeQueryLayer() {
         L_.layersLoaded[L_.layersOrdered.indexOf(layerObj.name)] = true
         allLayersLoaded()
     }

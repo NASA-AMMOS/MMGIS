@@ -12,34 +12,39 @@ import './LayersTool.css'
 //Add the tool markup if you want to do it this way
 // prettier-ignore
 var markup = [
-        "<div id='layersTool'>",
-            "<div id='layersToolHeader'>",
-                "<div id='filterLayers'>",
-                    "<div class='left'>",
-                        '<div id="title">Layers</div>',
-                    "</div>",
-                    "<div class='right'>",
-                        '<div class="vector" type="vector" title="Hide/Show Vector Layers"><i class="mdi mdi-vector-square mdi-18px"></i></div>',
-                        '<div class="vectortile" type="vectortile" title="Hide/Show VectorTile Layers"><i class="mdi mdi-grid mdi-18px"></i></div>',
-                        '<div class="tile" type="tile" title="Hide/Show Raster Layers"><i class="mdi mdi-map-outline mdi-18px"></i></div>',
-                        '<div class="data" type="data" title="Hide/Show Data Layers"><i class="mdi mdi-file-table mdi-18px"></i></div>',
-                        '<div class="model" type="model" title="Hide/Show Model Layers"><i class="mdi mdi-cube-outline mdi-18px"></i></div>',
-                        '<div class="visible" type="visible" title="Hide/Show Off Layers"><i class="mdi mdi-eye mdi-18px"></i></div>',
-                    "</div>",
+    "<div id='layersTool'>",
+        "<div id='layersToolHeader'>",
+            "<div id='filterLayers'>",
+                "<div class='left'>",
+                    '<div id="title">Layers</div>',
                 "</div>",
-                "<div id='searchLayers'>",
-                    "<input type='text' placeholder='Search Layers' />",
-                    '<i class="mdi mdi-magnify mdi-18px"></i>',
-                    '<div id="expand"><i class="mdi mdi-arrow-expand-vertical mdi-18px"></i></div>',
-                    '<div id="collapse"><i class="mdi mdi-arrow-collapse-vertical mdi-18px"></i></div>',
+                "<div class='right'>",
+                    '<div class="vector" type="vector" title="Hide/Show Vector Layers"><i class="mdi mdi-vector-square mdi-18px"></i></div>',
+                    '<div class="vectortile" type="vectortile" title="Hide/Show VectorTile Layers"><i class="mdi mdi-grid mdi-18px"></i></div>',
+                    '<div class="tile" type="tile" title="Hide/Show Raster Layers"><i class="mdi mdi-map-outline mdi-18px"></i></div>',
+                    '<div class="query" type="query" title="Hide/Show Query Layers"><i class="mdi mdi-binoculars mdi-18px"></i></div>',
+                    '<div class="data" type="data" title="Hide/Show Data Layers"><i class="mdi mdi-file-table mdi-18px"></i></div>',
+                    '<div class="model" type="model" title="Hide/Show Model Layers"><i class="mdi mdi-cube-outline mdi-18px"></i></div>',
+                    '<div class="visible" type="visible" title="Hide/Show Off Layers"><i class="mdi mdi-eye mdi-18px"></i></div>',
                 "</div>",
             "</div>",
-            "<div id='layersToolContent'>",
-                "<ul id='layersToolList'>",
-                "</ul>",
+            "<div id='searchLayers'>",
+                "<input type='text' placeholder='Search Layers' />",
+                '<i class="mdi mdi-magnify mdi-18px"></i>',
+                '<div id="expand"><i class="mdi mdi-arrow-expand-vertical mdi-18px"></i></div>',
+                '<div id="collapse"><i class="mdi mdi-arrow-collapse-vertical mdi-18px"></i></div>',
             "</div>",
         "</div>",
-    ].join('\n')
+        "<div id='layersToolContent'>",
+            "<ul id='layersToolList'>",
+            "</ul>",
+        "</div>",
+    "</div>",
+].join('\n')
+
+// These layers are a bit different and we need to account for that.
+// Either they have no map data or not initial data
+const quasiLayers = ['model', 'query']
 
 var LayersTool = {
     height: 0,
@@ -408,7 +413,7 @@ function interfaceWithMMGIS() {
                     // prettier-ignore
                     $('#layersToolList').append(
                         [
-                            '<li id="LayersTool' + node[i].name.replace(/\s/g, "") + '" class="' + ((node[i].type !== 'model' && L_.layersGroup[node[i].name] == null) ? 'layernotfound' : '') + '" type="' + node[i].type + '" on="true" depth="' + depth + '" name="' + node[i].name + '" parent="' + parent.name + '" style="margin-left: ' + (depth * 16) + 'px;">',
+                            '<li id="LayersTool' + node[i].name.replace(/\s/g, "") + '" class="' + ((!quasiLayers.includes(node[i].type) && L_.layersGroup[node[i].name] == null) ? 'layernotfound' : '') + '" type="' + node[i].type + '" on="true" depth="' + depth + '" name="' + node[i].name + '" parent="' + parent.name + '" style="margin-left: ' + (depth * 16) + 'px;">',
                                 '<div class="title" id="layerstart' + node[i].name.replace(/\s/g, "") + '">',
                                     '<div class="layersToolColor ' + node[i].type + '"></div>',
                                     '<div class="checkboxcont">',
@@ -471,10 +476,13 @@ function interfaceWithMMGIS() {
             checkbox.addClass('loading')
             await L_.toggleLayer(L_.layersNamed[li.attr('name')])
             checkbox.removeClass('loading')
-            if (li.attr('type') === 'model' || L_.layersGroup[li.attr('name')])
+            if (
+                quasiLayers.includes(li.attr('type')) ||
+                L_.layersGroup[li.attr('name')]
+            )
                 checkbox.toggleClass('on')
             else if (
-                li.attr('type') !== 'model' &&
+                !quasiLayers.includes(li.attr('type')) &&
                 L_.layersGroup[li.attr('name')] == null
             )
                 li.addClass('layernotfound')
@@ -684,13 +692,14 @@ function interfaceWithMMGIS() {
             vector: $('#filterLayers .right > .vector').hasClass('on'),
             vectortile: $('#filterLayers .right > .vectortile').hasClass('on'),
             tile: $('#filterLayers .right > .tile').hasClass('on'),
+            query: $('#filterLayers .right > .query').hasClass('on'),
             data: $('#filterLayers .right > .data').hasClass('on'),
             model: $('#filterLayers .right > .model').hasClass('on'),
             visible: $('#filterLayers .right > .visible').hasClass('on'),
         }
         $('#layersToolList > li').each(function () {
-            if ($(this).attr('type') != 'header') {
-                if (type == 'visible') {
+            if ($(this).attr('type') !== 'header') {
+                if (type === 'visible') {
                     var layerOn = $(this).find('.checkbox').hasClass('on')
                     if (isOn) {
                         if (layerOn) $(this).removeClass('forceOff2')
@@ -701,6 +710,7 @@ function interfaceWithMMGIS() {
                         !ons.vector &&
                         !ons.vectortile &&
                         !ons.tile &&
+                        !ons.query &&
                         !ons.data &&
                         !ons.model
                     )
