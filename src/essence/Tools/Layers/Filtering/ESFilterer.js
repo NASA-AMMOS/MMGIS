@@ -112,7 +112,8 @@ const ESFilterer = {
         if (config.stringifyBody) body = JSON.stringify(body)
 
         let finalBody
-        if (config.bodyFormatter) finalBody = finalBody.replace('{BODY}', body)
+        if (config.bodyWrapper)
+            finalBody = config.bodyWrapper.replace('{BODY}', body)
         else finalBody = body
 
         console.log(query, finalBody)
@@ -120,6 +121,7 @@ const ESFilterer = {
             method: 'POST',
             headers: {
                 accept: 'application/json',
+                credentials: 'include',
                 ...(config.headers || {}),
             },
             body: finalBody,
