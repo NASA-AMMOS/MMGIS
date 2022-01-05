@@ -1228,73 +1228,48 @@ var L_ = {
             console.warn('Warning: Unable to clear vector layer: ' + layerName)
         }
     },
-    updateVectorLayer: function (layerName, inputData,
-            keepN = { keepAfterTime: null, timePropPath: null, keepLastN: null }) {
-
-        // Validate input for keepN
-        const keepNKeys = ['keepAfterTime', 'timePropPath', 'keepLastN']
-        const checkKeys = Object.keys(keepN).every(key => keepNKeys.includes(key))
-        if (!checkKeys) {
+    trimVectorLayer: function (layerName, keepAfterTime, timePropPath) {
+        // Validate input parameters
+        if (!keepAfterTime) {
             console.warn(
-                'Warning: Unable to update vector layer `' +
-                    layerName +
-                    '` as there are invalid parameters: ' +
-                    Object.keys(keepN).filter(x => !keepNKeys.includes(x))
+                'Warning: The input for keepAfterTime is invalid: ' + keepAfterTime
             )
             return
         }
 
-        // Validate input for keepN parameters
-        if (keepN.keepAfterTime) {
-            const keepAfterAsDate = new Date(keepN.keepAfterTime)
-            if (isNaN(keepAfter.getTime())) {
+        if (!timePropPath) {
+            console.warn(
+                'Warning: The input for timePropPath is invalid: ' + timePropPath
+            )
+            return
+        }
+
+        if (keepAfterTime) {
+            const keepAfterAsDate = new Date(keepAfterTime)
+            if (isNaN(keepAfterAsDate.getTime())) {
                 console.warn(
-                    'Warning: The input for keepAfterTime is invalid: ' + keepN.keepAfterTime
+                    'Warning: The input for keepAfterTime is invalid: ' + keepAfterTime
                 )
                 return
             }
-        }
-        // Validate input for keepN
-        const keepNum = parseInt(keepN.keepLastN)
-        if (keepN && Number.isNaN(Number(keepNum))) {
-            console.warn(
-                'Warning: Unable to update vector layer `' +
-                    layerName +
-                    '` as keepLastN == ' +
-                    keepN.keepLastN+
-                    ' and is not a valid integer'
-            )
-            return
         }
 
         if (layerName in L_.layersGroup) {
             const updateLayer = L_.layersGroup[layerName]
 
-            try {
-                // Add data
-                updateLayer.addData(inputData)
-            } catch (e) {
-                console.log(e)
-                console.warn(
-                    'Warning: Unable to update vector layer as the input data is invalid: ' +
-                        layerName
-                )
-            }
+            if (keepAfterTime) {
+                const infoTool = ToolController_.getTool('InfoTool')
 
-            const infoTool = ToolController_.getTool('InfoTool')
-
-            if (keepN.keepAfterTime) {
-                // Look for keepN.timePropPath
-                const keepAfterTimeAsDate = new Date(keepN.keepAfterTime)
+                const keepAfterTimeAsDate = new Date(keepAfterTime)
 
                 var layers = updateLayer.getLayers()
                 for (let i = layers.length - 1; i >= 0; i--) {
                     let layer = layers[i]
-                    if (layer.feature.properties[keepN.timePropPath]) {
-                        const layerDate = new Date(layer.feature.properties[keepN.timePropPath])
+                    if (layer.feature.properties[timePropPath]) {
+                        const layerDate = new Date(layer.feature.properties[timePropPath])
                         if (isNaN(layerDate.getTime())) {
                             console.warn(
-                                'Warning: The time for the layer is invalid: ' + layer.feature.properties[keepN.timePropPath]
+                                'Warning: The time for the layer is invalid: ' + layer.feature.properties[timePropPath]
                             )
                             continue
                         }
@@ -1311,11 +1286,35 @@ var L_ = {
                     }
                 }
             }
+        } else {
+            console.warn(
+                'Warning: Unable to trim vector layer as it does not exist: ' +
+                    layerName
+            )
+        }
+    },
+    keepLastN: function (layerName, keepLastN) {
+        // Validate input parameter
+        const keepNum = parseInt(keepLastN)
+        if (Number.isNaN(Number(keepNum))) {
+            console.warn(
+                'Warning: Unable to trim vector layer `' +
+                    layerName +
+                    '` as keepLastN == ' +
+                    keepLastN +
+                    ' and is not a valid integer'
+            )
+            return
+        }
 
+        if (layerName in L_.layersGroup) {
             // Keep N elements if greater than 0 else keep all elements
-            if (keepN.keepLastN && keepN.keepLastN > 0) {
+            if (keepLastN && keepLastN > 0) {
+                const infoTool = ToolController_.getTool('InfoTool')
+
+                const updateLayer = L_.layersGroup[layerName]
                 var layers = updateLayer.getLayers()
-                while (layers.length > keepN.keepLastN) {
+                while (layers.length > keepLastN) {
                     // If we remove a layer but its properties are displayed in the InfoTool
                     // and description (i.e. it was clicked), clear the InfoTool and description
                     const removeLayer = layers[0]
@@ -1327,6 +1326,27 @@ var L_ = {
                     updateLayer.removeLayer(removeLayer)
                     layers = updateLayer.getLayers()
                 }
+            }
+        } else {
+            console.warn(
+                'Warning: Unable to trim vector layer as it does not exist: ' +
+                    layerName
+            )
+        }
+    },
+    updateVectorLayer: function (layerName, inputData) {
+        if (layerName in L_.layersGroup) {
+            const updateLayer = L_.layersGroup[layerName]
+
+            try {
+                // Add data
+                updateLayer.addData(inputData)
+            } catch (e) {
+                console.log(e)
+                console.warn(
+                    'Warning: Unable to update vector layer as the input data is invalid: ' +
+                        layerName
+                )
             }
         } else {
             console.warn(

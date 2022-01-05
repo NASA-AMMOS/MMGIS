@@ -202,9 +202,21 @@ var mmgisAPI = {
      * Updates a specified layer with GeoJSON data
      * @param {string} - layerName - name of layer to update
      * @param {GeoJSON} - inputData - valid GeoJSON data
-     * @param {number} - keepN - number of features to keep. A value less than or equal to 0 keeps all previous features
      */
     updateVectorLayer: L_.updateVectorLayer,
+    /**
+     * Remove features on a specified layer before a specified time
+     * @param {string} - layerName - name of layer to update
+     * @param {string} - keepAfterTime - absolute time in the format of YYYY-MM-DDThh:mm:ssZ; will keep all features after this time
+     * @param {number} - timePropPath - name of time property to compare with the time specified by keepAfterTime
+     */
+    trimVectorLayer: L_.trimVectorLayer,
+    /**
+     * Number of features to keep on a specified layer
+     * @param {string} - layerName - name of layer to update
+     * @param {keepLastN} - keepN - number of features to keep. A value less than or equal to 0 keeps all previous features
+     */
+    keepLastN: L_.keepLastN,
 
     // Time Control API functions
 
