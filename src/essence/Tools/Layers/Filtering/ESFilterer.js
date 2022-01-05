@@ -137,6 +137,8 @@ const ESFilterer = {
                         let geometry
                         for (let p in properties) {
                             if (
+                                properties[p] != null &&
+                                typeof properties[p] === 'object' &&
                                 properties[p].coordinates &&
                                 properties[p].type
                             ) {
@@ -144,6 +146,7 @@ const ESFilterer = {
                                     JSON.stringify(properties[p])
                                 )
                                 delete properties[p]
+                                break
                             }
                         }
                         if (geometry)
