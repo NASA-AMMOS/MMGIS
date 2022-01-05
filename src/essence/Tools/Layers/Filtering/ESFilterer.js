@@ -83,7 +83,7 @@ const ESFilterer = {
             console.log(layerName, filter, config)
 
             let aggs = {}
-            config.fields = config.fields = {}
+            config.fields = config.fields || {}
             for (let f in config.fields) {
                 aggs[f] = {
                     terms: {
