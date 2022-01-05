@@ -83,20 +83,19 @@ const ESFilterer = {
             console.log(layerName, filter, config)
 
             let aggs = {}
-            config.fields.forEach((f) => {
+            config.fields = config.fields = {}
+            for (let f in config.fields) {
                 aggs[f] = {
                     terms: {
                         field: f,
-                        size: 1000,
+                        size: config.fields[f] || 0,
                     },
                 }
-            })
+            }
 
             let must = []
             if (config.must) must = must.concat(config.must)
             must = must.concat(ESFilterer.getFilterMust(filter))
-            //{ match: { site: 3 } },
-            //{ match: { drive: 1374 } },
 
             let query = {
                 query: {
@@ -106,7 +105,7 @@ const ESFilterer = {
                 },
                 aggs: aggs,
                 from: 0,
-                size: config.size || 1000,
+                size: config.size || 500,
                 version: true,
             }
 
@@ -118,15 +117,18 @@ const ESFilterer = {
                 finalBody = config.bodyWrapper.replace('{BODY}', body)
             else finalBody = body
 
-            fetch(config.endpoint, {
-                method: 'POST',
-                headers: {
-                    accept: 'application/json',
-                    ...(config.headers || {}),
-                },
-                credentials: config.withCredentials ? 'include' : '',
-                body: finalBody,
-            })
+            fetch(
+                `${config.endpoint}?filter_path=hits.hits._source,hits.total,aggregations`,
+                {
+                    method: 'POST',
+                    headers: {
+                        accept: 'application/json',
+                        ...(config.headers || {}),
+                    },
+                    credentials: config.withCredentials ? 'include' : '',
+                    body: finalBody,
+                }
+            )
                 .then((res) => res.json())
                 .then((json) => {
                     console.log(json)
@@ -159,7 +161,11 @@ const ESFilterer = {
                     console.log('geojson', geojson)
                     // Set count
                     $('#layersTool_filtering_count').text(
-                        `${geojson.features.length})`
+                        `(${geojson.features.length} out of ${F_.getIn(
+                            json,
+                            'responses.0.hits.total',
+                            0
+                        )})`
                     )
 
                     // Update layer

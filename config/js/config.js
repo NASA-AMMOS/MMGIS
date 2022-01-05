@@ -2796,7 +2796,7 @@ function layerPopulateVariable(modalId, layerType) {
         headers: {
           "Content-Type": "application/x-ndjson",
         },
-        fields: ["field1", "field2"],
+        fields: { field1: "max_agg_size_number(0 for no agging)", field2: 0 },
         must: [
           {
             match: {
