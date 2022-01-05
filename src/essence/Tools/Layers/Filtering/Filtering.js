@@ -3,41 +3,30 @@
 import $ from 'jquery'
 import F_ from '../../../Basics/Formulae_/Formulae_'
 import L_ from '../../../Basics/Layers_/Layers_'
+import Map_ from '../../../Basics/Map_/Map_'
 
 import LocalFilterer from './LocalFilterer'
 import ESFilterer from './ESFilterer'
 
 import Dropy from '../../../../external/Dropy/dropy'
+import { circle } from '@turf/turf'
 
 import './Filtering.css'
-
-const filters = {
-    Waypoints: {
-        spatial: {
-            feature: {},
-            operator: 'intersects | contains',
-        },
-        property: [
-            {
-                type: 'string | number',
-                key: '',
-                operator: '<, =, >, []',
-                value: '',
-            },
-        ],
-    },
-}
 
 const Filtering = {
     filters: {},
     current: {},
+    mapSpatialLayer: null,
     make: async function (container, layerName) {
         const layerObj = L_.layersNamed[layerName]
 
         if (layerObj == null) return
 
         Filtering.filters[layerName] = Filtering.filters[layerName] || {
-            spatial: {},
+            spatial: {
+                center: null,
+                radius: 0,
+            },
             values: [],
         }
         Filtering.current = {
@@ -81,11 +70,18 @@ const Filtering = {
                 "</div>",
                 "<div id='layerTool_filtering_filters'>",
                     "<ul id='layerTool_filtering_filters_spatial'>",
+                        "<div id='layerTool_filtering_filters_spatial_draw' class='mmgisButton5'><i class='mdi mdi-record-circle-outline mdi-18px'></i><div>Draw</div></div>",
+                        "<div id='layerTool_filtering_filters_spatial_radius_wrapper' title='Radius\n= 0: Queries for features that contain this point.\n> 0: Queries for features intersecting this circle.'>",
+                            "<div>Radius:</div>",
+                            `<input id='layerTool_filtering_filters_spatial_radius' type='number' placeholder='Radius' value='0' min='0'></input>`,
+                            "<div>m</div>",
+                        "</div>",
+                        "<div id='layerTool_filtering_filters_spatial_clear' class='mmgisButton5'><i class='mdi mdi-close mdi-18px'></i></div>",
                     "</ul>",
                     "<ul id='layerTool_filtering_filters_list'></ul>",
                 "</div>",
                 `<div id='layersTool_filtering_footer'>`,
-                    "<div id='layersTool_filtering_clear' class='mmgisButton5'><div>Clear</div></i></div>",
+                    "<div id='layersTool_filtering_clear' class='mmgisButton5'><div>Clear</div></div>",
                     "<div id='layersTool_filtering_submit' class='mmgisButton5'><div>Submit</div><i class='mdi mdi-arrow-right mdi-18px'></i></div>",
                 "</div>",
             "</div>",
@@ -97,21 +93,7 @@ const Filtering = {
             Filtering.addValue(layerName, v)
         })
 
-        // Show footer iff value rows exist
-        $('#layersTool_filtering_footer').css(
-            'display',
-            Filtering.filters[layerName].values.length === 0 ? 'none' : 'flex'
-        )
-
-        // Add Spatial
-        $('#layersTool_filtering_add_spatial').on('click', function () {
-            const spatialMarkup = [].join('\n')
-        })
-
-        // Add Value
-        $('#layersTool_filtering_add_value').on('click', function () {
-            Filtering.addValue(layerName)
-        })
+        Filtering.attachEvents(layerName)
     },
     destroy: function () {
         $('#layersTool_filtering').remove()
@@ -156,7 +138,7 @@ const Filtering = {
             })
         }
 
-        Filtering.attachEvents(id, layerName, { op: op })
+        Filtering.attachValueEvents(id, layerName, { op: op })
 
         // Show footer iff value rows exist
         $('#layersTool_filtering_footer').css(
@@ -164,14 +146,115 @@ const Filtering = {
             Filtering.filters[layerName].values.length === 0 ? 'none' : 'flex'
         )
     },
-    attachEvents: function (id, layerName, options) {
-        Filtering.attachValueEvents(id, layerName, options)
+    drawSpatialLayer: function (layerName, center, radius) {
+        Map_.rmNotNull(Filtering.mapSpatialLayer)
+        if (center == null) return
+
+        const style = {
+            fillOpacity: 0.1,
+            fillColor: 'white',
+            color: 'lime',
+            weight: 2,
+            opacity: 1,
+            className: 'noPointerEventsImportant',
+        }
+
+        if (radius > 0) {
+            // Buffered Circle
+            const geojson = F_.getBaseGeoJSON()
+            geojson.features.push(
+                circle([center.lng, center.lat], radius * 0.001)
+            )
+
+            Filtering.mapSpatialLayer = L.geoJSON(geojson, {
+                style: style,
+            }).addTo(Map_.map)
+            Filtering.filters[layerName].spatial.feature = geojson.features[0]
+        } else {
+            // Circle marker
+            Filtering.mapSpatialLayer = new L.circleMarker(
+                [center.lat, center.lng],
+                style
+            )
+                .setRadius(4)
+                .addTo(Map_.map)
+
+            Filtering.filters[layerName].spatial.feature = {
+                type: 'Feature',
+                properties: {},
+                geometry: {
+                    type: 'Point',
+                    coordinates: [center.lng, center.lat],
+                },
+            }
+        }
+    },
+    attachEvents: function (layerName) {
+        // Add Value
+        $('#layersTool_filtering_add_value').on('click', function () {
+            Filtering.addValue(layerName)
+        })
+
+        // Draw
+        $('#layerTool_filtering_filters_spatial_draw').on('click', function () {
+            Map_.rmNotNull(Filtering.mapSpatialLayer)
+            $('#map').css('cursor', 'crosshair')
+            $('#layerTool_filtering_filters_spatial_draw > div').text('Drawing')
+            Map_.map.on('click', spatialOnClick)
+        })
+        function spatialOnClick(e) {
+            Map_.map.off('click', spatialOnClick)
+            $('#map').css('cursor', 'grab')
+            $('#layerTool_filtering_filters_spatial_draw > div').text('Draw')
+
+            Filtering.filters[layerName].spatial.center = {
+                lng: e.latlng.lng,
+                lat: e.latlng.lat,
+            }
+            Filtering.drawSpatialLayer(
+                layerName,
+                Filtering.filters[layerName].spatial.center,
+                Filtering.filters[layerName].spatial.radius
+            )
+        }
+        // Draw - Radius
+        $('#layerTool_filtering_filters_spatial_radius').on(
+            'input',
+            function (e) {
+                Filtering.filters[layerName].spatial.radius = parseFloat(
+                    $(this).val()
+                )
+                Filtering.drawSpatialLayer(
+                    layerName,
+                    Filtering.filters[layerName].spatial.center,
+                    Filtering.filters[layerName].spatial.radius
+                )
+            }
+        )
+        // Draw - Clear
+        $('#layerTool_filtering_filters_spatial_clear').on(
+            'click',
+            function () {
+                Filtering.filters[layerName].spatial.center = null
+                Map_.map.off('click', spatialOnClick)
+                $('#map').css('cursor', 'grab')
+                $('#layerTool_filtering_filters_spatial_draw > div').text(
+                    'Draw'
+                )
+
+                Filtering.drawSpatialLayer(
+                    layerName,
+                    Filtering.filters[layerName].spatial.center,
+                    Filtering.filters[layerName].spatial.radius
+                )
+            }
+        )
 
         // Submit
         $(`#layersTool_filtering_submit`).on('click', () => {
             console.log(Filtering.filters)
             if (Filtering.current.type === 'vector') {
-                LocalFilterer.filter(Filtering.filters[layerName], layerName)
+                LocalFilterer.filter(layerName, Filtering.filters[layerName])
             } else if (Filtering.current.type === 'query') {
                 ESFilterer.filter(
                     layerName,
@@ -183,6 +266,8 @@ const Filtering = {
 
         // Clear
         $(`#layersTool_filtering_clear`).on('click', async () => {
+            $('#layerTool_filtering_filters_spatial_clear').click()
+
             Filtering.filters[layerName].values = Filtering.filters[
                 layerName
             ].values.filter((v) => {

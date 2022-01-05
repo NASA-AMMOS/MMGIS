@@ -2811,6 +2811,7 @@ function layerPopulateVariable(modalId, layerType) {
           "Content-Type": "application/x-ndjson",
         },
         fields: { field1: "max_agg_size_number(0 for no agging)", field2: 0 },
+        geoshapeProp: "propName of es geoshape field for spatial searches",
         must: [
           {
             match: {

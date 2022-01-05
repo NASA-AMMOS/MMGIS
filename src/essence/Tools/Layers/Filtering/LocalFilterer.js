@@ -5,23 +5,7 @@ import F_ from '../../../Basics/Formulae_/Formulae_'
 import L_ from '../../../Basics/Layers_/Layers_'
 
 import flat from 'flat'
-
-const filters = {
-    Waypoints: {
-        spatial: {
-            feature: {},
-            operator: 'intersects | contains',
-        },
-        property: [
-            {
-                type: 'string | number',
-                key: '',
-                operator: '<, =, >, []',
-                value: '',
-            },
-        ],
-    },
-}
+import { booleanIntersects, booleanContains } from '@turf/turf'
 
 const LocalFilterer = {
     make: function (container, layerName) {
@@ -62,14 +46,43 @@ const LocalFilterer = {
         })
         return aggs
     },
-    filter: function (filter, layerName) {
+    filter: function (layerName, filter) {
         const geojson = filter.geojson
         const filteredGeoJSON = JSON.parse(JSON.stringify(geojson))
         filteredGeoJSON.features = []
 
         // Filter
+        const halfFilteredGeoJSONFeatures = []
         geojson.features.forEach((f) => {
-            if (LocalFilterer.match(f, filter)) filteredGeoJSON.features.push(f)
+            if (LocalFilterer.match(f, filter))
+                halfFilteredGeoJSONFeatures.push(f)
+        })
+
+        // Spatial Filter (after filter to make it quicker)
+        halfFilteredGeoJSONFeatures.forEach((f) => {
+            if (filter.spatial.center == null) {
+                filteredGeoJSON.features.push(f)
+            } else {
+                if (filter.spatial.radius > 0) {
+                    // Circle Intersects
+                    if (
+                        booleanIntersects(
+                            filter.spatial.feature.geometry,
+                            f.geometry
+                        )
+                    )
+                        filteredGeoJSON.features.push(f)
+                } else {
+                    // Point Contained
+                    if (
+                        booleanContains(
+                            f.geometry,
+                            filter.spatial.feature.geometry
+                        )
+                    )
+                        filteredGeoJSON.features.push(f)
+                }
+            }
         })
 
         // Set count
@@ -87,37 +100,44 @@ const LocalFilterer = {
         let matches = false
         for (let i = 0; i < filter.values.length; i++) {
             const v = filter.values[i]
-            const featureValue = F_.getIn(feature.properties, v.key)
-            let filterValue = v.value
-            if (v.type === 'number') filterValue = parseFloat(filterValue)
-            if (featureValue != null) {
-                switch (v.op) {
-                    case '=':
-                        if (featureValue == filterValue) matches = true
-                        else matches = false
-                        break
-                    case '<':
-                        if (
-                            v.type === 'string'
-                                ? featureValue.localeCompare(filterValue) > 0
-                                : featureValue < filterValue
-                        )
-                            matches = true
-                        else matches = false
-                        break
-                    case '>':
-                        if (
-                            v.type === 'string'
-                                ? featureValue.localeCompare(filterValue) < 0
-                                : featureValue > filterValue
-                        )
-                            matches = true
-                        else matches = false
-                        break
-                    default:
-                        break
+            if (v.key != null) {
+                const featureValue = F_.getIn(feature.properties, v.key)
+                let filterValue = v.value
+                if (v.type === 'number') filterValue = parseFloat(filterValue)
+                if (featureValue != null) {
+                    switch (v.op) {
+                        case '=':
+                            if (featureValue == filterValue) matches = true
+                            else matches = false
+                            break
+                        case '<':
+                            if (
+                                v.type === 'string'
+                                    ? featureValue.localeCompare(filterValue) >
+                                      0
+                                    : featureValue < filterValue
+                            )
+                                matches = true
+                            else matches = false
+                            break
+                        case '>':
+                            if (
+                                v.type === 'string'
+                                    ? featureValue.localeCompare(filterValue) <
+                                      0
+                                    : featureValue > filterValue
+                            )
+                                matches = true
+                            else matches = false
+                            break
+                        default:
+                            break
+                    }
+                    if (!matches) return false
                 }
-                if (!matches) return false
+            } else {
+                // True if user never set a key for the filter row
+                matches = true
             }
         }
         return matches

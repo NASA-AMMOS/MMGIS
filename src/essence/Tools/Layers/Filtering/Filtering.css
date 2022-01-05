@@ -24,6 +24,55 @@
     color: #d6d6d6;
 }
 
+#layerTool_filtering_filters_spatial {
+    display: flex;
+}
+#layerTool_filtering_filters_spatial_draw {
+    padding: 0px 20px;
+    background: var(--color-o);
+}
+#layerTool_filtering_filters_spatial_draw > div {
+    margin-left: 8px;
+    line-height: 32px;
+}
+#layerTool_filtering_filters_spatial_draw > i {
+    color: lime;
+}
+#layerTool_filtering_filters_spatial_draw:hover {
+    background: #165379;
+}
+#layerTool_filtering_filters_spatial_clear {
+    width: 30px;
+}
+#layerTool_filtering_filters_spatial_radius_wrapper {
+    display: flex;
+}
+#layersTool_filtering
+    #layerTool_filtering_filters_spatial_radius_wrapper
+    > input {
+    background: var(--color-k);
+    padding-left: 0px;
+    text-align: right;
+}
+#layersTool_filtering
+    #layerTool_filtering_filters_spatial_radius_wrapper
+    > input:hover {
+    background: #333;
+}
+#layerTool_filtering_filters_spatial_radius_wrapper > div:first-child {
+    background: var(--color-k);
+    line-height: 30px;
+    padding: 0px 8px;
+    font-size: 12px;
+}
+#layerTool_filtering_filters_spatial_radius_wrapper > div:last-child {
+    background: var(--color-k);
+    line-height: 32px;
+    height: 30px;
+    padding: 0px 8px 0px 1px;
+    font-size: 12px;
+}
+
 #layersTool_filtering_footer {
     display: flex;
     justify-content: space-between;
@@ -80,6 +129,10 @@
     padding-left: 8px;
     border: none;
     font-size: 14px;
+    transition: background 0.2s cubic-bezier(0.785, 0.135, 0.15, 0.86);
+}
+#layersTool_filtering input:hover {
+    background: #222;
 }
 #layersTool_filtering select {
     background: #111;

@@ -4,59 +4,6 @@ import $ from 'jquery'
 import F_ from '../../../Basics/Formulae_/Formulae_'
 import L_ from '../../../Basics/Layers_/Layers_'
 
-import flat from 'flat'
-
-const filters = {
-    Waypoints: {
-        spatial: {
-            feature: {},
-            operator: 'intersects | contains',
-        },
-        property: [
-            {
-                type: 'string | number',
-                key: '',
-                operator: '<, =, >, []',
-                value: '',
-            },
-        ],
-    },
-}
-
-const config = {
-    type: 'elasticsearch',
-    endpoint:
-        'https://es-ocs.dev.m20.jpl.nasa.gov/m20-dev-cs3-ocs-es-prod/_msearch',
-    bodyFormatter: `{"preference":"site"}\n{BODY}\n`,
-    stringifyBody: true,
-    headers: {
-        'Content-Type': 'application/x-ndjson',
-        accept: 'application/json',
-    },
-    fields: [
-        'activity_id_rtt',
-        'drive',
-        'footprint_derived_from',
-        'instrument_id',
-        'orbital_index',
-        'seq_id_rtt',
-        'site',
-        'sol',
-        'target_id_rtt',
-        'target_name_rtt',
-        'version',
-        'vicar_label.IDENTIFICATION.START_TIME',
-    ],
-    must: [
-        {
-            match: {
-                ocs_type_name: 'm20-ids-scilo-footprint',
-            },
-        },
-    ],
-    size: 1000,
-}
-
 const ESFilterer = {
     getAggregations: async function (layerName, config) {
         const results = await ESFilterer.filter(layerName, null, config)
@@ -109,6 +56,50 @@ const ESFilterer = {
                 version: true,
             }
 
+            // Spatial Filter
+            let spatialFilter
+            if (
+                config.geoshapeProp &&
+                filter.spatial &&
+                filter.spatial.center != null &&
+                filter.spatial.feature?.geometry?.type != null
+            ) {
+                if (filter.spatial.radius > 0) {
+                    spatialFilter = {
+                        geo_shape: {
+                            [config.geoshapeProp]: {
+                                shape: {
+                                    type: filter.spatial.feature.geometry.type.toLowerCase(),
+                                    coordinates:
+                                        filter.spatial.feature.geometry
+                                            .coordinates,
+                                    relation: 'intersects',
+                                },
+                            },
+                        },
+                    }
+                } else {
+                    spatialFilter = {
+                        geo_shape: {
+                            [config.geoshapeProp]: {
+                                shape: {
+                                    type: 'point',
+                                    coordinates: [
+                                        filter.spatial.center.lng,
+                                        filter.spatial.center.lat,
+                                    ],
+                                    relation: 'contains',
+                                },
+                            },
+                        },
+                    }
+                }
+            }
+            if (spatialFilter) {
+                query.query.bool.filter = spatialFilter
+            }
+
+            // Format query
             let body = query
             if (config.stringifyBody) body = JSON.stringify(body)
 
@@ -117,6 +108,7 @@ const ESFilterer = {
                 finalBody = config.bodyWrapper.replace('{BODY}', body)
             else finalBody = body
 
+            // Fetch
             const resp = config.esResponses ? 'responses.' : ''
             fetch(
                 `${config.endpoint}?filter_path=${resp}hits.hits._source,${resp}hits.total,${resp}aggregations`,
