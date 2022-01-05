@@ -79,87 +79,97 @@ const ESFilterer = {
         return aggs
     },
     filter: async function (layerName, filter, config) {
-        console.log(layerName, filter, config)
+        return new Promise((resolve, reject) => {
+            console.log(layerName, filter, config)
 
-        let aggs = {}
-        config.fields.forEach((f) => {
-            aggs[f] = {
-                terms: {
-                    field: f,
-                    size: 1000,
+            let aggs = {}
+            config.fields.forEach((f) => {
+                aggs[f] = {
+                    terms: {
+                        field: f,
+                        size: 1000,
+                    },
+                }
+            })
+
+            let must = []
+            if (config.must) must = must.concat(config.must)
+            //{ match: { site: 3 } },
+            //{ match: { drive: 1374 } },
+
+            let query = {
+                query: {
+                    bool: {
+                        must: must,
+                    },
                 },
+                aggs: aggs,
+                from: 0,
+                size: config.size || 1000,
+                version: true,
             }
-        })
 
-        let must = []
-        if (config.must) must = must.concat(config.must)
-        //{ match: { site: 3 } },
-        //{ match: { drive: 1374 } },
+            let body = query
+            if (config.stringifyBody) body = JSON.stringify(body)
 
-        let query = {
-            query: {
-                bool: {
-                    must: must,
+            let finalBody
+            if (config.bodyWrapper)
+                finalBody = config.bodyWrapper.replace('{BODY}', body)
+            else finalBody = body
+
+            console.log(query, finalBody)
+            fetch(config.endpoint, {
+                method: 'POST',
+                headers: {
+                    accept: 'application/json',
+                    ...(config.headers || {}),
                 },
-            },
-            aggs: aggs,
-            from: 0,
-            size: config.size || 1000,
-            version: true,
-        }
-
-        let body = query
-        if (config.stringifyBody) body = JSON.stringify(body)
-
-        let finalBody
-        if (config.bodyWrapper)
-            finalBody = config.bodyWrapper.replace('{BODY}', body)
-        else finalBody = body
-
-        console.log(query, finalBody)
-        fetch(config.endpoint, {
-            method: 'POST',
-            headers: {
-                accept: 'application/json',
-                ...(config.headers || {}),
-            },
-            credentials: config.withCredentials ? 'include' : '',
-            body: finalBody,
-        })
-            .then((res) => res.json())
-            .then((json) => {
-                console.log(json)
-                const geojson = F_.getBaseGeoJSON()
-                const hits = F_.getIn(json, 'responses.0.hits.hits')
-                hits.forEach((hit) => {
-                    const properties = hit._source || {}
-                    let geometry
-                    for (let p in properties) {
-                        if (properties[p].coordinates && properties[p].type) {
-                            geometry = JSON.parse(JSON.stringify(properties[p]))
-                            delete properties[p]
+                credentials: config.withCredentials ? 'include' : '',
+                body: finalBody,
+            })
+                .then((res) => res.json())
+                .then((json) => {
+                    console.log(json)
+                    const geojson = F_.getBaseGeoJSON()
+                    const hits = F_.getIn(json, 'responses.0.hits.hits')
+                    hits.forEach((hit) => {
+                        const properties = hit._source || {}
+                        let geometry
+                        for (let p in properties) {
+                            if (
+                                properties[p].coordinates &&
+                                properties[p].type
+                            ) {
+                                geometry = JSON.parse(
+                                    JSON.stringify(properties[p])
+                                )
+                                delete properties[p]
+                            }
                         }
-                    }
-                    if (geometry)
-                        geojson.features.push({
-                            type: 'Feature',
-                            properties,
-                            geometry,
-                        })
+                        if (geometry)
+                            geojson.features.push({
+                                type: 'Feature',
+                                properties,
+                                geometry,
+                            })
+                    })
+
+                    // Set count
+                    $('#layersTool_filtering_count').text(
+                        `${geojson.features.length})`
+                    )
+
+                    // Update layer
+                    L_.clearVectorLayer(layerName)
+                    L_.updateVectorLayer(layerName, geojson)
+
+                    resolve(F_.getIn(json, 'responses.0'))
                 })
-
-                // Set count
-                $('#layersTool_filtering_count').text(
-                    `${geojson.features.length})`
-                )
-
-                // Update layer
-                L_.clearVectorLayer(layerName)
-                L_.updateVectorLayer(layerName, geojson)
-            })
-            .catch((err) => {
-                console.log(err)
-            })
+                .catch((err) => {
+                    console.log(err)
+                    resolve()
+                })
+        })
     },
 }
 
