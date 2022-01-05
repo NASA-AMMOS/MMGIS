@@ -9,13 +9,25 @@ export const captureVector = (layerObj, options, cb) => {
     options = options || {}
     let layerUrl = layerObj.url
 
-    if (options.evenIfOff !== true && !layerObj.visibility) {
+    if (
+        options.evenIfOff !== true &&
+        !layerObj.visibility &&
+        !options.useEmptyGeoJSON
+    ) {
         cb('off')
         return
     }
 
-    if (typeof layerUrl !== 'string' || layerUrl.length === 0) {
+    if (
+        (typeof layerUrl !== 'string' || layerUrl.length === 0) &&
+        !options.useEmptyGeoJSON
+    ) {
         cb(null)
+        return
+    }
+
+    if (options.useEmptyGeoJSON) {
+        cb(F_.getBaseGeoJSON())
         return
     }
 
@@ -172,9 +184,7 @@ export const captureVector = (layerObj, options, cb) => {
         // create the geoJSON layer with empty GeoJSON data
         const layerData = L_.layersDataByName[layerObj.name]
         if (L_.missionPath === layerUrl && layerData.controlled) {
-            // Empty GeoJSON data
-            const geojson = { type: 'FeatureCollection', features: [] }
-            cb(geojson)
+            cb(F_.getBaseGeoJSON())
         } else {
             $.getJSON(layerUrl, function (data) {
                 if (data.hasOwnProperty('Features')) {

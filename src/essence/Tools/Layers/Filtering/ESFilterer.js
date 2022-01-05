@@ -156,7 +156,7 @@ const ESFilterer = {
                                 geometry,
                             })
                     })
-
+                    console.log('geojson', geojson)
                     // Set count
                     $('#layersTool_filtering_count').text(
                         `${geojson.features.length})`

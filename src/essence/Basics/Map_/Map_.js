@@ -555,9 +555,6 @@ async function makeLayer(layerObj, evenIfOff) {
             case 'vector':
                 await makeVectorLayer(evenIfOff)
                 break
-            case 'point':
-                await makeVectorLayer(evenIfOff) //makePointLayer(); //DEATH TO POINT
-                break
             case 'tile':
                 makeTileLayer()
                 break
@@ -565,7 +562,7 @@ async function makeLayer(layerObj, evenIfOff) {
                 makeVectorTileLayer()
                 break
             case 'query':
-                makeQueryLayer()
+                await makeVectorLayer(false, true)
                 break
             case 'data':
                 makeDataLayer()
@@ -803,9 +800,13 @@ async function makeLayer(layerObj, evenIfOff) {
     }
 
     //Pretty much like makePointLayer but without the pointToLayer stuff
-    async function makeVectorLayer(evenIfOff) {
+    async function makeVectorLayer(evenIfOff, useEmptyGeoJSON) {
         return new Promise((resolve, reject) => {
-            captureVector(layerObj, { evenIfOff: evenIfOff }, add)
+            captureVector(
+                layerObj,
+                { evenIfOff: evenIfOff, useEmptyGeoJSON: useEmptyGeoJSON },
+                add
+            )
 
             function add(data) {
                 if (data == null || data === 'off') {
@@ -1064,11 +1065,6 @@ async function makeLayer(layerObj, evenIfOff) {
     }
 
     function makeModelLayer() {
-        L_.layersLoaded[L_.layersOrdered.indexOf(layerObj.name)] = true
-        allLayersLoaded()
-    }
-
-    function makeQueryLayer() {
         L_.layersLoaded[L_.layersOrdered.indexOf(layerObj.name)] = true
         allLayersLoaded()
     }
