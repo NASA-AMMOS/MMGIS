@@ -60,7 +60,7 @@ const config = {
 const ESFilterer = {
     getAggregations: async function (layerName, config) {
         const results = await ESFilterer.filter(layerName, null, config)
-
+        console.log('RESULTS', results)
         const aggs = {}
         if (results) {
             for (let a in results.aggregations) {
@@ -75,7 +75,7 @@ const ESFilterer = {
                 }
             }
         }
-
+        console.log('aggs', aggs)
         return aggs
     },
     filter: async function (layerName, filter, config) {
@@ -160,17 +160,6 @@ const ESFilterer = {
             .catch((err) => {
                 console.log(err)
             })
-
-        /*
-        // Set count
-        $('#layersTool_filtering_count').text(
-            `(${filteredGeoJSON.features.length}/${geojson.features.length})`
-        )
-
-        // Update layer
-        L_.clearVectorLayer(layerName)
-        L_.updateVectorLayer(layerName, filteredGeoJSON)
-        */
     },
 }
 
