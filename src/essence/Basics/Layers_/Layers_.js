@@ -1229,10 +1229,10 @@ var L_ = {
         }
     },
     updateVectorLayer: function (layerName, inputData,
-            keepN = { keepAfterTime: null, timePropPath: null, keepAtLeastN: null }) {
+            keepN = { keepAfterTime: null, timePropPath: null, keepLastN: null }) {
 
         // Validate input for keepN
-        const keepNKeys = ['keepAfterTime', 'timePropPath', 'keepAtLeastN']
+        const keepNKeys = ['keepAfterTime', 'timePropPath', 'keepLastN']
         const checkKeys = Object.keys(keepN).every(key => keepNKeys.includes(key))
         if (!checkKeys) {
             console.warn(
@@ -1246,7 +1246,7 @@ var L_ = {
 
         // Validate input for keepN parameters
         if (keepN.keepAfterTime) {
-            const keepAfter = new Date(keepN.keepAfterTime)
+            const keepAfterAsDate = new Date(keepN.keepAfterTime)
             if (isNaN(keepAfter.getTime())) {
                 console.warn(
                     'Warning: The input for keepAfterTime is invalid: ' + keepN.keepAfterTime
@@ -1255,13 +1255,13 @@ var L_ = {
             }
         }
         // Validate input for keepN
-        const keepNum = parseInt(keepN.keepAtLeastN)
+        const keepNum = parseInt(keepN.keepLastN)
         if (keepN && Number.isNaN(Number(keepNum))) {
             console.warn(
                 'Warning: Unable to update vector layer `' +
                     layerName +
-                    '` as keepAtLeastN == ' +
-                    keepN.keepAtLeastN +
+                    '` as keepLastN == ' +
+                    keepN.keepLastN+
                     ' and is not a valid integer'
             )
             return
@@ -1285,7 +1285,7 @@ var L_ = {
 
             if (keepN.keepAfterTime) {
                 // Look for keepN.timePropPath
-                const keepAfter = new Date(keepN.keepAfterTime)
+                const keepAfterTimeAsDate = new Date(keepN.keepAfterTime)
 
                 var layers = updateLayer.getLayers()
                 for (let i = layers.length - 1; i >= 0; i--) {
@@ -1298,7 +1298,7 @@ var L_ = {
                             )
                             continue
                         }
-                        if (layerDate < keepAfter) {
+                        if (layerDate < keepAfterTimeAsDate) {
                             // If we remove a layer but its properties are displayed in the InfoTool
                             // and description (i.e. it was clicked), clear the InfoTool and description
                             if (infoTool.currentLayer === layer) {
@@ -1313,9 +1313,9 @@ var L_ = {
             }
 
             // Keep N elements if greater than 0 else keep all elements
-            if (keepN.keepAtLeastN && keepN.keepAtLeastN > 0) {
+            if (keepN.keepLastN && keepN.keepLastN > 0) {
                 var layers = updateLayer.getLayers()
-                while (layers.length > keepN.keepAtLeastN) {
+                while (layers.length > keepN.keepLastN) {
                     // If we remove a layer but its properties are displayed in the InfoTool
                     // and description (i.e. it was clicked), clear the InfoTool and description
                     const removeLayer = layers[0]
