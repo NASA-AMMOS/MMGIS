@@ -19,6 +19,7 @@ var markup = [
                     "</div>",
                     "<div class='right'>",
                         '<div class="vector" type="vector" title="Hide/Show Vector Layers"><i class="mdi mdi-vector-square mdi-18px"></i></div>',
+                        '<div class="vectortile" type="vectortile" title="Hide/Show VectorTile Layers"><i class="mdi mdi-grid mdi-18px"></i></div>',
                         '<div class="tile" type="tile" title="Hide/Show Raster Layers"><i class="mdi mdi-map-outline mdi-18px"></i></div>',
                         '<div class="data" type="data" title="Hide/Show Data Layers"><i class="mdi mdi-file-table mdi-18px"></i></div>',
                         '<div class="model" type="model" title="Hide/Show Model Layers"><i class="mdi mdi-cube-outline mdi-18px"></i></div>',
@@ -193,6 +194,7 @@ function interfaceWithMMGIS() {
                     currentOpacity = L_.getLayerOpacity(node[i].name)
                     if (currentOpacity == null)
                         currentOpacity = L_.opacityArray[node[i].name]
+
                     // prettier-ignore
                     settings = [
                                 '<ul>',
@@ -201,6 +203,16 @@ function interfaceWithMMGIS() {
                                             '<div>Opacity</div>',
                                                 '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.opacityArray[node[i].name] + '">',
                                             '</div>',
+                                            L_.layersGroupSublayers[node[i].name] ? Object.keys(L_.layersGroupSublayers[node[i].name]).map((function(i){return function(s) {
+                                                return [
+                                                    '<div class="sublayer">',
+                                                        `<div>${F_.prettifyName(s)}</div>`,
+                                                        '<div class="checkboxcont">',
+                                                            `<div class="checkbox ${(L_.layersGroupSublayers[node[i].name][s].on ? 'on' : 'off')}" layername="${node[i].name}" sublayername="${s}" style="margin: 5px 0px 5px 10px;"></div>`,
+                                                        '</div>',
+                                                    '</div>',
+                                                ].join('\n')
+                                            }})(i)).join('\n') : null,
                                         '</div>',
                                     '</li>',
                                 '</ul>',
@@ -354,10 +366,15 @@ function interfaceWithMMGIS() {
                 case 'model':
                     // prettier-ignore
                     settings = [
-                                '<ul>',
-                                    '<li>vectortransparency</li>',
-                                '</ul>',
-                            ].join('\n')
+                        '<ul>',
+                            '<li>',
+                                '<div>',
+                                    '<div>Opacity</div>',
+                                    '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.opacityArray[node[i].name] + '">',
+                                '</div>',
+                            '</li>',
+                        '</ul>',
+                    ].join('\n')
                     break
                 default:
                     settings = ''
@@ -390,7 +407,7 @@ function interfaceWithMMGIS() {
                     // prettier-ignore
                     $('#layersToolList').append(
                         [
-                            '<li id="LayersTool' + node[i].name.replace(/\s/g, "") + '" class="' + ((L_.layersGroup[node[i].name] == null) ? 'layernotfound' : '') + '" type="' + node[i].type + '" on="true" depth="' + depth + '" name="' + node[i].name + '" parent="' + parent.name + '" style="margin-left: ' + (depth * 16) + 'px;">',
+                            '<li id="LayersTool' + node[i].name.replace(/\s/g, "") + '" class="' + ((node[i].type !== 'model' && L_.layersGroup[node[i].name] == null) ? 'layernotfound' : '') + '" type="' + node[i].type + '" on="true" depth="' + depth + '" name="' + node[i].name + '" parent="' + parent.name + '" style="margin-left: ' + (depth * 16) + 'px;">',
                                 '<div class="title" id="layerstart' + node[i].name.replace(/\s/g, "") + '">',
                                     '<div class="layersToolColor ' + node[i].type + '"></div>',
                                     '<div class="checkboxcont">',
@@ -455,11 +472,34 @@ function interfaceWithMMGIS() {
             $(this).addClass('loading')
             await L_.toggleLayer(L_.layersNamed[li.attr('name')])
             $(this).removeClass('loading')
-            if (L_.layersGroup[li.attr('name')]) $(this).toggleClass('on')
-            else if (L_.layersGroup[li.attr('name')] == null)
+            if (li.attr('type') === 'model' || L_.layersGroup[li.attr('name')])
+                $(this).toggleClass('on')
+            else if (
+                li.attr('type') !== 'model' &&
+                L_.layersGroup[li.attr('name')] == null
+            )
                 li.addClass('layernotfound')
         }
     })
+
+    //Makes sublayers clickable on and off
+    $('#layersToolList > li > .settings .sublayer .checkbox').on(
+        'click',
+        async function () {
+            const layerName = $(this).attr('layername')
+            const sublayerName = $(this).attr('sublayername')
+            await L_.toggleSublayer(layerName, sublayerName)
+
+            if (
+                L_.layersGroupSublayers[layerName] &&
+                L_.layersGroupSublayers[layerName][sublayerName]
+            ) {
+                if (L_.layersGroupSublayers[layerName][sublayerName].on)
+                    $(this).addClass('on')
+                else $(this).removeClass('on')
+            }
+        }
+    )
 
     //Collapse header
     $('.layersToolHeader').on('click', function () {
@@ -617,6 +657,7 @@ function interfaceWithMMGIS() {
         var type = $(this).attr('type')
         const ons = {
             vector: $('#filterLayers .right > .vector').hasClass('on'),
+            vectortile: $('#filterLayers .right > .vectortile').hasClass('on'),
             tile: $('#filterLayers .right > .tile').hasClass('on'),
             data: $('#filterLayers .right > .data').hasClass('on'),
             model: $('#filterLayers .right > .model').hasClass('on'),
@@ -631,7 +672,13 @@ function interfaceWithMMGIS() {
                         else $(this).addClass('forceOff2')
                     } else $(this).removeClass('forceOff2')
                 } else {
-                    if (!ons.vector && !ons.tile && !ons.data && !ons.data)
+                    if (
+                        !ons.vector &&
+                        !ons.vectortile &&
+                        !ons.tile &&
+                        !ons.data &&
+                        !ons.model
+                    )
                         $(this).removeClass('forceOff')
                     else {
                         const liType = $(this).attr('type')
