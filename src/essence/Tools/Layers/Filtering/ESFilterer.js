@@ -94,6 +94,7 @@ const ESFilterer = {
 
             let must = []
             if (config.must) must = must.concat(config.must)
+            must = must.concat(ESFilterer.getFilterMust(filter))
             //{ match: { site: 3 } },
             //{ match: { drive: 1374 } },
 
@@ -117,7 +118,6 @@ const ESFilterer = {
                 finalBody = config.bodyWrapper.replace('{BODY}', body)
             else finalBody = body
 
-            console.log(query, finalBody)
             fetch(config.endpoint, {
                 method: 'POST',
                 headers: {
@@ -173,6 +173,43 @@ const ESFilterer = {
                     resolve()
                 })
         })
+    },
+    getFilterMust: function (filter) {
+        let must = []
+        if (filter.values && filter.values.length > 0) {
+            filter.values.forEach((v) => {
+                switch (v.op) {
+                    case '=':
+                        must.push({
+                            match: {
+                                [v.key]: v.value,
+                            },
+                        })
+                        break
+                    case '>':
+                        must.push({
+                            range: {
+                                [v.key]: {
+                                    gt: v.value,
+                                },
+                            },
+                        })
+                        break
+                    case '<':
+                        must.push({
+                            range: {
+                                [v.key]: {
+                                    lt: v.value,
+                                },
+                            },
+                        })
+                        break
+                    default:
+                        break
+                }
+            })
+        }
+        return must
     },
 }
 

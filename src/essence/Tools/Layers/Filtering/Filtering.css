@@ -1,5 +1,9 @@
 #layersTool_filtering {
     border-top: 1px solid var(--color-k);
+    display: none;
+}
+.gears_on #layersTool_filtering {
+    display: block;
 }
 #layersTool_filtering_header {
     display: flex;

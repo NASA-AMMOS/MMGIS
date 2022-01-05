@@ -441,7 +441,7 @@ function interfaceWithMMGIS() {
                                 '<div class="timeDisplay settings ' + node[i].type + '">',
                                     timeDisplay,
                                 '</div>',
-                                '<div class="settings ' + node[i].type + '">',
+                                '<div class="settings settingsmain' + node[i].type + '">',
                                     settings,
                                 '</div>',
                             '</li>',
@@ -542,7 +542,7 @@ function interfaceWithMMGIS() {
         //Support Filtering 1
         if (!wasOn) {
             if (['vector', 'query'].includes(type)) {
-                Filtering.destroy($('.gears').parent().parent())
+                Filtering.destroy()
             }
         }
 
@@ -553,7 +553,7 @@ function interfaceWithMMGIS() {
         //Support Filtering 2
         if (!wasOn) {
             if (['vector', 'query'].includes(type)) {
-                if (!wasOn) Filtering.make(li, layerName)
+                if (!wasOn) Filtering.make($(this).parent().parent(), layerName)
             }
         }
     })

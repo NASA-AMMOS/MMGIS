@@ -113,7 +113,7 @@ const Filtering = {
             Filtering.addValue(layerName)
         })
     },
-    destroy: function (layerName) {
+    destroy: function () {
         $('#layersTool_filtering').remove()
     },
     addValue: function (layerName, value) {
@@ -173,6 +173,11 @@ const Filtering = {
             if (Filtering.current.type === 'vector') {
                 LocalFilterer.filter(Filtering.filters[layerName], layerName)
             } else if (Filtering.current.type === 'query') {
+                ESFilterer.filter(
+                    layerName,
+                    Filtering.filters[layerName],
+                    Filtering.getConfig()
+                )
             }
         })
 
