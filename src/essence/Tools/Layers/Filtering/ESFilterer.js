@@ -60,9 +60,8 @@ const ESFilterer = {
             let spatialFilter
             if (
                 config.geoshapeProp &&
-                filter.spatial &&
-                filter.spatial.center != null &&
-                filter.spatial.feature?.geometry?.type != null
+                filter?.spatial?.center != null &&
+                filter?.spatial?.feature?.geometry?.type != null
             ) {
                 if (filter.spatial.radius > 0) {
                     spatialFilter = {
