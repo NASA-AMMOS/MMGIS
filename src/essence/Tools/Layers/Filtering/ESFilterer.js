@@ -117,8 +117,9 @@ const ESFilterer = {
                 finalBody = config.bodyWrapper.replace('{BODY}', body)
             else finalBody = body
 
+            const resp = config.esResponses ? 'responses.' : ''
             fetch(
-                `${config.endpoint}?filter_path=hits.hits._source,hits.total,aggregations`,
+                `${config.endpoint}?filter_path=${resp}hits.hits._source,${resp}hits.total,${resp}aggregations`,
                 {
                     method: 'POST',
                     headers: {

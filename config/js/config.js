@@ -2793,6 +2793,8 @@ function layerPopulateVariable(modalId, layerType) {
         bodyWrapper: `{"preference":"site"}\n{BODY}\n`,
         stringifyBody: true,
         withCredentials: false,
+        esResponses:
+          "boolean - is the es responses nested in a responses object",
         headers: {
           "Content-Type": "application/x-ndjson",
         },
