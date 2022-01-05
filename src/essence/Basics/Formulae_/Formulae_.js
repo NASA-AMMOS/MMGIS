@@ -1709,16 +1709,31 @@ var Formulae_ = {
         //return the new canvas
         return newCanvas
     },
-    bracketReplace(str, obj) {
+    bracketReplace(str, obj, replace) {
         if (str === null) return ''
         let matches = str.match(/\{.*?\}/gi)
 
         if (matches)
             matches.forEach((v) => {
-                str = str.replace(
-                    new RegExp(v, 'g'),
-                    Formulae_.getIn(obj, v.replace(/[\{\}]/g, '').split('.'))
-                )
+                const replaceProp = v.replace(/[\{\}]/g, '')
+                let replaceWith =
+                    Formulae_.getIn(obj, replaceProp.split('.'), '') + ''
+
+                // Modify the prop value directly too
+                if (
+                    replace &&
+                    replace[replaceProp] &&
+                    replace[replaceProp].length > 0
+                ) {
+                    replace[replaceProp].forEach((rp) => {
+                        replaceWith = replaceWith.replace(
+                            new RegExp(rp[0], 'g'),
+                            rp[1]
+                        )
+                    })
+                }
+
+                str = str.replace(new RegExp(v, 'g'), replaceWith)
             })
         return str
     },

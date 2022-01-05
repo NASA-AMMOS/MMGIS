@@ -190,7 +190,8 @@ var Description = {
                             "<a href='" +
                             F_.bracketReplace(
                                 v.links[i].link,
-                                activeLayer.feature.properties
+                                activeLayer.feature.properties,
+                                v.links[i].replace
                             ) +
                             "' target='" +
                             F_.cleanString(v.links[i].name) +

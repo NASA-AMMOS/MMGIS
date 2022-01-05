@@ -2789,6 +2789,18 @@ function layerPopulateVariable(modalId, layerType) {
           };
     } else if (layerType == "query") {
       currentLayerVars.useKeyAsName = currentLayerVars.useKeyAsName || "prop";
+      currentLayerVars.links = currentLayerVars.links || [
+        {
+          name: "example",
+          link: "url/?param={prop}",
+          replace: {
+            propName: [
+              ["this", "withThis"],
+              ["andThis", "withThisToo"],
+            ],
+          },
+        },
+      ];
       currentLayerVars.query = {
         bodyWrapper: `{"preference":"site"}\n{BODY}\n`,
         stringifyBody: true,
@@ -2869,6 +2881,12 @@ function layerPopulateVariable(modalId, layerType) {
         {
           name: "example",
           link: "url/?param={prop}",
+          replace: {
+            propName: [
+              ["this", "withThis"],
+              ["andThis", "withThisToo"],
+            ],
+          },
         },
       ];
 

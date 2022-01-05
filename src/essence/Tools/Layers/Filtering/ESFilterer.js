@@ -88,7 +88,7 @@ const ESFilterer = {
                 aggs[f] = {
                     terms: {
                         field: f,
-                        size: config.fields[f] || 0,
+                        size: config.fields[f] || 10,
                     },
                 }
             }
