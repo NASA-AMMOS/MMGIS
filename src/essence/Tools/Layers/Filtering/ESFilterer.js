@@ -176,6 +176,7 @@ const ESFilterer = {
         let must = []
         if (filter && filter.values && filter.values.length > 0) {
             filter.values.forEach((v) => {
+                if (v.key == null || v.value == null) return
                 switch (v.op) {
                     case '=':
                         must.push({
