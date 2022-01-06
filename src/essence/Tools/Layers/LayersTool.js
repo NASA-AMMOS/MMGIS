@@ -48,7 +48,7 @@ const quasiLayers = ['model', 'query']
 
 var LayersTool = {
     height: 0,
-    width: 290,
+    width: 300,
     vars: {},
     MMGISInterface: null,
     initialize: function () {

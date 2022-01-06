@@ -260,7 +260,6 @@ const Filtering = {
 
         // Submit
         $(`#layersTool_filtering_submit`).on('click', () => {
-            console.log(Filtering.filters)
             if (Filtering.current.type === 'vector') {
                 LocalFilterer.filter(layerName, Filtering.filters[layerName])
             } else if (Filtering.current.type === 'query') {

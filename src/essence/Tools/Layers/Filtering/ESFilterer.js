@@ -7,7 +7,7 @@ import L_ from '../../../Basics/Layers_/Layers_'
 const ESFilterer = {
     getAggregations: async function (layerName, config) {
         const results = await ESFilterer.filter(layerName, null, config)
-        console.log('RESULTS', results)
+
         const aggs = {}
         if (results) {
             for (let a in results.aggregations) {
@@ -22,13 +22,10 @@ const ESFilterer = {
                 }
             }
         }
-        console.log('aggs', aggs)
         return aggs
     },
     filter: async function (layerName, filter, config) {
         return new Promise((resolve, reject) => {
-            console.log(layerName, filter, config)
-
             let aggs = {}
             config.fields = config.fields || {}
             for (let f in config.fields) {
@@ -123,7 +120,6 @@ const ESFilterer = {
             )
                 .then((res) => res.json())
                 .then((json) => {
-                    console.log(json)
                     const geojson = F_.getBaseGeoJSON()
                     const hits = F_.getIn(json, 'responses.0.hits.hits')
                     hits.forEach((hit) => {
@@ -150,12 +146,13 @@ const ESFilterer = {
                                 geometry,
                             })
                     })
-                    console.log('geojson', geojson)
                     // Set count
                     $('#layersTool_filtering_count').text(
                         `(${geojson.features.length} out of ${F_.getIn(
                             json,
-                            'responses.0.hits.total',
+                            config.esResponses
+                                ? 'responses.0.hits.total'
+                                : 'hits.total',
                             0
                         )})`
                     )
@@ -164,7 +161,11 @@ const ESFilterer = {
                     L_.clearVectorLayer(layerName)
                     L_.updateVectorLayer(layerName, geojson)
 
-                    resolve(F_.getIn(json, 'responses.0'))
+                    resolve(
+                        config.esResponses
+                            ? F_.getIn(json, 'responses.0')
+                            : json
+                    )
                 })
                 .catch((err) => {
                     console.log(err)

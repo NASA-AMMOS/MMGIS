@@ -34,8 +34,10 @@
 }
 #layerTool_filtering_filters_spatial_draw {
     background: #111;
-    width: 145px;
+    flex: 1;
     display: flex;
+    overflow: hidden;
+    white-space: nowrap;
 }
 #layerTool_filtering_filters_spatial_draw > div {
     margin-left: 4px;
@@ -71,7 +73,7 @@
 #layerTool_filtering_filters_spatial_radius_wrapper {
     display: flex;
     color: #ccc;
-    width: 85px;
+    width: 90px;
     box-sizing: border-box;
     border-left: 1px solid #333;
     border-right: 1px solid #333;

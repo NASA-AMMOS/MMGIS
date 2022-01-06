@@ -48,7 +48,7 @@ var markup = [
 
 var InfoTool = {
     height: 0,
-    width: 290,
+    width: 300,
     currentLayer: null,
     currentLayerName: null,
     info: null,
