@@ -75,8 +75,7 @@ This function removes features on a specified layer to keep the specified number
 #### Function parameters
 
 - `layerName` - name of layer to update
-- `timePropPath` - name of time property to compare with the time specified by keepAfterTime
-- `keepN` - number of features to keep. A value less than or equal to 0 keeps all previous features
+- `keepLastN` - number of features to keep. A value less than or equal to 0 keeps all previous features
 
 The following is an example of how to call the `keepLastN` function:
 
