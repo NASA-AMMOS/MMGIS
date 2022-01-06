@@ -121,7 +121,7 @@ const ESFilterer = {
                 .then((res) => res.json())
                 .then((json) => {
                     const geojson = F_.getBaseGeoJSON()
-                    const hits = F_.getIn(json, 'responses.0.hits.hits')
+                    const hits = F_.getIn(json, 'responses.0.hits.hits', [])
                     hits.forEach((hit) => {
                         const properties = hit._source || {}
                         let geometry

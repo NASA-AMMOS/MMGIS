@@ -183,7 +183,7 @@
     transition: background 0.2s cubic-bezier(0.785, 0.135, 0.15, 0.86);
 }
 .layersTool_filtering_value_operator_select:hover {
-    background: var(--color-r4);
+    background: #222;
 }
 
 .layersTool_filtering_value_remove .mmgisButton5 {
