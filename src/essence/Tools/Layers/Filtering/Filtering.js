@@ -57,6 +57,8 @@ const Filtering = {
                     Filtering.getConfig()
                 )
         }
+        const spatialActive =
+            Filtering.filters[layerName].spatial?.center != null
 
         // prettier-ignore
         const markup = [
@@ -72,8 +74,8 @@ const Filtering = {
                 "</div>",
                 "<div id='layerTool_filtering_filters'>",
                     "<ul id='layerTool_filtering_filters_list'></ul>",
-                    "<ul id='layerTool_filtering_filters_spatial'>",
-                        "<div id='layerTool_filtering_filters_spatial_draw' class='mmgisButton5' title='Place a point on the map to enable a spatial filter.'><i class='mdi mdi-pencil mdi-14px'></i><div>Place Point</div></div>",
+                    `<ul id='layerTool_filtering_filters_spatial' class='${spatialActive ? 'drawn' : ''}'>`,
+                        `<div id='layerTool_filtering_filters_spatial_draw' class='mmgisButton5' title='Place a point on the map to enable a spatial filter.'><i class='mdi mdi-pencil mdi-14px'></i><div>${spatialActive ? 'Active' : 'Place Point'}</div></div>`,
                         "<div id='layerTool_filtering_filters_spatial_radius_wrapper' title='Radius\n= 0: Queries for features that contain this point.\n> 0: Queries for features intersecting this circle.'>",
                             "<div>R:</div>",
                             `<input id='layerTool_filtering_filters_spatial_radius' type='number' placeholder='Radius' value='${Filtering.filters[layerName].spatial.radius || 0}' min='0'></input>`,
@@ -476,7 +478,7 @@ const Filtering = {
             Dropy.construct(
                 [
                     `<i class='mdi mdi-equal mdi-18px' title='Equals'></i>`,
-                    `<i class='mdi mdi-comma mdi-14px' title='Comma-separated list'></i>`,
+                    `<i class='mdi mdi-comma mdi-18px' title='Comma-separated list'></i>`,
                     `<i class='mdi mdi-less-than mdi-18px' title='Less than'></i>`,
                     `<i class='mdi mdi-greater-than mdi-18px' title='Greater than'></i>`,
                 ],

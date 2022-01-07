@@ -178,7 +178,6 @@ var InfoTool = {
         )
         Dropy.init($('#infoToolSelectedDropdown'), function (idx) {
             let e = JSON.parse(JSON.stringify(InfoTool.initialEvent))
-
             Kinds.use(
                 L_.layersNamed[InfoTool.currentLayerName].kind,
                 Map_,
@@ -444,7 +443,9 @@ function interfaceWithMMGIS() {
         InfoTool.variables,
         null,
         true,
-        null
+        null,
+        null,
+        InfoTool.featureLayers
     )
 
     //Share everything. Don't take things that aren't yours.

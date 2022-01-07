@@ -103,7 +103,8 @@ const LocalFilterer = {
             if (v && v.key != null) {
                 const featureValue = F_.getIn(feature.properties, v.key)
                 let filterValue = v.value
-                if (v.type === 'number') filterValue = parseFloat(filterValue)
+                if (v.type === 'number' && v.op != ',')
+                    filterValue = parseFloat(filterValue)
                 if (featureValue != null) {
                     switch (v.op) {
                         case '=':
@@ -111,6 +112,7 @@ const LocalFilterer = {
                             else matches = false
                             break
                         case ',':
+                            console.log(',', filterValue, featureValue)
                             if (filterValue != null) {
                                 const stringFilterValue = filterValue + ''
                                 const stringFeatureValue = featureValue + ''
