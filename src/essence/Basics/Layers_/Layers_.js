@@ -963,7 +963,8 @@ var L_ = {
                     this.layersNamed[key] &&
                     (this.layersNamed[key].type == 'point' ||
                         (key.toLowerCase().indexOf('draw') == -1 &&
-                            this.layersNamed[key].type == 'vector'))) ||
+                            (this.layersNamed[key].type === 'vector' ||
+                                this.layersNamed[key].type === 'query')))) ||
                 (s[0] == 'DrawTool' && !Number.isNaN(onId))
             ) {
                 if (

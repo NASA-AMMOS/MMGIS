@@ -92,7 +92,7 @@ const Filtering = {
         container.append(markup)
 
         Filtering.filters[layerName].values.forEach((v) => {
-            Filtering.addValue(layerName, v)
+            if (v) Filtering.addValue(layerName, v)
         })
 
         Filtering.attachEvents(layerName)
@@ -323,11 +323,12 @@ const Filtering = {
             Filtering.filters[layerName].values = Filtering.filters[
                 layerName
             ].values.filter((v) => {
-                $(
-                    `#layersTool_filtering_value_${F_.getSafeName(layerName)}_${
-                        v.id
-                    }`
-                ).remove()
+                if (v)
+                    $(
+                        `#layersTool_filtering_value_${F_.getSafeName(
+                            layerName
+                        )}_${v.id}`
+                    ).remove()
                 return false
             })
 
@@ -385,19 +386,21 @@ const Filtering = {
 
         $(elmId).on('click', () => {
             // Clear value filter element
-            Filtering.filters[layerName].values = Filtering.filters[
-                layerName
-            ].values.filter((v) => {
-                if (v.id === id) {
+            for (
+                let i = 0;
+                i < Filtering.filters[layerName].values.length;
+                i++
+            ) {
+                const vId = Filtering.filters[layerName].values[i].id
+                if (vId != null && vId === id) {
                     $(
                         `#layersTool_filtering_value_${F_.getSafeName(
                             layerName
-                        )}_${v.id}`
+                        )}_${vId}`
                     ).remove()
-                    return false
+                    Filtering.filters[layerName].values[i] = null
                 }
-                return true
-            })
+            }
             Filtering.setSubmitButtonState(true)
         })
 
@@ -450,6 +453,7 @@ const Filtering = {
             const property = Filtering.filters[layerName].aggs[event.value]
             if (property) {
                 if (
+                    Filtering.filters[layerName].values[id] &&
                     Filtering.filters[layerName].values[id].key !== event.value
                 ) {
                     Filtering.filters[layerName].values[id].key = event.value

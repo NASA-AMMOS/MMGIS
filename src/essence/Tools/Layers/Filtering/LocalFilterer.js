@@ -100,7 +100,7 @@ const LocalFilterer = {
         let matches = false
         for (let i = 0; i < filter.values.length; i++) {
             const v = filter.values[i]
-            if (v.key != null) {
+            if (v && v.key != null) {
                 const featureValue = F_.getIn(feature.properties, v.key)
                 let filterValue = v.value
                 if (v.type === 'number') filterValue = parseFloat(filterValue)
