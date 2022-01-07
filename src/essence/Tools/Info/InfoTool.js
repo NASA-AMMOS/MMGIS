@@ -54,6 +54,7 @@ var InfoTool = {
     info: null,
     variables: null,
     activeFeatureI: null,
+    featureLayers: [],
     filterString: '',
     hiddenShown: false,
     hiddenRootFields: ['_', 'style', 'images'],
@@ -77,7 +78,8 @@ var InfoTool = {
         activeI,
         open,
         initialEvent,
-        additional
+        additional,
+        featureLayers
     ) {
         let toolActive = $('#InfoTool').hasClass('active')
 
@@ -89,10 +91,15 @@ var InfoTool = {
         }
 
         if (additional && additional.idx) activeI = additional.idx
-
         if (currentLayer != null && currentLayerName != null) {
             this.currentLayer = currentLayer
             this.currentLayerName = currentLayerName
+            if (this.currentLayer.options == null) {
+                this.currentLayer.options = {}
+            }
+            if (this.currentLayer.options.layerName == null) {
+                this.currentLayer.options.layerName = this.currentLayerName
+            }
             this.info = features
             this.variables = variables
             let activeIndex = activeI
@@ -102,11 +109,14 @@ var InfoTool = {
             }
             this.activeFeatureI = activeIndex
             this.initialEvent = initialEvent
+
+            // Always highlight even if redundant
         }
+        this.featureLayers = featureLayers || []
 
         if (open != true) return
-        //MMGIS should always have a div with id 'tools'
-        var tools = d3.select('#toolPanel')
+        // MMGIS should always have a div with id 'tools'
+        let tools = d3.select('#toolPanel')
         tools.style('background', 'var(--color-k)')
         //Clear it
         tools.selectAll('*').remove()
@@ -154,7 +164,7 @@ var InfoTool = {
             )
                 name = this.info[i].properties[this.variables.useKeyAsName]
 
-            nameItems.push(name)
+            nameItems.push(this.info.length > 1 ? `${i + 1}. ${name}` : name)
         }
 
         $('#infoToolSelectedDropdown').html(
@@ -168,16 +178,18 @@ var InfoTool = {
         )
         Dropy.init($('#infoToolSelectedDropdown'), function (idx) {
             let e = JSON.parse(JSON.stringify(InfoTool.initialEvent))
+
             Kinds.use(
                 L_.layersNamed[InfoTool.currentLayerName].kind,
                 Map_,
                 InfoTool.info[idx],
-                InfoTool.currentLayer,
+                InfoTool.featureLayers[idx] || InfoTool.currentLayer,
                 InfoTool.currentLayerName,
                 null,
                 e,
                 { idx: idx },
-                InfoTool.info
+                InfoTool.info,
+                InfoTool.featureLayers[idx] ? InfoTool.featureLayers : null
             )
         })
 

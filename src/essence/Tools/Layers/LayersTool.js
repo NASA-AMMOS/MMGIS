@@ -146,16 +146,17 @@ function interfaceWithMMGIS() {
             var layerExport
             switch (node[i].type) {
                 case 'vector':
+                case 'query':
                     // prettier-ignore
                     layerExport = [
-                            '<ul>',
-                                '<li>',
-                                    '<div class="layersToolExportGeoJSON">',
-                                        '<div>Export as GeoJSON</div>',
-                                    '</div>',
-                                '</li>',
-                            '</ul>',
-                        ].join('\n')
+                        '<ul>',
+                            '<li>',
+                                '<div class="layersToolExportGeoJSON">',
+                                    '<div>Export as GeoJSON</div>',
+                                '</div>',
+                            '</li>',
+                        '</ul>',
+                    ].join('\n')
                     break
                 default:
                     layerExport = ''
@@ -171,7 +172,7 @@ function interfaceWithMMGIS() {
                         '<div>',
                         '<div>Start Time</div>',
                         '<label class="starttime ' +
-                            node[i].name.replace(/\s/g, '') +
+                            F_.getSafeName(node[i].name) +
                             '">' +
                             node[i].time.start +
                             '</label>',
@@ -181,7 +182,7 @@ function interfaceWithMMGIS() {
                         '<div>',
                         '<div>End Time</div>',
                         '<label class="endtime ' +
-                            node[i].name.replace(/\s/g, '') +
+                            F_.getSafeName(node[i].name) +
                             '">' +
                             node[i].time.end +
                             '</label>',
@@ -203,26 +204,26 @@ function interfaceWithMMGIS() {
 
                     // prettier-ignore
                     settings = [
-                                '<ul>',
-                                    '<li>',
-                                        '<div>',
-                                            '<div>Opacity</div>',
-                                                '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.opacityArray[node[i].name] + '">',
+                        '<ul>',
+                            '<li>',
+                                '<div>',
+                                    '<div>Opacity</div>',
+                                        '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.opacityArray[node[i].name] + '">',
+                                    '</div>',
+                                    L_.layersGroupSublayers[node[i].name] ? Object.keys(L_.layersGroupSublayers[node[i].name]).map((function(i){return function(s) {
+                                        return [
+                                            '<div class="sublayer">',
+                                                `<div>${F_.prettifyName(s)}</div>`,
+                                                '<div class="checkboxcont">',
+                                                    `<div class="checkbox ${(L_.layersGroupSublayers[node[i].name][s].on ? 'on' : 'off')}" layername="${node[i].name}" sublayername="${s}" style="margin: 5px 0px 5px 10px;"></div>`,
+                                                '</div>',
                                             '</div>',
-                                            L_.layersGroupSublayers[node[i].name] ? Object.keys(L_.layersGroupSublayers[node[i].name]).map((function(i){return function(s) {
-                                                return [
-                                                    '<div class="sublayer">',
-                                                        `<div>${F_.prettifyName(s)}</div>`,
-                                                        '<div class="checkboxcont">',
-                                                            `<div class="checkbox ${(L_.layersGroupSublayers[node[i].name][s].on ? 'on' : 'off')}" layername="${node[i].name}" sublayername="${s}" style="margin: 5px 0px 5px 10px;"></div>`,
-                                                        '</div>',
-                                                    '</div>',
-                                                ].join('\n')
-                                            }})(i)).join('\n') : null,
-                                        '</div>',
-                                    '</li>',
-                                '</ul>',
-                            ].join('\n')
+                                        ].join('\n')
+                                    }})(i)).join('\n') : null,
+                                '</div>',
+                            '</li>',
+                        '</ul>',
+                    ].join('\n')
                     break
                 case 'tile':
                     currentOpacity = L_.getLayerOpacity(node[i].name)
@@ -256,70 +257,70 @@ function interfaceWithMMGIS() {
 
                     // prettier-ignore
                     settings = [
-                            '<ul>',
-                                '<li>',
-                                    '<div>',
-                                        '<div>Opacity</div>',
-                                        '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.opacityArray[node[i].name] + '">',
-                                    '</div>',
-                                '</li>',
-                                '<li>',
-                                    '<div>',
-                                        '<div>Brightness</div>',
-                                            '<input class="tilefilterslider slider2" filter="brightness" unit="%" layername="' + node[i].name + '" type="range" min="0" max="3" step="0.05" value="' + currentBrightness + '" default="1">',
-                                    '</div>',
-                                '</li>',
-                                '<li>',
-                                    '<div>',
-                                        '<div>Contrast</div>',
-                                        '<input class="tilefilterslider slider2" filter="contrast" unit="%" layername="' + node[i].name + '" type="range" min="0" max="4" step="0.05" value="' + currentContrast + '" default="1">',
-                                    '</div>',
-                                '</li>',
-                                '<li>',
-                                    '<div>',
-                                        '<div>Saturation</div>',
-                                        '<input class="tilefilterslider slider2" filter="saturate" unit="%" layername="' + node[i].name + '" type="range" min="0" max="4" step="0.05" value="' + currentSaturation + '" default="1">',
-                                    '</div>',
-                                '</li>',
-                                '<li>',
-                                    '<div>',
-                                        '<div>Blend</div>',
-                                        '<select class="tileblender dropdown" layername="' + node[i].name + '">',
-                                            '<option value="unset"' + (currentBlend == 'none' ? ' selected' : '') + '>None</option>',
-                                            '<option value="color"' + (currentBlend == 'color' ? ' selected' : '') + '>Color</option>',
-                                            //'<option value="color-burn">Color Burn</option>',
-                                            //'<option value="color-dodge">Color Dodge</option>',
-                                            //'<option value="darken">Darken</option>',
-                                            //'<option value="difference">Difference</option>',
-                                            //'<option value="exclusion">Exclusion</option>',
-                                            //'<option value="hard-light">Hard Light</option>',
-                                            //'<option value="hue">Hue</option>',
-                                            //'<option value="lighten">Lighten</option>',
-                                            //'<option value="luminosity">Luminosity</option>',
-                                            //'<option value="multiply">Multiply</option>',
-                                            '<option value="overlay"' + (currentBlend == 'overlay' ? ' selected' : '') + '>Overlay</option>',
-                                            //'<option value="saturation">Saturation</option>',
-                                            //'<option value="screen">Screen</option>',
-                                            //'<option value="soft-light" ' + (currentBlend == 'soft-light' ? ' selected' : '') + '>Soft Light</option>',
-                                        '</select>',
-                                    '</div>',
-                                '</li>',
-                                /*
-                                '<li>',
-                                    '<div>',
-                                        '<div>Hue</div>',
-                                        '<input class="tilefilterslider slider2" filter="hue-rotate"  unit="deg" layername="' + node[i].name + '" type="range" min="0" max="3.60" step="0.1" value="0" default="0">',
-                                    '</div>',
-                                '</li>',
-                                '<li>',
-                                    '<div>',
-                                        '<div>Invert</div>',
-                                        '<input class="tilefilterslider slider2" filter="invert"  unit="%" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.05" value="0" default="0">',
-                                    '</div>',
-                                '</li>',
-                                */
-                            '</ul>'
-                        ].join('\n')
+                        '<ul>',
+                            '<li>',
+                                '<div>',
+                                    '<div>Opacity</div>',
+                                    '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.opacityArray[node[i].name] + '">',
+                                '</div>',
+                            '</li>',
+                            '<li>',
+                                '<div>',
+                                    '<div>Brightness</div>',
+                                        '<input class="tilefilterslider slider2" filter="brightness" unit="%" layername="' + node[i].name + '" type="range" min="0" max="3" step="0.05" value="' + currentBrightness + '" default="1">',
+                                '</div>',
+                            '</li>',
+                            '<li>',
+                                '<div>',
+                                    '<div>Contrast</div>',
+                                    '<input class="tilefilterslider slider2" filter="contrast" unit="%" layername="' + node[i].name + '" type="range" min="0" max="4" step="0.05" value="' + currentContrast + '" default="1">',
+                                '</div>',
+                            '</li>',
+                            '<li>',
+                                '<div>',
+                                    '<div>Saturation</div>',
+                                    '<input class="tilefilterslider slider2" filter="saturate" unit="%" layername="' + node[i].name + '" type="range" min="0" max="4" step="0.05" value="' + currentSaturation + '" default="1">',
+                                '</div>',
+                            '</li>',
+                            '<li>',
+                                '<div>',
+                                    '<div>Blend</div>',
+                                    '<select class="tileblender dropdown" layername="' + node[i].name + '">',
+                                        '<option value="unset"' + (currentBlend == 'none' ? ' selected' : '') + '>None</option>',
+                                        '<option value="color"' + (currentBlend == 'color' ? ' selected' : '') + '>Color</option>',
+                                        //'<option value="color-burn">Color Burn</option>',
+                                        //'<option value="color-dodge">Color Dodge</option>',
+                                        //'<option value="darken">Darken</option>',
+                                        //'<option value="difference">Difference</option>',
+                                        //'<option value="exclusion">Exclusion</option>',
+                                        //'<option value="hard-light">Hard Light</option>',
+                                        //'<option value="hue">Hue</option>',
+                                        //'<option value="lighten">Lighten</option>',
+                                        //'<option value="luminosity">Luminosity</option>',
+                                        //'<option value="multiply">Multiply</option>',
+                                        '<option value="overlay"' + (currentBlend == 'overlay' ? ' selected' : '') + '>Overlay</option>',
+                                        //'<option value="saturation">Saturation</option>',
+                                        //'<option value="screen">Screen</option>',
+                                        //'<option value="soft-light" ' + (currentBlend == 'soft-light' ? ' selected' : '') + '>Soft Light</option>',
+                                    '</select>',
+                                '</div>',
+                            '</li>',
+                            /*
+                            '<li>',
+                                '<div>',
+                                    '<div>Hue</div>',
+                                    '<input class="tilefilterslider slider2" filter="hue-rotate"  unit="deg" layername="' + node[i].name + '" type="range" min="0" max="3.60" step="0.1" value="0" default="0">',
+                                '</div>',
+                            '</li>',
+                            '<li>',
+                                '<div>',
+                                    '<div>Invert</div>',
+                                    '<input class="tilefilterslider slider2" filter="invert"  unit="%" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.05" value="0" default="0">',
+                                '</div>',
+                            '</li>',
+                            */
+                        '</ul>'
+                    ].join('\n')
                     break
                 case 'data':
                     currentOpacity = L_.getLayerOpacity(node[i].name)
@@ -370,6 +371,7 @@ function interfaceWithMMGIS() {
                     ].join('\n')
                     break
                 case 'model':
+                case 'query':
                     // prettier-ignore
                     settings = [
                         '<ul>',
@@ -413,8 +415,8 @@ function interfaceWithMMGIS() {
                     // prettier-ignore
                     $('#layersToolList').append(
                         [
-                            '<li id="LayersTool' + node[i].name.replace(/\s/g, "") + '" class="' + ((!quasiLayers.includes(node[i].type) && L_.layersGroup[node[i].name] == null) ? 'layernotfound' : '') + '" type="' + node[i].type + '" on="true" depth="' + depth + '" name="' + node[i].name + '" parent="' + parent.name + '" style="margin-left: ' + (depth * 16) + 'px;">',
-                                '<div class="title" id="layerstart' + node[i].name.replace(/\s/g, "") + '">',
+                            '<li id="LayersTool' + F_.getSafeName(node[i].name) + '" class="' + ((!quasiLayers.includes(node[i].type) && L_.layersGroup[node[i].name] == null) ? 'layernotfound' : '') + '" type="' + node[i].type + '" on="true" depth="' + depth + '" name="' + node[i].name + '" parent="' + parent.name + '" style="margin-left: ' + (depth * 16) + 'px;">',
+                                '<div class="title" id="layerstart' + F_.getSafeName(node[i].name) + '">',
                                     '<div class="layersToolColor ' + node[i].type + '"></div>',
                                     '<div class="checkboxcont">',
                                         '<div class="checkbox ' + (L_.toggledArray[node[i].name] ? 'on' : 'off') + '"></div>',
@@ -425,13 +427,13 @@ function interfaceWithMMGIS() {
                                     '<div class="reset">',
                                         '<i class="mdi mdi-refresh mdi-18px"></i>',
                                     '</div>',
-                                    (layerExport != '') ? ['<div class="layerDownload" id="layerexport' + node[i].name.replace(/\s/g, "") + '" stype="' + node[i].type + '" layername="' + node[i].name.replace(/\s/g, "") + '">',
+                                    (layerExport != '') ? ['<div class="layerDownload" id="layerexport' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + F_.getSafeName(node[i].name) + '">',
                                         '<i class="mdi mdi-download mdi-18px" name="layerexport"></i>',
                                     '</div>'].join('\n') : '',
-                                    (timeDisplay != '') ? ['<div class="time" id="timesettings' + node[i].name.replace(/\s/g, "") + '" stype="' + node[i].type + '" layername="' + node[i].name.replace(/\s/g, "") + '">',
+                                    (timeDisplay != '') ? ['<div class="time" id="timesettings' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' +F_.getSafeName(node[i].name) + '">',
                                         '<i class="mdi mdi-clock mdi-18px" name="timesettings" style="color:' + node[i].time.status + '"></i>',
                                     '</div>'].join('\n') : '',
-                                    '<div class="gears" id="layersettings' + node[i].name.replace(/\s/g, "") + '" stype="' + node[i].type + '" layername="' + node[i].name.replace(/\s/g, "") + '">',
+                                    '<div class="gears" id="layersettings' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + F_.getSafeName(node[i].name) + '">',
                                         '<i class="mdi mdi-tune mdi-18px" name="layersettings"></i>',
                                     '</div>',
                                 '</div>',

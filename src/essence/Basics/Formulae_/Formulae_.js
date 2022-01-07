@@ -392,6 +392,9 @@ var Formulae_ = {
             a: data[position + 3],
         }
     },
+    getSafeName: function (name) {
+        return (name || '').replace(/\s/g, '')
+    },
     /**
      * Traverses an object with an array of keys
      * @param {*} obj
@@ -1392,7 +1395,7 @@ var Formulae_ = {
                 l[i].feature.geometry.coordinates[0] == point[0] &&
                 l[i].feature.geometry.coordinates[1] == point[1]
             )
-                points.push(l[i].feature)
+                points.push(l[i])
         }
 
         return points

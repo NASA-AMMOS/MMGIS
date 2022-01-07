@@ -607,6 +607,22 @@ var L_ = {
             layer.setStyle(newStyle)
         } catch (err) {}
     },
+    select(layer) {
+        L_.setLastActivePoint(layer)
+        L_.resetLayerFills()
+        L_.highlight(layer)
+        L_.Map_.activeLayer = layer
+        Description.updatePoint(L_.Map_.activeLayer)
+
+        L_.Globe_.highlight(
+            L_.Globe_.findSpriteObject(
+                layer.options.layerName,
+                layer.feature.properties[layer.useKeyAsName]
+            ),
+            false
+        )
+        L_.Viewer_.highlight(layer)
+    },
     highlight(layer) {
         const color =
             (L_.configData.look && L_.configData.look.highlightcolor) || 'red'

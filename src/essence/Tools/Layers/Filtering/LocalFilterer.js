@@ -110,6 +110,19 @@ const LocalFilterer = {
                             if (featureValue == filterValue) matches = true
                             else matches = false
                             break
+                        case ',':
+                            if (filterValue != null) {
+                                const stringFilterValue = filterValue + ''
+                                const stringFeatureValue = featureValue + ''
+                                if (
+                                    stringFilterValue
+                                        .split(',')
+                                        .includes(stringFeatureValue)
+                                )
+                                    matches = true
+                                else matches = false
+                            } else matches = false
+                            break
                         case '<':
                             if (
                                 v.type === 'string'

@@ -1,5 +1,6 @@
 #layersTool_filtering {
     border-top: 1px solid var(--color-k);
+    background: var(--color-i);
     display: none;
 }
 .gears_on #layersTool_filtering {
@@ -33,47 +34,54 @@
     border-bottom: 1px solid #353535;
 }
 #layerTool_filtering_filters_spatial_draw {
-    background: #111;
     flex: 1;
     display: flex;
     overflow: hidden;
     white-space: nowrap;
+    padding-left: 0;
 }
 #layerTool_filtering_filters_spatial_draw > div {
-    margin-left: 4px;
     line-height: 32px;
     font-size: 13px;
 }
 #layerTool_filtering_filters_spatial_draw > i {
     color: #888;
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+    margin: 5px;
+    border-radius: 4px;
 }
 #layerTool_filtering_filters_spatial.drawing
     #layerTool_filtering_filters_spatial_draw
     > i {
-    color: var(--color-r7);
+    background: var(--color-r7);
+    color: black;
 }
 #layerTool_filtering_filters_spatial.drawn
     #layerTool_filtering_filters_spatial_draw
     > i {
-    color: lime;
+    background: white;
+    color: black;
 }
 #layerTool_filtering_filters_spatial_draw:hover {
-    background: #222;
+    background: #111;
 }
-#layerTool_filtering_filters_spatial_clear {
+.layerTool_filtering_filters_clear {
     width: 30px;
     background: #111;
     padding: 0px 6px;
-    color: #ccc;
+    color: #888;
 }
-#layerTool_filtering_filters_spatial_clear:hover {
-    background: #222;
+.layerTool_filtering_filters_clear:hover {
+    background: #333;
     color: #fff;
 }
 #layerTool_filtering_filters_spatial_radius_wrapper {
     display: flex;
+    background: var(--color-a1);
     color: #ccc;
-    width: 90px;
+    width: 105px;
     box-sizing: border-box;
     border-left: 1px solid #333;
     border-right: 1px solid #333;
@@ -81,7 +89,7 @@
 #layersTool_filtering
     #layerTool_filtering_filters_spatial_radius_wrapper
     > input {
-    background: #111;
+    background: var(--color-a1);
     padding-left: 0px;
     text-align: right;
     font-size: 13px;
@@ -89,16 +97,14 @@
 #layersTool_filtering
     #layerTool_filtering_filters_spatial_radius_wrapper
     > input:hover {
-    background: #222;
+    background: #111;
 }
 #layerTool_filtering_filters_spatial_radius_wrapper > div:first-child {
-    background: #111;
     line-height: 30px;
     padding: 0px 8px;
     font-size: 12px;
 }
 #layerTool_filtering_filters_spatial_radius_wrapper > div:last-child {
-    background: #111;
     line-height: 32px;
     height: 30px;
     padding: 0px 8px 0px 1px;
@@ -156,7 +162,7 @@
 }
 
 #layersTool_filtering input {
-    background: #111;
+    background: var(--color-a1);
     color: #ccc;
     width: 100%;
     box-sizing: border-box;
@@ -167,7 +173,10 @@
     transition: background 0.2s cubic-bezier(0.785, 0.135, 0.15, 0.86);
 }
 #layersTool_filtering input:hover {
-    background: #222;
+    background: #111;
+}
+.layersTool_filtering_value_value_input {
+    border-right: 1px solid #333 !important;
 }
 #layersTool_filtering select {
     background: #111;
@@ -175,7 +184,7 @@
     height: 30px;
 }
 .layersTool_filtering_value_operator_select {
-    background: #111111;
+    background: #333;
     color: var(--color-f);
     border: none;
     cursor: pointer;
@@ -183,7 +192,7 @@
     transition: background 0.2s cubic-bezier(0.785, 0.135, 0.15, 0.86);
 }
 .layersTool_filtering_value_operator_select:hover {
-    background: #222;
+    background: #111;
 }
 
 .layersTool_filtering_value_remove .mmgisButton5 {
@@ -194,6 +203,14 @@
 }
 #layersTool_filtering_submit {
     padding: 0px 8px;
+    transition: background 0.2s cubic-bezier(0.785, 0.135, 0.15, 0.86);
+}
+#layersTool_filtering_submit.active {
+    background: var(--color-h);
+    color: black;
+}
+#layersTool_filtering_submit.active:hover {
+    background: #fffb80;
 }
 
 #layersTool_filtering .dropy,
@@ -215,4 +232,25 @@
 }
 #layersTool_filtering .dropy__content ul {
     transition: none;
+}
+
+#layersTool_filtering_submit_loading {
+    display: none;
+    padding: 6px 6px 6px 0px;
+}
+#layersTool_filtering_submit_loading.active {
+    display: block;
+}
+#layersTool_filtering_submit_loading.active > div {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 3px solid black;
+    border-top: 3px solid transparent;
+    animation: submitLoadingSpin 1s ease-in-out infinite;
+}
+@keyframes submitLoadingSpin {
+    to {
+        transform: rotate(360deg);
+    }
 }

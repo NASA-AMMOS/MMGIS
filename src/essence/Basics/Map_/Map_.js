@@ -688,12 +688,6 @@ async function makeLayer(layerObj, evenIfOff) {
                 }
 
                 function keepGoing() {
-                    L_.setLastActivePoint(layer)
-                    L_.resetLayerFills()
-                    L_.highlight(layer)
-                    Map_.activeLayer = layer
-                    Description.updatePoint(Map_.activeLayer)
-
                     //View images
                     var propImages = propertiesToImages(
                         feature.properties,
@@ -711,15 +705,6 @@ async function makeLayer(layerObj, evenIfOff) {
                         propImages,
                         e
                     )
-
-                    Globe_.highlight(
-                        Globe_.findSpriteObject(
-                            layer.options.layerName,
-                            layer.feature.properties[layer.useKeyAsName]
-                        ),
-                        false
-                    )
-                    Viewer_.highlight(layer)
 
                     //update url
                     if (layer != null && layer.hasOwnProperty('options')) {

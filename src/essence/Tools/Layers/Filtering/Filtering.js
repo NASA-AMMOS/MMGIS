@@ -28,6 +28,7 @@ const Filtering = {
                 radius: 0,
             },
             values: [],
+            geojson: null,
         }
         Filtering.current = {
             layerName: layerName,
@@ -38,6 +39,7 @@ const Filtering = {
         if (Filtering.current.type === 'vector') {
             try {
                 Filtering.filters[layerName].geojson =
+                    Filtering.filters[layerName].geojson ||
                     L_.layersGroup[layerName].toGeoJSON()
             } catch (err) {
                 console.warn(
@@ -65,24 +67,24 @@ const Filtering = {
                         "<div id='layersTool_filtering_count'></div>",
                     "</div>",
                     "<div id='layersTool_filtering_adds'>",
-                        "<div id='layersTool_filtering_add_value' class='mmgisButton5'><i class='mdi mdi-plus mdi-18px'></i></div>",
+                        "<div id='layersTool_filtering_add_value' class='mmgisButton5' title='Add New Key-Value Filter'><i class='mdi mdi-plus mdi-18px'></i></div>",
                     "</div>",
                 "</div>",
                 "<div id='layerTool_filtering_filters'>",
                     "<ul id='layerTool_filtering_filters_list'></ul>",
                     "<ul id='layerTool_filtering_filters_spatial'>",
-                        "<div id='layerTool_filtering_filters_spatial_draw' class='mmgisButton5'><i class='mdi mdi-pencil mdi-18px'></i><div>Draw Spatial Filter</div></div>",
+                        "<div id='layerTool_filtering_filters_spatial_draw' class='mmgisButton5' title='Place a point on the map to enable a spatial filter.'><i class='mdi mdi-pencil mdi-14px'></i><div>Place Point</div></div>",
                         "<div id='layerTool_filtering_filters_spatial_radius_wrapper' title='Radius\n= 0: Queries for features that contain this point.\n> 0: Queries for features intersecting this circle.'>",
                             "<div>R:</div>",
-                            `<input id='layerTool_filtering_filters_spatial_radius' type='number' placeholder='Radius' value='0' min='0'></input>`,
+                            `<input id='layerTool_filtering_filters_spatial_radius' type='number' placeholder='Radius' value='${Filtering.filters[layerName].spatial.radius || 0}' min='0'></input>`,
                             "<div>m</div>",
                         "</div>",
-                        "<div id='layerTool_filtering_filters_spatial_clear' class='mmgisButton5'><i class='mdi mdi-close mdi-18px'></i></div>",
+                        "<div id='layerTool_filtering_filters_spatial_clear' class='mmgisButton5 layerTool_filtering_filters_clear'><i class='mdi mdi-close mdi-18px'></i></div>",
                     "</ul>",
                 "</div>",
                 `<div id='layersTool_filtering_footer'>`,
-                    "<div id='layersTool_filtering_clear' class='mmgisButton5'><div>Clear All Filters</div></div>",
-                    "<div id='layersTool_filtering_submit' class='mmgisButton5'><div>Submit</div><i class='mdi mdi-arrow-right mdi-18px'></i></div>",
+                    "<div id='layersTool_filtering_clear' class='mmgisButton5'><div>Clear</div></div>",
+                    "<div id='layersTool_filtering_submit' class='mmgisButton5'><div id='layersTool_filtering_submit_loading'><div></div></div><div id='layersTool_filtering_submit_text'>Submit</div><i class='mdi mdi-arrow-right mdi-18px'></i></div>",
                 "</div>",
             "</div>",
         ].join('\n')
@@ -94,8 +96,24 @@ const Filtering = {
         })
 
         Filtering.attachEvents(layerName)
+
+        Filtering.drawSpatialLayer(
+            layerName,
+            Filtering.filters[layerName].spatial.center,
+            Filtering.filters[layerName].spatial.radius
+        )
     },
     destroy: function () {
+        // Clear Spatial Filter
+        // We save the center because we're not completely clearing it
+        if (Filtering.filters[Filtering.current.layerName]) {
+            const savedCenter =
+                Filtering.filters[Filtering.current.layerName].spatial.center
+            $('#layerTool_filtering_filters_spatial_clear').click()
+            Filtering.filters[Filtering.current.layerName].spatial.center =
+                savedCenter
+        }
+
         $('#layersTool_filtering').remove()
     },
     addValue: function (layerName, value) {
@@ -109,20 +127,21 @@ const Filtering = {
 
         // prettier-ignore
         const valueMarkup = [
-            `<div class='layersTool_filtering_value' id='layersTool_filtering_value_${layerName}_${id}'>`,
+            `<div class='layersTool_filtering_value' id='layersTool_filtering_value_${F_.getSafeName(layerName)}_${id}'>`,
                 "<div class='layersTool_filtering_value_key'>",
-                    `<input id='layersTool_filtering_value_key_input_${layerName}_${id}' class='layersTool_filtering_value_key_input' spellcheck='false' type='text'${key} placeholder='Property...'></input>`,
+                    `<input id='layersTool_filtering_value_key_input_${F_.getSafeName(layerName)}_${id}' class='layersTool_filtering_value_key_input' spellcheck='false' type='text'${key} placeholder='Property...'></input>`,
                 "</div>",
                 "<div class='layersTool_filtering_value_operator'>",
-                    `<div id='layersTool_filtering_value_operator_${layerName}_${id}' class='layersTool_filtering_value_operator_select'></div>`,
+                    `<div id='layersTool_filtering_value_operator_${F_.getSafeName(layerName)}_${id}' class='layersTool_filtering_value_operator_select'></div>`,
                 "</div>",
                 "<div class='layersTool_filtering_value_value'>",
-                    `<input id='layersTool_filtering_value_value_input_${layerName}_${id}' class='layersTool_filtering_value_value_input' spellcheck='false' type='text'${val} placeholder='Value...'></input>`,
+                    `<input id='layersTool_filtering_value_value_input_${F_.getSafeName(layerName)}_${id}' class='layersTool_filtering_value_value_input' spellcheck='false' type='text'${val} placeholder='Value...'></input>`,
                     `<div class='layersTool_filtering_value_value_type'>`,
-                        `<i id='layersTool_filtering_value_value_type_number_${layerName}_${id}' style='display: none;' class='mdi mdi-numeric mdi-18px'></i>`,
-                        `<i id='layersTool_filtering_value_value_type_string_${layerName}_${id}' style='display: none;'class='mdi mdi-alphabetical-variant mdi-18px'></i>`,
+                        `<i id='layersTool_filtering_value_value_type_number_${F_.getSafeName(layerName)}_${id}' style='display: none;' class='mdi mdi-numeric mdi-18px'></i>`,
+                        `<i id='layersTool_filtering_value_value_type_string_${F_.getSafeName(layerName)}_${id}' style='display: none;'class='mdi mdi-alphabetical-variant mdi-18px'></i>`,
                     `</div>`,
                 "</div>",
+                `<div id='layersTool_filtering_value_clear_${F_.getSafeName(layerName)}_${id}' class='mmgisButton5 layerTool_filtering_filters_clear'><i class='mdi mdi-close mdi-18px'></i></div>`,
             "</div>",
         ].join('\n')
 
@@ -148,6 +167,8 @@ const Filtering = {
     },
     drawSpatialLayer: function (layerName, center, radius) {
         Map_.rmNotNull(Filtering.mapSpatialLayer)
+
+        Filtering.setSubmitButtonState(true)
         if (center == null) return
 
         const style = {
@@ -188,6 +209,17 @@ const Filtering = {
                 },
             }
         }
+        Filtering.mapSpatialLayer.bringToFront()
+    },
+    // To highlight the submit button to indicate a change's been made in the form
+    setSubmitButtonState: function (active) {
+        if (active) {
+            $('#layersTool_filtering_submit_text').text('Submit')
+            $('#layersTool_filtering_submit').addClass('active')
+        } else if ($('#layersTool_filtering_submit').hasClass('active')) {
+            $('#layersTool_filtering_submit_text').text('Submitted')
+            $('#layersTool_filtering_submit').removeClass('active')
+        }
     },
     attachEvents: function (layerName) {
         // Add Value
@@ -200,7 +232,7 @@ const Filtering = {
             Map_.rmNotNull(Filtering.mapSpatialLayer)
             $('#map').css('cursor', 'crosshair')
             $('#layerTool_filtering_filters_spatial_draw > div').text(
-                'Drawing Point'
+                'Placing Point'
             )
             $('#layerTool_filtering_filters_spatial').removeClass('drawn')
             $('#layerTool_filtering_filters_spatial').addClass('drawing')
@@ -209,7 +241,7 @@ const Filtering = {
         function spatialOnClick(e) {
             Map_.map.off('click', spatialOnClick)
             $('#map').css('cursor', 'grab')
-            $('#layerTool_filtering_filters_spatial_draw > div').text('Drawn')
+            $('#layerTool_filtering_filters_spatial_draw > div').text('Active')
             $('#layerTool_filtering_filters_spatial').removeClass('drawing')
             $('#layerTool_filtering_filters_spatial').addClass('drawn')
 
@@ -245,7 +277,7 @@ const Filtering = {
                 Map_.map.off('click', spatialOnClick)
                 $('#map').css('cursor', 'grab')
                 $('#layerTool_filtering_filters_spatial_draw > div').text(
-                    'Draw Spatial Filter'
+                    'Place Point'
                 )
                 $('#layerTool_filtering_filters_spatial').removeClass('drawn')
                 $('#layerTool_filtering_filters_spatial').removeClass('drawing')
@@ -259,28 +291,43 @@ const Filtering = {
         )
 
         // Submit
-        $(`#layersTool_filtering_submit`).on('click', () => {
+        $(`#layersTool_filtering_submit`).on('click', async () => {
+            Filtering.setSubmitButtonState(true)
+            $(`#layersTool_filtering_submit_loading`).addClass('active')
             if (Filtering.current.type === 'vector') {
                 LocalFilterer.filter(layerName, Filtering.filters[layerName])
             } else if (Filtering.current.type === 'query') {
-                ESFilterer.filter(
+                await ESFilterer.filter(
                     layerName,
                     Filtering.filters[layerName],
                     Filtering.getConfig()
                 )
             }
+
+            $(`#layersTool_filtering_submit_loading`).removeClass('active')
+            Filtering.setSubmitButtonState(false)
+
+            if (Filtering.mapSpatialLayer)
+                Filtering.mapSpatialLayer.bringToFront()
+
+            console.log(L_)
         })
 
         // Clear
         $(`#layersTool_filtering_clear`).on('click', async () => {
             // Clear Spatial Filter
             $('#layerTool_filtering_filters_spatial_clear').click()
+            $(`#layersTool_filtering_submit_loading`).addClass('active')
 
             // Clear value filter elements
             Filtering.filters[layerName].values = Filtering.filters[
                 layerName
             ].values.filter((v) => {
-                $(`#layersTool_filtering_value_${layerName}_${v.id}`).remove()
+                $(
+                    `#layersTool_filtering_value_${F_.getSafeName(layerName)}_${
+                        v.id
+                    }`
+                ).remove()
                 return false
             })
 
@@ -297,6 +344,13 @@ const Filtering = {
 
             // Reset count
             $('#layersTool_filtering_count').text('')
+
+            Filtering.setSubmitButtonState(false)
+
+            $(`#layersTool_filtering_submit_loading`).removeClass('active')
+
+            if (Filtering.mapSpatialLayer)
+                Filtering.mapSpatialLayer.bringToFront()
         })
     },
     attachValueEvents: function (id, layerName, options) {
@@ -304,8 +358,53 @@ const Filtering = {
 
         let elmId
 
+        // Expand input boxes on focus
+        // Contract input boxes on blur
+        elmId = `#layersTool_filtering_value_key_input_${F_.getSafeName(
+            layerName
+        )}_${id}`
+        $(elmId).on('focus', function () {
+            $(this).parent().css('flex', '2 1')
+        })
+        $(elmId).on('blur', function () {
+            $(this).parent().css('flex', '1 1')
+        })
+        elmId = `#layersTool_filtering_value_value_input_${F_.getSafeName(
+            layerName
+        )}_${id}`
+        $(elmId).on('focus', function () {
+            $(this).parent().css('flex', '2 1')
+        })
+        $(elmId).on('blur', function () {
+            $(this).parent().css('flex', '1 1')
+        })
+        // Clear
+        elmId = `#layersTool_filtering_value_clear_${F_.getSafeName(
+            layerName
+        )}_${id}`
+
+        $(elmId).on('click', () => {
+            // Clear value filter element
+            Filtering.filters[layerName].values = Filtering.filters[
+                layerName
+            ].values.filter((v) => {
+                if (v.id === id) {
+                    $(
+                        `#layersTool_filtering_value_${F_.getSafeName(
+                            layerName
+                        )}_${v.id}`
+                    ).remove()
+                    return false
+                }
+                return true
+            })
+            Filtering.setSubmitButtonState(true)
+        })
+
         // Property Autocomplete
-        elmId = `#layersTool_filtering_value_key_input_${layerName}_${id}`
+        elmId = `#layersTool_filtering_value_key_input_${F_.getSafeName(
+            layerName
+        )}_${id}`
 
         let arrayToSearch = Object.keys(Filtering.filters[layerName].aggs)
         arrayToSearch = arrayToSearch.sort((a, b) => b.localeCompare(a))
@@ -342,6 +441,7 @@ const Filtering = {
                 Filtering.filters[layerName].values[id].type = property.type
                 Filtering.filters[layerName].values[id].key = event.value
                 Filtering.updateValuesAutoComplete(id, layerName)
+                Filtering.setSubmitButtonState(true)
                 $(this).css('border', 'none')
             },
         })
@@ -355,22 +455,26 @@ const Filtering = {
                     Filtering.filters[layerName].values[id].key = event.value
                     Filtering.filters[layerName].values[id].type = property.type
                     Filtering.updateValuesAutoComplete(id, layerName)
+                    Filtering.setSubmitButtonState(true)
                 }
                 $(this).css('border', 'none')
             } else $(this).css('border', '1px solid red')
         })
 
         // Operator Dropdown
-        elmId = `#layersTool_filtering_value_operator_${layerName}_${id}`
+        elmId = `#layersTool_filtering_value_operator_${F_.getSafeName(
+            layerName
+        )}_${id}`
 
-        const ops = ['=', '<', '>']
+        const ops = ['=', ',', '<', '>']
         const opId = Math.max(ops.indexOf(options.op), 0)
         $(elmId).html(
             Dropy.construct(
                 [
-                    `<i class='mdi mdi-equal mdi-18px'></i>`,
-                    `<i class='mdi mdi-less-than mdi-18px'></i>`,
-                    `<i class='mdi mdi-greater-than mdi-18px'></i>`,
+                    `<i class='mdi mdi-equal mdi-18px' title='Equals'></i>`,
+                    `<i class='mdi mdi-comma mdi-14px' title='Comma-separated list'></i>`,
+                    `<i class='mdi mdi-less-than mdi-18px' title='Less than'></i>`,
+                    `<i class='mdi mdi-greater-than mdi-18px' title='Greater than'></i>`,
                 ],
                 'op',
                 opId
@@ -378,13 +482,16 @@ const Filtering = {
         )
         Dropy.init($(elmId), function (idx) {
             Filtering.filters[layerName].values[id].op = ops[idx]
+            Filtering.setSubmitButtonState(true)
         })
 
         // Value AutoComplete
         Filtering.updateValuesAutoComplete(id, layerName)
     },
     updateValuesAutoComplete: function (id, layerName) {
-        let elmId = `#layersTool_filtering_value_value_input_${layerName}_${id}`
+        let elmId = `#layersTool_filtering_value_value_input_${F_.getSafeName(
+            layerName
+        )}_${id}`
         let arrayToSearch = []
         if (
             Filtering.filters[layerName].values[id].key &&
@@ -426,10 +533,12 @@ const Filtering = {
             },
             onSelect: function (event) {
                 Filtering.filters[layerName].values[id].value = event.value
+                Filtering.setSubmitButtonState(true)
             },
         })
         $(elmId).on('keyup', function (e) {
             Filtering.filters[layerName].values[id].value = $(this).val()
+            Filtering.setSubmitButtonState(true)
         })
 
         $('.autocomplete-suggestions').css({
@@ -441,8 +550,12 @@ const Filtering = {
         })
 
         // Change type indicator icons too
-        const numberElmId = `#layersTool_filtering_value_value_type_number_${layerName}_${id}`
-        const stringElmId = `#layersTool_filtering_value_value_type_string_${layerName}_${id}`
+        const numberElmId = `#layersTool_filtering_value_value_type_number_${F_.getSafeName(
+            layerName
+        )}_${id}`
+        const stringElmId = `#layersTool_filtering_value_value_type_string_${F_.getSafeName(
+            layerName
+        )}_${id}`
         switch (Filtering.filters[layerName].values[id].type) {
             case 'number':
                 $(numberElmId).css('display', 'inherit')

@@ -49,7 +49,7 @@ const ESFilterer = {
                 },
                 aggs: aggs,
                 from: 0,
-                size: config.size || 500,
+                size: filter == null ? 0 : config.size || 500,
                 version: true,
             }
 
@@ -183,6 +183,20 @@ const ESFilterer = {
                         must.push({
                             match: {
                                 [v.key]: v.value,
+                            },
+                        })
+                        break
+                    case ',':
+                        const stringValue = v.value + ''
+                        must.push({
+                            bool: {
+                                should: stringValue.split(',').map((sv) => {
+                                    return {
+                                        match: {
+                                            [v.key]: sv,
+                                        },
+                                    }
+                                }),
                             },
                         })
                         break
