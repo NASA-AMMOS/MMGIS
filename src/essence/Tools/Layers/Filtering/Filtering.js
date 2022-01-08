@@ -311,8 +311,6 @@ const Filtering = {
 
             if (Filtering.mapSpatialLayer)
                 Filtering.mapSpatialLayer.bringToFront()
-
-            console.log(L_)
         })
 
         // Clear
@@ -452,7 +450,8 @@ const Filtering = {
         })
 
         $(elmId).on('blur', function (event) {
-            const property = Filtering.filters[layerName].aggs[event.value]
+            const property =
+                Filtering.filters[layerName].aggs[event.value || $(this).val()]
             if (property) {
                 if (
                     Filtering.filters[layerName].values[id] &&

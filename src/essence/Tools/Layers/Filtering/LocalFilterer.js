@@ -112,7 +112,6 @@ const LocalFilterer = {
                             else matches = false
                             break
                         case ',':
-                            console.log(',', filterValue, featureValue)
                             if (filterValue != null) {
                                 const stringFilterValue = filterValue + ''
                                 const stringFeatureValue = featureValue + ''
