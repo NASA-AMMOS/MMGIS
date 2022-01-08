@@ -140,7 +140,9 @@ var InfoTool = {
 
         // Update number of equivalent features
         if (this.info.length > 1) {
-            $('#infoToolEquiv').text(`${this.info.length}`)
+            $('#infoToolEquiv').text(
+                `${this.activeFeatureI + 1} of ${this.info.length}`
+            )
             $('#infoToolEquiv').css('display', 'block')
         } else {
             $('#infoToolEquiv').text(`1`)

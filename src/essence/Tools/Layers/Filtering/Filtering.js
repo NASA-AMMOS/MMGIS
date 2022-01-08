@@ -107,14 +107,7 @@ const Filtering = {
     },
     destroy: function () {
         // Clear Spatial Filter
-        // We save the center because we're not completely clearing it
-        if (Filtering.filters[Filtering.current.layerName]) {
-            const savedCenter =
-                Filtering.filters[Filtering.current.layerName].spatial.center
-            $('#layerTool_filtering_filters_spatial_clear').click()
-            Filtering.filters[Filtering.current.layerName].spatial.center =
-                savedCenter
-        }
+        Map_.rmNotNull(Filtering.mapSpatialLayer)
 
         $('#layersTool_filtering').remove()
     },
@@ -365,7 +358,7 @@ const Filtering = {
             layerName
         )}_${id}`
         $(elmId).on('focus', function () {
-            $(this).parent().css('flex', '2 1')
+            $(this).parent().css('flex', '2.5 1')
         })
         $(elmId).on('blur', function () {
             $(this).parent().css('flex', '1 1')
@@ -374,7 +367,7 @@ const Filtering = {
             layerName
         )}_${id}`
         $(elmId).on('focus', function () {
-            $(this).parent().css('flex', '2 1')
+            $(this).parent().css('flex', '2.5 1')
         })
         $(elmId).on('blur', function () {
             $(this).parent().css('flex', '1 1')
@@ -391,7 +384,7 @@ const Filtering = {
                 i < Filtering.filters[layerName].values.length;
                 i++
             ) {
-                const vId = Filtering.filters[layerName].values[i].id
+                const vId = Filtering.filters[layerName].values[i]?.id
                 if (vId != null && vId === id) {
                     $(
                         `#layersTool_filtering_value_${F_.getSafeName(
@@ -477,7 +470,7 @@ const Filtering = {
             Dropy.construct(
                 [
                     `<i class='mdi mdi-equal mdi-18px' title='Equals'></i>`,
-                    `<i class='mdi mdi-comma mdi-18px' title='Comma-separated list'></i>`,
+                    `<div title='Comma-separated list' style='font-family: monospace;'>in</div>`,
                     `<i class='mdi mdi-less-than mdi-18px' title='Less than'></i>`,
                     `<i class='mdi mdi-greater-than mdi-18px' title='Greater than'></i>`,
                 ],
@@ -511,7 +504,7 @@ const Filtering = {
             )
         $(elmId).autocomplete({
             lookup: arrayToSearch,
-            lookupLimit: 100,
+            lookupLimit: 150,
             minChars: 0,
             transformResult: function (response, originalQuery) {
                 let resultSuggestions = []

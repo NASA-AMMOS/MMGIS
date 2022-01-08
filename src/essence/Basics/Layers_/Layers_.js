@@ -649,6 +649,9 @@ var L_ = {
             if (layer._icon)
                 layer._icon.style.filter = `drop-shadow(${color}  2px 0px 0px) drop-shadow(${color}  -2px 0px 0px) drop-shadow(${color}  0px 2px 0px) drop-shadow(${color} 0px -2px 0px)`
         }
+        try {
+            layer.bringToFront()
+        } catch (err) {}
     },
     addArrowToMap: function (
         layerId,

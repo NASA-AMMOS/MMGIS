@@ -39,7 +39,8 @@ const ESFilterer = {
 
             let must = []
             if (config.must) must = must.concat(config.must)
-            must = must.concat(ESFilterer.getFilterMust(filter))
+            const filterMust = ESFilterer.getFilterMust(filter)
+            must = must.concat(filterMust)
 
             let query = {
                 query: {
@@ -93,6 +94,11 @@ const ESFilterer = {
             }
             if (spatialFilter) {
                 query.query.bool.filter = spatialFilter
+            }
+
+            // Ignore results if no filters set
+            if (spatialFilter == null && filterMust.length === 0) {
+                query.size = 0
             }
 
             // Format query

@@ -38,7 +38,7 @@
     display: flex;
     overflow: hidden;
     white-space: nowrap;
-    padding-left: 0;
+    padding-left: 8px;
 }
 #layerTool_filtering_filters_spatial_draw > div {
     line-height: 32px;
@@ -61,7 +61,7 @@
 #layerTool_filtering_filters_spatial.drawn
     #layerTool_filtering_filters_spatial_draw
     > i {
-    background: white;
+    background: lime;
     color: black;
 }
 #layerTool_filtering_filters_spatial_draw:hover {
@@ -153,12 +153,19 @@
     width: 30px;
     text-align: center;
     color: #999;
+    opacity: 0;
+    transition: opacity 0.2s ease-out;
 }
 .layersTool_filtering_value_value_type > i:first-child {
     color: var(--color-yellow);
 }
 .layersTool_filtering_value_value_type > i:last-child {
     color: var(--color-green);
+}
+
+.layersTool_filtering_value_value_input:hover
+    + .layersTool_filtering_value_value_type {
+    opacity: 1;
 }
 
 #layersTool_filtering input {

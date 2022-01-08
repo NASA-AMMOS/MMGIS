@@ -542,10 +542,8 @@ function interfaceWithMMGIS() {
         if (!wasOn) li.addClass('gears_on')
 
         //Support Filtering 1
-        if (!wasOn) {
-            if (['vector', 'query'].includes(type)) {
-                Filtering.destroy()
-            }
+        if (['vector', 'query'].includes(type)) {
+            Filtering.destroy()
         }
 
         // Turn layer on if off
@@ -576,7 +574,7 @@ function interfaceWithMMGIS() {
         F_.downloadObject(
             L_.layersGroup[layerName].toGeoJSON(),
             layerName,
-            '.geojson'
+            '.json'
         )
     })
 

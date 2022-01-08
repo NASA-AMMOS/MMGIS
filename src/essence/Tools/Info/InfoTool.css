@@ -31,7 +31,8 @@
 #infoToolEquiv {
     font-size: 12px;
     background: var(--color-b);
-    border-radius: 50%;
+    border-radius: 3px;
+    padding: 0px 4px;
     height: 18px;
     min-width: 18px;
     text-align: center;
