@@ -202,9 +202,34 @@ var mmgisAPI = {
      * Updates a specified layer with GeoJSON data
      * @param {string} - layerName - name of layer to update
      * @param {GeoJSON} - inputData - valid GeoJSON data
-     * @param {number} - keepN - number of features to keep. A value less than or equal to 0 keeps all previous features
      */
     updateVectorLayer: L_.updateVectorLayer,
+    /**
+     * Remove features on a specified layer before a specified time
+     * @param {string} - layerName - name of layer to update
+     * @param {string} - keepAfterTime - absolute time in the format of YYYY-MM-DDThh:mm:ssZ; will keep all features after this time
+     * @param {number} - timePropPath - name of time property to compare with the time specified by keepAfterTime
+     */
+    trimVectorLayerKeepAfterTime: L_.trimVectorLayerKeepAfterTime,
+    /**
+     * Remove features on a specified layer after a specified time
+     * @param {string} - layerName - name of layer to update
+     * @param {string} - keepBeforeTime - absolute time in the format of YYYY-MM-DDThh:mm:ssZ; will keep all features before this time
+     * @param {number} - timePropPath - name of time property to compare with the time specified by keepAfterTime
+     */
+    trimVectorLayerKeepBeforeTime: L_.trimVectorLayerKeepBeforeTime,
+    /**
+     * Number of features to keep on a specified layer. Keeps from the tail end of the feature list.
+     * @param {string} - layerName - name of layer to update
+     * @param {keepLastN} - keepN - number of features to keep from the tail end of the feature list. A value less than or equal to 0 keeps all previous features
+     */
+    keepLastN: L_.keepLastN,
+    /**
+     * Number of features to keep on a specified layer. Keeps features from the beginning of the feature list.
+     * @param {string} - layerName - name of layer to update
+     * @param {keepFirstN} - keepN - number of features to keep from the beginning of the feature list. A value less than or equal to 0 keeps all previous features
+     */
+    keepFirstN: L_.keepFirstN,
 
     // Time Control API functions
 

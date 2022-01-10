@@ -1269,20 +1269,135 @@ var L_ = {
             console.warn('Warning: Unable to clear vector layer: ' + layerName)
         }
     },
-    updateVectorLayer: function (layerName, inputData, keepN) {
-        // Validate input for keepN
-        const keepNum = parseInt(keepN)
-        if (keepN && Number.isNaN(Number(keepNum))) {
+    removeLayerHelper: function (updateLayer, removeLayer) {
+        // If we remove a layer but its properties are displayed in the InfoTool
+        // and description (i.e. it was clicked), clear the InfoTool and description
+        const infoTool = ToolController_.getTool('InfoTool')
+        if (infoTool.currentLayer === removeLayer) {
+            L_.clearVectorLayerInfo()
+        }
+
+        // Remove the layer
+        updateLayer.removeLayer(removeLayer)
+    },
+    trimVectorLayerKeepBeforeTime: function (layerName, keepBeforeTime, timePropPath) {
+        L_.trimVectorLayerHelper(layerName, keepBeforeTime, timePropPath, "before")
+    },
+    trimVectorLayerKeepAfterTime: function (layerName, keepAfterTime, timePropPath) {
+        L_.trimVectorLayerHelper(layerName, keepAfterTime, timePropPath, "after")
+    },
+    trimVectorLayerHelper: function (layerName, keepTime, timePropPath, trimType) {
+        // Validate input parameters
+        if (!keepTime) {
             console.warn(
-                'Warning: Unable to update vector layer `' +
+                'Warning: The input for keep' + trimType.capitalizeFirstLetter() + 'Time is invalid: ' + keepTime
+            )
+            return
+        }
+
+        if (!timePropPath) {
+            console.warn(
+                'Warning: The input for timePropPath is invalid: ' + timePropPath
+            )
+            return
+        }
+
+        if (keepTime) {
+            const keepAfterAsDate = new Date(keepTime)
+            if (isNaN(keepAfterAsDate.getTime())) {
+                console.warn(
+                    'Warning: The input for keep' + trimType.capitalizeFirstLetter() + 'Time is invalid: ' + keepAfterTime
+                )
+                return
+            }
+        }
+
+        if (layerName in L_.layersGroup) {
+            const updateLayer = L_.layersGroup[layerName]
+
+            if (keepTime) {
+                const keepTimeAsDate = new Date(keepTime)
+
+                var layers = updateLayer.getLayers()
+                for (let i = layers.length - 1; i >= 0; i--) {
+                    let layer = layers[i]
+                    if (layer.feature.properties[timePropPath]) {
+                        const layerDate = new Date(layer.feature.properties[timePropPath])
+                        if (isNaN(layerDate.getTime())) {
+                            console.warn(
+                                'Warning: The time for the layer is invalid: ' + layer.feature.properties[timePropPath]
+                            )
+                            continue
+                        }
+                        if (trimType === "after") {
+                            if (layerDate < keepTimeAsDate) {
+                                console.log("if true")
+                                L_.removeLayerHelper(updateLayer, layer)
+                            }
+                        } else if (trimType === "before") {
+                            if (layerDate > keepTimeAsDate) {
+                                console.log("if true")
+                                L_.removeLayerHelper(updateLayer, layer)
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            console.warn(
+                'Warning: Unable to trim vector layer as it does not exist: ' +
+                    layerName
+            )
+        }
+    },
+    keepFirstN: function (layerName, keepFirstN) {
+        L_.keepNHelper(layerName, keepFirstN, "first")
+    },
+    keepLastN: function (layerName, keepLastN) {
+        L_.keepNHelper(layerName, keepLastN, "last")
+    },
+    keepNHelper: function (layerName, keepN, keepType) {
+        // Validate input parameter
+        const keepNum = parseInt(keepN)
+        if (Number.isNaN(Number(keepNum))) {
+            console.warn(
+                'Warning: Unable to trim vector layer `' +
                     layerName +
-                    '` as keepN == ' +
+                    '` as keep' + keepType.capitalizeFirstLetter() + 'N == ' +
                     keepN +
                     ' and is not a valid integer'
             )
             return
         }
 
+        if (layerName in L_.layersGroup) {
+            // Keep N elements if greater than 0 else keep all elements
+            if (keepN && keepN > 0) {
+                const updateLayer = L_.layersGroup[layerName]
+                var layers = updateLayer.getLayers()
+
+                if (keepType === "last") {
+                    while (layers.length > keepN) {
+                        const removeLayer = layers[0]
+                        L_.removeLayerHelper(updateLayer, removeLayer)
+                        layers = updateLayer.getLayers()
+                    }
+                } else if (keepType === "first") {
+                    while (layers.length > keepN) {
+                        const removeLayer = layers[layers.length - 1]
+                        L_.removeLayerHelper(updateLayer, removeLayer)
+                        layers = updateLayer.getLayers()
+                    }
+                }
+            }
+        } else {
+            console.warn(
+                'Warning: Unable to trim vector layer as it does not exist: ' +
+                    layerName
+            )
+        }
+    },
+    updateVectorLayer: function (layerName, inputData) {
         if (layerName in L_.layersGroup) {
             const updateLayer = L_.layersGroup[layerName]
 
@@ -1295,25 +1410,6 @@ var L_ = {
                     'Warning: Unable to update vector layer as the input data is invalid: ' +
                         layerName
                 )
-            }
-
-            const infoTool = ToolController_.getTool('InfoTool')
-
-            // Keep N elements if greater than 0 else keep all elements
-            if (keepN && keepNum > 0) {
-                var layers = updateLayer.getLayers()
-                while (layers.length > keepNum) {
-                    // If we remove a layer but its properties are displayed in the InfoTool
-                    // and description (i.e. it was clicked), clear the InfoTool and description
-                    const removeLayer = layers[0]
-                    if (infoTool.currentLayer === removeLayer) {
-                        L_.clearVectorLayerInfo()
-                    }
-
-                    // Remove the layer
-                    updateLayer.removeLayer(removeLayer)
-                    layers = updateLayer.getLayers()
-                }
             }
         } else {
             console.warn(
