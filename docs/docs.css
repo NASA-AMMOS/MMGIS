@@ -67,6 +67,7 @@ body {
 }
 #nav,
 #navconfigure,
+#navlayers,
 #navtools {
   list-style-type: none;
   padding: 0;
@@ -76,6 +77,7 @@ body {
 }
 #nav li,
 #navconfigure li,
+#navlayers li,
 #navtools li {
   line-height: 28px;
   text-align: right;
@@ -85,17 +87,20 @@ body {
 }
 #nav li:hover,
 #navconfigure li:hover,
+#navlayers li:hover,
 #navtools li:hover {
   color: white;
 }
 #nav li.active,
 #navconfigure li.active,
+#navlayers li.active,
 #navtools li.active {
   font-weight: bold;
   color: white;
 }
 #nav li .apiIcon,
 #navconfigure li .apiIcon,
+#navlayers li .apiIcon,
 #navtools li .apiIcon {
   color: #ccc;
   line-height: 27px;
@@ -104,6 +109,7 @@ body {
 }
 #nav li:hover .apiIcon,
 #navconfigure li:hover .apiIcon,
+#navlayers li:hover .apiIcon,
 #navtools li:hover .apiIcon {
   color: white;
 }
