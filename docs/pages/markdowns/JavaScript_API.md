@@ -52,7 +52,23 @@ window.mmgisAPI.updateVectorLayer('Waypoints', {
 
 ```
 
-### trimVectorLayer(layerName, keepAfterTime, timePropPath)
+### trimVectorLayerKeepBeforeTime(layerName, keepBeforeTime, timePropPath)
+
+This function removes features on a specified layer after a specified time
+
+#### Function parameters
+
+- `layerName` - name of layer to update
+- `keepBeforeTime` - absolute time in the format of YYYY-MM-DDThh:mm:ssZ; will keep all features before this time
+- `timePropPath` - name of time property to compare with the time specified by keepAfterTime
+
+The following is an example of how to call the `trimVectorLayerKeepBeforeTime` function:
+
+```javascript
+window.mmgisAPI.trimVectorLayerKeepBeforeTime('Waypoints',  "2021-12-01T15:10:00.000Z", 'time')
+```
+
+### trimVectorLayerKeepAfterTime(layerName, keepAfterTime, timePropPath)
 
 This function removes features on a specified layer before a specified time
 
@@ -62,20 +78,35 @@ This function removes features on a specified layer before a specified time
 - `keepAfterTime` - absolute time in the format of YYYY-MM-DDThh:mm:ssZ; will keep all features after this time
 - `timePropPath` - name of time property to compare with the time specified by keepAfterTime
 
-The following is an example of how to call the `trimVectorLayer` function:
+The following is an example of how to call the `trimVectorLayerKeepAfterTime` function:
 
 ```javascript
-window.mmgisAPI.trimVectorLayer('Waypoints',  "2021-12-01T15:10:00.000Z", 'time')
+window.mmgisAPI.trimVectorLayerKeepAfterTime('Waypoints',  "2021-12-01T15:10:00.000Z", 'time')
 ```
 
-### keepLastN(layerName, keepLastN)
+### keepFirstN(layerName, keepLastN)
 
-This function removes features on a specified layer to keep the specified number of existing features. This function is not aware of time and will only keep the previous N number of features based on the order the features were added to the layer.
+This function removes features on a specified layer starting from the tail of of the features list to keep the specified number of existing features. This function is not aware of time and will only keep the previous N number of features based on the order the features were added to the layer.
 
 #### Function parameters
 
 - `layerName` - name of layer to update
-- `keepLastN` - number of features to keep. A value less than or equal to 0 keeps all previous features
+- `keepFirstN` - number of features to keep from the beginning of the features list. A value less than or equal to 0 keeps all previous features
+
+The following is an example of how to call the `keepFirstN` function:
+
+```javascript
+window.mmgisAPI.keepFirstN('Waypoints', 2)
+```
+
+### keepLastN(layerName, keepLastN)
+
+This function removes features on a specified layer starting from the beginning of the features list to keep the specified number of existing features. This function is not aware of time and will only keep the previous N number of features based on the order the features were added to the layer.
+
+#### Function parameters
+
+- `layerName` - name of layer to update
+- `keepLastN` - number of features to keep from the tail end of the features list. A value less than or equal to 0 keeps all previous features
 
 The following is an example of how to call the `keepLastN` function:
 
