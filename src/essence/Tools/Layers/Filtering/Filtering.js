@@ -179,7 +179,10 @@ const Filtering = {
             // Buffered Circle
             const geojson = F_.getBaseGeoJSON()
             geojson.features.push(
-                circle([center.lng, center.lat], radius * 0.001)
+                circle(
+                    [center.lng, center.lat],
+                    radius * 0.001 * F_.getEarthToPlanetRatio()
+                )
             )
 
             Filtering.mapSpatialLayer = L.geoJSON(geojson, {
