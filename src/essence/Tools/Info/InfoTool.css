@@ -31,11 +31,12 @@
 #infoToolEquiv {
     font-size: 12px;
     background: var(--color-b);
-    border-radius: 50%;
+    border-radius: 3px;
+    padding: 0px 4px;
     height: 18px;
     min-width: 18px;
     text-align: center;
-    margin: 9px 4px 7px 4px;
+    margin: 12px 4px 10px 4px;
     color: var(--color-l);
     cursor: default;
     display: none;
@@ -93,7 +94,7 @@
 }
 #infoToolFilter input {
     background: #0f0f0f;
-    width: 220px;
+    width: 270px;
     color: #ccc;
     padding-left: 9px;
     border: 1px solid rgba(255, 255, 255, 0.2);

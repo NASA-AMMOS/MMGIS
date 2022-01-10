@@ -13,8 +13,10 @@ var Kinds = {
         propImages,
         e,
         additional,
-        preFeatures
+        preFeatures,
+        lastFeatureLayers
     ) {
+        L_.select(layer)
         if (typeof kind !== 'string') return
 
         const layerVar = L_.layersNamed[layer.options.layerName].variables
@@ -336,6 +338,7 @@ var Kinds = {
         }
         function useInfo(open) {
             let features = []
+            let featureLayers = []
             if (preFeatures == null) {
                 if (
                     e.latlng == null &&
@@ -387,9 +390,25 @@ var Kinds = {
                             )
                         )
                         .reverse()
-
-                    if (features[0] == null || features[0].properties == null)
-                        features = [feature]
+                    if (features[0] == null) features = [feature]
+                    else {
+                        const swapFeatures = []
+                        features.forEach((f) => {
+                            if (
+                                typeof f.type === 'string' &&
+                                f.type.toLowerCase() === 'feature'
+                            )
+                                swapFeatures.push(f)
+                            else if (
+                                f.feature &&
+                                typeof f.feature.type === 'string' &&
+                                f.feature.type.toLowerCase() === 'feature'
+                            )
+                                swapFeatures.push(f.feature)
+                        })
+                        featureLayers = features
+                        features = swapFeatures
+                    }
                 }
             } else {
                 features = preFeatures
@@ -409,7 +428,8 @@ var Kinds = {
                 null,
                 open,
                 ell,
-                additional
+                additional,
+                lastFeatureLayers || featureLayers
             )
         }
     },

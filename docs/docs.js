@@ -24,6 +24,15 @@ let configure = [
   "Manage_Datasets",
   "Manage_Geodatasets",
 ];
+let layers = [
+  "Data",
+  "Header",
+  "Model",
+  "Query",
+  "Tile",
+  "Vector_Tile",
+  "Vector",
+];
 let tools = [
   "Chemistry",
   "Draw",
@@ -89,6 +98,31 @@ configure.forEach((v) => {
   let textnode = document.createTextNode(text);
   node.appendChild(textnode);
   document.getElementById("navconfigure").appendChild(node);
+});
+
+layers.forEach((v) => {
+  let node = document.createElement("li");
+  node.setAttribute("id", v);
+  node.setAttribute("class", "page");
+  node.addEventListener(
+    "click",
+    (function (page) {
+      return function () {
+        let pageElms = document.getElementsByClassName("page");
+        for (let i = 0; i < pageElms.length; i++) {
+          pageElms[i].setAttribute("class", "page");
+        }
+        document.getElementById(page).setAttribute("class", "page active");
+        setPage(page);
+      };
+    })(v)
+  );
+
+  let text = v.replace(/_/g, " ");
+  if (text == "README") text = "Home";
+  let textnode = document.createTextNode(text);
+  node.appendChild(textnode);
+  document.getElementById("navlayers").appendChild(node);
 });
 
 tools.forEach((v) => {

@@ -484,6 +484,15 @@ var L_ = {
                             }
                         }
                         map.addLayer(L_.layersGroup[L_.layersData[i].name])
+                        // Set markerDiv based opacities if any
+                        $(
+                            `.leafletMarkerShape_${L_.layersData[i].name
+                                .replace(/\s/g, '')
+                                .toLowerCase()}`
+                        ).css({
+                            opacity:
+                                L_.opacityArray[L_.layersData[i].name] || 0,
+                        })
                     } catch (e) {
                         console.log(e)
                         console.warn(
@@ -598,6 +607,22 @@ var L_ = {
             layer.setStyle(newStyle)
         } catch (err) {}
     },
+    select(layer) {
+        L_.setLastActivePoint(layer)
+        L_.resetLayerFills()
+        L_.highlight(layer)
+        L_.Map_.activeLayer = layer
+        Description.updatePoint(L_.Map_.activeLayer)
+
+        L_.Globe_.highlight(
+            L_.Globe_.findSpriteObject(
+                layer.options.layerName,
+                layer.feature.properties[layer.useKeyAsName]
+            ),
+            false
+        )
+        L_.Viewer_.highlight(layer)
+    },
     highlight(layer) {
         const color =
             (L_.configData.look && L_.configData.look.highlightcolor) || 'red'
@@ -624,6 +649,9 @@ var L_ = {
             if (layer._icon)
                 layer._icon.style.filter = `drop-shadow(${color}  2px 0px 0px) drop-shadow(${color}  -2px 0px 0px) drop-shadow(${color}  0px 2px 0px) drop-shadow(${color} 0px -2px 0px)`
         }
+        try {
+            layer.bringToFront()
+        } catch (err) {}
     },
     addArrowToMap: function (
         layerId,
@@ -880,12 +908,21 @@ var L_ = {
     setLayerOpacity: function (name, newOpacity) {
         newOpacity = parseFloat(newOpacity)
         if (L_.Globe_) L_.Globe_.litho.setLayerOpacity(name, newOpacity)
-        var l = L_.layersGroup[name]
+        let l = L_.layersGroup[name]
+
+        if (l.options.initialFillOpacity == null)
+            l.options.initialFillOpacity =
+                L_.layersStyles[name]?.fillOpacity != null
+                    ? parseFloat(L_.layersStyles[name]?.fillOpacity)
+                    : 1
         if (l) {
             try {
                 l.setOpacity(newOpacity)
             } catch (error) {
-                l.setStyle({ opacity: newOpacity, fillOpacity: newOpacity })
+                l.setStyle({
+                    opacity: newOpacity,
+                    fillOpacity: newOpacity * l.options.initialFillOpacity,
+                })
                 $(
                     `.leafletMarkerShape_${name
                         .replace(/\s/g, '')
@@ -893,12 +930,15 @@ var L_ = {
                 ).css({ opacity: newOpacity })
             }
             try {
-                l.options.fillOpacity = newOpacity
+                l.options.fillOpacity =
+                    newOpacity * l.options.initialFillOpacity
                 l.options.opacity = newOpacity
-                l.options.style.fillOpacity = newOpacity
+                l.options.style.fillOpacity =
+                    newOpacity * l.options.initialFillOpacity
                 l.options.style.opacity = newOpacity
             } catch (error) {
-                l.options.fillOpacity = newOpacity
+                l.options.fillOpacity =
+                    newOpacity * l.options.initialFillOpacity
                 l.options.opacity = newOpacity
             }
         }
@@ -938,7 +978,8 @@ var L_ = {
                     this.layersNamed[key] &&
                     (this.layersNamed[key].type == 'point' ||
                         (key.toLowerCase().indexOf('draw') == -1 &&
-                            this.layersNamed[key].type == 'vector'))) ||
+                            (this.layersNamed[key].type === 'vector' ||
+                                this.layersNamed[key].type === 'query')))) ||
                 (s[0] == 'DrawTool' && !Number.isNaN(onId))
             ) {
                 if (

@@ -555,14 +555,14 @@ async function makeLayer(layerObj, evenIfOff) {
             case 'vector':
                 await makeVectorLayer(evenIfOff)
                 break
-            case 'point':
-                await makeVectorLayer(evenIfOff) //makePointLayer(); //DEATH TO POINT
-                break
             case 'tile':
                 makeTileLayer()
                 break
             case 'vectortile':
                 makeVectorTileLayer()
+                break
+            case 'query':
+                await makeVectorLayer(false, true)
                 break
             case 'data':
                 makeDataLayer()
@@ -688,12 +688,6 @@ async function makeLayer(layerObj, evenIfOff) {
                 }
 
                 function keepGoing() {
-                    L_.setLastActivePoint(layer)
-                    L_.resetLayerFills()
-                    L_.highlight(layer)
-                    Map_.activeLayer = layer
-                    Description.updatePoint(Map_.activeLayer)
-
                     //View images
                     var propImages = propertiesToImages(
                         feature.properties,
@@ -711,15 +705,6 @@ async function makeLayer(layerObj, evenIfOff) {
                         propImages,
                         e
                     )
-
-                    Globe_.highlight(
-                        Globe_.findSpriteObject(
-                            layer.options.layerName,
-                            layer.feature.properties[layer.useKeyAsName]
-                        ),
-                        false
-                    )
-                    Viewer_.highlight(layer)
 
                     //update url
                     if (layer != null && layer.hasOwnProperty('options')) {
@@ -800,9 +785,13 @@ async function makeLayer(layerObj, evenIfOff) {
     }
 
     //Pretty much like makePointLayer but without the pointToLayer stuff
-    async function makeVectorLayer(evenIfOff) {
+    async function makeVectorLayer(evenIfOff, useEmptyGeoJSON) {
         return new Promise((resolve, reject) => {
-            captureVector(layerObj, { evenIfOff: evenIfOff }, add)
+            captureVector(
+                layerObj,
+                { evenIfOff: evenIfOff, useEmptyGeoJSON: useEmptyGeoJSON },
+                add
+            )
 
             function add(data) {
                 if (data == null || data === 'off') {
