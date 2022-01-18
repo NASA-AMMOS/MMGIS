@@ -1087,9 +1087,8 @@ var Files = {
         $('.drawToolFileSelector').off('click')
         $('.drawToolFileSelector').on('click', function () {
             //Only select files you own
-            var fileFromId = DrawTool.getFileObjectWithId(
-                $(this).attr('file_id')
-            )
+            const fileId = $(this).attr('file_id')
+            var fileFromId = DrawTool.getFileObjectWithId(fileId)
             if (
                 mmgisglobal.user !== $(this).attr('file_owner') &&
                 fileFromId &&
@@ -1099,20 +1098,30 @@ var Files = {
                 return
 
             var checkbox = $(this).parent().find('.drawToolFileCheckbox')
+            const wasOn = $(this).parent().parent().hasClass('checked')
             $('.drawToolFileCheckbox').removeClass('checked')
             $('.drawToolDrawFilesListElem').removeClass('checked')
-            checkbox.addClass('checked')
-            checkbox.parent().parent().parent().addClass('checked')
 
-            var intent = $(this).attr('file_intent')
-            if (DrawTool.intentType != intent) {
-                DrawTool.intentType = intent
-                DrawTool.setDrawing(true)
+            if (!wasOn) {
+                checkbox.addClass('checked')
+                checkbox.parent().parent().parent().addClass('checked')
+
+                var intent = $(this).attr('file_intent')
+                if (DrawTool.intentType != intent) {
+                    DrawTool.intentType = intent
+                    DrawTool.setDrawing(true)
+                }
+
+                DrawTool.currentFileId = parseInt(checkbox.attr('file_id'))
+                if (DrawTool.filesOn.indexOf(DrawTool.currentFileId) == -1)
+                    checkbox.click()
+            } else {
+                DrawTool.intentType = null
+                DrawTool.switchDrawingType(null)
+                DrawTool.setDrawing(false)
+                DrawTool.currentFileId = null
+                DrawTool.toggleFile(fileId, 'off')
             }
-
-            DrawTool.currentFileId = parseInt(checkbox.attr('file_id'))
-            if (DrawTool.filesOn.indexOf(DrawTool.currentFileId) == -1)
-                checkbox.click()
         })
 
         //Visible File

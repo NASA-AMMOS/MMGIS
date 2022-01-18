@@ -1378,6 +1378,7 @@ var Formulae_ = {
         return uniqueArray
     },
     sanitize(str) {
+        if (str == null) return ''
         return str.replace(/[<>;{}]/g, '')
     },
     doBoundingBoxesIntersect(a, b) {

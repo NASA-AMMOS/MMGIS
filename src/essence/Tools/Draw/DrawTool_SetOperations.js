@@ -68,13 +68,13 @@ var SetOperations = {
         for (var i = 0; i < DrawTool.contextMenuLayers.length; i++) {
             // prettier-ignore
             lis.push(
-                    [
-                        "<li shape_id='" + DrawTool.contextMenuLayers[i].properties._.id + "'>",
-                            "<div>" + F_.sanitize(DrawTool.contextMenuLayers[i].properties.name) + "</div>",
-                            "<div class='drawToolContextMenuTabSOMergeCheckbox'></div>",
-                        "</li>"
-                    ].join('\n')
-                )
+                [
+                    "<li shape_id='" + DrawTool.contextMenuLayers[i].properties._.id + "'>",
+                        "<div>" + F_.sanitize(DrawTool.contextMenuLayers[i].properties.name || 'No Name') + "</div>",
+                        "<div class='drawToolContextMenuTabSOMergeCheckbox'></div>",
+                    "</li>"
+                ].join('\n')
+            )
         }
         return lis.join('\n')
     },
