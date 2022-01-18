@@ -1331,12 +1331,10 @@ var L_ = {
                         }
                         if (trimType === "after") {
                             if (layerDate < keepTimeAsDate) {
-                                console.log("if true")
                                 L_.removeLayerHelper(updateLayer, layer)
                             }
                         } else if (trimType === "before") {
                             if (layerDate > keepTimeAsDate) {
-                                console.log("if true")
                                 L_.removeLayerHelper(updateLayer, layer)
                             }
                         }
