@@ -1714,10 +1714,6 @@ var Test = {
             name: 'Lead can draw ROIs',
             subtests: 2,
             test: function (c) {
-                $(
-                    '#drawToolDrawFilesListMaster .drawToolDrawFilesListElem[file_id="1"] .drawToolFileSelector'
-                ).click()
-
                 c(
                     'Starts on polygon drawing',
                     $('.drawToolDrawingTypePolygon').hasClass('active')
