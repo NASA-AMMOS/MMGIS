@@ -1157,6 +1157,14 @@ let ViewshedTool = {
                         dlc[z] = dlc[z] || {}
                         dlc[z][Math.floor(x)] = dlc[z][Math.floor(x)] || {}
 
+                        const tileRow =
+                            (y - Math.floor(data.outputTopLeftTile.y)
+                            - (Math.abs(data.outputTopLeftTile.y) % 1) * 2) * res
+
+                        const tileCol =
+                            (x - Math.floor(data.outputTopLeftTile.x)
+                            - (Math.abs(data.outputTopLeftTile.x) % 1) * 2) * res
+
                         // Draw canvas
                         let px = 0
                         let val = null
@@ -1166,26 +1174,9 @@ let ViewshedTool = {
                                 p / 4 > cData.length - res - 1 ||
                                 (p / 4) % res == 0 ||
                                 (p / 4 + 1) % res == 0
-                            val =
-                                data.result[
-                                    (y -
-                                        Math.floor(data.outputTopLeftTile.y) -
-                                        (data.outputTopLeftTile.y % 1) * 2) *
-                                        res +
-                                        Math.floor(px / res)
-                                ]
+                            val = data.result[tileRow + Math.floor(px / res)]
                             if (val != null) {
-                                val =
-                                    val[
-                                        (x -
-                                            Math.floor(
-                                                data.outputTopLeftTile.x
-                                            ) -
-                                            (data.outputTopLeftTile.x % 1) *
-                                                2) *
-                                            res +
-                                            (px % res)
-                                    ]
+                                val = val[tileCol + (px % res)]
                                 let c
                                 switch (val) {
                                     case 0:
@@ -1210,20 +1201,10 @@ let ViewshedTool = {
                                         c = { r: 0, g: 255, b: 0, a: 0 }
                                         break
                                     case 8:
-                                        c = {
-                                            r: 0,
-                                            g: 0,
-                                            b: 0,
-                                            a: 0,
-                                        }
+                                        c = { r: 0, g: 0, b: 0, a: 0 }
                                         break
                                     case 9:
-                                        c = {
-                                            r: 255,
-                                            g: 0,
-                                            b: 0,
-                                            a: 35,
-                                        }
+                                        c = { r: 255, g: 0, b: 0, a: 35 }
                                         break
                                     default:
                                         c = { r: 0, g: 0, b: 0, a: 0 }

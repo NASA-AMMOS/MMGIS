@@ -297,7 +297,11 @@ var IdentifierTool = {
         CursorInfo.update(
             htmlInfoString + liEls.join('') + '</ul>',
             null,
-            false
+            false,
+            null,
+            null,
+            null,
+            true
         )
 
         if (!trueValue) {

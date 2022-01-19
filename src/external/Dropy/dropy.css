@@ -87,6 +87,9 @@ dd {
     border-radius: 0 0 0.125em 0.125em;
 }
 .dropy__content li a {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     display: block;
     padding: 0.625rem 0.9375em;
     font-size: 0.875em;

@@ -1,3 +1,6 @@
+// ! OUTDATED
+// ! Just copy from existing tools
+
 //New Tool Template
 //In the very least, each tool needs to be defined through require.js and return
 // an object with 'make' and 'destroy' functions
@@ -9,7 +12,7 @@ define([
     'Globe_',
     'Map_',
     'Viewer_',
-], function($, d3, F_, L_, Globe_, Map_, Viewer_) {
+], function ($, d3, F_, L_, Globe_, Map_, Viewer_) {
     //Add the tool markup if you want to do it this way
     // prettier-ignore
     var markup = [].join('\n');
@@ -18,20 +21,20 @@ define([
         height: 48,
         width: 200,
         MMGISInterface: null,
-        make: function() {
+        make: function () {
             this.MMGISInterface = new interfaceWithMMGIS()
         },
-        destroy: function() {
+        destroy: function () {
             this.MMGISInterface.separateFromMMGIS()
         },
-        getUrlString: function() {
+        getUrlString: function () {
             return ''
         },
     }
 
     //
     function interfaceWithMMGIS() {
-        this.separateFromMMGIS = function() {
+        this.separateFromMMGIS = function () {
             separateFromMMGIS()
         }
 

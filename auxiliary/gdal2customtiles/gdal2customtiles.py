@@ -49,10 +49,9 @@ import struct  # 1bto4b
 
 def binary(num):  # 1bto4b
     # 1bto4b
-    return ''.join(bin(ord(c)).replace('0b', '').rjust(8, '0') for c in struct.pack('!f', num))
+    return ''.join(bin(c).replace('0b', '').rjust(8, '0') for c in struct.pack('!f', num))
 
 # 1bto4b
-
 
 def getTilePxBounds(self, tx, ty, tz, ds):
 
@@ -1977,10 +1976,10 @@ class GDAL2Tiles(object):
                                 data3.append(int(f[16:24], 2))
                                 data4.append(int(f[24:], 2))
 
-                            data1s = ''
-                            data2s = ''
-                            data3s = ''
-                            data4s = ''
+                            data1s = b''
+                            data2s = b''
+                            data3s = b''
+                            data4s = b''
                             indx = 0
                             for v in data1:
                                 data1s += struct.pack('B', data1[indx])
@@ -1988,7 +1987,6 @@ class GDAL2Tiles(object):
                                 data3s += struct.pack('B', data3[indx])
                                 data4s += struct.pack('B', data4[indx])
                                 indx += 1
-
                             dstile.GetRasterBand(1).WriteRaster(
                                 wx, wy, wxsize + 1, wysize + 1, data1s, buf_type=gdal.GDT_Byte)
                             dstile.GetRasterBand(2).WriteRaster(
@@ -2023,10 +2021,10 @@ class GDAL2Tiles(object):
                                 data3.append(int(f[16:24], 2))
                                 data4.append(int(f[24:], 2))
 
-                            data1s = ''
-                            data2s = ''
-                            data3s = ''
-                            data4s = ''
+                            data1s = b''
+                            data2s = b''
+                            data3s = b''
+                            data4s = b''
                             indx = 0
                             for v in data1:
                                 data1s += struct.pack('B', data1[indx])

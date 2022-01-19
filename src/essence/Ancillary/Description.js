@@ -89,6 +89,7 @@ var Description = {
         for (let layer in this.L_.layersNamed) {
             let l = this.L_.layersNamed[layer]
             if (
+                this.L_.layersGroup[layer] &&
                 l.hasOwnProperty('variables') &&
                 l.variables.hasOwnProperty('info') &&
                 l.variables.info.hasOwnProperty('length')
@@ -168,7 +169,11 @@ var Description = {
             },
             80
         )
-        if (activeLayer != null && activeLayer.hasOwnProperty('options')) {
+        if (
+            activeLayer != null &&
+            activeLayer.feature &&
+            activeLayer.hasOwnProperty('options')
+        ) {
             var keyAsName
             var links = "<span style='padding-left: 4px;'></span>"
 
@@ -176,8 +181,8 @@ var Description = {
                 this.L_.layersNamed[activeLayer.options.layerName] &&
                 this.L_.layersNamed[activeLayer.options.layerName].variables
             ) {
-                let v = this.L_.layersNamed[activeLayer.options.layerName]
-                    .variables
+                let v =
+                    this.L_.layersNamed[activeLayer.options.layerName].variables
                 if (v.links) {
                     links = ''
                     for (let i = 0; i < v.links.length; i++) {
@@ -185,7 +190,8 @@ var Description = {
                             "<a href='" +
                             F_.bracketReplace(
                                 v.links[i].link,
-                                activeLayer.feature.properties
+                                activeLayer.feature.properties,
+                                v.links[i].replace
                             ) +
                             "' target='" +
                             F_.cleanString(v.links[i].name) +

@@ -2,17 +2,21 @@ import $ from 'jquery'
 import * as d3 from 'd3'
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
+import { captureVector } from '../Layers_/LayerCapturer'
+import {
+    constructVectorLayer,
+    constructSublayers,
+} from '../Layers_/LayerConstructors'
 import Viewer_ from '../Viewer_/Viewer_'
 import Globe_ from '../Globe_/Globe_'
 import ToolController_ from '../ToolController_/ToolController_'
 import CursorInfo from '../../Ancillary/CursorInfo'
 import Description from '../../Ancillary/Description'
 import QueryURL from '../../Ancillary/QueryURL'
-import Kinds from '../../Tools/Kinds/Kinds'
+import { Kinds } from '../../../pre/tools'
 import DataShaders from '../../Ancillary/DataShaders'
 import calls from '../../../pre/calls'
 import TimeControl from '../../Ancillary/TimeControl'
-import { color } from 'd3'
 let L = window.L
 
 let essenceFina = function () {}
@@ -180,9 +184,34 @@ let Map_ = {
         //Initialize the view to that set in config
         if (L_.FUTURES.mapView != null) {
             this.resetView(L_.FUTURES.mapView)
+            if (L_.FUTURES.centerPin != null) {
+                this._centerPin = new L.circleMarker(
+                    [L_.FUTURES.mapView[0], L_.FUTURES.mapView[1]],
+                    {
+                        fillColor: '#000',
+                        fillOpacity: 0,
+                        color: 'lime',
+                        weight: 2,
+                    }
+                )
+                    .setRadius(4)
+                    .addTo(this.map)
+                if (
+                    L_.FUTURES.centerPin.length > 0 &&
+                    L_.FUTURES.centerPin != 'true'
+                ) {
+                    this._centerPin.on('mouseover', function () {
+                        CursorInfo.update(L_.FUTURES.centerPin, null, false)
+                    })
+                    this._centerPin.on('mouseout', function () {
+                        CursorInfo.hide()
+                    })
+                }
+            }
         } else {
             this.resetView(L_.view)
         }
+
         //Remove attribution
         d3.select('.leaflet-control-attribution').remove()
 
@@ -261,7 +290,11 @@ let Map_ = {
         var lon = parseFloat(latlonzoom[1])
         if (isNaN(lon)) lon = 0
         var zoom = parseInt(latlonzoom[2])
-        if (isNaN(zoom)) zoom = this.map.getZoom()
+        if (zoom == null || isNaN(zoom))
+            zoom =
+                this.map.getZoom() ||
+                L_.configData.msv.mapscale ||
+                L_.configData.msv.view[2]
         this.map.setView([lat, lon], zoom)
         this.map.invalidateSize()
     },
@@ -299,21 +332,56 @@ let Map_ = {
     },
     //Redraws all layers, starting with the bottom one
     orderedBringToFront: function () {
-        var hasIndex = []
-        for (var i = L_.layersOrdered.length - 1; i >= 0; i--) {
+        let hasIndex = []
+        for (let i = L_.layersOrdered.length - 1; i >= 0; i--) {
             if (Map_.hasLayer(L_.layersOrdered[i])) {
                 if (
                     L_.layersNamed[L_.layersOrdered[i]] &&
-                    L_.layersNamed[L_.layersOrdered[i]].type == 'vector'
+                    L_.layersNamed[L_.layersOrdered[i]].type === 'vector'
                 ) {
+                    if (L_.layersGroupSublayers[L_.layersOrdered[i]]) {
+                        for (let s in L_.layersGroupSublayers[
+                            L_.layersOrdered[i]
+                        ]) {
+                            Map_.rmNotNull(
+                                L_.layersGroupSublayers[L_.layersOrdered[i]][s]
+                                    .layer
+                            )
+                        }
+                    }
                     Map_.map.removeLayer(L_.layersGroup[L_.layersOrdered[i]])
                     hasIndex.push(i)
                 }
             }
         }
-        for (var i = 0; i < hasIndex.length; i++) {
+        for (let i = 0; i < hasIndex.length; i++) {
+            if (L_.layersGroupSublayers[L_.layersOrdered[hasIndex[i]]]) {
+                for (let s in L_.layersGroupSublayers[
+                    L_.layersOrdered[hasIndex[i]]
+                ]) {
+                    if (
+                        L_.layersGroupSublayers[L_.layersOrdered[hasIndex[i]]][
+                            s
+                        ].on
+                    ) {
+                        if (
+                            L_.layersGroupSublayers[
+                                L_.layersOrdered[hasIndex[i]]
+                            ][s].type !== 'model'
+                        )
+                            Map_.map.addLayer(
+                                L_.layersGroupSublayers[
+                                    L_.layersOrdered[hasIndex[i]]
+                                ][s].layer
+                            )
+                    }
+                }
+            }
+
             Map_.map.addLayer(L_.layersGroup[L_.layersOrdered[hasIndex[i]]])
         }
+
+        enforceVisibilityCutoffs()
     },
     refreshLayer: function (layerObj) {
         // We need to find and remove all points on the map that belong to the layer
@@ -429,6 +497,7 @@ let Map_ = {
 
         return xyzs
     },
+    makeLayer: makeLayer,
 }
 
 //Specific internal functions likely only to be used once
@@ -477,17 +546,14 @@ function makeLayers(layersObj) {
     }
 }
 //Takes the layer object and makes it a map layer
-function makeLayer(layerObj) {
+async function makeLayer(layerObj, evenIfOff) {
     //Decide what kind of layer it is
     //Headers do not need to be made
     if (layerObj.type != 'header') {
         //Simply call the appropriate function for each layer type
         switch (layerObj.type) {
             case 'vector':
-                makeVectorLayer()
-                break
-            case 'point':
-                makeVectorLayer() //makePointLayer(); //DEATH TO POINT
+                await makeVectorLayer(evenIfOff)
                 break
             case 'tile':
                 makeTileLayer()
@@ -495,11 +561,15 @@ function makeLayer(layerObj) {
             case 'vectortile':
                 makeVectorTileLayer()
                 break
+            case 'query':
+                await makeVectorLayer(false, true)
+                break
             case 'data':
                 makeDataLayer()
                 break
             case 'model':
                 //Globe only
+                makeModelLayer()
                 break
             default:
                 console.warn('Unknown layer type: ' + layerObj.type)
@@ -618,12 +688,6 @@ function makeLayer(layerObj) {
                 }
 
                 function keepGoing() {
-                    L_.setLastActivePoint(layer)
-                    L_.resetLayerFills()
-                    L_.highlight(layer)
-                    Map_.activeLayer = layer
-                    Description.updatePoint(Map_.activeLayer)
-
                     //View images
                     var propImages = propertiesToImages(
                         feature.properties,
@@ -641,15 +705,6 @@ function makeLayer(layerObj) {
                         propImages,
                         e
                     )
-
-                    Globe_.highlight(
-                        Globe_.findSpriteObject(
-                            layer.options.layerName,
-                            layer.feature.properties[layer.useKeyAsName]
-                        ),
-                        false
-                    )
-                    Viewer_.highlight(layer)
 
                     //update url
                     if (layer != null && layer.hasOwnProperty('options')) {
@@ -730,428 +785,49 @@ function makeLayer(layerObj) {
     }
 
     //Pretty much like makePointLayer but without the pointToLayer stuff
-    function makeVectorLayer() {
-        var layerUrl = layerObj.url
-        // Give time enabled layers a default start and end time to avoid errors
-        var layerTimeFormat =
-            layerObj.time == null
-                ? d3.utcFormat('%Y-%m-%dT%H:%M:%SZ')
-                : d3.utcFormat(layerObj.time.format)
-        var startTime = layerTimeFormat(Date.parse(TimeControl.getStartTime()))
-        var endTime = layerTimeFormat(Date.parse(TimeControl.getEndTime()))
-        if (typeof layerObj.time != 'undefined') {
-            layerUrl = layerObj.url
-                .replace('{starttime}', startTime)
-                .replace('{endtime}', endTime)
-                .replace('{time}', endTime)
-        }
-        if (!F_.isUrlAbsolute(layerUrl)) layerUrl = L_.missionPath + layerUrl
-        let urlSplit = layerObj.url.split(':')
+    async function makeVectorLayer(evenIfOff, useEmptyGeoJSON) {
+        return new Promise((resolve, reject) => {
+            captureVector(
+                layerObj,
+                { evenIfOff: evenIfOff, useEmptyGeoJSON: useEmptyGeoJSON },
+                add
+            )
 
-        if (
-            urlSplit[0].toLowerCase() === 'geodatasets' &&
-            urlSplit[1] != null
-        ) {
-            calls.api(
-                'geodatasets_get',
-                {
-                    layer: urlSplit[1],
-                    type: 'geojson',
-                },
-                function (data) {
-                    add(data.body)
-                },
-                function (data) {
-                    console.warn(
-                        'ERROR! ' +
-                            data.status +
-                            ' in ' +
-                            layerObj.url +
-                            ' /// ' +
-                            data.message
-                    )
-                    add(null)
-                }
-            )
-        } else if (layerObj.url.substr(0, 16) == 'api:publishedall') {
-            calls.api(
-                'files_getfile',
-                {
-                    id: JSON.stringify([1, 2, 3, 4, 5]),
-                    quick_published: true,
-                },
-                function (data) {
-                    data.body.features.sort((a, b) => {
-                        let intentOrder = [
-                            'all',
-                            'roi',
-                            'campaign',
-                            'campsite',
-                            'trail',
-                            'signpost',
-                            'note',
-                            'master',
-                        ]
-                        let ai = intentOrder.indexOf(a.properties._.intent)
-                        let bi = intentOrder.indexOf(b.properties._.intent)
-                        return ai - bi
-                    })
-                    add(data.body)
-                },
-                function (data) {
-                    console.warn(
-                        'ERROR! ' +
-                            data.status +
-                            ' in ' +
-                            layerObj.url +
-                            ' /// ' +
-                            data.message
-                    )
-                    add(null)
-                }
-            )
-        } else if (layerObj.url.substr(0, 13) == 'api:published') {
-            calls.api(
-                'files_getfile',
-                {
-                    intent: layerObj.url.split(':')[2],
-                    quick_published: true,
-                },
-                function (data) {
-                    add(data.body)
-                },
-                function (data) {
-                    console.warn(
-                        'ERROR! ' +
-                            data.status +
-                            ' in ' +
-                            layerObj.url +
-                            ' /// ' +
-                            data.message
-                    )
-                    add(null)
-                }
-            )
-        } else if (layerObj.url.substr(0, 19) == 'api:tacticaltargets') {
-            calls.api(
-                'tactical_targets',
-                {},
-                function (data) {
-                    add(data.body)
-                },
-                function (data) {
-                    if (data) {
-                        console.warn(
-                            'ERROR! ' +
-                                data.status +
-                                ' in ' +
-                                layerObj.url +
-                                ' /// ' +
-                                data.message
-                        )
-                    }
-                    add(null)
-                }
-            )
-        } else {
-            // If there is no url to a JSON file but the "controlled" option is checked in the layer config,
-            // create the geoJSON layer with empty GeoJSON data
-            var layerData = L_.layersDataByName[layerObj.name]
-            if (L_.missionPath === layerUrl && layerData.controlled) {
-                // Empty GeoJSON data
-                var geojson = { type: 'FeatureCollection', features: [] }
-                add(geojson)
-            } else {
-                $.getJSON(layerUrl, function (data) {
-                    add(data)
-                }).fail(function (jqXHR, textStatus, errorThrown) {
-                    //Tell the console council about what happened
-                    console.warn(
-                        'ERROR! ' +
-                            textStatus +
-                            ' in ' +
-                            layerObj.url +
-                            ' /// ' +
-                            errorThrown
-                    )
-                    //Say that this layer was loaded, albeit erroneously
+            function add(data) {
+                if (data == null || data === 'off') {
                     L_.layersLoaded[
                         L_.layersOrdered.indexOf(layerObj.name)
                     ] = true
-                    //Check again to see if all layers have loaded
+                    L_.layersGroup[layerObj.name] = data == null ? null : false
                     allLayersLoaded()
-                })
-                if (typeof layerObj.time != 'undefined') {
-                    layerUrl = layerObj.url
+                    resolve()
+                    return
                 }
-            }
-        }
 
-        function add(data) {
-            if (data == null) {
+                layerObj.style.layerName = layerObj.name
+
+                layerObj.style.opacity = L_.opacityArray[layerObj.name]
+                //layerObj.style.fillOpacity = L_.opacityArray[layerObj.name]
+
+                L_.layersGroupSublayers[layerObj.name] = constructSublayers(
+                    data,
+                    layerObj
+                )
+                L_.layersGroup[layerObj.name] = constructVectorLayer(
+                    data,
+                    layerObj,
+                    onEachFeatureDefault
+                )
+
+                d3.selectAll(
+                    '.' + layerObj.name.replace(/\s/g, '').toLowerCase()
+                ).data(data.features)
                 L_.layersLoaded[L_.layersOrdered.indexOf(layerObj.name)] = true
                 allLayersLoaded()
-                return
+
+                resolve()
             }
-
-            layerObj.style.layerName = layerObj.name
-
-            layerObj.style.opacity = L_.opacityArray[layerObj.name]
-            //layerObj.style.fillOpacity = L_.opacityArray[layerObj.name]
-
-            var col = layerObj.style.color
-            var opa = String(layerObj.style.opacity)
-            var wei = String(layerObj.style.weight)
-            var fiC = layerObj.style.fillColor
-            var fiO = String(layerObj.style.fillOpacity)
-            var leafletLayerObject = {
-                style: function (feature) {
-                    if (feature.properties.hasOwnProperty('style')) {
-                        let className = layerObj.style.className
-                        let layerName = layerObj.style.layerName
-                        layerObj.style = JSON.parse(
-                            JSON.stringify(feature.properties.style)
-                        )
-
-                        layerObj.style.className = className
-                        layerObj.style.layerName = layerName
-                    } else {
-                        // Priority to prop, prop.color, then style color.
-                        var finalCol =
-                            col.toLowerCase().substring(0, 4) == 'prop'
-                                ? F_.parseColor(
-                                      feature.properties[col.substring(5)]
-                                  ) || '#FFF'
-                                : feature.style && feature.style.stroke != null
-                                ? feature.style.stroke
-                                : col
-                        var finalOpa =
-                            opa.toLowerCase().substring(0, 4) == 'prop'
-                                ? feature.properties[opa.substring(5)] || '1'
-                                : feature.style && feature.style.opacity != null
-                                ? feature.style.opacity
-                                : opa
-                        var finalWei =
-                            wei.toLowerCase().substring(0, 4) == 'prop'
-                                ? feature.properties[wei.substring(5)] || '1'
-                                : feature.style && feature.style.weight != null
-                                ? feature.style.weight
-                                : wei
-                        if (!isNaN(parseInt(wei))) finalWei = parseInt(wei)
-                        var finalFiC =
-                            fiC.toLowerCase().substring(0, 4) == 'prop'
-                                ? F_.parseColor(
-                                      feature.properties[fiC.substring(5)]
-                                  ) || '#000'
-                                : feature.style && feature.style.fill != null
-                                ? feature.style.fill
-                                : fiC
-                        var finalFiO =
-                            fiO.toLowerCase().substring(0, 4) == 'prop'
-                                ? feature.properties[fiO.substring(5)] || '1'
-                                : feature.style &&
-                                  feature.style.fillopacity != null
-                                ? feature.style.fillopacity
-                                : fiO
-                        var noPointerEventsClass =
-                            feature.style && feature.style.nointeraction
-                                ? ' noPointerEvents'
-                                : ''
-
-                        layerObj.style.color = finalCol
-                        layerObj.style.opacity = finalOpa
-                        layerObj.style.weight = finalWei
-                        layerObj.style.fillColor = finalFiC
-                        layerObj.style.fillOpacity = finalFiO
-                    }
-                    layerObj.style.className =
-                        layerObj.style.className + noPointerEventsClass
-                    layerObj.style.metadata = data.metadata || {}
-                    return layerObj.style
-                },
-                onEachFeature: (function (layerObjName) {
-                    return onEachFeatureDefault
-                })(layerObj.name),
-            }
-            if (layerObj.hasOwnProperty('radius')) {
-                let markerIcon = null
-                if (
-                    layerObj.hasOwnProperty('variables') &&
-                    layerObj.variables.hasOwnProperty('markerIcon')
-                ) {
-                    let markerIconOptions = F_.clone(
-                        layerObj.variables.markerIcon
-                    )
-                    if (
-                        markerIconOptions.iconUrl &&
-                        !F_.isUrlAbsolute(markerIconOptions.iconUrl)
-                    )
-                        markerIconOptions.iconUrl =
-                            L_.missionPath + markerIconOptions.iconUrl
-                    if (
-                        markerIconOptions.shadowUrl &&
-                        !F_.isUrlAbsolute(markerIconOptions.shadowUrl)
-                    )
-                        markerIconOptions.shadowUrl =
-                            L_.missionPath + markerIconOptions.shadowUrl
-
-                    markerIcon = new L.icon(markerIconOptions)
-                }
-
-                leafletLayerObject.pointToLayer = function (feature, latlong) {
-                    const featureStyle = leafletLayerObject.style(feature)
-                    let svg = ''
-                    let layer = null
-                    const pixelBuffer = featureStyle.weight || 0
-
-                    switch (layerObj.shape) {
-                        case 'circle':
-                            svg = [
-                                `<svg style="height=100%;width=100%" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
-                                `<circle cx="12" cy="12" r="${
-                                    12 - pixelBuffer
-                                }"/>`,
-                                `</svg>`,
-                            ].join('\n')
-                            break
-                        case 'triangle':
-                            svg = [
-                                `<svg style="height=100%px;width=100%px" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
-                                `<path d="M1,21H23L12,2Z" />`,
-                                `</svg>`,
-                            ].join('\n')
-                            break
-                        case 'triangle-flipped':
-                            svg = [
-                                `<svg style="height=100%px;width=100%px;transform:rotate(180deg);" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
-                                `<path d="M1,21H23L12,2Z" />`,
-                                `</svg>`,
-                            ].join('\n')
-                            break
-                        case 'square':
-                            svg = [
-                                `<svg style="width=100%;height=100%" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
-                                `<rect x="${pixelBuffer}" y="${pixelBuffer}" width="${
-                                    24 - pixelBuffer * 2
-                                }" height="${24 - pixelBuffer * 2}"/>`,
-                                `</svg>`,
-                            ].join('\n')
-                            break
-                        case 'diamond':
-                            svg = [
-                                `<svg  style="height=100%;width=100%" viewBox="0 0 24 24" fill="${featureStyle.fillColor} "stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
-                                `<path d="M19,12L12,22L5,12L12,2" />`,
-                                `</svg>`,
-                            ].join('\n')
-                            break
-                        case 'pentagon':
-                            svg = [
-                                `<svg  style="height=100%;width=100%" viewBox="0 0 24 24" fill="${featureStyle.fillColor} "stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
-                                `<path d="M12,2.5L2,9.8L5.8,21.5H18.2L22,9.8L12,2.5Z" />`,
-                                `</svg>`,
-                            ].join('\n')
-                            break
-                        case 'hexagon':
-                            svg = [
-                                `<svg  style="height=100%;width=100%" viewBox="0 0 24 24" fill="${featureStyle.fillColor} "stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
-                                `<path d="M21,16.5C21,16.88 20.79,17.21 20.47,17.38L12.57,21.82C12.41,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L3.53,17.38C3.21,17.21 3,16.88 3,16.5V7.5C3,7.12 3.21,6.79 3.53,6.62L11.43,2.18C11.59,2.06 11.79,2 12,2C12.21,2 12.41,2.06 12.57,2.18L20.47,6.62C20.79,6.79 21,7.12 21,7.5V16.5Z" />`,
-                                `</svg>`,
-                            ].join('\n')
-                            break
-                        case 'star':
-                            svg = [
-                                `<svg style="height=100%;width=100%"  viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
-                                `<path d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z" />`,
-                                `</svg>`,
-                            ].join('\n')
-                            break
-                        case 'plus':
-                            svg = [
-                                `<svg style="height=100%;width=100%" viewBox="0 0 24 24" fill="${featureStyle.fillColor} "stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
-                                `<path d="M20 14H14V20H10V14H4V10H10V4H14V10H20V14Z" />`,
-                                `</svg>`,
-                            ].join('\n')
-                            break
-                        case 'pin':
-                            svg = [
-                                `<svg style="height=100%;width=100%" viewBox="0 0 24 24" fill="${featureStyle.fillColor} "stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
-                                `<path d="M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z" />`,
-                                `</svg>`,
-                            ].join('\n')
-                            break
-                        case 'none':
-                        default:
-                            layer = L.circleMarker(
-                                latlong,
-                                leafletLayerObject.style
-                            ).setRadius(layerObj.radius)
-                            break
-                    }
-
-                    if (markerIcon) {
-                        layer = L.marker(latlong, { icon: markerIcon })
-                    } else if (layer == null && svg != null) {
-                        layer = L.marker(latlong, {
-                            icon: L.divIcon({
-                                className: 'leafletMarkerShape',
-                                iconSize: [
-                                    (layerObj.radius + pixelBuffer) * 2,
-                                    (layerObj.radius + pixelBuffer) * 2,
-                                ],
-                                html: svg,
-                            }),
-                        })
-                    }
-
-                    if (layer == null) return
-
-                    layer.options.layerName = layerObj.name
-
-                    return layer
-                }
-            }
-
-            //If it's a drawing layer
-            if (layerObj.name.toLowerCase().indexOf('draw') != -1) {
-                F_.sortGeoJSONFeatures(data)
-
-                leafletLayerObject = {
-                    style: function (feature) {
-                        return {
-                            color: 'black',
-                            radius: 6,
-                            opacity: feature.properties.opacity,
-                            fillColor: feature.properties.fill,
-                            fillOpacity: feature.properties.fillOpacity,
-                            color: feature.properties.stroke,
-                            weight: feature.properties.weight,
-                            className: 'spePolygonLayer',
-                        }
-                    },
-                    pointToLayer: function (feature, latlng) {
-                        return L.circleMarker(latlng)
-                    },
-                    onEachFeature: function (feature, layer) {
-                        var desc = feature.properties.description
-                        if (desc) desc = desc.replace(/\n/g, '<br />')
-                        var list =
-                            '<dl><dt><b>' +
-                            feature.properties.name +
-                            '</b></dt><dt>' +
-                            desc +
-                            '</dt></dl>'
-                        layer.bindPopup(list)
-                    },
-                }
-            }
-            L_.layersGroup[layerObj.name] = L.geoJson(data, leafletLayerObject)
-
-            d3.selectAll(
-                '.' + layerObj.name.replace(/\s/g, '').toLowerCase()
-            ).data(data.features)
-            L_.layersLoaded[L_.layersOrdered.indexOf(layerObj.name)] = true
-            allLayersLoaded()
-        }
+        })
     }
 
     function makeTileLayer() {
@@ -1373,6 +1049,11 @@ function makeLayer(layerObj) {
         allLayersLoaded()
     }
 
+    function makeModelLayer() {
+        L_.layersLoaded[L_.layersOrdered.indexOf(layerObj.name)] = true
+        allLayersLoaded()
+    }
+
     function makeDataLayer() {
         let layerUrl = layerObj.demtileurl
         if (!F_.isUrlAbsolute(layerUrl)) layerUrl = L_.missionPath + layerUrl
@@ -1456,14 +1137,18 @@ function enforceVisibilityCutoffs() {
             if (vc > 0) {
                 if (Map_.map.getZoom() < vc && settingsEnforceVC) {
                     layerElements.attr('display', 'none')
+                    layerElements.style('display', 'none')
                 } else {
                     layerElements.attr('display', 'inherit')
+                    layerElements.style('display', 'inherit')
                 }
             } else {
                 if (Map_.map.getZoom() > Math.abs(vc) && settingsEnforceVC) {
                     layerElements.attr('display', 'none')
+                    layerElements.style('display', 'none')
                 } else {
                     layerElements.attr('display', 'inherit')
+                    layerElements.style('display', 'inherit')
                 }
             }
         }
@@ -1595,6 +1280,7 @@ function clearOnMapClick(event) {
         let found = false
         // For all MMGIS layers
         for (let key in L_.layersGroup) {
+            if (L_.layersGroup[key] === false) continue
             let layers
 
             // Layers can be a LayerGroup or an array of LayerGroup

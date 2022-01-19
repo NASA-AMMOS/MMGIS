@@ -6,3 +6,6 @@ Missions_rel
 Missions_dev
 .env
 **/.git
+data
+*DS_Store
+*__pycache__

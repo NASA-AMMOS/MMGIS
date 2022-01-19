@@ -25,39 +25,50 @@ const { sequelize } = require("../../../connection");
 const attributes = {
   intent: {
     type: Sequelize.ENUM,
-    values: ["roi", "campaign", "campsite", "trail", "signpost"],
+    values: [
+      "roi",
+      "campaign",
+      "campsite",
+      "trail",
+      "signpost",
+      "polygon",
+      "line",
+      "point",
+      "text",
+      "arrow",
+    ],
     allowNull: false,
     unique: false,
-    defaultValue: null
+    defaultValue: null,
   },
   parent: {
     type: Sequelize.DataTypes.INTEGER,
     unique: false,
-    allowNull: true
+    allowNull: true,
   },
   children: {
     type: Sequelize.DataTypes.ARRAY(Sequelize.DataTypes.INTEGER),
     unique: false,
-    allowNull: true
+    allowNull: true,
   },
   level: {
     type: Sequelize.INTEGER,
     unique: false,
-    allowNull: false
+    allowNull: false,
   },
   properties: {
     type: Sequelize.JSON,
     allowNull: true,
-    defaultValue: {}
+    defaultValue: {},
   },
   geom: {
     type: Sequelize.GEOMETRY,
-    allowNull: true
-  }
+    allowNull: true,
+  },
 };
 
 const options = {
-  timestamps: false
+  timestamps: false,
 };
 
 var Published = sequelize.define("publisheds", attributes, options);

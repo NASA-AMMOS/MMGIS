@@ -614,6 +614,8 @@
 
             if (that.isLocal) {
                 response = that.getSuggestionsLocal(q)
+                if (typeof options.transformResult === 'function')
+                    response = options.transformResult(response, q)
             } else {
                 if ($.isFunction(serviceUrl)) {
                     serviceUrl = serviceUrl.call(that.element, q)

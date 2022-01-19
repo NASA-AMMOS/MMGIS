@@ -267,13 +267,15 @@ var Coordinates = {
                         (
                             Coordinates.mouseLngLat[0] *
                             (Math.PI / 180) *
-                            F_.radiusOfPlanetMajor
+                            F_.radiusOfPlanetMajor *
+                            Coordinates.coordENMultiplier[0]
                         ).toFixed(3) +
                             'm, ' +
                             (
                                 Coordinates.mouseLngLat[1] *
                                 (Math.PI / 180) *
-                                F_.radiusOfPlanetMajor
+                                F_.radiusOfPlanetMajor *
+                                Coordinates.coordENMultiplier[1]
                             ).toFixed(3) +
                             'm'
                     )
@@ -297,7 +299,16 @@ var Coordinates = {
                             keyAsName = Map_.activeLayer.feature.properties[0]
                         }
                         d3.select('#mouseDesc').html(
-                            'Site Frame - ' +
+                            'Local Level - ' +
+                                Map_.activeLayer.options.layerName +
+                                ': ' +
+                                keyAsName +
+                                ` (X,Y${
+                                    Coordinates.elevation != null ? ',Z' : ''
+                                })`
+                        )
+                        d3.select('#mouseDescPicking').html(
+                            'Local Level - ' +
                                 Map_.activeLayer.options.layerName +
                                 ': ' +
                                 keyAsName +
@@ -316,7 +327,12 @@ var Coordinates = {
                             0
                     } else {
                         d3.select('#mouseDesc').html(
-                            `Site Frame - Map Origin (X,Y${
+                            `Local Level - Map Origin (X,Y${
+                                Coordinates.elevation != null ? ',Z' : ''
+                            })`
+                        )
+                        d3.select('#mouseDescPicking').html(
+                            `Local Level - Map Origin (X,Y${
                                 Coordinates.elevation != null ? ',Z' : ''
                             })`
                         )
@@ -325,13 +341,15 @@ var Coordinates = {
                         (
                             Coordinates.mouseLngLat[1] *
                             (Math.PI / 180) *
-                            F_.radiusOfPlanetMajor
+                            F_.radiusOfPlanetMajor *
+                            Coordinates.coordENMultiplier[1]
                         ).toFixed(3) +
                             'm, ' +
                             (
                                 Coordinates.mouseLngLat[0] *
                                 (Math.PI / 180) *
-                                F_.radiusOfPlanetMajor
+                                F_.radiusOfPlanetMajor *
+                                Coordinates.coordENMultiplier[0]
                             ).toFixed(3) +
                             'm'
                     )
@@ -361,6 +379,8 @@ var Coordinates = {
         if (Coordinates.elevQueryTimes.length >= 10) delay = 400
         if (Coordinates.elevQueryTimes.length >= 20) delay = 200
 
+        Coordinates.showElevation()
+
         Coordinates.elevationTimeout = setTimeout(() => {
             const now = new Date().getTime()
             Coordinates.elevQueryTimes.push(now)
@@ -370,6 +390,9 @@ var Coordinates = {
 
             let url = L_.configData.look.coordelevurl
             if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
+
+            if ($('#mouseElev').css('display') === 'none') return
+
             calls.api(
                 'getbands',
                 {
@@ -388,7 +411,6 @@ var Coordinates = {
                         data = JSON.parse(data)
                         if (data[0] && data[0][1] != null) {
                             Coordinates.elevation = data[0][1]
-
                             Coordinates.refresh(true)
                         }
                     }
@@ -399,6 +421,12 @@ var Coordinates = {
                 }
             )
         }, delay)
+    },
+    hideElevation: function () {
+        $('#mouseElev').css({ display: 'none' })
+    },
+    showElevation: function () {
+        $('#mouseElev').css({ display: 'block' })
     },
     remove: function () {
         //Clear all the stuffes
@@ -510,6 +538,8 @@ function pickLngLatGo() {
                 relativeA = Map_.activeLayer.feature.geometry.coordinates[0]
                 relativeB = Map_.activeLayer.feature.geometry.coordinates[1]
             }
+            valA /= Coordinates.coordENMultiplier[0]
+            valB /= Coordinates.coordENMultiplier[1]
             const valALngRel =
                 (valA * (180 / Math.PI)) / F_.radiusOfPlanetMajor + relativeA
             const valBLatRel =
@@ -528,6 +558,8 @@ function pickLngLatGo() {
                 siteRelativeA = Map_.activeLayer.feature.geometry.coordinates[0]
                 siteRelativeB = Map_.activeLayer.feature.geometry.coordinates[1]
             }
+            valA /= Coordinates.coordENMultiplier[0]
+            valB /= Coordinates.coordENMultiplier[1]
             const valSiteALngRel =
                 (valA * (180 / Math.PI)) / F_.radiusOfPlanetMajor +
                 siteRelativeA

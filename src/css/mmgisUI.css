@@ -108,6 +108,22 @@
     background-color: #fffdf5;
 }
 
+/*Button5*/
+.mmgisButton5 {
+    height: 30px;
+    line-height: 30px;
+    padding: 0px 4px;
+    font-size: 14px;
+    text-align: center;
+    cursor: pointer;
+    display: flex;
+    transition: all 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+.mmgisButton5:hover {
+    color: white;
+    background: var(--color-k);
+}
+
 /*RadioBar*/
 .mmgisRadioBar {
     display: inline-block;
@@ -606,7 +622,7 @@
 }
 
 .mmgisScrollbar::-webkit-scrollbar {
-    width: 2px;
+    width: 4px;
     height: 2px;
     background-color: var(--color-a);
 }
@@ -915,6 +931,42 @@ blink {
     height: 25px;
     border-radius: 50%;
     background: #eee;
+    cursor: pointer;
+}
+
+/*Slider3*/
+
+.slider3 {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 17px;
+    background: #ccc;
+    border: 1px solid #aaa;
+    border-radius: 8px;
+    outline: none;
+    opacity: 0.8;
+    transition: opacity 0.4s;
+}
+
+.slider3:hover {
+    opacity: 1;
+}
+
+.slider3::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: #111;
+    cursor: pointer;
+}
+
+.slider3::-moz-range-thumb {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: #111;
     cursor: pointer;
 }
 

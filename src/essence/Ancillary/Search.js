@@ -1,5 +1,7 @@
 import $ from 'jquery'
+import F_ from '../Basics/Formulae_/Formulae_'
 //jqueryUI
+import turf from 'turf'
 import * as d3 from 'd3'
 
 import Dropy from '../../external/Dropy/dropy'
@@ -128,6 +130,31 @@ function escapeRegex(value) {
 function initializeSearch() {
     $('#auto_search').autocomplete({
         lookup: Search.arrayToSearch,
+        lookupLimit: 100,
+        minChars: 1,
+        transformResult: function (response, originalQuery) {
+            let resultSuggestions = []
+            $.map(response, function (jsonItem) {
+                if (typeof jsonItem != 'string') {
+                    $.map(jsonItem, function (suggestionItem) {
+                        resultSuggestions.push(suggestionItem)
+                    })
+                }
+            })
+            resultSuggestions.sort(function (a, b) {
+                const aStart = String(a.value).match(
+                        new RegExp(originalQuery, 'i')
+                    ) || { index: -1 },
+                    bStart = String(b.value).match(
+                        new RegExp(originalQuery, 'i')
+                    ) || { index: -1 }
+                if (aStart.index != bStart.index)
+                    return aStart.index - bStart.index
+                else return a > b ? 1 : -1
+            })
+            response.suggestions = resultSuggestions
+            return response
+        },
         onSelect: function (event) {
             searchBoth(event.value)
         },
@@ -137,19 +164,17 @@ function initializeSearch() {
         if (e.keyCode == 13) searchBoth()
     })
 
-    $('.autocomplete-suggestions')
-        .css({
-            'max-height': '60vh',
-            'overflow-y': 'auto',
-            'overflow-x': 'hidden',
-            border: '1px solid var(--color-mmgis)',
-            'border-top': 'none',
-            'background-color': 'var(--color-a)',
-        })
-        .addClass('mmgisScrollbar')
+    $('.autocomplete-suggestions').css({
+        'max-height': '60vh',
+        'overflow-y': 'auto',
+        'overflow-x': 'hidden',
+        border: '1px solid var(--color-mmgis)',
+        'border-top': 'none',
+        'background-color': 'var(--color-a)',
+    })
 }
 
-function changeSearchField(val, selectedPlaceholder) {
+async function changeSearchField(val, selectedPlaceholder) {
     if (selectedPlaceholder || val == null) {
         // We're on the placeholder
         Search.arrayToSearch = []
@@ -161,53 +186,56 @@ function changeSearchField(val, selectedPlaceholder) {
     if (Map_ != null) {
         Search.lname = val
 
-        let urlSplit = L_.layersNamed[Search.lname].url.split(':')
-
         Search.layerType = L_.layersNamed[Search.lname].type
-        if (urlSplit[0] == 'geodatasets' && urlSplit[1] != null) {
-            Search.type = 'geodatasets'
-            Search.lastGeodatasetLayerName = urlSplit[1]
-            $('#SearchSelect').css({ display: 'inherit' })
-            $('#SearchBoth').css({ display: 'inherit' })
-            if (document.getElementById('auto_search') != null) {
-                document.getElementById(
-                    'auto_search'
-                ).placeholder = getSearchFieldKeys(Search.lname)
+        if (L_.toggledArray[Search.lname] !== true) {
+            await L_.toggleLayer(L_.layersNamed[Search.lname])
+
+            const layerCheck = $(
+                `#LayersTool${Search.lname.replace(
+                    /\s/g,
+                    ''
+                )} .title .checkboxcont .checkbox`
+            )
+            if (layerCheck.length > 0) {
+                $(layerCheck[0]).removeClass('off')
+                $(layerCheck[0]).addClass('on')
             }
-
-            initializeSearch()
-        } else {
-            Search.type = 'geojson'
-            $('#SearchSelect').css({ display: 'inherit' })
-            $('#SearchBoth').css({ display: 'inherit' })
-
-            var searchFile = L_.layersNamed[Search.lname].url
-
-            $.getJSON(L_.missionPath + searchFile, function (data) {
-                Search.arrayToSearch = []
-                var props
-                for (var i = 0; i < data.features.length; i++) {
-                    props = data.features[i].properties
-                    Search.arrayToSearch.push(
-                        getSearchFieldStringForFeature(Search.lname, props)
-                    )
-                }
-                if (Search.arrayToSearch[0]) {
-                    if (!isNaN(Search.arrayToSearch[0]))
-                        Search.arrayToSearch.sort(function (a, b) {
-                            return a - b
-                        })
-                    else Search.arrayToSearch.sort()
-                }
-                if (document.getElementById('auto_search') != null) {
-                    document.getElementById(
-                        'auto_search'
-                    ).placeholder = getSearchFieldKeys(Search.lname)
-                }
-
-                initializeSearch()
-            })
         }
+
+        Search.type = 'geojson'
+        $('#SearchSelect').css({ display: 'inherit' })
+        $('#SearchBoth').css({ display: 'inherit' })
+
+        $('#auto_search').val('')
+
+        Search.arrayToSearch = []
+        let data
+        try {
+            data = L_.layersGroup[Search.lname].toGeoJSON()
+        } catch (err) {
+            data = { features: [] }
+        }
+        var props
+        for (var i = 0; i < data.features.length; i++) {
+            props = data.features[i].properties
+            Search.arrayToSearch.push(
+                getSearchFieldStringForFeature(Search.lname, props)
+            )
+        }
+        if (Search.arrayToSearch[0]) {
+            if (!isNaN(Search.arrayToSearch[0]))
+                Search.arrayToSearch.sort(function (a, b) {
+                    return a - b
+                })
+            else Search.arrayToSearch.sort()
+        }
+        if (document.getElementById('auto_search') != null) {
+            document.getElementById('auto_search').placeholder =
+                getSearchFieldKeys(Search.lname)
+        }
+
+        initializeSearch()
+        //}
     }
 }
 
@@ -273,6 +301,16 @@ function searchGeodatasets() {
             if (!L_.toggledArray[Search.lname]) {
                 wasOff = true
                 L_.toggleLayer(L_.layersNamed[Search.lname])
+                const layerCheck = $(
+                    `#LayersTool${Search.lname.replace(
+                        /\s/g,
+                        ''
+                    )} .title .checkboxcont .checkbox`
+                )
+                if (layerCheck.length > 0) {
+                    $(layerCheck[0]).removeClass('off')
+                    $(layerCheck[0]).addClass('on')
+                }
             }
 
             function selectFeature() {
@@ -320,11 +358,21 @@ function doWithSearch(doX, forceX, forceSTS, isURLSearch, value) {
     var markers = L_.layersGroup[Search.lname]
     var selectLayers = []
     var gotoLayers = []
-    var targetsID
 
     // Turn the layer on if it's off
-    if (!L_.toggledArray[Search.lname])
+    if (!L_.toggledArray[Search.lname]) {
         L_.toggleLayer(L_.layersNamed[Search.lname])
+        const layerCheck = $(
+            `#LayersTool${Search.lname.replace(
+                /\s/g,
+                ''
+            )} .title .checkboxcont .checkbox`
+        )
+        if (layerCheck.length > 0) {
+            $(layerCheck[0]).removeClass('off')
+            $(layerCheck[0]).addClass('on')
+        }
+    }
 
     if (doX == 'both' || doX == 'select') {
         L_.resetLayerFills()
@@ -411,13 +459,13 @@ function getSearchFieldStringForFeature(name, props) {
         for (var i = 0; i < sf.length; i++) {
             switch (sf[i][0].toLowerCase()) {
                 case '': //no function
-                    str += props[sf[i][1]]
+                    str += F_.getIn(props, sf[i][1])
                     break
                 case 'round':
-                    str += Math.round(props[sf[i][1]])
+                    str += Math.round(F_.getIn(props, sf[i][1]))
                     break
                 case 'rmunder':
-                    str += props[sf[i][1]].replace('_', ' ')
+                    str += F_.getIn(props, sf[i][1]).replace('_', ' ')
                     break
             }
             if (i != sf.length - 1) str += ' '
@@ -446,28 +494,8 @@ function searchWithURLParams() {
 function getMapZoomCoordinate(layers) {
     //The zoom levels are defined at http://wiki.openstreetmap.org/wiki/Zoom_levels
     var zoomLevels = [
-        360,
-        180,
-        90,
-        45,
-        22.5,
-        11.25,
-        5.625,
-        2.813,
-        1.406,
-        0.703,
-        0.352,
-        0.176,
-        0.088,
-        0.044,
-        0.022,
-        0.011,
-        0.005,
-        0.003,
-        0.001,
-        0.0005,
-        0.0003,
-        0.0001,
+        360, 180, 90, 45, 22.5, 11.25, 5.625, 2.813, 1.406, 0.703, 0.352, 0.176,
+        0.088, 0.044, 0.022, 0.011, 0.005, 0.003, 0.001, 0.0005, 0.0003, 0.0001,
     ]
     var boundingBoxNorth = 90
     var boundingBoxSouth = -90
@@ -477,8 +505,10 @@ function getMapZoomCoordinate(layers) {
     var longitudeValidRange = [-180, 180]
 
     for (var i = 0; i < layers.length; i++) {
-        var latitude = layers[i].feature.geometry.coordinates[1]
-        var longitude = layers[i].feature.geometry.coordinates[0]
+        const center = turf.center(layers[i].feature)?.geometry
+            ?.coordinates || [-1001, -1001]
+        var latitude = center[1]
+        var longitude = center[0]
 
         //make sure latitude and longitude are in [-90, 90] and [-180, 180]
         if (

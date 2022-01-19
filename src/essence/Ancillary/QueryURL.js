@@ -19,6 +19,8 @@ var QueryURL = {
         var urlPanePercents = this.getSingleQueryVariable('panePercents')
         var urlToolsObj = this.getSingleQueryVariable('tools')
 
+        var urlCenterPin = this.getSingleQueryVariable('centerPin')
+
         var searchFile = this.getSingleQueryVariable('searchFile')
         var searchStrings = this.getMultipleQueryVariable('searchstr')
         var layersOn = this.getSingleQueryVariable('on')
@@ -33,16 +35,12 @@ var QueryURL = {
             L_.FUTURES.site = urlSite
         }
 
-        if (
-            urlMapLat !== false &&
-            urlMapLon !== false &&
-            urlMapZoom !== false
-        ) {
+        if (urlMapLat !== false && urlMapLon !== false) {
             // lat, lon, zoom
             L_.FUTURES.mapView = [
                 parseFloat(urlMapLat),
                 parseFloat(urlMapLon),
-                parseInt(urlMapZoom),
+                urlMapZoom !== false ? parseInt(urlMapZoom) : null,
             ]
         }
 
@@ -80,6 +78,10 @@ var QueryURL = {
 
         if (urlToolsObj !== false) {
             L_.FUTURES.tools = urlToolsObj.split(',')
+        }
+
+        if (urlCenterPin !== false) {
+            L_.FUTURES.centerPin = urlCenterPin
         }
 
         if (searchFile !== false) {
@@ -247,14 +249,14 @@ var QueryURL = {
         }
 
         //Defaults
-        if (mapLon === undefined) mapLon = L_.Map_.map.getCenter().lng
-        if (mapLat === undefined) mapLat = L_.Map_.map.getCenter().lat
-        if (mapZoom === undefined) mapZoom = L_.Map_.map.getZoom()
+        if (mapLon == undefined) mapLon = L_.Map_.map.getCenter().lng
+        if (mapLat == undefined) mapLat = L_.Map_.map.getCenter().lat
+        if (mapZoom == undefined) mapZoom = L_.Map_.map.getZoom()
 
         var globeCenter = L_.Globe_.litho.getCenter()
-        if (globeLon === undefined) globeLon = globeCenter.lon
-        if (globeLat === undefined) globeLat = globeCenter.lat
-        if (globeZoom === undefined) globeZoom = L_.Globe_.litho.zoom
+        if (globeLon == undefined) globeLon = globeCenter.lng
+        if (globeLat == undefined) globeLat = globeCenter.lat
+        if (globeZoom == undefined) globeZoom = L_.Globe_.litho.zoom
 
         var viewerImg = L_.Viewer_.getLastImageId()
         var viewerLoc = L_.Viewer_.getLocation()
@@ -349,7 +351,8 @@ var QueryURL = {
                 },
                 function (s) {
                     //Set and update the short url
-                    L_.url = window.location.href.split('?')[0] + '?s=' + s.body.url
+                    L_.url =
+                        window.location.href.split('?')[0] + '?s=' + s.body.url
                     window.history.replaceState('', '', L_.url)
                     if (typeof callback === 'function') callback()
                 },

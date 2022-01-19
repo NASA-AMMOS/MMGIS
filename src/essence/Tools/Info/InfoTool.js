@@ -14,46 +14,47 @@ import './InfoTool.css'
 //Add the tool markup if you want to do it this way
 // prettier-ignore
 var markup = [
-        "<div id='infoTool'>",
-            "<div id='infoToolHeader'>",
-                "<div class='left'>",
-                    "<div id='infoToolTitle'>Info</div>",
-                    "<div id='infoToolEquiv' title='Number of overlapping features'></div>",
-                "</div>",
-                "<div class='right'>",
-                    "<div id='infoToolDownload' title='Copy Feature to Clipboard'>",
-                        "<i class='mdi mdi-clipboard-outline mdi-18px'></i>",
-                    "</div>",
-                    "<div id='infoToolLocate' title='Locate on Map'>",
-                        "<i class='mdi mdi-crosshairs-gps mdi-18px'></i>",
-                    "</div>",
-                "</div>",
+    "<div id='infoTool'>",
+        "<div id='infoToolHeader'>",
+            "<div class='left'>",
+                "<div id='infoToolTitle'>Info</div>",
+                "<div id='infoToolEquiv' title='Number of overlapping features'></div>",
             "</div>",
-            "<div id='infoToolSelected'>",
-                "<div id='infoToolSelectedDropdown'></div>",
-            "</div>",
-            "<div id='infoToolFilter'>",
-                "<input type='text' placeholder='Filter'>",
-                "<i class='mdi mdi-filter-variant mdi-18px'></i>",
-                "<div  id='infoToolShowHidden' title='Toggle Hidden Properties'>",
-                    "<i class='mdi mdi-eye-off mdi-18px'></i>",
+            "<div class='right'>",
+                "<div id='infoToolDownload' title='Copy Feature to Clipboard'>",
+                    "<i class='mdi mdi-clipboard-outline mdi-18px'></i>",
+                "</div>",
+                "<div id='infoToolLocate' title='Locate on Map'>",
+                    "<i class='mdi mdi-crosshairs-gps mdi-18px'></i>",
                 "</div>",
             "</div>",
-            "<div id='infoToolContent'>",
-                "<ul id='infoToolData'></ul>",
-                "<div id='infoToolNoneSelected'>No feature selected</div>",
+        "</div>",
+        "<div id='infoToolSelected'>",
+            "<div id='infoToolSelectedDropdown'></div>",
+        "</div>",
+        "<div id='infoToolFilter'>",
+            "<input type='text' placeholder='Filter'>",
+            "<i class='mdi mdi-filter-variant mdi-18px'></i>",
+            "<div  id='infoToolShowHidden' title='Toggle Hidden Properties'>",
+                "<i class='mdi mdi-eye-off mdi-18px'></i>",
             "</div>",
-        "</div>"
-    ].join('\n');
+        "</div>",
+        "<div id='infoToolContent'>",
+            "<ul id='infoToolData'></ul>",
+            "<div id='infoToolNoneSelected'>No feature selected</div>",
+        "</div>",
+    "</div>"
+].join('\n');
 
 var InfoTool = {
     height: 0,
-    width: 250,
+    width: 300,
     currentLayer: null,
     currentLayerName: null,
     info: null,
     variables: null,
     activeFeatureI: null,
+    featureLayers: [],
     filterString: '',
     hiddenShown: false,
     hiddenRootFields: ['_', 'style', 'images'],
@@ -77,7 +78,8 @@ var InfoTool = {
         activeI,
         open,
         initialEvent,
-        additional
+        additional,
+        featureLayers
     ) {
         let toolActive = $('#InfoTool').hasClass('active')
 
@@ -89,10 +91,15 @@ var InfoTool = {
         }
 
         if (additional && additional.idx) activeI = additional.idx
-
         if (currentLayer != null && currentLayerName != null) {
             this.currentLayer = currentLayer
             this.currentLayerName = currentLayerName
+            if (this.currentLayer.options == null) {
+                this.currentLayer.options = {}
+            }
+            if (this.currentLayer.options.layerName == null) {
+                this.currentLayer.options.layerName = this.currentLayerName
+            }
             this.info = features
             this.variables = variables
             let activeIndex = activeI
@@ -102,11 +109,14 @@ var InfoTool = {
             }
             this.activeFeatureI = activeIndex
             this.initialEvent = initialEvent
+
+            // Always highlight even if redundant
         }
+        this.featureLayers = featureLayers || []
 
         if (open != true) return
-        //MMGIS should always have a div with id 'tools'
-        var tools = d3.select('#toolPanel')
+        // MMGIS should always have a div with id 'tools'
+        let tools = d3.select('#toolPanel')
         tools.style('background', 'var(--color-k)')
         //Clear it
         tools.selectAll('*').remove()
@@ -130,7 +140,9 @@ var InfoTool = {
 
         // Update number of equivalent features
         if (this.info.length > 1) {
-            $('#infoToolEquiv').text(`${this.info.length}`)
+            $('#infoToolEquiv').text(
+                `${this.activeFeatureI + 1} of ${this.info.length}`
+            )
             $('#infoToolEquiv').css('display', 'block')
         } else {
             $('#infoToolEquiv').text(`1`)
@@ -154,7 +166,7 @@ var InfoTool = {
             )
                 name = this.info[i].properties[this.variables.useKeyAsName]
 
-            nameItems.push(name)
+            nameItems.push(this.info.length > 1 ? `${i + 1}. ${name}` : name)
         }
 
         $('#infoToolSelectedDropdown').html(
@@ -172,12 +184,13 @@ var InfoTool = {
                 L_.layersNamed[InfoTool.currentLayerName].kind,
                 Map_,
                 InfoTool.info[idx],
-                InfoTool.currentLayer,
+                InfoTool.featureLayers[idx] || InfoTool.currentLayer,
                 InfoTool.currentLayerName,
                 null,
                 e,
                 { idx: idx },
-                InfoTool.info
+                InfoTool.info,
+                InfoTool.featureLayers[idx] ? InfoTool.featureLayers : null
             )
         })
 
@@ -432,7 +445,9 @@ function interfaceWithMMGIS() {
         InfoTool.variables,
         null,
         true,
-        null
+        null,
+        null,
+        InfoTool.featureLayers
     )
 
     //Share everything. Don't take things that aren't yours.

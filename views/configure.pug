@@ -351,6 +351,22 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
         p
           input#panels_globe.filled-in.checkbox-color(type='checkbox')
           label(for='panels_globe' style='color: black;') Globe
+        ul
+          li.row
+              #panels_globeDemFallbackPathEl.input-field.col.s8
+                input#panels_globeDemFallbackPath.validate(type='text' value='')
+                label(for='panels_globeDemFallbackPath') DEM Fallback URL
+              #panels_globeDemFallbackFormatEL.input-field.col.s2
+                select#panels_globeDemFallbackFormat
+                  option(value='tms') TMS 
+                  option(value='wmts') WMTS
+                  option(value='wms') WMS
+                label(for='panels_globeDemFallbackFormat') Fallback Format
+              #panels_globeDemFallbackTypeEL.input-field.col.s2
+                select#panels_globeDemFallbackType
+                  option(value='rgba') RGBA 
+                  option(value='tif') TIF
+                label(for='panels_globeDemFallbackType') Fallback Type
 
       #tab_time.col.s12
         a.helpFromDocs(href='docs/?page=Time_Tab' target='__blank' rel='noopener')

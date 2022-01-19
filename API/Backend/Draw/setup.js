@@ -4,7 +4,7 @@ const routerDraw = require("./routes/draw").router;
 
 let setup = {
   //Once the app initializes
-  onceInit: s => {
+  onceInit: (s) => {
     s.app.use(
       "/API/files",
       s.ensureUser(),
@@ -24,17 +24,18 @@ let setup = {
     );
   },
   //Once the server starts
-  onceStarted: s => {},
+  onceStarted: (s) => {},
   //Once all tables sync
-  onceSynced: s => {
+  onceSynced: (s) => {
     routeFiles.makeMasterFiles([
       "roi",
       "campaign",
       "campsite",
       "trail",
-      "signpost"
+      "signpost",
+      "all",
     ]);
-  }
+  },
 };
 
 module.exports = setup;

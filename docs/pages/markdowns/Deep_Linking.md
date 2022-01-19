@@ -80,6 +80,14 @@ The name of the layer that's on and its opacity. When using the on parameter, al
 - _dependencies_: NONE
 - _unset:_ Only layers visible by default will be on
 
+### centerPin=<br>`<hoverText>`
+
+If a map latitude and longitude is set and centerPin has a value, then render a pin on the map at the its center. The value of centerPin becomes the pin/marker's mouse over text. If centerPin=true (or ''), then there is no mouse over text for the pin. This parameter is useful when you want to link to a specific coordinate on the map and maintain its location for the user rather than just setting the initial map view.
+
+- _form:_ `<hoverText> || true || ''`
+- _dependencies_: mapLon, mapLat
+- _unset:_ No center point pin will be displayed
+
 ### selected=<br>`<layer name>,<lat>,<lon>,<view (opt)>,<zoom level (opt)>`<br>`<layer name>,<key>,<value>,<view (opt)>,<zoom level (opt)>`
 
 The feature of a layer to have selected. If `lat` and `lon` are both numbers, the first _point_ in `layer name` with coordinates `lat` `lon` will be selected. Otherwise it'll be treated as a `key` `value` search. Under `key` `value` the first _feature_ in `layer name` whose `properties.<key>` matches `value` gets selected. `key` supports nested properties with dot notation ("buildings.stores.candy"). The selected `layer name` layer will always be turned on regardless of what the other parameters may say. `view` and `zoom level` are _optional_. If `view` is set to "go", the selection would not only be made but also panned to. `zoom level` sets the zoom of `view's` "go". If `zoom level` is unset but `view` is set, it will default to the `Zoom Level of Map Scale` configuration value if set or finally the `Initial Zoom Level` configuration variable.

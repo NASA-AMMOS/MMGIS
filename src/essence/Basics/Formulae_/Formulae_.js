@@ -392,6 +392,9 @@ var Formulae_ = {
             a: data[position + 3],
         }
     },
+    getSafeName: function (name) {
+        return (name || '').replace(/\s/g, '')
+    },
     /**
      * Traverses an object with an array of keys
      * @param {*} obj
@@ -1374,6 +1377,9 @@ var Formulae_ = {
         }
         return uniqueArray
     },
+    sanitize(str) {
+        return str.replace(/[<>;{}]/g, '')
+    },
     doBoundingBoxesIntersect(a, b) {
         return a[1] <= b[3] && a[3] >= b[1] && a[0] <= b[2] && a[2] >= b[0]
     },
@@ -1389,7 +1395,7 @@ var Formulae_ = {
                 l[i].feature.geometry.coordinates[0] == point[0] &&
                 l[i].feature.geometry.coordinates[1] == point[1]
             )
-                points.push(l[i].feature)
+                points.push(l[i])
         }
 
         return points
@@ -1706,16 +1712,31 @@ var Formulae_ = {
         //return the new canvas
         return newCanvas
     },
-    bracketReplace(str, obj) {
+    bracketReplace(str, obj, replace) {
         if (str === null) return ''
         let matches = str.match(/\{.*?\}/gi)
 
         if (matches)
             matches.forEach((v) => {
-                str = str.replace(
-                    new RegExp(v, 'g'),
-                    Formulae_.getIn(obj, v.replace(/[\{\}]/g, '').split('.'))
-                )
+                const replaceProp = v.replace(/[\{\}]/g, '')
+                let replaceWith =
+                    Formulae_.getIn(obj, replaceProp.split('.'), '') + ''
+
+                // Modify the prop value directly too
+                if (
+                    replace &&
+                    replace[replaceProp] &&
+                    replace[replaceProp].length > 0
+                ) {
+                    replace[replaceProp].forEach((rp) => {
+                        replaceWith = replaceWith.replace(
+                            new RegExp(rp[0], 'g'),
+                            rp[1]
+                        )
+                    })
+                }
+
+                str = str.replace(new RegExp(v, 'g'), replaceWith)
             })
         return str
     },

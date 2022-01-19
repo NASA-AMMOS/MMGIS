@@ -379,12 +379,12 @@ var Files = {
         }
 
         function addFileToList(file) {
-            var checkState = '-blank-outline'
+            var checkState = ''
             var onState = ' on'
             var shieldState = ''
             var ownedByUser = false
 
-            if (DrawTool.currentFileId == file.id) checkState = '-intermediate'
+            if (DrawTool.currentFileId == file.id) checkState = ' checked'
 
             if (DrawTool.filesOn.indexOf(file.id) == -1) onState = ''
 
@@ -420,7 +420,7 @@ var Files = {
             if (file.is_master) {
                 d3.select('#drawToolDrawFilesListMaster')
                     .append('li')
-                    .attr('class', 'drawToolDrawFilesListElem')
+                    .attr('class', `drawToolDrawFilesListElem${checkState}`)
                     .attr('file_id', file.id)
                     .attr('file_name', file.file_name)
                     .attr('file_owner', file.file_owner)
@@ -441,7 +441,7 @@ var Files = {
             } else {
                 d3.select('#drawToolDrawFilesList')
                     .append('li')
-                    .attr('class', 'drawToolDrawFilesListElem')
+                    .attr('class', `drawToolDrawFilesListElem${checkState}`)
                     .attr('file_id', file.id)
                     .attr('file_name', file.file_name)
                     .attr('file_owner', file.file_owner)
@@ -967,11 +967,11 @@ var Files = {
                                             Map_.rmNotNull(
                                                 L_.layersGroup[layerId][i]
                                             )
-                                            //And from the Globe
-                                            Globe_.litho.removeLayer(
-                                                'camptool_' + layerId + '_' + i
-                                            )
                                         }
+                                        //And from the Globe
+                                        Globe_.litho.removeLayer(
+                                            'camptool_' + layerId
+                                        )
                                     }
                                     //Remove from filesOn
                                     let f = DrawTool.filesOn.indexOf(
@@ -1162,11 +1162,9 @@ var Files = {
 
                             Map_.rmNotNull(L_.layersGroup[layerId][i])
                             L_.layersGroup[layerId][i] = null
-                            //And from the Globe
-                            Globe_.litho.removeLayer(
-                                'camptool_' + layerId + '_' + i
-                            )
                         }
+                        //And from the Globe
+                        Globe_.litho.removeLayer('camptool_' + layerId)
                     }
 
                     let features = data.geojson.features
@@ -1189,7 +1187,7 @@ var Files = {
                             var start = new L.LatLng(c[0][1], c[0][0])
                             var end = new L.LatLng(c[1][1], c[1][0])
 
-                            DrawTool.addArrowToMap(
+                            L_.addArrowToMap(
                                 layerId,
                                 start,
                                 end,
@@ -1197,81 +1195,14 @@ var Files = {
                                 features[i]
                             )
                         } else if (features[i].properties.annotation === true) {
-                            //Remove previous annotation if any
-                            $(
-                                '#DrawToolAnnotation_' +
-                                    id +
-                                    '_' +
-                                    features[i].properties._.id
+                            L_.createAnnotation(
+                                features[i],
+                                'DrawToolAnnotation',
+                                layerId,
+                                id,
+                                features[i].properties._.id,
+                                true
                             )
-                                .parent()
-                                .parent()
-                                .parent()
-                                .parent()
-                                .remove()
-
-                            var s = features[i].properties.style
-                            var styleString =
-                                (s.color != null
-                                    ? 'text-shadow: ' +
-                                      F_.getTextShadowString(
-                                          s.color,
-                                          s.strokeOpacity,
-                                          s.weight
-                                      ) +
-                                      '; '
-                                    : '') +
-                                (s.fillColor != null
-                                    ? 'color: ' + s.fillColor + '; '
-                                    : '') +
-                                (s.fontSize != null
-                                    ? 'font-size: ' + s.fontSize + '; '
-                                    : '')
-                            L_.layersGroup[layerId].push(
-                                L.popup({
-                                    className: 'leaflet-popup-annotation',
-                                    closeButton: false,
-                                    autoClose: false,
-                                    closeOnEscapeKey: false,
-                                    closeOnClick: false,
-                                    autoPan: false,
-                                    offset: new L.point(0, 3),
-                                })
-                                    .setLatLng(
-                                        new L.LatLng(
-                                            features[i].geometry.coordinates[1],
-                                            features[i].geometry.coordinates[0]
-                                        )
-                                    )
-                                    .setContent(
-                                        '<div>' +
-                                            "<div id='DrawToolAnnotation_" +
-                                            id +
-                                            '_' +
-                                            features[i].properties._.id +
-                                            "' class='drawToolAnnotation DrawToolAnnotation_" +
-                                            id +
-                                            "  blackTextBorder' layer='" +
-                                            id +
-                                            "' index='" +
-                                            L_.layersGroup[layerId].length +
-                                            "' style='" +
-                                            styleString +
-                                            "'>" +
-                                            '</div>' +
-                                            '</div>'
-                                    )
-                                    .addTo(Map_.map)
-                            )
-                            L_.layersGroup[layerId][
-                                L_.layersGroup[layerId].length - 1
-                            ].feature = features[i]
-                            $(
-                                '#DrawToolAnnotation_' +
-                                    id +
-                                    '_' +
-                                    features[i].properties._.id
-                            ).text(features[i].properties.name)
 
                             DrawTool.refreshNoteEvents()
                         } else if (features[i].geometry.type === 'Point') {
@@ -1322,18 +1253,18 @@ var Files = {
                         }
                     }
                     if (coreFeatures.features.length > 0) {
-                        Globe_.litho.addLayer(
-                            'clamped',
-                            {
-                                name: 'camptool_' + layerId + '_' + last,
-                                on: true,
-                                geojson: coreFeatures,
-                                opacity: 1,
-                                minZoom: 0,
-                                maxZoom: 30,
+                        Globe_.litho.addLayer('clamped', {
+                            name: 'camptool_' + layerId,
+                            on: true,
+                            geojson: coreFeatures,
+                            opacity: 1,
+                            minZoom: 0,
+                            maxZoom: 30,
+                            style: {
+                                // Prefer feature[f].properties.style values
+                                letPropertiesStyleOverride: true,
                             },
-                            true
-                        )
+                        })
                     }
 
                     if (populateShapesAfter)
@@ -1398,9 +1329,9 @@ var Files = {
             if (L_.layersGroup.hasOwnProperty(layerId)) {
                 for (var i = 0; i < L_.layersGroup[layerId].length; i++) {
                     Map_.rmNotNull(L_.layersGroup[layerId][i])
-                    //And from the Globe
-                    Globe_.litho.removeLayer('camptool_' + layerId + '_' + i)
                 }
+                //And from the Globe
+                Globe_.litho.removeLayer('camptool_' + layerId)
             }
 
             DrawTool.refreshMasterCheckbox()

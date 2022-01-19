@@ -1,15 +1,17 @@
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
+import $ from 'jquery'
 
 import LithoSphere from 'lithosphere'
 
 let Globe_ = {
     litho: null,
+    id: 'globe',
     controls: {
         link: null,
     },
     init: function () {
-        const containerId = 'globe'
+        const containerId = this.id
         let initialView = null
         if (L_.FUTURES.globeView != null) {
             initialView = L_.FUTURES.globeView
@@ -22,7 +24,7 @@ let Globe_ = {
         initialView = {
             lat: initialView[0],
             lng: initialView[1],
-            zoom: initialView[2],
+            zoom: initialView[2] != null ? initialView[2] : L_.view[2],
         }
 
         const tmr =
@@ -47,7 +49,7 @@ let Globe_ = {
                       reszoomlevel: 0,
                   }
 
-        this.litho = new LithoSphere(containerId, {
+        const lithoConfig = {
             initialView,
             //opt
             tileMapResource: tmr,
@@ -63,9 +65,30 @@ let Globe_ = {
             atmosphere: {
                 color: '#0c0c0c',
             },
+            canBecomeHighlighted: false,
             highlightColor: 'yellow', //css color for vector hover highlights | default 'yellow'
+            canBecomeActive: false,
             activeColor: 'red', //css color for active vector features | default 'red'
-        })
+        }
+
+        if (
+            L_.configData.panelSettings &&
+            L_.configData.panelSettings.demFallbackPath
+        )
+            lithoConfig.demFallback = {
+                demPath: !F_.isUrlAbsolute(
+                    L_.configData.panelSettings.demFallbackPath
+                )
+                    ? L_.missionPath +
+                      L_.configData.panelSettings.demFallbackPath
+                    : L_.configData.panelSettings.demFallbackPath,
+                format: L_.configData.panelSettings.demFallbackFormat || 'tms',
+                parserType:
+                    L_.configData.panelSettings.demFallbackType || 'rgba',
+            }
+
+        // CONSTRUCTOR
+        this.litho = new LithoSphere(containerId, lithoConfig)
 
         this.litho.addControl('mmgisLithoHome', this.litho.controls.home)
         this.litho.addControl(
@@ -127,6 +150,9 @@ let Globe_ = {
     fina: function (coordinates) {
         // Passes in Coordinates so that LithoSphere can share the same coordinate ui element
         // as the rest of the application
+        $(`#${this.id}`).on('mousemove', () => {
+            coordinates.hideElevation()
+        })
     },
     reset: function () {},
     setLink: function () {},

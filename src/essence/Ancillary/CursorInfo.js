@@ -53,7 +53,8 @@ var CursorInfo = {
         isError,
         position,
         forceColor,
-        forceFontColor
+        forceFontColor,
+        asHTML
     ) {
         if (position) {
             CursorInfo.forcedPos = true
@@ -76,7 +77,8 @@ var CursorInfo = {
                 return isError ? '1px solid var(--color-a)' : 'none'
             })
             .style('display', 'block')
-            .html(message)
+        if (asHTML) CursorInfo.cursorInfoDiv.html(message)
+        else CursorInfo.cursorInfoDiv.text(message)
 
         if (time != null) {
             setTimeout(function () {
