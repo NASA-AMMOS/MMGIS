@@ -9,6 +9,8 @@
     border: none;
     border-right: 1px solid var(--color-b);
     cursor: pointer;
+    border-top-left-radius: 3px;
+    border-bottom-left-radius: 3px;
 }
 #SearchClear {
     margin-left: 0px;

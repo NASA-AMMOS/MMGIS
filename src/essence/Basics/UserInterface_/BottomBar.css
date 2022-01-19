@@ -1,0 +1,56 @@
+#mainSettingsModal {
+    background: var(--color-k);
+    width: 400px;
+    margin: 40px;
+    border-radius: 3px;
+}
+#mainSettingsModalTitle {
+    padding: 0px 0px 0px 10px;
+    height: 40px;
+    line-height: 39px;
+    font-size: 18px;
+    background: var(--color-i);
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    display: flex;
+    justify-content: space-between;
+}
+#mainSettingsModalTitle > div:first-child {
+    display: flex;
+}
+#mainSettingsModalTitle > div:first-child > div {
+    margin-left: 6px;
+    line-height: 40px;
+}
+#mainSettingsModalClose {
+    width: 40px;
+    height: 40px;
+    text-align: center;
+}
+#mainSettingsModalContent {
+    padding: 10px 20px;
+}
+.mainSettingsModalSection {
+}
+.mainSettingsModalSectionTitle {
+}
+.mainSettingsModalSectionOptions {
+    list-style-type: none;
+    margin: 8px 0px;
+    padding: 0;
+}
+.mainSettingsModalSectionOptions li {
+    display: flex;
+    height: 30px;
+    line-height: 30px;
+    padding-left: 10px;
+}
+.mainSettingsModalSectionOptions li > div:last-child {
+    padding-left: 3px;
+}
+.mainSettingsModalHR {
+    width: 100%;
+    height: 1px;
+    background: var(--color-b);
+    margin: 4px 0px;
+}

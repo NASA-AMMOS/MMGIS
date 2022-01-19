@@ -49,6 +49,7 @@ body {
     --color-m: #c4c4c4;
     --color-n: #151619;
     --color-o: #1a628e;
+    --color-p: #747474;
 
     --color-green: #00d200;
     --color-yellow: #d2b800;
@@ -155,6 +156,9 @@ body {
     display: inline-flex;
     justify-content: space-evenly;
     align-items: center;
+}
+.splitterVInner > div {
+    border-radius: 3px;
 }
 
 .splitterVInner i {
@@ -416,11 +420,11 @@ body {
     color: var(--color-f);
     width: 30px;
     height: 30px;
-    line-height: 29px !important;
     border-radius: 3px;
-    margin-bottom: 4px;
+    margin-bottom: 5px;
+    font-size: 18px !important;
     border: none !important;
-    border-radius: 0 !important;
+    border-radius: 3px !important;
     background: var(--color-a) !important;
     transition: color 0.2s ease-in 0s;
 }
@@ -625,6 +629,8 @@ body {
     padding: 0px 8px;
     font-size: 14px;
     color: var(--color-mw2);
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
     flex: 1;
     transition: background 0.2s ease-out, border 0.2s ease-out;
 }
