@@ -4,8 +4,8 @@ import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
 import ToolController_ from '../ToolController_/ToolController_'
 import Login from '../../Ancillary/Login/Login'
-import QueryURL from '../../Ancillary/QueryURL'
-import HTML2Canvas from '../../../external/HTML2Canvas/html2canvas.min'
+
+import BottomBar from './BottomBar'
 
 import './UserInterface_.css'
 
@@ -108,213 +108,7 @@ var UserInterface = {
             .style('flex-flow', 'column')
             .style('z-index', '1005')
 
-        this.barBottom
-            .append('i')
-            .attr('id', 'topBarLink')
-            .attr('title', 'Copy Link')
-            .attr('tabindex', 100)
-            .attr('class', 'mmgisHoverBlue mdi mdi-open-in-new mdi-18px')
-            .style('padding', '5px 10px')
-            .style('width', '40px')
-            .style('height', '36px')
-            .style('line-height', '26px')
-            .style('cursor', 'pointer')
-            .on('click', function () {
-                const linkButton = $(this)
-                QueryURL.writeCoordinateURL(true, function () {
-                    F_.copyToClipboard(L_.url)
-
-                    linkButton.removeClass('mdi-open-in-new')
-                    linkButton.addClass('mdi-check-bold')
-                    linkButton.css('color', 'var(--color-green)')
-                    setTimeout(() => {
-                        linkButton.removeClass('mdi-check-bold')
-                        linkButton.css('color', '')
-                        linkButton.addClass('mdi-open-in-new')
-                    }, 3000)
-                })
-            })
-
-        this.barBottom
-            .append('i')
-            .attr('id', 'topBarScreenshot')
-            .attr('title', 'Screenshot')
-            .attr('tabindex', 101)
-            .attr('class', 'mmgisHoverBlue mdi mdi-camera mdi-18px')
-            .style('padding', '5px 10px')
-            .style('width', '40px')
-            .style('height', '36px')
-            .style('line-height', '26px')
-            .style('cursor', 'pointer')
-            .style('opacity', '0.8')
-            .on('click', function () {
-                //We need to manually order leaflet z-indices for this to work
-                let zIndices = []
-                $('#mapScreen #map .leaflet-tile-pane')
-                    .children()
-                    .each(function (i, elm) {
-                        zIndices.push($(elm).css('z-index'))
-                        $(elm).css('z-index', i + 1)
-                    })
-                $('.leaflet-control-scalefactor').css('display', 'none')
-                $('.leaflet-control-zoom').css('display', 'none')
-                $('#topBarScreenshotLoading').css('display', 'block')
-                $('#mapToolBar').css('background', 'rgba(0,0,0,0)')
-                HTML2Canvas(document.getElementById('mapScreen'), {
-                    allowTaint: true,
-                    useCORS: true,
-                }).then(function (canvas) {
-                    canvas.id = 'mmgisScreenshot'
-                    document.body.appendChild(canvas)
-                    F_.downloadCanvas(
-                        canvas.id,
-                        'mmgis-screenshot',
-                        function () {
-                            canvas.remove()
-                            setTimeout(function () {
-                                $('#topBarScreenshotLoading').css(
-                                    'display',
-                                    'none'
-                                )
-                            }, 2000)
-                        }
-                    )
-                })
-                $('#mapScreen #map .leaflet-tile-pane')
-                    .children()
-                    .each(function (i, elm) {
-                        $(elm).css('z-index', zIndices[i])
-                    })
-                $('.leaflet-control-scalefactor').css('display', 'flex')
-                $('.leaflet-control-zoom').css('display', 'block')
-                $('#mapToolBar').css('background', 'rgba(0,0,0,0.15)')
-            })
-        //Screenshot loading
-        d3.select('#topBarScreenshot')
-            .append('i')
-            .attr('id', 'topBarScreenshotLoading')
-            .attr('title', 'Taking Screenshot')
-            .attr('tabindex', 102)
-            .style('display', 'none')
-            .style('border-radius', '50%')
-            .style('border', '8px solid #ffe100')
-            .style('border-right-color', 'transparent')
-            .style('border-left-color', 'transparent')
-            .style('position', 'relative')
-            .style('top', '3px')
-            .style('left', '-17px')
-            .style('width', '20px')
-            .style('height', '20px')
-            .style('line-height', '26px')
-            .style('color', '#d2b800')
-            .style('cursor', 'pointer')
-            .style('animation-name', 'rotate-forever')
-            .style('animation-duration', '2s')
-            .style('animation-iteration-count', 'infinite')
-            .style('animation-timing', 'linear')
-
-        this.barBottom
-            .append('i')
-            .attr('id', 'topBarFullscreen')
-            .attr('title', 'Fullscreen')
-            .attr('tabindex', 103)
-            .attr('class', 'mmgisHoverBlue mdi mdi-fullscreen mdi-18px')
-            .style('padding', '5px 10px')
-            .style('width', '40px')
-            .style('height', '36px')
-            .style('line-height', '26px')
-            .style('cursor', 'pointer')
-            .on('click', function () {
-                fullscreen()
-                if (
-                    d3.select(this).attr('class') ==
-                    'mmgisHoverBlue mdi mdi-fullscreen mdi-18px'
-                )
-                    d3.select(this)
-                        .attr(
-                            'class',
-                            'mmgisHoverBlue mdi mdi-fullscreen-exit mdi-18px'
-                        )
-                        .attr('title', 'Exit Fullscreen')
-                else
-                    d3.select(this)
-                        .attr(
-                            'class',
-                            'mmgisHoverBlue mdi mdi-fullscreen mdi-18px'
-                        )
-                        .attr('title', 'Fullscreen')
-            })
-
-        this.barBottom
-            .append('i')
-            .attr('id', 'toggleUI')
-            .attr('title', 'Hide UI')
-            .attr('tabindex', 104)
-            .attr('class', 'mmgisHoverBlue mdi mdi-power mdi-18px')
-            .style('padding', '5px 10px')
-            .style('width', '40px')
-            .style('height', '36px')
-            .style('line-height', '26px')
-            .style('display', 'none') //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!======
-            .on('click', function () {
-                if (d3.select(this).style('color') == 'rgb(0, 210, 0)') {
-                    d3.select('#topBarRight #loginButton').style(
-                        'display',
-                        'none'
-                    )
-                    d3.select('#topBarRight #loginUsername').style(
-                        'display',
-                        'none'
-                    )
-                    d3.select('#toolbar').style('display', 'none')
-                    d3.select('.mouseLngLat').style('display', 'none')
-                    //d3.select( '.mainDescription' ).style( 'display', 'none' );
-                    d3.select('#viewerToolBar').style('display', 'none')
-                    d3.select('#mapToolBar').style('display', 'none')
-                    d3.select('#globeToolBar').style('display', 'none')
-                    d3.select(this)
-                        .style('color', 'white')
-                        .attr('title', 'Show UI')
-                } else {
-                    d3.select('#topBarRight #loginButton').style(
-                        'display',
-                        'inherit'
-                    )
-                    d3.select('#topBarRight #loginUsername').style(
-                        'display',
-                        'inherit'
-                    )
-                    d3.select('#toolbar').style('display', 'inherit')
-                    d3.select('.mouseLngLat').style('display', 'inherit')
-                    //d3.select( '.mainDescription' ).style( 'display', 'inherit' );
-                    d3.select('#viewerToolBar').style('display', 'inherit')
-                    d3.select('#mapToolBar').style('display', 'inherit')
-                    d3.select('#globeToolBar').style('display', 'inherit')
-                    d3.select(this)
-                        .style('color', 'rgb(0, 210, 0)')
-                        .attr('title', 'Hide UI')
-                }
-            })
-
-        this.barBottom
-            .append('i')
-            .attr('id', 'topBarHelp')
-            .attr('title', 'Help')
-            .attr('tabindex', 105)
-            .attr('class', 'mmgisHoverBlue mdi mdi-help mdi-18px')
-            .style('padding', '5px 10px')
-            .style('width', '40px')
-            .style('height', '36px')
-            .style('line-height', '26px')
-            .style('cursor', 'pointer')
-            .on('click', function () {
-                this.helpOn = !this.helpOn
-                if (this.helpOn) {
-                    //d3.select('#viewer_Help').style('display', 'inherit')
-                } else {
-                    d3.select('#viewer_Help').style('display', 'none')
-                }
-            })
+        BottomBar.init('barBottom', this)
 
         this.toolPanel = d3
             .select('#main-container')
@@ -425,7 +219,6 @@ var UserInterface = {
             .style('height', '40px')
             .style('pointer-events', 'none')
             .style('overflow', 'hidden')
-            .style('background', 'rgba(0,0,0,0.15)')
             .style('z-index', '1003')
             .style('transition', 'bottom 0.2s ease-out')
 
@@ -766,6 +559,9 @@ var UserInterface = {
 
         shouldRotateSplitterText()
     },
+    resize: function () {
+        windowresize()
+    },
     hide: function () {
         d3.select('#main-container').style('opacity', '0')
     },
@@ -1086,6 +882,7 @@ var UserInterface = {
         ToolController_.fina(this)
         Viewer_ = viewer_
         Map_ = map_
+        this.Map_ = map_
         Globe_ = globe_
         this.hasViewer = l_.hasViewer
         this.hasGlobe = l_.hasGlobe
@@ -1673,40 +1470,6 @@ function clearUnwantedPanels(hasViewer, hasMap, hasGlobe) {
     Map_.map.invalidateSize()
 }
 
-function toggleHelp() {}
-
-function fullscreen() {
-    var isInFullScreen =
-        (document.fullscreenElement && document.fullscreenElement !== null) ||
-        (document.webkitFullscreenElement &&
-            document.webkitFullscreenElement !== null) ||
-        (document.mozFullScreenElement &&
-            document.mozFullScreenElement !== null) ||
-        (document.msFullscreenElement && document.msFullscreenElement !== null)
-
-    var docElm = document.documentElement
-    if (!isInFullScreen) {
-        if (docElm.requestFullscreen) {
-            docElm.requestFullscreen()
-        } else if (docElm.mozRequestFullScreen) {
-            docElm.mozRequestFullScreen()
-        } else if (docElm.webkitRequestFullScreen) {
-            docElm.webkitRequestFullScreen()
-        } else if (docElm.msRequestFullscreen) {
-            docElm.msRequestFullscreen()
-        }
-    } else {
-        if (document.exitFullscreen) {
-            document.exitFullscreen()
-        } else if (document.webkitExitFullscreen) {
-            document.webkitExitFullscreen()
-        } else if (document.mozCancelFullScreen) {
-            document.mozCancelFullScreen()
-        } else if (document.msExitFullscreen) {
-            document.msExitFullscreen()
-        }
-    }
-}
 $(document).ready(function () {
     UserInterface.init()
 })

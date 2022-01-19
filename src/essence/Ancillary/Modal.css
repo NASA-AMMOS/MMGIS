@@ -16,8 +16,20 @@
     right: 0;
     color: #ddd;
     cursor: pointer;
-    margin: 8px 6px;
+    padding: 16px;
     transition: color 0.2s ease;
+    background: var(--color-k);
+    border-bottom-left-radius: 100%;
+    box-shadow: 0px 0px 4px 0px rgba(0, 0, 0, 1);
+}
+
+#mmgisModalClose i {
+    position: relative;
+    top: -5px;
+    right: -5px;
+}
+#mmgisModalClose:hover {
+    color: var(--color-c);
 }
 
 #mmgisModalInner {

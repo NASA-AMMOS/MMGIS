@@ -136,6 +136,7 @@
     line-height: 28px;
     margin-left: 5px;
     padding-left: 2px;
+    border-radius: 3px;
     pointer-events: all;
     transition: color 0.2s ease-in 0s;
 }

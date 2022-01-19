@@ -223,24 +223,7 @@ let Map_ = {
 
         //Add a graticule
         if (L_.configData.look && L_.configData.look.graticule == true) {
-            L.latlngGraticule({
-                showLabel: true,
-                color: '#bbb',
-                weight: 1,
-                zoomInterval: [
-                    { start: 2, end: 3, interval: 40 },
-                    { start: 4, end: 5, interval: 20 },
-                    { start: 6, end: 7, interval: 10 },
-                    { start: 8, end: 9, interval: 5 },
-                    { start: 10, end: 11, interval: 0.4 },
-                    { start: 12, end: 13, interval: 0.2 },
-                    { start: 14, end: 15, interval: 0.1 },
-                    { start: 16, end: 17, interval: 0.01 },
-                    { start: 18, end: 19, interval: 0.005 },
-                    { start: 20, end: 21, interval: 0.0025 },
-                    { start: 21, end: 30, interval: 0.00125 },
-                ],
-            }).addTo(Map_.map)
+            this.toggleGraticule(true)
         }
 
         //When done zooming, hide the things you're too far out to see/reveal the things you're close enough to see
@@ -267,6 +250,31 @@ let Map_ = {
 
         //Set the time for any time enabled layers
         TimeControl.updateLayersTime()
+    },
+    toggleGraticule: function (on) {
+        if (on)
+            this.graticule = L.latlngGraticule({
+                showLabel: true,
+                color: '#bbb',
+                weight: 1,
+                zoomInterval: [
+                    { start: 2, end: 3, interval: 40 },
+                    { start: 4, end: 5, interval: 20 },
+                    { start: 6, end: 7, interval: 10 },
+                    { start: 8, end: 9, interval: 5 },
+                    { start: 10, end: 11, interval: 0.4 },
+                    { start: 12, end: 13, interval: 0.2 },
+                    { start: 14, end: 15, interval: 0.1 },
+                    { start: 16, end: 17, interval: 0.01 },
+                    { start: 18, end: 19, interval: 0.005 },
+                    { start: 20, end: 21, interval: 0.0025 },
+                    { start: 21, end: 30, interval: 0.00125 },
+                ],
+            }).addTo(Map_.map)
+        else {
+            this.rmNotNull(this.graticule)
+            this.graticule = null
+        }
     },
     clear: function () {
         this.map.eachLayer(function (layer) {
