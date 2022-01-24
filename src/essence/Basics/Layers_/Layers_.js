@@ -1264,6 +1264,7 @@ var L_ = {
         try {
             L_.layersGroup[layerName].clearLayers()
             L_.clearVectorLayerInfo()
+            L_.syncSublayerData(layerName, 'clear')
         } catch (e) {
             console.log(e)
             console.warn('Warning: Unable to clear vector layer: ' + layerName)
@@ -1280,24 +1281,51 @@ var L_ = {
         // Remove the layer
         updateLayer.removeLayer(removeLayer)
     },
-    trimVectorLayerKeepBeforeTime: function (layerName, keepBeforeTime, timePropPath) {
-        L_.trimVectorLayerHelper(layerName, keepBeforeTime, timePropPath, "before")
+    trimVectorLayerKeepBeforeTime: function (
+        layerName,
+        keepBeforeTime,
+        timePropPath
+    ) {
+        L_.trimVectorLayerHelper(
+            layerName,
+            keepBeforeTime,
+            timePropPath,
+            'before'
+        )
     },
-    trimVectorLayerKeepAfterTime: function (layerName, keepAfterTime, timePropPath) {
-        L_.trimVectorLayerHelper(layerName, keepAfterTime, timePropPath, "after")
+    trimVectorLayerKeepAfterTime: function (
+        layerName,
+        keepAfterTime,
+        timePropPath
+    ) {
+        L_.trimVectorLayerHelper(
+            layerName,
+            keepAfterTime,
+            timePropPath,
+            'after'
+        )
     },
-    trimVectorLayerHelper: function (layerName, keepTime, timePropPath, trimType) {
+    trimVectorLayerHelper: function (
+        layerName,
+        keepTime,
+        timePropPath,
+        trimType
+    ) {
         // Validate input parameters
         if (!keepTime) {
             console.warn(
-                'Warning: The input for keep' + trimType.capitalizeFirstLetter() + 'Time is invalid: ' + keepTime
+                'Warning: The input for keep' +
+                    trimType.capitalizeFirstLetter() +
+                    'Time is invalid: ' +
+                    keepTime
             )
             return
         }
 
         if (!timePropPath) {
             console.warn(
-                'Warning: The input for timePropPath is invalid: ' + timePropPath
+                'Warning: The input for timePropPath is invalid: ' +
+                    timePropPath
             )
             return
         }
@@ -1306,7 +1334,10 @@ var L_ = {
             const keepAfterAsDate = new Date(keepTime)
             if (isNaN(keepAfterAsDate.getTime())) {
                 console.warn(
-                    'Warning: The input for keep' + trimType.capitalizeFirstLetter() + 'Time is invalid: ' + keepAfterTime
+                    'Warning: The input for keep' +
+                        trimType.capitalizeFirstLetter() +
+                        'Time is invalid: ' +
+                        keepTime
                 )
                 return
             }
@@ -1322,24 +1353,28 @@ var L_ = {
                 for (let i = layers.length - 1; i >= 0; i--) {
                     let layer = layers[i]
                     if (layer.feature.properties[timePropPath]) {
-                        const layerDate = new Date(layer.feature.properties[timePropPath])
+                        const layerDate = new Date(
+                            layer.feature.properties[timePropPath]
+                        )
                         if (isNaN(layerDate.getTime())) {
                             console.warn(
-                                'Warning: The time for the layer is invalid: ' + layer.feature.properties[timePropPath]
+                                'Warning: The time for the layer is invalid: ' +
+                                    layer.feature.properties[timePropPath]
                             )
                             continue
                         }
-                        if (trimType === "after") {
+                        if (trimType === 'after') {
                             if (layerDate < keepTimeAsDate) {
                                 L_.removeLayerHelper(updateLayer, layer)
                             }
-                        } else if (trimType === "before") {
+                        } else if (trimType === 'before') {
                             if (layerDate > keepTimeAsDate) {
                                 L_.removeLayerHelper(updateLayer, layer)
                             }
                         }
                     }
                 }
+                L_.syncSublayerData(layerName)
             }
         } else {
             console.warn(
@@ -1349,10 +1384,10 @@ var L_ = {
         }
     },
     keepFirstN: function (layerName, keepFirstN) {
-        L_.keepNHelper(layerName, keepFirstN, "first")
+        L_.keepNHelper(layerName, keepFirstN, 'first')
     },
     keepLastN: function (layerName, keepLastN) {
-        L_.keepNHelper(layerName, keepLastN, "last")
+        L_.keepNHelper(layerName, keepLastN, 'last')
     },
     keepNHelper: function (layerName, keepN, keepType) {
         // Validate input parameter
@@ -1361,7 +1396,9 @@ var L_ = {
             console.warn(
                 'Warning: Unable to trim vector layer `' +
                     layerName +
-                    '` as keep' + keepType.capitalizeFirstLetter() + 'N == ' +
+                    '` as keep' +
+                    keepType.capitalizeFirstLetter() +
+                    'N == ' +
                     keepN +
                     ' and is not a valid integer'
             )
@@ -1374,19 +1411,20 @@ var L_ = {
                 const updateLayer = L_.layersGroup[layerName]
                 var layers = updateLayer.getLayers()
 
-                if (keepType === "last") {
+                if (keepType === 'last') {
                     while (layers.length > keepN) {
                         const removeLayer = layers[0]
                         L_.removeLayerHelper(updateLayer, removeLayer)
                         layers = updateLayer.getLayers()
                     }
-                } else if (keepType === "first") {
+                } else if (keepType === 'first') {
                     while (layers.length > keepN) {
                         const removeLayer = layers[layers.length - 1]
                         L_.removeLayerHelper(updateLayer, removeLayer)
                         layers = updateLayer.getLayers()
                     }
                 }
+                L_.syncSublayerData(layerName)
             }
         } else {
             console.warn(
@@ -1408,11 +1446,37 @@ var L_ = {
                     'Warning: Unable to update vector layer as the input data is invalid: ' +
                         layerName
                 )
+                return
             }
+            L_.syncSublayerData(layerName)
         } else {
             console.warn(
                 'Warning: Unable to update vector layer as it does not exist: ' +
                     layerName
+            )
+        }
+    },
+    // Make a layer's sublayer match the layers data again
+    syncSublayerData: function (layerName) {
+        try {
+            const geojson = L_.layersGroup[layerName].toGeoJSON()
+            // Now try the sublayers (if any)
+            const subUpdateLayers = L_.layersGroupSublayers[layerName]
+            if (subUpdateLayers) {
+                for (let sub in subUpdateLayers) {
+                    if (
+                        subUpdateLayers[sub] !== false &&
+                        subUpdateLayers[sub].layer != null
+                    ) {
+                        subUpdateLayers[sub].layer.clearLayers()
+                        subUpdateLayers[sub].layer.addData(geojson)
+                    }
+                }
+            }
+        } catch (e) {
+            console.log(e)
+            console.warn(
+                'Warning: Failed to update sublayers of layer: ' + layerName
             )
         }
     },

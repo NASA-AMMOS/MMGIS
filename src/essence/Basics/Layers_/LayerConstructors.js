@@ -339,6 +339,7 @@ export const constructSublayers = (geojson, layerObj) => {
             )
             if (uncertaintyVar.angleUnit === 'rad')
                 uncertaintyAngle = uncertaintyAngle * (180 / Math.PI)
+
             uncertaintyEllipse = ellipse(
                 [latlong.lng, latlong.lat],
                 F_.getIn(
@@ -370,7 +371,6 @@ export const constructSublayers = (geojson, layerObj) => {
             return uncertaintyEllipse
         },
     }
-
     // IMAGE
     const imageVar = F_.getIn(layerObj, 'variables.markerAttachments.image')
     const imageShow = F_.getIn(
