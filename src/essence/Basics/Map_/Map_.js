@@ -117,47 +117,6 @@ let Map_ = {
 
             window.mmgisglobal.customCRS = crs
         } else {
-            /*
-                //Set up leaflet for planet radius only
-                var r = parseInt(L_.configData.msv.radius.major)
-                var rFactor = r / 6378137
-   
-                var get_resolution = function() {
-                    level = 30
-                    var res = []
-                    res[0] = (Math.PI * 2 * r) / 256
-                    for (var i = 1; i < level; i++) {
-                        res[i] = (Math.PI * 2 * r) / 256 / Math.pow(2, i)
-                    }
-                    return res
-                }
-                var crs = new L.Proj.CRS(
-                    'EPSG:3857',
-                    '+proj=merc +a=' +
-                        r +
-                        ' +b=' +
-                        r +
-                        ' +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs',
-                    {
-                        resolutions: get_resolution(),
-                        origin: [
-                            (-Math.PI * 2 * r) / 2.0,
-                            (Math.PI * 2 * r) / 2.0,
-                        ],
-                        bounds: L.bounds(
-                            [
-                                -20037508.342789244 * rFactor,
-                                20037508.342789244 * rFactor,
-                            ],
-                            [
-                                20037508.342789244 * rFactor,
-                                -20037508.342789244 * rFactor,
-                            ]
-                        ),
-                    }
-                )
-                */
-
             //Make the empty map and turn off zoom controls
             this.map = L.map('map', {
                 zoomControl: hasZoomControl,
@@ -168,6 +127,12 @@ let Map_ = {
                 //zoomSnap: 0,
                 //wheelPxPerZoomLevel: 500,
             })
+
+            // Default CRS
+            window.mmgisglobal.customCRS = new L.Proj.CRS(
+                'EPSG:3857',
+                `+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=${F_.radiusOfPlanetMajor} +b=${F_.radiusOfPlanetMinor} +towgs84=0,0,0,0,0,0,0 +units=m +no_defs `
+            )
         }
 
         if (this.map.zoomControl) this.map.zoomControl.setPosition('topright')
