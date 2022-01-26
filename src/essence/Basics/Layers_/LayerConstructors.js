@@ -342,16 +342,8 @@ export const constructSublayers = (geojson, layerObj) => {
 
             uncertaintyEllipse = ellipse(
                 [latlong.lng, latlong.lat],
-                F_.getIn(
-                    feature.properties,
-                    uncertaintyVar.xAxisProp,
-                    Math.random() + 0.5
-                ),
-                F_.getIn(
-                    feature.properties,
-                    uncertaintyVar.yAxisProp,
-                    Math.random() + 1
-                ),
+                F_.getIn(feature.properties, uncertaintyVar.xAxisProp, 1),
+                F_.getIn(feature.properties, uncertaintyVar.yAxisProp, 1),
                 {
                     units: uncertaintyVar.axisUnits || 'meters',
                     steps: 32,
@@ -426,12 +418,9 @@ export const constructSublayers = (geojson, layerObj) => {
                     'click'
                 ),
             }
-            let wm = parseFloat(imageSettings.widthMeters)
-            let w = parseFloat(imageSettings.widthPixels)
-            let h = parseFloat(imageSettings.heightPixels)
-            let lngM = F_.metersToDegrees(wm) / 2
-            let latM = lngM * (h / w)
-            let center = [latlong.lng, latlong.lat]
+            const wm = parseFloat(imageSettings.widthMeters)
+            const w = parseFloat(imageSettings.widthPixels)
+            const h = parseFloat(imageSettings.heightPixels)
             let angle = -F_.getIn(
                 feature.properties,
                 imageSettings.angleProp,
@@ -440,45 +429,62 @@ export const constructSublayers = (geojson, layerObj) => {
             if (imageSettings.angleProp === 'deg')
                 angle = angle * (Math.PI / 180)
 
-            var topLeft = F_.rotatePoint(
-                {
-                    y: latlong.lat + latM,
-                    x: latlong.lng - lngM,
-                },
-                center,
-                angle
-            )
-            var topRight = F_.rotatePoint(
-                {
-                    y: latlong.lat + latM,
-                    x: latlong.lng + lngM,
-                },
-                center,
-                angle
-            )
-            var bottomRight = F_.rotatePoint(
-                {
-                    y: latlong.lat - latM,
-                    x: latlong.lng + lngM,
-                },
-                center,
-                angle
-            )
-            var bottomLeft = F_.rotatePoint(
-                {
-                    y: latlong.lat - latM,
-                    x: latlong.lng - lngM,
-                },
-                center,
-                angle
+            const crs = window.mmgisglobal.customCRS
+            const centerEN = crs.project(latlong)
+            const center = [centerEN.x, centerEN.y]
+            const xM = wm / 2
+            const yM = (wm * (h / w)) / 2
+            const topLeft = crs.unproject(
+                F_.rotatePoint(
+                    {
+                        y: centerEN.y + yM,
+                        x: centerEN.x - xM,
+                    },
+                    center,
+                    angle
+                )
             )
 
-            var anchors = [
-                [topLeft.y, topLeft.x],
-                [topRight.y, topRight.x],
-                [bottomRight.y, bottomRight.x],
-                [bottomLeft.y, bottomLeft.x],
+            const topRight = crs.unproject(
+                F_.rotatePoint(
+                    {
+                        y: centerEN.y + yM,
+                        x: centerEN.x + xM,
+                    },
+                    center,
+                    angle
+                )
+            )
+
+            const bottomRight = crs.unproject(
+                F_.rotatePoint(
+                    {
+                        y: centerEN.y - yM,
+                        x: centerEN.x + xM,
+                    },
+                    center,
+                    angle
+                )
+            )
+
+            const bottomLeft = crs.unproject(
+                F_.rotatePoint(
+                    {
+                        y: centerEN.y - yM,
+                        x: centerEN.x - xM,
+                    },
+                    center,
+                    angle
+                )
+            )
+
+            const anchors = [
+                [topLeft.lat, topLeft.lng],
+                [topRight.lat, topRight.lng],
+                [bottomRight.lat, bottomRight.lng],
+                [bottomLeft.lat, bottomLeft.lng],
             ]
+
             return L.layerGroup([
                 L.imageTransform(imageSettings.image, anchors, {
                     opacity: 1,
