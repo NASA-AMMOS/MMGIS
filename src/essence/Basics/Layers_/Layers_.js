@@ -958,14 +958,53 @@ var L_ = {
         return opacity
     },
     setLayerFilter: function (name, filter, value) {
-        if (filter == 'clear') L_.layerFilters[name] = {}
-        L_.layerFilters[name] = L_.layerFilters[name] || {}
-        L_.layerFilters[name][filter] = value
-        if (typeof L_.layersGroup[name].updateFilter === 'function') {
-            var filterArray = []
-            for (var f in L_.layerFilters[name]) {
-                filterArray.push(f + ':' + L_.layerFilters[name][f])
+        // Clear
+        if (filter === 'clear') {
+            L_.layerFilters[name] = {}
+            if (L_.Globe_) {
+                L_.Globe_.litho.setLayerFilterEffect(name, 'brightness', 1)
+                L_.Globe_.litho.setLayerFilterEffect(name, 'contrast', 1)
+                L_.Globe_.litho.setLayerFilterEffect(name, 'saturation', 1)
+                L_.Globe_.litho.setLayerFilterEffect(name, 'blendCode', 0)
             }
+        }
+        // Create a filters object for the layer if one doesn't exist
+        L_.layerFilters[name] = L_.layerFilters[name] || {}
+
+        // Set the new filter (if it's not 'clear')
+        if (filter !== 'clear') L_.layerFilters[name][filter] = value
+
+        // Mappings because litho names things differently
+        const lithoBlendMappings = ['none', 'overlay', 'color']
+        const lithoFilterMappings = {
+            brightness: 'brightness',
+            contrast: 'contrast',
+            saturate: 'saturation',
+        }
+
+        if (typeof L_.layersGroup[name].updateFilter === 'function') {
+            let filterArray = []
+            // Apply filter effects
+            for (let f in L_.layerFilters[name]) {
+                filterArray.push(f + ':' + L_.layerFilters[name][f])
+                // For Globe/litho
+                if (L_.Globe_) {
+                    if (f === 'mix-blend-mode') {
+                        L_.Globe_.litho.setLayerFilterEffect(
+                            name,
+                            'blendCode',
+                            lithoBlendMappings.indexOf(L_.layerFilters[name][f])
+                        )
+                    } else {
+                        L_.Globe_.litho.setLayerFilterEffect(
+                            name,
+                            lithoFilterMappings[f],
+                            parseFloat(L_.layerFilters[name][f])
+                        )
+                    }
+                }
+            }
+            // For Map
             L_.layersGroup[name].updateFilter(filterArray)
         }
     },

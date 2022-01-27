@@ -243,6 +243,19 @@ let BottomBar = {
                                 `</li>`,
                             `</ul>`,
                         `</div>`,
+                        (L_.Globe_ ? 
+                            [`<div class='mainSettingsModalSection' id='mainSettingsModalSection3DGlobe'>`,
+                                `<div class='mainSettingsModalSectionTitle'>3D Globe</div>`,
+                                `<ul class='mainSettingsModalSectionOptions'>`,
+                                    `<li class='flexbetween'>`,
+                                        `<div>Radius of Tiles<i title='Number of tiles to query out from the center in the Globe view.\nThe higher the number, the more data queried in the distance (which may hurt performance).\n' class="infoIcon mdi mdi-information mdi-12px"></i></div>`,
+                                        `<div class='flexbetween'>`,
+                                            `<div id='globeRadiusOfTilesValue' style='padding: 0px 6px;'>${L_.Globe_.litho.options.radiusOfTiles}</div>`,
+                                            `<input id='globeSetRadiusOfTiles' class="slider2 darker" type="range" min="4" max="11" step="1"/>`,
+                                        `</div>`,
+                                    `</li>`,
+                                `</ul>`,
+                            `</div>`].join('') : ''),
                     `</div>`,
                 `</div>`
             ].join('\n')
@@ -253,6 +266,7 @@ let BottomBar = {
                     $('#mainSettingsModalClose').on('click', function () {
                         Modal.remove()
                     })
+                    // UI Visibility
                     $(
                         `#mainSettingsModalSectionUIVisibility .mmgis-checkbox > input`
                     ).on('click', function () {
@@ -366,6 +380,21 @@ let BottomBar = {
                                 default:
                                     break
                             }
+                        }
+                    })
+
+                    // 3d Globe
+                    // Radius of Tiles
+                    $(
+                        '#mainSettingsModalSection3DGlobe #globeSetRadiusOfTiles'
+                    ).on('input', function () {
+                        if (L_.Globe_) {
+                            L_.Globe_.litho.options.radiusOfTiles = parseInt(
+                                $(this).val()
+                            )
+                            $(
+                                '#mainSettingsModalSection3DGlobe #globeRadiusOfTilesValue'
+                            ).text(L_.Globe_.litho.options.radiusOfTiles)
                         }
                     })
                 },
