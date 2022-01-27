@@ -31,6 +31,7 @@
     padding: 10px 20px;
 }
 .mainSettingsModalSection {
+    padding: 4px 0px 4px 0px;
 }
 .mainSettingsModalSectionTitle {
 }
@@ -53,4 +54,15 @@
     height: 1px;
     background: var(--color-b);
     margin: 4px 0px;
+}
+
+#mainSettingsModal .slider2 {
+    margin-top: 6px;
+    margin-bottom: 6px;
+}
+
+#mainSettingsModal .infoIcon {
+    padding: 0px 4px;
+    color: #999;
+    cursor: help;
 }

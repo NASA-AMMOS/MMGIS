@@ -55,6 +55,7 @@ let Globe_ = {
             tileMapResource: tmr,
             majorRadius: F_.radiusOfPlanetMajor,
             minorRadius: F_.radiusOfPlanetMinor,
+            radiusOfTiles: 5,
             //renderOnlyWhenOpen: false, //default true
             //wireframeMode: true, // default false
             //useLOD: true, // default true

@@ -911,6 +911,9 @@ blink {
     opacity: 0.7;
     transition: opacity 0.4s;
 }
+.slider2.darker {
+    background: var(--color-a);
+}
 
 .slider2:hover {
     opacity: 1;
