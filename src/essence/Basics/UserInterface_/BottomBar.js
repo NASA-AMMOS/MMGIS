@@ -251,7 +251,7 @@ let BottomBar = {
                                         `<div>Radius of Tiles<i title='Number of tiles to query out from the center in the Globe view.\nThe higher the number, the more data queried in the distance (which may hurt performance).\n' class="infoIcon mdi mdi-information mdi-12px"></i></div>`,
                                         `<div class='flexbetween'>`,
                                             `<div id='globeRadiusOfTilesValue' style='padding: 0px 6px;'>${L_.Globe_.litho.options.radiusOfTiles}</div>`,
-                                            `<input id='globeSetRadiusOfTiles' class="slider2 darker" type="range" min="4" max="11" step="1"/>`,
+                                            `<input id='globeSetRadiusOfTiles' class="slider2 darker" type="range" min="4" max="11" step="1" value="${L_.Globe_.litho.options.radiusOfTiles}"/>`,
                                         `</div>`,
                                     `</li>`,
                                 `</ul>`,

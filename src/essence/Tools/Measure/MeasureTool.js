@@ -771,19 +771,23 @@ function makeProfile() {
                         'Warning: MeasureTool: No elevation data found in ' +
                             pathDEM
                     )
-                    MeasureTool.reset()
-                    return
-                }
-                try {
-                    data = data.replace(/[\n\r]/g, '')
-                    data = JSON.parse(data)
-                } catch (err) {
-                    console.log(err)
-                    // Fake a line between the most then
+                    // Fake a no data line between them then
                     data = [
                         [elevPoints[0].y, elevPoints[0].x, 0],
                         [elevPoints[1].y, elevPoints[1].x, 0],
                     ]
+                } else {
+                    try {
+                        data = data.replace(/[\n\r]/g, '')
+                        data = JSON.parse(data)
+                    } catch (err) {
+                        console.log(err)
+                        // Fake a no data line between them then
+                        data = [
+                            [elevPoints[0].y, elevPoints[0].x, 0],
+                            [elevPoints[1].y, elevPoints[1].x, 0],
+                        ]
+                    }
                 }
 
                 if (mode === 'segment') MeasureTool.data = F_.clone(data)

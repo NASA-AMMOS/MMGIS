@@ -4,7 +4,6 @@
 
 import $ from 'jquery'
 import * as d3 from 'd3'
-import { ellipse } from '@turf/turf'
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
 
@@ -157,8 +156,8 @@ export const constructVectorLayer = (
                     break
                 case 'directional_circle':
                     svg = [
-                        `<div style="transform: rotateZ(${yaw}deg); transform-origin: center;">`,
-                        `<svg style="height=100%;width=100%;overflow: visible;" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                        `<div style="height: 100%; width: 100%;transform: rotateZ(${yaw}deg); transform-origin: center;">`,
+                        `<svg style="overflow: visible;" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
                         `<path d="M12,8L4.5,20.29L5.21,21L18.79,21L19.5,20.29L12,8Z" transform="translate(0 ${-(
                             12 -
                             pixelBuffer +
@@ -174,21 +173,21 @@ export const constructVectorLayer = (
                     break
                 case 'triangle':
                     svg = [
-                        `<svg style="height=100%px;width=100%px" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                        `<svg viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
                         `<path d="M1,21H23L12,2Z" />`,
                         `</svg>`,
                     ].join('\n')
                     break
                 case 'triangle-flipped':
                     svg = [
-                        `<svg style="height=100%px;width=100%px;transform:rotate(180deg);" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                        `<svg style="transform:rotate(180deg);" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
                         `<path d="M1,21H23L12,2Z" />`,
                         `</svg>`,
                     ].join('\n')
                     break
                 case 'square':
                     svg = [
-                        `<svg style="width=100%;height=100%" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                        `<svg viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
                         `<rect x="${pixelBuffer}" y="${pixelBuffer}" width="${
                             24 - pixelBuffer * 2
                         }" height="${24 - pixelBuffer * 2}"/>`,
@@ -197,42 +196,42 @@ export const constructVectorLayer = (
                     break
                 case 'diamond':
                     svg = [
-                        `<svg  style="height=100%;width=100%" viewBox="0 0 24 24" fill="${featureStyle.fillColor} "stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                        `<svg viewBox="0 0 24 24" fill="${featureStyle.fillColor} "stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
                         `<path d="M19,12L12,22L5,12L12,2" />`,
                         `</svg>`,
                     ].join('\n')
                     break
                 case 'pentagon':
                     svg = [
-                        `<svg  style="height=100%;width=100%" viewBox="0 0 24 24" fill="${featureStyle.fillColor} "stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                        `<svg viewBox="0 0 24 24" fill="${featureStyle.fillColor} "stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
                         `<path d="M12,2.5L2,9.8L5.8,21.5H18.2L22,9.8L12,2.5Z" />`,
                         `</svg>`,
                     ].join('\n')
                     break
                 case 'hexagon':
                     svg = [
-                        `<svg  style="height=100%;width=100%" viewBox="0 0 24 24" fill="${featureStyle.fillColor} "stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                        `<svg viewBox="0 0 24 24" fill="${featureStyle.fillColor} "stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
                         `<path d="M21,16.5C21,16.88 20.79,17.21 20.47,17.38L12.57,21.82C12.41,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L3.53,17.38C3.21,17.21 3,16.88 3,16.5V7.5C3,7.12 3.21,6.79 3.53,6.62L11.43,2.18C11.59,2.06 11.79,2 12,2C12.21,2 12.41,2.06 12.57,2.18L20.47,6.62C20.79,6.79 21,7.12 21,7.5V16.5Z" />`,
                         `</svg>`,
                     ].join('\n')
                     break
                 case 'star':
                     svg = [
-                        `<svg style="height=100%;width=100%"  viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                        `<svg viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
                         `<path d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z" />`,
                         `</svg>`,
                     ].join('\n')
                     break
                 case 'plus':
                     svg = [
-                        `<svg style="height=100%;width=100%" viewBox="0 0 24 24" fill="${featureStyle.fillColor} "stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                        `<svg viewBox="0 0 24 24" fill="${featureStyle.fillColor} "stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
                         `<path d="M20 14H14V20H10V14H4V10H10V4H14V10H20V14Z" />`,
                         `</svg>`,
                     ].join('\n')
                     break
                 case 'pin':
                     svg = [
-                        `<svg style="height=100%;width=100%" viewBox="0 0 24 24" fill="${featureStyle.fillColor} "stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
+                        `<svg viewBox="0 0 24 24" fill="${featureStyle.fillColor} "stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
                         `<path d="M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z" />`,
                         `</svg>`,
                     ].join('\n')
@@ -340,16 +339,28 @@ export const constructSublayers = (geojson, layerObj) => {
             if (uncertaintyVar.angleUnit === 'rad')
                 uncertaintyAngle = uncertaintyAngle * (180 / Math.PI)
 
-            uncertaintyEllipse = ellipse(
-                [latlong.lng, latlong.lat],
-                F_.getIn(feature.properties, uncertaintyVar.xAxisProp, 1),
-                F_.getIn(feature.properties, uncertaintyVar.yAxisProp, 1),
+            uncertaintyEllipse = F_.toEllipse(
+                latlong,
+                {
+                    x: F_.getIn(
+                        feature.properties,
+                        uncertaintyVar.xAxisProp,
+                        1
+                    ),
+                    y: F_.getIn(
+                        feature.properties,
+                        uncertaintyVar.yAxisProp,
+                        1
+                    ),
+                },
+                window.mmgisglobal.customCRS,
                 {
                     units: uncertaintyVar.axisUnits || 'meters',
                     steps: 32,
                     angle: uncertaintyAngle,
                 }
             )
+
             uncertaintyEllipse = L.geoJSON(uncertaintyEllipse, {
                 style: {
                     fillOpacity: 0.25,
