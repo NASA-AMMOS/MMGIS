@@ -369,7 +369,7 @@ let DataShaders = {
                             color === 'transparent'
                                 ? 'class="checkeredTransparent"'
                                 : ''
-                        } style="width: ${100 / ramp.length}%; height: 22px; ${
+                        }style="width: ${100 / ramp.length}%; height: 22px; ${
                             color !== 'transparent'
                                 ? `background: ${color};`
                                 : ''
@@ -380,7 +380,6 @@ let DataShaders = {
                     `<div style="display: flex;">${newRamp.join('\n')}</div>`
                 )
             })
-
             $(`#dataShader_${cname}_colorize_ramps`).html(
                 Dropy.construct(ramps, null, 0)
             )

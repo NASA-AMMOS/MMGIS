@@ -13,6 +13,7 @@ export default {
     // placeholder
     // selectedIndex int null for none
     construct: function (items, placeholder, selectedIndex) {
+        console.log(items)
         // prettier-ignore
         return [
             '<dl class="dropy">',
@@ -20,7 +21,7 @@ export default {
                 '<dd class="dropy__content">',
                     '<ul>',
                         placeholder ? `<li><a class="dropy__header" style="pointer-events: none;">${placeholder}</a></li>` : '',
-                        items.map((item, i) => `<li><a${ i === selectedIndex ? ' class="selected"' : ""} idx=${i} title="${item}">${item}</a></li>`).join('\n'),
+                        items.map((item, i) => `<li><a${i === selectedIndex ? ' class="selected"' : ""} idx=${i} title="${item.includes('<') ? '' : item}">${item}</a></li>`).join('\n'),
                     '</ul>',
                 '</dd>',
                 '<input type="hidden" name="first">',
