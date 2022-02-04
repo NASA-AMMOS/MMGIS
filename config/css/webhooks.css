@@ -1,0 +1,18 @@
+.webhooks {
+  padding: 20px;
+  font-family: "Roboto", sans-serif;
+  display: flex;
+  flex-flow: column;
+}
+.webhooks .title {
+    text-align: center;
+    font-size: 100px;
+    color: #ddd;
+}
+.webhooks .row {
+    margin-left: 5%;
+    margin-right: 5%;
+}
+.webhooks .CodeMirror {
+  margin: 0;
+}

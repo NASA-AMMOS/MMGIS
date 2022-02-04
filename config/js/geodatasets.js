@@ -111,6 +111,7 @@ var Geodatasets = {
     });
     Keys.destroy();
     Datasets.destroy();
+    Webhooks.destroy();
     $("#missions li.active").removeClass("active");
   },
   destroy: function() {

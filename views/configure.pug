@@ -11,6 +11,7 @@ head
   link(type='text/css' rel='stylesheet' href='config/css/keys.css')
   link(type='text/css' rel='stylesheet' href='config/css/datasets.css')
   link(type='text/css' rel='stylesheet' href='config/css/geodatasets.css')
+  link(type='text/css' rel='stylesheet' href='config/css/webhooks.css')
   link(type='text/css' rel='stylesheet' href='config/css/config.css')
   // Let browser know website is optimized for mobile
   meta(name='viewport' content='width=device-width, initial-scale=1.0')
@@ -34,6 +35,7 @@ script(type='text/javascript' src='config/js/calls.js')
 script(type='text/javascript' src='config/js/keys.js')
 script(type='text/javascript' src='config/js/datasets.js')
 script(type='text/javascript' src='config/js/geodatasets.js')
+script(type='text/javascript' src='config/js/webhooks.js')
 script(type='text/javascript' src='config/js/config.js')
 script(type='text/javascript' src='src/pre/RefreshAuth.js')
 
@@ -48,6 +50,7 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
   a#manage_keys.btn.waves-effect.waves-light.col.s12.truncate(style='background-color: rgba(255,255,255,0.12);') Keys
   a#manage_datasets.btn.waves-effect.waves-light.col.s12.truncate(style='background-color: rgba(255,255,255,0.12);') Manage Datasets
   a#manage_geodatasets.btn.waves-effect.waves-light.col.s12.truncate(style='background-color: rgba(255,255,255,0.12);') Manage Geodatasets
+  a#manage_webhooks.btn.waves-effect.waves-light.col.s12.truncate(style='background-color: rgba(255,255,255,0.12);') Manage Webhooks
 
 #logout
   i.logout#config_logout.mdi.mdi-logout.mdi-24px
@@ -67,6 +70,7 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
 .container_keys
 .container_datasets
 .container_geodatasets
+.container_webhooks
 .container
   #home_cont(style='display: none') MMGIS Configuration
   #new_mission_cont(style='display: none; margin-top: 25vh;')

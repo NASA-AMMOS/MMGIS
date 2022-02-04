@@ -19,6 +19,7 @@ const PublishedTEST = published.PublishedTEST;
 const PublishedStore = require("../models/publishedstore");
 
 const draw = require("./draw");
+const triggerWebhooks = require("./triggerwebhooks");
 
 const router = express.Router();
 const db = database.db;
@@ -89,7 +90,9 @@ router.post("/getfiles", function (req, res, next) {
  * 	published: <bool> (optional) get last published version (makes 'time' ignored)
  * }
  */
-router.post("/getfile", function (req, res, next) {
+router.post("/getfile", getfile);
+
+function getfile(req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
   let Histories = req.body.test === "true" ? FilehistoriesTEST : Filehistories;
 
@@ -339,7 +342,7 @@ router.post("/getfile", function (req, res, next) {
         });
       });
   }
-});
+}
 
 /**
  * Makes a new file
@@ -480,6 +483,10 @@ router.post("/make", function (req, res, next) {
                       message: "Successfully made a new file from geojson.",
                       body: {},
                     });
+                    triggerWebhooks("drawFileAdd", {
+                      id: created.id,
+                      res,
+                    });
                     return null;
                   })
                   .catch((err) => {
@@ -522,6 +529,10 @@ router.post("/make", function (req, res, next) {
           message: "Successfully made a new file.",
           body: {},
         });
+        triggerWebhooks("drawFileAdd", {
+          id: created.id,
+          res,
+        });
       }
 
       return null;
@@ -561,6 +572,10 @@ router.post("/remove", function (req, res, next) {
         status: "success",
         message: "File removed.",
         body: {},
+      });
+      triggerWebhooks("drawFileDelete", {
+        id: req.body.id,
+        res,
       });
 
       return null;
@@ -668,6 +683,10 @@ router.post("/change", function (req, res, next) {
         status: "success",
         message: "File edited.",
         body: {},
+      });
+      triggerWebhooks("drawFileChange", {
+        id: req.body.id,
+        res,
       });
 
       return null;
@@ -1482,6 +1501,10 @@ router.post("/publish", function (req, res, next) {
                   message: "Published.",
                   body: {},
                 });
+                triggerWebhooks("drawFileChange", {
+                  id: files[f].dataValues.id,
+                  res,
+                });
               }
             },
             (err) => {
@@ -1539,6 +1562,10 @@ router.post("/publish", function (req, res, next) {
         Table.create(newHistoryEntry)
           .then((created) => {
             successCallback(newHistoryEntry);
+            triggerWebhooks("drawFileAdd", {
+              id: file_id,
+              res,
+            });
             return null;
           })
           .catch((err) => {
@@ -1678,4 +1705,4 @@ router.post("/gethistory", function (req, res, next) {
     });
 });
 
-module.exports = { router, makeMasterFiles };
+module.exports = { router, makeMasterFiles, getfile };

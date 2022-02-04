@@ -68,4 +68,16 @@ let calls = {
     type: "POST",
     url: "api/longtermtoken/generate",
   },
+  webhooks_save: {
+    type: "POST",
+    url: "api/webhooks/save",
+  },
+  webhooks_entries: {
+    type: "GET",
+    url: "api/webhooks/entries",
+  },
+  webhooks_config: {
+    type: "POST",
+    url: "api/webhooks/config",
+  },
 };

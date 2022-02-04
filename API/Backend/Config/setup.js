@@ -1,4 +1,5 @@
 const router = require("./routes/configs");
+const triggerWebhooks = require("../Draw/routes/triggerwebhooks.js");
 
 let setup = {
   //Once the app initializes
@@ -33,7 +34,9 @@ let setup = {
   //Once the server starts
   onceStarted: (s) => {},
   //Once all tables sync
-  onceSynced: (s) => {},
+  onceSynced: (s) => {
+    triggerWebhooks("getConfiguration", {});
+  },
 };
 
 module.exports = setup;
