@@ -2796,8 +2796,11 @@ function OpenSeadragon(options) {
 // Universal Module Definition, supports CommonJS, AMD and simple script tag
 ;(function (root, factory) {
     if (typeof define === 'function' && define.amd) {
+        // expose as window.OpenSeadragon
+        window.OpenSeadragon = root.OpenSeadragon = factory()
+
         // expose as amd module
-        define([], factory)
+        //define([], factory)
     } else if (typeof module === 'object' && module.exports) {
         // expose as commonjs module
         module.exports = factory()

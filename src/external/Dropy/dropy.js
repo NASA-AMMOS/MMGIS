@@ -13,7 +13,6 @@ export default {
     // placeholder
     // selectedIndex int null for none
     construct: function (items, placeholder, selectedIndex) {
-        console.log(items)
         // prettier-ignore
         return [
             '<dl class="dropy">',

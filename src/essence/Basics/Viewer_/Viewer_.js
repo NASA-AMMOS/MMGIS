@@ -3,7 +3,6 @@ import * as d3 from 'd3'
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
 
-import OpenSeadragon from 'openseadragon'
 import * as THREE from '../../../external/THREE/three118'
 
 import Photosphere from './Photosphere'
@@ -13,8 +12,6 @@ import Dropy from '../../../external/Dropy/dropy'
 
 import './Viewer_.css'
 
-//import fabricOverlay from '../../../external/OpenSeadragon/openseadragon-fabricjs-overlay'
-let fabricOverlay = {}
 let L = window.L
 
 var Viewer_ = {
