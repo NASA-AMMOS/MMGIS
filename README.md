@@ -31,7 +31,7 @@
 
 ### System Requirements
 
-1. Install the latest version of [Node.js v10.10+](https://nodejs.org/en/download/).
+1. Install the latest version of [Node.js v14.9.0+](https://nodejs.org/en/download/).
 
 1. Install [PostgreSQL v10.14+](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads). Detailed [install instructions](https://www.postgresqltutorial.com/postgresql-getting-started/) for all platforms.
 1. Install [PostGIS 2.5+](https://postgis.net/install/). From the above install, you can use the 'Application Stack Builder' to install PostGIS or the default [PostGIS install instructions](https://postgis.net/install/) for all platforms.
