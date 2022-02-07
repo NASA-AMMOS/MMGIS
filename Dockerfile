@@ -1,4 +1,4 @@
-FROM node:12
+FROM node:16
 
 # Install GDAL with Python bindings
 RUN apt-get -y update
