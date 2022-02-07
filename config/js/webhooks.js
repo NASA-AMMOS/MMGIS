@@ -88,14 +88,8 @@ function makeWebhookCard(data) {
                       "</select>" +
                       "<label for='webhookAction' style='cursor: default;' title='Trigger function for webhook'>Action <i class='mdi mdi-information mdi-14px'></i></label>" +
                     "</div>" + 
-                    "<div class='input-field col s6 push-s2' id='webhookUrlEl'>" +
+                    "<div class='input-field col s7 push-s1' id='webhookUrlEl'>" +
                         "<label>Valid injectable variables for URL and Body fields: {file_id}, {file_name}, {geojson}</label>" +
-                    "</div>" +
-                    "<div class='input-field col s10 push-s1' id='webhookUrlEl'>" +
-                        "<input class='validate' id='webhookUrl_" + webhooksCounter + "' type='text'>" +
-                        "<label for='webhookUrl'>" +
-                            "URL" +
-                        "</label>" +
                     "</div>" +
                 "</li>" +
                 "<li class='row'>" +
@@ -109,10 +103,10 @@ function makeWebhookCard(data) {
                       "</select>" +
                       "<label for='webhookType' style='cursor: default;' title='HTTP method to call'>Type <i class='mdi mdi-information mdi-14px'></i></label>" +
                     "</div>" +
-                     "<div class='input-field col s6 push-s2' id='webhookTokenEl'>" +
-                        "<input class='validate webhookToken' id='webhookToken_" + webhooksCounter + "' type='text'>" +
-                        "<label for='webhookToken'>" +
-                            "WebhookToken" +
+                    "<div class='input-field col s7 push-s1' id='webhookUrlEl'>" +
+                        "<input class='validate' id='webhookUrl_" + webhooksCounter + "' type='text'>" +
+                        "<label for='webhookUrl'>" +
+                            "URL" +
                         "</label>" +
                     "</div>" +
                 "</li>" +
@@ -134,10 +128,6 @@ function makeWebhookCard(data) {
             "</div>" +
         "</div>"
     )
-
-  $(".webhooks #webhookToken_" + webhooksCounter).val(
-    data && data.webhooktoken ? data.webhooktoken : ""
-  );
 
   $(".webhooks #webhookUrl_" + webhooksCounter).val(
     data && data.url ? data.url : ""
@@ -213,9 +203,6 @@ function saveWebhookChanges() {
       var url = $(this)
         .find("#webhookUrl_" + webhookId)
         .val();
-      var webhooktoken = $(this)
-        .find("#webhookToken_" + webhookId)
-        .val();
       var header = cardEditors["webhookHeader_" + webhookId]
         ? cardEditors["webhookHeader_" + webhookId].getValue() || "{}"
         : "{}";
@@ -227,7 +214,6 @@ function saveWebhookChanges() {
         action,
         type,
         url,
-        webhooktoken,
         header,
         body,
       });
