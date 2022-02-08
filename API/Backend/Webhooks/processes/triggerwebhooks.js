@@ -1,6 +1,9 @@
 const logger = require("../../../logger");
 const fetch = require("node-fetch");
 
+const filesutils = require("../../Draw/routes/filesutils.js");
+const getfile = filesutils.getfile;
+
 const webhookutils = require("../../Webhooks/routes/webhookutils.js");
 const webhookEntries = webhookutils.entries;
 
@@ -217,6 +220,3 @@ function pushToRemote(url, type, header, body) {
 }
 
 module.exports = triggerWebhooks;
-
-const files = require("./files");
-const getfile = files.getfile;

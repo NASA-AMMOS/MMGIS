@@ -16,7 +16,7 @@ const { sequelize } = require("../../../connection");
 
 const router = express.Router();
 const db = database.db;
-const triggerWebhooks = require("./triggerwebhooks");
+const triggerWebhooks = require("../../Webhooks/processes/triggerwebhooks");
 
 router.post("/", function (req, res, next) {
   res.send("test draw");

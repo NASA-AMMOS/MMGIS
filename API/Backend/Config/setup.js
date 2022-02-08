@@ -1,5 +1,5 @@
 const router = require("./routes/configs");
-const triggerWebhooks = require("../Draw/routes/triggerwebhooks.js");
+const triggerWebhooks = require("../Webhooks/processes/triggerwebhooks.js");
 
 let setup = {
   //Once the app initializes

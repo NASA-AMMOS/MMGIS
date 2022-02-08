@@ -11,7 +11,7 @@ const Webhooks = require("../models/webhooks");
 const webhookutils = require("./webhookutils.js");
 const entries = webhookutils.entries;
 
-const triggerWebhooks = require("../../Draw/routes/triggerwebhooks.js");
+const triggerWebhooks = require("../processes/triggerwebhooks.js");
 
 router.post("/save", function (req, res, next) {
   let webhookConfig = {
