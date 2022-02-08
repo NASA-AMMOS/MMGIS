@@ -80,20 +80,15 @@ function makeWebhookCard(data) {
         "<div class='card col s12'id='webhook_card_" + webhooksCounter + "' webhookId='" + webhooksCounter + "'>" +
             "<ul>" +
                 "<li class='row'>" +
-                    "<div id='webhookActionEl' class='input-field col s3 push-s1'>" + 
+                    "<div id='webhookActionEl' class='input-field col s3'>" +
                       "<select class id='webhookAction'>" +
-                        "<option value='DrawFileChange' " + (data && data.action && data.action === "DrawFileChange" ? "selected" : "")+ ">DrawFileChange</option>" +
                         "<option value='DrawFileAdd' " + (data && data.action && data.action === "DrawFileAdd" ? "selected" : "") + ">DrawFileAdd</option>" +
+                        "<option value='DrawFileChange' " + (data && data.action && data.action === "DrawFileChange" ? "selected" : "")+ ">DrawFileChange</option>" +
                         "<option value='DrawFileDelete' " + (data && data.action && data.action === "DrawFileDelete" ? "selected" : "") + ">DrawFileDelete</option>" +
                       "</select>" +
                       "<label for='webhookAction' style='cursor: default;' title='Trigger function for webhook'>Action <i class='mdi mdi-information mdi-14px'></i></label>" +
-                    "</div>" + 
-                    "<div class='input-field col s7 push-s1' id='webhookUrlEl'>" +
-                        "<label>Valid injectable variables for URL and Body fields: {file_id}, {file_name}, {geojson}</label>" +
                     "</div>" +
-                "</li>" +
-                "<li class='row'>" +
-                    "<div id='webhookTypeEl' class='input-field col s3 push-s1'>" + 
+                    "<div id='webhookTypeEl' class='input-field col s2'>" +
                       "<select class id='webhookType'>" +
                         "<option value='GET'" + (data && data.type && data.type === "GET" ? "selected" : "") + ">GET</option>" +
                         "<option value='POST'" + (data && data.type && data.type  === "POST" ? "selected" : "") + ">POST</option>" +
@@ -103,7 +98,7 @@ function makeWebhookCard(data) {
                       "</select>" +
                       "<label for='webhookType' style='cursor: default;' title='HTTP method to call'>Type <i class='mdi mdi-information mdi-14px'></i></label>" +
                     "</div>" +
-                    "<div class='input-field col s7 push-s1' id='webhookUrlEl'>" +
+                    "<div class='input-field col s7' id='webhookUrlEl'>" +
                         "<input class='validate' id='webhookUrl_" + webhooksCounter + "' type='text'>" +
                         "<label for='webhookUrl'>" +
                             "URL" +
@@ -111,21 +106,26 @@ function makeWebhookCard(data) {
                     "</div>" +
                 "</li>" +
                 "<li class='row'>" +
-                    "<div id='headersEl' class='input-field col s10 push-s1' style='display: block'>" +
+                    "<div id='headersEl' class='input-field col s12' style='display: block'>" +
                       "<label for='webhookHeader' style='cursor: default; top: -1.8rem; font-size: 0.8rem;'>Header</label>" +
                       "<textarea class='webhookHeader' id='webhookHeader_" + webhooksCounter + "'></textarea>" +
                     "</div>" +
                 "</li>" +
                 "<li class='row'>" +
-                    "<div id='bodyEl' class='input-field col s10 push-s1' style='display: block'>" +
+                    "<div id='bodyEl' class='input-field col s12' style='display: block'>" +
                       "<label for='webhookBody' style='cursor: default; top: -1.8rem; font-size: 0.8rem;' title='Uses &#39;{payloadKey}&#39; to inject variables, i.e. { contents: &#39{geojson}&#39 } = { contents: payload.geojson }'>Body <i class='mdi mdi-information mdi-14px'></i></label>" +
                       "<textarea class='webhookBody' id='webhookBody_" + webhooksCounter + "'></textarea>" +
                     "</div>" +
                 "</li>" +
+                "<li class='row'>" +
+                    "<div class='inject-label input-field col s9' id='webhookUrlEl'>" +
+                        "<label>Valid injectable variables for URL and Body fields: {file_id}, {file_name}, {geojson}</label>" +
+                    "</div>" +
+                    "<div class='col s3 push-s1' id='deleteWebhook_" + webhooksCounter +"'>" +
+                        "<a class='btn waves-effect' style='color: black; background: white;'>Delete<i class='mdi mdi-delete mdi-24px' style='float: right; margin-top: 1px;'></i></a>" +
+                    "</div>" +
+                "</li>" +
             "</ul>" +
-            "<div class='row' id='deleteWebhook_" + webhooksCounter +"'>" +
-                "<a class='btn waves-effect col s2 push-s10' style='color: black; background: white;'>Delete<i class='mdi mdi-delete mdi-24px' style='float: right; margin-top: 1px;'></i></a>" +
-            "</div>" +
         "</div>"
     )
 
