@@ -41,16 +41,24 @@ var Webhooks = {
     $(".container_webhooks").css({
       opacity: 1,
       pointerEvents: "inherit",
+      display: "block",
     });
     Keys.destroy();
     Datasets.destroy();
     Geodatasets.destroy();
     $("#missions li.active").removeClass("active");
+    $(".container").css({
+      display: "none",
+    });
   },
   destroy: function () {
     $(".container_webhooks").css({
       opacity: 0,
       pointerEvents: "none",
+      display: "none",
+    });
+    $(".container").css({
+      display: "block",
     });
   },
   refreshNames: function () {

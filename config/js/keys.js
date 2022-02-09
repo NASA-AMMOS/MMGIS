@@ -1,6 +1,6 @@
 var Keys = {
   token: null,
-  init: function() {
+  init: function () {
     // prettier-ignore
     var markup = [
         "<div class='keys'>",
@@ -47,45 +47,53 @@ var Keys = {
 
     $(".keys select").material_select();
 
-    $(".keys_generate").on("click", function() {
+    $(".keys_generate").on("click", function () {
       $.ajax({
         type: calls.longtermtoken_generate.type,
         url: calls.longtermtoken_generate.url,
         data: {
-          period: $("select.keys_generation_period").val()
+          period: $("select.keys_generation_period").val(),
         },
-        success: function(data) {
+        success: function (data) {
           if (data.status === "success") {
             Keys.token = data.body.token;
             $("#keys_token").text(Keys.token);
             $("#keys_examples span").text(Keys.token);
           }
         },
-        error: function(err) {
+        error: function (err) {
           Keys.token = null;
           console.log(err);
-        }
+        },
       });
     });
 
-    $("#keys_token_copy").on("click", function() {
+    $("#keys_token_copy").on("click", function () {
       Keys.copyToClipboard(Keys.token);
     });
   },
-  make: function() {
+  make: function () {
     $(".container_keys").css({
       opacity: 1,
-      pointerEvents: "inherit"
+      pointerEvents: "inherit",
+      display: "block",
     });
     Geodatasets.destroy();
     Datasets.destroy();
     Webhooks.destroy();
     $("#missions li.active").removeClass("active");
+    $(".container").css({
+      display: "none",
+    });
   },
-  destroy: function() {
+  destroy: function () {
     $(".container_keys").css({
       opacity: 0,
-      pointerEvents: "none"
+      pointerEvents: "none",
+      display: "none",
+    });
+    $(".container").css({
+      display: "block",
     });
   },
   copyToClipboard(text) {
@@ -107,9 +115,9 @@ var Keys = {
       document.getSelection().removeAllRanges(); // Unselect everything on the HTML document
       document.getSelection().addRange(selected); // Restore the original selection
     }
-  }
+  },
 };
 
-$(document).ready(function() {
+$(document).ready(function () {
   Keys.init();
 });
