@@ -85,7 +85,7 @@ var Webhooks = {
 function makeWebhookCard(data) {
   // prettier-ignore
   $("#webhooksParent").append(
-        "<div class='card col s12'id='webhook_card_" + webhooksCounter + "' webhookId='" + webhooksCounter + "'>" +
+        "<div class='card col s12' id='webhook_card_" + webhooksCounter + "' webhookId='" + webhooksCounter + "'>" +
             "<ul>" +
                 "<li class='row'>" +
                     "<div id='webhookActionEl' class='input-field col s3'>" +
@@ -187,7 +187,7 @@ function makeWebhookCard(data) {
 
   //Delete webhook button
   $("#deleteWebhook_" + webhooksCounter).on("click", function () {
-    var deleteThis = $(this).parent();
+    var deleteThis = $(this).parent().parent().parent();
     deleteThis.remove();
   });
 
