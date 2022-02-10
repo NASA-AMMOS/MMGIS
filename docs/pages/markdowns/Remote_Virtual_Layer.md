@@ -38,13 +38,15 @@ Here is a template of a GDAL XML Description file that be may used to access a r
     <Cache>
         <!-- set a expiration value to prevent the cached data from filling up local storage -->
         <Expires>604800</Expires>
+        <!-- a directory with write permissions to store cached data; defaults to ./gdalwmscache if not provided -->
+        <Path>./gdalwmscache</Path>
     </Cache>
 </GDAL_WMS>
 ```
 
 ## GDAL Local Caching
 
-If the `<Cache>` tag is included in the XML description file, GDAL will by default create a directory named `gdalwmscache` at the root location of MMGIS. It is highly recommended to include this capability to significantly improve performance. Initial queries to a remote dataset may take several seconds, but subsequent queries that hit the cache are just as fast as accessing a local file.
+If the `<Cache>` tag is included in the XML description file, GDAL will by default create a directory named `gdalwmscache` at the root location of MMGIS (directory must have write permissions for this to work). It is highly recommended to include this capability to significantly improve performance. Initial queries to a remote dataset may take several seconds, but subsequent queries that hit the cache are just as fast as accessing a local file.
 
 ## Remote XML Description File
 
