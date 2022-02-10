@@ -16,6 +16,7 @@ const { sequelize } = require("../../../connection");
 
 const router = express.Router();
 const db = database.db;
+const triggerWebhooks = require("../../Webhooks/processes/triggerwebhooks");
 
 router.post("/", function (req, res, next) {
   res.send("test draw");
@@ -41,6 +42,7 @@ const uniqueAcrossArrays = (arr1, arr2) => {
 
 const pushToHistory = (
   Table,
+  res,
   file_id,
   feature_id,
   feature_idRemove,
@@ -88,6 +90,10 @@ const pushToHistory = (
           Table.create(newHistoryEntry)
             .then((created) => {
               successCallback();
+              triggerWebhooks("drawFileChange", {
+                id: file_id,
+                res,
+              });
               return null;
             })
             .catch((err) => {
@@ -239,6 +245,7 @@ const clipOver = function (
             if (i >= results.length) {
               pushToHistory(
                 Histories,
+                res,
                 req.body.file_id,
                 newIds,
                 oldIds,
@@ -378,6 +385,7 @@ const clipUnder = function (
             if (i >= results.length) {
               pushToHistory(
                 Histories,
+                res,
                 req.body.file_id,
                 newIds,
                 oldIds,
@@ -566,6 +574,7 @@ const add = function (
                   } else {
                     pushToHistory(
                       Histories,
+                      res,
                       req.body.file_id,
                       id,
                       null,
@@ -733,6 +742,7 @@ const edit = function (req, res, successCallback, failureCallback) {
                   if (req.body.to_history) {
                     pushToHistory(
                       Histories,
+                      res,
                       req.body.file_id,
                       created.id,
                       req.body.feature_id,
@@ -844,6 +854,7 @@ router.post("/remove", function (req, res, next) {
           //Table, file_id, feature_id, feature_idRemove, time, undoToTime, action_index
           pushToHistory(
             Histories,
+            res,
             req.body.file_id,
             null,
             req.body.id,
@@ -974,6 +985,7 @@ router.post("/undo", function (req, res, next) {
         .then((r) => {
           pushToHistory(
             Histories,
+            res,
             req.body.file_id,
             null,
             null,
@@ -1112,6 +1124,7 @@ router.post("/merge", function (req, res, next) {
               if (i >= results.length) {
                 pushToHistory(
                   Histories,
+                  res,
                   req.body.file_id,
                   newIds,
                   oldIds,
@@ -1270,6 +1283,7 @@ router.post("/split", function (req, res, next) {
               if (i >= r.length) {
                 pushToHistory(
                   Histories,
+                  res,
                   req.body.file_id,
                   newIds,
                   oldIds,
