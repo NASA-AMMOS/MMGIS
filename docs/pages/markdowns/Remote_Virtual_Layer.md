@@ -4,7 +4,7 @@ A remote virtual layer can be supported via various GDAL drivers. The most commo
 
 ## GDAL XML Desciption File Template
 
-Here is a template of a GDAL XML Description file that be may used to access a remote DEM for the [Measure Tool](?page=Measure).
+Here is a template of a GDAL XML Description file that may be used to access a remote DEM for the [Measure Tool](?page=Measure).
 
 ```xml
 <GDAL_WMS>
@@ -36,7 +36,7 @@ Here is a template of a GDAL XML Description file that be may used to access a r
     <DataType>Float32</DataType>
     <!-- GDAL creates a local cache for faster access; highly recommend to include -->
     <Cache>
-        <!-- set a expiration value to prevent the cached data from filling up local storage -->
+        <!-- set an expiration value to prevent the cached data from filling up local storage -->
         <Expires>604800</Expires>
         <!-- a directory with write permissions to store cached data; defaults to ./gdalwmscache if not provided -->
         <Path>./gdalwmscache</Path>
@@ -70,7 +70,7 @@ A remote XML description file can be specified like this:
 
 Other `vsi*` options exist for commercial cloud storage such as S3: `/vsis3/`
 
-Note: for directly accessing cloud-optimized GeoTIFFs, the XML description file is unecessary and can be bypassed altogether by using the `/vsis3/` prefix and referencing the remote file path.
+Note: for directly accessing cloud-optimized GeoTIFFs, the XML description file is unnecessary and can be bypassed altogether by using the `/vsis3/` prefix and referencing the remote file path.
 
 See GDAL documentation for more information about virtual file systems: https://gdal.org/user/virtual_file_systems.html#network-based-file-systems
 
