@@ -727,7 +727,12 @@ function makeMeasureToolLayer() {
 function makeProfile() {
     var numOfPts = clickedLatLngs.length
     if (numOfPts > 1 && MeasureTool.vars.dem) {
-        var pathDEM = 'Missions/' + L_.mission + '/' + MeasureTool.vars.dem
+        // enable remote access via GDAL Virtual File Systems /vsi* prefix 
+        if (MeasureTool.vars.dem.startsWith('/vsi')) {
+            var pathDEM = MeasureTool.vars.dem
+        } else {
+            var pathDEM = 'Missions/' + L_.mission + '/' + MeasureTool.vars.dem
+        }
         //elevPoints.push([{"x": clickedLatLngs[numOfPts - 2].x, "y": clickedLatLngs[numOfPts - 2].y}, {"x": clickedLatLngs[numOfPts - 1].x, "y": clickedLatLngs[numOfPts - 1].y}]);
         elevPoints = [
             {
