@@ -618,7 +618,7 @@ var L_ = {
         } catch (err) {}
     },
     setActiveFeature(layer) {
-        if (layer.feature && layer.options?.layerName)
+        if (layer && layer.feature && layer.options?.layerName)
             L_.activeFeature = {
                 feature: layer.feature,
                 layerName: layer.options.layerName,
@@ -632,18 +632,21 @@ var L_ = {
         L_.Map_.activeLayer = layer
         Description.updatePoint(L_.Map_.activeLayer)
 
-        L_.Globe_.highlight(
-            L_.Globe_.findSpriteObject(
-                layer.options.layerName,
-                layer.feature.properties[layer.useKeyAsName]
-            ),
-            false
-        )
-        L_.Viewer_.highlight(layer)
+        if (layer) {
+            L_.Globe_.highlight(
+                L_.Globe_.findSpriteObject(
+                    layer.options.layerName,
+                    layer.feature.properties[layer.useKeyAsName]
+                ),
+                false
+            )
+            L_.Viewer_.highlight(layer)
+        }
 
         ToolController_.notifyActiveTool('setActiveFeature', L_.activeFeature)
     },
     highlight(layer) {
+        if (layer == null) return
         const color =
             (L_.configData.look && L_.configData.look.highlightcolor) || 'red'
         try {
@@ -1159,11 +1162,14 @@ var L_ = {
      * @param {object} layer - leaflet layer object
      */
     setLastActivePoint: function (layer) {
-        var layerName = layer.hasOwnProperty('options')
-            ? layer.options.layerName
-            : null
-        var lat = layer.hasOwnProperty('_latlng') ? layer._latlng.lat : null
-        var lon = layer.hasOwnProperty('_latlng') ? layer._latlng.lng : null
+        let layerName, lat, lon
+        if (layer) {
+            layerName = layer.hasOwnProperty('options')
+                ? layer.options.layerName
+                : null
+            lat = layer.hasOwnProperty('_latlng') ? layer._latlng.lat : null
+            lon = layer.hasOwnProperty('_latlng') ? layer._latlng.lng : null
+        }
 
         if (layerName != null && lat != null && layerName != null) {
             L_.lastActivePoint = {

@@ -884,7 +884,7 @@ function makeLayerBarAndModal(d, level) {
       dataSel = "selected";
       break;
     case "query":
-      barColor = "#0fbd4d";
+      barColor = "#62bd0f";
       querySel = "selected";
       break;
     case "vector":

@@ -34,8 +34,11 @@ var Formulae_ = {
         }
     },
     getExtension: function (string) {
-        var ex = /(?:\.([^.]+))?$/.exec(string)[1]
+        const ex = /(?:\.([^.]+))?$/.exec(string)[1]
         return ex || ''
+    },
+    fileNameFromPath: function (path) {
+        return path.replace(/^.*[\\\/]/, '').replace(/\.[^/.]+$/, '')
     },
     pad: function (num, size) {
         let s = '000000000000000000000000000000' + num

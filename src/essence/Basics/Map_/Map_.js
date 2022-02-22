@@ -1309,9 +1309,7 @@ function clearOnMapClick(event) {
 
         // If no feature was selected by this click event, clear the currently selected item
         if (!found) {
-            Map_.activeLayer = null
-            L_.resetLayerFills()
-            L_.clearVectorLayerInfo()
+            L_.setActiveFeature(null)
         }
     }
 }
