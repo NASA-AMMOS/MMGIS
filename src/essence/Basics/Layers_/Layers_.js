@@ -193,17 +193,33 @@ var L_ = {
                     L_.Map_.map.removeLayer(L_.layersGroup[s.name])
                     if (L_.layersGroupSublayers[s.name]) {
                         for (let sub in L_.layersGroupSublayers[s.name]) {
-                            if (
-                                L_.layersGroupSublayers[s.name][sub].type ===
-                                'model'
-                            ) {
-                                L_.Globe_.litho.removeLayer(
-                                    L_.layersGroupSublayers[s.name][sub].layerId
-                                )
-                            } else {
-                                L_.Map_.rmNotNull(
-                                    L_.layersGroupSublayers[s.name][sub].layer
-                                )
+                            switch (L_.layersGroupSublayers[s.name][sub].type) {
+                                case 'model':
+                                    L_.Globe_.litho.removeLayer(
+                                        L_.layersGroupSublayers[s.name][sub]
+                                            .layerId
+                                    )
+                                    break
+                                case 'uncertainty_ellipses':
+                                    L_.Globe_.litho.removeLayer(
+                                        L_.layersGroupSublayers[s.name][sub]
+                                            .curtainLayerId
+                                    )
+                                    L_.Globe_.litho.removeLayer(
+                                        L_.layersGroupSublayers[s.name][sub]
+                                            .clampedLayerId
+                                    )
+                                    L_.Map_.rmNotNull(
+                                        L_.layersGroupSublayers[s.name][sub]
+                                            .layer
+                                    )
+                                    break
+                                default:
+                                    L_.Map_.rmNotNull(
+                                        L_.layersGroupSublayers[s.name][sub]
+                                            .layer
+                                    )
+                                    break
                             }
                         }
                     }
@@ -216,27 +232,52 @@ var L_ = {
                     if (L_.layersGroupSublayers[s.name]) {
                         for (let sub in L_.layersGroupSublayers[s.name]) {
                             if (L_.layersGroupSublayers[s.name][sub].on) {
-                                if (
-                                    L_.layersGroupSublayers[s.name][sub]
-                                        .type === 'model'
+                                switch (
+                                    L_.layersGroupSublayers[s.name][sub].type
                                 ) {
-                                    L_.Globe_.litho.addLayer(
-                                        'model',
-                                        L_.layersGroupSublayers[s.name][sub]
-                                            .modelOptions
-                                    )
-                                } else {
-                                    L_.Map_.map.addLayer(
-                                        L_.layersGroupSublayers[s.name][sub]
-                                            .layer
-                                    )
-                                    L_.layersGroupSublayers[s.name][
-                                        sub
-                                    ].layer.setZIndex(
-                                        L_.layersOrdered.length +
-                                            1 -
-                                            L_.layersOrdered.indexOf(s.name)
-                                    )
+                                    case 'model':
+                                        L_.Globe_.litho.addLayer(
+                                            'model',
+                                            L_.layersGroupSublayers[s.name][sub]
+                                                .modelOptions
+                                        )
+                                        break
+                                    case 'uncertainty_ellipses':
+                                        L_.Globe_.litho.addLayer(
+                                            'curtain',
+                                            L_.layersGroupSublayers[s.name][sub]
+                                                .curtainOptions
+                                        )
+                                        L_.Globe_.litho.addLayer(
+                                            'clamped',
+                                            L_.layersGroupSublayers[s.name][sub]
+                                                .clampedOptions
+                                        )
+                                        L_.Map_.map.addLayer(
+                                            L_.layersGroupSublayers[s.name][sub]
+                                                .layer
+                                        )
+                                        L_.layersGroupSublayers[s.name][
+                                            sub
+                                        ].layer.setZIndex(
+                                            L_.layersOrdered.length +
+                                                1 -
+                                                L_.layersOrdered.indexOf(s.name)
+                                        )
+                                        break
+                                    default:
+                                        L_.Map_.map.addLayer(
+                                            L_.layersGroupSublayers[s.name][sub]
+                                                .layer
+                                        )
+                                        L_.layersGroupSublayers[s.name][
+                                            sub
+                                        ].layer.setZIndex(
+                                            L_.layersOrdered.length +
+                                                1 -
+                                                L_.layersOrdered.indexOf(s.name)
+                                        )
+                                        break
                                 }
                             }
                         }
@@ -387,22 +428,49 @@ var L_ = {
         const sublayer = sublayers[sublayerName]
         if (sublayer) {
             if (sublayer.on === true) {
-                if (sublayer.type === 'model') {
-                    L_.Globe_.litho.removeLayer(sublayer.layerId)
-                } else {
-                    L_.Map_.rmNotNull(sublayer.layer)
+                switch (sublayer.type) {
+                    case 'model':
+                        L_.Globe_.litho.removeLayer(sublayer.layerId)
+                        break
+                    case 'uncertainty_ellipses':
+                        L_.Globe_.litho.removeLayer(sublayer.curtainLayerId)
+                        L_.Globe_.litho.removeLayer(sublayer.clampedLayerId)
+                        L_.Map_.rmNotNull(sublayer.layer)
+                        break
+                    default:
+                        L_.Map_.rmNotNull(sublayer.layer)
+                        break
                 }
                 sublayer.on = false
             } else {
-                if (sublayer.type === 'model') {
-                    L_.Globe_.litho.addLayer('model', sublayer.modelOptions)
-                } else {
-                    L_.Map_.map.addLayer(sublayer.layer)
-                    sublayer.layer.setZIndex(
-                        L_.layersOrdered.length +
-                            1 -
-                            L_.layersOrdered.indexOf(layerName)
-                    )
+                switch (sublayer.type) {
+                    case 'model':
+                        L_.Globe_.litho.addLayer('model', sublayer.modelOptions)
+                        break
+                    case 'uncertainty_ellipses':
+                        L_.Globe_.litho.addLayer(
+                            'curtain',
+                            sublayer.curtainOptions
+                        )
+                        L_.Globe_.litho.addLayer(
+                            'clamped',
+                            sublayer.clampedOptions
+                        )
+                        L_.Map_.map.addLayer(sublayer.layer)
+                        sublayer.layer.setZIndex(
+                            L_.layersOrdered.length +
+                                1 -
+                                L_.layersOrdered.indexOf(layerName)
+                        )
+                        break
+                    default:
+                        L_.Map_.map.addLayer(sublayer.layer)
+                        sublayer.layer.setZIndex(
+                            L_.layersOrdered.length +
+                                1 -
+                                L_.layersOrdered.indexOf(layerName)
+                        )
+                        break
                 }
                 sublayer.on = true
             }
@@ -472,13 +540,27 @@ var L_ = {
                                         L_.layersData[i].name
                                     ][s]
                                 if (sublayer.on) {
-                                    if (sublayer.type === 'model') {
-                                        L_.Globe_.litho.addLayer(
-                                            'model',
-                                            sublayer.modelOptions
-                                        )
-                                    } else {
-                                        map.addLayer(sublayer.layer)
+                                    switch (sublayer.type) {
+                                        case 'model':
+                                            L_.Globe_.litho.addLayer(
+                                                'model',
+                                                sublayer.modelOptions
+                                            )
+                                            break
+                                        case 'uncertainty_ellipses':
+                                            L_.Globe_.litho.addLayer(
+                                                'curtain',
+                                                sublayer.curtainOptions
+                                            )
+                                            L_.Globe_.litho.addLayer(
+                                                'clamped',
+                                                sublayer.clampedOptions
+                                            )
+                                            map.addLayer(sublayer.layer)
+                                            break
+                                        default:
+                                            map.addLayer(sublayer.layer)
+                                            break
                                     }
                                 }
                             }

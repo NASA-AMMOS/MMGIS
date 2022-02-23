@@ -140,6 +140,8 @@ Example:
           "angleProp": "path.to.angle.prop",
           "angleUnit": "deg || rad",
           "color": "#888888",
+          "color3d": "#FFFF00",
+          "depth3d": 8
         },
         "image": {
           "initialVisibility": true,
@@ -210,6 +212,8 @@ Example:
     - `angleProp`: Prop path to the rotation of the ellipse.
     - `angleUnit`: "deg || rad"
     - `color`: A css fill color. Will be made more transparent than set.
+    - `color3d`: 3d analogy for `color`.
+    - `depth3d`: Depth in meters for 3d ellipse curve.
   - `image`: Places a scaled and orientated image under each marker. A sublayer.
     - `initialVisibility`: Whether the image sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.
     - `path`: A url to a (preferably) top-down north-facing orthographic image.
