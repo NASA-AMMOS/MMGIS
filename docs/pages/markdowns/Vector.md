@@ -211,9 +211,14 @@ Example:
     - `axisUnit`: "meters || kilometers",
     - `angleProp`: Prop path to the rotation of the ellipse.
     - `angleUnit`: "deg || rad"
-    - `color`: A css fill color. Will be made more transparent than set.
-    - `color3d`: 3d analogy for `color`.
-    - `depth3d`: Depth in meters for 3d ellipse curve.
+    - `color`: A css fill color. Will be made more transparent than set. Default 'white'
+    - `fillOpacity`: Map and clamped ellipse fill opacity. 0 to 1. Default 0.25
+    - `strokeColor`: Map and clamped ellipse stroke/border color. Default 'black'
+    - `weight`: Map and clamped ellipse stroke/border weight/thickness. Default 1
+    - `opacity`: Overall Map and clamped ellipse opacity. Default 0.8
+    - `color3d`: 3d curtain ellipse color. Can be an array for a vertical gradient: ["rgba(0,0,0,0)", "#26A8FF"]
+    - `depth3d`: Depth in meters for 3d ellipse curve. Default 2
+    - `opacity3d`: 3d curtain ellipse opacity
   - `image`: Places a scaled and orientated image under each marker. A sublayer.
     - `initialVisibility`: Whether the image sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.
     - `path`: A url to a (preferably) top-down north-facing orthographic image.
