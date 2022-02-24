@@ -41,6 +41,10 @@ import Detector from './external/THREE/Detector'
 import VRControls from './external/THREE/VRControls'
 import ThreeAR from './external/THREE/three.ar'
 
+import OpenSeadragon from './external/OpenSeadragon/openseadragon'
+import fabricOverlay from './external/OpenSeadragon/openseadragon-fabricjs-overlay'
+import fabricA from './external/OpenSeadragon/fabric.adapted'
+
 import './fonts/materialdesignicons/css/materialdesignicons.min.css'
 import './external/Leaflet/leaflet1.5.1.css'
 import './external/Leaflet/leaflet.draw.css'

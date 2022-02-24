@@ -78,6 +78,7 @@ var L_ = {
     searchFile: null,
     toolsLoaded: false,
     addedfiles: {}, //filename -> null (not null if added)
+    activeFeature: null,
     lastActivePoint: {
         layerName: null,
         lat: null,
@@ -133,6 +134,7 @@ var L_ = {
         L_.searchStrings = null
         L_.searchFile = null
         L_.toolsLoaded = false
+        L_.activeFeature = null
         L_.lastActivePoint = {
             layerName: null,
             lat: null,
@@ -408,24 +410,30 @@ var L_ = {
             }
         }
     },
-    disableAllBut: function (name, skipDisabling) {
-        if (L_.layersNamed.hasOwnProperty(name)) {
-            var l
+    disableAllBut: function (siteName, skipDisabling) {
+        if (L_.layersNamed.hasOwnProperty(siteName)) {
+            let l
             if (skipDisabling !== true) {
-                for (var i = 0; i < L_.layersData.length; i++) {
+                for (let i = 0; i < L_.layersData.length; i++) {
                     l = L_.layersData[i]
                     if (L_.toggledArray[l.name] == true) {
-                        L_.toggleLayer(l)
+                        if (l.name != 'Mars Overview') L_.toggleLayer(l)
+                    }
+                    if (L_.toggledArray['Mars Overview'] === false) {
+                        if (l.name === 'Mars Overview') L_.toggleLayer(l)
                     }
                 }
             }
-            for (var i = 0; i < L_.layersData.length; i++) {
-                l = L_.layersData[i]
-                if (L_.toggledArray[l.name] == false) {
-                    if (l.name == name) L_.toggleLayer(l)
-                }
-                if (L_.toggledArray['Mars Overview'] == false) {
-                    if (l.name == 'Mars Overview') L_.toggleLayer(l)
+
+            for (let n in L_.layersParent) {
+                if (L_.layersParent[n] === siteName && L_.layersDataByName[n]) {
+                    l = L_.layersDataByName[n]
+                    if (
+                        l.visibility === true && // initial visibility
+                        L_.toggledArray[l.name] === false
+                    ) {
+                        L_.toggleLayer(l)
+                    }
                 }
             }
         }
@@ -564,40 +572,42 @@ var L_ = {
                         },
                     })
                 } else if (L_.layersData[i].type != 'header') {
-                    L_.Globe_.litho.addLayer(
-                        L_.layersData[i].type == 'vector'
-                            ? 'clamped'
-                            : L_.layersData[i].type,
-                        {
-                            name: s.name,
-                            order: 1000 - L_.layersIndex[s.name], // Since higher order in litho is on top
-                            on: L_.opacityArray[s.name] ? true : false,
-                            geojson: L_.layersGroup[s.name].toGeoJSON(),
-                            onClick: (feature, lnglat, layer) => {
-                                this.selectFeature(layer.name, feature)
-                            },
-                            useKeyAsHoverName: s.useKeyAsName,
-                            style: {
-                                // Prefer feature[f].properties.style values
-                                letPropertiesStyleOverride: true, // default false
-                                default: {
-                                    fillColor: s.style.fillColor, //Use only rgb and hex. No css color names
-                                    fillOpacity: parseFloat(
-                                        s.style.fillOpacity
-                                    ),
-                                    color: s.style.color,
-                                    weight: s.style.weight,
-                                    radius: s.radius,
+                    if (typeof L_.layersGroup[s.name].toGeoJSON === 'function')
+                        L_.Globe_.litho.addLayer(
+                            L_.layersData[i].type == 'vector'
+                                ? 'clamped'
+                                : L_.layersData[i].type,
+                            {
+                                name: s.name,
+                                order: 1000 - L_.layersIndex[s.name], // Since higher order in litho is on top
+                                on: L_.opacityArray[s.name] ? true : false,
+                                geojson: L_.layersGroup[s.name].toGeoJSON(),
+                                onClick: (feature, lnglat, layer) => {
+                                    this.selectFeature(layer.name, feature)
                                 },
-                                bearing: s.variables?.markerAttachments?.bearing
-                                    ? s.variables.markerAttachments.bearing
-                                    : null,
-                            },
-                            opacity: L_.opacityArray[s.name],
-                            minZoom: 0, //s.minZoom,
-                            maxZoom: 100, //s.maxNativeZoom,
-                        }
-                    )
+                                useKeyAsHoverName: s.useKeyAsName,
+                                style: {
+                                    // Prefer feature[f].properties.style values
+                                    letPropertiesStyleOverride: true, // default false
+                                    default: {
+                                        fillColor: s.style.fillColor, //Use only rgb and hex. No css color names
+                                        fillOpacity: parseFloat(
+                                            s.style.fillOpacity
+                                        ),
+                                        color: s.style.color,
+                                        weight: s.style.weight,
+                                        radius: s.radius,
+                                    },
+                                    bearing: s.variables?.markerAttachments
+                                        ?.bearing
+                                        ? s.variables.markerAttachments.bearing
+                                        : null,
+                                },
+                                opacity: L_.opacityArray[s.name],
+                                minZoom: 0, //s.minZoom,
+                                maxZoom: 100, //s.maxNativeZoom,
+                            }
+                        )
                 }
             }
         }
@@ -607,23 +617,36 @@ var L_ = {
             layer.setStyle(newStyle)
         } catch (err) {}
     },
-    select(layer) {
+    setActiveFeature(layer) {
+        if (layer && layer.feature && layer.options?.layerName)
+            L_.activeFeature = {
+                feature: layer.feature,
+                layerName: layer.options.layerName,
+                layer: layer,
+            }
+        else L_.activeFeature = null
+
         L_.setLastActivePoint(layer)
         L_.resetLayerFills()
         L_.highlight(layer)
         L_.Map_.activeLayer = layer
         Description.updatePoint(L_.Map_.activeLayer)
 
-        L_.Globe_.highlight(
-            L_.Globe_.findSpriteObject(
-                layer.options.layerName,
-                layer.feature.properties[layer.useKeyAsName]
-            ),
-            false
-        )
-        L_.Viewer_.highlight(layer)
+        if (layer) {
+            L_.Globe_.highlight(
+                L_.Globe_.findSpriteObject(
+                    layer.options.layerName,
+                    layer.feature.properties[layer.useKeyAsName]
+                ),
+                false
+            )
+            L_.Viewer_.highlight(layer)
+        }
+
+        ToolController_.notifyActiveTool('setActiveFeature', L_.activeFeature)
     },
     highlight(layer) {
+        if (layer == null) return
         const color =
             (L_.configData.look && L_.configData.look.highlightcolor) || 'red'
         try {
@@ -1139,11 +1162,14 @@ var L_ = {
      * @param {object} layer - leaflet layer object
      */
     setLastActivePoint: function (layer) {
-        var layerName = layer.hasOwnProperty('options')
-            ? layer.options.layerName
-            : null
-        var lat = layer.hasOwnProperty('_latlng') ? layer._latlng.lat : null
-        var lon = layer.hasOwnProperty('_latlng') ? layer._latlng.lng : null
+        let layerName, lat, lon
+        if (layer) {
+            layerName = layer.hasOwnProperty('options')
+                ? layer.options.layerName
+                : null
+            lat = layer.hasOwnProperty('_latlng') ? layer._latlng.lat : null
+            lon = layer.hasOwnProperty('_latlng') ? layer._latlng.lng : null
+        }
 
         if (layerName != null && lat != null && layerName != null) {
             L_.lastActivePoint = {

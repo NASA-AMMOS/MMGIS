@@ -158,7 +158,7 @@ var mmgisAPI_ = {
 
         return null
     },
-    // Returns an object with the visiblity state of all layers
+    // Returns an object with the visibility state of all layers
     getVisibleLayers: function () {
         // Also return the visibility of the DrawTool layers
         var drawToolVisibility = {}
@@ -362,7 +362,7 @@ var mmgisAPI = {
      */
     getActiveFeature: mmgisAPI_.getActiveFeature,
 
-    /** getVisibleLayers - returns an object with the visiblity state of all layers
+    /** getVisibleLayers - returns an object with the visibility state of all layers
      * @returns {object} - an object containing the visibility state of each layer
      */
     getVisibleLayers: mmgisAPI_.getVisibleLayers,

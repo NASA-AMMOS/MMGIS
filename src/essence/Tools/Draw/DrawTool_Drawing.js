@@ -416,6 +416,7 @@ var drawing = {
             }
 
             d.lastVertex = e.latlng
+            d.shape = d.drawing._poly
         },
         complete: function () {
             var d = drawing.polygon
@@ -483,7 +484,7 @@ var drawing = {
                 }
             }
 
-            d.shape = d.drawing._poly
+            d.shape = d.drawing._poly || d.shape
         },
         stop: function () {
             var d = drawing.polygon
@@ -604,6 +605,7 @@ var drawing = {
             }
 
             d.lastVertex = e.latlng
+            d.shape = d.drawing._poly
         },
         complete: function () {
             var d = drawing.line
@@ -670,7 +672,7 @@ var drawing = {
                 }
             }
 
-            d.shape = d.drawing._poly
+            d.shape = d.drawing._poly || d.shape
         },
         stop: function () {
             var d = drawing.line

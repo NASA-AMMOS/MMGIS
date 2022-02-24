@@ -722,7 +722,9 @@
                     readField(tag, result, this$1)
 
                     if (this$1.pos === startPos) {
-                        this$1.skip(val)
+                        try {
+                            this$1.skip(val)
+                        } catch (err) {}
                     }
                 }
                 return result
@@ -2434,9 +2436,8 @@
                                 var styleOptions = layerStyle
                                 if (storeFeatures) {
                                     id = this.options.getFeatureId(feat)
-                                    var styleOverride = this._overriddenStyles[
-                                        id
-                                    ]
+                                    var styleOverride =
+                                        this._overriddenStyles[id]
                                     if (styleOverride) {
                                         if (styleOverride[layerName]) {
                                             styleOptions =
@@ -2942,8 +2943,9 @@
                             for (var lvid in this._map._layers[id]._vectorTiles[
                                 vid
                             ]._layers) {
-                                layer = this._map._layers[id]._vectorTiles[vid]
-                                    ._layers[lvid]
+                                layer =
+                                    this._map._layers[id]._vectorTiles[vid]
+                                        ._layers[lvid]
                                 if (
                                     layer._pxBounds.min.x <= point.x &&
                                     layer._pxBounds.max.x >= point.x &&
@@ -2952,8 +2954,8 @@
                                     !this._map._draggableMoved(layer)
                                 ) {
                                     clickedLayer = layer
-                                    layerName = this._map._layers[id].options
-                                        .layerName
+                                    layerName =
+                                        this._map._layers[id].options.layerName
                                 }
                             }
                         }
