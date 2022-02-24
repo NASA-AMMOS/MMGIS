@@ -329,6 +329,87 @@ export const constructSublayers = (geojson, layerObj) => {
         layerObj,
         'variables.markerAttachments.uncertainty'
     )
+    let uncertaintyStyle
+    let curtainUncertaintyOptions
+    let clampedUncertaintyOptions
+    if (uncertaintyVar) {
+        uncertaintyStyle = {
+            fillOpacity: uncertaintyVar.fillOpacity || 0.25,
+            fillColor: uncertaintyVar.color || 'white',
+            color: uncertaintyVar.strokeColor || 'black',
+            weight: uncertaintyVar.weight || 1,
+            opacity: uncertaintyVar.opacity || 0.8,
+            className: 'noPointerEventsImportant',
+        }
+        // For Globe Curtains
+        const uncertaintyEllipseFeatures = []
+        const depth3d = uncertaintyVar.depth3d || 2
+        geojson.features.forEach((f) => {
+            let uncertaintyAngle = parseFloat(
+                F_.getIn(f.properties, uncertaintyVar.angleProp, 0)
+            )
+            if (uncertaintyVar.angleUnit === 'rad')
+                uncertaintyAngle = uncertaintyAngle * (180 / Math.PI)
+
+            if (f.geometry.type === 'Point') {
+                const feature = F_.toEllipse(
+                    {
+                        lat: f.geometry.coordinates[1],
+                        lng: f.geometry.coordinates[0],
+                    },
+                    {
+                        x: F_.getIn(f.properties, uncertaintyVar.xAxisProp, 1),
+                        y: F_.getIn(f.properties, uncertaintyVar.yAxisProp, 1),
+                    },
+                    window.mmgisglobal.customCRS,
+                    {
+                        units: uncertaintyVar.axisUnits || 'meters',
+                        steps: 32,
+                        angle: uncertaintyAngle,
+                    }
+                )
+                for (
+                    let i = 0;
+                    i < feature.geometry.coordinates[0].length;
+                    i++
+                ) {
+                    feature.geometry.coordinates[0][i][2] =
+                        f.geometry.coordinates[2] + depth3d
+                }
+                uncertaintyEllipseFeatures.push(feature)
+            }
+        })
+
+        curtainUncertaintyOptions = {
+            name: `markerAttachmentUncertainty_${layerObj.name}Curtain`,
+            on: true,
+            opacity: uncertaintyVar.opacity3d || 0.5,
+            imageColor:
+                uncertaintyVar.color3d || uncertaintyVar.color || '#FFFF00',
+            depth: depth3d + 1,
+            geojson: {
+                type: 'FeatureCollection',
+                features: uncertaintyEllipseFeatures,
+            },
+        }
+        clampedUncertaintyOptions = {
+            name: `markerAttachmentUncertainty_${layerObj.name}Clamped`,
+            on: true,
+            order: -9999,
+            opacity: 1,
+            minZoom: 0,
+            maxZoom: 100,
+            geojson: {
+                type: 'FeatureCollection',
+                features: uncertaintyEllipseFeatures,
+            },
+            style: {
+                default: uncertaintyStyle,
+            },
+        }
+    }
+
+    // For Leaflet
     const leafletLayerObjectUncertaintyEllipse = {
         pointToLayer: (feature, latlong) => {
             // Marker Attachment Uncertainty
@@ -362,18 +443,12 @@ export const constructSublayers = (geojson, layerObj) => {
             )
 
             uncertaintyEllipse = L.geoJSON(uncertaintyEllipse, {
-                style: {
-                    fillOpacity: 0.25,
-                    fillColor: uncertaintyVar.color || 'white',
-                    color: 'black',
-                    weight: 1,
-                    opacity: 0.8,
-                    className: 'noPointerEventsImportant',
-                },
+                style: uncertaintyStyle,
             })
             return uncertaintyEllipse
         },
     }
+
     // IMAGE
     const imageVar = F_.getIn(layerObj, 'variables.markerAttachments.image')
     const imageShow = F_.getIn(
@@ -612,18 +687,25 @@ export const constructSublayers = (geojson, layerObj) => {
     }
 
     const sublayers = {
-        uncertainty_ellipses: uncertaintyVar
-            ? {
-                  on:
-                      uncertaintyVar.initialVisibility != null
-                          ? uncertaintyVar.initialVisibility
-                          : true,
-                  layer: L.geoJson(
-                      geojson,
-                      leafletLayerObjectUncertaintyEllipse
-                  ),
-              }
-            : false,
+        uncertainty_ellipses:
+            uncertaintyVar && curtainUncertaintyOptions
+                ? {
+                      on:
+                          uncertaintyVar.initialVisibility != null
+                              ? uncertaintyVar.initialVisibility
+                              : true,
+                      type: 'uncertainty_ellipses',
+                      curtainLayerId: curtainUncertaintyOptions.name,
+                      curtainOptions: curtainUncertaintyOptions,
+                      clampedLayerId: clampedUncertaintyOptions.name,
+                      clampedOptions: clampedUncertaintyOptions,
+                      geojson: geojson,
+                      layer: L.geoJson(
+                          geojson,
+                          leafletLayerObjectUncertaintyEllipse
+                      ),
+                  }
+                : false,
         image_overlays:
             imageVar && imageShow === 'always'
                 ? {
