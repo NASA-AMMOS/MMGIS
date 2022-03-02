@@ -1584,6 +1584,252 @@ var L_ = {
             )
         }
     },
+    trimLineString: function (layerName, startTimeData, endTimeData, trimN, trimDirection) {
+        // Validate input parameter
+        if (!startTimeData || !endTimeData) {
+            console.warn(
+                'Warning: Unable to trim the LineString in vector layer `' +
+                    layerName +
+                    '` as either startTimeData or  endTimeData is invalid'
+            )
+            return
+        }
+
+        const TRIM_DIRECTION = [ 'start', 'end' ]
+        const trimNum = parseInt(trimN)
+        if (Number.isNaN(Number(trimNum))) {
+            console.warn(
+                'Warning: Unable to trim the LineString in vector layer `' +
+                    layerName +
+                    '` as trimN == ' +
+                    trimN +
+                    ' and is not a valid integer'
+            )
+            return
+        }
+
+        if (!TRIM_DIRECTION.includes(trimDirection)) {
+            console.warn(
+                'Warning: Unable to trim the LineString in vector layer `' +
+                    layerName +
+                    '` as trimDirection == ' +
+                    trimDirection +
+                    ' and is not a valid input value'
+            )
+            return
+        }
+
+        const TIME_KEYS = [ 'key', 'newTime' ]
+        const TIME_DATA = {
+            startTimeData: startTimeData || null,
+            endTimeData: endTimeData || null,
+        }
+        const TIME_DATA_KEYS = Object.keys(TIME_DATA)
+
+        for (let x = 0; x < TIME_DATA_KEYS.length; x++) {
+            if (TIME_DATA[TIME_DATA_KEYS[x]]) {
+                const keys = Object.keys(TIME_DATA[TIME_DATA_KEYS[x]])
+
+                // If time data contains any extra keys
+                const diffExtra = keys.filter(x => !TIME_KEYS.includes(x))
+                if (diffExtra.length > 0) {
+                    console.warn(
+                        'Warning: Unable to trim the LineString in vector layer `' +
+                            layerName +
+                            '` as the parameter \'' + TIME_DATA_KEYS[x] +
+                            '\' contains ' + (diffExtra.length > 1 ? 'extra keys' : 'an extra key') +
+                            ': ' + diffExtra.join(', ')
+                    )
+                    return
+                }
+
+                // If time data is missing any required keys
+                const diffMissing = TIME_KEYS.filter(x => !keys.includes(x))
+                if (diffMissing.length > 0) {
+                    console.warn(
+                        'Warning: Unable to trim the LineString in vector layer `' +
+                            layerName +
+                            '` as the parameter \'' + TIME_DATA_KEYS[x] +
+                            '\' is missing ' + (diffMissing.length > 1 ? 'keys' : 'a key') +
+                            ': ' + diffMissing.join(', ')
+                    )
+                    return
+                }
+            }
+        }
+
+        if (layerName in L_.layersGroup) {
+            const updateLayer = L_.layersGroup[layerName]
+
+            var layers = updateLayer.getLayers()
+            var layersGeoJSON = updateLayer.toGeoJSON()
+            var features = layersGeoJSON.features
+
+            // All of the features have to be a LineString
+            const findNonLineString = features.filter(feature => {
+                return feature.geometry.type !== 'LineString'
+            })
+
+            if (findNonLineString.length > 0) {
+                console.warn(
+                    'Warning: Unable to trim the vector layer `' +
+                        layerName +
+                        '` as the features contain geometry that is not LineString'
+                )
+                return
+            }
+
+            // Get the start and end time across all features in the layer
+            if (features.length > 0) {
+                var layerStartTimeAsDate = null
+                var layerEndTimeAsDate = null
+                var newStartTimeAsDate = null
+                var newEndTimeAsDate = null
+                if (startTimeData) {
+                    const layerStartTime = features[0].properties[startTimeData.key]
+
+                    // Original time
+                    layerStartTimeAsDate = new Date(layerStartTime)
+                    // New time
+                    newStartTimeAsDate = new Date(startTimeData.newTime)
+
+                    if (isNaN(newStartTimeAsDate.getTime())) {
+                        console.warn(
+                            'Warning: The input for newTime in startTimeData' +
+                                'is invalid: ' +
+                                startTimeData.newTime
+                        )
+                        return
+                    }
+                }
+
+                if (endTimeData) {
+                    const layerEndTime = features[features.length - 1].properties[endTimeData.key]
+
+                    // Original time
+                    layerEndTimeAsDate = new Date(layerEndTime)
+
+                    // New time
+                    newEndTimeAsDate = new Date(endTimeData.newTime)
+
+                    if (isNaN(newEndTimeAsDate.getTime())) {
+                        console.warn(
+                            'Warning: The input for newTime in startTimeData' +
+                                'is invalid: ' +
+                                endTimeData.newTime
+                        )
+                        return
+                    }
+                }
+
+                // Trim only if the new start time is after the layer start time
+                if (trimDirection === 'start' && layerStartTimeAsDate < newStartTimeAsDate && trimNum > 0) {
+                    // If trimming from the beginning, make sure the key for the end start time property exists
+                    if (!endTimeData.key) {
+                        console.warn(
+                            'Warning: Unable to trim vector layer `' +
+                                + layerName +
+                                '` as the key in endTimeData is invalid: ' +
+                                + endTimeData.key
+                        )
+                    }
+
+                    var leftToTrim = trimNum;
+                    var updatedFeatures = [];
+                    // Walk forwards to find the new time
+                    while (features.length > 0) {
+                        const feature = features[0]
+                        // If the feature is missing the key for the start/end time
+                        if (!feature.properties.hasOwnProperty(startTimeData.key) || !feature.properties.hasOwnProperty(endTimeData.key)) {
+                            console.warn(
+                                'Warning: Unable to trim the vector layer `' +
+                                    layerName +
+                                    '` as the the feature\'s properties object is missing the key for the start and/or end time'
+                            )
+                            return
+                        }
+
+                        const featureDate = new Date(feature.properties[startTimeData.key])
+                        // If the number to trim is greater than the number of vertices in the current feature,
+                        // trim the entire feature and move on to the next feature
+                        if (leftToTrim >= feature.geometry.coordinates.length) {
+                            leftToTrim -= feature.geometry.coordinates.length
+                            features.shift()
+                            continue
+                        }
+
+                        // Trim
+                        if (leftToTrim > 0) {
+                            feature.geometry.coordinates = feature.geometry.coordinates.slice(leftToTrim)
+                            leftToTrim -= trimNum
+                        }
+
+                        if (leftToTrim <= 0) {
+                            feature.properties[startTimeData.key] = startTimeData.newTime
+                        }
+
+                        updatedFeatures.push(feature)
+                        features.shift()
+                    }
+                    layersGeoJSON.features = updatedFeatures
+                }
+
+                // Trim only if the new end time is before the layer end time
+                if (trimDirection === 'end' && layerEndTimeAsDate > newEndTimeAsDate && trimNum > 0) {
+                    var leftToTrim = trimNum;
+                    var updatedFeatures = [];
+                    // Walk backwards to find the new time
+                    while (features.length > 0) {
+                        const feature = features[features.length - 1]
+                        // If the feature is missing the key for the end time
+                        if (!feature.properties.hasOwnProperty(endTimeData.key)) {
+                            console.warn(
+                                'Warning: Unable to trim the vector layer `' +
+                                    layerName +
+                                    '` as the the feature\'s properties object is missing the key `' +
+                                     endTimeData.key + '` for the end time'
+                            )
+                            return
+                        }
+
+                        const featureDate = new Date(feature.properties[endTimeData.key])
+
+                        // If the number to trim is greater than the number of vertices in the current feature,
+                        // trim the entire feature and move on to the next feature
+                        if (leftToTrim >= feature.geometry.coordinates.length) {
+                            leftToTrim -= feature.geometry.coordinates.length
+                            features.pop()
+                            continue
+                        }
+
+                        // Trim
+                        if (leftToTrim > 0) {
+                            const length = feature.geometry.coordinates.length
+                            feature.geometry.coordinates = feature.geometry.coordinates.slice(0, length - leftToTrim)
+                            leftToTrim -= trimNum
+                        }
+
+                        if (leftToTrim <= 0) {
+                            feature.properties[endTimeData.key] = endTimeData.newTime
+                        }
+
+                        updatedFeatures.unshift(feature)
+                        features.pop()
+                    }
+                    layersGeoJSON.features = updatedFeatures
+                }
+            }
+
+            L_.clearVectorLayerInfo()
+            updateLayer.clearLayers()
+            updateLayer.addData(layersGeoJSON)
+        } else {
+            console.warn(
+                'Warning: Unable to trim vector layer as it does not exist: ' +
+                    layerName
+            )
+        }
+    },
     updateVectorLayer: function (layerName, inputData) {
         if (layerName in L_.layersGroup) {
             const updateLayer = L_.layersGroup[layerName]

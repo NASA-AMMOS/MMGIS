@@ -258,6 +258,15 @@ var mmgisAPI = {
      * @param {keepFirstN} - keepN - number of features to keep from the beginning of the feature list. A value less than or equal to 0 keeps all previous features
      */
     keepFirstN: L_.keepFirstN,
+    /**
+     * This function is used to trim a specified number of vertices on a specified layer containing GeoJson LineString features.
+     * @param {string} - layerName - name of layer to update
+     * @param {object} - startTimeData - object with the following format: `{ key, newTime }` with key as a string representing the name of the key for the start time property in the LineString properties
+     * @param {object} - endTimeData - object with the following format: `{ key, newTime }` with key as a string representing the name of the key for the end time property in the LineString properties
+     * @param {number} - trimN - number of vertices to trim
+     * @param {string} - trimDirection - direction to trim from; value can only be one of the following options: start, end
+     */
+    trimLineString: L_.trimLineString,
 
     // Time Control API functions
 
