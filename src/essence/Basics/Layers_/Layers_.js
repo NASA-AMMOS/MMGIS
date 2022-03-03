@@ -2108,4 +2108,3 @@ function parseConfig(configData, urlOnLayers) {
 }
 
 export default L_
-window.L_ = L_
