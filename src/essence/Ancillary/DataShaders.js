@@ -457,7 +457,7 @@ let DataShaders = {
                 ramp.forEach((color, idx) => {
                     // prettier-ignore
                     legend.push(
-                        `<li style="display: flex; justify-content: space-between; padding: 2px 0px;">`,
+                        `<li style="display: flex; justify-content: space-between; padding: 2px 0px; height: 24px; line-height: 24px;">`,
                             isDiscrete ? [
                                 `<div class="dataShader_${cname}_colorize_legend_value_${idx}">`,
                                     idx === 0 ? `<i class='mdi mdi-less-than mdi-12px' style="font-size: 12px; padding-right: 2px;"></i><div class="dataShader_${cname}_colorize_legend_value_min dataShader_${cname}_colorize_legend_value_${idx}_low" type="number" style="color: white;"></div>`

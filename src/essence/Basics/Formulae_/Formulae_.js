@@ -23,14 +23,14 @@ var Formulae_ = {
     radiusOfEarth: 6371000,
     dam: false, //degrees as meters
     metersInOneDegree: null,
-    getBaseGeoJSON: function () {
+    getBaseGeoJSON: function (featuresArray) {
         return {
             type: 'FeatureCollection',
             crs: {
                 type: 'name',
                 properties: { name: 'urn:ogc:def:crs:OGC:1.3:CRS84' },
             },
-            features: [],
+            features: featuresArray || [],
         }
     },
     getExtension: function (string) {

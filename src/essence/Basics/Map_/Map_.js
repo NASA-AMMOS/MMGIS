@@ -1241,8 +1241,7 @@ function buildToolBar() {
 
 function clearOnMapClick(event) {
     // Skip if there is no actively selected feature
-    const infoTool = ToolController_.getTool('InfoTool')
-    if (!infoTool.currentLayer) {
+    if (!Map_.activeLayer) {
         return
     }
 
@@ -1253,7 +1252,8 @@ function clearOnMapClick(event) {
         let found = false
         // For all MMGIS layers
         for (let key in L_.layersGroup) {
-            if (L_.layersGroup[key] === false) continue
+            if (L_.layersGroup[key] === false || L_.layersGroup[key] == null)
+                continue
             let layers
 
             // Layers can be a LayerGroup or an array of LayerGroup

@@ -126,6 +126,7 @@
     margin: 1px 0px;
     color: var(--color-f);
     background: var(--color-j);
+    overflow: hidden;
 }
 #layersToolList > li.forceOff {
     height: 0 !important;
@@ -300,7 +301,7 @@
 }
 
 .layersToolColor {
-    width: 3px;
+    width: 6px;
     height: 100%;
 }
 .layersToolColor.vector {
