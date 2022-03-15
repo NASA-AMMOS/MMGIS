@@ -374,7 +374,7 @@ let Map_ = {
             }
         }
         Map_.allLayersLoadedPassed = false
-        makeLayer(layerObj)
+        makeLayer(layerObj, true)
         allLayersLoaded()
     },
     setPlayerArrow(lng, lat, rot) {
