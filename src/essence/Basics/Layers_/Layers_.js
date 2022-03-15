@@ -1948,20 +1948,14 @@ var L_ = {
     //Takes in a config layer object
     globeLithoLayerHelper: async function(s) {
         if (L_.Globe_) {
-            // Hold the previous layer state
-            const prevState = L_.toggledArray[s.name]
-
             // Only toggle the layer to reset if the layer is toggled on,
             // because if the layer is toggled off, it is not on the globe
-            if (prevState) {
-                // Temporarily set layer to on
+            if (L_.toggledArray[s.name]) {
+                // Temporarily set layer to "off" so the layer will be redrawn
                 L_.toggledArray[s.name] = false
 
                 // Toggle the layer so its drawn in the globe
-                await L_.toggleLayer(s)
-
-                // Reset the previous layer state
-                L_.toggledArray[s.name] === prevState
+                L_.toggleLayer(s)
             }
         }
     },
@@ -2136,3 +2130,5 @@ function parseConfig(configData, urlOnLayers) {
 }
 
 export default L_
+
+window.L_ = L_
