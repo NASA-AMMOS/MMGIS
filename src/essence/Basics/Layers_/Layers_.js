@@ -1416,6 +1416,7 @@ var L_ = {
             L_.layersGroup[layerName].clearLayers()
             L_.clearVectorLayerInfo()
             L_.syncSublayerData(layerName, 'clear')
+            L_.globeLithoLayerHelper(L_.layersNamed[layerName])
         } catch (e) {
             console.log(e)
             console.warn('Warning: Unable to clear vector layer: ' + layerName)
@@ -1526,6 +1527,7 @@ var L_ = {
                     }
                 }
                 L_.syncSublayerData(layerName)
+                L_.globeLithoLayerHelper(L_.layersNamed[layerName])
             }
         } else {
             console.warn(
@@ -1576,6 +1578,7 @@ var L_ = {
                     }
                 }
                 L_.syncSublayerData(layerName)
+                L_.globeLithoLayerHelper(L_.layersNamed[layerName])
             }
         } else {
             console.warn(
@@ -1765,6 +1768,8 @@ var L_ = {
                 L_.clearVectorLayerInfo()
                 updateLayer.clearLayers()
                 updateLayer.addData(layersGeoJSON)
+                L_.syncSublayerData(layerName)
+                L_.globeLithoLayerHelper(L_.layersNamed[layerName])
             } else {
                  console.warn(
                     'Warning: Unable to trim the vector layer `' +
@@ -1865,6 +1870,8 @@ var L_ = {
                 L_.clearVectorLayerInfo()
                 updateLayer.clearLayers()
                 updateLayer.addData(layersGeoJSON)
+                L_.syncSublayerData(layerName)
+                L_.globeLithoLayerHelper(L_.layersNamed[layerName])
             } else {
                  console.warn(
                     'Warning: Unable to append to the vector layer `' +
@@ -1896,6 +1903,7 @@ var L_ = {
                 return
             }
             L_.syncSublayerData(layerName)
+            L_.globeLithoLayerHelper(L_.layersNamed[layerName])
         } else {
             console.warn(
                 'Warning: Unable to update vector layer as it does not exist: ' +
@@ -1936,6 +1944,20 @@ var L_ = {
 
         // Clear the description
         Description.clearDescription()
+    },
+    //Takes in a config layer object
+    globeLithoLayerHelper: async function(s) {
+        if (L_.Globe_) {
+            // Only toggle the layer to reset if the layer is toggled on,
+            // because if the layer is toggled off, it is not on the globe
+            if (L_.toggledArray[s.name]) {
+                // Temporarily set layer to "off" so the layer will be redrawn
+                L_.toggledArray[s.name] = false
+
+                // Toggle the layer so its drawn in the globe
+                L_.toggleLayer(s)
+            }
+        }
     },
 }
 
