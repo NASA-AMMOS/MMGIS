@@ -58,22 +58,22 @@
     color: #ccc;
 }
 #layersTool #filterLayers div.vector.on {
-    border-bottom: 4px solid rgba(15, 119, 189, 1);
+    border-bottom: 4px solid var(--color-p8);
 }
 #layersTool #filterLayers div.tile.on {
-    border-bottom: 4px solid rgba(119, 15, 189, 1);
+    border-bottom: 4px solid var(--color-p9);
 }
 #layersTool #filterLayers div.vectortile.on {
-    border-bottom: 4px solid #bd0f8e;
+    border-bottom: 4px solid var(--color-p10);
 }
 #layersTool #filterLayers div.query.on {
-    border-bottom: 4px solid rgba(15, 189, 77, 1);
+    border-bottom: 4px solid var(--color-p3);
 }
 #layersTool #filterLayers div.data.on {
-    border-bottom: 4px solid rgba(189, 15, 50, 1);
+    border-bottom: 4px solid var(--color-p4);
 }
 #layersTool #filterLayers div.model.on {
-    border-bottom: 4px solid rgba(189, 189, 15, 1);
+    border-bottom: 4px solid var(--color-p0);
 }
 #layersTool #filterLayers div.visible.on {
     border-bottom: 4px solid rgba(255, 255, 255, 1);
@@ -126,6 +126,7 @@
     margin: 1px 0px;
     color: var(--color-f);
     background: var(--color-j);
+    overflow: hidden;
 }
 #layersToolList > li.forceOff {
     height: 0 !important;
@@ -304,22 +305,22 @@
     height: 100%;
 }
 .layersToolColor.vector {
-    background: rgb(15, 119, 189);
+    background: var(--color-p8);
 }
 .layersToolColor.tile {
-    background: rgb(119, 15, 189);
+    background: var(--color-p9);
 }
 .layersToolColor.vectortile {
-    background: #bd0f8e;
+    background: var(--color-p10);
 }
 .layersToolColor.query {
-    background: rgb(15, 189, 77);
+    background: var(--color-p3);
 }
 .layersToolColor.data {
-    background: rgb(189, 15, 50);
+    background: var(--color-p4);
 }
 .layersToolColor.model {
-    background: rgb(189, 189, 15);
+    background: var(--color-p0);
 }
 
 #LayersToolLayer.model {
@@ -418,7 +419,7 @@
 #LayersToolNav {
     padding: 0px 10px;
     text-align: left;
-    background: #26a8ff;
+    background: var(--color-mmgis);
     box-shadow: 0px 4px 2px rgba(0, 0, 0, 0.2);
 }
 

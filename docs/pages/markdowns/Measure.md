@@ -14,6 +14,8 @@ On the Configure page, under Tools, you can specify which digital elevation mode
 
 At this time, only one DEM can be specified. This DEM should be georeferenced (i.e. have a projection defined).
 
+A remote DEM may be specified using a GDAL XML description file. See [Remote Virtual Layer](?page=Remote_Virtual_Layer) for more information.
+
 ## Tool Use
 
 - To make a measurement, left-click on the Measure Tool (graph icon), then left-click on the Map to create an anchor point for the measurement. As you move the mouse, the distance and angle (positive clockwise angle from north (i.e. top of map)) will read out and the distance will "rubber band" as you move. If you left-click again, the tool will display an elevation cross-section/profile. Mousing over the profile will show the raw elevation value at the samples points as well as a small yellow ball displayed between the two points on the map that correspond to where you are on the profile. If you left-click on the map at a new location, a new profile will be created between that point and the previous one. The total distance and section distance will be shown.

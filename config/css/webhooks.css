@@ -1,0 +1,24 @@
+.webhooks {
+  padding: 20px;
+  font-family: "Roboto", sans-serif;
+  display: flex;
+  flex-flow: column;
+}
+.webhooks .title {
+  text-align: center;
+  font-size: 100px;
+  color: #ddd;
+}
+.webhooks .row {
+  margin-left: 2.5%;
+  margin-right: 2.5%;
+}
+.webhooks .CodeMirror {
+  margin: 0;
+}
+.webhooks .inject-label{
+  margin-top: 0%;
+}
+.webhooks .card:nth-of-type(even) {
+  background: rgba(0, 0, 0, 0.03);
+}

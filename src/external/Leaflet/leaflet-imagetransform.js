@@ -25,9 +25,7 @@
                 this._anchors.push(L.latLng(yx))
             }
 
-            if (this._map) {
-                this._reset()
-            }
+            this._reset()
         },
 
         _latLngToLayerPoint: function (latlng) {
@@ -130,7 +128,7 @@
         },
 
         _reset: function () {
-            if (this.options.clip && !this._imgLoaded) {
+            if (this._map == null || (this.options.clip && !this._imgLoaded)) {
                 return
             }
             var div = this._image,
@@ -157,24 +155,25 @@
             div.style.width = size.x + 'px'
             div.style.height = size.y + 'px'
 
-            var matrix3d = (this._matrix3d = L.ImageTransform.Utils.general2DProjection(
-                0,
-                0,
-                pixels[0].x,
-                pixels[0].y,
-                w,
-                0,
-                pixels[1].x,
-                pixels[1].y,
-                w,
-                h,
-                pixels[2].x,
-                pixels[2].y,
-                0,
-                h,
-                pixels[3].x,
-                pixels[3].y
-            ))
+            var matrix3d = (this._matrix3d =
+                L.ImageTransform.Utils.general2DProjection(
+                    0,
+                    0,
+                    pixels[0].x,
+                    pixels[0].y,
+                    w,
+                    0,
+                    pixels[1].x,
+                    pixels[1].y,
+                    w,
+                    h,
+                    pixels[2].x,
+                    pixels[2].y,
+                    0,
+                    h,
+                    pixels[3].x,
+                    pixels[3].y
+                ))
 
             //something went wrong (for example, target image size is less then one pixel)
             if (!matrix3d[8]) {

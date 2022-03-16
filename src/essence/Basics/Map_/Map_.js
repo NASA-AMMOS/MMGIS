@@ -117,47 +117,6 @@ let Map_ = {
 
             window.mmgisglobal.customCRS = crs
         } else {
-            /*
-                //Set up leaflet for planet radius only
-                var r = parseInt(L_.configData.msv.radius.major)
-                var rFactor = r / 6378137
-   
-                var get_resolution = function() {
-                    level = 30
-                    var res = []
-                    res[0] = (Math.PI * 2 * r) / 256
-                    for (var i = 1; i < level; i++) {
-                        res[i] = (Math.PI * 2 * r) / 256 / Math.pow(2, i)
-                    }
-                    return res
-                }
-                var crs = new L.Proj.CRS(
-                    'EPSG:3857',
-                    '+proj=merc +a=' +
-                        r +
-                        ' +b=' +
-                        r +
-                        ' +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs',
-                    {
-                        resolutions: get_resolution(),
-                        origin: [
-                            (-Math.PI * 2 * r) / 2.0,
-                            (Math.PI * 2 * r) / 2.0,
-                        ],
-                        bounds: L.bounds(
-                            [
-                                -20037508.342789244 * rFactor,
-                                20037508.342789244 * rFactor,
-                            ],
-                            [
-                                20037508.342789244 * rFactor,
-                                -20037508.342789244 * rFactor,
-                            ]
-                        ),
-                    }
-                )
-                */
-
             //Make the empty map and turn off zoom controls
             this.map = L.map('map', {
                 zoomControl: hasZoomControl,
@@ -168,6 +127,12 @@ let Map_ = {
                 //zoomSnap: 0,
                 //wheelPxPerZoomLevel: 500,
             })
+
+            // Default CRS
+            window.mmgisglobal.customCRS = new L.Proj.CRS(
+                'EPSG:3857',
+                `+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=${F_.radiusOfPlanetMajor} +b=${F_.radiusOfPlanetMinor} +towgs84=0,0,0,0,0,0,0 +units=m +no_defs `
+            )
         }
 
         if (this.map.zoomControl) this.map.zoomControl.setPosition('topright')
@@ -223,24 +188,7 @@ let Map_ = {
 
         //Add a graticule
         if (L_.configData.look && L_.configData.look.graticule == true) {
-            L.latlngGraticule({
-                showLabel: true,
-                color: '#bbb',
-                weight: 1,
-                zoomInterval: [
-                    { start: 2, end: 3, interval: 40 },
-                    { start: 4, end: 5, interval: 20 },
-                    { start: 6, end: 7, interval: 10 },
-                    { start: 8, end: 9, interval: 5 },
-                    { start: 10, end: 11, interval: 0.4 },
-                    { start: 12, end: 13, interval: 0.2 },
-                    { start: 14, end: 15, interval: 0.1 },
-                    { start: 16, end: 17, interval: 0.01 },
-                    { start: 18, end: 19, interval: 0.005 },
-                    { start: 20, end: 21, interval: 0.0025 },
-                    { start: 21, end: 30, interval: 0.00125 },
-                ],
-            }).addTo(Map_.map)
+            this.toggleGraticule(true)
         }
 
         //When done zooming, hide the things you're too far out to see/reveal the things you're close enough to see
@@ -267,6 +215,31 @@ let Map_ = {
 
         //Set the time for any time enabled layers
         TimeControl.updateLayersTime()
+    },
+    toggleGraticule: function (on) {
+        if (on)
+            this.graticule = L.latlngGraticule({
+                showLabel: true,
+                color: '#bbb',
+                weight: 1,
+                zoomInterval: [
+                    { start: 2, end: 3, interval: 40 },
+                    { start: 4, end: 5, interval: 20 },
+                    { start: 6, end: 7, interval: 10 },
+                    { start: 8, end: 9, interval: 5 },
+                    { start: 10, end: 11, interval: 0.4 },
+                    { start: 12, end: 13, interval: 0.2 },
+                    { start: 14, end: 15, interval: 0.1 },
+                    { start: 16, end: 17, interval: 0.01 },
+                    { start: 18, end: 19, interval: 0.005 },
+                    { start: 20, end: 21, interval: 0.0025 },
+                    { start: 21, end: 30, interval: 0.00125 },
+                ],
+            }).addTo(Map_.map)
+        else {
+            this.rmNotNull(this.graticule)
+            this.graticule = null
+        }
     },
     clear: function () {
         this.map.eachLayer(function (layer) {
@@ -401,7 +374,7 @@ let Map_ = {
             }
         }
         Map_.allLayersLoadedPassed = false
-        makeLayer(layerObj)
+        makeLayer(layerObj, true)
         allLayersLoaded()
     },
     setPlayerArrow(lng, lat, rot) {
@@ -1268,8 +1241,7 @@ function buildToolBar() {
 
 function clearOnMapClick(event) {
     // Skip if there is no actively selected feature
-    const infoTool = ToolController_.getTool('InfoTool')
-    if (!infoTool.currentLayer) {
+    if (!Map_.activeLayer) {
         return
     }
 
@@ -1280,7 +1252,8 @@ function clearOnMapClick(event) {
         let found = false
         // For all MMGIS layers
         for (let key in L_.layersGroup) {
-            if (L_.layersGroup[key] === false) continue
+            if (L_.layersGroup[key] === false || L_.layersGroup[key] == null)
+                continue
             let layers
 
             // Layers can be a LayerGroup or an array of LayerGroup
@@ -1336,9 +1309,7 @@ function clearOnMapClick(event) {
 
         // If no feature was selected by this click event, clear the currently selected item
         if (!found) {
-            Map_.activeLayer = null
-            L_.resetLayerFills()
-            L_.clearVectorLayerInfo()
+            L_.setActiveFeature(null)
         }
     }
 }

@@ -11,6 +11,7 @@ import './Modal.css'
 const Modal = {
     _onRemoveCallback: null,
     set: function (html, onAddCallback, onRemoveCallback) {
+        if ($('#mmgisModal')) $('#mmgisModal').remove()
         // prettier-ignore
         $('body').append([
             "<div id='mmgisModal'>",

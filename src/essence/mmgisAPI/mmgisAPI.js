@@ -11,7 +11,8 @@ var mmgisAPI_ = {
     fina: function (map_) {
         mmgisAPI_.map = map_.map
         mmgisAPI.map = map_.map
-        if( typeof mmgisAPI_.onLoadCallback === 'function' ) mmgisAPI_.onLoadCallback()
+        if (typeof mmgisAPI_.onLoadCallback === 'function')
+            mmgisAPI_.onLoadCallback()
     },
     // Returns an array of all features in a given extent
     featuresContained: function () {
@@ -28,42 +29,60 @@ var mmgisAPI_ = {
         for (let key in L_.layersGroup) {
             if (L_.layersGroup[key].hasOwnProperty('_layers')) {
                 // For normal layers
-                const foundFeatures = findFeaturesInLayer(extent, L_.layersGroup[key])
+                const foundFeatures = findFeaturesInLayer(
+                    extent,
+                    L_.layersGroup[key]
+                )
                 features[key] = foundFeatures
-            } else if (key.startsWith('DrawTool_') && Array.isArray(L_.layersGroup[key])) {
+            } else if (
+                key.startsWith('DrawTool_') &&
+                Array.isArray(L_.layersGroup[key])
+            ) {
                 // If layer is a DrawTool array of layers
                 for (let layer in L_.layersGroup[key]) {
                     let foundFeatures
                     if ('getLayers' in L_.layersGroup[key][layer]) {
-                        if (L_.layersGroup[key][layer]?.feature?.properties?.arrow) {
-                            // If the DrawTool sublayer is an arrow 
-                            foundFeatures = findFeaturesInLayer(extent, L_.layersGroup[key][layer])
+                        if (
+                            L_.layersGroup[key][layer]?.feature?.properties
+                                ?.arrow
+                        ) {
+                            // If the DrawTool sublayer is an arrow
+                            foundFeatures = findFeaturesInLayer(
+                                extent,
+                                L_.layersGroup[key][layer]
+                            )
 
                             // As long as one of the layers of the arrow layer is in the current Map bounds,
                             // return the parent arrow layer's feature
                             if (foundFeatures && foundFeatures.length > 0) {
-                                foundFeatures = L_.layersGroup[key][layer].feature
+                                foundFeatures =
+                                    L_.layersGroup[key][layer].feature
                             }
                         } else {
                             // If the DrawTool sublayer is Polygon or Line
-                            foundFeatures = findFeaturesInLayer(extent, L_.layersGroup[key][layer])
+                            foundFeatures = findFeaturesInLayer(
+                                extent,
+                                L_.layersGroup[key][layer]
+                            )
                         }
-
                     } else if ('getLatLng' in L_.layersGroup[key][layer]) {
                         // If the DrawTool sublayer is a Point
                         if (isLayerInBounds(L_.layersGroup[key][layer])) {
                             foundFeatures = [L_.layersGroup[key][layer].feature]
                         }
-                    } 
+                    }
 
                     if (foundFeatures) {
-                        features[key] = key in features ? features[key].concat(foundFeatures) : foundFeatures
+                        features[key] =
+                            key in features
+                                ? features[key].concat(foundFeatures)
+                                : foundFeatures
                     }
                 }
             }
         }
 
-        return features;
+        return features
 
         function isLayerInBounds(layer) {
             // Use the pixel coordinates instead of latlong as latlong does not work well with polar projections
@@ -76,8 +95,10 @@ var mmgisAPI_ = {
             const sw = mmgisAPI_.map.project(extent.getSouthWest())
 
             let _extent
-            if (Math.abs((Math.abs(nw.x - se.x) - xMapSize)) < epsilon
-                    && Math.abs((Math.abs(nw.y - se.y) - yMapSize)) < epsilon) {
+            if (
+                Math.abs(Math.abs(nw.x - se.x) - xMapSize) < epsilon &&
+                Math.abs(Math.abs(nw.y - se.y) - yMapSize) < epsilon
+            ) {
                 _extent = L.bounds(nw, se)
             } else {
                 _extent = L.bounds(ne, sw)
@@ -86,8 +107,12 @@ var mmgisAPI_ = {
             let found = false
             if ('getBounds' in layer) {
                 const layerBounds = layer.getBounds()
-                const nwLayer = mmgisAPI_.map.project(layerBounds.getNorthEast())
-                const seLayer = mmgisAPI_.map.project(layerBounds.getSouthWest())
+                const nwLayer = mmgisAPI_.map.project(
+                    layerBounds.getNorthEast()
+                )
+                const seLayer = mmgisAPI_.map.project(
+                    layerBounds.getSouthWest()
+                )
                 const _bounds = L.bounds(nwLayer, seLayer)
 
                 if (_extent.intersects(_bounds)) {
@@ -125,13 +150,15 @@ var mmgisAPI_ = {
 
         if (infoTool.currentLayer && infoTool.currentLayer.feature) {
             const activeFeature = {}
-            activeFeature[infoTool.currentLayerName] = [infoTool.currentLayer.feature] 
+            activeFeature[infoTool.currentLayerName] = [
+                infoTool.currentLayer.feature,
+            ]
             return activeFeature
         }
 
-        return null;
+        return null
     },
-    // Returns an object with the visiblity state of all layers
+    // Returns an object with the visibility state of all layers
     getVisibleLayers: function () {
         // Also return the visibility of the DrawTool layers
         var drawToolVisibility = {}
@@ -140,7 +167,10 @@ var mmgisAPI_ = {
                 var s = l.split('_')
                 var onId = s[1] != 'master' ? parseInt(s[1]) : s[1]
                 if (s[0] == 'DrawTool') {
-                    drawToolVisibility[l] = ToolController_.getTool('DrawTool').filesOn.indexOf(onId) != -1
+                    drawToolVisibility[l] =
+                        ToolController_.getTool('DrawTool').filesOn.indexOf(
+                            onId
+                        ) != -1
                 }
             }
         }
@@ -155,8 +185,7 @@ var mmgisAPI_ = {
             mmgisAPI_.map.addEventListener(listener, functionReference)
         } else {
             console.warn(
-                'Warning: Unable to add event listener for ' +
-                    eventName
+                'Warning: Unable to add event listener for ' + eventName
             )
         }
     },
@@ -168,8 +197,7 @@ var mmgisAPI_ = {
             mmgisAPI_.map.removeEventListener(listener, functionReference)
         } else {
             console.warn(
-                'Warning: Unable to remove event listener for ' +
-                    eventName
+                'Warning: Unable to remove event listener for ' + eventName
             )
         }
     },
@@ -181,13 +209,13 @@ var mmgisAPI_ = {
         } else if (eventName === 'onClick') {
             return 'click'
         }
-        return null 
+        return null
     },
-    writeCoordinateURL: function() {
-        return QueryURL.writeCoordinateURL(false);
+    writeCoordinateURL: function () {
+        return QueryURL.writeCoordinateURL(false)
     },
     onLoadCallback: null,
-    onLoaded: function(onLoadCallback) {
+    onLoaded: function (onLoadCallback) {
         mmgisAPI_.onLoadCallback = onLoadCallback
     },
 }
@@ -230,6 +258,21 @@ var mmgisAPI = {
      * @param {keepFirstN} - keepN - number of features to keep from the beginning of the feature list. A value less than or equal to 0 keeps all previous features
      */
     keepFirstN: L_.keepFirstN,
+    /**
+     * This function is used to trim a specified number of vertices on a specified layer containing GeoJson LineString features.
+     * @param {string} - layerName - name of layer to update
+     * @param {string} - time - absolute time in the format of YYYY-MM-DDThh:mm:ssZ; represents start time if trimming from the beginning, otherwise represents the end time
+     * @param {number} - trimN - number of vertices to trim
+     * @param {string} - startOrEnd - direction to trim from; value can only be one of the following options: start, end
+     */
+    trimLineString: L_.trimLineString,
+    /**
+     * This function is used to append new LineString data to the last feature (with LineString geometry) in a layer
+     * @param {string} - layerName - name of layer to update
+     * @param {object} - inputData - a GeoJson Feature object containing geometry that is a LineString
+     * @param {string} - timeProp - name of time property in each feature in the layer and in the inputData
+     */
+    appendLineString: L_.appendLineString,
 
     // Time Control API functions
 
@@ -260,38 +303,38 @@ var mmgisAPI = {
      * @returns {boolean} - Whether the time was successfully set
      */
     setLayerTime: TimeControl.setLayerTime,
-    
-    /** 
+
+    /**
      * @returns {string} - The current time on the map with offset included
      */
     getTime: TimeControl.getTime,
 
-    /** 
+    /**
      * @returns {string} - The start time on the map with offset included
-     */   
+     */
     getStartTime: TimeControl.getStartTime,
 
-    /** 
+    /**
      * @returns {string} - The end time on the map with offset included
-     */  
+     */
     getEndTime: TimeControl.getEndTime,
 
-    /** 
+    /**
      * @param {string} [layerName]
      * @returns {string} - The start time for an individual layer
-     */   
+     */
     getLayerStartTime: TimeControl.getLayerStartTime,
- 
-    /** 
+
+    /**
      * @param {string} [layerName]
      * @returns {string} - The end time for an individual layer
-     */  
+     */
     getLayerEndTime: TimeControl.getLayerEndTime,
 
     /** reloadTimeLayers will reload every time enabled layer
      * @returns {array} - A list of layers that were reloaded
      */
-     reloadTimeLayers: TimeControl.reloadTimeLayers,
+    reloadTimeLayers: TimeControl.reloadTimeLayers,
 
     /** reloadLayer will reload a given time enabled layer
      * @param {string} [layerName]
@@ -302,14 +345,14 @@ var mmgisAPI = {
     /** setLayersTimeStatus - will set the status color for all global time enabled layers
      * @param {string} [color]
      * @returns {array} - A list of layers that were set
-     */    
+     */
     setLayersTimeStatus: TimeControl.setLayersTimeStatus,
 
     /** setLayerTimeStatus - will set the status color for the given layer
-      * @param {string} [layerName]
-      * @param {string} [color]
-      * @returns {boolean} - True if time status was successfully set
-     */    
+     * @param {string} [layerName]
+     * @param {string} [color]
+     * @returns {boolean} - True if time status was successfully set
+     */
     setLayerTimeStatus: TimeControl.setLayerTimeStatus,
 
     /** updateLayersTime - will synchronize every global time enabled layer with global times.
@@ -317,24 +360,24 @@ var mmgisAPI = {
      * may need to be re-synchronized.
      * @returns {array} - A list of layers that were reloaded
      */
-     updateLayersTime: TimeControl.updateLayersTime,
+    updateLayersTime: TimeControl.updateLayersTime,
 
     /** map - exposes Leaflet map object.
-     * @returns {object} - The Leaflet map object 
+     * @returns {object} - The Leaflet map object
      */
-     map: null,
+    map: null,
 
     /** featuresContained - returns an array of all features in the current map view.
      * @returns {object} - An object containing layer names as keys and values as arrays with all features (as GeoJson Feature objects) contained in the current map view
      */
     featuresContained: mmgisAPI_.featuresContained,
 
-     /** getActiveFeature - returns the currently active feature (i.e. feature thats clicked and displayed in the InfoTool)
+    /** getActiveFeature - returns the currently active feature (i.e. feature thats clicked and displayed in the InfoTool)
      * @returns {object} - The currently selected active feature as an object with the layer name as key and value as an array containing the GeoJson Feature object (MMGIS only allows the section of a single feature).
      */
     getActiveFeature: mmgisAPI_.getActiveFeature,
 
-     /** getVisibleLayers - returns an object with the visiblity state of all layers
+    /** getVisibleLayers - returns an object with the visibility state of all layers
      * @returns {object} - an object containing the visibility state of each layer
      */
     getVisibleLayers: mmgisAPI_.getVisibleLayers,
@@ -346,7 +389,7 @@ var mmgisAPI = {
      */
     addEventListener: mmgisAPI_.addEventListener,
 
-    /** removeEventListener - removes map event listener added using the MMGIS API. 
+    /** removeEventListener - removes map event listener added using the MMGIS API.
      * @param {string} - eventName - name of event to add listener to. Available events: onPan, onZoom, onClick
      * @param {function} - functionReference - function reference to listener event callback function. null value removes all functions for a given eventName
      */

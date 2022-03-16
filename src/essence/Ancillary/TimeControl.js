@@ -71,6 +71,7 @@ var TimeControl = {
         if (L_.configData.time.visible == false) {
             TimeControl.toggleTimeUI(false)
         }
+        initLayerTimes()
     },
     toggleTimeUI: function (isOn) {
         d3.select('#timeUI').style('visibility', function () {
@@ -289,6 +290,25 @@ var TimeControl = {
         }
         return updatedLayers
     },
+}
+
+function initLayerTimes () {
+    for (let layerName in L_.layersNamed) {
+        const layer = L_.layersNamed[layerName]
+        if (
+            layer.time &&
+            layer.time.enabled == true
+        ) {
+            layer.time.start = TimeControl.startTime
+            layer.time.end = TimeControl.endTime
+            d3.select('.starttime.' + layer.name.replace(/\s/g, '')).text(
+                layer.time.start
+            )
+            d3.select('.endtime.' + layer.name.replace(/\s/g, '')).text(
+                layer.time.end
+            )
+        }
+    }
 }
 
 function updateTime() {

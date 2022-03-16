@@ -96,6 +96,10 @@ function initialize() {
   $("#manage_geodatasets").on("click", function () {
     Geodatasets.make();
   });
+  //Initial manage webhooks
+  $("#manage_webhooks").on("click", function () {
+    Webhooks.make();
+  });
 
   $.ajax({
     type: calls.missions.type,
@@ -216,6 +220,7 @@ function initialize() {
           Keys.destroy();
           Datasets.destroy();
           Geodatasets.destroy();
+          Webhooks.destroy();
 
           $("#missions li").removeClass("active");
           $(this).addClass("active");
@@ -884,7 +889,7 @@ function makeLayerBarAndModal(d, level) {
       dataSel = "selected";
       break;
     case "query":
-      barColor = "#0fbd4d";
+      barColor = "#62bd0f";
       querySel = "selected";
       break;
     case "vector":

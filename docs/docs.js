@@ -23,6 +23,7 @@ let configure = [
   "Keys",
   "Manage_Datasets",
   "Manage_Geodatasets",
+  "Remote_Virtual_Layer"
 ];
 let layers = [
   "Data",

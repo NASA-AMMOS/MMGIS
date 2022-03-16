@@ -114,6 +114,68 @@ The following is an example of how to call the `keepLastN` function:
 window.mmgisAPI.keepLastN('Waypoints', 2)
 ```
 
+### trimLineString(layerName, time, timeProp, trimN, startOrEnd)
+
+This function is used to trim a specified number of vertices on a specified layer containing GeoJson LineString features. This makes the following assumptions:
+- If trimming from the beginning of the layer, the time in the `time` parameter  must be after the start time of the first feature in the layer
+- If trimming from the end of the layer, the time in the `time` parameter  must be before the end time of the last feature in the layer
+
+#### Function parameters
+
+- `layerName` - name of layer to update
+- `time` - absolute time in the format of YYYY-MM-DDThh:mm:ssZ; represents start time if trimming from the beginning, otherwise represents the end time
+- `timeProp` - key representing the time property to be updated in the layer
+- `trimN` - number of vertices to trim
+- `startOrEnd` - direction to trim from; value can only be one of the following options: start, end
+
+The following are examples of how to call the `trimLineString` function:
+
+```javascript
+window.mmgisAPI.trimLineString('Traverse', '2021-12-01T15:03:00.000Z', 'start_time', 7, 'start')
+```
+
+```javascript
+window.mmgisAPI.trimLineString('Traverse', '2021-12-01T15:13:00.000Z', 'end_time', 7, 'end')
+```
+
+### appendLineString(layerName, inputData, timeProp)
+This function appends input data with a GeoJson Feature that contains a LineString. The LineString vertices from the input data is appended as vertices to the last Feature in the layer. The input data should also contain a property with `timeProp` as the key, representing the new end time for the updated data.
+
+#### Function parameters
+
+- `layerName` - name of layer to update
+- `inputData` - GeoJson data containing a single Feature containing a LineString
+- `timeProp` - key representing the time property to be updated in the layer
+
+The following is an example of how to call the `appendLineString` function:
+
+```javascript
+window.mmgisAPI.appendLineString(
+    'Traverse',
+    {
+        'type':'Feature',
+        'properties':{
+            'name': 2,
+            'Length_m': 0,
+            'COLOR': 0,
+            'route': 0,
+            'start_time': '2021-12-01T15:10:00.000Z',
+            'end_time': '2021-12-01T15:20:00.000Z'
+        },
+        'geometry':{
+                'type':'LineString',
+                'coordinates':[
+                    [145.862136,-73.208439],
+                    [135.063782,-71.898251],
+                    [130.828697,-75.540527],
+                    [122.767247,-72.658683],
+                    [120.133499,-75.018059]
+                ]
+        }
+    },
+    'end_time');
+```
+
 ## Time Control
 
 ## toggleTimeUI(visibility)

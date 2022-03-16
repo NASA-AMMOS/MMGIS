@@ -57,21 +57,10 @@ var Description = {
             .style('margin', '0')
 
         Description.descPointInner.on('click', function () {
-            if (
-                Map_.activeLayer.feature.geometry.coordinates[1] &&
-                Map_.activeLayer.feature.geometry.coordinates[0]
-            )
-                if (
-                    !isNaN(Map_.activeLayer.feature.geometry.coordinates[1]) &&
-                    !isNaN(Map_.activeLayer.feature.geometry.coordinates[0])
-                )
-                    Map_.map.setView(
-                        [
-                            Map_.activeLayer.feature.geometry.coordinates[1],
-                            Map_.activeLayer.feature.geometry.coordinates[0],
-                        ],
-                        Map_.mapScaleZoom || Map_.map.getZoom()
-                    )
+            if (typeof Map_.activeLayer.getBounds === 'function')
+                Map_.map.fitBounds(Map_.activeLayer.getBounds())
+            else if (Map_.activeLayer._latlng)
+                Map_.map.panTo(Map_.activeLayer._latlng)
         })
 
         this.inited = true

@@ -23,19 +23,22 @@ var Formulae_ = {
     radiusOfEarth: 6371000,
     dam: false, //degrees as meters
     metersInOneDegree: null,
-    getBaseGeoJSON: function () {
+    getBaseGeoJSON: function (featuresArray) {
         return {
             type: 'FeatureCollection',
             crs: {
                 type: 'name',
                 properties: { name: 'urn:ogc:def:crs:OGC:1.3:CRS84' },
             },
-            features: [],
+            features: featuresArray || [],
         }
     },
     getExtension: function (string) {
-        var ex = /(?:\.([^.]+))?$/.exec(string)[1]
+        const ex = /(?:\.([^.]+))?$/.exec(string)[1]
         return ex || ''
+    },
+    fileNameFromPath: function (path) {
+        return path.replace(/^.*[\\\/]/, '').replace(/\.[^/.]+$/, '')
     },
     pad: function (num, size) {
         let s = '000000000000000000000000000000' + num
@@ -1378,6 +1381,7 @@ var Formulae_ = {
         return uniqueArray
     },
     sanitize(str) {
+        if (str == null) return ''
         return str.replace(/[<>;{}]/g, '')
     },
     doBoundingBoxesIntersect(a, b) {
@@ -1740,8 +1744,81 @@ var Formulae_ = {
             })
         return str
     },
+    /** Returns an ellipse with major and minor axes and rotation about a point
+       // Adapted from turf.js' ellipse function
+     * @param lnglat {lng: lat:}
+     * @param axes {x: y:}
+     * @param crs {object}
+     * @param options {units: 'meters', steps: 32, angle: 0}
+     */
+    toEllipse(lnglat, axes, crs, options) {
+        if (crs == null) return null
+
+        let xAxis = axes.x || 0
+        let yAxis = axes.y || 0
+        // Optional params
+        options = options || {}
+        let steps = options.steps || 32
+        let units = options.units || 'meters'
+        let angle = (options.angle || 0) * -1
+        const angleRad = angle * (Math.PI / 180)
+
+        if (units === 'kilometers') {
+            xAxis *= 1000
+            yAxis *= 1000
+        }
+
+        const centerEN = crs.project(lnglat)
+        const centerCoordsEN = [centerEN.x, centerEN.y]
+
+        const coordinates = []
+        for (let i = 0; i < steps; i += 1) {
+            let stepAngle = (i * -360) / steps
+            let x =
+                (xAxis * yAxis) /
+                Math.sqrt(
+                    Math.pow(yAxis, 2) +
+                        Math.pow(xAxis, 2) *
+                            Math.pow(Math.tan((stepAngle * Math.PI) / 180), 2)
+                )
+            let y =
+                (xAxis * yAxis) /
+                Math.sqrt(
+                    Math.pow(xAxis, 2) +
+                        Math.pow(yAxis, 2) /
+                            Math.pow(Math.tan((stepAngle * Math.PI) / 180), 2)
+                )
+
+            if (stepAngle < -90 && stepAngle >= -270) x = -x
+            if (stepAngle < -180 && stepAngle >= -360) y = -y
+
+            const rot = Formulae_.rotatePoint(
+                {
+                    x: x,
+                    y: y,
+                },
+                [0, 0],
+                angleRad
+            )
+            x = rot.x
+            y = rot.y
+
+            let lnglatCoord = crs.unproject({
+                x: x + centerCoordsEN[0],
+                y: y + centerCoordsEN[1],
+            })
+            coordinates.push([lnglatCoord.lng, lnglatCoord.lat])
+        }
+        coordinates.push(coordinates[0])
+
+        return {
+            type: 'Feature',
+            properties: {},
+            geometry: { type: 'Polygon', coordinates: [coordinates] },
+        }
+    },
     getCookieValue(a) {
-        var b = document.cookie.match('(^|[^;]+)\\s*' + a + '\\s*=\\s*([^;]+)')
+        let b = document.cookie.match('(^|[^;]+)\\s*' + a + '\\s*=\\s*([^;]+)')
         return b ? b.pop() : ''
     },
     getBrowser() {

@@ -1,6 +1,47 @@
 # MMGIS Changelog
 
+## 2.6.0
+
+_Mar 16, 2022_
+
+#### New Requirements
+
+- Node.js >= v14.9.0
+
+#### Summary
+
+This release adds a webhook manager to the configure page and improves documentation, the mmgisAPI, projection support, as well as synchronicity between the Map and Globe.
+
+#### Added
+
+- Configurable webhook manager.
+- Access to a settings modal in the bottom left toolbar to toggle various UI elements' visibilities as well as the radius of tiles to query for the 3D Globe
+- Raster effects (brightness, contrast, saturation, blend-mode) now apply in 3D as well
+- Controlled layers can now utilized sublayers/marker-attachments
+- Marker attachments, such as uncertainty ellipses, properly work for any projection
+- 3D uncertainty ellipses
+- Documentation for using remote virtual layers via GDAL
+- PUBLIC_URL can be specified at build now in the Dockerfile
+- mmgisAPI functions apply to the 3D Globe too now
+- mmgisAPI can trim LineString features at the coordinates level
+
+#### Changed
+
+- LithoSphere 1.1.0 => 1.3.0 - [See LithoSphere Releases](https://github.com/NASA-AMMOS/LithoSphere/releases)
+- Users can now pan the map while in the DrawTool's draw mode without placing a point
+- Time controlled layers can now default to the current time for initial queries
+
+#### Fixed
+
+- Some media paths in the /configure path not working when MMGIS is served under a subdomain with PUBLIC_URL
+
+#### Removed
+
+-
+
 ## 2.5.0
+
+_Jan 10, 2022_
 
 #### Summary
 
@@ -52,6 +93,8 @@ This release contains the IsochroneTool, revives the Model layer type and includ
 
 ## 2.4.0
 
+_Aug 06, 2021_
+
 #### Summary
 
 This release adds in the Viewshed Tool, time enabled layers, [LithoSphere](https://github.com/NASA-AMMOS/LithoSphere), WMS support, data layers, a JavaScript API, and more.
@@ -95,6 +138,8 @@ This release adds in the Viewshed Tool, time enabled layers, [LithoSphere](https
 
 ## 2.3.1
 
+_Apr 22, 2021_
+
 #### Summary
 
 A point release to address bug fixes.
@@ -108,6 +153,8 @@ A point release to address bug fixes.
 ---
 
 ## 2.3.0
+
+_Apr 14, 2021_
 
 #### Summary
 
@@ -149,6 +196,8 @@ ALTER TABLE user_files ALTER COLUMN file_description TYPE VARCHAR(10000);
 ---
 
 ## 2.0.0
+
+_Jan 14, 2021_
 
 #### Migration Details
 
@@ -196,6 +245,8 @@ ALTER TABLE user_files ALTER COLUMN file_description TYPE VARCHAR(10000);
 
 ## 1.3.5
 
+_Oct 19, 2020_
+
 #### Added
 
 - ALLOW_EMBED environment variable
@@ -213,6 +264,8 @@ ALTER TABLE user_files ALTER COLUMN file_description TYPE VARCHAR(10000);
 
 ## 1.3.4
 
+_Oct 06, 2020_
+
 #### Added:
 
 - WMS tile support for the Map (does not yet work on the Globe).
@@ -222,6 +275,8 @@ ALTER TABLE user_files ALTER COLUMN file_description TYPE VARCHAR(10000);
 ---
 
 ## 1.3.3
+
+_Aug 07, 2020_
 
 #### Added:
 
@@ -242,6 +297,8 @@ ALTER TABLE user_files ALTER COLUMN file_description TYPE VARCHAR(10000);
 
 ## 1.3.2
 
+_Jul 06, 2020_
+
 #### Fixed
 
 - Draw Tool history sql commands assumed rows would be returned in order which could completely break the tool.
@@ -252,6 +309,8 @@ ALTER TABLE user_files ALTER COLUMN file_description TYPE VARCHAR(10000);
 
 ## 1.3.1
 
+_May 13, 2020_
+
 #### Fixed
 
 - Additional authorization headers prevented access to the configure login page.
@@ -259,6 +318,8 @@ ALTER TABLE user_files ALTER COLUMN file_description TYPE VARCHAR(10000);
 ---
 
 ## 1.3.0
+
+_Apr 16, 2020_
 
 #### New Requirements
 
@@ -295,3 +356,48 @@ ALTER TABLE user_files ALTER COLUMN file_description TYPE VARCHAR(10000);
 - Infinite login bug
 - Vectors disappearing with string weights
 - Some endpoint calls began with home slashes that broke certain setups
+
+---
+
+## 1.2
+
+_Nov 06, 2019_
+
+#### Added
+
+- Limit access to the entire site with .env's `AUTH=local`
+- Vector Tile Layers
+- Store features within Postgres by uploading them with /configure's `Manage Geodatasets`. Point to them by setting the layer URL to `geodatasets:{name}`. Can serve both geojson and vector tiles.
+
+---
+
+## 1.1.1
+
+_Oct 25, 2019_
+
+#### Fixed
+
+- Creating a new mission on the 'configure' page failed to make the appropriate mission directories (e.g. Layers).
+
+---
+
+## 1.1
+
+_Oct 02, 2019_
+
+#### Summary
+
+MMGIS update with the Campaign Analysis Mapping and Planning (CAMP) tool. The software now runs fully in a node environment. Various other bug fixes and minor updates have been made to the code.
+
+---
+
+## Open Source Release
+
+_Jun 06, 2019_
+
+#### Summary
+
+This represents the initial release of the Multi-Mission Geographic Information System (MMGIS) software, developed under NASA-AMMOS.
+
+Dr. Fred J, Calef III & Tariq K. Soliman
+NASA-JPL/Caltech

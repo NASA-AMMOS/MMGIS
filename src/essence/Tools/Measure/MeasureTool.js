@@ -727,7 +727,12 @@ function makeMeasureToolLayer() {
 function makeProfile() {
     var numOfPts = clickedLatLngs.length
     if (numOfPts > 1 && MeasureTool.vars.dem) {
-        var pathDEM = 'Missions/' + L_.mission + '/' + MeasureTool.vars.dem
+        // enable remote access via GDAL Virtual File Systems /vsi* prefix 
+        if (MeasureTool.vars.dem.startsWith('/vsi')) {
+            var pathDEM = MeasureTool.vars.dem
+        } else {
+            var pathDEM = 'Missions/' + L_.mission + '/' + MeasureTool.vars.dem
+        }
         //elevPoints.push([{"x": clickedLatLngs[numOfPts - 2].x, "y": clickedLatLngs[numOfPts - 2].y}, {"x": clickedLatLngs[numOfPts - 1].x, "y": clickedLatLngs[numOfPts - 1].y}]);
         elevPoints = [
             {
@@ -771,19 +776,23 @@ function makeProfile() {
                         'Warning: MeasureTool: No elevation data found in ' +
                             pathDEM
                     )
-                    MeasureTool.reset()
-                    return
-                }
-                try {
-                    data = data.replace(/[\n\r]/g, '')
-                    data = JSON.parse(data)
-                } catch (err) {
-                    console.log(err)
-                    // Fake a line between the most then
+                    // Fake a no data line between them then
                     data = [
                         [elevPoints[0].y, elevPoints[0].x, 0],
                         [elevPoints[1].y, elevPoints[1].x, 0],
                     ]
+                } else {
+                    try {
+                        data = data.replace(/[\n\r]/g, '')
+                        data = JSON.parse(data)
+                    } catch (err) {
+                        console.log(err)
+                        // Fake a no data line between them then
+                        data = [
+                            [elevPoints[0].y, elevPoints[0].x, 0],
+                            [elevPoints[1].y, elevPoints[1].x, 0],
+                        ]
+                    }
                 }
 
                 if (mode === 'segment') MeasureTool.data = F_.clone(data)

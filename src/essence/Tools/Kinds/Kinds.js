@@ -16,10 +16,12 @@ var Kinds = {
         preFeatures,
         lastFeatureLayers
     ) {
-        L_.select(layer)
+        L_.setActiveFeature(layer)
         if (typeof kind !== 'string') return
 
-        const layerVar = L_.layersNamed[layer.options.layerName].variables
+        let layerVar = {}
+        if (L_.layersNamed[layer.options.layerName])
+            layerVar = L_.layersNamed[layer.options.layerName].variables || {}
 
         // Remove temp layers
         Map_.rmNotNull(Map_.tempOverlayImage)

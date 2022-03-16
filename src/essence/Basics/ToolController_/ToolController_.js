@@ -188,6 +188,12 @@ let ToolController_ = {
         newWidth = newWidth || 'full'
         this.UserInterface.setToolWidth(newWidth)
     },
+    notifyActiveTool: function (type, payload) {
+        if (this.activeTool != null) {
+            if (typeof this.activeTool.notify === 'function')
+                this.activeTool.notify(type, payload)
+        }
+    },
     closeActiveTool: function () {
         var prevActive = $('#toolcontroller_incdiv .active')
         prevActive.removeClass('active').css({

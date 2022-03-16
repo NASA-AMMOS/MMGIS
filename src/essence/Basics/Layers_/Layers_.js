@@ -78,6 +78,7 @@ var L_ = {
     searchFile: null,
     toolsLoaded: false,
     addedfiles: {}, //filename -> null (not null if added)
+    activeFeature: null,
     lastActivePoint: {
         layerName: null,
         lat: null,
@@ -133,6 +134,7 @@ var L_ = {
         L_.searchStrings = null
         L_.searchFile = null
         L_.toolsLoaded = false
+        L_.activeFeature = null
         L_.lastActivePoint = {
             layerName: null,
             lat: null,
@@ -193,17 +195,33 @@ var L_ = {
                     L_.Map_.map.removeLayer(L_.layersGroup[s.name])
                     if (L_.layersGroupSublayers[s.name]) {
                         for (let sub in L_.layersGroupSublayers[s.name]) {
-                            if (
-                                L_.layersGroupSublayers[s.name][sub].type ===
-                                'model'
-                            ) {
-                                L_.Globe_.litho.removeLayer(
-                                    L_.layersGroupSublayers[s.name][sub].layerId
-                                )
-                            } else {
-                                L_.Map_.rmNotNull(
-                                    L_.layersGroupSublayers[s.name][sub].layer
-                                )
+                            switch (L_.layersGroupSublayers[s.name][sub].type) {
+                                case 'model':
+                                    L_.Globe_.litho.removeLayer(
+                                        L_.layersGroupSublayers[s.name][sub]
+                                            .layerId
+                                    )
+                                    break
+                                case 'uncertainty_ellipses':
+                                    L_.Globe_.litho.removeLayer(
+                                        L_.layersGroupSublayers[s.name][sub]
+                                            .curtainLayerId
+                                    )
+                                    L_.Globe_.litho.removeLayer(
+                                        L_.layersGroupSublayers[s.name][sub]
+                                            .clampedLayerId
+                                    )
+                                    L_.Map_.rmNotNull(
+                                        L_.layersGroupSublayers[s.name][sub]
+                                            .layer
+                                    )
+                                    break
+                                default:
+                                    L_.Map_.rmNotNull(
+                                        L_.layersGroupSublayers[s.name][sub]
+                                            .layer
+                                    )
+                                    break
                             }
                         }
                     }
@@ -216,27 +234,52 @@ var L_ = {
                     if (L_.layersGroupSublayers[s.name]) {
                         for (let sub in L_.layersGroupSublayers[s.name]) {
                             if (L_.layersGroupSublayers[s.name][sub].on) {
-                                if (
-                                    L_.layersGroupSublayers[s.name][sub]
-                                        .type === 'model'
+                                switch (
+                                    L_.layersGroupSublayers[s.name][sub].type
                                 ) {
-                                    L_.Globe_.litho.addLayer(
-                                        'model',
-                                        L_.layersGroupSublayers[s.name][sub]
-                                            .modelOptions
-                                    )
-                                } else {
-                                    L_.Map_.map.addLayer(
-                                        L_.layersGroupSublayers[s.name][sub]
-                                            .layer
-                                    )
-                                    L_.layersGroupSublayers[s.name][
-                                        sub
-                                    ].layer.setZIndex(
-                                        L_.layersOrdered.length +
-                                            1 -
-                                            L_.layersOrdered.indexOf(s.name)
-                                    )
+                                    case 'model':
+                                        L_.Globe_.litho.addLayer(
+                                            'model',
+                                            L_.layersGroupSublayers[s.name][sub]
+                                                .modelOptions
+                                        )
+                                        break
+                                    case 'uncertainty_ellipses':
+                                        L_.Globe_.litho.addLayer(
+                                            'curtain',
+                                            L_.layersGroupSublayers[s.name][sub]
+                                                .curtainOptions
+                                        )
+                                        L_.Globe_.litho.addLayer(
+                                            'clamped',
+                                            L_.layersGroupSublayers[s.name][sub]
+                                                .clampedOptions
+                                        )
+                                        L_.Map_.map.addLayer(
+                                            L_.layersGroupSublayers[s.name][sub]
+                                                .layer
+                                        )
+                                        L_.layersGroupSublayers[s.name][
+                                            sub
+                                        ].layer.setZIndex(
+                                            L_.layersOrdered.length +
+                                                1 -
+                                                L_.layersOrdered.indexOf(s.name)
+                                        )
+                                        break
+                                    default:
+                                        L_.Map_.map.addLayer(
+                                            L_.layersGroupSublayers[s.name][sub]
+                                                .layer
+                                        )
+                                        L_.layersGroupSublayers[s.name][
+                                            sub
+                                        ].layer.setZIndex(
+                                            L_.layersOrdered.length +
+                                                1 -
+                                                L_.layersOrdered.indexOf(s.name)
+                                        )
+                                        break
                                 }
                             }
                         }
@@ -387,45 +430,78 @@ var L_ = {
         const sublayer = sublayers[sublayerName]
         if (sublayer) {
             if (sublayer.on === true) {
-                if (sublayer.type === 'model') {
-                    L_.Globe_.litho.removeLayer(sublayer.layerId)
-                } else {
-                    L_.Map_.rmNotNull(sublayer.layer)
+                switch (sublayer.type) {
+                    case 'model':
+                        L_.Globe_.litho.removeLayer(sublayer.layerId)
+                        break
+                    case 'uncertainty_ellipses':
+                        L_.Globe_.litho.removeLayer(sublayer.curtainLayerId)
+                        L_.Globe_.litho.removeLayer(sublayer.clampedLayerId)
+                        L_.Map_.rmNotNull(sublayer.layer)
+                        break
+                    default:
+                        L_.Map_.rmNotNull(sublayer.layer)
+                        break
                 }
                 sublayer.on = false
             } else {
-                if (sublayer.type === 'model') {
-                    L_.Globe_.litho.addLayer('model', sublayer.modelOptions)
-                } else {
-                    L_.Map_.map.addLayer(sublayer.layer)
-                    sublayer.layer.setZIndex(
-                        L_.layersOrdered.length +
-                            1 -
-                            L_.layersOrdered.indexOf(layerName)
-                    )
+                switch (sublayer.type) {
+                    case 'model':
+                        L_.Globe_.litho.addLayer('model', sublayer.modelOptions)
+                        break
+                    case 'uncertainty_ellipses':
+                        L_.Globe_.litho.addLayer(
+                            'curtain',
+                            sublayer.curtainOptions
+                        )
+                        L_.Globe_.litho.addLayer(
+                            'clamped',
+                            sublayer.clampedOptions
+                        )
+                        L_.Map_.map.addLayer(sublayer.layer)
+                        sublayer.layer.setZIndex(
+                            L_.layersOrdered.length +
+                                1 -
+                                L_.layersOrdered.indexOf(layerName)
+                        )
+                        break
+                    default:
+                        L_.Map_.map.addLayer(sublayer.layer)
+                        sublayer.layer.setZIndex(
+                            L_.layersOrdered.length +
+                                1 -
+                                L_.layersOrdered.indexOf(layerName)
+                        )
+                        break
                 }
                 sublayer.on = true
             }
         }
     },
-    disableAllBut: function (name, skipDisabling) {
-        if (L_.layersNamed.hasOwnProperty(name)) {
-            var l
+    disableAllBut: function (siteName, skipDisabling) {
+        if (L_.layersNamed.hasOwnProperty(siteName)) {
+            let l
             if (skipDisabling !== true) {
-                for (var i = 0; i < L_.layersData.length; i++) {
+                for (let i = 0; i < L_.layersData.length; i++) {
                     l = L_.layersData[i]
                     if (L_.toggledArray[l.name] == true) {
-                        L_.toggleLayer(l)
+                        if (l.name != 'Mars Overview') L_.toggleLayer(l)
+                    }
+                    if (L_.toggledArray['Mars Overview'] === false) {
+                        if (l.name === 'Mars Overview') L_.toggleLayer(l)
                     }
                 }
             }
-            for (var i = 0; i < L_.layersData.length; i++) {
-                l = L_.layersData[i]
-                if (L_.toggledArray[l.name] == false) {
-                    if (l.name == name) L_.toggleLayer(l)
-                }
-                if (L_.toggledArray['Mars Overview'] == false) {
-                    if (l.name == 'Mars Overview') L_.toggleLayer(l)
+
+            for (let n in L_.layersParent) {
+                if (L_.layersParent[n] === siteName && L_.layersDataByName[n]) {
+                    l = L_.layersDataByName[n]
+                    if (
+                        l.visibility === true && // initial visibility
+                        L_.toggledArray[l.name] === false
+                    ) {
+                        L_.toggleLayer(l)
+                    }
                 }
             }
         }
@@ -472,13 +548,27 @@ var L_ = {
                                         L_.layersData[i].name
                                     ][s]
                                 if (sublayer.on) {
-                                    if (sublayer.type === 'model') {
-                                        L_.Globe_.litho.addLayer(
-                                            'model',
-                                            sublayer.modelOptions
-                                        )
-                                    } else {
-                                        map.addLayer(sublayer.layer)
+                                    switch (sublayer.type) {
+                                        case 'model':
+                                            L_.Globe_.litho.addLayer(
+                                                'model',
+                                                sublayer.modelOptions
+                                            )
+                                            break
+                                        case 'uncertainty_ellipses':
+                                            L_.Globe_.litho.addLayer(
+                                                'curtain',
+                                                sublayer.curtainOptions
+                                            )
+                                            L_.Globe_.litho.addLayer(
+                                                'clamped',
+                                                sublayer.clampedOptions
+                                            )
+                                            map.addLayer(sublayer.layer)
+                                            break
+                                        default:
+                                            map.addLayer(sublayer.layer)
+                                            break
                                     }
                                 }
                             }
@@ -564,40 +654,42 @@ var L_ = {
                         },
                     })
                 } else if (L_.layersData[i].type != 'header') {
-                    L_.Globe_.litho.addLayer(
-                        L_.layersData[i].type == 'vector'
-                            ? 'clamped'
-                            : L_.layersData[i].type,
-                        {
-                            name: s.name,
-                            order: 1000 - L_.layersIndex[s.name], // Since higher order in litho is on top
-                            on: L_.opacityArray[s.name] ? true : false,
-                            geojson: L_.layersGroup[s.name].toGeoJSON(),
-                            onClick: (feature, lnglat, layer) => {
-                                this.selectFeature(layer.name, feature)
-                            },
-                            useKeyAsHoverName: s.useKeyAsName,
-                            style: {
-                                // Prefer feature[f].properties.style values
-                                letPropertiesStyleOverride: true, // default false
-                                default: {
-                                    fillColor: s.style.fillColor, //Use only rgb and hex. No css color names
-                                    fillOpacity: parseFloat(
-                                        s.style.fillOpacity
-                                    ),
-                                    color: s.style.color,
-                                    weight: s.style.weight,
-                                    radius: s.radius,
+                    if (typeof L_.layersGroup[s.name].toGeoJSON === 'function')
+                        L_.Globe_.litho.addLayer(
+                            L_.layersData[i].type == 'vector'
+                                ? 'clamped'
+                                : L_.layersData[i].type,
+                            {
+                                name: s.name,
+                                order: 1000 - L_.layersIndex[s.name], // Since higher order in litho is on top
+                                on: L_.opacityArray[s.name] ? true : false,
+                                geojson: L_.layersGroup[s.name].toGeoJSON(),
+                                onClick: (feature, lnglat, layer) => {
+                                    this.selectFeature(layer.name, feature)
                                 },
-                                bearing: s.variables?.markerAttachments?.bearing
-                                    ? s.variables.markerAttachments.bearing
-                                    : null,
-                            },
-                            opacity: L_.opacityArray[s.name],
-                            minZoom: 0, //s.minZoom,
-                            maxZoom: 100, //s.maxNativeZoom,
-                        }
-                    )
+                                useKeyAsHoverName: s.useKeyAsName,
+                                style: {
+                                    // Prefer feature[f].properties.style values
+                                    letPropertiesStyleOverride: true, // default false
+                                    default: {
+                                        fillColor: s.style.fillColor, //Use only rgb and hex. No css color names
+                                        fillOpacity: parseFloat(
+                                            s.style.fillOpacity
+                                        ),
+                                        color: s.style.color,
+                                        weight: s.style.weight,
+                                        radius: s.radius,
+                                    },
+                                    bearing: s.variables?.markerAttachments
+                                        ?.bearing
+                                        ? s.variables.markerAttachments.bearing
+                                        : null,
+                                },
+                                opacity: L_.opacityArray[s.name],
+                                minZoom: 0, //s.minZoom,
+                                maxZoom: 100, //s.maxNativeZoom,
+                            }
+                        )
                 }
             }
         }
@@ -607,23 +699,40 @@ var L_ = {
             layer.setStyle(newStyle)
         } catch (err) {}
     },
-    select(layer) {
+    setActiveFeature(layer) {
+        if (layer && layer.feature && layer.options?.layerName)
+            L_.activeFeature = {
+                feature: layer.feature,
+                layerName: layer.options.layerName,
+                layer: layer,
+            }
+        else L_.activeFeature = null
+
         L_.setLastActivePoint(layer)
         L_.resetLayerFills()
         L_.highlight(layer)
         L_.Map_.activeLayer = layer
         Description.updatePoint(L_.Map_.activeLayer)
 
-        L_.Globe_.highlight(
-            L_.Globe_.findSpriteObject(
-                layer.options.layerName,
-                layer.feature.properties[layer.useKeyAsName]
-            ),
-            false
-        )
-        L_.Viewer_.highlight(layer)
+        if (layer) {
+            L_.Globe_.highlight(
+                L_.Globe_.findSpriteObject(
+                    layer.options.layerName,
+                    layer.feature.properties[layer.useKeyAsName]
+                ),
+                false
+            )
+            L_.Viewer_.highlight(layer)
+        }
+
+        ToolController_.notifyActiveTool('setActiveFeature', L_.activeFeature)
+
+        if (!L_.activeFeature) {
+            L_.clearVectorLayerInfo()
+        }
     },
     highlight(layer) {
+        if (layer == null) return
         const color =
             (L_.configData.look && L_.configData.look.highlightcolor) || 'red'
         try {
@@ -958,14 +1067,53 @@ var L_ = {
         return opacity
     },
     setLayerFilter: function (name, filter, value) {
-        if (filter == 'clear') L_.layerFilters[name] = {}
-        L_.layerFilters[name] = L_.layerFilters[name] || {}
-        L_.layerFilters[name][filter] = value
-        if (typeof L_.layersGroup[name].updateFilter === 'function') {
-            var filterArray = []
-            for (var f in L_.layerFilters[name]) {
-                filterArray.push(f + ':' + L_.layerFilters[name][f])
+        // Clear
+        if (filter === 'clear') {
+            L_.layerFilters[name] = {}
+            if (L_.Globe_) {
+                L_.Globe_.litho.setLayerFilterEffect(name, 'brightness', 1)
+                L_.Globe_.litho.setLayerFilterEffect(name, 'contrast', 1)
+                L_.Globe_.litho.setLayerFilterEffect(name, 'saturation', 1)
+                L_.Globe_.litho.setLayerFilterEffect(name, 'blendCode', 0)
             }
+        }
+        // Create a filters object for the layer if one doesn't exist
+        L_.layerFilters[name] = L_.layerFilters[name] || {}
+
+        // Set the new filter (if it's not 'clear')
+        if (filter !== 'clear') L_.layerFilters[name][filter] = value
+
+        // Mappings because litho names things differently
+        const lithoBlendMappings = ['none', 'overlay', 'color']
+        const lithoFilterMappings = {
+            brightness: 'brightness',
+            contrast: 'contrast',
+            saturate: 'saturation',
+        }
+
+        if (typeof L_.layersGroup[name].updateFilter === 'function') {
+            let filterArray = []
+            // Apply filter effects
+            for (let f in L_.layerFilters[name]) {
+                filterArray.push(f + ':' + L_.layerFilters[name][f])
+                // For Globe/litho
+                if (L_.Globe_) {
+                    if (f === 'mix-blend-mode') {
+                        L_.Globe_.litho.setLayerFilterEffect(
+                            name,
+                            'blendCode',
+                            lithoBlendMappings.indexOf(L_.layerFilters[name][f])
+                        )
+                    } else {
+                        L_.Globe_.litho.setLayerFilterEffect(
+                            name,
+                            lithoFilterMappings[f],
+                            parseFloat(L_.layerFilters[name][f])
+                        )
+                    }
+                }
+            }
+            // For Map
             L_.layersGroup[name].updateFilter(filterArray)
         }
     },
@@ -1100,11 +1248,14 @@ var L_ = {
      * @param {object} layer - leaflet layer object
      */
     setLastActivePoint: function (layer) {
-        var layerName = layer.hasOwnProperty('options')
-            ? layer.options.layerName
-            : null
-        var lat = layer.hasOwnProperty('_latlng') ? layer._latlng.lat : null
-        var lon = layer.hasOwnProperty('_latlng') ? layer._latlng.lng : null
+        let layerName, lat, lon
+        if (layer) {
+            layerName = layer.hasOwnProperty('options')
+                ? layer.options.layerName
+                : null
+            lat = layer.hasOwnProperty('_latlng') ? layer._latlng.lat : null
+            lon = layer.hasOwnProperty('_latlng') ? layer._latlng.lng : null
+        }
 
         if (layerName != null && lat != null && layerName != null) {
             L_.lastActivePoint = {
@@ -1264,6 +1415,8 @@ var L_ = {
         try {
             L_.layersGroup[layerName].clearLayers()
             L_.clearVectorLayerInfo()
+            L_.syncSublayerData(layerName, 'clear')
+            L_.globeLithoLayerHelper(L_.layersNamed[layerName])
         } catch (e) {
             console.log(e)
             console.warn('Warning: Unable to clear vector layer: ' + layerName)
@@ -1280,24 +1433,51 @@ var L_ = {
         // Remove the layer
         updateLayer.removeLayer(removeLayer)
     },
-    trimVectorLayerKeepBeforeTime: function (layerName, keepBeforeTime, timePropPath) {
-        L_.trimVectorLayerHelper(layerName, keepBeforeTime, timePropPath, "before")
+    trimVectorLayerKeepBeforeTime: function (
+        layerName,
+        keepBeforeTime,
+        timePropPath
+    ) {
+        L_.trimVectorLayerHelper(
+            layerName,
+            keepBeforeTime,
+            timePropPath,
+            'before'
+        )
     },
-    trimVectorLayerKeepAfterTime: function (layerName, keepAfterTime, timePropPath) {
-        L_.trimVectorLayerHelper(layerName, keepAfterTime, timePropPath, "after")
+    trimVectorLayerKeepAfterTime: function (
+        layerName,
+        keepAfterTime,
+        timePropPath
+    ) {
+        L_.trimVectorLayerHelper(
+            layerName,
+            keepAfterTime,
+            timePropPath,
+            'after'
+        )
     },
-    trimVectorLayerHelper: function (layerName, keepTime, timePropPath, trimType) {
+    trimVectorLayerHelper: function (
+        layerName,
+        keepTime,
+        timePropPath,
+        trimType
+    ) {
         // Validate input parameters
         if (!keepTime) {
             console.warn(
-                'Warning: The input for keep' + trimType.capitalizeFirstLetter() + 'Time is invalid: ' + keepTime
+                'Warning: The input for keep' +
+                    trimType.capitalizeFirstLetter() +
+                    'Time is invalid: ' +
+                    keepTime
             )
             return
         }
 
         if (!timePropPath) {
             console.warn(
-                'Warning: The input for timePropPath is invalid: ' + timePropPath
+                'Warning: The input for timePropPath is invalid: ' +
+                    timePropPath
             )
             return
         }
@@ -1306,7 +1486,10 @@ var L_ = {
             const keepAfterAsDate = new Date(keepTime)
             if (isNaN(keepAfterAsDate.getTime())) {
                 console.warn(
-                    'Warning: The input for keep' + trimType.capitalizeFirstLetter() + 'Time is invalid: ' + keepAfterTime
+                    'Warning: The input for keep' +
+                        trimType.capitalizeFirstLetter() +
+                        'Time is invalid: ' +
+                        keepTime
                 )
                 return
             }
@@ -1322,26 +1505,29 @@ var L_ = {
                 for (let i = layers.length - 1; i >= 0; i--) {
                     let layer = layers[i]
                     if (layer.feature.properties[timePropPath]) {
-                        const layerDate = new Date(layer.feature.properties[timePropPath])
+                        const layerDate = new Date(
+                            layer.feature.properties[timePropPath]
+                        )
                         if (isNaN(layerDate.getTime())) {
                             console.warn(
-                                'Warning: The time for the layer is invalid: ' + layer.feature.properties[timePropPath]
+                                'Warning: The time for the layer is invalid: ' +
+                                    layer.feature.properties[timePropPath]
                             )
                             continue
                         }
-                        if (trimType === "after") {
+                        if (trimType === 'after') {
                             if (layerDate < keepTimeAsDate) {
-                                console.log("if true")
                                 L_.removeLayerHelper(updateLayer, layer)
                             }
-                        } else if (trimType === "before") {
+                        } else if (trimType === 'before') {
                             if (layerDate > keepTimeAsDate) {
-                                console.log("if true")
                                 L_.removeLayerHelper(updateLayer, layer)
                             }
                         }
                     }
                 }
+                L_.syncSublayerData(layerName)
+                L_.globeLithoLayerHelper(L_.layersNamed[layerName])
             }
         } else {
             console.warn(
@@ -1351,10 +1537,10 @@ var L_ = {
         }
     },
     keepFirstN: function (layerName, keepFirstN) {
-        L_.keepNHelper(layerName, keepFirstN, "first")
+        L_.keepNHelper(layerName, keepFirstN, 'first')
     },
     keepLastN: function (layerName, keepLastN) {
-        L_.keepNHelper(layerName, keepLastN, "last")
+        L_.keepNHelper(layerName, keepLastN, 'last')
     },
     keepNHelper: function (layerName, keepN, keepType) {
         // Validate input parameter
@@ -1363,7 +1549,9 @@ var L_ = {
             console.warn(
                 'Warning: Unable to trim vector layer `' +
                     layerName +
-                    '` as keep' + keepType.capitalizeFirstLetter() + 'N == ' +
+                    '` as keep' +
+                    keepType.capitalizeFirstLetter() +
+                    'N == ' +
                     keepN +
                     ' and is not a valid integer'
             )
@@ -1376,23 +1564,325 @@ var L_ = {
                 const updateLayer = L_.layersGroup[layerName]
                 var layers = updateLayer.getLayers()
 
-                if (keepType === "last") {
+                if (keepType === 'last') {
                     while (layers.length > keepN) {
                         const removeLayer = layers[0]
                         L_.removeLayerHelper(updateLayer, removeLayer)
                         layers = updateLayer.getLayers()
                     }
-                } else if (keepType === "first") {
+                } else if (keepType === 'first') {
                     while (layers.length > keepN) {
                         const removeLayer = layers[layers.length - 1]
                         L_.removeLayerHelper(updateLayer, removeLayer)
                         layers = updateLayer.getLayers()
                     }
                 }
+                L_.syncSublayerData(layerName)
+                L_.globeLithoLayerHelper(L_.layersNamed[layerName])
             }
         } else {
             console.warn(
                 'Warning: Unable to trim vector layer as it does not exist: ' +
+                    layerName
+            )
+        }
+    },
+    trimLineString: function (layerName, time, timeProp, trimN, startOrEnd) {
+        // Validate input parameters
+        if (!time) {
+            console.warn(
+                'Warning: Unable to trim the LineString in vector layer `' +
+                    layerName +
+                    '` as time === ' + time + ' and is invalid'
+            )
+            return
+        }
+
+        const timeAsDate = new Date(time)
+        if (isNaN(timeAsDate.getTime())) {
+            console.warn(
+                'Warning: The input for time is not a valid date'
+            )
+            return
+        }
+
+        if (!timeProp) {
+            console.warn(
+                'Warning: Unable to trim the LineString in vector layer `' +
+                    layerName +
+                    '` as timeProp === ' + timeProp + ' and is invalid'
+            )
+            return
+        }
+
+        const trimNum = parseInt(trimN)
+        if (Number.isNaN(Number(trimNum))) {
+            console.warn(
+                'Warning: Unable to trim the LineString in vector layer `' +
+                    layerName +
+                    '` as trimN == ' +
+                    trimN +
+                    ' and is not a valid integer'
+            )
+            return
+        }
+
+        const TRIM_DIRECTION = [ 'start', 'end' ]
+        if (!TRIM_DIRECTION.includes(startOrEnd)) {
+            console.warn(
+                'Warning: Unable to trim the LineString in vector layer `' +
+                    layerName +
+                    '` as startOrEnd == ' +
+                    startOrEnd +
+                    ' and is not a valid input value'
+            )
+            return
+        }
+
+        if (!time) {
+            console.warn(
+                'Warning: Unable to trim the LineString in vector layer `' +
+                    layerName +
+                    '` as startOrEnd == ' +
+                    startOrEnd +
+                    ' and is not a valid input value'
+            )
+            return
+        }
+
+        if (layerName in L_.layersGroup) {
+            const updateLayer = L_.layersGroup[layerName]
+
+            var layers = updateLayer.getLayers()
+            var layersGeoJSON = updateLayer.toGeoJSON()
+            var features = layersGeoJSON.features
+
+            // All of the features have to be a LineString
+            const findNonLineString = features.filter(feature => {
+                return feature.geometry.type !== 'LineString'
+            })
+
+            if (findNonLineString.length > 0) {
+                console.warn(
+                    'Warning: Unable to trim the vector layer `' +
+                        layerName +
+                        '` as the features contain geometry that is not LineString'
+                )
+                return
+            }
+
+            if (features.length > 0) {
+                // Original layer time
+                var layerTime;
+                if (startOrEnd === 'start') {
+                    layerTime = features[0].properties[timeProp]
+                } else {
+                    layerTime = features[features.length - 1].properties[timeProp]
+                }
+                const layerTimeAsDate = new Date(layerTime)
+
+                // Trim only if the new start time is after the layer start time
+                if (startOrEnd === 'start' && layerTimeAsDate < timeAsDate && trimNum > 0) {
+                    var leftToTrim = trimNum;
+                    var updatedFeatures = [];
+                    // Walk forwards to find the new time
+                    while (features.length > 0) {
+                        const feature = features[0]
+                        // If the feature is missing the key for the time
+                        if (!feature.properties.hasOwnProperty(timeProp)) {
+                            console.warn(
+                                'Warning: Unable to trim the vector layer `' +
+                                    layerName +
+                                    '` as the the feature\'s properties object is missing the `' + timeProp + '` key'
+                            )
+                            return
+                        }
+
+                        // If the number to trim is greater than the number of vertices in the current feature,
+                        // trim the entire feature and move on to the next feature
+                        if (leftToTrim >= feature.geometry.coordinates.length) {
+                            leftToTrim -= feature.geometry.coordinates.length
+                            features.shift()
+                            continue
+                        }
+
+                        // Trim
+                        if (leftToTrim > 0) {
+                            feature.geometry.coordinates = feature.geometry.coordinates.slice(leftToTrim)
+                            leftToTrim -= trimNum
+                        }
+
+                        if (leftToTrim <= 0) {
+                            feature.properties[timeProp] = time
+                        }
+
+                        updatedFeatures.push(feature)
+                        features.shift()
+                    }
+                    layersGeoJSON.features = updatedFeatures
+                }
+
+                // Trim only if the new end time is before the layer end time
+                if (startOrEnd === 'end' && layerTimeAsDate > timeAsDate && trimNum > 0) {
+                    var leftToTrim = trimNum;
+                    var updatedFeatures = [];
+                    // Walk backwards to find the new time
+                    while (features.length > 0) {
+                        const feature = features[features.length - 1]
+                        // If the feature is missing the key for the end time
+                        if (!feature.properties.hasOwnProperty(timeProp)) {
+                            console.warn(
+                                'Warning: Unable to trim the vector layer `' +
+                                    layerName +
+                                    '` as the the feature\'s properties object is missing the key `' +
+                                     timeProp + '` for the end time'
+                            )
+                            return
+                        }
+
+                        // If the number to trim is greater than the number of vertices in the current feature,
+                        // trim the entire feature and move on to the next feature
+                        if (leftToTrim >= feature.geometry.coordinates.length) {
+                            leftToTrim -= feature.geometry.coordinates.length
+                            features.pop()
+                            continue
+                        }
+
+                        // Trim
+                        if (leftToTrim > 0) {
+                            const length = feature.geometry.coordinates.length
+                            feature.geometry.coordinates = feature.geometry.coordinates.slice(0, length - leftToTrim)
+                            leftToTrim -= trimNum
+                        }
+
+                        if (leftToTrim <= 0) {
+                            feature.properties[timeProp] = time
+                        }
+
+                        updatedFeatures.unshift(feature)
+                        features.pop()
+                    }
+                    layersGeoJSON.features = updatedFeatures
+                }
+
+                L_.clearVectorLayerInfo()
+                updateLayer.clearLayers()
+                updateLayer.addData(layersGeoJSON)
+                L_.syncSublayerData(layerName)
+                L_.globeLithoLayerHelper(L_.layersNamed[layerName])
+            } else {
+                 console.warn(
+                    'Warning: Unable to trim the vector layer `' +
+                        layerName +
+                        '` as the layer contains no features'
+                )
+                return
+            }
+        } else {
+            console.warn(
+                'Warning: Unable to trim vector layer as it does not exist: ' +
+                    layerName
+            )
+        }
+    },
+    appendLineString: function (layerName, inputData, timeProp) {
+        // Validate input parameter
+        if (!inputData) {
+            console.warn(
+                'Warning: Unable to append to vector layer `' +
+                    layerName +
+                    '` as inputData is invalid: ' +
+                    JSON.stringify(inputData, null, 4)
+            )
+            return
+        }
+
+        // Make sure the timeProp exists as a property in the updated data
+        if (!(inputData.properties.hasOwnProperty(timeProp))) {
+            console.warn(
+                'Warning: Unable to append to the vector layer `' +
+                    layerName +
+                    '` as timeProp === ' + timeProp +
+                    ' and does not exist as a property in inputData: ' +
+                    JSON.stringify(lastFeature, null, 4)
+            )
+            return
+        }
+
+        if (layerName in L_.layersGroup) {
+            const updateLayer = L_.layersGroup[layerName]
+
+            var layers = updateLayer.getLayers()
+            var layersGeoJSON = updateLayer.toGeoJSON()
+            var features = layersGeoJSON.features
+
+            if (features.length > 0) {
+                var lastFeature = features[features.length - 1]
+                // Make sure the last feature is a LineString
+                if (lastFeature.geometry.type !== 'LineString') {
+                     console.warn(
+                        'Warning: Unable to append to the vector layer `' +
+                            layerName +
+                            '` as the feature is not a LineStringfeature: ' +
+                            JSON.stringify(lastFeature, null, 4)
+                    )
+                    return
+                }
+
+                // Make sure the timeProp exists as a property in the feature
+                if (!(lastFeature.properties.hasOwnProperty(timeProp))) {
+                    console.warn(
+                        'Warning: Unable to append to the vector layer `' +
+                            layerName +
+                            '` as timeProp === ' + timeProp +
+                            ' and does not exist as a property in the feature: ' +
+                            JSON.stringify(lastFeature, null, 4)
+                    )
+                    return
+                }
+
+                if (inputData.type === 'Feature') {
+                    if (inputData.geometry.type !== 'LineString') {
+                        console.warn(
+                            'Warning: Unable to append to vector layer `' +
+                                layerName +
+                                '` as inputData has the wrong geometry type (must be of type \'LineString\'): ' +
+                                JSON.stringify(inputData, null, 4)
+                        )
+                        return
+                    }
+
+                    // Append new data to the end of the last feature
+                    lastFeature.geometry.coordinates = lastFeature.geometry.coordinates.concat(inputData.geometry.coordinates)
+
+                    // Update the time
+                    lastFeature.properties[timeProp] = inputData.properties[timeProp]
+                } else {
+                    console.warn(
+                        'Warning: Unable to append to vector layer `' +
+                            layerName +
+                            '` as inputData has the wrong type (must be of type \'Feature\'): ' +
+                            JSON.stringify(inputData, null, 4)
+                    )
+                    return
+                }
+
+                L_.clearVectorLayerInfo()
+                updateLayer.clearLayers()
+                updateLayer.addData(layersGeoJSON)
+                L_.syncSublayerData(layerName)
+                L_.globeLithoLayerHelper(L_.layersNamed[layerName])
+            } else {
+                 console.warn(
+                    'Warning: Unable to append to the vector layer `' +
+                        layerName +
+                        '` as the layer contains no features'
+                )
+                return
+            }
+        } else {
+            console.warn(
+                'Warning: Unable to append to vector layer as it does not exist: ' +
                     layerName
             )
         }
@@ -1410,11 +1900,38 @@ var L_ = {
                     'Warning: Unable to update vector layer as the input data is invalid: ' +
                         layerName
                 )
+                return
             }
+            L_.syncSublayerData(layerName)
+            L_.globeLithoLayerHelper(L_.layersNamed[layerName])
         } else {
             console.warn(
                 'Warning: Unable to update vector layer as it does not exist: ' +
                     layerName
+            )
+        }
+    },
+    // Make a layer's sublayer match the layers data again
+    syncSublayerData: function (layerName) {
+        try {
+            const geojson = L_.layersGroup[layerName].toGeoJSON()
+            // Now try the sublayers (if any)
+            const subUpdateLayers = L_.layersGroupSublayers[layerName]
+            if (subUpdateLayers) {
+                for (let sub in subUpdateLayers) {
+                    if (
+                        subUpdateLayers[sub] !== false &&
+                        subUpdateLayers[sub].layer != null
+                    ) {
+                        subUpdateLayers[sub].layer.clearLayers()
+                        subUpdateLayers[sub].layer.addData(geojson)
+                    }
+                }
+            }
+        } catch (e) {
+            console.log(e)
+            console.warn(
+                'Warning: Failed to update sublayers of layer: ' + layerName
             )
         }
     },
@@ -1427,6 +1944,20 @@ var L_ = {
 
         // Clear the description
         Description.clearDescription()
+    },
+    //Takes in a config layer object
+    globeLithoLayerHelper: async function(s) {
+        if (L_.Globe_) {
+            // Only toggle the layer to reset if the layer is toggled on,
+            // because if the layer is toggled off, it is not on the globe
+            if (L_.toggledArray[s.name]) {
+                // Temporarily set layer to "off" so the layer will be redrawn
+                L_.toggledArray[s.name] = false
+
+                // Toggle the layer so its drawn in the globe
+                L_.toggleLayer(s)
+            }
+        }
     },
 }
 

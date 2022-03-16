@@ -32,11 +32,11 @@ body {
 
 /*Color variables*/
 :root {
-    --color-mmgis: #26a8ff;
+    --color-mmgis: #08aeea;
     --color-a: #010102; /*#1f1f1f;*/
     --color-a1: #1f1f1f;
     --color-b: #555555;
-    --color-c: #009eff;
+    --color-c: #08aeea;
     --color-d: #2a2a2a;
     --color-e: #4f4f4f;
     --color-f: #e1e1e1;
@@ -49,6 +49,7 @@ body {
     --color-m: #c4c4c4;
     --color-n: #151619;
     --color-o: #1a628e;
+    --color-p: #747474;
 
     --color-green: #00d200;
     --color-yellow: #d2b800;
@@ -70,6 +71,18 @@ body {
     --color-r5: #00b7c7;
     --color-r6: #8be04e;
     --color-r7: #ebdc78;
+
+    --color-p0: #bdbd0f;
+    --color-p1: #c0822f;
+    --color-p2: #ffeaaf;
+    --color-p3: #62bd0f;
+    --color-p4: #bd0f32;
+    --color-p5: #edd49e;
+    --color-p6: #e7bdcb;
+    --color-p7: #72d1cb;
+    --color-p8: #08aeea;
+    --color-p9: #770fbd;
+    --color-p10: #bd0f8e;
 }
 
 #nodeenv {
@@ -155,6 +168,9 @@ body {
     display: inline-flex;
     justify-content: space-evenly;
     align-items: center;
+}
+.splitterVInner > div {
+    border-radius: 3px;
 }
 
 .splitterVInner i {
@@ -295,7 +311,7 @@ body {
     width: 20px !important;
     height: 20px !important;
     color: #ffffff !important;
-    background: #26a8ff !important;
+    background: var(--color-mmgis) !important;
 }
 .leaflet-popup-content {
     margin: 1px 7px 1px 7px;
@@ -416,11 +432,11 @@ body {
     color: var(--color-f);
     width: 30px;
     height: 30px;
-    line-height: 29px !important;
     border-radius: 3px;
-    margin-bottom: 4px;
+    margin-bottom: 5px;
+    font-size: 18px !important;
     border: none !important;
-    border-radius: 0 !important;
+    border-radius: 3px !important;
     background: var(--color-a) !important;
     transition: color 0.2s ease-in 0s;
 }
@@ -625,6 +641,8 @@ body {
     padding: 0px 8px;
     font-size: 14px;
     color: var(--color-mw2);
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
     flex: 1;
     transition: background 0.2s ease-out, border 0.2s ease-out;
 }

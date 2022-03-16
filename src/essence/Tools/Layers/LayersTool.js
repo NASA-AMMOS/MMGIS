@@ -211,7 +211,7 @@ function interfaceWithMMGIS() {
                                         '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.opacityArray[node[i].name] + '">',
                                     '</div>',
                                     L_.layersGroupSublayers[node[i].name] ? Object.keys(L_.layersGroupSublayers[node[i].name]).map((function(i){return function(s) {
-                                        return [
+                                        return L_.layersGroupSublayers[node[i].name][s] === false ? '' : [
                                             '<div class="sublayer">',
                                                 `<div>${F_.prettifyName(s)}</div>`,
                                                 '<div class="checkboxcont">',

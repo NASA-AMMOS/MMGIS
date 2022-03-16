@@ -866,11 +866,10 @@ var Test = {
                     )
                     $('#mmgisModal .drawToolFileSave').click()
 
-                    $(
-                        '#drawToolDrawFilesList > li:nth-child(2) .drawToolFileEdit'
-                    ).click()
-
                     setTimeout(function () {
+                        $(
+                            '#drawToolDrawFilesList > li:nth-child(2) .drawToolFileEdit'
+                        ).click()
                         c(
                             'File name updates',
                             $(
@@ -895,7 +894,7 @@ var Test = {
                         )
 
                         $('#mmgisModal .drawToolFileCancel').click()
-                    }, Test.timeout)
+                    }, Test.timeout * 3)
                 }, Test.timeout)
             },
         },
@@ -1714,10 +1713,6 @@ var Test = {
             name: 'Lead can draw ROIs',
             subtests: 2,
             test: function (c) {
-                $(
-                    '#drawToolDrawFilesListMaster .drawToolDrawFilesListElem[file_id="1"] .drawToolFileSelector'
-                ).click()
-
                 c(
                     'Starts on polygon drawing',
                     $('.drawToolDrawingTypePolygon').hasClass('active')

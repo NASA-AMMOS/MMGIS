@@ -20,6 +20,8 @@ var Drawing = {
         DrawTool.setDrawingType = Drawing.setDrawingType
         DrawTool.switchDrawingType = Drawing.switchDrawingType
         DrawTool.setDrawing = Drawing.setDrawing
+
+        L.Draw.Polyline.prototype._onTouch = L.Util.falseFn
     },
     drawOver: function (d, clip, callback) {
         var file_id =
@@ -254,6 +256,8 @@ var Drawing = {
             case 'arrow':
                 DrawTool.drawing.arrow.begin(type)
                 break
+            default:
+                break
         }
     },
     switchDrawingType: function (type) {
@@ -293,6 +297,12 @@ var Drawing = {
             case 'all':
                 DrawTool.switchDrawingType('Polygon')
                 DrawTool.drawing.polygon.begin('polygon')
+                break
+            default:
+                DrawTool.drawing.polygon.end()
+                DrawTool.drawing.point.end()
+                DrawTool.drawing.line.end()
+                DrawTool.drawing.annotation.end()
                 break
         }
 
@@ -406,6 +416,7 @@ var drawing = {
             }
 
             d.lastVertex = e.latlng
+            d.shape = d.drawing._poly
         },
         complete: function () {
             var d = drawing.polygon
@@ -473,7 +484,7 @@ var drawing = {
                 }
             }
 
-            d.shape = d.drawing._poly
+            d.shape = d.drawing._poly || d.shape
         },
         stop: function () {
             var d = drawing.polygon
@@ -594,6 +605,7 @@ var drawing = {
             }
 
             d.lastVertex = e.latlng
+            d.shape = d.drawing._poly
         },
         complete: function () {
             var d = drawing.line
@@ -660,7 +672,7 @@ var drawing = {
                 }
             }
 
-            d.shape = d.drawing._poly
+            d.shape = d.drawing._poly || d.shape
         },
         stop: function () {
             var d = drawing.line

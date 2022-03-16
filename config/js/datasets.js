@@ -1,6 +1,6 @@
 var Datasets = {
   csv: null,
-  init: function() {
+  init: function () {
     // prettier-ignore
     var markup = [
         "<div class='datasets'>",
@@ -33,24 +33,24 @@ var Datasets = {
     Datasets.refreshNames();
 
     //Upload
-    $(".container_datasets #datasetUploadButton > input").on("change", function(
-      evt
-    ) {
-      var files = evt.target.files; // FileList object
+    $(".container_datasets #datasetUploadButton > input").on(
+      "change",
+      function (evt) {
+        var files = evt.target.files; // FileList object
 
-      // use the 1st file from the list
-      var f = files[0];
-      var ext = Datasets.getExtension(f.name).toLowerCase();
+        // use the 1st file from the list
+        var f = files[0];
+        var ext = Datasets.getExtension(f.name).toLowerCase();
 
-      $(".container_datasets .datasetName input").val(
-        f.name
-          .split("." + ext)[0]
-          .replace(/[`~!@#$%^&*()|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, "")
-      );
+        $(".container_datasets .datasetName input").val(
+          f.name
+            .split("." + ext)[0]
+            .replace(/[`~!@#$%^&*()|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, "")
+        );
 
-      switch (ext) {
-        case "csv":
-          /*
+        switch (ext) {
+          case "csv":
+            /*
           var reader = new FileReader();
           // Closure to capture the file information.
           reader.onload = (function(file) {
@@ -62,16 +62,19 @@ var Datasets = {
 
           reader.readAsText(f);
           */
-          Datasets.f = f;
-          $(".container_datasets .datasetUploadFilename").text(Datasets.f.name);
-          break;
-        default:
-          alert("Only .csv files may be uploaded.");
+            Datasets.f = f;
+            $(".container_datasets .datasetUploadFilename").text(
+              Datasets.f.name
+            );
+            break;
+          default:
+            alert("Only .csv files may be uploaded.");
+        }
       }
-    });
+    );
 
     //Re/create
-    $(".container_datasets .datasetRecreate > a").on("click", function(evt) {
+    $(".container_datasets .datasetRecreate > a").on("click", function (evt) {
       let name = $(".datasetName input").val();
       if (Datasets.f == null) {
         alert("Please upload a .csv file.");
@@ -90,7 +93,7 @@ var Datasets = {
       let cursorSum = 0;
       let cursorStep = null;
       Papa.parse(Datasets.f, {
-        step: function(row, parser) {
+        step: function (row, parser) {
           if (firstStep) {
             header = row.data;
             firstStep = false;
@@ -117,22 +120,22 @@ var Datasets = {
                   name: name,
                   csv: JSON.stringify(currentRows),
                   header: header,
-                  mode: first ? "full" : "append"
+                  mode: first ? "full" : "append",
                 },
-                success: function(data) {
+                success: function (data) {
                   first = false;
                   currentRows = [];
                   parser.resume();
                 },
-                error: function(err) {
+                error: function (err) {
                   currentRows = [];
                   console.log(err);
-                }
+                },
               });
             }
           }
         },
-        complete: function() {
+        complete: function () {
           if (currentRows.length > 0) {
             $.ajax({
               type: calls.datasets_recreate.type,
@@ -141,18 +144,18 @@ var Datasets = {
                 name: name,
                 csv: JSON.stringify(currentRows),
                 header: header,
-                mode: "append"
+                mode: "append",
               },
-              success: function(data) {
+              success: function (data) {
                 Datasets.refreshNames();
                 $(".datasetRecreate a")
                   .css("pointer-events", "inherit")
                   .text("Re/create");
               },
-              error: function(err) {
+              error: function (err) {
                 currentRows = [];
                 console.log(err);
-              }
+              },
             });
           } else {
             Datasets.refreshNames();
@@ -160,39 +163,48 @@ var Datasets = {
               .css("pointer-events", "inherit")
               .text("Re/create");
           }
-        }
+        },
       });
     });
   },
-  make: function() {
+  make: function () {
     $(".container_datasets").css({
       opacity: 1,
-      pointerEvents: "inherit"
+      pointerEvents: "inherit",
+      display: "block",
     });
     Keys.destroy();
     Geodatasets.destroy();
+    Webhooks.destroy();
     $("#missions li.active").removeClass("active");
-  },
-  destroy: function() {
-    $(".container_datasets").css({
-      opacity: 0,
-      pointerEvents: "none"
+    $(".container").css({
+      display: "none",
     });
   },
-  getExtension: function(string) {
+  destroy: function () {
+    $(".container_datasets").css({
+      opacity: 0,
+      pointerEvents: "none",
+      display: "none",
+    });
+    $(".container").css({
+      display: "block",
+    });
+  },
+  getExtension: function (string) {
     var ex = /(?:\.([^.]+))?$/.exec(string)[1];
     return ex || "";
   },
-  sortArrayOfObjectsByKeyValue: function(arr, key, ascending, stringify) {
+  sortArrayOfObjectsByKeyValue: function (arr, key, ascending, stringify) {
     if (arr.constructor !== Array) return arr;
     const side = ascending ? 1 : -1;
-    let compareKey = function(a, b) {
+    let compareKey = function (a, b) {
       if (a[key] < b[key]) return -1 * side;
       if (a[key] > b[key]) return side;
       return 0;
     };
     if (stringify) {
-      compareKey = function(a, b) {
+      compareKey = function (a, b) {
         if (JSON.stringify(a[key]) < JSON.stringify(b[key])) return -1 * side;
         if (JSON.stringify(a[key]) > JSON.stringify(b[key])) return side;
         return 0;
@@ -201,12 +213,12 @@ var Datasets = {
 
     return arr.sort(compareKey);
   },
-  refreshNames: function() {
+  refreshNames: function () {
     $.ajax({
       type: calls.datasets_entries.type,
       url: calls.datasets_entries.url,
       data: {},
-      success: function(data) {
+      success: function (data) {
         if (data.status == "success") {
           $(".container_datasets .existing ul").html("");
           let entries = Datasets.sortArrayOfObjectsByKeyValue(
@@ -223,11 +235,11 @@ var Datasets = {
                 "</div></li>"
             );
         }
-      }
+      },
     });
-  }
+  },
 };
 
-$(document).ready(function() {
+$(document).ready(function () {
   Datasets.init();
 });

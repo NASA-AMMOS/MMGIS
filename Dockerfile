@@ -1,4 +1,7 @@
-FROM node:12
+FROM node:16
+
+ARG PUBLIC_URL_ARG=
+ENV PUBLIC_URL=$PUBLIC_URL_ARG
 
 # Install GDAL with Python bindings
 RUN apt-get -y update

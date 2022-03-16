@@ -8,26 +8,22 @@ import TimeControl from '../../Ancillary/TimeControl'
 export const captureVector = (layerObj, options, cb) => {
     options = options || {}
     let layerUrl = layerObj.url
+    const layerData = L_.layersDataByName[layerObj.name]
 
-    if (
-        options.evenIfOff !== true &&
-        !layerObj.visibility &&
-        !options.useEmptyGeoJSON
-    ) {
+    // If there is no url to a JSON file but the "controlled" option is checked in the layer config,
+    // create the geoJSON layer with empty GeoJSON data
+    if (options.useEmptyGeoJSON || layerData.controlled) {
+        cb(F_.getBaseGeoJSON())
+        return
+    }
+
+    if (options.evenIfOff !== true && !layerObj.visibility) {
         cb('off')
         return
     }
 
-    if (
-        (typeof layerUrl !== 'string' || layerUrl.length === 0) &&
-        !options.useEmptyGeoJSON
-    ) {
+    if (typeof layerUrl !== 'string' || layerUrl.length === 0) {
         cb(null)
-        return
-    }
-
-    if (options.useEmptyGeoJSON) {
-        cb(F_.getBaseGeoJSON())
         return
     }
 
@@ -36,8 +32,15 @@ export const captureVector = (layerObj, options, cb) => {
         layerObj.time == null
             ? d3.utcFormat('%Y-%m-%dT%H:%M:%SZ')
             : d3.utcFormat(layerObj.time.format)
-    const startTime = layerTimeFormat(Date.parse(TimeControl.getStartTime()))
-    const endTime = layerTimeFormat(Date.parse(TimeControl.getEndTime()))
+    const startTime = 
+        layerObj.time == null
+            ? layerTimeFormat(Date.parse(TimeControl.getStartTime()))
+            : layerObj.time.start
+    const endTime =
+        layerObj.time == null
+            ? layerTimeFormat(Date.parse(TimeControl.getEndTime()))
+            : layerObj.time.end
+
     if (typeof layerObj.time != 'undefined') {
         layerUrl = layerObj.url
             .replace('{starttime}', startTime)
@@ -180,30 +183,23 @@ export const captureVector = (layerObj, options, cb) => {
     }
 
     if (!done) {
-        // If there is no url to a JSON file but the "controlled" option is checked in the layer config,
-        // create the geoJSON layer with empty GeoJSON data
-        const layerData = L_.layersDataByName[layerObj.name]
-        if (L_.missionPath === layerUrl && layerData.controlled) {
-            cb(F_.getBaseGeoJSON())
-        } else {
-            $.getJSON(layerUrl, function (data) {
-                if (data.hasOwnProperty('Features')) {
-                    data.features = data.Features
-                    delete data.Features
-                }
-                cb(data)
-            }).fail(function (jqXHR, textStatus, errorThrown) {
-                //Tell the console council about what happened
-                console.warn(
-                    'ERROR! ' +
-                        textStatus +
-                        ' in ' +
-                        layerUrl +
-                        ' /// ' +
-                        errorThrown
-                )
-                cb(null)
-            })
-        }
+        $.getJSON(layerUrl, function (data) {
+            if (data.hasOwnProperty('Features')) {
+                data.features = data.Features
+                delete data.Features
+            }
+            cb(data)
+        }).fail(function (jqXHR, textStatus, errorThrown) {
+            //Tell the console council about what happened
+            console.warn(
+                'ERROR! ' +
+                    textStatus +
+                    ' in ' +
+                    layerUrl +
+                    ' /// ' +
+                    errorThrown
+            )
+            cb(null)
+        })
     }
 }

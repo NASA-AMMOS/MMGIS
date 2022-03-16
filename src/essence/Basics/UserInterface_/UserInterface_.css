@@ -15,7 +15,6 @@
     padding-left: 40px;
     width: 100%;
     font-family: sans-serif;
-    background: rgb(0, 0, 0, 0.15);
     pointer-events: none;
     z-index: 2005;
     transition: all 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
@@ -50,6 +49,7 @@
     z-index: 1;
     background: var(--color-a);
     color: white;
+    border-radius: 3px;
     margin: 0px 5px 0px 5px;
     transition: color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
 }
@@ -87,6 +87,7 @@
     margin-right: 5px;
     z-index: 20;
     opacity: 0;
+    border-radius: 3px;
     pointer-events: auto;
     transition: opacity 0.2s ease-out;
 }
@@ -99,6 +100,7 @@
     padding-left: 8px;
     background: var(--color-a);
     opacity: 0;
+    border-radius: 3px;
     pointer-events: auto;
     transition: opacity 0.2s ease-out;
 }
