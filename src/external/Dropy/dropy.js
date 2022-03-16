@@ -12,10 +12,11 @@ export default {
     // items []
     // placeholder
     // selectedIndex int null for none
-    construct: function (items, placeholder, selectedIndex) {
+    construct: function (items, placeholder, selectedIndex, options) {
+        options = options || {}
         // prettier-ignore
         return [
-            '<dl class="dropy">',
+            `<dl class="dropy${options.openUp === true ? ' openUp' : ''}">`,
                 `<dt class="dropy__title"><span>${items[selectedIndex] || placeholder}</span></dt>`,
                 '<dd class="dropy__content">',
                     '<ul>',

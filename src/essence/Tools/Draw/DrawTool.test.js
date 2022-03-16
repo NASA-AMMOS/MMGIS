@@ -866,11 +866,10 @@ var Test = {
                     )
                     $('#mmgisModal .drawToolFileSave').click()
 
-                    $(
-                        '#drawToolDrawFilesList > li:nth-child(2) .drawToolFileEdit'
-                    ).click()
-
                     setTimeout(function () {
+                        $(
+                            '#drawToolDrawFilesList > li:nth-child(2) .drawToolFileEdit'
+                        ).click()
                         c(
                             'File name updates',
                             $(
@@ -895,7 +894,7 @@ var Test = {
                         )
 
                         $('#mmgisModal .drawToolFileCancel').click()
-                    }, Test.timeout)
+                    }, Test.timeout * 3)
                 }, Test.timeout)
             },
         },

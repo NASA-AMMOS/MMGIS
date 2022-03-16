@@ -478,7 +478,8 @@ const Filtering = {
                     `<i class='mdi mdi-greater-than mdi-18px' title='Greater than'></i>`,
                 ],
                 'op',
-                opId
+                opId,
+                { openUp: true }
             )
         )
         Dropy.init($(elmId), function (idx) {

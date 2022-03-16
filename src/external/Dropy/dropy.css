@@ -128,3 +128,10 @@ dd {
 .dropy.dark .dropy__title:hover {
     border-color: #cccccc;
 }
+
+.dropy.openUp .dropy__content {
+    top: unset;
+}
+.dropy.openUp .dropy__content > ul {
+    transform: translateY(-100%);
+}
