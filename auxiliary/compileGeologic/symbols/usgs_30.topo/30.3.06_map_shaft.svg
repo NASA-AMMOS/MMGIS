@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="10.13mm"
+   height="10.13mm"
+   viewBox="0 0 10.13 10.13"
+   version="1.1"
+   id="svg2246"
+   inkscape:version="0.92.2 (5c3e80d, 2017-08-06)"
+   sodipodi:docname="30.3.06.svg">
+  <defs
+     id="defs2240" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="15.839192"
+     inkscape:cx="10.043766"
+     inkscape:cy="17.401834"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1920"
+     inkscape:window-height="1018"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata2243">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-105.12668,-165.34277)">
+    <g
+       id="g44">
+      <path
+         id="path416"
+         d="m 105.20314,171.46691 v -1.00011 h 0.99976 l -0.99976,1.00011"
+         style="fill:#231f20;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.35277775"
+         inkscape:connector-curvature="0" />
+      <path
+         id="path418"
+         d="m 106.2029,171.46691 h -0.99995 V 170.467 h 0.99995 z"
+         style="fill:none;stroke:#231f20;stroke-width:0.15240352;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:3.8599999;stroke-dasharray:none;stroke-opacity:1"
+         inkscape:connector-curvature="0" />
+      <text
+         id="text378-1"
+         style="font-variant:normal;font-weight:normal;font-size:2.46944427px;font-family:Helvetica;-inkscape-font-specification:Helvetica;writing-mode:lr-tb;fill:#231f20;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.35277775"
+         x="107.64284"
+         y="170.01537">
+        <tspan
+           id="tspan17912"
+           y="170.01537"
+           sodipodi:role="line"
+           x="107.64284"
+           style="stroke-width:0.35277775">Garnet</tspan>
+      </text>
+      <text
+         id="text378-1-6"
+         style="font-variant:normal;font-weight:normal;font-size:2.46944427px;font-family:Helvetica;-inkscape-font-specification:Helvetica;writing-mode:lr-tb;fill:#231f20;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.35277775"
+         x="107.67396"
+         y="172.29745">
+        <tspan
+           id="tspan17912-1"
+           y="172.29745"
+           sodipodi:role="line"
+           x="107.67396"
+           style="stroke-width:0.35277775">Mine</tspan>
+      </text>
+    </g>
+  </g>
+</svg>

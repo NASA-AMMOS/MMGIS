@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="14.3mm"
+   height="14.3mm"
+   viewBox="0 0 14.3 14.3"
+   version="1.1"
+   id="svg2044"
+   inkscape:version="0.92.2 (5c3e80d, 2017-08-06)"
+   sodipodi:docname="30.3.02.svg">
+  <defs
+     id="defs2038" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="11.2"
+     inkscape:cx="29.556916"
+     inkscape:cy="16.44083"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1920"
+     inkscape:window-height="1018"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata2041">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-98.690314,-136.30443)">
+    <g
+       id="g2068"
+       transform="translate(0.00698001,-5.3789029)">
+      <text
+         id="text424"
+         style="font-variant:normal;font-weight:normal;font-size:2.46944427px;font-family:Helvetica;-inkscape-font-specification:Helvetica;writing-mode:lr-tb;fill:#231f20;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.35277775"
+         x="98.558884"
+         y="148.86006">
+        <tspan
+           id="tspan422"
+           sodipodi:role="line"
+           y="148.86006"
+           x="98.558884 100.49987 101.34195 102.73472 103.9892 105.38196 105.94994 106.6562 108.32307 108.89104"
+           style="stroke-width:0.35277775">Gravel Pit</tspan>
+      </text>
+      <path
+         id="path428"
+         d="m 112.60347,149.71421 0.25365,0.77153 -0.76623,-0.24801 z"
+         style="fill:#231f20;fill-opacity:1;fill-rule:nonzero;stroke:#231f20;stroke-width:0.15240352;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:3.8599999;stroke-dasharray:none;stroke-opacity:1"
+         inkscape:connector-curvature="0" />
+      <path
+         id="path430"
+         d="m 110.46493,149.71421 -0.25365,0.77153 0.76624,-0.24801 z"
+         style="fill:#231f20;fill-opacity:1;fill-rule:nonzero;stroke:#231f20;stroke-width:0.15240352;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:3.8599999;stroke-dasharray:none;stroke-opacity:1"
+         inkscape:connector-curvature="0" />
+      <path
+         id="path1316"
+         d="m 112.2454,148.37471 -1.5106,1.60938"
+         style="fill:none;stroke:#231f20;stroke-width:0.15240352;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:3.8599999;stroke-dasharray:none;stroke-opacity:1"
+         inkscape:connector-curvature="0" />
+      <path
+         id="path432"
+         d="m 110.80113,148.35249 1.57656,1.5875"
+         style="fill:none;stroke:#231f20;stroke-width:0.15240352;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:3.8599999;stroke-dasharray:none;stroke-opacity:1"
+         inkscape:connector-curvature="0" />
+    </g>
+  </g>
+</svg>

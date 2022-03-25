@@ -92,7 +92,7 @@ var UserInterface = {
             .style('display', 'none')
             .style('width', '0px')
             .style('height', '100vh')
-            .style('background', '#001')
+            .style('background', '#000')
 
         Login.init()
 
@@ -575,15 +575,15 @@ var UserInterface = {
     },
     openRightPanel: function (width) {
         if (UserInterface.rightPanelOpen != null) return
-        var oldWidth = parseInt(
+        const oldWidth = parseInt(
             UserInterface.splitscreens.style('width').replace('px', '')
         )
-        $('#loginDiv').css('right', width + 'px')
-        $('.mouseLngLat').css('right', width + 'px')
-        var newWidth = oldWidth - width
-        UserInterface.splitscreens.style('width', newWidth + 'px')
+        $('#CoordinatesDiv').css('right', width + 'px')
+        $('#main-container').css('width', `calc(100% - ${width}px)`)
+        const newWidth = oldWidth - width
+        //UserInterface.splitscreens.style('width', newWidth + 'px')
         UserInterface.mainWidth = $('#splitscreens').width()
-        var pp = UserInterface.getPanelPercents()
+        const pp = UserInterface.getPanelPercents()
         UserInterface.setPanelPercents(pp.viewer, pp.map, pp.globe)
         $('#uiRightPanel').css({ display: 'inherit', width: width })
 

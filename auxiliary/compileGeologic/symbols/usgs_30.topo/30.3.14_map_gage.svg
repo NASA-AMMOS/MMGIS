@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="9.3199997mm"
+   height="9.3199997mm"
+   viewBox="0 0 9.3199997 9.3199997"
+   version="1.1"
+   id="svg2558"
+   inkscape:version="0.92.2 (5c3e80d, 2017-08-06)"
+   sodipodi:docname="30.3.14.svg">
+  <defs
+     id="defs2552" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="15.839192"
+     inkscape:cx="21.729161"
+     inkscape:cy="13.715858"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1920"
+     inkscape:window-height="1018"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata2555">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-102.19332,-190.45788)">
+    <g
+       id="g61">
+      <path
+         id="path328"
+         d="m 110.81308,196.34001 c 0.34502,0 0.62477,-0.27975 0.62477,-0.62477 0,-0.34538 -0.27975,-0.62513 -0.62477,-0.62513 -0.34537,0 -0.62512,0.27975 -0.62512,0.62513 0,0.34502 0.27975,0.62477 0.62512,0.62477 z"
+         style="fill:none;stroke:#231f20;stroke-width:0.15240352;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         inkscape:connector-curvature="0" />
+      <path
+         id="path330"
+         d="m 111.43432,195.71524 h -1.24213 c 0,-0.34538 0.27552,-0.62054 0.62089,-0.62054 v 1.23084 c 0.34502,0 0.62124,-0.26528 0.62124,-0.6103 z"
+         style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#231f20;stroke-width:0.15240352;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         inkscape:connector-curvature="0" />
+      <text
+         id="text340"
+         style="font-variant:normal;font-weight:normal;font-size:2.46944427px;font-family:Helvetica;-inkscape-font-specification:Helvetica;writing-mode:lr-tb;fill:#231f20;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.35277775"
+         x="102.08165"
+         y="194.767">
+        <tspan
+           id="tspan332"
+           sodipodi:role="line"
+           y="194.767"
+           x="102.08165 104.00288 105.37589 106.7489 107.29712 108.67013"
+           style="stroke-width:0.35277775">Gaging</tspan>
+        <tspan
+           id="tspan334"
+           sodipodi:role="line"
+           y="0"
+           x="102.08165"
+           style="stroke-width:0.35277775" />
+        <tspan
+           id="tspan2592"
+           sodipodi:role="line"
+           y="197.23643"
+           x="102.08165 103.72877 104.41528 105.78828 106.47479 107.02301 108.39602"
+           style="stroke-width:0.35277775" />
+        <tspan
+           y="0"
+           id="tspan338"
+           sodipodi:role="line"
+           x="102.08165"
+           style="stroke-width:0.35277775" />
+      </text>
+      <text
+         id="text340-2"
+         style="font-variant:normal;font-weight:normal;font-size:2.46944427px;font-family:Helvetica;-inkscape-font-specification:Helvetica;writing-mode:lr-tb;fill:#231f20;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.35277775"
+         x="102.10468"
+         y="197.24312">
+        <tspan
+           id="tspan332-9"
+           sodipodi:role="line"
+           y="197.24312"
+           x="102.10468"
+           style="stroke-width:0.35277775">Station</tspan>
+        <tspan
+           id="tspan334-1"
+           sodipodi:role="line"
+           y="200.32993"
+           x="102.10468"
+           style="stroke-width:0.35277775" />
+        <tspan
+           id="tspan2592-6"
+           sodipodi:role="line"
+           y="199.71255"
+           x="102.10468 103.75179 104.43831 105.81131 106.49782 107.04604 108.41904"
+           style="stroke-width:0.35277775" />
+        <tspan
+           y="206.50354"
+           id="tspan338-4"
+           sodipodi:role="line"
+           x="102.10468"
+           style="stroke-width:0.35277775" />
+      </text>
+    </g>
+  </g>
+</svg>

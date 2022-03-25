@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="10.8mm"
+   height="10.8mm"
+   viewBox="0 0 10.8 10.8"
+   version="1.1"
+   id="svg2622"
+   inkscape:version="0.92.2 (5c3e80d, 2017-08-06)"
+   sodipodi:docname="30.3.15.svg">
+  <defs
+     id="defs2616" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="22.4"
+     inkscape:cx="29.612746"
+     inkscape:cy="16.450262"
+     inkscape:document-units="mm"
+     inkscape:current-layer="g2643"
+     showgrid="false"
+     inkscape:window-width="1920"
+     inkscape:window-height="1018"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata2619">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-100.43198,-140.16697)">
+    <g
+       id="g2643"
+       transform="translate(-0.00135402,-3.2663657)">
+      <g
+         id="g42">
+        <path
+           inkscape:connector-curvature="0"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#231f20;stroke-width:0.15240352;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           d="m 110.28343,149.83093 h 0.87506 v -0.87538 h -0.87506 z"
+           id="path1100" />
+        <path
+           inkscape:connector-curvature="0"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#231f20;stroke-width:0.15240352;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           d="M 111.15866,149.83093 Z"
+           id="path320" />
+        <text
+           y="148.46738"
+           x="100.24146"
+           style="font-variant:normal;font-weight:normal;font-size:2.46944427px;font-family:Helvetica;-inkscape-font-specification:Helvetica;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.35277775"
+           id="text326">
+          <tspan
+             style="stroke-width:0.35277775"
+             x="100.24146 101.88858 103.26159 105.31863 106.69165 107.23986 108.61288"
+             y="148.46738"
+             sodipodi:role="line"
+             id="tspan322">Pumping</tspan>
+          <tspan
+             style="stroke-width:0.35277775"
+             x="100.24146"
+             y="0"
+             sodipodi:role="line"
+             id="tspan324" />
+        </text>
+        <text
+           y="150.86494"
+           x="100.33203"
+           style="font-variant:normal;font-weight:normal;font-size:2.46944427px;font-family:Helvetica;-inkscape-font-specification:Helvetica;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.35277775"
+           id="text326-9">
+          <tspan
+             style="stroke-width:0.35277775"
+             x="100.33203"
+             y="150.86494"
+             sodipodi:role="line"
+             id="tspan322-9">Station</tspan>
+          <tspan
+             style="stroke-width:0.35277775"
+             x="100.33203"
+             y="153.95175"
+             sodipodi:role="line"
+             id="tspan324-8" />
+        </text>
+      </g>
+    </g>
+  </g>
+</svg>

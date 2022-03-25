@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="5.1665401mm"
+   height="5.1665401mm"
+   viewBox="0 0 5.16654 5.1665401"
+   version="1.1"
+   id="svg640"
+   inkscape:version="0.92.2 (5c3e80d, 2017-08-06)"
+   sodipodi:docname="6.25_bedding_inclined_crenulated.svg">
+  <defs
+     id="defs634" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="31.678384"
+     inkscape:cx="-0.055017986"
+     inkscape:cy="9.3168988"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1920"
+     inkscape:window-height="1018"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata637">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(561.72034,130.47935)">
+    <g
+       id="g652"
+       transform="rotate(90,-560.00145,-126.98086)">
+      <path
+         style="fill:none;stroke:#211e1e;stroke-width:0.20319998;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1"
+         d="m -560.9118,-127.59769 v -1.00046"
+         id="path308"
+         inkscape:connector-curvature="0" />
+      <path
+         style="fill:none;stroke:#211e1e;stroke-width:0.20319998;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1"
+         d="m -563.42121,-127.39099 c 0.0978,-0.11989 0.28525,-0.20119 0.49747,-0.20119 0.21222,0 0.40239,0.0854 0.50299,0.20533 0.10197,0.11299 0.29627,0.19292 0.50022,0.19292 0.21222,0 0.3955,-0.0786 0.49472,-0.19981 0.0992,-0.11989 0.30179,-0.19844 0.51401,-0.19844 0.21221,0 0.41065,0.0854 0.50987,0.20533 0.10198,0.11299 0.2949,0.19292 0.49885,0.19292 0.2136,0 0.39274,-0.0786 0.49196,-0.19981 0.0992,-0.11989 0.27974,-0.19844 0.49196,-0.19844 0.21222,0 0.4079,0.0799 0.50712,0.20119"
+         id="path310"
+         inkscape:connector-curvature="0" />
+    </g>
+  </g>
+</svg>
