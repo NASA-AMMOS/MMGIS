@@ -12,6 +12,9 @@
     border-top-left-radius: 3px;
     border-bottom-left-radius: 3px;
 }
+#SearchType .dropy__title > i {
+    transform: translateY(35%);
+}
 #SearchClear {
     margin-left: 0px;
     display: inherit;

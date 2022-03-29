@@ -22,7 +22,8 @@ dd {
 
 .dropy__title {
     position: relative;
-    display: block;
+    display: flex;
+    justify-content: space-between;
     width: 100%;
     border-bottom: 1px solid rgba(0, 0, 0, 0.12);
     text-decoration: none;
@@ -39,6 +40,12 @@ dd {
     text-overflow: ellipsis;
     overflow: hidden;
     color: white;
+}
+.dropy__title > i {
+    color: white;
+    position: absolute;
+    transform: translateY(50%);
+    right: 6px;
 }
 .dropy__title:hover {
     border-color: #868686;

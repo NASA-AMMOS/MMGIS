@@ -575,30 +575,25 @@ var UserInterface = {
     },
     openRightPanel: function (width) {
         if (UserInterface.rightPanelOpen != null) return
-        const oldWidth = parseInt(
-            UserInterface.splitscreens.style('width').replace('px', '')
-        )
+
         $('#CoordinatesDiv').css('right', width + 'px')
         $('#main-container').css('width', `calc(100% - ${width}px)`)
-        const newWidth = oldWidth - width
-        //UserInterface.splitscreens.style('width', newWidth + 'px')
+
         UserInterface.mainWidth = $('#splitscreens').width()
         const pp = UserInterface.getPanelPercents()
         UserInterface.setPanelPercents(pp.viewer, pp.map, pp.globe)
         $('#uiRightPanel').css({ display: 'inherit', width: width })
 
-        UserInterface.rightPanelOpen = oldWidth
+        UserInterface.rightPanelOpen = true
     },
     closeRightPanel: function () {
         if (UserInterface.rightPanelOpen == null) return
-        $('#loginDiv').css('right', '0px')
-        $('.mouseLngLat').css('right', '0px')
-        UserInterface.splitscreens.style(
-            'width',
-            UserInterface.rightPanelOpen + 'px'
-        )
+
+        $('#CoordinatesDiv').css('right', '0px')
+        $('#main-container').css('width', `100%`)
+
         UserInterface.mainWidth = $('#splitscreens').width()
-        var pp = UserInterface.getPanelPercents()
+        const pp = UserInterface.getPanelPercents()
         UserInterface.setPanelPercents(pp.viewer, pp.map, pp.globe)
         $('#uiRightPanel').css({ display: 'none', width: 0 })
 

@@ -1,8 +1,8 @@
 const fs = require("fs");
 const path = require("path");
-const wd = "./";
+const wd = "../../public/images/geologic/";
 
-const outputName = `${wd}geologic.json`;
+const outputName = `./geologic.json`;
 let outputJSON = {
   geologic: {},
 };
@@ -10,6 +10,7 @@ compileGeologic();
 
 function compileGeologic() {
   let items = [];
+  // Look at all the files and folders in the current working dir
   try {
     items = fs.readdirSync(wd, { withFileTypes: true });
   } catch (err) {
@@ -26,6 +27,7 @@ function compileGeologic() {
     }
 
     if (isDir) {
+      // If it's a directory
       processDirectory(items[i]);
     }
   }
@@ -33,9 +35,9 @@ function compileGeologic() {
   writeOutput();
 }
 
+// Now looks at all directories and then calls processSubdirectory on it
 function processDirectory(item) {
   outputJSON.geologic[item.name] = {
-    baseUrl: `/images/geologic/${item.name}/{tag}.png`,
     groups: [],
   };
 
@@ -82,7 +84,7 @@ function processSubdirectory(item1, item2) {
     if (
       !subdirectoryItems[i].isDirectory() &&
       ext &&
-      ext.toLowerCase() === ".png"
+      (ext.toLowerCase() === ".png" || ext.toLowerCase() === ".svg")
     ) {
       let code;
       let color;
@@ -93,6 +95,8 @@ function processSubdirectory(item1, item2) {
       } else {
         code = name;
       }
+
+      if (color == null) color = false;
 
       if (definitions[code] == null) {
         definitions[code] = {
@@ -108,6 +112,7 @@ function processSubdirectory(item1, item2) {
   let data = {
     title: item2.name.split(".")[0],
     category: item2.name.split(".")[1],
+    baseUrl: `/images/geologic/${item1.name}/${item2.name}/{tag}.png`,
     definitions: definitions,
   };
 

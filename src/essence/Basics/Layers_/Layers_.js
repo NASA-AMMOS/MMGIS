@@ -1593,16 +1593,16 @@ var L_ = {
             console.warn(
                 'Warning: Unable to trim the LineString in vector layer `' +
                     layerName +
-                    '` as time === ' + time + ' and is invalid'
+                    '` as time === ' +
+                    time +
+                    ' and is invalid'
             )
             return
         }
 
         const timeAsDate = new Date(time)
         if (isNaN(timeAsDate.getTime())) {
-            console.warn(
-                'Warning: The input for time is not a valid date'
-            )
+            console.warn('Warning: The input for time is not a valid date')
             return
         }
 
@@ -1610,7 +1610,9 @@ var L_ = {
             console.warn(
                 'Warning: Unable to trim the LineString in vector layer `' +
                     layerName +
-                    '` as timeProp === ' + timeProp + ' and is invalid'
+                    '` as timeProp === ' +
+                    timeProp +
+                    ' and is invalid'
             )
             return
         }
@@ -1627,7 +1629,7 @@ var L_ = {
             return
         }
 
-        const TRIM_DIRECTION = [ 'start', 'end' ]
+        const TRIM_DIRECTION = ['start', 'end']
         if (!TRIM_DIRECTION.includes(startOrEnd)) {
             console.warn(
                 'Warning: Unable to trim the LineString in vector layer `' +
@@ -1658,7 +1660,7 @@ var L_ = {
             var features = layersGeoJSON.features
 
             // All of the features have to be a LineString
-            const findNonLineString = features.filter(feature => {
+            const findNonLineString = features.filter((feature) => {
                 return feature.geometry.type !== 'LineString'
             })
 
@@ -1673,18 +1675,23 @@ var L_ = {
 
             if (features.length > 0) {
                 // Original layer time
-                var layerTime;
+                var layerTime
                 if (startOrEnd === 'start') {
                     layerTime = features[0].properties[timeProp]
                 } else {
-                    layerTime = features[features.length - 1].properties[timeProp]
+                    layerTime =
+                        features[features.length - 1].properties[timeProp]
                 }
                 const layerTimeAsDate = new Date(layerTime)
 
                 // Trim only if the new start time is after the layer start time
-                if (startOrEnd === 'start' && layerTimeAsDate < timeAsDate && trimNum > 0) {
-                    var leftToTrim = trimNum;
-                    var updatedFeatures = [];
+                if (
+                    startOrEnd === 'start' &&
+                    layerTimeAsDate < timeAsDate &&
+                    trimNum > 0
+                ) {
+                    var leftToTrim = trimNum
+                    var updatedFeatures = []
                     // Walk forwards to find the new time
                     while (features.length > 0) {
                         const feature = features[0]
@@ -1693,7 +1700,9 @@ var L_ = {
                             console.warn(
                                 'Warning: Unable to trim the vector layer `' +
                                     layerName +
-                                    '` as the the feature\'s properties object is missing the `' + timeProp + '` key'
+                                    "` as the the feature's properties object is missing the `" +
+                                    timeProp +
+                                    '` key'
                             )
                             return
                         }
@@ -1708,7 +1717,8 @@ var L_ = {
 
                         // Trim
                         if (leftToTrim > 0) {
-                            feature.geometry.coordinates = feature.geometry.coordinates.slice(leftToTrim)
+                            feature.geometry.coordinates =
+                                feature.geometry.coordinates.slice(leftToTrim)
                             leftToTrim -= trimNum
                         }
 
@@ -1723,9 +1733,13 @@ var L_ = {
                 }
 
                 // Trim only if the new end time is before the layer end time
-                if (startOrEnd === 'end' && layerTimeAsDate > timeAsDate && trimNum > 0) {
-                    var leftToTrim = trimNum;
-                    var updatedFeatures = [];
+                if (
+                    startOrEnd === 'end' &&
+                    layerTimeAsDate > timeAsDate &&
+                    trimNum > 0
+                ) {
+                    var leftToTrim = trimNum
+                    var updatedFeatures = []
                     // Walk backwards to find the new time
                     while (features.length > 0) {
                         const feature = features[features.length - 1]
@@ -1734,8 +1748,9 @@ var L_ = {
                             console.warn(
                                 'Warning: Unable to trim the vector layer `' +
                                     layerName +
-                                    '` as the the feature\'s properties object is missing the key `' +
-                                     timeProp + '` for the end time'
+                                    "` as the the feature's properties object is missing the key `" +
+                                    timeProp +
+                                    '` for the end time'
                             )
                             return
                         }
@@ -1751,7 +1766,11 @@ var L_ = {
                         // Trim
                         if (leftToTrim > 0) {
                             const length = feature.geometry.coordinates.length
-                            feature.geometry.coordinates = feature.geometry.coordinates.slice(0, length - leftToTrim)
+                            feature.geometry.coordinates =
+                                feature.geometry.coordinates.slice(
+                                    0,
+                                    length - leftToTrim
+                                )
                             leftToTrim -= trimNum
                         }
 
@@ -1771,7 +1790,7 @@ var L_ = {
                 L_.syncSublayerData(layerName)
                 L_.globeLithoLayerHelper(L_.layersNamed[layerName])
             } else {
-                 console.warn(
+                console.warn(
                     'Warning: Unable to trim the vector layer `' +
                         layerName +
                         '` as the layer contains no features'
@@ -1798,11 +1817,12 @@ var L_ = {
         }
 
         // Make sure the timeProp exists as a property in the updated data
-        if (!(inputData.properties.hasOwnProperty(timeProp))) {
+        if (!inputData.properties.hasOwnProperty(timeProp)) {
             console.warn(
                 'Warning: Unable to append to the vector layer `' +
                     layerName +
-                    '` as timeProp === ' + timeProp +
+                    '` as timeProp === ' +
+                    timeProp +
                     ' and does not exist as a property in inputData: ' +
                     JSON.stringify(lastFeature, null, 4)
             )
@@ -1820,7 +1840,7 @@ var L_ = {
                 var lastFeature = features[features.length - 1]
                 // Make sure the last feature is a LineString
                 if (lastFeature.geometry.type !== 'LineString') {
-                     console.warn(
+                    console.warn(
                         'Warning: Unable to append to the vector layer `' +
                             layerName +
                             '` as the feature is not a LineStringfeature: ' +
@@ -1830,11 +1850,12 @@ var L_ = {
                 }
 
                 // Make sure the timeProp exists as a property in the feature
-                if (!(lastFeature.properties.hasOwnProperty(timeProp))) {
+                if (!lastFeature.properties.hasOwnProperty(timeProp)) {
                     console.warn(
                         'Warning: Unable to append to the vector layer `' +
                             layerName +
-                            '` as timeProp === ' + timeProp +
+                            '` as timeProp === ' +
+                            timeProp +
                             ' and does not exist as a property in the feature: ' +
                             JSON.stringify(lastFeature, null, 4)
                     )
@@ -1846,22 +1867,26 @@ var L_ = {
                         console.warn(
                             'Warning: Unable to append to vector layer `' +
                                 layerName +
-                                '` as inputData has the wrong geometry type (must be of type \'LineString\'): ' +
+                                "` as inputData has the wrong geometry type (must be of type 'LineString'): " +
                                 JSON.stringify(inputData, null, 4)
                         )
                         return
                     }
 
                     // Append new data to the end of the last feature
-                    lastFeature.geometry.coordinates = lastFeature.geometry.coordinates.concat(inputData.geometry.coordinates)
+                    lastFeature.geometry.coordinates =
+                        lastFeature.geometry.coordinates.concat(
+                            inputData.geometry.coordinates
+                        )
 
                     // Update the time
-                    lastFeature.properties[timeProp] = inputData.properties[timeProp]
+                    lastFeature.properties[timeProp] =
+                        inputData.properties[timeProp]
                 } else {
                     console.warn(
                         'Warning: Unable to append to vector layer `' +
                             layerName +
-                            '` as inputData has the wrong type (must be of type \'Feature\'): ' +
+                            "` as inputData has the wrong type (must be of type 'Feature'): " +
                             JSON.stringify(inputData, null, 4)
                     )
                     return
@@ -1873,7 +1898,7 @@ var L_ = {
                 L_.syncSublayerData(layerName)
                 L_.globeLithoLayerHelper(L_.layersNamed[layerName])
             } else {
-                 console.warn(
+                console.warn(
                     'Warning: Unable to append to the vector layer `' +
                         layerName +
                         '` as the layer contains no features'
@@ -1946,7 +1971,7 @@ var L_ = {
         Description.clearDescription()
     },
     //Takes in a config layer object
-    globeLithoLayerHelper: async function(s) {
+    globeLithoLayerHelper: async function (s) {
         if (L_.Globe_) {
             // Only toggle the layer to reset if the layer is toggled on,
             // because if the layer is toggled off, it is not on the globe
