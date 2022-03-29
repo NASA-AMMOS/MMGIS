@@ -741,3 +741,10 @@ body {
 #_lithosphere_controls_topleft {
     top: 40px !important;
 }
+#_lithosphere_controls_topright {
+    top: 40px !important;
+    right: -5px !important;
+}
+#_lithosphere_control_mmgisLithoNavigation svg {
+    box-sizing: unset !important;
+}

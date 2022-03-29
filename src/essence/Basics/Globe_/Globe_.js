@@ -101,6 +101,10 @@ let Globe_ = {
         this.litho.addControl('mmgisLithoWalk', this.litho.controls.walk)
         this.litho.addControl('mmgisLithoCompass', this.litho.controls.compass)
         this.litho.addControl(
+            'mmgisLithoNavigation',
+            this.litho.controls.navigation
+        )
+        this.litho.addControl(
             'mmgisLithoCoords',
             this.litho.controls.coordinates,
             {
