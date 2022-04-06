@@ -112,7 +112,7 @@ function processSubdirectory(item1, item2) {
   let data = {
     title: item2.name.split(".")[0],
     category: item2.name.split(".")[1],
-    baseUrl: `/images/geologic/${item1.name}/${item2.name}/{tag}.png`,
+    baseUrl: `/images/geologic/${item1.name}/${item2.name}/{tag}.svg`,
     definitions: definitions,
   };
 

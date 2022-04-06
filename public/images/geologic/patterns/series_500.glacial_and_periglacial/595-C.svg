@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<!-- Converted with SVG Converter - Version 0.9.5 (Compiled Fri Feb 21 09:53:38 2020) - Copyright (C) 2011 Nokia -->
+<svg xmlns="http://www.w3.org/2000/svg" width="20.625" viewBox="0 -20.634 20.625 20.625" baseProfile="tiny" x="0px" y="0px" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" height="20.625">
+ <g>
+  <rect width="20.625" y="-20.634" style="fill:none;" height="20.625"/>
+  <polygon style="fill:none;stroke:#00AEEF;stroke-width:0.58;" points="8.372,-2.965 8.356,-5.101 5.924,-5.506 4.693,-3.829    6.272,-2.159   "/>
+  <polygon style="fill:none;stroke:#00AEEF;stroke-width:0.58;" points="18.134,-12.373 16.134,-12.498 16.083,-10.051    17.634,-9.248 18.634,-11.123   "/>
+  <polygon style="fill:none;stroke:#00AEEF;stroke-width:0.58;" points="1.144,-19.03 1.019,-17.28 2.269,-16.03 4.144,-16.53    4.019,-19.28   "/>
+  <polygon style="fill:none;stroke:#00AEEF;stroke-width:0.58;" points="2.375,-10.03 3.167,-8.717 4.667,-9.134 5.375,-10.28    3.375,-11.28   "/>
+  <polygon style="fill:none;stroke:#00AEEF;stroke-width:0.58;" points="10.246,-13.73 8.896,-12.493 9.795,-11.142 11.483,-11.255    11.933,-12.605   "/>
+  <polygon style="fill:none;stroke:#00AEEF;stroke-width:0.58;" points="13.633,-17.384 13.508,-19.259 12.133,-19.634    10.883,-18.384 11.508,-16.759   "/>
+  <polygon style="fill:none;stroke:#00AEEF;stroke-width:0.58;" points="15.479,-3.717 16.083,-2.134 18.167,-1.467 18.729,-4.092    16.854,-4.592   "/>
+  <path d="M16.378,0c0.004-0.023,0.007-0.047,0.007-0.072c0-0.223-0.182-0.405-0.405-0.405    c-0.224,0-0.405,0.183-0.405,0.405c0,0.025,0.003,0.049,0.007,0.072" style="fill:#00AEEF;"/>
+  <circle cx="13.792" cy="-2.197" style="fill:#00AEEF;" r="0.354"/>
+  <circle cx="10.729" cy="-1.697" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="14.604" cy="-5.947" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="18.354" cy="-7.447" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="20.167" cy="-5.447" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="11.229" cy="-15.572" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="14.604" cy="-9.947" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="12.5" cy="-7.655" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="11.417" cy="-9.739" style="fill:#00AEEF;" r="0.405"/>
+  <path d="M7.331-20.643c-0.004,0.023-0.007,0.047-0.007,0.072c0,0.223,0.182,0.404,0.405,0.404    c0.224,0,0.405-0.182,0.405-0.404c0-0.025-0.003-0.049-0.007-0.072" style="fill:#00AEEF;"/>
+  <path d="M4.028-20.629c-0.024,0.202-0.195,0.357-0.402,0.357s-0.378-0.155-0.401-0.357" style="fill:#00AEEF;"/>
+  <circle cx="8.667" cy="-14.239" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="5.167" cy="-14.822" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="1.26" cy="-13.352" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="5.354" cy="-11.947" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="5.979" cy="-8.322" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="4.479" cy="-6.072" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="1" cy="-7.426" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="1.875" cy="-4.801" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="0.812" cy="-1.739" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="9.167" cy="-7.239" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="11.479" cy="-4.697" style="fill:#00AEEF;" r="0.405"/>
+  <path d="M20.634-17.263c-0.024-0.004-0.047-0.006-0.072-0.006c-0.224,0-0.404,0.182-0.404,0.405    c0,0.224,0.181,0.404,0.404,0.404c0.025,0,0.049-0.002,0.072-0.006" style="fill:#00AEEF;"/>
+  <path d="M15.581-20.645c-0.004,0.023-0.007,0.047-0.007,0.072c0,0.224,0.182,0.404,0.405,0.404    c0.224,0,0.405-0.181,0.405-0.404c0-0.025-0.003-0.049-0.007-0.072" style="fill:#00AEEF;"/>
+  <path d="M0.009-16.464c0.189-0.034,0.334-0.199,0.334-0.398c0-0.199-0.145-0.365-0.334-0.399" style="fill:#00AEEF;"/>
+  <path d="M4.027-0.003C4.028-0.019,4.03-0.034,4.03-0.052c0-0.223-0.182-0.404-0.405-0.404    c-0.224,0-0.405,0.182-0.405,0.404c0,0.018,0.001,0.033,0.004,0.049" style="fill:#00AEEF;"/>
+  <path d="M7.336-0.021C7.379-0.198,7.539-0.331,7.73-0.331c0.19,0,0.351,0.133,0.393,0.311" style="fill:#00AEEF;"/>
+  <circle cx="7.604" cy="-10.447" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="5.583" cy="-18.739" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="8" cy="-17.489" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="15.25" cy="-19.114" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="18.688" cy="-19.301" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="16.437" cy="-17.176" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="18.604" cy="-15.072" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="16.104" cy="-14.947" style="fill:#00AEEF;" r="0.405"/>
+  <circle cx="13.479" cy="-13.322" style="fill:#00AEEF;" r="0.405"/>
+ </g>
+</svg>

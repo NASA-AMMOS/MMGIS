@@ -11,6 +11,27 @@
     src: url(/public/fonts/roboto/Roboto-Regular.ttf);
 }
 
+@font-face {
+    font-family: FGDCGeoSym01;
+    src: url(/public/fonts/fgdc/FGDCGeoSym01.ttf);
+}
+@font-face {
+    font-family: FGDCGeoSym02;
+    src: url(/public/fonts/fgdc/FGDCGeoSym02.ttf);
+}
+@font-face {
+    font-family: FGDCGeoSym03;
+    src: url(/public/fonts/fgdc/FGDCGeoSym03.ttf);
+}
+@font-face {
+    font-family: FGDCGeoSym04;
+    src: url(/public/fonts/fgdc/FGDCGeoSym04.ttf);
+}
+@font-face {
+    font-family: FGDCGeoSym05;
+    src: url(/public/fonts/fgdc/FGDCGeoSym05.ttf);
+}
+
 html {
     position: fixed;
     top: 0;
@@ -710,6 +731,10 @@ body {
 .leafletMarkerShape {
     background: none;
 }
+.leafletMarkerFont {
+    background: none;
+    border: none;
+}
 
 .leaflet-bottom.leaflet-left {
     transition: bottom 0.2s ease-in;
@@ -740,4 +765,11 @@ body {
 
 #_lithosphere_controls_topleft {
     top: 40px !important;
+}
+
+.leaflet_FGDCGeoSym > div {
+    transform: translateX(-50%) translateY(-50%);
+    position: absolute;
+    top: 50%;
+    left: 50%;
 }

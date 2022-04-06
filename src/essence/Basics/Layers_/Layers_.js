@@ -1014,6 +1014,77 @@ var L_ = {
 
         return popup
     },
+    getLineworkPatterns: function (style) {
+        const patterns = []
+        if (style.symbols) {
+            const weight = style.weight || 0
+            style.symbols.forEach((s) => {
+                const rep = s.rep || 200
+                const size = s.size || 32
+                const color = F_.colorCodeToColor(s.color)
+                const pos = s.pos || 'center'
+                const anchorY =
+                    pos === 'top'
+                        ? 0 - weight / 2
+                        : pos === 'bottom'
+                        ? size + weight / 2
+                        : size / 2
+                patterns.push({
+                    offset: '5%',
+                    repeat: rep,
+                    symbol: L.Symbol.marker({
+                        rotate: true,
+                        angleCorrection: s.rot || 0,
+                        markerOptions: {
+                            icon: L.divIcon({
+                                className: 'leaflet_FGDCGeoSym',
+                                iconSize: [size, size],
+                                iconAnchor: [size / 2, anchorY],
+                                html: [
+                                    `<div style="font-family: ${s.set} ; font-size: ${size}px; color: ${color};">`,
+                                    `${s.key}`,
+                                    `</div>`,
+                                ].join(''),
+                            }),
+                        },
+                    }),
+                })
+            })
+        }
+        if (patterns.length === 0)
+            return [
+                {
+                    offset: 0,
+                    repeat: 0,
+                    symbol: L.Symbol.dash({ pixelSize: 0 }),
+                },
+            ]
+        return patterns
+    },
+    createLinework: function (layerId, feature, style) {
+        const invertedFeature = F_.invertGeoJSONLatLngs(feature)
+        // geologic line
+        const line = new L.Polyline(invertedFeature.geometry.coordinates, {
+            color: style.fillColor,
+            weight: style.weight,
+            dashArray: style.dashArray,
+            lineCap: style.lineCap,
+            lineJoin: style.lineJoin,
+            opacity: style.opacity,
+        })
+        const decoratedLine = L.polylineDecorator(line, {
+            patterns: L_.getLineworkPatterns(style),
+        })
+
+        line.feature = feature
+        decoratedLine.feature = feature
+        decoratedLine.isDecorated = true
+        const lineLayer = L.layerGroup([line, decoratedLine])
+        lineLayer.feature = feature
+        lineLayer.isLinework = true
+
+        return lineLayer
+    },
     setLayerOpacity: function (name, newOpacity) {
         newOpacity = parseFloat(newOpacity)
         if (L_.Globe_) L_.Globe_.litho.setLayerOpacity(name, newOpacity)

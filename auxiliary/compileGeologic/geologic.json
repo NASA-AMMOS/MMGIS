@@ -1,14 +1,11 @@
 {
   "geologic": {
-    "linework": {
-      "groups": []
-    },
     "patterns": {
       "groups": [
         {
           "title": "series_100",
           "category": "surficial",
-          "baseUrl": "/images/geologic/patterns/series_100.surficial/{tag}.png",
+          "baseUrl": "/images/geologic/patterns/series_100.surficial/{tag}.svg",
           "definitions": {
             "101": {
               "description": "",
@@ -213,7 +210,7 @@
         {
           "title": "series_200",
           "category": "sedimentary",
-          "baseUrl": "/images/geologic/patterns/series_200.sedimentary/{tag}.png",
+          "baseUrl": "/images/geologic/patterns/series_200.sedimentary/{tag}.svg",
           "definitions": {
             "201": {
               "description": "",
@@ -385,7 +382,7 @@
         {
           "title": "series_300",
           "category": "igneous",
-          "baseUrl": "/images/geologic/patterns/series_300.igneous/{tag}.png",
+          "baseUrl": "/images/geologic/patterns/series_300.igneous/{tag}.svg",
           "definitions": {
             "301": {
               "description": "",
@@ -548,7 +545,7 @@
         {
           "title": "series_400",
           "category": "miscellaneous_and_metamorphic",
-          "baseUrl": "/images/geologic/patterns/series_400.miscellaneous_and_metamorphic/{tag}.png",
+          "baseUrl": "/images/geologic/patterns/series_400.miscellaneous_and_metamorphic/{tag}.svg",
           "definitions": {
             "401": {
               "description": "",
@@ -777,7 +774,7 @@
         {
           "title": "series_500",
           "category": "glacial_and_periglacial",
-          "baseUrl": "/images/geologic/patterns/series_500.glacial_and_periglacial/{tag}.png",
+          "baseUrl": "/images/geologic/patterns/series_500.glacial_and_periglacial/{tag}.svg",
           "definitions": {
             "521": {
               "description": "",
@@ -848,7 +845,7 @@
         {
           "title": "series_600",
           "category": "sedimentary_lithology",
-          "baseUrl": "/images/geologic/patterns/series_600.sedimentary_lithology/{tag}.png",
+          "baseUrl": "/images/geologic/patterns/series_600.sedimentary_lithology/{tag}.svg",
           "definitions": {
             "601": {
               "description": "",
@@ -1359,7 +1356,7 @@
         {
           "title": "series_700",
           "category": "metamorphic_igneous_and_vein-matter_lithography",
-          "baseUrl": "/images/geologic/patterns/series_700.metamorphic_igneous_and_vein-matter_lithography/{tag}.png",
+          "baseUrl": "/images/geologic/patterns/series_700.metamorphic_igneous_and_vein-matter_lithography/{tag}.svg",
           "definitions": {
             "701": {
               "description": "",
@@ -1562,7 +1559,7 @@
         {
           "title": "usgs_02",
           "category": "faults",
-          "baseUrl": "/images/geologic/symbols/usgs_02.faults/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_02.faults/{tag}.svg",
           "definitions": {
             "2.15.1_inclined": {
               "description": "",
@@ -1587,7 +1584,7 @@
         {
           "title": "usgs_03",
           "category": "geophysical",
-          "baseUrl": "/images/geologic/symbols/usgs_03.geophysical/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_03.geophysical/{tag}.svg",
           "definitions": {
             "3.3.4_horiz_control": {
               "description": "",
@@ -1606,7 +1603,7 @@
         {
           "title": "usgs_04",
           "category": "joints",
-          "baseUrl": "/images/geologic/symbols/usgs_04.joints/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_04.joints/{tag}.svg",
           "definitions": {
             "4.3.01_jt_horiz": {
               "description": "",
@@ -1685,7 +1682,7 @@
         {
           "title": "usgs_05",
           "category": "folds",
-          "baseUrl": "/images/geologic/symbols/usgs_05.folds/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_05.folds/{tag}.svg",
           "definitions": {
             "5.11.01_horiz_axial": {
               "description": "",
@@ -1950,7 +1947,7 @@
         {
           "title": "usgs_06",
           "category": "bedding",
-          "baseUrl": "/images/geologic/symbols/usgs_06.bedding/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_06.bedding/{tag}.svg",
           "definitions": {
             "6.01_bdg_horiz": {
               "description": "",
@@ -2233,7 +2230,7 @@
         {
           "title": "usgs_07",
           "category": "cleavage",
-          "baseUrl": "/images/geologic/symbols/usgs_07.cleavage/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_07.cleavage/{tag}.svg",
           "definitions": {
             "7.01_clvg_horiz": {
               "description": "",
@@ -2456,7 +2453,7 @@
         {
           "title": "usgs_08",
           "category": "foliation",
-          "baseUrl": "/images/geologic/symbols/usgs_08.foliation/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_08.foliation/{tag}.svg",
           "definitions": {
             "8.1.01_fol_horiz": {
               "description": "",
@@ -3015,7 +3012,7 @@
         {
           "title": "usgs_09",
           "category": "lineation",
-          "baseUrl": "/images/geologic/symbols/usgs_09.lineation/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_09.lineation/{tag}.svg",
           "definitions": {
             "9.001_lin_incld": {
               "description": "",
@@ -3886,7 +3883,7 @@
         {
           "title": "usgs_10",
           "category": "fossils",
-          "baseUrl": "/images/geologic/symbols/usgs_10.fossils/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_10.fossils/{tag}.svg",
           "definitions": {
             "10.1.1_locality": {
               "description": "",
@@ -4265,7 +4262,7 @@
         {
           "title": "usgs_11",
           "category": "geophysical",
-          "baseUrl": "/images/geologic/symbols/usgs_11.geophysical/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_11.geophysical/{tag}.svg",
           "definitions": {
             "11.10_data_locn": {
               "description": "",
@@ -4308,7 +4305,7 @@
         {
           "title": "usgs_12",
           "category": "fluvial",
-          "baseUrl": "/images/geologic/symbols/usgs_12.fluvial/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_12.fluvial/{tag}.svg",
           "definitions": {
             "12.5_transport": {
               "description": "",
@@ -4339,7 +4336,7 @@
         {
           "title": "usgs_13",
           "category": "glacial",
-          "baseUrl": "/images/geologic/symbols/usgs_13.glacial/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_13.glacial/{tag}.svg",
           "definitions": {
             "13.03_spill": {
               "description": "",
@@ -4442,7 +4439,7 @@
         {
           "title": "usgs_14",
           "category": "periglacial",
-          "baseUrl": "/images/geologic/symbols/usgs_14.periglacial/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_14.periglacial/{tag}.svg",
           "definitions": {
             "14.1_pingo": {
               "description": "",
@@ -4461,7 +4458,7 @@
         {
           "title": "usgs_16",
           "category": "eolian",
-          "baseUrl": "/images/geologic/symbols/usgs_16.eolian/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_16.eolian/{tag}.svg",
           "definitions": {
             "16.7_transport_form": {
               "description": "",
@@ -4486,7 +4483,7 @@
         {
           "title": "usgs_17",
           "category": "mass_wasting",
-          "baseUrl": "/images/geologic/symbols/usgs_17.mass_wasting/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_17.mass_wasting/{tag}.svg",
           "definitions": {
             "17.47_soil_creep": {
               "description": "",
@@ -4565,7 +4562,7 @@
         {
           "title": "usgs_18",
           "category": "volcanic",
-          "baseUrl": "/images/geologic/symbols/usgs_18.volcanic/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_18.volcanic/{tag}.svg",
           "definitions": {
             "18.55_small_cone": {
               "description": "",
@@ -4656,7 +4653,7 @@
         {
           "title": "usgs_19",
           "category": "natural_resource",
-          "baseUrl": "/images/geologic/symbols/usgs_19.natural_resource/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_19.natural_resource/{tag}.svg",
           "definitions": {
             "19.1.12_vein_incl": {
               "description": "",
@@ -4849,7 +4846,7 @@
         {
           "title": "usgs_20",
           "category": "hazard",
-          "baseUrl": "/images/geologic/symbols/usgs_20.hazard/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_20.hazard/{tag}.svg",
           "definitions": {
             "20.1_haz_waste_site": {
               "description": "",
@@ -4892,7 +4889,7 @@
         {
           "title": "usgs_21",
           "category": "earthquake",
-          "baseUrl": "/images/geologic/symbols/usgs_21.earthquake/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_21.earthquake/{tag}.svg",
           "definitions": {
             "21.01_epicenter_7.5_over": {
               "description": "",
@@ -4989,7 +4986,7 @@
         {
           "title": "usgs_22",
           "category": "plate_tectonic",
-          "baseUrl": "/images/geologic/symbols/usgs_22.plate_tectonic/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_22.plate_tectonic/{tag}.svg",
           "definitions": {
             "22.38_seamt_nonvolc": {
               "description": "",
@@ -5008,7 +5005,7 @@
         {
           "title": "usgs_23",
           "category": "uplift_collapse",
-          "baseUrl": "/images/geologic/symbols/usgs_23.uplift_collapse/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_23.uplift_collapse/{tag}.svg",
           "definitions": {
             "23.12_uplift": {
               "description": "",
@@ -5033,7 +5030,7 @@
         {
           "title": "usgs_24",
           "category": "impact",
-          "baseUrl": "/images/geologic/symbols/usgs_24.impact/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_24.impact/{tag}.svg",
           "definitions": {
             "24.1_primary1": {
               "description": "",
@@ -5064,7 +5061,7 @@
         {
           "title": "usgs_25",
           "category": "planetary",
-          "baseUrl": "/images/geologic/symbols/usgs_25.planetary/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_25.planetary/{tag}.svg",
           "definitions": {
             "25.069_channel": {
               "description": "",
@@ -5167,7 +5164,7 @@
         {
           "title": "usgs_26",
           "category": "hydro",
-          "baseUrl": "/images/geologic/symbols/usgs_26.hydro/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_26.hydro/{tag}.svg",
           "definitions": {
             "26.1.01_well": {
               "description": "",
@@ -5816,7 +5813,7 @@
         {
           "title": "usgs_27",
           "category": "weather",
-          "baseUrl": "/images/geologic/symbols/usgs_27.weather/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_27.weather/{tag}.svg",
           "definitions": {
             "27.01_wstn": {
               "description": "",
@@ -5931,7 +5928,7 @@
         {
           "title": "usgs_30",
           "category": "topo",
-          "baseUrl": "/images/geologic/symbols/usgs_30.topo/{tag}.png",
+          "baseUrl": "/images/geologic/symbols/usgs_30.topo/{tag}.svg",
           "definitions": {
             "30.3.01_map_pit": {
               "description": "",
