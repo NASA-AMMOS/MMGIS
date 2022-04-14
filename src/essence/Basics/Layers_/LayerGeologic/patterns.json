@@ -1,0 +1,879 @@
+{
+    "patterns": {
+        "groups": [
+            {
+                "title": "series_100",
+                "category": "surficial",
+                "baseUrl": "/images/geologic/patterns/series_100.surficial/{tag}.svg",
+                "definitions": {
+                    "101": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "102": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M", "R"]
+                    },
+                    "103": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "104": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "105": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "106": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "114": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "116": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "117": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M", "R"]
+                    },
+                    "118": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "119": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M", "R"]
+                    },
+                    "120": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "121": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M", "R"]
+                    },
+                    "122": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "123": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "124": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "132": {
+                        "description": "",
+                        "colors": ["B", "C", "DO", "K", "M"]
+                    },
+                    "134": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M", "R"]
+                    },
+                    "135": {
+                        "description": "",
+                        "colors": ["B", "C", "DO", "K", "M"]
+                    },
+                    "136": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M", "R"]
+                    },
+                    "137": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M", "R"]
+                    }
+                }
+            },
+            {
+                "title": "series_200",
+                "category": "sedimentary",
+                "baseUrl": "/images/geologic/patterns/series_200.sedimentary/{tag}.svg",
+                "definitions": {
+                    "201": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "202": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "204": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "206": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "207": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "214": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "215": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "216": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "217": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "218": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "219": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "226": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M", "R"]
+                    },
+                    "228": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "229": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M", "R"]
+                    },
+                    "230": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "231": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "232": {
+                        "description": "",
+                        "colors": ["B", "C", "DO", "K", "M"]
+                    },
+                    "233": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    }
+                }
+            },
+            {
+                "title": "series_300",
+                "category": "igneous",
+                "baseUrl": "/images/geologic/patterns/series_300.igneous/{tag}.svg",
+                "definitions": {
+                    "301": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "302": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "303": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "304": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "305": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "306": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "313": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "314": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "315": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "316": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "317": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M", "R"]
+                    },
+                    "318": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "319": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "327": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M", "R"]
+                    },
+                    "328": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M", "R"]
+                    },
+                    "330": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "331": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    }
+                }
+            },
+            {
+                "title": "series_400",
+                "category": "miscellaneous_and_metamorphic",
+                "baseUrl": "/images/geologic/patterns/series_400.miscellaneous_and_metamorphic/{tag}.svg",
+                "definitions": {
+                    "401": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "402": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "403": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "405": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M", "R"]
+                    },
+                    "406": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M", "R"]
+                    },
+                    "411": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "412": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "416": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "417": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "418": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "419": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M", "R"]
+                    },
+                    "420": {
+                        "description": "",
+                        "colors": ["C", "K"]
+                    },
+                    "423": {
+                        "description": "",
+                        "colors": ["C", "K"]
+                    },
+                    "424": {
+                        "description": "",
+                        "colors": ["C", "K"]
+                    },
+                    "426": {
+                        "description": "",
+                        "colors": ["CMYK"]
+                    },
+                    "427": {
+                        "description": "",
+                        "colors": ["K", "R"]
+                    },
+                    "428": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M", "R"]
+                    },
+                    "429": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M", "R"]
+                    },
+                    "430": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "431": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "432": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "433": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M"]
+                    },
+                    "434": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M", "R"]
+                    },
+                    "435": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M", "R"]
+                    },
+                    "436": {
+                        "description": "",
+                        "colors": ["C", "DO", "K", "M", "R"]
+                    }
+                }
+            },
+            {
+                "title": "series_500",
+                "category": "glacial_and_periglacial",
+                "baseUrl": "/images/geologic/patterns/series_500.glacial_and_periglacial/{tag}.svg",
+                "definitions": {
+                    "521": {
+                        "description": "",
+                        "colors": ["C", "K"]
+                    },
+                    "522": {
+                        "description": "",
+                        "colors": ["C", "K"]
+                    },
+                    "523": {
+                        "description": "",
+                        "colors": ["C", "DO", "K"]
+                    },
+                    "524": {
+                        "description": "",
+                        "colors": ["C", "K"]
+                    },
+                    "591": {
+                        "description": "",
+                        "colors": ["C", "K"]
+                    },
+                    "592": {
+                        "description": "",
+                        "colors": ["C", "K"]
+                    },
+                    "593": {
+                        "description": "",
+                        "colors": ["C", "K"]
+                    },
+                    "594": {
+                        "description": "",
+                        "colors": ["C", "K"]
+                    },
+                    "595": {
+                        "description": "",
+                        "colors": ["C", "K"]
+                    }
+                }
+            },
+            {
+                "title": "series_600",
+                "category": "sedimentary_lithology",
+                "baseUrl": "/images/geologic/patterns/series_600.sedimentary_lithology/{tag}.svg",
+                "definitions": {
+                    "601": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "602": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "603": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "605": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "606": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "607": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "608": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "609": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "610": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "611": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "612": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "613": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "614": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "616": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "617": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "618": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "619": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "620": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "621": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "622": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "623": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "624": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "625": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "626": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "627": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "628": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "629": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "630": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "631": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "632": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "633": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "634": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "635": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "636": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "637": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "638": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "639": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "640": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "641": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "642": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "643": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "644": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "645": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "646": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "647": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "648": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "649": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "650": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "651": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "652": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "653": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "654": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "655": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "656": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "657": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "658": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "659": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "660": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "661": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "662": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "663": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "664": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "665": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "666": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "667": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "668": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "669": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "670": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "671": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "672": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "673": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "674": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "675": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "676": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "677": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "678": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "679": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "680": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "681": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "682": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "683": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "684": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "685": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "686": {
+                        "description": "",
+                        "colors": [false]
+                    }
+                }
+            },
+            {
+                "title": "series_700",
+                "category": "metamorphic_igneous_and_vein-matter_lithography",
+                "baseUrl": "/images/geologic/patterns/series_700.metamorphic_igneous_and_vein-matter_lithography/{tag}.svg",
+                "definitions": {
+                    "701": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "702": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "703": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "704": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "705": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "706": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "707": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "708": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "709": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "710": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "711": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "712": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "713": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "714": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "715": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "716": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "717": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "719": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "720": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "721": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "722": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "723": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "724": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "725": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "726": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "727": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "728": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "729": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "730": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "731": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "732": {
+                        "description": "",
+                        "colors": [false]
+                    },
+                    "733": {
+                        "description": "",
+                        "colors": [false]
+                    }
+                }
+            }
+        ]
+    }
+}

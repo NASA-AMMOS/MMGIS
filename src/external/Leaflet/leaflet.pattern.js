@@ -166,8 +166,8 @@
         },
 
         _updateStyle: function () {
-            var dom = this._dom,
-                options = this.options
+            var dom = this._dom
+            var options = this.options
 
             if (!dom) {
                 return
@@ -269,6 +269,7 @@
                 height: this.options.height,
                 x: this.options.x,
                 y: this.options.y,
+                imageFill: this.options.imageFill,
             })
             this.addShape(this._image)
 
@@ -423,6 +424,7 @@
         _updateShape: L.Util.falseFn,
 
         _initDomElement: function (type) {
+            this._domFill = this._createElement('rect')
             this._dom = this._createElement(type)
             if (this.options.className) {
                 L.DomUtil.addClass(this._dom, this.options.className)
@@ -431,16 +433,20 @@
         },
 
         _addDom: function () {
+            if (this._domFill) this._pattern._dom.append(this._domFill)
             this._pattern._dom.appendChild(this._dom)
         },
 
-        _updateStyle: function () {
-            var dom = this._dom,
-                options = this.options
+        _updateStyle: function (options) {
+            var domFill = this._domFill
+            var dom = this._dom
+            options = options || this.options
 
             if (!dom) {
                 return
             }
+
+            console.log(options, this)
 
             if (options.image) {
                 dom.setAttributeNS(
@@ -452,6 +458,11 @@
                 dom.setAttribute('height', options.height)
                 dom.setAttribute('x', options.x)
                 dom.setAttribute('y', options.y)
+                if (this._domFill) {
+                    domFill.setAttribute('width', options.width)
+                    domFill.setAttribute('height', options.height)
+                    domFill.setAttribute('fill', options.imageFill || 'none')
+                }
             } else if (options.stroke) {
                 dom.setAttribute('stroke', options.color)
                 dom.setAttribute('stroke-opacity', options.opacity)

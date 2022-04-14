@@ -343,6 +343,10 @@ var Formulae_ = {
               }
             : null
     },
+    hexToRGBA: function (hex, a) {
+        const rgb = Formulae_.hexToRGB(hex)
+        return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${a})`
+    },
     rgbToArray: function (rgb) {
         return rgb.match(/\d+/g)
     },
@@ -647,24 +651,32 @@ var Formulae_ = {
     cleanString(str) {
         return str.replace(/[`~!@#$%^&*|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '')
     },
+    colorCodes: ['K', 'W', 'C', 'L', 'Y', 'O', 'M', 'R', 'B', 'DO'],
     colorCodeToColor(code) {
+        code = code || 'n/a'
         switch (code.toLowerCase()) {
             case 'k':
                 return '#000000'
+            case 'w':
+                return '#ffffff'
             case 'c':
                 return '#00ffff'
+            case 'l':
+                return '#00ff00'
+            case 'y':
+                return '#ffff00'
+            case 'o':
+                return '#ffa500'
             case 'm':
-                return '#FF00FF'
+                return '#ff00ff'
             case 'r':
                 return '#ff0000'
             case 'b':
-                return '#a52a2a'
+                return '#654321'
             case 'do':
-                return '#FFFFFF'
-            case 'w':
-                return '#FFFFFF'
+                return '#ffffff'
             default:
-                return '#FFFFFF'
+                return '#ffffff'
         }
     },
     invertGeoJSONLatLngs(feature) {

@@ -46,6 +46,7 @@ dd {
     position: absolute;
     transform: translateY(50%);
     right: 6px;
+    line-height: 18px;
 }
 .dropy__title:hover {
     border-color: #868686;

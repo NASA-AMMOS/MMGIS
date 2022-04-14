@@ -1,0 +1,487 @@
+{
+    "linework": {
+        "groups": [
+            {
+                "title": "FGDC",
+                "category": "planetary",
+                "baseUrl": null,
+                "definitions": {
+                    "17.001": {
+                        "description": "Outline of slip surface of landslide — Identity and existence certain, location accurate.",
+                        "style": {
+                            "weight": 3
+                        }
+                    },
+                    "25.001": {
+                        "description": "Contact, planetary — Location accurate.",
+                        "style": {
+                            "weight": 1
+                        }
+                    },
+                    "25.002": {
+                        "description": "Contact, planetary — Location approximate.",
+                        "style": {
+                            "weight": 1,
+                            "dashArray": "20,4"
+                        }
+                    },
+                    "25.003": {
+                        "description": "Contact, planetary — Location inferred.",
+                        "style": {
+                            "weight": 1,
+                            "dashArray": "8,4"
+                        }
+                    },
+                    "25.004": {
+                        "description": "Contact, planetary — Location concealed.",
+                        "style": {
+                            "weight": 1,
+                            "dashArray": "3,4"
+                        }
+                    },
+                    "25.005": {
+                        "description": "Fault, planetary, sense of offset unspecified — Location accurate.",
+                        "style": {
+                            "weight": 3
+                        }
+                    },
+                    "25.006": {
+                        "description": "Fault, planetary, sense of offset unspecified — Location approximate.",
+                        "style": {
+                            "weight": 3,
+                            "dashArray": "20,4"
+                        }
+                    },
+                    "25.007": {
+                        "description": "Fault, planetary, sense of offset unspecified — Location inferred.",
+                        "style": {
+                            "weight": 3,
+                            "dashArray": "8,4"
+                        }
+                    },
+                    "25.008": {
+                        "description": "Fault, planetary, sense of offset unspecified — Location concealed.",
+                        "style": {
+                            "weight": 3,
+                            "dashArray": "3,4"
+                        }
+                    },
+                    "25.009": {
+                        "description": "Normal fault, planetary — Location accurate. Ball and bar on downthrown block.",
+                        "style": {
+                            "weight": 3,
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "2",
+                                    "pos": "bottom",
+                                    "color": "W",
+                                    "size": 16,
+                                    "rot": 90,
+                                    "rep": 100
+                                }
+                            ]
+                        }
+                    },
+                    "25.010": {
+                        "description": "Normal fault, planetary — Location approximate. Ball and bar on downthrown block.",
+                        "style": {
+                            "weight": 3,
+                            "dashArray": "20,4",
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "2",
+                                    "pos": "bottom",
+                                    "color": "W",
+                                    "size": 16,
+                                    "rot": 90,
+                                    "rep": 100
+                                }
+                            ]
+                        }
+                    },
+                    "25.011": {
+                        "description": "Normal fault, planetary — Location inferred. Ball and bar on downthrown block.",
+                        "style": {
+                            "weight": 3,
+                            "dashArray": "8,4",
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "2",
+                                    "pos": "bottom",
+                                    "color": "W",
+                                    "size": 16,
+                                    "rot": 90,
+                                    "rep": 100
+                                }
+                            ]
+                        }
+                    },
+                    "25.012": {
+                        "description": "Normal fault, planetary — Location concealed. Ball and bar on downthrown block.",
+                        "style": {
+                            "weight": 3,
+                            "dashArray": "3,4",
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "2",
+                                    "pos": "bottom",
+                                    "color": "W",
+                                    "size": 16,
+                                    "rot": 90,
+                                    "rep": 100
+                                }
+                            ]
+                        }
+                    },
+                    "25.013": {
+                        "description": "Strike-slip fault, planetary, right-lateral offset — Location accurate. Arrows show relative motion.",
+                        "style": {
+                            "weight": 3,
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "A",
+                                    "pos": "center",
+                                    "color": "W",
+                                    "size": 32,
+                                    "rot": 90,
+                                    "rep": 250
+                                }
+                            ]
+                        }
+                    },
+                    "25.014": {
+                        "description": "Strike-slip fault, planetary, right-lateral offset — Location approximate. Arrows show relative motion.",
+                        "style": {
+                            "weight": 3,
+                            "dashArray": "20,4",
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "A",
+                                    "pos": "center",
+                                    "color": "W",
+                                    "size": 32,
+                                    "rot": 90,
+                                    "rep": 250
+                                }
+                            ]
+                        }
+                    },
+                    "25.015": {
+                        "description": "Strike-slip fault, planetary, right-lateral offset — Location inferred. Arrows show relative motion.",
+                        "style": {
+                            "weight": 3,
+                            "dashArray": "8,4",
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "A",
+                                    "pos": "center",
+                                    "color": "W",
+                                    "size": 32,
+                                    "rot": 90,
+                                    "rep": 250
+                                }
+                            ]
+                        }
+                    },
+                    "25.016": {
+                        "description": "Strike-slip fault, planetary, right-lateral offset — Location concealed. Arrows show relative motion.",
+                        "style": {
+                            "weight": 3,
+                            "dashArray": "3,4",
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "A",
+                                    "pos": "center",
+                                    "color": "W",
+                                    "size": 32,
+                                    "rot": 90,
+                                    "rep": 250
+                                }
+                            ]
+                        }
+                    },
+                    "25.017": {
+                        "description": "Strike-slip fault, planetary, left-lateral offset — Location accurate. Arrows show relative motion.",
+                        "style": {
+                            "weight": 3,
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "D",
+                                    "pos": "center",
+                                    "color": "W",
+                                    "size": 32,
+                                    "rot": 90,
+                                    "rep": 250
+                                }
+                            ]
+                        }
+                    },
+                    "25.018": {
+                        "description": "Strike-slip fault, planetary, left-lateral offset — Location approximate. Arrows show relative motion.",
+                        "style": {
+                            "weight": 3,
+                            "dashArray": "20,4",
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "D",
+                                    "pos": "center",
+                                    "color": "W",
+                                    "size": 32,
+                                    "rot": 90,
+                                    "rep": 250
+                                }
+                            ]
+                        }
+                    },
+                    "25.019": {
+                        "description": "Strike-slip fault, planetary, left-lateral offset — Location inferred. Arrows show relative motion.",
+                        "style": {
+                            "weight": 3,
+                            "dashArray": "8,4",
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "D",
+                                    "pos": "center",
+                                    "color": "W",
+                                    "size": 32,
+                                    "rot": 90,
+                                    "rep": 250
+                                }
+                            ]
+                        }
+                    },
+                    "25.020": {
+                        "description": "Strike-slip fault, planetary, left-lateral offset — Location concealed. Arrows show relative motion.",
+                        "style": {
+                            "weight": 3,
+                            "dashArray": "3,4",
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "D",
+                                    "pos": "center",
+                                    "color": "W",
+                                    "size": 32,
+                                    "rot": 90,
+                                    "rep": 250
+                                }
+                            ]
+                        }
+                    },
+                    "25.021": {
+                        "description": "Thrust fault, planetary — Location accurate. Sawteeth on upper plate.",
+                        "style": {
+                            "weight": 3,
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "8",
+                                    "pos": "top",
+                                    "color": "W",
+                                    "size": 12,
+                                    "rot": 90,
+                                    "rep": 110
+                                }
+                            ]
+                        }
+                    },
+                    "25.022": {
+                        "description": "Thrust fault, planetary — Location approximate. Sawteeth on upper plate.",
+                        "style": {
+                            "weight": 3,
+                            "dashArray": "20,4",
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "8",
+                                    "pos": "top",
+                                    "color": "W",
+                                    "size": 12,
+                                    "rot": 90,
+                                    "rep": 110
+                                }
+                            ]
+                        }
+                    },
+                    "25.023": {
+                        "description": "Thrust fault, planetary — Location inferred. Sawteeth on upper plate.",
+                        "style": {
+                            "weight": 3,
+                            "dashArray": "8,4",
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "8",
+                                    "pos": "top",
+                                    "color": "W",
+                                    "size": 12,
+                                    "rot": 90,
+                                    "rep": 110
+                                }
+                            ]
+                        }
+                    },
+                    "25.024": {
+                        "description": "Thrust fault, planetary — Location concealed. Sawteeth on upper plate.",
+                        "style": {
+                            "weight": 3,
+                            "dashArray": "3,4",
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "8",
+                                    "pos": "top",
+                                    "color": "W",
+                                    "size": 12,
+                                    "rot": 90,
+                                    "rep": 110
+                                }
+                            ]
+                        }
+                    },
+                    "25.025": {
+                        "description": "Graben trace, planetary (shown as single line where bounding normal faults cannot be mapped separately) — Location accurate.",
+                        "style": {
+                            "weight": 3,
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "(",
+                                    "pos": "center",
+                                    "color": "W",
+                                    "size": 8,
+                                    "rot": 90,
+                                    "rep": 70
+                                }
+                            ]
+                        }
+                    },
+                    "25.026": {
+                        "description": "Graben trace, planetary (shown as single line where bounding normal faults cannot be mapped separately) — Location approximate.",
+                        "style": {
+                            "weight": 3,
+                            "dashArray": "20,4",
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "(",
+                                    "pos": "center",
+                                    "color": "W",
+                                    "size": 8,
+                                    "rot": 90,
+                                    "rep": 70
+                                }
+                            ]
+                        }
+                    },
+                    "25.027": {
+                        "description": "Graben trace, planetary (shown as single line where bounding normal faults cannot be mapped separately) — Location inferred.",
+                        "style": {
+                            "weight": 3,
+                            "dashArray": "8,4",
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "(",
+                                    "pos": "center",
+                                    "color": "W",
+                                    "size": 8,
+                                    "rot": 90,
+                                    "rep": 70
+                                }
+                            ]
+                        }
+                    },
+                    "25.028": {
+                        "description": "Graben trace, planetary (shown as single line where bounding normal faults cannot be mapped separately) — Location concealed.",
+                        "style": {
+                            "weight": 3,
+                            "dashArray": "3,4",
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "(",
+                                    "pos": "center",
+                                    "color": "W",
+                                    "size": 8,
+                                    "rot": 90,
+                                    "rep": 70
+                                }
+                            ]
+                        }
+                    },
+                    "25.029": {
+                        "description": "Regional fracture, planetary",
+                        "style": {
+                            "weight": 3,
+                            "color": "#00aeef"
+                        }
+                    },
+                    "25.030": {
+                        "description": "Partly buried regional fracture, planetary",
+                        "style": {
+                            "weight": 3,
+                            "dashArray": "8,4",
+                            "color": "#00aeef"
+                        }
+                    },
+                    "25.031": {
+                        "description": "Arcuate fracture, planetary",
+                        "style": {
+                            "weight": 2,
+                            "color": "#263996"
+                        }
+                    },
+                    "25.032": {
+                        "description": "Partly buried arcuate fracture, planetary",
+                        "style": {
+                            "weight": 2,
+                            "dashArray": "8,4",
+                            "color": "#263996"
+                        }
+                    },
+                    "25.033": {
+                        "description": "Radial fracture, planetary (associated with coronae)",
+                        "style": {
+                            "weight": 3,
+                            "color": "#263996"
+                        }
+                    },
+                    "25.034": {
+                        "description": "Concentric fracture, planetary (associated with coronae)",
+                        "style": {
+                            "weight": 2,
+                            "color": "#953c96"
+                        }
+                    },
+                    "25.035": {
+                        "description": "Fold crest, planetary",
+                        "style": {
+                            "weight": 3,
+                            "color": "#ee1b2c"
+                        }
+                    },
+                    "25.036": {
+                        "description": "Broad warp, planetary",
+                        "style": {
+                            "weight": 5,
+                            "dashArray": "4,4",
+                            "color": "#ee1b2c"
+                        }
+                    }
+                }
+            }
+        ]
+    }
+}
