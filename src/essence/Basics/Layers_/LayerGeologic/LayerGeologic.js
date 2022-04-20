@@ -102,8 +102,8 @@ const LayerGeologic = {
             const pos2 = s.pos || pos
             let shouldOffset = false
             if (
-                (pos2 === 'top' && pos === 'bottom') ||
-                (pos2 === 'bottom' && pos === 'top')
+                (pos2 === 'left' && pos === 'right') ||
+                (pos2 === 'right' && pos === 'left')
             ) {
                 rot += 180
                 shouldOffset = true
@@ -111,14 +111,14 @@ const LayerGeologic = {
             pos = pos2
 
             let anchorY =
-                pos === 'top'
+                pos === 'left'
                     ? 0 - weight / weightFactor
-                    : pos === 'bottom'
+                    : pos === 'right'
                     ? size + weight / weightFactor
                     : size / 2
             if (shouldOffset) {
-                if (pos === 'top') anchorY += size + weight / weightFactor
-                if (pos === 'bottom') anchorY -= size
+                if (pos === 'left') anchorY += size + weight / weightFactor
+                if (pos === 'right') anchorY -= size
             }
             patterns.push({
                 offset: '5%',

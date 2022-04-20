@@ -74,7 +74,7 @@
                                 {
                                     "set": "FGDCGeoSym01",
                                     "key": "2",
-                                    "pos": "bottom",
+                                    "pos": "right",
                                     "color": "W",
                                     "size": 16,
                                     "rot": 90,
@@ -92,7 +92,7 @@
                                 {
                                     "set": "FGDCGeoSym01",
                                     "key": "2",
-                                    "pos": "bottom",
+                                    "pos": "right",
                                     "color": "W",
                                     "size": 16,
                                     "rot": 90,
@@ -110,7 +110,7 @@
                                 {
                                     "set": "FGDCGeoSym01",
                                     "key": "2",
-                                    "pos": "bottom",
+                                    "pos": "right",
                                     "color": "W",
                                     "size": 16,
                                     "rot": 90,
@@ -128,7 +128,7 @@
                                 {
                                     "set": "FGDCGeoSym01",
                                     "key": "2",
-                                    "pos": "bottom",
+                                    "pos": "right",
                                     "color": "W",
                                     "size": 16,
                                     "rot": 90,
@@ -287,7 +287,7 @@
                                 {
                                     "set": "FGDCGeoSym01",
                                     "key": "8",
-                                    "pos": "top",
+                                    "pos": "left",
                                     "color": "W",
                                     "size": 12,
                                     "rot": 90,
@@ -305,7 +305,7 @@
                                 {
                                     "set": "FGDCGeoSym01",
                                     "key": "8",
-                                    "pos": "top",
+                                    "pos": "left",
                                     "color": "W",
                                     "size": 12,
                                     "rot": 90,
@@ -323,7 +323,7 @@
                                 {
                                     "set": "FGDCGeoSym01",
                                     "key": "8",
-                                    "pos": "top",
+                                    "pos": "left",
                                     "color": "W",
                                     "size": 12,
                                     "rot": 90,
@@ -341,7 +341,7 @@
                                 {
                                     "set": "FGDCGeoSym01",
                                     "key": "8",
-                                    "pos": "top",
+                                    "pos": "left",
                                     "color": "W",
                                     "size": 12,
                                     "rot": 90,
