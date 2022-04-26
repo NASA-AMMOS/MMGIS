@@ -787,7 +787,10 @@ var Editing = {
                 "</div>",
                 "</div>",
             "</div>",
-            Editing.getPluginUIs(),
+            Editing.getPluginUIs(ownedByUser,
+                isMaster,
+                displayOnly,
+                isKind),
         "</div>",
 
 
@@ -2622,13 +2625,13 @@ var Editing = {
                 DrawTool.plugins[p].clear()
         })
     },
-    getPluginUIs: function () {
+    getPluginUIs: function (ownedByUser, isMaster, displayOnly, isKind) {
         const UIs = []
         Object.keys(DrawTool.plugins).forEach((p) => {
             UIs.push(
                 `<div class='drawToolContextMenuTab drawToolContextMenuTab${p}'>${DrawTool.plugins[
                     p
-                ].getUI()}</div>`
+                ].getUI(ownedByUser, isMaster, displayOnly, isKind)}</div>`
             )
         })
         return UIs.join('\n')
