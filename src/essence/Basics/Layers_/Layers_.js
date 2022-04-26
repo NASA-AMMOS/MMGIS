@@ -154,11 +154,20 @@ var L_ = {
         Search.init('.Search', L_, this.Viewer_, this.Map_, this.Globe_)
         Description.updateInfo()
 
+        $('#main-container').animate(
+            {
+                filter: 'blur(0px)',
+            },
+            800,
+            function () {
+                $('#main-container').css('filter', 'blur(0px)')
+            }
+        )
         $('.LoadingPage').animate(
             {
                 opacity: 0,
             },
-            1000,
+            1400,
             function () {
                 $('.LoadingPage').remove()
             }
@@ -574,6 +583,7 @@ var L_ = {
                                 }
                             }
                         }
+
                         map.addLayer(L_.layersGroup[L_.layersData[i].name])
                         // Set markerDiv based opacities if any
                         $(
@@ -713,6 +723,9 @@ var L_ = {
         L_.resetLayerFills()
         L_.highlight(layer)
         L_.Map_.activeLayer = layer
+
+        if (L_.Map_.activeLayer) L_.Map_._justSetActiveLayer = true
+
         Description.updatePoint(L_.Map_.activeLayer)
 
         if (layer) {
@@ -1139,6 +1152,9 @@ var L_ = {
                     this.layersStyles[key].hasOwnProperty('fillColor')
                 ) {
                     this.layersGroup[key].eachLayer((layer) => {
+                        const savedOptions = layer.options
+                        const savedUseKeyAsName = layer.useKeyAsName
+
                         let fillColor = this.layersStyles[key].fillColor
                         let opacity = layer.options.opacity
                         let fillOpacity = layer.options.fillOpacity
@@ -1155,6 +1171,8 @@ var L_ = {
                         } catch (err) {
                             if (layer._icon) layer._icon.style.filter = ''
                         }
+                        layer.options = savedOptions
+                        layer.useKeyAsName = savedUseKeyAsName
                     })
                 } else if (s[0] == 'DrawTool') {
                     for (let k in this.layersGroup[key]) {
@@ -1204,10 +1222,20 @@ var L_ = {
 
                     function setLayerStyle(layer) {
                         const style = layer.feature.properties.style
-                        const color = style.color
-                        layer.setStyle({
-                            color: color,
-                        })
+
+                        const geoColor = F_.getIn(style, 'geologic.color', null)
+                        const color =
+                            geoColor != null
+                                ? F_.colorCodeToColor(geoColor)
+                                : style.color
+
+                        if (typeof layer.setStyle === 'function')
+                            layer.setStyle({
+                                color: color,
+                            })
+                        else if (layer._icon?.style) {
+                            layer._icon.style.filter = 'unset'
+                        }
                     }
                 }
             }

@@ -97,6 +97,7 @@ const LayerGeologic = {
             const rep = s.rep || defS.rep || 200
             const size = defS.size * (s.size || 1)
             const color = F_.colorCodeToColor(s.color || defS.color)
+            const opacity = style.opacity != null ? style.opacity : 1
             let rot = defS.rot || 0
             let pos = defS.pos || 'center'
             const pos2 = s.pos || pos
@@ -132,7 +133,7 @@ const LayerGeologic = {
                             iconSize: [size, size],
                             iconAnchor: [size / 2, anchorY],
                             html: [
-                                `<div style="font-family: ${defS.set} ; font-size: ${size}px; color: ${color};">`,
+                                `<div style="font-family: ${defS.set}; font-size: ${size}px; color: ${color}; opacity: ${opacity};">`,
                                 `${defS.key}`,
                                 `</div>`,
                             ].join(''),
@@ -151,29 +152,81 @@ const LayerGeologic = {
             ]
         return patterns
     },
-    createLinework: function (layerId, feature, style) {
+    hasGeologicStyle: function (layer) {
+        if (layer.shape && layer.shape.isLinework) {
+            if (layer.shape._layers) {
+                for (let l in layer.shape._layers) {
+                    const lineworkLayer = layer.shape._layers[l]
+                    if (
+                        F_.getIn(
+                            lineworkLayer,
+                            'feature.properties.style.geologic',
+                            false
+                        ) !== false
+                    )
+                        return true
+                }
+            }
+        }
+        if (
+            F_.getIn(layer, 'feature.properties.style.geologic', false) !==
+            false
+        )
+            return true
+
+        if (F_.getIn(layer, 'properties.style.geologic', false) !== false)
+            return true
+
+        if (F_.getIn(layer, 'style.geologic', false) !== false) return true
+
+        return false
+    },
+    createLinework: function (feature, style) {
         const invertedFeature = F_.invertGeoJSONLatLngs(feature)
-        // geologic line
-        const line = new L.Polyline(invertedFeature.geometry.coordinates, {
-            color: style.fillColor,
-            weight: style.weight,
-            dashArray: style.dashArray,
-            lineCap: style.lineCap,
-            lineJoin: style.lineJoin,
-            opacity: style.opacity,
-        })
-        const decoratedLine = L.polylineDecorator(line, {
-            patterns: LayerGeologic.getLineworkPatterns(style),
-        })
+        const hasGeologic = style.geologic != null
 
-        line.feature = feature
-        decoratedLine.feature = feature
-        decoratedLine.isDecorated = true
-        const lineLayer = L.layerGroup([line, decoratedLine])
-        lineLayer.feature = feature
-        lineLayer.isLinework = true
+        if (!hasGeologic) {
+            const line = new L.Polyline(invertedFeature.geometry.coordinates, {
+                color: style.color,
+                weight: style.weight,
+                dashArray: style.dashArray,
+                lineCap: style.lineCap,
+                lineJoin: style.lineJoin,
+                opacity: style.opacity,
+            })
+            line.feature = feature
 
-        return lineLayer
+            return line
+        } else {
+            const geoColor = F_.getIn(style, 'geologic.color', null)
+            const color =
+                geoColor != null ? F_.colorCodeToColor(geoColor) : style.color
+            const dashArray =
+                F_.getIn(style, 'geologic.dashArray', null) || style.dashArray
+            const weight =
+                F_.getIn(style, 'geologic.weight', null) || style.weight
+
+            // geologic line
+            const line = new L.Polyline(invertedFeature.geometry.coordinates, {
+                color: color,
+                weight: weight,
+                dashArray: dashArray,
+                lineCap: style.lineCap,
+                lineJoin: style.lineJoin,
+            })
+            const decoratedLine = L.polylineDecorator(line, {
+                patterns: LayerGeologic.getLineworkPatterns(style),
+            })
+
+            line.feature = feature
+            decoratedLine.feature = feature
+            decoratedLine.isDecorated = true
+            const lineLayer = L.layerGroup([line, decoratedLine])
+            lineLayer.feature = feature
+            lineLayer.isLinework = true
+
+            return lineLayer
+        }
     },
     getSymbolIcon: function (set, key, color, size, rot) {
         const radius = 24 * (size || 1)

@@ -374,7 +374,7 @@ var Shapes = {
                                     'Grouped shapes must share intent.',
                                     6000,
                                     true,
-                                    { x: 295, y: 6 },
+                                    { x: 305, y: 6 },
                                     '#e9ff26',
                                     'black'
                                 )
@@ -526,6 +526,7 @@ var Shapes = {
             if (style == null) style = shape.options
 
             let color = style.color
+
             // Keep the active feature highlighted after mouseleave
             if (Map_.activeLayer) {
                 if (
@@ -553,23 +554,28 @@ var Shapes = {
             else if (shape.hasOwnProperty('_layers')) {
                 //Arrow
                 var layers = shape._layers
+
+                if (shape.isLinework) {
+                    const geoColor = F_.getIn(style, 'geologic.color', null)
+                    color =
+                        geoColor != null ? F_.colorCodeToColor(geoColor) : color
+                }
                 layers[Object.keys(layers)[0]].setStyle({ color })
                 layers[Object.keys(layers)[1]].setStyle({ color })
-            } else {
+            } else
                 $(
                     '#DrawToolAnnotation_' +
                         $(this).attr('layer_id') +
                         '_' +
                         $(this).attr('shape_id')
                 ).removeClass('highlight')
-                if (Map_.activeLayer === l[i]) {
-                    $(
-                        '#DrawToolAnnotation_' +
-                            $(this).attr('layer_id') +
-                            '_' +
-                            $(this).attr('shape_id')
-                    ).addClass('hovered')
-                }
+            if (Map_.activeLayer === l[i]) {
+                $(
+                    '#DrawToolAnnotation_' +
+                        $(this).attr('layer_id') +
+                        '_' +
+                        $(this).attr('shape_id')
+                ).addClass('hovered')
             }
         })
         $('.drawToolShapeLiItem').on('click', function (e) {

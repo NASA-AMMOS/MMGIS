@@ -45,10 +45,15 @@ let ToolController_ = {
                     'color 0.25s ease-in, background 0.25s ease-in'
                 )
                 .style('width', '100%')
-                .style('height', '30px')
+                .style('height', '36px')
                 .style('display', 'inline-block')
                 .style('text-align', 'center')
-                .style('line-height', '30px')
+                .style('line-height', '36px')
+                .style(
+                    'border-top',
+                    i === 0 ? '1px solid var(--color-a-5)' : 'none'
+                )
+                .style('border-bottom', '1px solid var(--color-a-5)')
                 //.style( 'text-shadow', '0px 1px #111' )
                 .style('vertical-align', 'middle')
                 .style('cursor', 'pointer')

@@ -1,8 +1,10 @@
 import $ from 'jquery'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
+import LayerGeologic from '../../Basics/Layers_/LayerGeologic/LayerGeologic'
 import Globe_ from '../../Basics/Globe_/Globe_'
 import Map_ from '../../Basics/Map_/Map_'
+import UserInterface_ from '../../Basics/UserInterface_/UserInterface_'
 import turf from 'turf'
 
 import calls from '../../../pre/calls'
@@ -18,6 +20,10 @@ var Editing = {
         DrawTool.cmLayerDown = Editing.cmLayerDown
         DrawTool.cmLayerUp = Editing.cmLayerUp
         DrawTool.cmLayerMove = Editing.cmLayerMove
+    },
+    removeContextMenu: function () {
+        $('.drawToolContextMenu').remove()
+        UserInterface_.closeRightPanel()
     },
     showContextMenu: function (
         x,
@@ -286,6 +292,7 @@ var Editing = {
             let fallbackStyle = {}
             if (kindLayerName && L_.layersStyles[kindLayerName])
                 fallbackStyle = L_.layersStyles[kindLayerName]
+
             //Set blank styles to
             style.color = style.color || fallbackStyle.color || 'black'
             style.opacity =
@@ -306,7 +313,6 @@ var Editing = {
                     : '0.2'
             style.symbol = style.symbol || fallbackStyle.symbol || ''
             style.radius = style.radius || fallbackStyle.radius || ''
-
             file = DrawTool.getFileObjectWithId(fileid)
 
             var bbox = turf.bbox(DrawTool.contextMenuLayerOriginalGeoJSON)
@@ -333,15 +339,16 @@ var Editing = {
                         (parseInt(properties.style.radius) +
                             parseInt(properties.style.weight) * 2) *
                         2
-                    sl = L.circleMarker(bounds[0], {
-                        color: 'white',
-                        weight: 2,
-                        fillOpacity: 0,
-                        dashArray: '5 5',
-                        radius: radius,
-                    })
-                        .addTo(Map_.map)
-                        .bringToBack()
+                    if (!isNaN(radius))
+                        sl = L.circleMarker(bounds[0], {
+                            color: 'white',
+                            weight: 2,
+                            fillOpacity: 0,
+                            dashArray: '5 5',
+                            radius: radius,
+                        })
+                            .addTo(Map_.map)
+                            .bringToBack()
                 }
             } else if (
                 bounds[0][0] != Number.POSITIVE_INFINITY &&
@@ -427,7 +434,7 @@ var Editing = {
             }
         }
 
-        $('.drawToolContextMenu').remove()
+        Editing.removeContextMenu()
 
         if (DrawTool.contextMenuLayer == null) return
 
@@ -442,14 +449,28 @@ var Editing = {
                 if (DrawTool.contextMenuLayer.snapediting) {
                     DrawTool.contextMenuLayer.snapediting.disable()
                 }
-                //Yay all the lat lngs are flipped
-                //console.log( JSON.parse(JSON.stringify(coords)) )
-                //console.log( JSON.parse(JSON.stringify(DrawTool.contextMenuLayerOriginalLatLngs) ) )
-                DrawTool.contextMenuLayer.setLatLngs(
-                    JSON.parse(
-                        JSON.stringify(DrawTool.contextMenuLayerOriginalLatLngs)
+
+                if (
+                    typeof DrawTool.contextMenuLayer.setLatLngs === 'function'
+                ) {
+                    DrawTool.contextMenuLayer.setLatLngs(
+                        JSON.parse(
+                            JSON.stringify(
+                                DrawTool.contextMenuLayerOriginalLatLngs
+                            )
+                        )
                     )
-                )
+                } else if (
+                    typeof DrawTool.contextMenuLayer.setLatLng === 'function'
+                ) {
+                    DrawTool.contextMenuLayer.setLatLng(
+                        JSON.parse(
+                            JSON.stringify(
+                                DrawTool.contextMenuLayerOriginalLatLngs
+                            )
+                        )
+                    )
+                }
                 //console.log( JSON.parse(JSON.stringify(DrawTool.contextMenuLayer.feature)) );
 
                 if (
@@ -505,12 +526,17 @@ var Editing = {
             DrawTool.userGroups.indexOf('mmgis-group') != -1 &&
             DrawTool.contextMenuLayers[0].file.file_owner == 'group'
 
-        var setOperations = DrawTool.getSetOperationsUI()
+        let isGeologic = false
+        for (var i = 0; i < DrawTool.contextMenuLayers.length; i++) {
+            if (LayerGeologic.hasGeologicStyle(DrawTool.contextMenuLayers[i])) {
+                isGeologic = true
+                break
+            }
+        }
 
         // prettier-ignore
-        var markup = [
+        let markup = [
     "<div class='drawToolContextMenu'>",
-        "<div class='drawToolContextMenuDragHandle'></div>",
         "<div class='drawToolContextMenuColorGround'></div>",
         "<div class='drawToolContextMenuHeaderColor'></div>",
         "<div class='drawToolContextMenuBottomColor'></div>",
@@ -524,7 +550,7 @@ var Editing = {
             "</div>",
             "</div>",
             "<div class='drawToolContextMenuHeaderClose'>",
-            "<i class='mdi mdi-close mdi-18px'></i>",
+            "<i class='mdi mdi-close mdi-24px'></i>",
             "</div>",
         "</div>",
         "<div class='drawToolContextMenuHeader1 flexbetween'>",
@@ -540,7 +566,10 @@ var Editing = {
                     "<i class='mdi mdi-file-document-box mdi-24px'></i>",
                 "</div>",
                 (!displayOnly) ? "<div class='drawToolContextMenuTabButton' tab='drawToolContextMenuTabStyle' title='Style' style='display: " + ( (hideStyle) ? 'none' : 'inherit' ) + "'><i class='mdi mdi-palette mdi-24px'></i></div>" : "",
-                (!displayOnly) ? "<div class='drawToolContextMenuTabButton'  tab='drawToolContextMenuTabSet' title='Set Operations'><i class='mdi mdi-vector-combine mdi-24px'></i></div>" : "",
+                (!displayOnly && DrawTool.plugins?.Geologic) ? "<div class='drawToolContextMenuTabButton'  tab='drawToolContextMenuTabGeologic' title='Geologic'><i class='mdi mdi-earth-box mdi-24px'></i></div>" : "",
+                (!displayOnly && DrawTool.plugins?.MTTTT) ? "<div class='drawToolContextMenuTabButton' tab='drawToolContextMenuTabMTTTT' title='MTn Trail Guide'><i class='mdi mdi-image-filter-hdr mdi-24px'></i></div>" : '',
+                (DrawTool.plugins?.ScienceIntent && DrawTool.contextMenuLayers.length == 1) ? "<div class='drawToolContextMenuTabButton' tab='drawToolContextMenuTabScienceIntent' title='Science Intent'><i class='mdi mdi-microscope mdi-24px'></i></div>" : "",
+                (!displayOnly && DrawTool.plugins?.SetOperations) ? "<div class='drawToolContextMenuTabButton'  tab='drawToolContextMenuTabSetOperations' title='Set Operations'><i class='mdi mdi-vector-combine mdi-24px'></i></div>" : "",
             "</div>",
         "</div>",
 
@@ -550,11 +579,11 @@ var Editing = {
                 "<div class='drawToolContextMenuProperties'>",
                     "<div class='drawToolContextMenuPropertiesName flexbetween'>",
                         "<div>Name</div>",
-                        "<input id='drawToolContextMenuPropertiesName' style='width: 220px;' type='text' value='" + F_.sanitize(defaultName) + "'/>",
+                        "<input id='drawToolContextMenuPropertiesName' type='text' value='" + F_.sanitize(defaultName) + "'/>",
                     "</div>",
                     "<div class='drawToolContextMenuPropertiesDescription flexbetween'>",
                         "<div>Description</div>",
-                        "<textarea id='drawToolContextMenuPropertiesDescription' rows='5'></textarea>",
+                        "<textarea id='drawToolContextMenuPropertiesDescription' rows='10'></textarea>",
                     "</div>",
                     (hasLengthMetric) ? [
                         "<div class='flexbetween' style='margin: 4px 0px;'>",
@@ -583,6 +612,8 @@ var Editing = {
 
             "<div class='drawToolContextMenuTab drawToolContextMenuTabStyle'>",
                 "<div class='drawToolContextMenuStyle'>",
+
+                isGeologic ? "<div id='drawToolContextMenuStyleGeoMessage'>This shape includes geologic symbology. Standard stylings below might be overridden.</div>" : null,
                 
                 "<div class='styleprop flexbetween' style='display: " + ( (hasFillColor) ? 'flex' : 'none' ) + "'>",
                 "<div class='flexbetween'>Fill Color<div class='drawToolStyleHighlight'></div></div>",
@@ -637,28 +668,28 @@ var Editing = {
 
                 "<div class='styleprop flexbetween' style='display: " + ( (hasStrokeStyle) ? 'flex' : 'none' ) + "'>",
                 "<div class='flexbetween'>Stroke Style<div class='drawToolStyleHighlight'></div></div>",
-                "<div  v='" + style.dashArray + "' pick='strokestylepick' class='picker strokestyle stylevalue'><svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#222' stroke-width='4' stroke-dasharray='" + style.dashArray + "' /></svg></div>",
+                "<div  v='" + style.dashArray + "' pick='strokestylepick' class='picker strokestyle stylevalue'><svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#F5F5F5' stroke-width='4' stroke-dasharray='" + style.dashArray + "' /></svg></div>",
                 "</div>",
                 "<div class='picking strokestylepick strokeStylePicker column mediumsmall' style='display: " + ( (hasStrokeStyle) ? 'flex' : 'none' ) + "'>",
-                "<div value=''><svg width='100%' height='100%'><line x1='0' y1='12' x2='310' y2='12' stroke='#222' stroke-width='4' /></svg></div>",
-                "<div value='20'><svg width='100%' height='100%'><line x1='0' y1='12' x2='310' y2='12' stroke='#222' stroke-width='4' stroke-dasharray='20' /></svg></div>",
-                "<div value='1 12'><svg width='100%' height='100%'><line x1='0' y1='12' x2='310' y2='12' stroke='#222' stroke-width='4' stroke-dasharray='1 4' /></svg></div>",
-                "<div value='70 15 15 15'><svg width='100%' height='100%'><line x1='0' y1='12' x2='310' y2='12' stroke='#222' stroke-width='4' stroke-dasharray='70 15 15 15' /></svg></div>",
-                "<div value='1 20 1 20 40 20'><svg width='100%' height='100%'><line x1='0' y1='12' x2='310' y2='12' stroke='#222' stroke-width='4' stroke-dasharray='1 20 1 20 40 20' /></svg></div>",
+                "<div value=''><svg width='100%' height='100%'><line x1='0' y1='12' x2='310' y2='12' stroke='#F5F5F5' stroke-width='4' /></svg></div>",
+                "<div value='20'><svg width='100%' height='100%'><line x1='0' y1='12' x2='310' y2='12' stroke='#F5F5F5' stroke-width='4' stroke-dasharray='20' /></svg></div>",
+                "<div value='1 12'><svg width='100%' height='100%'><line x1='0' y1='12' x2='310' y2='12' stroke='#F5F5F5' stroke-width='4' stroke-dasharray='1 4' /></svg></div>",
+                "<div value='70 15 15 15'><svg width='100%' height='100%'><line x1='0' y1='12' x2='310' y2='12' stroke='#F5F5F5' stroke-width='4' stroke-dasharray='70 15 15 15' /></svg></div>",
+                "<div value='1 20 1 20 40 20'><svg width='100%' height='100%'><line x1='0' y1='12' x2='310' y2='12' stroke='#F5F5F5' stroke-width='4' stroke-dasharray='1 20 1 20 40 20' /></svg></div>",
                 "</div>",
 
                 "<div class='styleprop flexbetween' style='display: " + ( (hasStrokeWeight) ? 'flex' : 'none' ) + "'>",
                 "<div class='flexbetween'>Stroke Weight<div class='drawToolStyleHighlight'></div></div>",
-                "<div v='" + style.weight + "' pick='strokeweightpick' class='picker strokeweight stylevalue'><svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#222' stroke-width='" + style.weight + "' /></svg></div>",
+                "<div v='" + style.weight + "' pick='strokeweightpick' class='picker strokeweight stylevalue'><svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#F5F5F5' stroke-width='" + style.weight + "' /></svg></div>",
                 "</div>",
                 "<div class='picking strokeweightpick strokeWeightPicker column medium' style='display: " + ( (hasStrokeWeight) ? 'flex' : 'none' ) + "'>",
                 "<div value='0'>None</div>",
-                "<div value='1'><svg width='100%' height='100%'><line x1='0' y1='10' x2='310' y2='10' stroke='#222' stroke-width='1' /></svg></div>",
-                "<div value='2'><svg width='100%' height='100%'><line x1='0' y1='10' x2='310' y2='10' stroke='#222' stroke-width='2' /></svg></div>",
-                "<div value='4' style='display: " + ( (featureType == 'note') ? 'none' : 'inline' ) + ";'><svg width='100%' height='100%'><line x1='0' y1='10' x2='310' y2='10' stroke='#222' stroke-width='4' /></svg></div>",
-                "<div value='8' style='display: " + ( (featureType == 'note') ? 'none' : 'inline' ) + ";'><svg width='100%' height='100%'><line x1='0' y1='10' x2='310' y2='10' stroke='#222' stroke-width='8' /></svg></div>",
-                "<div value='12' style='display: " + ( (featureType == 'note') ? 'none' : 'inline' ) + ";'><svg width='100%' height='100%'><line x1='0' y1='10' x2='310' y2='10' stroke='#222' stroke-width='12' /></svg></div>",
-                "<div value='16' style='display: " + ( (featureType == 'note') ? 'none' : 'inline' ) + ";'><svg width='100%' height='100%'><line x1='0' y1='10' x2='310' y2='10' stroke='#222' stroke-width='16' /></svg></div>",
+                "<div value='1'><svg width='100%' height='100%'><line x1='0' y1='10' x2='310' y2='10' stroke='#F5F5F5' stroke-width='1' /></svg></div>",
+                "<div value='2'><svg width='100%' height='100%'><line x1='0' y1='10' x2='310' y2='10' stroke='#F5F5F5' stroke-width='2' /></svg></div>",
+                "<div value='4' style='display: " + ( (featureType == 'note') ? 'none' : 'inline' ) + ";'><svg width='100%' height='100%'><line x1='0' y1='10' x2='310' y2='10' stroke='#F5F5F5' stroke-width='4' /></svg></div>",
+                "<div value='8' style='display: " + ( (featureType == 'note') ? 'none' : 'inline' ) + ";'><svg width='100%' height='100%'><line x1='0' y1='10' x2='310' y2='10' stroke='#F5F5F5' stroke-width='8' /></svg></div>",
+                "<div value='12' style='display: " + ( (featureType == 'note') ? 'none' : 'inline' ) + ";'><svg width='100%' height='100%'><line x1='0' y1='10' x2='310' y2='10' stroke='#F5F5F5' stroke-width='12' /></svg></div>",
+                "<div value='16' style='display: " + ( (featureType == 'note') ? 'none' : 'inline' ) + ";'><svg width='100%' height='100%'><line x1='0' y1='10' x2='310' y2='10' stroke='#F5F5F5' stroke-width='16' /></svg></div>",
                 "</div>",
 
                 "<div class='styleprop flexbetween' style='display: " + ( (hasSymbol) ? 'flex' : 'none' ) + "'>",
@@ -747,7 +778,6 @@ var Editing = {
                 "<div>54px</div>",
                 "</div>",
 
-
                 "<div class='styleprop flexbetween' style='display: " + ( (hasRotation) ? 'flex' : 'none' ) + "'>",
                 "<div class='flexbetween'>Rotation<div class='drawToolStyleHighlight'></div></div>",
                 "<div v='" + (style.rotation || '0') + "' pick='rotationpick' class='picker rotation stylevalue'>" + (style.rotation || '0') + "deg</div>",
@@ -755,13 +785,9 @@ var Editing = {
                 "<div class='picking rotationpick rotationPicker' style='display: " + ( (hasRotation) ? 'flex' : 'none' ) + "'>",
                     "<input class='slider3' type='range' min='-90' max='90' step='2' value='" + (style.rotation || 0) + "'/>",
                 "</div>",
+                "</div>",
             "</div>",
-            "</div>",
-
-            "<div class='drawToolContextMenuTab drawToolContextMenuTabSet'>",
-                setOperations,
-            "</div>",
-
+            Editing.getPluginUIs(),
         "</div>",
 
 
@@ -783,15 +809,9 @@ var Editing = {
 
         "</div>"
       ].join('\n');
-        $('body').append(markup)
-
-        DrawTool.addSetOperationsEvents()
-
-        $('.drawToolContextMenu').css({
-            right: x + 'px',
-            top: y + 'px',
-            zIndex: 10000,
-        })
+        $('#uiRightPanel').empty()
+        $('#uiRightPanel').append(markup)
+        UserInterface_.openRightPanel(360)
 
         $('#drawToolContextMenuPropertiesDescription').text(description)
 
@@ -800,38 +820,6 @@ var Editing = {
             $('.drawToolContextMenuStyleHeader').remove()
             $('.drawToolContextMenuStyle').remove()
             $('.drawToolContextMenuSave').remove()
-        }
-
-        //Draggable
-        var offsetX = 0
-        var offsetY = 0
-        $('.drawToolContextMenuDragHandle').on('mousedown', function (e) {
-            offsetX = e.offsetX
-            offsetY = e.offsetY
-            $('body').on('mousemove', contextDrag)
-            $('body').on('mouseup', contextStopDrag)
-        })
-        function contextDrag(e) {
-            //console.log( e );
-            var left = e.pageX - offsetX
-            left = Math.max(left, 260)
-            left = Math.min(left, window.innerWidth - 290)
-
-            var top = e.pageY - offsetY
-            top = Math.max(top, 0)
-            top = Math.min(top, window.innerHeight - 50)
-            $('.drawToolContextMenu').css({
-                left: left + 'px',
-                top: top + 'px',
-            })
-
-            $('.drawToolContextMenuContents').css({
-                maxHeight: 'calc( 100vh - 102px - ' + top + 'px)',
-            })
-        }
-        function contextStopDrag() {
-            $('body').off('mousemove', contextDrag)
-            $('body').off('mouseup', contextStopDrag)
         }
 
         if (!displayOnly) {
@@ -888,6 +876,9 @@ var Editing = {
             resetShape()
         })
         function resetShape(justThis) {
+            if (DrawTool.plugins?.Geologic?.custom?.resetGeologic)
+                DrawTool.plugins.Geologic.custom.resetGeologic()
+
             for (var c in DrawTool.contextMenuLayers) {
                 if (justThis != null) c = justThis
                 var l = DrawTool.contextMenuLayers[c]
@@ -929,6 +920,9 @@ var Editing = {
                     updateFontSize(l.properties.style.fontSize, l.shape)
                     updateRotation(l.properties.style.rotation, l.shape)
 
+                    if (DrawTool.plugins?.Geologic?.custom?.resetGeologic)
+                        DrawTool.plugins.Geologic.custom.resetGeologic()
+
                     if (justThis != null) break
                 }
             }
@@ -967,6 +961,8 @@ var Editing = {
             DrawTool.contextMenuChanges.style.radius = false
 
             if (DrawTool.contextMenuLayers.length == 1) updateSelectionLayer()
+
+            Editing.pluginsClear()
         }
 
         //TABS
@@ -977,16 +973,28 @@ var Editing = {
             $('.' + $(this).attr('tab')).addClass('active')
             $('.drawToolContextMenuTabTitle').text($(this).attr('title'))
             DrawTool.editPanelActiveTab = $(this).attr('tab')
+
+            Editing.setPluginEvents(DrawTool.editPanelActiveTab)
+
             if (
                 DrawTool.editPanelActiveTab ===
-                'drawToolContextMenuTabTabThatShouldBeWider'
+                'drawToolContextMenuTabScienceIntent'
             ) {
-                $('.drawToolContextMenu').css({ width: '800px' })
+                $('.drawToolContextMenu').css({ width: '620px' })
             } else {
-                $('.drawToolContextMenu').css({ width: '340px' })
+                $('.drawToolContextMenu').css({ width: '360px' })
             }
-            if (DrawTool.editPanelActiveTab !== 'drawToolContextMenuTabSet') {
-                DrawTool.endSplitDrawing()
+            if (DrawTool.editPanelActiveTab === 'drawToolContextMenuTabMTTTT') {
+                $('.drawToolContextMenuSave').css({ display: 'none' })
+            } else {
+                $('.drawToolContextMenuSave').css({ display: 'flex' })
+            }
+            if (
+                DrawTool.editPanelActiveTab !==
+                'drawToolContextMenuTabSetOperations'
+            ) {
+                if (DrawTool.plugins?.SetOperations?.custom?.endSplitDrawing)
+                    DrawTool.plugins.SetOperations.custom.endSplitDrawing()
             }
         })
 
@@ -1075,15 +1083,59 @@ var Editing = {
             $('.strokecolor').css('background-color', v)
             $('#drawToolContextMenuStrokeColorInput').val(v)
             $('.strokecolor').attr('v', v)
+            if (properties && v != properties.style.color)
+                $('.strokecolor')
+                    .parent()
+                    .parent()
+                    .find('.drawToolStyleHighlight')
+                    .css('background', DrawTool.highlightColor)
+            else
+                $('.strokecolor')
+                    .parent()
+                    .parent()
+                    .find('.drawToolStyleHighlight')
+                    .css('background', 'inherit')
+
+            //Group change
+            if (!layer && DrawTool.contextMenuChanges.use)
+                $('.strokecolor')
+                    .parent()
+                    .prev()
+                    .css('background', DrawTool.highlightGradient)
+            else $('.strokecolor').parent().prev().css('background', 'inherit')
+
+            const geoColor = F_.getIn(
+                layer,
+                'feature.properties.style.geologic.color',
+                null
+            )
+            if (geoColor) v = F_.colorCodeToColor(geoColor)
 
             if (!layer || (layer && typeof layer.setStyle === 'function')) {
                 if (layer) layer.setStyle({ color: v })
                 else {
                     for (var c in DrawTool.contextMenuLayers) {
                         var s = DrawTool.contextMenuLayers[c].shape
-                        if (typeof s.setStyle === 'function')
+
+                        if (s.isLinework) {
+                            for (let l in s._layers) {
+                                const lineworkLayer = s._layers[l]
+                                if (!lineworkLayer.isDecorated) {
+                                    const geoColor = F_.getIn(
+                                        lineworkLayer,
+                                        'feature.properties.style.geologic.color',
+                                        null
+                                    )
+                                    let color =
+                                        geoColor != null
+                                            ? F_.colorCodeToColor(geoColor)
+                                            : v
+                                    lineworkLayer.setStyle({ color: color })
+                                }
+                            }
+                        } else if (typeof s.setStyle === 'function') {
                             s.setStyle({ color: v })
-                        else if (
+                        } else if (
                             DrawTool.contextMenuLayers[c].layer.feature &&
                             DrawTool.contextMenuLayers[c].layer.feature
                                 .properties.annotation == true
@@ -1101,7 +1153,11 @@ var Editing = {
                                     $('.strokeweight').attr('v')
                                 )
                             )
-                        } else {
+                        } else if (
+                            DrawTool.contextMenuLayers[c].layer.feature &&
+                            DrawTool.contextMenuLayers[c].layer.feature
+                                .properties.arrow == true
+                        ) {
                             //Arrow
                             var lif = DrawTool.contextMenuLayers[c].l_i_f
                             var style = Object.assign(
@@ -1124,27 +1180,6 @@ var Editing = {
                     }
                 }
             }
-
-            if (properties && v != properties.style.color)
-                $('.strokecolor')
-                    .parent()
-                    .parent()
-                    .find('.drawToolStyleHighlight')
-                    .css('background', DrawTool.highlightColor)
-            else
-                $('.strokecolor')
-                    .parent()
-                    .parent()
-                    .find('.drawToolStyleHighlight')
-                    .css('background', 'inherit')
-
-            //Group change
-            if (!layer && DrawTool.contextMenuChanges.use)
-                $('.strokecolor')
-                    .parent()
-                    .prev()
-                    .css('background', DrawTool.highlightGradient)
-            else $('.strokecolor').parent().prev().css('background', 'inherit')
         }
         $('#drawToolContextMenuStrokeColorInput').on('input', function () {
             var color = $(this).val()
@@ -1167,6 +1202,24 @@ var Editing = {
 
             $('.strokeopacity').text(t)
             $('.strokeopacity').attr('v', v)
+
+            if (properties && v != properties.style.opacity)
+                $('.strokeopacity')
+                    .parent()
+                    .find('.drawToolStyleHighlight')
+                    .css('background', DrawTool.highlightColor)
+            else
+                $('.strokeopacity')
+                    .parent()
+                    .find('.drawToolStyleHighlight')
+                    .css('background', 'inherit')
+
+            //Group change
+            if (!layer && DrawTool.contextMenuChanges.use)
+                $('.strokeopacity')
+                    .prev()
+                    .css('background', DrawTool.highlightGradient)
+            else $('.strokeopacity').prev().css('background', 'inherit')
 
             if (!layer || (layer && typeof layer.setStyle === 'function')) {
                 if (layer) layer.setStyle({ opacity: v })
@@ -1193,7 +1246,11 @@ var Editing = {
                                     $('.strokeweight').attr('v')
                                 )
                             )
-                        } else {
+                        } else if (
+                            DrawTool.contextMenuLayers[c].layer.feature &&
+                            DrawTool.contextMenuLayers[c].layer.feature
+                                .properties.arrow === true
+                        ) {
                             //Arrow
                             var lif = DrawTool.contextMenuLayers[c].l_i_f
                             var style = Object.assign(
@@ -1216,24 +1273,6 @@ var Editing = {
                     }
                 }
             }
-
-            if (properties && v != properties.style.opacity)
-                $('.strokeopacity')
-                    .parent()
-                    .find('.drawToolStyleHighlight')
-                    .css('background', DrawTool.highlightColor)
-            else
-                $('.strokeopacity')
-                    .parent()
-                    .find('.drawToolStyleHighlight')
-                    .css('background', 'inherit')
-
-            //Group change
-            if (!layer && DrawTool.contextMenuChanges.use)
-                $('.strokeopacity')
-                    .prev()
-                    .css('background', DrawTool.highlightGradient)
-            else $('.strokeopacity').prev().css('background', 'inherit')
         }
         //STROKE STYLE
         $('.strokestylepick > div').on('click', function () {
@@ -1254,7 +1293,11 @@ var Editing = {
                         var s = DrawTool.contextMenuLayers[c].shape
                         if (typeof s.setStyle === 'function')
                             s.setStyle({ dashArray: v })
-                        else {
+                        else if (
+                            DrawTool.contextMenuLayers[c].layer.feature &&
+                            DrawTool.contextMenuLayers[c].layer.feature
+                                .properties.arrow === true
+                        ) {
                             //Arrow
                             var lif = DrawTool.contextMenuLayers[c].l_i_f
                             var style = Object.assign(
@@ -1316,6 +1359,7 @@ var Editing = {
                 } else {
                     for (var c in DrawTool.contextMenuLayers) {
                         var s = DrawTool.contextMenuLayers[c].shape
+
                         if (typeof s.setStyle === 'function')
                             s.setStyle({ weight: v })
                         else if (
@@ -1336,7 +1380,11 @@ var Editing = {
                                     v
                                 )
                             )
-                        } else {
+                        } else if (
+                            DrawTool.contextMenuLayers[c].layer.feature &&
+                            DrawTool.contextMenuLayers[c].layer.feature
+                                .properties.arrow === true
+                        ) {
                             //Arrow
                             var lif = DrawTool.contextMenuLayers[c].l_i_f
                             var style = Object.assign(
@@ -1355,6 +1403,8 @@ var Editing = {
                                     DrawTool.populateShapes()
                                 }
                             )
+                        } else {
+                            console.log('n/a')
                         }
                     }
                 }
@@ -1433,7 +1483,11 @@ var Editing = {
                             $(
                                 '#DrawToolAnnotation_' + p.file_id + '_' + p.id
                             ).css('color', v)
-                        } else {
+                        } else if (
+                            DrawTool.contextMenuLayers[c].layer.feature &&
+                            DrawTool.contextMenuLayers[c].layer.feature
+                                .properties.arrow === true
+                        ) {
                             //Arrow
                             var lif = DrawTool.contextMenuLayers[c].l_i_f
                             var style = Object.assign(
@@ -1525,7 +1579,11 @@ var Editing = {
                         var s = DrawTool.contextMenuLayers[c].shape
                         if (typeof s.setStyle === 'function')
                             s.setStyle({ fillOpacity: v })
-                        else {
+                        else if (
+                            DrawTool.contextMenuLayers[c].layer.feature &&
+                            DrawTool.contextMenuLayers[c].layer.feature
+                                .properties.arrow === true
+                        ) {
                             //Arrow
                             var lif = DrawTool.contextMenuLayers[c].l_i_f
                             var style = Object.assign(
@@ -1614,7 +1672,11 @@ var Editing = {
                         var s = DrawTool.contextMenuLayers[c].shape
                         if (typeof s.setStyle === 'function')
                             s.setStyle({ radius: v })
-                        else {
+                        else if (
+                            DrawTool.contextMenuLayers[c].layer.feature &&
+                            DrawTool.contextMenuLayers[c].layer.feature
+                                .properties.arrow === true
+                        ) {
                             //Arrow
                             var lif = DrawTool.contextMenuLayers[c].l_i_f
                             var style = Object.assign(
@@ -1677,7 +1739,11 @@ var Editing = {
                         var s = DrawTool.contextMenuLayers[c].shape
                         if (typeof s.setStyle === 'function')
                             s.setStyle({ weight: v })
-                        else {
+                        else if (
+                            DrawTool.contextMenuLayers[c].layer.feature &&
+                            DrawTool.contextMenuLayers[c].layer.feature
+                                .properties.arrow === true
+                        ) {
                             //Arrow
                             var lif = DrawTool.contextMenuLayers[c].l_i_f
                             var style = Object.assign(
@@ -1736,7 +1802,11 @@ var Editing = {
                     for (var c in DrawTool.contextMenuLayers) {
                         var s = DrawTool.contextMenuLayers[c].shape
                         if (typeof s.setStyle === 'function') {
-                        } else {
+                        } else if (
+                            DrawTool.contextMenuLayers[c].layer.feature &&
+                            DrawTool.contextMenuLayers[c].layer.feature
+                                .properties.arrow === true
+                        ) {
                             //Arrow
                             var lif = DrawTool.contextMenuLayers[c].l_i_f
                             var style = Object.assign(
@@ -1797,7 +1867,11 @@ var Editing = {
                     for (var c in DrawTool.contextMenuLayers) {
                         var s = DrawTool.contextMenuLayers[c].shape
                         if (typeof s.setStyle === 'function') {
-                        } else {
+                        } else if (
+                            DrawTool.contextMenuLayers[c].layer.feature &&
+                            DrawTool.contextMenuLayers[c].layer.feature
+                                .properties.arrow === true
+                        ) {
                             //Arrow
                             var lif = DrawTool.contextMenuLayers[c].l_i_f
                             var style = Object.assign(
@@ -1858,7 +1932,11 @@ var Editing = {
                     for (var c in DrawTool.contextMenuLayers) {
                         var s = DrawTool.contextMenuLayers[c].shape
                         if (typeof s.setStyle === 'function') {
-                        } else {
+                        } else if (
+                            DrawTool.contextMenuLayers[c].layer.feature &&
+                            DrawTool.contextMenuLayers[c].layer.feature
+                                .properties.arrow === true
+                        ) {
                             //Arrow
                             var lif = DrawTool.contextMenuLayers[c].l_i_f
                             var style = Object.assign(
@@ -2007,15 +2085,7 @@ var Editing = {
                 Map_.rmNotNull(DrawTool.contextMenuLayers[c].selectionLayer)
             DrawTool.contextMenuLayers = []
 
-            $('.drawToolContextMenu').animate(
-                {
-                    opacity: 0,
-                },
-                250,
-                function () {
-                    $('.drawToolContextMenu').remove()
-                }
-            )
+            Editing.removeContextMenu()
         })
 
         //EDIT
@@ -2146,6 +2216,9 @@ var Editing = {
 
         //SAVE
         $('.drawToolContextMenuSaveChanges').on('click', function () {
+            if (DrawTool.plugins?.Geologic?.custom?.resetGeologic)
+                DrawTool.plugins.Geologic.custom.resetGeologic()
+
             if (!grouping) {
                 //Then just a regular single save
                 if (typeof DrawTool.contextMenuLayer.toGeoJSON === 'function')
@@ -2334,6 +2407,17 @@ var Editing = {
             newProperties = newProperties || {}
             newProperties.style = newProperties.style || {}
 
+            // Clean up
+            if (newProperties.layerName != null) delete newProperties.layerName
+
+            if (DrawTool.plugins?.Geologic?.custom?.getProperties) {
+                const geologicStyle =
+                    DrawTool.plugins.Geologic.custom.getProperties(properties)
+                if (geologicStyle) newProperties.style.geologic = geologicStyle
+                else if (newProperties.style.geologic)
+                    delete newProperties.style.geologic
+            }
+
             if (force || DrawTool.contextMenuChanges.props.name)
                 newProperties.name =
                     $('#drawToolContextMenuPropertiesName').val() ||
@@ -2441,7 +2525,6 @@ var Editing = {
                 newProperties.style.rotation = $(
                     '.drawToolContextMenu .rotationPicker > input'
                 ).val()
-
             return newProperties
         }
     },
@@ -2531,6 +2614,34 @@ var Editing = {
             DrawTool.contextMenuLayer.setLatLng(e.latlng)
             DrawTool.lastDragPoint = e.latlng
         }
+    },
+    _addedTabEvents: [],
+    pluginsClear: function () {
+        Object.keys(DrawTool.plugins).forEach((p) => {
+            if (typeof DrawTool.plugins[p].clear === 'function')
+                DrawTool.plugins[p].clear()
+        })
+    },
+    getPluginUIs: function () {
+        const UIs = []
+        Object.keys(DrawTool.plugins).forEach((p) => {
+            UIs.push(
+                `<div class='drawToolContextMenuTab drawToolContextMenuTab${p}'>${DrawTool.plugins[
+                    p
+                ].getUI()}</div>`
+            )
+        })
+        return UIs.join('\n')
+    },
+    setPluginEvents: function (tabName) {
+        // Don't do this because we need to reattach events if users
+        // click on a new feature without closing the context panel
+        //if (Editing._addedTabEvents.includes(tabName)) return
+        Object.keys(DrawTool.plugins).forEach((p) => {
+            if (tabName === `drawToolContextMenuTab${p}`)
+                DrawTool.plugins[p].addEvents()
+        })
+        Editing._addedTabEvents.push(tabName)
     },
 }
 

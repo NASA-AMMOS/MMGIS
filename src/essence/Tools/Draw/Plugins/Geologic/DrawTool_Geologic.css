@@ -1,0 +1,256 @@
+.drawToolContextMenuTab.drawToolContextMenuTabGeologic {
+    height: calc(100vh - 156px);
+}
+
+.drawToolContextMenuTabGeologic {
+    padding: 0 !important;
+}
+
+#geologicUnsupported {
+    text-align: center;
+    background: rgba(255, 0, 0, 0.15);
+    font-size: 16px;
+    padding: 20px 43px;
+    line-height: 20px;
+}
+
+#drawToolContextMenuGeologic {
+    overflow: hidden;
+    height: 100%;
+}
+
+#geologicTabs {
+    display: flex;
+    justify-content: center;
+    border-bottom: 1px solid var(--color-e);
+}
+
+.geologicTab {
+    width: 100%;
+    height: 116px;
+    display: flex;
+}
+.geologicTabLeft {
+    width: 100px;
+    height: 100px;
+    margin: 8px;
+}
+.geologicTabLeft > div {
+    box-shadow: inset 0px 0px 0px 4px var(--color-c);
+    background: white;
+}
+.geologicTabSelected {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.geologicTabRight {
+    flex: 1;
+    display: flex;
+    flex-flow: column;
+}
+.geologicTabTop {
+    padding: 8px 8px 8px 0px;
+    max-height: 116px;
+    overflow-y: auto;
+}
+.geologicTabColors {
+    height: 22px;
+}
+#geologicColors {
+    width: 100%;
+    display: flex;
+}
+#geologicColors > div {
+    flex: 1;
+    height: 22px;
+    cursor: pointer;
+    margin-left: 4px;
+}
+
+.geologicTabNameTitle {
+    display: flex;
+    justify-content: space-between;
+}
+.geologicTabTitle {
+    text-transform: capitalize;
+    color: #b8b8b8;
+    font-size: 12px;
+}
+.geologicTabName {
+    font-size: 18px;
+    color: var(--color-l);
+}
+
+.geologicTabSelected > div:first-child:not(.geologicNone) {
+    width: 100%;
+    height: 100%;
+}
+.geologicNone {
+    width: 100%;
+    height: 100%;
+    background: var(--color-e);
+    text-align: center;
+    line-height: 40px;
+    color: #ddd;
+}
+.geologicNoneTall {
+    line-height: 100px;
+}
+
+#geologicSelector {
+    height: calc(100% - 125px);
+}
+#geologicElements {
+    height: 100%;
+}
+#geologicElements > div {
+    height: 100%;
+}
+.geologicGroup {
+    height: 100%;
+}
+
+.geologicGroupHeader {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 8px 2px 8px;
+    height: 40px;
+    margin-bottom: 8px;
+}
+.geologicGroupHeaderTitle {
+    font-size: 16px;
+    background: var(--color-g);
+    max-width: 250px;
+    flex: 1;
+}
+.geologicGroupHeaderSubtitle {
+    color: #ddd;
+    line-height: 40px;
+}
+
+.geologicGroupContentWrapper {
+    height: calc(100% - 48px);
+    overflow-y: auto;
+}
+
+.geologicGroupContents {
+    display: flex;
+    flex-flow: column;
+    padding: 0px 8px;
+}
+.geologicGroupContents > div {
+    position: relative;
+    width: 100%;
+    height: 40px;
+    margin: 0px 8px 8px 0px;
+    background: white;
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: inset 0px 0px 0px 0px transparent;
+    transition: box-shadow 0.2s ease-out;
+}
+.geologicGroupContents > div:hover,
+.geologicGroupContents > div.active {
+    box-shadow: inset 0px 0px 0px 4px var(--color-c);
+}
+.geologicGroupContents > div > div:first-child {
+    width: 100%;
+    height: 100%;
+}
+.geologicGroupContents > div > div:last-child:not(.geologicNone) {
+    position: absolute;
+    bottom: 0px;
+    background: white;
+    padding: 3px 4px;
+    left: 0;
+    color: var(--color-r1);
+    font-weight: bold;
+    font-size: 12px;
+}
+
+#geologicElements.geologicPreview_box .geologicGroupContents {
+    flex-flow: wrap;
+}
+#geologicElements.geologicPreview_box .geologicGroupContents .geologicElement {
+    width: 74px;
+    height: 74px;
+}
+
+.geologicGroupHeaderTitle .dropy.open .dropy__content ul {
+    max-height: 70vh;
+}
+
+#geologicTempFontKey {
+    position: absolute;
+    top: 0;
+    background: black;
+    font-size: 28px;
+    max-height: 100vh;
+    overflow-y: auto;
+}
+#geologicTempFontKey > span {
+    font-family: FGDCGeoSym05;
+}
+
+#drawToolContextMenuGeologic .geologicOption {
+    display: flex;
+    justify-content: space-between;
+    height: 30px;
+    line-height: 30px;
+    border-bottom: 1px solid var(--color-e);
+}
+#drawToolContextMenuGeologic .geologicOption > div:first-child {
+    padding: 0px 8px;
+}
+#drawToolContextMenuGeologic .geologicOption.geologicHidden {
+    display: none;
+}
+
+#drawToolContextMenuGeologic .geologicSliderLabel {
+    padding: 0px 3px;
+    color: #b3b3b3;
+    font-size: 12px;
+    line-height: 30px;
+}
+
+.geologicOption .dropy__title span {
+    padding: 6px 1.875em 5px 0.625em;
+}
+.geologicOption .dropy__title > i {
+    line-height: 15px;
+}
+.geologicOption .dropy__content li a {
+    padding: 0.4em 0.9375em;
+}
+.geologicOption .dropy__content ul li:last-child a {
+    margin-bottom: 0.4em;
+}
+
+.geologicColor {
+    width: 180px;
+    height: 17px;
+    border: 1px solid black;
+}
+#geologicOptionPosition > div:last-child {
+    margin-right: 8px;
+}
+
+#drawToolContextMenuGeologic .slider2 {
+    margin: 7px 8px 7px 8px !important;
+    background: var(--color-e) !important;
+    width: 204px;
+}
+
+/*dropdown*/
+#drawToolContextMenuGeologic .dropdown {
+    background-color: var(--color-m1);
+    color: #e1e1e1;
+    border: none;
+    margin-top: 1px;
+    width: 100%;
+    height: 20px;
+    font-size: 14px;
+    padding-left: 2px;
+}

@@ -54,22 +54,30 @@ body {
 /*Color variables*/
 :root {
     --color-mmgis: #08aeea;
-    --color-a: #010102; /*#1f1f1f;*/
-    --color-a1: #1f1f1f;
+    --color-a-5: #0f1010;
+    --color-a: #1d1f20; /*#010102;*/ /*#1f1f1f;*/
+    --color-a1: #3a3e40;
+    --color-a1-5: #2c2f30;
+    --color-a2: #575d60;
+    --color-a3: #747c81;
+    --color-a4: #949a9e;
+    --color-a5: #b4b8bb;
+    --color-a6: #d4d6d8;
+    --color-a7: #f4f5f5;
     --color-b: #555555;
     --color-c: #08aeea;
     --color-d: #2a2a2a;
-    --color-e: #4f4f4f;
+    --color-e: #3a3e40;
     --color-f: #e1e1e1;
-    --color-h: #fff800;
+    --color-h: #ffdd5c;
     --color-g: #121212;
-    --color-i: #363636;
-    --color-j: #343437;
-    --color-k: #1d1e20;
+    --color-i: #3a3e40;
+    --color-j: #3a3e40;
+    --color-k: #1d1f20; /*#262626;*/
     --color-l: #fff; /*#ffe426;*/
     --color-m: #c4c4c4;
     --color-n: #151619;
-    --color-o: #1a628e;
+    --color-o: #2e6b8a;
     --color-p: #747474;
 
     --color-green: #00d200;
@@ -78,7 +86,7 @@ body {
     --color-orange: #d26100;
     --color-red: #d20000;
 
-    --color-m1: #363636;
+    --color-m1: #2c2f30;
     --color-m2: #222829;
     --color-m3: #1b1d1e;
     --color-mh: #ffdd5c;
@@ -274,6 +282,13 @@ body {
     transform: rotate(0deg) !important;
 }
 
+#barBottom > i {
+    border-top: 1px solid var(--color-a-5);
+}
+
+.toolButton:hover {
+    background: var(--color-a1-5) !important;
+}
 #tScreen {
     width: 100%;
     position: absolute;

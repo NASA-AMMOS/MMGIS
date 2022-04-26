@@ -1,6 +1,6 @@
 #main-container {
     height: 100%;
-    filter: blur(0px);
+    filter: blur(5px);
     transition: filter 0.3s ease-in-out;
 }
 

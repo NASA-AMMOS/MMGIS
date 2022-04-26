@@ -54,7 +54,8 @@ var CursorInfo = {
         position,
         forceColor,
         forceFontColor,
-        asHTML
+        asHTML,
+        withBorder
     ) {
         if (position) {
             CursorInfo.forcedPos = true
@@ -74,7 +75,9 @@ var CursorInfo = {
                 return '#DCDCDC'
             })
             .style('border', function () {
-                return isError ? '1px solid var(--color-a)' : 'none'
+                return isError || withBorder
+                    ? '1px solid var(--color-a)'
+                    : 'none'
             })
             .style('display', 'block')
         if (asHTML) CursorInfo.cursorInfoDiv.html(message)

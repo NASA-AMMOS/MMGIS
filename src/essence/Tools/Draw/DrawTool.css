@@ -56,10 +56,11 @@
 
 #drawToolNav {
     padding: 5px 30px;
-    height: 40px;
+    height: 41px;
     text-align: center;
     background: var(--color-a);
     box-shadow: 0px 4px 2px rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid black;
 }
 #drawToolNav .drawToolNavButton {
     transition: background 0.2s ease-out;
@@ -70,7 +71,7 @@
     border-radius: 1px;
     vertical-align: middle;
     cursor: pointer;
-    padding: 0px 6px 0px 4px;
+    padding: 1px 6px 0px 4px;
     color: rgba(255, 255, 255, 0.5);
     transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
 }
@@ -123,7 +124,7 @@
 }
 #drawToolDrawingSettingsToggle {
     color: #aaa;
-    width: 36px;
+    width: 46px;
     padding-top: 7px;
     text-align: center;
     cursor: pointer;
@@ -132,7 +133,6 @@
         transform 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
 }
 #drawToolDrawingSettingsToggle:hover {
-    color: white;
     color: white;
     transform: rotateZ(60deg);
 }
@@ -177,10 +177,10 @@
 
 #drawToolContents {
     position: absolute;
-    top: 40px;
+    top: 41px;
     left: 0px;
     width: 100%;
-    height: calc(100% - 40px);
+    height: calc(100% - 41px);
 }
 
 #drawToolContents > div {
@@ -207,35 +207,44 @@
     background: var(--color-g);
 }
 #drawToolDrawFilesNewDiv > select {
+    display: none;
     border: none;
     border-bottom: 1px solid rgba(0, 0, 0, 0.3);
     padding: 0px 4px;
-    margin: 7px 0px 7px 0px;
     height: 30px;
-    width: 80px;
+    width: 70px;
     color: #bbb;
     background: var(--color-a);
 }
 #drawToolDrawFilesNewName {
-    border: none;
+    flex: 1;
+    border: 1px solid transparent;
     border-bottom: 1px solid rgba(0, 0, 0, 0.3);
     padding: 0px 4px;
-    margin: 7px 0px 7px 0px;
     height: 30px;
-    width: 96px;
-    background: var(--color-a);
-    color: #ededed;
+    width: 80px;
+    background: var(--color-a1);
+    color: var(--color-a7);
+}
+#drawToolDrawFilesNewName:focus {
+    border-top: 1px solid var(--color-mmgis);
+    border-bottom: 1px solid var(--color-mmgis);
+    border-left: 1px solid var(--color-mmgis);
 }
 #drawToolDrawFilesNew {
     cursor: pointer;
     width: 30px;
     height: 30px;
-    background: black;
-    color: #ededed;
+    background: var(--color-a1);
+    color: var(--color-a7);
     line-height: 30px;
     text-align: center;
-    margin: 7px 7px 7px 0px;
     border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+    transition: color 0.2s ease-out;
+}
+
+#drawToolDrawFilesNewName:focus ~ #drawToolDrawFilesNew {
+    background: var(--color-mmgis);
 }
 #drawToolDrawFilesNewLoading {
     width: calc(100% - 14px);
@@ -326,8 +335,8 @@
     cursor: not-allowed;
 }
 #drawToolShapesCopyDropdown > .dropdown {
-    min-width: 134px !important;
-    max-width: 134px !important;
+    min-width: 144px !important;
+    max-width: 144px !important;
 }
 #drawToolShapesCopyMessageDiv {
     position: absolute;
@@ -351,7 +360,7 @@
 }
 #drawToolDrawFilter {
     border: none;
-    width: 220px;
+    width: 230px;
     padding: 0px 4px;
     height: 30px;
     color: black;
@@ -561,23 +570,27 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: space-evenly;
+    padding-bottom: 5px;
 }
 .drawToolDrawPreviewQuickTag {
+    font-size: 12px;
     padding: 0px 8px;
+    border-radius: 10px;
     background-color: var(--color-o);
     color: var(--color-f);
     cursor: pointer;
     display: flex;
     justify-content: space-between;
-    height: 24px;
-    line-height: 24px;
+    height: 20px;
+    margin: 5px 5px 0px 0px;
+    line-height: 20px;
     transition: background 0.1s ease-out;
 }
 .drawToolDrawPreviewQuickTag:hover {
-    background: var(--color-mh);
+    background: #11415f;
 }
 .drawToolDrawPreviewQuickTag:first-child {
-    margin-left: 30px;
+    margin-left: 35px;
 }
 
 #drawToolDrawSortDiv {
@@ -594,6 +607,7 @@
     color: rgba(255, 255, 255, 0.4);
     transition: all 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
 }
+
 #drawToolDrawSortDiv > div:hover {
     color: var(--color-f);
 }
@@ -951,7 +965,7 @@
 #drawToolRes {
     width: 30px;
     background: transparent;
-    border: 1px solid #999;
+    border: 1px solid #989898;
 }
 
 #drawToolShapes {
@@ -970,7 +984,7 @@
     border-bottom: 1px solid var(--color-m3);
     font-size: 13px;
     width: max-content;
-    padding: 0px 7px;
+    padding: 4px 8px;
 }
 .drawToolShapeLi {
     color: var(--color-f);
@@ -1031,19 +1045,20 @@
 }
 
 .drawToolContextMenu {
+    height: 100%;
+    display: flex;
+    flex-flow: column;
     position: absolute;
     top: 0px;
     right: 0px;
     width: 340px;
     font-size: 14px;
     border-radius: 2px;
-    background: var(--color-a);
+    background: var(--color-k);
     box-sizing: content-box;
-    color: black;
+    color: var(--color-f);
     box-shadow: 0px 7px 20px rgba(0, 0, 0, 0.5);
     z-index: 400;
-    transition: width 0.3s cubic-bezier(0.445, 0.05, 0.55, 0.95),
-        height 0.3s cubic-bezier(0.445, 0.05, 0.55, 0.95) !important;
 }
 .drawToolContextMenuDragHandle {
     position: absolute;
@@ -1076,9 +1091,10 @@
     position: relative;
     padding: 10px;
     color: white;
+    background: var(--color-a);
 }
 .drawToolContextMenuHeaderName {
-    height: 25px;
+    height: 35px;
     font-size: 25px;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -1093,7 +1109,7 @@
     line-height: 18px;
     font-size: 13px;
     font-style: italic;
-    height: 15px;
+    height: 18px;
 }
 .drawToolContextMenuHeader1 span {
     font-style: normal;
@@ -1112,8 +1128,9 @@
 }
 .drawToolContextMenuHeaderClose {
     position: absolute;
-    top: 3px;
-    right: 3px;
+    top: 0px;
+    right: 0px;
+    padding: 10px;
     cursor: pointer;
     z-index: 501;
 }
@@ -1147,12 +1164,31 @@
     border-right: 10px solid var(--color-a);
 }
 
+.drawToolContextMenuTabStyle {
+    padding: 0px !important;
+    height: calc(100vh - 156px) !important;
+}
 .drawToolContextMenuStyle > div {
     width: 100%;
-    height: 28px;
-    line-height: 28px;
+    height: 30px;
+    line-height: 30px;
+    padding: 0px 15px;
     display: flex;
     text-align: right;
+    border-bottom: 1px solid var(--color-e);
+    box-sizing: border-box;
+}
+
+#drawToolContextMenuStyleGeoMessage {
+    width: 100%;
+    text-align: center;
+    background: var(--color-mh);
+    color: black;
+    height: unset;
+    line-height: 22px;
+    padding: 7px;
+    box-sizing: border-box;
+    font-size: 15px;
 }
 
 .drawToolStyleHighlight {
@@ -1201,27 +1237,50 @@
     margin-right: 8px;
 }
 
+.drawToolContextMenuTabProperties {
+    padding-top: 6px !important;
+    height: calc(100vh - 177px) !important;
+}
+
 .drawToolContextMenuProperties input {
-    color: var(--color-a);
-    background: transparent;
+    color: var(--color-f);
+    background: var(--color-i);
     border: none;
-    text-align: right;
-    border-bottom: 1px solid rgb(169, 169, 169);
-    width: 162px;
+    text-align: left;
+    width: 100%;
     box-sizing: border-box;
+    font-size: 16px;
+    padding: 6px 12px;
 }
 .drawToolContextMenuProperties textarea {
     color: var(--color-a);
     background: transparent;
 }
 .drawToolContextMenuPropertiesName {
-    margin-bottom: 4px;
+    margin-bottom: 8px;
+    flex-flow: column;
+}
+.drawToolContextMenuPropertiesName > div {
+    height: 30px;
+    line-height: 30px;
+}
+.drawToolContextMenuPropertiesDescription {
+    flex-flow: column;
+}
+.drawToolContextMenuPropertiesDescription > div {
+    height: 30px;
+    line-height: 30px;
 }
 #drawToolContextMenuPropertiesDescription {
-    width: 220px;
+    width: 100%;
     resize: vertical;
     box-sizing: border-box;
     margin-bottom: 4px;
+    color: var(--color-f);
+    background: var(--color-i);
+    font-size: 16px;
+    padding: 8px;
+    border: none;
 }
 .drawToolContextMenuPropertiesReassignUUID {
     height: 27px;
@@ -1238,7 +1297,7 @@
     margin: 12px 0px;
     line-height: 8px;
     background: transparent;
-    color: var(--color-a);
+    color: var(--color-f);
 }
 
 .drawToolFileInfo {
@@ -1254,6 +1313,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
 .drawToolFileNameInput {
     background: transparent;
     border: none;
@@ -1261,15 +1321,11 @@
     margin-bottom: 5px;
     width: 100%;
 }
-.drawToolFileOwner {
-    font-style: italic;
-    font-size: 12px;
-}
 
 .drawToolFileEditOn {
     min-width: 400px;
     color: var(--color-f);
-    background: var(--color-a1);
+    background: var(--color-a);
     box-shadow: 0px 2px 6px 0px rgba(0, 0, 0, 0.5);
     border-radius: 2px;
     margin: 30px 120px 100px 120px;
@@ -1280,7 +1336,6 @@
     display: flex;
     justify-content: space-between;
     height: 54px;
-    margin-bottom: 5px;
     padding: 10px 10px 0px 10px;
     background: var(--color-a1);
 }
@@ -1328,16 +1383,15 @@
     font-size: 12px;
     padding: 0px 5px 0px 9px;
 }
-
 .drawToolFileEditOnDescription {
     display: flex;
     justify-content: space-between;
-    padding: 5px 10px 5px 10px;
     margin-bottom: 5px;
 }
 .drawToolFileDesc {
-    background: var(--color-a1);
+    background: var(--color-a);
     border: none;
+    border-top: 1px solid black;
     color: var(--color-f);
     min-width: 411px;
     max-width: 750px;
@@ -1353,6 +1407,7 @@
     border-bottom: 1px solid var(--color-a);
     font-size: 12px;
     padding: 10px;
+    background: var(--color-a1);
 }
 .drawToolFileEditOnDates > div {
     display: flex;
@@ -1410,7 +1465,7 @@
     position: absolute;
     right: 0px;
     height: 29px;
-    background: var(--color-b);
+    background: var(--color-a1);
     padding: 6px 10px;
     cursor: pointer;
     font-size: 14px;
@@ -1429,12 +1484,12 @@
     line-height: 19px;
 }
 #drawToolFileEditOnTags {
-    border-top: 1px solid var(--color-a);
+    border-top: 1px solid black;
 }
 #drawToolFileEditOnTagsNew {
     width: 180px;
     height: 31px;
-    background: var(--color-a1);
+    background: var(--color-a1-5);
     border: none;
     padding: 0px 8px;
     font-size: 14px;
@@ -1445,7 +1500,6 @@
 #drawToolFileEditOnTagsNew:hover {
     background: var(--color-d);
 }
-
 .drawToolFileEditOnTag {
     background: var(--color-f);
     color: var(--color-a);
@@ -1640,12 +1694,22 @@
 .drawToolContextMenu .strokeStylePicker > div,
 .drawToolContextMenu .strokeWeightPicker > div {
     flex: unset;
+    transition: background 0.2s ease-out;
+}
+.drawToolContextMenu .strokeStylePicker > div:hover,
+.drawToolContextMenu .strokeWeightPicker > div:hover {
+    background: var(--color-a1-5);
+}
+.drawToolContextMenu .strokeStylePicker,
+.drawToolContextMenu .strokeWeightPicker {
+    padding: 0px 25px;
 }
 
 .styleInput {
     opacity: 0;
     pointer-events: none;
     background: transparent;
+    color: var(--color-f);
     border: none;
     margin: 4px 0px 2px 0px;
     padding: 0px 4px;
@@ -1681,7 +1745,7 @@
 
 .drawToolContextMenu .drawToolContextMenuSave {
     display: flex;
-    background: var(--color-a);
+    background: var(--color-k);
     padding: 3px 10px 8px 10px;
     box-sizing: border-box;
     transition: background 0.3s cubic-bezier(0.39, 0.575, 0.565, 1);
@@ -1808,7 +1872,7 @@
 }
 
 #drawToolHistoryFile {
-    background: white;
+    background: var(--color-mh);
     height: 30px;
     line-height: 30px;
     text-align: center;
@@ -1939,7 +2003,7 @@
 
 #drawToolReview {
     position: fixed;
-    left: 295px;
+    left: 305px;
     top: 40px;
     color: #ededed;
     background: var(--color-a);
@@ -2097,11 +2161,17 @@
     cursor: pointer;
     width: 30px;
     height: 30px;
-    margin: 7px 0px 7px 7px;
-    background: #000;
-    color: #898989;
+    background: var(--color-a1);
+    color: var(--color-a5);
+    border-right: 1px solid var(--color-a);
+    box-sizing: border-box;
     line-height: 30px;
     text-align: center;
+    transition: background 0.2s ease-out;
+}
+#drawToolFileUpload:hover {
+    color: var(--color-a7);
+    background: var(--color-a2);
 }
 #drawToolFileUpload i {
     cursor: pointer;
@@ -2376,7 +2446,7 @@
     font-weight: bold;
 }
 .drawToolContextMenuHeadedCont > div:last-child {
-    color: var(--color-a);
+    color: var(--color-f);
     padding: 4px;
 }
 
@@ -2392,6 +2462,7 @@
 .drawToolContextMenuTabBar {
     display: flex;
     justify-content: space-between;
+    background: var(--color-e);
 }
 .drawToolContextMenuTabTitle {
     color: white;
@@ -2418,454 +2489,17 @@
     color: white;
 }
 .drawToolContextMenuTabButton.active {
-    background: white;
-    color: black;
+    background: var(--color-k);
+    color: var(--color-c);
 }
 .drawToolContextMenuTab {
     display: none;
-    background: white;
+    background: var(--color-k);
+    color: var(--color-f);
     padding: 15px;
     overflow-y: auto;
-    max-height: calc(100vh - 213px);
+    height: calc(100vh - 186px);
 }
 .drawToolContextMenuTab.active {
     display: inherit;
 }
-
-/*MTn*/
-.drawToolContextMenuMTTTT {
-    color: var(--color-a);
-}
-.drawToolContextMenuMTTTTSave .dropdown_2 {
-    margin-top: 4px;
-    margin-bottom: -15px;
-}
-#drawToolContextMenuMTTTTGenerating {
-    width: calc(100% - 0px);
-    height: 3px;
-    position: absolute;
-    top: 33px;
-    left: 0px;
-    overflow: hidden;
-    opacity: 0;
-    transition: opacity 0.1s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-}
-#drawToolContextMenuMTTTTGenerating > div {
-    width: 30%;
-    height: 100%;
-    background: var(--color-mmgis);
-    animation: drawToolLoading1 1s ease-in-out infinite;
-}
-#drawToolContextMenuMTTTTImpassable {
-    opacity: 0;
-    pointer-events: none;
-    background: crimson;
-    color: #e1e1e1;
-    text-align: center;
-    padding: 0px 20px;
-    transition: opacity 0.1s cubic-bezier(0.47, 0, 0.745, 0.715);
-}
-/**/
-
-/*Science Intent*/
-.drawToolContextMenuScienceIntentFilter {
-    display: flex;
-    height: 30px;
-    margin-bottom: 10px;
-}
-.drawToolContextMenuScienceIntentFilter > div:first-child {
-    display: flex;
-    justify-content: space-between;
-    width: 100px;
-}
-.drawToolContextMenuScienceIntentFilter > div:last-child {
-    flex: 1;
-    display: flex;
-    position: relative;
-}
-.drawToolContextMenuScienceIntentFilter > div:last-child > input {
-    flex: 1;
-}
-.drawToolContextMenuScienceIntentFilter > div:last-child > div:last-child {
-    width: 30px;
-    background: #258fd5;
-    color: #ededed;
-    line-height: 30px;
-    text-align: center;
-    cursor: pointer;
-    transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-    display: none;
-}
-.drawToolContextMenuScienceIntentFilter
-    > div:last-child
-    > div:last-child:hover {
-    background: #1f74ad;
-    color: white;
-}
-#drawToolContextMenuScienceIntentFilterBoxClose {
-    position: absolute;
-    right: 0px;
-    line-height: 30px;
-    width: 30px;
-    height: 30px;
-    text-align: center;
-    cursor: pointer;
-    transition: color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-}
-#drawToolContextMenuScienceIntentFilterBoxClose:hover {
-    color: #909090;
-}
-#drawToolScienceIntentAll {
-    line-height: 30px;
-    width: 100px;
-    font-size: 14px;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-}
-
-#drawToolScienceIntentAll > div:first-child {
-    color: black;
-    line-height: 34px;
-    padding: 0px 4px;
-}
-#drawToolScienceIntentAll > div:last-child {
-    width: 18px;
-    height: 18px;
-    margin: 6px;
-    border: 1px solid var(--color-f);
-    transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-}
-#drawToolScienceIntentAll.all > div:last-child {
-    background: var(--color-c);
-}
-
-#drawToolScienceIntentAll2 {
-    line-height: 30px;
-    width: 100px;
-    font-size: 14px;
-    text-align: center;
-    color: black;
-}
-
-#drawToolContextMenuScienceIntentFilterBox {
-    height: 30px;
-    box-sizing: border-box;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    width: 100%;
-    padding: 0px 0px 0px 19px;
-}
-
-.drawToolContextMenuScienceIntentGoals {
-    margin: 0;
-    padding: 0;
-    list-style-type: none;
-}
-.drawToolContextMenuScienceIntentGoals .siError {
-    text-align: center;
-    color: red;
-    padding: 2px;
-    font-weight: bold;
-    font-size: 16px;
-    margin: 23px 0px 0px 0px;
-}
-.scienceIntentCard {
-    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
-    margin-bottom: 10px;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    display: flex;
-}
-.scienceIntentCard.off,
-.scienceIntentCard.filteredOff {
-    display: none;
-}
-.scienceIntentCard:last-child {
-    margin-bottom: 0;
-}
-.scienceIntentContent {
-    flex: 1;
-    padding: 15px;
-}
-.scienceIntentCheck {
-    width: 100px;
-    min-width: 100px;
-    height: 100px;
-    line-height: 100px;
-    text-align: center;
-    cursor: pointer;
-    color: #eee;
-    border-right: 1px solid rgba(0, 0, 0, 0.05);
-    transition: color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-}
-.scienceIntentCheck:hover,
-.scienceIntentCheck.on {
-    color: var(--color-a);
-}
-.scienceIntentCheck.added {
-    color: #61d525;
-}
-.scienceIntentCheck.removed {
-    color: #d52525;
-}
-
-.scienceIntentBelongs {
-    width: 100px;
-    height: 100px;
-    line-height: 100px;
-    text-align: center;
-    cursor: pointer;
-    position: relative;
-    color: #ddd;
-    border-right: 1px solid rgba(0, 0, 0, 0.05);
-    transition: color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-}
-.scienceIntentBelongs.on {
-    color: var(--color-a);
-}
-.scienceIntentBelongs > div {
-    width: 4px;
-    height: 10px;
-    background: #ddd;
-    position: absolute;
-    transform: translate(48px, -100%);
-}
-
-.scienceIntentHeader {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 5px;
-}
-.scienceIntentTitleLeft {
-    display: flex;
-    flex: 1;
-}
-.scienceIntentType {
-    padding: 1px 4px;
-    margin: 1px 0px;
-    font-size: 14px;
-    text-transform: capitalize;
-    border-right: 1px solid #dddddd;
-    font-weight: bold;
-}
-.scienceIntentType.goal {
-    color: #7025d5;
-}
-.scienceIntentType.task {
-    color: #258fd5;
-}
-.scienceIntentType.directtask {
-    color: #258fd5;
-}
-.scienceIntentKeywords {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    margin-bottom: -10px;
-}
-.scienceIntentTag {
-    margin: 0px 5px 10px 0px;
-    border-radius: 0px;
-    padding: 3px 5px;
-    background: white;
-    color: var(--color-a);
-    text-align: center;
-    font-size: 15px;
-    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-}
-.scienceIntentTitle {
-    padding: 2px 4px;
-    font-size: 16px;
-    font-weight: bold;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    max-width: calc(100% - 30px);
-    overflow: hidden;
-}
-.scienceIntentStatus {
-    padding: 0px 2px;
-    font-size: 10px;
-    height: 23px;
-    line-height: 23px;
-    text-transform: capitalize;
-}
-.scienceIntentDescription {
-    padding: 2px 4px;
-    max-height: 38px;
-    overflow-y: auto;
-}
-.scienceIntentExpand {
-    line-height: 100px;
-    height: 100px;
-    width: 100px;
-    color: #ddd;
-    text-align: center;
-    cursor: pointer;
-    border-left: 1px solid rgba(0, 0, 0, 0.05);
-    transition: color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-}
-.scienceIntentExpand:hover {
-    color: var(--color-a);
-}
-
-.scienceIntentPager {
-    padding: 12px 0px 0px 0px;
-    display: flex;
-    justify-content: center;
-}
-.scienceIntentPager .pageNumber {
-    border: 1px solid rgba(0, 0, 0, 0.2);
-    box-shadow: 0px 1px 4px rgba(0, 0, 0, 0.2);
-    height: 22px;
-    line-height: 22px;
-    text-align: center;
-    padding: 0px 7px;
-    margin: 0px 4px;
-    cursor: pointer;
-    transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-}
-.scienceIntentPager .pageNumber.active,
-.scienceIntentPager .pageNumber:hover {
-    background: var(--color-h);
-    font-weight: bold;
-}
-
-.drawToolContextMenuScienceIntent .footer {
-    display: flex;
-    width: 100%;
-    height: 43px;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    background: white;
-    padding: 3px 10px 8px 10px;
-    box-sizing: border-box;
-}
-.drawToolContextMenuScienceIntent
-    .footer
-    .drawToolContextMenuScienceIntentAddedRemoved {
-    padding: 4px 8px;
-    margin: 5px 8px 5px 0px;
-}
-.drawToolContextMenuScienceIntent .footer .drawToolButton1 {
-    margin-bottom: 0;
-    margin-right: 8px;
-}
-.drawToolContextMenuScienceIntent .footer .drawToolButton1:last-child {
-    flex: 1;
-    margin-right: 0;
-}
-/**/
-
-/*Set Operations*/
-.drawToolContextMenuSetOperations {
-}
-.drawToolContextMenuSetOperationsBar {
-    display: flex;
-    justify-content: space-between;
-    background: white;
-}
-.drawToolContextMenuSetOperationsTabTitle {
-    color: var(--color-a);
-    line-height: 40px;
-    padding-left: 10px;
-    font-size: 16px;
-}
-.drawToolContextMenuSetOperationsTabButtons {
-    display: flex;
-    color: #919191;
-    width: 100%;
-}
-.drawToolContextMenuTabButtonSO {
-    flex: 1;
-    text-align: center;
-    font-size: 16px;
-    height: 40px;
-    line-height: 40px;
-    cursor: pointer;
-    transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
-}
-.drawToolContextMenuTabButtonSO i {
-    padding: 1px 8px;
-}
-.drawToolContextMenuTabButtonSO.active {
-    color: black;
-    font-weight: bold;
-    text-decoration: underline;
-}
-.drawToolContextMenuTabButtonSO:not(.active):hover {
-    color: var(--color-a);
-}
-
-.drawToolContextMenuTabSO {
-    display: none;
-    padding: 15px;
-    padding-bottom: 0;
-    overflow-y: auto;
-    max-height: calc(100vh - 203px);
-}
-.drawToolContextMenuTabSO.active {
-    display: inherit;
-}
-
-.drawToolContextMenuTabSOMerge ul {
-    padding: 0;
-    margin: 0;
-    list-style-type: none;
-}
-.drawToolContextMenuTabSOMerge ul li {
-    display: flex;
-    justify-content: space-between;
-    color: var(--color-a);
-    padding: 0px 5px;
-    height: 30px;
-    line-height: 30px;
-}
-.drawToolContextMenuTabSOMerge ul li:first-child {
-    border-bottom: 1px solid #a6a6a6;
-    font-weight: bold;
-}
-.drawToolContextMenuTabSOMergeCheckbox {
-    cursor: pointer;
-    width: 18px;
-    height: 18px;
-    border-radius: 3px;
-    margin: 6px 5px 5px 5px;
-    border: 2px solid rgba(0, 0, 0, 0.35);
-    transition: border 0.2s ease-out,
-        background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
-    box-sizing: border-box;
-}
-.drawToolContextMenuTabSOMergeCheckbox.on {
-    border: none;
-    background: var(--color-c);
-}
-.drawToolContextMenuTabSOFooter {
-    display: flex;
-    width: 340px;
-    height: 43px;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    background: white;
-    padding: 3px 10px 8px 10px;
-    box-sizing: border-box;
-}
-
-.drawToolContextMenuTabSOFooter .drawToolButton1 {
-    margin-bottom: 0;
-    margin-right: 8px;
-}
-.drawToolContextMenuTabSOFooter .drawToolButton1:last-child {
-    flex: 1;
-    margin-right: 0;
-}
-
-.drawToolContextMenuTabSOSplit > div:first-child {
-    width: 100%;
-    color: var(--color-a);
-    text-align: center;
-}
-
-/**/

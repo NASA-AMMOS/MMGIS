@@ -2,7 +2,6 @@ import DrawTool_Drawing from './DrawTool_Drawing'
 import DrawTool_Editing from './DrawTool_Editing'
 import DrawTool_Files from './DrawTool_Files'
 import DrawTool_History from './DrawTool_History'
-import DrawTool_SetOperations from './DrawTool_SetOperations'
 import DrawTool_Publish from './DrawTool_Publish'
 import DrawTool_Shapes from './DrawTool_Shapes'
 
@@ -24,6 +23,15 @@ import shpwrite from '../../../external/SHPWrite/shpwrite'
 import calls from '../../../pre/calls'
 
 import './DrawTool.css'
+
+// Plugins
+import DrawTool_Geologic from './Plugins/Geologic/DrawTool_Geologic'
+import DrawTool_SetOperations from './Plugins/SetOperations/DrawTool_SetOperations'
+// Plugins OFF
+//const DrawTool_Geologic = null
+const DrawTool_MTTTT = null
+//const DrawTool_SetOperations = null
+const DrawTool_ScienceIntent = null
 
 //Add the tool markup if you want to do it this way
 // prettier-ignore
@@ -104,6 +112,7 @@ var markup = [
                     "</ul>",
                 "</div>",
             "</div>",
+            
             /*
             "<div id='drawToolDrawIntentFilterDiv'>",
               "<div intent='roi' tooltip='Region of Interest'>R</div>",
@@ -120,7 +129,7 @@ var markup = [
               //"<div id='drawToolDrawFilterCount'></div>",
               //"<div id='drawToolDrawFilterDiv'>",
               "<div id='drawToolDrawFilterByTagAutocomplete'>",
-                "<div id='drawToolDrawFilterByTagAutocompleteClose' title='Close tags'></div>",
+               "<div id='drawToolDrawFilterByTagAutocompleteClose' title='Close tags'></div>",
                 "<div id='drawToolDrawFilterByTagAutocompleteHeading'>",
                     "<div id='drawToolDrawFilterByTagAutocompleteTitle'>#Tags</div>",
                     "<select id='drawToolDrawFilterByTagAutocompleteSort' class='ui dropdown dropdown_2 unsetMaxWidth'>",
@@ -133,9 +142,9 @@ var markup = [
                 "</ul>",
               "</div>",
               `<input id='drawToolDrawFilter' type='text' placeholder='Filter Files' autocomplete='off' title="Filter over a file's name, author and description.\nUse '#{tag}' to search over keywords."/>`,
-              "<div id='drawToolDrawFilterClear'><i class='mdi mdi-close mdi-18px'></i></div>",
+                "<div id='drawToolDrawFilterClear'><i class='mdi mdi-close mdi-18px'></i></div>",
               //"</div>",
-                /*
+              /*
                 "<div class='drawToolFilterDropdown'>",
                     "<input type='checkbox' id='checkbox-toggle'>",
                     "<label for='checkbox-toggle'><i class='mdi mdi-dots-vertical mdi-18px'></i></label>",
@@ -150,7 +159,7 @@ var markup = [
                 "</div>",
                 */
             "</div>",
-            
+
             "<div id='drawToolDrawFilterOptions'>",
                 "<div id='drawToolDrawFilterByTag' title='Filter by Tag'><i class='mdi mdi-tag-text mdi-18px'></i></div>",
                 "<div id='drawToolDrawSortDiv'>",
@@ -185,10 +194,10 @@ var markup = [
                         "<div class='drawToolFileMasterCheckbox'></div>",
                     "</div>",
                 "</div>",
-                "<ul id='drawToolDrawFilesListMaster' class='mmgisScrollbar'>",
+                "<ul id='drawToolDrawFilesListMaster' class='mmgisScrollbar2'>",
                 "</ul>",
               "</div>",
-              "<ul id='drawToolDrawFilesList' class='mmgisScrollbar'>",
+              "<ul id='drawToolDrawFilesList' class='mmgisScrollbar2'>",
               "</ul>",
             "</div>",
           "</div>",
@@ -200,7 +209,7 @@ var markup = [
             "<div id='drawToolShapesFilterClear'><i id='drawToolDrawFilesNew' class='mdi mdi-close mdi-18px'></i></div>",
             "<div id='drawToolShapesFilterCount'></div>",
           "</div>",
-          "<div id='drawToolDrawShapesList' class='mmgisScrollbar'>",
+          "<div id='drawToolDrawShapesList' class='mmgisScrollbar2'>",
             "<ul id='drawToolShapesFeaturesList' class='unselectable'>",
             "</ul>",
           "</div>",
@@ -242,8 +251,9 @@ var markup = [
 
 var DrawTool = {
     height: 0,
-    width: 250,
+    width: 260,
     vars: {},
+    plugins: {},
     //host: window.location.hostname,
     open: true,
     userGroups: [],
@@ -281,7 +291,7 @@ var DrawTool = {
     lastShapeIndex: null,
     lastShapeIntent: null, //so that shapes can only be grouped by intent
     lastContextLayerIndexFileId: {},
-    highlightColor: 'rgb(41, 20, 8)',
+    highlightColor: 'rgb(255, 221, 92)',
     highlightBorder: '2px solid rgb(38, 255, 103)',
     highlightGradient: 'linear-gradient( to left, #26ff67, rgb(127,255,0) )',
     noteIcon: null,
@@ -458,9 +468,14 @@ var DrawTool = {
         DrawTool_Editing.init(DrawTool)
         DrawTool_Files.init(DrawTool)
         DrawTool_History.init(DrawTool)
-        DrawTool_SetOperations.init(DrawTool)
         DrawTool_Publish.init(DrawTool)
         DrawTool_Shapes.init(DrawTool)
+
+        // Plugins
+        if (DrawTool_Geologic) DrawTool_Geologic.init(DrawTool)
+        if (DrawTool_MTTTT) DrawTool_MTTTT.init(DrawTool)
+        if (DrawTool_ScienceIntent) DrawTool_ScienceIntent.init(DrawTool)
+        if (DrawTool_SetOperations) DrawTool_SetOperations.init(DrawTool)
 
         //Turn on files from url
         if (L_.FUTURES.tools) {
@@ -649,7 +664,6 @@ var DrawTool = {
                                 intent: 'all',
                                 geojson: e.target.result,
                             }
-
                             if (
                                 body.geojson &&
                                 JSON.parse(body.geojson).type !==
@@ -685,7 +699,7 @@ var DrawTool = {
                     message,
                     6000,
                     true,
-                    { x: 295, y: 6 },
+                    { x: 305, y: 6 },
                     '#e9ff26',
                     'black'
                 )
@@ -721,6 +735,7 @@ var DrawTool = {
 
                     for (let elayer in f) {
                         let e = f[elayer]
+
                         e.off('click')
                         e.on(
                             'click',
@@ -770,6 +785,8 @@ var DrawTool = {
                                     L_.resetLayerFills()
                                     L_.highlight(layer)
                                     Map_.activeLayer = layer
+                                    if (Map_.activeLayer)
+                                        L_.Map_._justSetActiveLayer = true
                                     Description.updatePoint(Map_.activeLayer)
 
                                     Kinds.use(
@@ -781,12 +798,6 @@ var DrawTool = {
                                         null,
                                         d
                                     )
-
-                                    // Fire a click event for the DrawTool text annotations
-                                    // to make sure the 'onClick' listener in the MMGIS API will be triggered
-                                    if (layer.feature?.properties?.annotation) {
-                                        Map_.map.fireEvent('click')
-                                    }
 
                                     Globe_.highlight(
                                         Globe_.findSpriteObject(
@@ -907,6 +918,7 @@ var DrawTool = {
                 DrawTool.populateHistory()
                 $('#drawToolHistory').css('display', 'flex')
                 break
+            default:
         }
     },
     getInnerLayers(obj, n) {
@@ -952,7 +964,6 @@ var DrawTool = {
         if (DrawTool.vars.preferredTags)
             tags = DrawTool.vars.preferredTags.concat(tags.reverse())
         else tags = tags.reverse()
-
         let allTags = {}
         tags.forEach((tag) => {
             if (allTags[tag] != null) allTags[tag] = allTags[tag] + 1
@@ -981,7 +992,7 @@ var DrawTool = {
             'files_getfiles',
             {},
             function (data) {
-                if (data) {
+                if (data && data.body) {
                     //sort files by intent and the alphabetically by name within intent
                     //sort alphabetically first
                     data.body.sort(F_.dynamicSort('-file_name'))
@@ -1083,7 +1094,7 @@ var DrawTool = {
                 'No file chosen. Please select or make a file for drawings.',
                 6000,
                 true,
-                { x: 295, y: 6 },
+                { x: 305, y: 6 },
                 '#e9ff26',
                 'black'
             )
@@ -1113,7 +1124,7 @@ var DrawTool = {
                 },
                 function (err) {
                     let message = err ? err.message : 'Server Failure'
-                    CursorInfo.update(message, 6000, true, { x: 295, y: 6 })
+                    CursorInfo.update(message, 6000, true, { x: 305, y: 6 })
                     if (typeof failure === 'function') failure()
                 }
             )
@@ -1198,7 +1209,7 @@ function interfaceWithMMGIS() {
 
     //MMGIS should always have a div with id 'tools'
     var tools = d3.select('#toolPanel')
-    tools.style('background', 'var(--color-g)')
+    tools.style('background', 'var(--color-k)')
     //Clear it
     tools.selectAll('*').remove()
     //Add a semantic container
@@ -1312,7 +1323,7 @@ function interfaceWithMMGIS() {
                 'Please enter a file name.',
                 6000,
                 true,
-                { x: 295, y: 6 },
+                { x: 305, y: 6 },
                 '#e9ff26',
                 'black'
             )
@@ -1323,7 +1334,7 @@ function interfaceWithMMGIS() {
                 'Invalid file name.',
                 6000,
                 true,
-                { x: 295, y: 6 },
+                { x: 305, y: 6 },
                 '#e9ff26',
                 'black'
             )
@@ -1347,7 +1358,7 @@ function interfaceWithMMGIS() {
                 'Please select a file to copy shapes to.',
                 6000,
                 true,
-                { x: 295, y: 6 },
+                { x: 305, y: 6 },
                 '#e9ff26',
                 'black'
             )
@@ -1370,6 +1381,7 @@ function interfaceWithMMGIS() {
         var filename = files_i !== -1 ? DrawTool.files[files_i].file_name : null
         var numToCopy = intents.length
         var copied = 0
+        var copiedSI = 0
         var elmArray = []
 
         //Check all intents match
@@ -1389,6 +1401,9 @@ function interfaceWithMMGIS() {
                     var layer = $(elm).attr('layer')
                     var index = $(elm).attr('index')
                     var shape = L_.layersGroup[layer][index]
+
+                    let fromFileId = $(elm).attr('file_id')
+                    let fromFile = DrawTool.getFileObjectWithId(fromFileId)
 
                     elmArray.push({ l: layer, i: index })
 
@@ -1413,8 +1428,8 @@ function interfaceWithMMGIS() {
                     delete properties._
                     var geometry = feature.geometry
 
-                    var toFileIntent =
-                        DrawTool.getFileObjectWithId(file_id).intent
+                    var fileObj = DrawTool.getFileObjectWithId(file_id)
+                    var toFileIntent = fileObj.intent
 
                     if (intent == 'polygon') {
                         if (
@@ -1430,6 +1445,8 @@ function interfaceWithMMGIS() {
                     }
 
                     copyBodies.push({
+                        fromFile: fromFile,
+                        toFile: fileObj,
                         file_id: file_id,
                         intent: intent,
                         shape: {
@@ -1450,8 +1467,23 @@ function interfaceWithMMGIS() {
                         DrawTool.filesOn.indexOf(
                             parseInt(copyBodies[0].file_id)
                         ) != -1
-                    )
+                    ) {
                         DrawTool.refreshFile(copyBodies[0].file_id, null, true)
+                    }
+                    if (copiedSI < numToCopy) {
+                        CursorInfo.update(
+                            'Warning: only ' +
+                                copiedSI +
+                                '/' +
+                                numToCopy +
+                                ' science intents were copied over.',
+                            6000,
+                            true,
+                            { x: 305, y: 6 },
+                            '#e9ff26',
+                            'black'
+                        )
+                    }
                     if (copied >= numToCopy) {
                         //rehighlight each shapeli
                         for (var s in elmArray) {
@@ -1470,17 +1502,62 @@ function interfaceWithMMGIS() {
                         }, 2000)
                     }
                 } else {
-                    DrawTool.drawOver(copyBodies[i], 'off', function () {
+                    DrawTool.drawOver(copyBodies[i], 'off', function (body) {
                         copied++
-                        $('#drawToolShapesCopyMessageDiv').text(
-                            'Copied ' +
-                                copied +
-                                '/' +
-                                numToCopy +
-                                ' into ' +
-                                filename
-                        )
-                        copyLoop(i + 1)
+                        if (
+                            DrawTool.plugins?.ScienceIntent?.custom
+                                ?.getFileFK &&
+                            DrawTool.plugins?.ScienceIntent?.custom
+                                ?.copyScienceIntent
+                        ) {
+                            let fromFK = null
+                            fromFK =
+                                DrawTool.getFileFK(copyBodies[i].fromFile) +
+                                body.tag
+                            let toFK = null
+                            toFK =
+                                DrawTool.getFileFK(copyBodies[i].toFile) +
+                                body.uuid
+
+                            // Now copy intent
+                            DrawTool.copyScienceIntent(
+                                fromFK,
+                                toFK,
+                                function () {
+                                    copiedSI++
+                                    $('#drawToolShapesCopyMessageDiv').text(
+                                        'Copied ' +
+                                            copied +
+                                            '/' +
+                                            numToCopy +
+                                            ' into ' +
+                                            filename
+                                    )
+                                    copyLoop(i + 1)
+                                },
+                                function () {
+                                    $('#drawToolShapesCopyMessageDiv').text(
+                                        'Copied ' +
+                                            copied +
+                                            '/' +
+                                            numToCopy +
+                                            ' into ' +
+                                            filename
+                                    )
+                                    copyLoop(i + 1)
+                                }
+                            )
+                        } else {
+                            $('#drawToolShapesCopyMessageDiv').text(
+                                'Copied ' +
+                                    copied +
+                                    '/' +
+                                    numToCopy +
+                                    ' into ' +
+                                    filename
+                            )
+                            copyLoop(i + 1)
+                        }
                     })
                 }
             }
@@ -1489,7 +1566,7 @@ function interfaceWithMMGIS() {
                 'Please select shapes to copy.',
                 6000,
                 true,
-                { x: 295, y: 6 },
+                { x: 305, y: 6 },
                 '#e9ff26',
                 'black'
             )

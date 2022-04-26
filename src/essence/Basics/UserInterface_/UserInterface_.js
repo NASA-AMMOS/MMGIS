@@ -520,6 +520,7 @@ var UserInterface = {
             .style('width', this.topSize + 'px')
             .style('padding-top', '40px')
             .style('background', 'var(--color-a)')
+            .style('border-right', '1px solid var(--color-a-5)')
             .style('top', '0px')
             .style('height', '100%')
             .style('z-index', '1004')

@@ -79,11 +79,11 @@
     border-bottom: 4px solid rgba(255, 255, 255, 1);
 }
 #layersTool #searchLayers input {
-    background: #111;
+    background: var(--color-g);
     width: 239px;
     color: #ccc;
     padding-left: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: none;
 }
 #layersTool #searchLayers .mdi-magnify {
     position: absolute;
@@ -191,7 +191,7 @@
 }
 #layersTool .settings ul > li > div > div {
     font-size: 14px;
-    color: #ddd;
+    color: white;
 }
 #layersTool .settings ul > li .right {
     display: flex;
@@ -219,7 +219,7 @@
 #layersTool #layersToolList > li.gears_on {
     height: auto;
     color: white;
-    background: #444;
+    background: var(--color-a2);
 }
 #layersTool #layersToolList > li.download_on .layerExport,
 #layersTool #layersToolList > li.gears_on .settings {

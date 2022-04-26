@@ -86,12 +86,12 @@
 }
 .MeasureTool #measureToolBar > div:hover {
     color: var(--color-mmgis);
-    background: var(--color-m1);
+    background: var(--color-a1-5);
 }
 
 /*dropdown*/
 .MeasureTool .dropdown {
-    background-color: var(--color-m1);
+    background-color: var(--color-a1-5);
     color: #e1e1e1;
     border: none;
     margin-top: 1px;

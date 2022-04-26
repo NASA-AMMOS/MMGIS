@@ -3,7 +3,6 @@ import F_ from '../../Basics/Formulae_/Formulae_'
 import TC_ from '../../Basics/ToolController_/ToolController_'
 import Test_ from '../../Basics/Test_/Test_'
 import L_ from '../../Basics/Layers_/Layers_'
-
 import calls from '../../../pre/calls'
 
 var Test = {
@@ -218,6 +217,7 @@ var Test = {
             name: 'Can reach initial drawing state',
             subtests: 5,
             test: function (c) {
+                //Ignore lnglats_to_demtile_elevs in tests
                 Test.tool.vars.demtilesets = null
 
                 Test.tool.showContent('draw')
@@ -671,6 +671,7 @@ var Test = {
                     var coords = f.geometry.coordinates
 
                     var p = Test.tool.contextMenuLayer.feature.properties
+
                     c('Edits name', p.name === 'Text Changed')
                     c(
                         'Edits description',
@@ -870,6 +871,7 @@ var Test = {
                         $(
                             '#drawToolDrawFilesList > li:nth-child(2) .drawToolFileEdit'
                         ).click()
+
                         c(
                             'File name updates',
                             $(
@@ -1675,6 +1677,9 @@ var Test = {
                                 ).text() === 'x2'
                             )
                             mmgisglobal.ctrlDown = false
+                            $(
+                                `.drawToolContextMenuTabButton[tab='drawToolContextMenuTabSetOperations']`
+                            ).click()
                             $(
                                 '.drawToolContextMenuTabSOMerge > ul > li:last-child > div:last-child'
                             ).addClass('on')

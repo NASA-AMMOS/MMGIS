@@ -68,23 +68,37 @@
                                 p = p.concat().reverse()
 
                             var results = []
+                            if (typeof layer.eachLayer === 'feature') {
+                                layer.eachLayer(function (l) {
+                                    if (first && results.length) return
 
-                            layer.eachLayer(function (l) {
-                                if (first && results.length) return
-
+                                    if (
+                                        isPoly(l) &&
+                                        gju.pointInPolygon(
+                                            {
+                                                type: 'Point',
+                                                coordinates: p,
+                                            },
+                                            l.toGeoJSON().geometry
+                                        )
+                                    ) {
+                                        results.push(l)
+                                    }
+                                })
+                            } else {
                                 if (
-                                    isPoly(l) &&
+                                    isPoly(layer) &&
                                     gju.pointInPolygon(
                                         {
                                             type: 'Point',
                                             coordinates: p,
                                         },
-                                        l.toGeoJSON().geometry
+                                        layer.feature.geometry
                                     )
                                 ) {
-                                    results.push(l)
+                                    results.push(layer)
                                 }
-                            })
+                            }
                             return results
                         },
                     }
@@ -513,8 +527,10 @@
                                 var dev_sqr, max_dev_sqr, band_sqr
                                 var x12, y12, d12, x13, y13, d13, x23, y23, d23
                                 var F = (Math.PI / 180.0) * 0.5
-                                var index = new Array() /* aray of indexes of source points to include in the reduced line */
-                                var sig_start = new Array() /* indices of start & end of working section */
+                                var index =
+                                    new Array() /* aray of indexes of source points to include in the reduced line */
+                                var sig_start =
+                                    new Array() /* indices of start & end of working section */
                                 var sig_end = new Array()
 
                                 /* check for simple cases */

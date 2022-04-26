@@ -446,8 +446,6 @@
                 return
             }
 
-            console.log(options, this)
-
             if (options.image) {
                 dom.setAttributeNS(
                     'http://www.w3.org/1999/xlink',
