@@ -177,6 +177,7 @@ var mmgisAPI_ = {
 
         return { ...L_.toggledArray, ...drawToolVisibility }
     },
+    //customListeners: {},
     // Adds map event listener
     addEventListener: function (eventName, functionReference) {
         const listener = mmgisAPI_.getLeafletMapEvent(eventName)
@@ -184,6 +185,8 @@ var mmgisAPI_ = {
             console.log('Add listener', listener)
             mmgisAPI_.map.addEventListener(listener, functionReference)
         } else {
+            //mmgisAPI_.customListeners[eventName] = mmgisAPI_.customListeners[eventName] || []
+            //mmgisAPI_.customListeners[eventName].push(functionReference)
             console.warn(
                 'Warning: Unable to add event listener for ' + eventName
             )
@@ -196,6 +199,9 @@ var mmgisAPI_ = {
             console.log('Remove listener', listener)
             mmgisAPI_.map.removeEventListener(listener, functionReference)
         } else {
+            //if(mmgisAPI_.customListeners[eventName]) {
+            //    mmgisAPI_.customListeners[eventName] = mmgisAPI_.customListeners[eventName].filter(f => f !== functionReference)
+            //}
             console.warn(
                 'Warning: Unable to remove event listener for ' + eventName
             )
