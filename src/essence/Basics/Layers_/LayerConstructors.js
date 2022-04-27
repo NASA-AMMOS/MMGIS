@@ -291,13 +291,14 @@ export const constructVectorLayer = (
                             .replace(/\s/g, '')
                             .toLowerCase()} ${layerObj.name
                             .replace(/\s/g, '')
-                            .toLowerCase()}`,
+                            .toLowerCase()} leafletDivIcon`,
                         iconSize: [
                             (featureStyle.radius + pixelBuffer) * 2,
                             (featureStyle.radius + pixelBuffer) * 2,
                         ],
                         html: svg,
                     }),
+                    bubblingMouseEvents: true,
                 })
             }
 

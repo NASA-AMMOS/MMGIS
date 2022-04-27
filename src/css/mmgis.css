@@ -353,6 +353,10 @@ body {
     margin: 1px 7px 1px 7px;
 }
 
+.leafletDivIcon > * {
+    pointer-events: none !important;
+}
+
 .leaflet-marker-pane.hideDivIcons .leaflet-div-icon {
     opacity: 0 !important;
     pointer-events: none;
