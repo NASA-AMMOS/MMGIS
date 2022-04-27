@@ -6,6 +6,7 @@ import $ from 'jquery'
 import * as d3 from 'd3'
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
+import LayerGeologic from './LayerGeologic/LayerGeologic'
 
 let L = window.L
 /**
@@ -15,7 +16,8 @@ let L = window.L
 export const constructVectorLayer = (
     geojson,
     layerObj,
-    onEachFeatureDefault
+    onEachFeatureDefault,
+    Map_
 ) => {
     let col = layerObj.style.color
     let opa = String(layerObj.style.opacity)
@@ -89,6 +91,35 @@ export const constructVectorLayer = (
             layerObj.style.className =
                 layerObj.style.className + noPointerEventsClass
             layerObj.style.metadata = geojson.metadata || {}
+
+            if (
+                feature.properties?.style?.geologic &&
+                feature.properties.style.geologic.type === 'pattern' &&
+                feature.geometry.type != null &&
+                (feature.geometry.type.toLowerCase() === 'polygon' ||
+                    feature.geometry.type.toLowerCase() === 'multipolygon') &&
+                typeof LayerGeologic.getUrl === 'function'
+            ) {
+                const style = feature.properties.style
+                const g = style.geologic
+
+                layerObj.style.fillPattern = LayerGeologic.getFillPattern(
+                    LayerGeologic.getUrl(
+                        g.type,
+                        LayerGeologic.getTag(g.tag, g.color)
+                    ),
+                    g.size,
+                    g.fillColor
+                        ? g.fillColor[0] === '#'
+                            ? F_.hexToRGBA(
+                                  g.fillColor,
+                                  g.fillOpacity == null ? 1 : g.fillOpacity
+                              )
+                            : g.fillColor || 'none'
+                        : 'none',
+                    Map_.map
+                )
+            }
             return layerObj.style
         },
         onEachFeature: (function (layerObjName) {
@@ -283,7 +314,63 @@ export const constructVectorLayer = (
         let l = layer._layers[idx]
         const savedUseKeyAsName = l.useKeyAsName
         const savedOptions = l.options
-        if (l.feature?.properties?.arrow === true) {
+
+        if (l.feature?.properties?.style?.geologic != null) {
+            const geom = l.feature.geometry
+            const style = l.feature?.properties?.style
+            let made = false
+            switch (l.feature?.properties?.style?.geologic.type) {
+                case 'pattern':
+                    // We can augment existing polygons for this so patterns are
+                    // implemented above in the style object
+                    made = false
+                    break
+                case 'linework':
+                    if (geom.type.toLowerCase() === 'linestring') {
+                        layer._layers[idx] = LayerGeologic.createLinework(
+                            l.feature,
+                            style
+                        )
+                        made = true
+                    }
+                    break
+                case 'symbol':
+                    if (geom.type.toLowerCase() === 'point') {
+                        layer._layers[idx] = LayerGeologic.createSymbolMarker(
+                            geom.coordinates[1],
+                            geom.coordinates[0],
+                            style
+                        )
+                        made = true
+                    }
+                    break
+                default:
+                    made = false
+                    break
+            }
+            if (made) {
+                layer._layers[idx].options.layerName = savedOptions.layerName
+                layer._layers[idx].feature = l.feature
+                layer._layers[idx].useKeyAsName = savedUseKeyAsName
+                l.feature.style = l.feature.style || {}
+                onEachFeatureDefault(l.feature, layer._layers[idx])
+                if (layer._layers[idx]._layers) {
+                    Object.keys(layer._layers[idx]._layers).forEach((idx2) => {
+                        layer._layers[idx]._layers[idx2].options.layerName =
+                            savedOptions.layerName
+                        layer._layers[idx]._layers[idx2].feature = l.feature
+                        layer._layers[idx]._layers[idx2].useKeyAsName =
+                            savedUseKeyAsName
+
+                        l.feature.style = l.feature.style || {}
+                        onEachFeatureDefault(
+                            l.feature,
+                            layer._layers[idx]._layers[idx2]
+                        )
+                    })
+                }
+            }
+        } else if (l.feature?.properties?.arrow === true) {
             const c = l.feature.geometry.coordinates
             const start = new L.LatLng(c[0][1], c[0][0])
             const end = new L.LatLng(c[1][1], c[1][0])

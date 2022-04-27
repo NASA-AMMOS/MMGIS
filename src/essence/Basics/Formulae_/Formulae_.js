@@ -343,6 +343,10 @@ var Formulae_ = {
               }
             : null
     },
+    hexToRGBA: function (hex, a) {
+        const rgb = Formulae_.hexToRGB(hex)
+        return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${a})`
+    },
     rgbToArray: function (rgb) {
         return rgb.match(/\d+/g)
     },
@@ -647,8 +651,36 @@ var Formulae_ = {
     cleanString(str) {
         return str.replace(/[`~!@#$%^&*|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '')
     },
-    invertGeoJSONLatLngs(geojson) {
-        geojson = this.clone(geojson)
+    colorCodes: ['K', 'W', 'C', 'L', 'Y', 'O', 'M', 'R', 'B', 'DO'],
+    colorCodeToColor(code) {
+        code = code || 'n/a'
+        switch (code.toLowerCase()) {
+            case 'k':
+                return '#000000'
+            case 'w':
+                return '#ffffff'
+            case 'c':
+                return '#00ffff'
+            case 'l':
+                return '#00ff00'
+            case 'y':
+                return '#ffff00'
+            case 'o':
+                return '#ffa500'
+            case 'm':
+                return '#ff00ff'
+            case 'r':
+                return '#ff0000'
+            case 'b':
+                return '#654321'
+            case 'do':
+                return '#ffffff'
+            default:
+                return '#ffffff'
+        }
+    },
+    invertGeoJSONLatLngs(feature) {
+        let geojson = this.clone(feature)
         var coords = geojson.geometry.coordinates
 
         if (coords.constructor === Array && coords[0].constructor !== Array) {
@@ -1521,7 +1553,18 @@ var Formulae_ = {
     },
     getLatLngs(layer) {
         let latlngs = []
-        if (!layer.hasOwnProperty('_latlngs')) return latlngs
+        if (!layer.hasOwnProperty('_latlngs')) {
+            if (
+                layer.feature?.geometry.type === 'Point' &&
+                layer.feature?.geometry?.coordinates?.length === 2
+            ) {
+                return {
+                    lat: layer.feature?.geometry?.coordinates[1],
+                    lng: layer.feature?.geometry?.coordinates[0],
+                }
+            }
+            return latlngs
+        }
         //return layer._latlngs
         for (let i = 0; i < layer._latlngs.length; i++) {
             if (layer._latlngs[i].lat != null) {

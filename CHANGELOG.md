@@ -35,9 +35,7 @@ This release adds a webhook manager to the configure page and improves documenta
 
 - Some media paths in the /configure path not working when MMGIS is served under a subdomain with PUBLIC_URL
 
-#### Removed
-
--
+---
 
 ## 2.5.0
 

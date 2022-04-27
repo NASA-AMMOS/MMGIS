@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!-- Converted with SVG Converter - Version 0.9.5 (Compiled Fri Feb 21 09:53:38 2020) - Copyright (C) 2011 Nokia -->
+<svg xmlns="http://www.w3.org/2000/svg" height="19.273" width="18.529" xmlns:xlink="http://www.w3.org/1999/xlink" baseProfile="tiny">
+ <path fill="none" d="M0 0h18.53v19.27H0z"/>
+ <path d="M0 0h18.53v19.26H0z"/>
+ <path fill="none" d="M0 0h18.53v19.26H0z"/>
+ <path fill="#fff" d="M3.34.02c0 .65.53 1.17 1.17 1.17C5.17 1.2 5.7.66 5.7 0M3.34.02M5.68.02M15.12.02M12.78.02M15.12.02c0 .65-.53 1.17-1.17 1.17-.65 0-1.17-.53-1.17-1.18M0 3.73M0 1.4M0 3.73c.65 0 1.17-.53 1.17-1.17C1.17 1.9.65 1.4 0 1.4M18.5 3.73c-.64 0-1.16-.53-1.16-1.17 0-.65.52-1.17 1.17-1.17M18.5 3.73M18.5 1.4M0 6.1c.65 0 1.17.5 1.17 1.16C1.17 7.9.65 8.43 0 8.43M0 6.1M0 8.43"/>
+ <circle cx="4.712" cy="9.696" fill="#fff" r="1.17"/>
+ <circle cx="9.263" cy="12.133" fill="#fff" r="1.17"/>
+ <circle cx="6.867" cy="4.733" fill="#fff" r="1.17"/>
+ <circle cx="11.569" cy="4.733" fill="#fff" r="1.17"/>
+ <circle cx="13.796" cy="9.696" fill="#fff" r="1.17"/>
+ <path fill="#fff" d="M18.5 6.1M18.5 8.43M18.5 6.1c-.64 0-1.16.5-1.16 1.16 0 .65.52 1.17 1.17 1.17"/>
+ <circle cx="9.246" cy="16.835" fill="#fff" r="1.17"/>
+ <path fill="#fff" d="M12.8 19.27c0-.64.5-1.17 1.16-1.17.65 0 1.17.53 1.17 1.17M12.8 19.27M15.13 19.27"/>
+ <circle cx="16.113" cy="14.311" fill="#fff" r="1.17"/>
+ <circle cx="2.291" cy="14.311" fill="#fff" r="1.17"/>
+ <path fill="#fff" d="M5.7 19.27c0-.64-.54-1.17-1.18-1.17-.65 0-1.17.53-1.17 1.17"/>
+</svg>

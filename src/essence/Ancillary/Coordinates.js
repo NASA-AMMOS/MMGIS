@@ -28,7 +28,7 @@ const markup = [
                 "<i class='mdi mdi-target mdi-18px'></i>",
             "</div>",
             "<div id='changeLngLat' title='Change coordinate types.'>",
-                "<i class='mdi mdi-axis-arrow mdi-18px'></i>",
+                "<i class='mdi mdi-axis-arrow mdi-18px' style='line-height: 23px;'></i>",
             "</div>",
         "</div>",
         "<div id='toggleTimeUI'>",

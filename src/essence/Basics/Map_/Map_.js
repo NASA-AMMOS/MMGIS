@@ -789,7 +789,8 @@ async function makeLayer(layerObj, evenIfOff) {
                 L_.layersGroup[layerObj.name] = constructVectorLayer(
                     data,
                     layerObj,
-                    onEachFeatureDefault
+                    onEachFeatureDefault,
+                    Map_
                 )
 
                 d3.selectAll(
@@ -966,6 +967,8 @@ async function makeLayer(layerObj, evenIfOff) {
                 })
 
                 Map_.activeLayer = e.sourceTarget._layer
+                if (Map_.activeLayer) L_.Map_._justSetActiveLayer = true
+
                 let p = e.sourceTarget._point
 
                 for (var i in e.layer._renderer._features) {
@@ -1240,6 +1243,10 @@ function buildToolBar() {
 }
 
 function clearOnMapClick(event) {
+    if (Map_._justSetActiveLayer) {
+        Map_._justSetActiveLayer = false
+        return
+    }
     // Skip if there is no actively selected feature
     if (!Map_.activeLayer) {
         return
@@ -1288,7 +1295,15 @@ function clearOnMapClick(event) {
             }
 
             function checkBounds(layer) {
-                if ('getBounds' in layer) {
+                if (layer.feature.geometry.type.toLowerCase() === 'polygon') {
+                    if (
+                        L.leafletPip.pointInLayer(
+                            [latlng.lng, latlng.lat],
+                            layer
+                        ).length > 0
+                    )
+                        return true
+                } else if ('getBounds' in layer) {
                     // Use the pixel bounds because longitude/latitude conversions for bounds
                     // may be odd in the case of polar projections
                     if (
@@ -1299,6 +1314,8 @@ function clearOnMapClick(event) {
                     }
                 } else if ('getLatLng' in layer) {
                     // A latlng is a latlng, regardless of the projection type
+                    // WARNING: This is imperfect because the click latlng and marker center latlng
+                    // can differ but still intersect
                     if (layer.getLatLng().equals(latlng)) {
                         return true
                     }

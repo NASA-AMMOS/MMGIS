@@ -1,0 +1,1905 @@
+{
+  "symbols": {
+    "groups": [
+      {
+        "title": "FGDC 2.15",
+        "category": "Small, Minor Fault",
+        "definitions": {
+          "02.15.01": {
+            "description": "Small, minor inclined fault — Showing strike and dip.",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "L"
+              }
+            }
+          },
+          "02.15.02": {
+            "description": "Small, minor vertical or near-vertical fault — Showing strike.",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "M"
+              }
+            }
+          },
+          "02.15.03": {
+            "description": "Small, minor shear fault — Showing dip. Arrow shows direction of relative horizontal displacement.",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "N"
+              }
+            }
+          }
+        }
+      },
+      {
+        "title": "FGDC 3.3",
+        "category": "Geophysical Stations",
+        "definitions": {
+          "03.03.04": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "®"
+              }
+            }
+          },
+          "03.03.05": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "¯"
+              }
+            }
+          }
+        }
+      },
+      {
+        "title": "FGDC 4.3",
+        "category": "Small, Minor Joints",
+        "definitions": {
+          "04.03.01": {
+            "description": "Small, minor horizontal joint (1st option).",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "R"
+              }
+            }
+          },
+          "04.03.02": {
+            "description": "Small, minor inclined joint (1st option) — Showing strike and dip.",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "S"
+              }
+            }
+          },
+          "04.03.03": {
+            "description": "Small, minor vertical or near-vertical joint (1st option) — Showing strike.",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "T"
+              }
+            }
+          },
+          "04.03.04": {
+            "description": "Small, minor inclined (dip direction to right) joint, for multiple observations at one locality (1st option) — Showing strike and dip.",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "U"
+              }
+            }
+          },
+          "04.03.05": {
+            "description": "Small, minor inclined (dip direction to left) joint, for multiple observations at one locality (1st option) — Showing strike and dip.",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "V"
+              }
+            }
+          },
+          "04.03.06": {
+            "description": "Small, minor vertical or near-vertical joint, for multiple observations at one locality (1st option) — Showing stike.",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "W"
+              }
+            }
+          },
+          "04.03.07": {
+            "description": "Small, minor horizontal joint (2nd option).",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "X"
+              }
+            }
+          },
+          "04.03.08": {
+            "description": "Small, minor inclined joint (2nd option) — Showing strike and dip.",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "Y"
+              }
+            }
+          },
+          "04.03.09": {
+            "description": "Small, minor vertical or near-vertical joint (2nd option) — Showing strike.",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "Z"
+              }
+            }
+          },
+          "04.03.10": {
+            "description": "Small, minor inclined (dip direction to right) joint, for multiple observations at one locality (2nd option) — Showing strike and dip.",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "["
+              }
+            }
+          },
+          "04.03.11": {
+            "description": "Small, minor inclined (dip direction to left) joint, for multiple observations at one locality (2nd option) — Showing strike and dip.",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "\\"
+              }
+            }
+          },
+          "04.03.12": {
+            "description": "Small, minor vertical or near-vertical joint, for multiple observations at one locality (2nd option) — Showing stike.",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "]"
+              }
+            }
+          }
+        }
+      },
+      {
+        "title": "FGDC 5.11",
+        "category": "Small, Minor Folds",
+        "definitions": {
+          "05.11.01": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "Ï"
+              }
+            }
+          },
+          "05.11.02": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "Ð"
+              }
+            }
+          },
+          "05.11.03": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "Ñ"
+              }
+            }
+          },
+          "05.11.04": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "Ò"
+              }
+            }
+          },
+          "05.11.05": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "Ó"
+              }
+            }
+          },
+          "05.11.06": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "Ô"
+              }
+            }
+          },
+          "05.11.07": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "Õ"
+              }
+            }
+          },
+          "05.11.08": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "Ö"
+              }
+            }
+          },
+          "05.11.09": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "×"
+              }
+            }
+          },
+          "05.11.10": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "Ø"
+              }
+            }
+          },
+          "05.11.11": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "Ù"
+              }
+            }
+          },
+          "05.11.12": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "Ú"
+              }
+            }
+          },
+          "05.11.13": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "Û"
+              }
+            }
+          },
+          "05.11.14": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "Ü"
+              }
+            }
+          },
+          "05.11.15": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "Ý"
+              }
+            }
+          },
+          "05.11.16": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "Þ"
+              }
+            }
+          },
+          "05.11.17": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "ß"
+              }
+            }
+          },
+          "05.11.18": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "à"
+              }
+            }
+          },
+          "05.11.19": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "á"
+              }
+            }
+          },
+          "05.11.20": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "â"
+              }
+            }
+          },
+          "05.11.21": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "ã"
+              }
+            }
+          },
+          "05.11.22": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "ä"
+              }
+            }
+          },
+          "05.11.23": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "å"
+              }
+            }
+          },
+          "05.11.24": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "æ"
+              }
+            }
+          },
+          "05.11.25": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "ç"
+              }
+            }
+          },
+          "05.11.26": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "è"
+              }
+            }
+          },
+          "05.11.27": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "é"
+              }
+            }
+          },
+          "05.11.28": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "ê"
+              }
+            }
+          },
+          "05.11.29": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "ë"
+              }
+            }
+          },
+          "05.11.30": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "ì"
+              }
+            }
+          },
+          "05.11.31": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "í"
+              }
+            }
+          },
+          "05.11.32": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "î"
+              }
+            }
+          },
+          "05.11.33": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "ï"
+              }
+            }
+          },
+          "05.11.34": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "ð"
+              }
+            }
+          },
+          "05.11.35": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "ñ"
+              }
+            }
+          },
+          "05.11.36": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "ò"
+              }
+            }
+          },
+          "05.11.37": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "ó"
+              }
+            }
+          },
+          "05.11.38": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "ô"
+              }
+            }
+          },
+          "05.11.39": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "õ"
+              }
+            }
+          },
+          "05.11.40": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "ö"
+              }
+            }
+          },
+          "05.11.41": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "÷"
+              }
+            }
+          },
+          "05.11.42": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "ø"
+              }
+            }
+          },
+          "05.11.43": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "ù"
+              }
+            }
+          }
+        }
+      },
+      {
+        "title": "FGDC 6",
+        "category": "Bedding",
+        "definitions": {
+          "06.01": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "^"
+              }
+            }
+          },
+          "06.02": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "_"
+              }
+            }
+          },
+          "06.03": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "`"
+              }
+            }
+          },
+          "06.04": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "a"
+              }
+            }
+          },
+          "06.05": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "b"
+              }
+            }
+          },
+          "06.06": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "c"
+              }
+            }
+          },
+          "06.07": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "d"
+              }
+            }
+          },
+          "06.08": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "e"
+              }
+            }
+          },
+          "06.09": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "f"
+              }
+            }
+          },
+          "06.10": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "g"
+              }
+            }
+          },
+          "06.11": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "h"
+              }
+            }
+          },
+          "06.12": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "i"
+              }
+            }
+          },
+          "06.13": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "j"
+              }
+            }
+          },
+          "06.14": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "k"
+              }
+            }
+          },
+          "06.15": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "l"
+              }
+            }
+          },
+          "06.16": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "m"
+              }
+            }
+          },
+          "06.17": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "n"
+              }
+            }
+          },
+          "06.18": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "o"
+              }
+            }
+          },
+          "06.19": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "p"
+              }
+            }
+          },
+          "06.20": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "q"
+              }
+            }
+          },
+          "06.21": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "r"
+              }
+            }
+          },
+          "06.22": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "s"
+              }
+            }
+          },
+          "06.23": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "t"
+              }
+            }
+          },
+          "06.24": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "u"
+              }
+            }
+          },
+          "06.25": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "v"
+              }
+            }
+          },
+          "06.26": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "w"
+              }
+            }
+          },
+          "06.27": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "x"
+              }
+            }
+          },
+          "06.28": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "y"
+              }
+            }
+          },
+          "06.29": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "z"
+              }
+            }
+          },
+          "06.30": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "{"
+              }
+            }
+          },
+          "06.31": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "|"
+              }
+            }
+          },
+          "06.32": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "}"
+              }
+            }
+          },
+          "06.33": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "~"
+              }
+            }
+          },
+          "06.34": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "¡"
+              }
+            }
+          },
+          "06.35": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "¢"
+              }
+            }
+          },
+          "06.36": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "£"
+              }
+            }
+          },
+          "06.37": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "¤"
+              }
+            }
+          },
+          "06.38": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "¥"
+              }
+            }
+          },
+          "06.39": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "¦"
+              }
+            }
+          },
+          "06.40": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "§"
+              }
+            }
+          },
+          "06.41": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "¨"
+              }
+            }
+          },
+          "06.42": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "©"
+              }
+            }
+          },
+          "06.43": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "ª"
+              }
+            }
+          },
+          "06.44": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "«"
+              }
+            }
+          },
+          "06.45": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "¬"
+              }
+            }
+          }
+        }
+      },
+      {
+        "title": "FGDC 7",
+        "category": "Cleavage",
+        "definitions": {
+          "07.01": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "ú"
+              }
+            }
+          },
+          "07.02": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "û"
+              }
+            }
+          },
+          "07.03": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "ü"
+              }
+            }
+          },
+          "07.04": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "ý"
+              }
+            }
+          },
+          "07.05": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "þ"
+              }
+            }
+          },
+          "07.06": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "ÿ"
+              }
+            }
+          },
+          "07.07": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym01",
+                "key": "!"
+              }
+            }
+          },
+          "07.08": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "\""
+              }
+            }
+          },
+          "07.09": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "#"
+              }
+            }
+          },
+          "07.10": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "$"
+              }
+            }
+          },
+          "07.11": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "%"
+              }
+            }
+          },
+          "07.12": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "&"
+              }
+            }
+          },
+          "07.13": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "'"
+              }
+            }
+          },
+          "07.14": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "("
+              }
+            }
+          },
+          "07.15": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": ")"
+              }
+            }
+          },
+          "07.16": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "*"
+              }
+            }
+          },
+          "07.17": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "+"
+              }
+            }
+          },
+          "07.18": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": ","
+              }
+            }
+          },
+          "07.19": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "-"
+              }
+            }
+          },
+          "07.20": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "."
+              }
+            }
+          },
+          "07.21": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "/"
+              }
+            }
+          },
+          "07.22": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "0"
+              }
+            }
+          },
+          "07.23": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "1"
+              }
+            }
+          },
+          "07.24": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "2"
+              }
+            }
+          },
+          "07.25": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "3"
+              }
+            }
+          },
+          "07.26": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "4"
+              }
+            }
+          },
+          "07.27": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "5"
+              }
+            }
+          },
+          "07.28": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "6"
+              }
+            }
+          },
+          "07.29": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "7"
+              }
+            }
+          },
+          "07.30": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "8"
+              }
+            }
+          },
+          "07.31": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "9"
+              }
+            }
+          },
+          "07.32": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": ":"
+              }
+            }
+          },
+          "07.33": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": ";"
+              }
+            }
+          },
+          "07.34": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "<"
+              }
+            }
+          },
+          "07.35": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "="
+              }
+            }
+          },
+          "07.36": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": ">"
+              }
+            }
+          }
+        }
+      },
+      {
+        "title": "FGDC 8.1",
+        "category": "Generic Foliation",
+        "definitions": {
+          "08.01.01": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "?"
+              }
+            }
+          },
+          "08.01.02": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "@"
+              }
+            }
+          },
+          "08.01.03": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "A"
+              }
+            }
+          },
+          "08.01.04": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "B"
+              }
+            }
+          },
+          "08.01.05": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "C"
+              }
+            }
+          },
+          "08.01.06": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "D"
+              }
+            }
+          }
+        }
+      },
+      {
+        "title": "FGDC 8.2",
+        "category": "Primary Foliation",
+        "definitions": {
+          "08.02.01": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "E"
+              }
+            }
+          },
+          "08.02.02": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "F"
+              }
+            }
+          },
+          "08.02.03": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "G"
+              }
+            }
+          },
+          "08.02.04": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "H"
+              }
+            }
+          },
+          "08.02.05": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "I"
+              }
+            }
+          },
+          "08.02.06": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "J"
+              }
+            }
+          },
+          "08.02.07": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "K"
+              }
+            }
+          },
+          "08.02.08": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "L"
+              }
+            }
+          },
+          "08.02.09": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "M"
+              }
+            }
+          },
+          "08.02.10": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "N"
+              }
+            }
+          },
+          "08.02.11": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "O"
+              }
+            }
+          },
+          "08.02.12": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "P"
+              }
+            }
+          },
+          "08.02.13": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "Q"
+              }
+            }
+          },
+          "08.02.14": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "R"
+              }
+            }
+          },
+          "08.02.15": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "S"
+              }
+            }
+          },
+          "08.02.16": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "T"
+              }
+            }
+          },
+          "08.02.17": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "U"
+              }
+            }
+          },
+          "08.02.18": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "V"
+              }
+            }
+          },
+          "08.02.19": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "W"
+              }
+            }
+          },
+          "08.02.20": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "X"
+              }
+            }
+          },
+          "08.02.21": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "Y"
+              }
+            }
+          },
+          "08.02.22": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "Z"
+              }
+            }
+          },
+          "08.02.23": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "["
+              }
+            }
+          },
+          "08.02.24": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "\\"
+              }
+            }
+          },
+          "08.02.25": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "]"
+              }
+            }
+          },
+          "08.02.26": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "^"
+              }
+            }
+          }
+        }
+      },
+      {
+        "title": "FGDC 8.3",
+        "category": "Secondary Foliation",
+        "definitions": {
+          "08.03.01": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "_"
+              }
+            }
+          },
+          "08.03.02": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "`"
+              }
+            }
+          },
+          "08.03.03": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "a"
+              }
+            }
+          },
+          "08.03.04": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "b"
+              }
+            }
+          },
+          "08.03.05": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "c"
+              }
+            }
+          },
+          "08.03.06": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "d"
+              }
+            }
+          },
+          "08.03.07": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "e"
+              }
+            }
+          },
+          "08.03.08": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "f"
+              }
+            }
+          },
+          "08.03.09": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "g"
+              }
+            }
+          },
+          "08.03.10": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "h"
+              }
+            }
+          },
+          "08.03.11": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "i"
+              }
+            }
+          },
+          "08.03.12": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "j"
+              }
+            }
+          },
+          "08.03.13": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "k"
+              }
+            }
+          },
+          "08.03.14": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "l"
+              }
+            }
+          },
+          "08.03.15": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "m"
+              }
+            }
+          },
+          "08.03.16": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "n"
+              }
+            }
+          },
+          "08.03.17": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "o"
+              }
+            }
+          },
+          "08.03.18": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "p"
+              }
+            }
+          },
+          "08.03.19": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "q"
+              }
+            }
+          },
+          "08.03.20": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "r"
+              }
+            }
+          },
+          "08.03.21": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "s"
+              }
+            }
+          },
+          "08.03.22": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "t"
+              }
+            }
+          },
+          "08.03.23": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "u"
+              }
+            }
+          },
+          "08.03.24": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "v"
+              }
+            }
+          },
+          "08.03.25": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "w"
+              }
+            }
+          },
+          "08.03.26": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "x"
+              }
+            }
+          },
+          "08.03.27": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "y"
+              }
+            }
+          },
+          "08.03.28": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "z"
+              }
+            }
+          },
+          "08.03.29": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "{"
+              }
+            }
+          },
+          "08.03.30": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "|"
+              }
+            }
+          },
+          "08.03.31": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "}"
+              }
+            }
+          },
+          "08.03.32": {
+            "description": "",
+            "style": {
+              "symbol": {
+                "set": "FGDCGeoSym02",
+                "key": "~"
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

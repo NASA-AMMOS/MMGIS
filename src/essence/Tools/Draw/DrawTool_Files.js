@@ -2,6 +2,7 @@ import $ from 'jquery'
 import * as d3 from 'd3'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
+import LayerGeologic from '../../Basics/Layers_/LayerGeologic/LayerGeologic'
 import Globe_ from '../../Basics/Globe_/Globe_'
 import Map_ from '../../Basics/Map_/Map_'
 import CursorInfo from '../../Ancillary/CursorInfo'
@@ -108,6 +109,7 @@ var Files = {
         })
 
         //Filter
+
         let keepFocus = false
         $('#drawToolDrawFilterByTag').off('click')
         $('#drawToolDrawFilterByTag').on('click', function (e) {
@@ -125,6 +127,7 @@ var Files = {
                 $('#drawToolDrawFilter').val(newFilterString)
             $('#drawToolDrawFilter').focus()
         })
+
         $('#drawToolDrawFilterClear').off('click')
         $('#drawToolDrawFilterClear').on('click', function () {
             $('#drawToolDrawFilter').val('')
@@ -133,7 +136,7 @@ var Files = {
         $('#drawToolDrawFilter').off('input')
         $('#drawToolDrawFilter').on('input', fileFilter)
         $('#drawToolDrawSortDiv > div').off('click')
-        $('#drawToolDrawSortDiv > div').on('click', function () {
+        $('#drawToolDrawSortDiv > div').on('click', function (e) {
             $(this).toggleClass('active')
             fileFilter()
         })
@@ -250,6 +253,7 @@ var Files = {
             keepFocus = false
             $('#drawToolDrawFilter').focus()
         })
+
         $('.drawToolFilterDropdown li').off('click')
         $('.drawToolFilterDropdown li').on('click', function () {
             $(this).toggleClass('active')
@@ -312,6 +316,7 @@ var Files = {
                     parseInt(fileId)
                 )
                 if (file != null) file = DrawTool.files[file]
+
                 const fileNameLower = $(this).attr('file_name').toLowerCase()
                 const fileOwnerLower = $(this).attr('file_owner').toLowerCase()
                 let fileDescLower = ''
@@ -798,7 +803,7 @@ var Files = {
                                 3500,
                                 true,
                                 {
-                                    x: 295,
+                                    x: 305,
                                     y: 6,
                                 }
                             )
@@ -841,7 +846,6 @@ var Files = {
                     //save
                     $('.drawToolFileSave').on('click', function () {
                         const elm = $(this).parent().parent().parent()
-
                         //Only select files you own
                         if (mmgisglobal.user !== elm.attr('file_owner')) return
 
@@ -880,10 +884,13 @@ var Files = {
                                     3500,
                                     false,
                                     {
-                                        x: 295,
+                                        x: 305,
                                         y: 6,
                                     },
-                                    '#009eff'
+                                    '#009eff',
+                                    'black',
+                                    null,
+                                    true
                                 )
                                 elm.find('.drawToolFileName').text(filename)
                                 var files_i = F_.objectArrayIndexOfKeyWithValue(
@@ -904,7 +911,7 @@ var Files = {
                                     3500,
                                     true,
                                     {
-                                        x: 295,
+                                        x: 305,
                                         y: 6,
                                     }
                                 )
@@ -1040,6 +1047,7 @@ var Files = {
                     else style = l[i].feature.properties.style
 
                     let color = style.color
+
                     // Keep the active feature highlighted after mouseleave
                     if (Map_.activeLayer) {
                         if (
@@ -1068,17 +1076,25 @@ var Files = {
                     else if (l[i].hasOwnProperty('_layers')) {
                         //Arrow
                         var layers = l[i]._layers
+                        if (l[i].isLinework) {
+                            const geoColor = F_.getIn(
+                                style,
+                                'geologic.color',
+                                null
+                            )
+                            color =
+                                geoColor != null
+                                    ? F_.colorCodeToColor(geoColor)
+                                    : color
+                        }
                         layers[Object.keys(layers)[0]].setStyle({ color })
                         layers[Object.keys(layers)[1]].setStyle({ color })
-                    } else {
+                    } else
                         $('.DrawToolAnnotation_' + fileId).removeClass(
                             'highlight'
                         )
-                        if (Map_.activeLayer === l[i]) {
-                            $('.DrawToolAnnotation_' + fileId).addClass(
-                                'hovered'
-                            )
-                        }
+                    if (Map_.activeLayer === l[i]) {
+                        $('.DrawToolAnnotation_' + fileId).addClass('hovered')
                     }
                 }
             }
@@ -1191,10 +1207,12 @@ var Files = {
                             )
                                 features[i].properties.style.fillOpacity = 1
                         }
+                        const style = features[i].properties.style
+
                         if (features[i].properties.arrow === true) {
-                            var c = features[i].geometry.coordinates
-                            var start = new L.LatLng(c[0][1], c[0][0])
-                            var end = new L.LatLng(c[1][1], c[1][0])
+                            const c = features[i].geometry.coordinates
+                            const start = new L.LatLng(c[0][1], c[0][0])
+                            const end = new L.LatLng(c[1][1], c[1][0])
 
                             L_.addArrowToMap(
                                 layerId,
@@ -1216,17 +1234,22 @@ var Files = {
                             DrawTool.refreshNoteEvents()
                         } else if (features[i].geometry.type === 'Point') {
                             L_.layersGroup[layerId].push(
-                                L.circleMarker(
-                                    new L.LatLng(
-                                        features[i].geometry.coordinates[1],
-                                        features[i].geometry.coordinates[0]
-                                    ),
+                                LayerGeologic.createSymbolMarker(
+                                    features[i].geometry.coordinates[1],
+                                    features[i].geometry.coordinates[0],
                                     features[i].properties.style
                                 ).addTo(Map_.map)
                             )
                             L_.layersGroup[layerId][
                                 L_.layersGroup[layerId].length - 1
                             ].feature = features[i]
+                        } else if (features[i].geometry.type === 'LineString') {
+                            L_.layersGroup[layerId].push(
+                                LayerGeologic.createLinework(
+                                    features[i],
+                                    style
+                                ).addTo(Map_.map)
+                            )
                         } else {
                             L_.layersGroup[layerId].push(
                                 L.geoJson(
@@ -1235,7 +1258,49 @@ var Files = {
                                         features: [features[i]],
                                     },
                                     {
+                                        // eslint-disable-next-line
                                         style: function (feature) {
+                                            if (
+                                                feature.properties.style
+                                                    ?.geologic &&
+                                                typeof LayerGeologic.getUrl ===
+                                                    'function'
+                                            ) {
+                                                const style =
+                                                    feature.properties.style
+                                                const g = style.geologic
+
+                                                const fillImage =
+                                                    LayerGeologic.getFillPattern(
+                                                        LayerGeologic.getUrl(
+                                                            g.type,
+                                                            LayerGeologic.getTag(
+                                                                g.tag,
+                                                                g.color
+                                                            )
+                                                        ),
+                                                        g.size,
+                                                        g.fillColor
+                                                            ? g.fillColor[0] ===
+                                                              '#'
+                                                                ? F_.hexToRGBA(
+                                                                      g.fillColor,
+                                                                      g.fillOpacity ==
+                                                                          null
+                                                                          ? 1
+                                                                          : g.fillOpacity
+                                                                  )
+                                                                : g.fillColor ||
+                                                                  'none'
+                                                            : 'none',
+                                                        L_.Map_.map
+                                                    )
+
+                                                return {
+                                                    ...feature.properties.style,
+                                                    fillPattern: fillImage,
+                                                }
+                                            }
                                             return feature.properties.style
                                         },
                                     }
@@ -1257,10 +1322,10 @@ var Files = {
                             else {
                                 layer = Object.assign({}, llast)
                             }
-
                             coreFeatures.features.push(layer.feature)
                         }
                     }
+
                     if (coreFeatures.features.length > 0) {
                         Globe_.litho.addLayer('clamped', {
                             name: 'camptool_' + layerId,

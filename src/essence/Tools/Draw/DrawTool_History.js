@@ -24,7 +24,7 @@ var History = {
             return
         }
         $('#drawToolHistoryFile')
-            .css({ background: 'white', color: 'black' })
+            .css({ background: 'var(--color-mh)', color: 'black' })
             .text(file.file_name)
 
         DrawTool.getHistoryFile(

@@ -1,0 +1,123 @@
+/*Set Operations*/
+.drawToolContextMenuTabSetOperations {
+    padding: 0px !important;
+}
+.drawToolContextMenuTab.drawToolContextMenuTabSetOperations {
+    height: calc(100vh - 156px);
+}
+.drawToolContextMenuSetOperations {
+}
+.drawToolContextMenuSetOperationsBar {
+    display: flex;
+    justify-content: space-between;
+    color: white;
+}
+.drawToolContextMenuSetOperationsTabTitle {
+    color: var(--color-mh);
+    line-height: 40px;
+    padding-left: 10px;
+    font-size: 16px;
+}
+.drawToolContextMenuSetOperationsTabButtons {
+    display: flex;
+    color: #919191;
+    width: 100%;
+}
+.drawToolContextMenuTabButtonSO {
+    flex: 1;
+    text-align: center;
+    font-size: 16px;
+    height: 40px;
+    line-height: 40px;
+    border-bottom: 3px solid rgba(0, 0, 0, 0);
+    cursor: pointer;
+    border: 1px solid var(--color-a1-5);
+    transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
+        background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+.drawToolContextMenuTabButtonSO i {
+    padding: 1px 8px;
+}
+.drawToolContextMenuTabButtonSO.active {
+    color: var(--color-mh);
+    background: var(--color-a1-5);
+    border-bottom: 3px solid var(--color-mh);
+}
+.drawToolContextMenuTabButtonSO:not(.active):hover {
+    color: var(--color-mh);
+    background: var(--color-a1);
+}
+
+.drawToolContextMenuTabSO {
+    display: none;
+    padding-top: 15px;
+    padding-bottom: 0;
+    overflow-y: auto;
+    max-height: calc(100vh - 203px);
+}
+.drawToolContextMenuTabSO.active {
+    display: inherit;
+}
+
+.drawToolContextMenuTabSOMerge ul {
+    padding: 0;
+    margin: 0;
+    list-style-type: none;
+}
+.drawToolContextMenuTabSOMerge ul li {
+    display: flex;
+    justify-content: space-between;
+    color: var(--color-f);
+    padding: 0px 10px;
+    height: 40px;
+    line-height: 40px;
+    transition: all 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+.drawToolContextMenuTabSOMerge ul li:hover:not(:first-child) {
+    background: var(--color-a1-5);
+}
+.drawToolContextMenuTabSOMerge ul li:first-child {
+    border-bottom: 1px solid var(--color-a3);
+    font-weight: bold;
+}
+.drawToolContextMenuTabSOMergeCheckbox {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    border-radius: 3px;
+    margin: 11px 5px 10px 5px;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    transition: border 0.2s ease-out,
+        background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+    box-sizing: border-box;
+}
+.drawToolContextMenuTabSOMergeCheckbox.on {
+    border: none;
+    background: var(--color-c);
+}
+.drawToolContextMenuTabSOFooter {
+    display: flex;
+    width: 100%;
+    height: 43px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    background: var(--color-a);
+    padding: 3px 10px 8px 10px;
+    box-sizing: border-box;
+}
+
+.drawToolContextMenuTabSOFooter .drawToolButton1 {
+    margin-bottom: 0;
+    margin-right: 8px;
+}
+.drawToolContextMenuTabSOFooter .drawToolButton1:last-child {
+    flex: 1;
+    margin-right: 0;
+}
+
+.drawToolContextMenuTabSOSplit > div:first-child {
+    width: 100%;
+    color: var(--color-f);
+    text-align: center;
+}

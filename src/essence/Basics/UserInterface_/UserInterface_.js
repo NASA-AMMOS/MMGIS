@@ -92,7 +92,7 @@ var UserInterface = {
             .style('display', 'none')
             .style('width', '0px')
             .style('height', '100vh')
-            .style('background', '#001')
+            .style('background', '#000')
 
         Login.init()
 
@@ -520,6 +520,7 @@ var UserInterface = {
             .style('width', this.topSize + 'px')
             .style('padding-top', '40px')
             .style('background', 'var(--color-a)')
+            .style('border-right', '1px solid var(--color-a-5)')
             .style('top', '0px')
             .style('height', '100%')
             .style('z-index', '1004')
@@ -575,30 +576,25 @@ var UserInterface = {
     },
     openRightPanel: function (width) {
         if (UserInterface.rightPanelOpen != null) return
-        var oldWidth = parseInt(
-            UserInterface.splitscreens.style('width').replace('px', '')
-        )
-        $('#loginDiv').css('right', width + 'px')
-        $('.mouseLngLat').css('right', width + 'px')
-        var newWidth = oldWidth - width
-        UserInterface.splitscreens.style('width', newWidth + 'px')
+
+        $('#CoordinatesDiv').css('right', width + 'px')
+        $('#main-container').css('width', `calc(100% - ${width}px)`)
+
         UserInterface.mainWidth = $('#splitscreens').width()
-        var pp = UserInterface.getPanelPercents()
+        const pp = UserInterface.getPanelPercents()
         UserInterface.setPanelPercents(pp.viewer, pp.map, pp.globe)
         $('#uiRightPanel').css({ display: 'inherit', width: width })
 
-        UserInterface.rightPanelOpen = oldWidth
+        UserInterface.rightPanelOpen = true
     },
     closeRightPanel: function () {
         if (UserInterface.rightPanelOpen == null) return
-        $('#loginDiv').css('right', '0px')
-        $('.mouseLngLat').css('right', '0px')
-        UserInterface.splitscreens.style(
-            'width',
-            UserInterface.rightPanelOpen + 'px'
-        )
+
+        $('#CoordinatesDiv').css('right', '0px')
+        $('#main-container').css('width', `100%`)
+
         UserInterface.mainWidth = $('#splitscreens').width()
-        var pp = UserInterface.getPanelPercents()
+        const pp = UserInterface.getPanelPercents()
         UserInterface.setPanelPercents(pp.viewer, pp.map, pp.globe)
         $('#uiRightPanel').css({ display: 'none', width: 0 })
 

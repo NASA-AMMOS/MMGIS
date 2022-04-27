@@ -28,12 +28,16 @@ var Drawing = {
             d.file_id == undefined ? DrawTool.currentFileId : d.file_id
         var lk = 'DrawTool_' + file_id
 
+        let tag = null
+        if (d.shape && d.shape.properties) tag = d.shape.properties.uuid
+
         DrawTool.addDrawing(
             {
                 file_id: file_id,
                 intent: d.intent,
                 properties: JSON.stringify(d.shape.properties),
                 geometry: JSON.stringify(d.shape.geometry),
+                tag: tag,
                 clip: clip,
             },
             (function (shape) {
@@ -45,7 +49,7 @@ var Drawing = {
                         d.begin()
                     }
 
-                    if (typeof callback === 'function') callback()
+                    if (typeof callback === 'function') callback(data)
                 }
             })(JSON.parse(JSON.stringify(d.shape))),
             function () {
@@ -96,7 +100,7 @@ var Drawing = {
                                 noChange = true
                         } catch (error) {
                             CursorInfo.update('ERROR: Topology.', 2500, true, {
-                                x: 295,
+                                x: 305,
                                 y: 6,
                             })
                             if (d.end && d.begin) {
@@ -178,7 +182,7 @@ var Drawing = {
                                         'Failed to cut through some shapes.',
                                         6000,
                                         true,
-                                        { x: 295, y: 6 }
+                                        { x: 305, y: 6 }
                                     )
                                 }
                             )
@@ -213,7 +217,7 @@ var Drawing = {
                     }
                 } catch (error) {
                     CursorInfo.update('ERROR: Topology.', 2500, true, {
-                        x: 295,
+                        x: 305,
                         y: 6,
                     })
                     if (d.end && d.begin) {
@@ -262,10 +266,17 @@ var Drawing = {
     },
     switchDrawingType: function (type) {
         $('#drawToolDrawingTypeDiv > div').removeClass('active')
-        var elm = $('.drawToolDrawingType' + type)
-        elm.addClass('active')
+        if (type != null) {
+            var elm = $('.drawToolDrawingType' + type)
+            elm.addClass('active')
 
-        DrawTool.setDrawingType($(this).attr('draw'))
+            DrawTool.setDrawingType($(this).attr('draw'))
+        } else {
+            $('#drawToolDrawingTypeDiv > div').css(
+                'background',
+                'var(--color-a)'
+            )
+        }
     },
     setDrawing: function (onlyIntentChanged) {
         if (onlyIntentChanged) DrawTool.currentFileId = null
@@ -499,7 +510,6 @@ var drawing = {
             var n = $('#drawToolDrawFeaturesNewName')
             d.shape.properties.name =
                 n.val() || n.attr('placeholder') || 'Polygon'
-
             DrawTool.drawOverThroughUnder(d)
         },
         stopclick: false,
@@ -671,14 +681,12 @@ var drawing = {
                     d.currentrate = 0
                 }
             }
-
             d.shape = d.drawing._poly || d.shape
         },
         stop: function () {
             var d = drawing.line
 
             if (d.shiftDisabled) return
-
             d.shape = d.shape.toGeoJSON()
             d.shape.geometry.type = 'LineString'
             d.shape.properties.style = d.style
@@ -1149,7 +1157,6 @@ var drawing = {
                 d.arrowHeads[d.arrowHeads.length - 1],
                 3
             )
-
             if (arrowPts) {
                 arrowPts = arrowPts._latlngs
 

@@ -18,6 +18,7 @@
     },
     "hasVars": true,
     "name": "Draw",
+    "toolbarPriority": 1001,
     "paths": {
         "DrawTool": "essence/Tools/Draw/DrawTool"
     },

@@ -1,0 +1,3807 @@
+{
+    "symbols": {
+        "groups": [
+            {
+                "title": "FGDC 2.15",
+                "category": "Small, Minor Fault",
+                "definitions": {
+                    "02.15.01": {
+                        "description": "Small, minor inclined fault — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "L"
+                            }
+                        }
+                    },
+                    "02.15.02": {
+                        "description": "Small, minor vertical or near-vertical fault — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "M"
+                            }
+                        }
+                    },
+                    "02.15.03": {
+                        "description": "Small, minor shear fault — Showing dip. Arrow shows direction of relative horizontal displacement.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "N"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "title": "FGDC 3.3",
+                "category": "Geophysical Stations",
+                "definitions": {
+                    "03.03.04": {
+                        "description": "Horizontal control point.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "®"
+                            }
+                        }
+                    },
+                    "03.03.05": {
+                        "description": "Survey station.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "¯"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "title": "FGDC 4.3",
+                "category": "Small, Minor Joints",
+                "definitions": {
+                    "04.03.01": {
+                        "description": "Small, minor horizontal joint (1st option).",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "R"
+                            }
+                        }
+                    },
+                    "04.03.02": {
+                        "description": "Small, minor inclined joint (1st option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "S"
+                            }
+                        }
+                    },
+                    "04.03.03": {
+                        "description": "Small, minor vertical or near-vertical joint (1st option) — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "T"
+                            }
+                        }
+                    },
+                    "04.03.04": {
+                        "description": "Small, minor inclined (dip direction to right) joint, for multiple observations at one locality (1st option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "U"
+                            }
+                        }
+                    },
+                    "04.03.05": {
+                        "description": "Small, minor inclined (dip direction to left) joint, for multiple observations at one locality (1st option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "V"
+                            }
+                        }
+                    },
+                    "04.03.06": {
+                        "description": "Small, minor vertical or near-vertical joint, for multiple observations at one locality (1st option) — Showing stike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "W"
+                            }
+                        }
+                    },
+                    "04.03.07": {
+                        "description": "Small, minor horizontal joint (2nd option).",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "X"
+                            }
+                        }
+                    },
+                    "04.03.08": {
+                        "description": "Small, minor inclined joint (2nd option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "Y"
+                            }
+                        }
+                    },
+                    "04.03.09": {
+                        "description": "Small, minor vertical or near-vertical joint (2nd option) — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "Z"
+                            }
+                        }
+                    },
+                    "04.03.10": {
+                        "description": "Small, minor inclined (dip direction to right) joint, for multiple observations at one locality (2nd option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "["
+                            }
+                        }
+                    },
+                    "04.03.11": {
+                        "description": "Small, minor inclined (dip direction to left) joint, for multiple observations at one locality (2nd option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "\\"
+                            }
+                        }
+                    },
+                    "04.03.12": {
+                        "description": "Small, minor vertical or near-vertical joint, for multiple observations at one locality (2nd option) — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "]"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "title": "FGDC 5.11",
+                "category": "Small, Minor Folds",
+                "definitions": {
+                    "05.11.01": {
+                        "description": "Small, minor fold, horizontal axial surface.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "Ï"
+                            }
+                        }
+                    },
+                    "05.11.02": {
+                        "description": "Small, minor dome.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "Ð"
+                            }
+                        }
+                    },
+                    "05.11.03": {
+                        "description": "Small, minor basin.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "Ñ"
+                            }
+                        }
+                    },
+                    "05.11.04": {
+                        "description": "Small, minor anticline, vertical or near-vertical axial surface (1st option) — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "Ò"
+                            }
+                        }
+                    },
+                    "05.11.05": {
+                        "description": "Small, minor anticline, inclined axial surface (1st option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "Ó"
+                            }
+                        }
+                    },
+                    "05.11.06": {
+                        "description": "Small, minor anticline, vertical or near-vertical axial surface (2nd option) — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "Ô"
+                            }
+                        }
+                    },
+                    "05.11.07": {
+                        "description": "Small, minor anticline, inclined axial surface (2nd option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "Õ"
+                            }
+                        }
+                    },
+                    "05.11.08": {
+                        "description": "Small, minor antiform, vertical or near-vertical axial surface (1st option) — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "Ö"
+                            }
+                        }
+                    },
+                    "05.11.09": {
+                        "description": "Small, minor antiform, inclined axial surface (1st option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "×"
+                            }
+                        }
+                    },
+                    "05.11.10": {
+                        "description": "Small, minor antiform, vertical or near-vertical axial surface (2nd option) — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "Ø"
+                            }
+                        }
+                    },
+                    "05.11.11": {
+                        "description": "Small, minor antiform, inclined axial surface (2nd option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "Ù"
+                            }
+                        }
+                    },
+                    "05.11.12": {
+                        "description": "Small, minor asymmetric anticline, vertical or near-vertical axial surface (1st option) — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "Ú"
+                            }
+                        }
+                    },
+                    "05.11.13": {
+                        "description": "Small, minor asymmetric anticline, inclined axial surface (1st option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "Û"
+                            }
+                        }
+                    },
+                    "05.11.14": {
+                        "description": "Small, minor asymmetric anticline, vertical or near-vertical axial surface (2nd option) — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "Ü"
+                            }
+                        }
+                    },
+                    "05.11.15": {
+                        "description": "Small, minor asymmetric anticline, inclined axial surface (2nd option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "Ý"
+                            }
+                        }
+                    },
+                    "05.11.16": {
+                        "description": "Small, minor overturned anticline, vertical or near-vertical axial surface (1st option) — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "Þ"
+                            }
+                        }
+                    },
+                    "05.11.17": {
+                        "description": "Small, minor overturned anticline, inclined axial surface (1st option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "ß"
+                            }
+                        }
+                    },
+                    "05.11.18": {
+                        "description": "Small, minor overturned anticline, vertical or near-vertical axial surface (2nd option) — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "à"
+                            }
+                        }
+                    },
+                    "05.11.19": {
+                        "description": "Small, minor overturned anticline, inclined axial surface (2nd option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "á"
+                            }
+                        }
+                    },
+                    "05.11.20": {
+                        "description": "Small, minor inverted anticline, vertical or near-vertical axial surface (1st option) — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "â"
+                            }
+                        }
+                    },
+                    "05.11.21": {
+                        "description": "Small, minor inverted anticline, inclined axial surface (1st option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "ã"
+                            }
+                        }
+                    },
+                    "05.11.22": {
+                        "description": "Small, minor inverted anticline, vertical or near-vertical axial surface (2nd option) — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "ä"
+                            }
+                        }
+                    },
+                    "05.11.23": {
+                        "description": "Small, minor inverted anticline, inclined axial surface (2nd option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "å"
+                            }
+                        }
+                    },
+                    "05.11.24": {
+                        "description": "Small, minor syncline, vertical or near-vertical axial surface (1st option) — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "æ"
+                            }
+                        }
+                    },
+                    "05.11.25": {
+                        "description": "Small, minor syncline, inclined axial surface (1st option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "ç"
+                            }
+                        }
+                    },
+                    "05.11.26": {
+                        "description": "Small, minor syncline, vertical or near-vertical axial surface (2nd option) — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "è"
+                            }
+                        }
+                    },
+                    "05.11.27": {
+                        "description": "Small, minor syncline, inclined axial surface (2nd option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "é"
+                            }
+                        }
+                    },
+                    "05.11.28": {
+                        "description": "Small, minor synform, vertical or near-vertical axial surface (1st option) — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "ê"
+                            }
+                        }
+                    },
+                    "05.11.29": {
+                        "description": "Small, minor synform, inclined axial surface (1st option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "ë"
+                            }
+                        }
+                    },
+                    "05.11.30": {
+                        "description": "Small, minor synform, vertical or near-vertical axial surface (2nd option) — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "ì"
+                            }
+                        }
+                    },
+                    "05.11.31": {
+                        "description": "Small, minor synform, inclined axial surface (2nd option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "í"
+                            }
+                        }
+                    },
+                    "05.11.32": {
+                        "description": "Small, minor asymmetric syncline, vertical or near-vertical axial surface (1st option) — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "î"
+                            }
+                        }
+                    },
+                    "05.11.33": {
+                        "description": "Small, minor asymmetric syncline, inclined axial surface (1st option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "ï"
+                            }
+                        }
+                    },
+                    "05.11.34": {
+                        "description": "Small, minor asymmetric syncline, vertical or near-vertical axial surface (2nd option) — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "ð"
+                            }
+                        }
+                    },
+                    "05.11.35": {
+                        "description": "Small, minor asymmetric syncline, inclined axial surface (2nd option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "ñ"
+                            }
+                        }
+                    },
+                    "05.11.36": {
+                        "description": "Small, minor overturned syncline, vertical or near-vertical axial surface (1st option) — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "ò"
+                            }
+                        }
+                    },
+                    "05.11.37": {
+                        "description": "Small, minor overturned syncline, inclined axial surface (1st option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "ó"
+                            }
+                        }
+                    },
+                    "05.11.38": {
+                        "description": "Small, minor overturned syncline, vertical or near-vertical axial surface (2nd option) — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "ô"
+                            }
+                        }
+                    },
+                    "05.11.39": {
+                        "description": "Small, minor overturned syncline, inclined axial surface (2nd option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "õ"
+                            }
+                        }
+                    },
+                    "05.11.40": {
+                        "description": "Small, minor inverted syncline, vertical or near-vertical axial surface (1st option) — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "ö"
+                            }
+                        }
+                    },
+                    "05.11.41": {
+                        "description": "Small, minor inverted syncline, inclined axial surface (1st option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "÷"
+                            }
+                        }
+                    },
+                    "05.11.42": {
+                        "description": "Small, minor inverted syncline, vertical or near-vertical axial surface (2nd option) — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "ø"
+                            }
+                        }
+                    },
+                    "05.11.43": {
+                        "description": "Small, minor inverted syncline, inclined axial surface (2nd option) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "ù"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "title": "FGDC 6",
+                "category": "Bedding",
+                "definitions": {
+                    "06.01": {
+                        "description": "Horizontal bedding.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "^"
+                            }
+                        }
+                    },
+                    "06.02": {
+                        "description": "Inclined bedding — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "_"
+                            }
+                        }
+                    },
+                    "06.03": {
+                        "description": "Vertical bedding — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "`"
+                            }
+                        }
+                    },
+                    "06.04": {
+                        "description": "Overturned bedding — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "a"
+                            }
+                        }
+                    },
+                    "06.05": {
+                        "description": "Bedding overturned more than 180 degrees — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "b"
+                            }
+                        }
+                    },
+                    "06.06": {
+                        "description": "Inclined (dip direction to right) bedding, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "c"
+                            }
+                        }
+                    },
+                    "06.07": {
+                        "description": "Inclined (dip direction to left) bedding, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "d"
+                            }
+                        }
+                    },
+                    "06.08": {
+                        "description": "Vertical bedding, for multiple observations at one locality — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "e"
+                            }
+                        }
+                    },
+                    "06.09": {
+                        "description": "Overturned (dip direction to right) bedding, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "f"
+                            }
+                        }
+                    },
+                    "06.10": {
+                        "description": "Overturned (dip direction to left) bedding, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "g"
+                            }
+                        }
+                    },
+                    "06.11": {
+                        "description": "Bedding overturned more than 180 degrees (dip direction to right), for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "h"
+                            }
+                        }
+                    },
+                    "06.12": {
+                        "description": "Bedding overturned more than 180 degrees (dip direction to left), for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "i"
+                            }
+                        }
+                    },
+                    "06.13": {
+                        "description": "Inclined bedding, where top direction of beds is known from local features — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "j"
+                            }
+                        }
+                    },
+                    "06.14": {
+                        "description": "Vertical bedding, where top direction of beds is known from local features — Showing strike. Ball shows top direction.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "k"
+                            }
+                        }
+                    },
+                    "06.15": {
+                        "description": "Overturned bedding, where top direction of beds is known from local features — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "l"
+                            }
+                        }
+                    },
+                    "06.16": {
+                        "description": "Bedding overturned more than 180 degrees, where top direction of beds is known from local features — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "m"
+                            }
+                        }
+                    },
+                    "06.17": {
+                        "description": "Inclined (dip direction to right) bedding, where top direction of beds is known from local features, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "n"
+                            }
+                        }
+                    },
+                    "06.18": {
+                        "description": "Inclined (dip direction to left) bedding, where top direction of beds is known from local features, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "o"
+                            }
+                        }
+                    },
+                    "06.19": {
+                        "description": "Vertical (top direction to right) bedding, where top direction of beds is known from local features, for multiple observations at one locality — Showing strike. Ball shows top direction.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "p"
+                            }
+                        }
+                    },
+                    "06.20": {
+                        "description": "Vertical (top direction to left) bedding, where top direction of beds is known from local features, for multiple observations at one locality — Showing strike. Ball shows top direction.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "q"
+                            }
+                        }
+                    },
+                    "06.21": {
+                        "description": "Overturned (dip direction to right) bedding, where top direction of beds is known from local features, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "r"
+                            }
+                        }
+                    },
+                    "06.22": {
+                        "description": "Overturned (dip direction to left) bedding, where top direction of beds is known from local features, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "s"
+                            }
+                        }
+                    },
+                    "06.23": {
+                        "description": "Bedding overturned more than 180 degrees (dip direction to right), where top direction of beds is known from local features, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "t"
+                            }
+                        }
+                    },
+                    "06.24": {
+                        "description": "Bedding overturned more than 180 degrees (dip direction to left), where top direction of beds is known from local features, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "u"
+                            }
+                        }
+                    },
+                    "06.25": {
+                        "description": "Inclined crenulated, warped, undulatory, or contorted bedding — Showing approximate strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "v"
+                            }
+                        }
+                    },
+                    "06.26": {
+                        "description": "Vertical or near-vertical crenulated, warped, undulatory, or contorted bedding — Showing approximate strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "w"
+                            }
+                        }
+                    },
+                    "06.27": {
+                        "description": "Inclined graded bedding—Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "x"
+                            }
+                        }
+                    },
+                    "06.28": {
+                        "description": "Vertical or near-vertical graded bedding — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "y"
+                            }
+                        }
+                    },
+                    "06.29": {
+                        "description": "Overturned graded bedding — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "z"
+                            }
+                        }
+                    },
+                    "06.30": {
+                        "description": "Inclined bedding in crossbedded rocks — Showing approximate strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "{"
+                            }
+                        }
+                    },
+                    "06.31": {
+                        "description": "Vertical or near-vertical bedding in crossbedded rocks — Showing approximate strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "|"
+                            }
+                        }
+                    },
+                    "06.32": {
+                        "description": "Overturned bedding in crossbedded rocks — Showing approximate strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "}"
+                            }
+                        }
+                    },
+                    "06.33": {
+                        "description": "Approximate orientation of inclined bedding — Showing approximate strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "~"
+                            }
+                        }
+                    },
+                    "06.34": {
+                        "description": "Approximate orientation of vertical or near-vertical bedding — Showing approximate strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "¡"
+                            }
+                        }
+                    },
+                    "06.35": {
+                        "description": "Approximate orientation of overturned bedding — Showing approximate strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "¢"
+                            }
+                        }
+                    },
+                    "06.36": {
+                        "description": "Approximate orientation of inclined bedding, where top direction of beds is known from local features — Showing approximate strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "£"
+                            }
+                        }
+                    },
+                    "06.37": {
+                        "description": "Approximate orientation of vertical or near-vertical bedding, where top direction of beds is known from local features — Showing approximate strike. Ball shows top direction.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "¤"
+                            }
+                        }
+                    },
+                    "06.38": {
+                        "description": "Approximate orientation of overturned bedding, where top direction of beds is known from local features — Showing approximate strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "¥"
+                            }
+                        }
+                    },
+                    "06.39": {
+                        "description": "Horizontal bedding, as determined remotely or from aerial photographs.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "¦"
+                            }
+                        }
+                    },
+                    "06.40": {
+                        "description": "Gently inclined (between 0° and 30°) bedding, as determined remotely or from aerial photographs — Showing approximate strike and direction of dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "§"
+                            }
+                        }
+                    },
+                    "06.41": {
+                        "description": "Moderately inclined (between 30° and 60°) bedding, as determined remotely or from aerial photographs — Showing approximate strike and direction of dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "¨"
+                            }
+                        }
+                    },
+                    "06.42": {
+                        "description": "Steeply inclined (between 60° and 90°) bedding, as determined remotely or from aerial photographs — Showing approximate strike and direction of dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "©"
+                            }
+                        }
+                    },
+                    "06.43": {
+                        "description": "Vertical or near-vertical bedding, as determined remotely or from aerial photographs — Showing approximate strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "ª"
+                            }
+                        }
+                    },
+                    "06.44": {
+                        "description": "Gently overturned (between 0° and 30°) bedding, as determined remotely or from aerial photographs — Showing approximate strike and direction of dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "«"
+                            }
+                        }
+                    },
+                    "06.45": {
+                        "description": "Moderately overturned (between 30° and 60°) bedding, as determined remotely or from aerial photographs — Showing approximate strike and direction of dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "¬"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "title": "FGDC 7",
+                "category": "Cleavage",
+                "definitions": {
+                    "07.01": {
+                        "description": "Horizontal cleavage (generic or type unspecified.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "ú"
+                            }
+                        }
+                    },
+                    "07.02": {
+                        "description": "Inclined cleavage (generic or type unspecified) — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "û"
+                            }
+                        }
+                    },
+                    "07.03": {
+                        "description": "Vertical cleavage (generic or type unspecified) — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "ü"
+                            }
+                        }
+                    },
+                    "07.04": {
+                        "description": "Inclined (dip direction to right) cleavage (generic or type unspecified), for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "ý"
+                            }
+                        }
+                    },
+                    "07.05": {
+                        "description": "Inclined (dip direction to left) cleavage (generic or type unspecified), for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "þ"
+                            }
+                        }
+                    },
+                    "07.06": {
+                        "description": "Vertical cleavage (generic or type unspecified), for multiple observations at one locality — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym01",
+                                "key": "ÿ"
+                            }
+                        }
+                    },
+                    "07.07": {
+                        "description": "Horizontal continuous, slaty cleavage.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "!"
+                            }
+                        }
+                    },
+                    "07.08": {
+                        "description": "Inclined continuous, slaty cleavage — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "\""
+                            }
+                        }
+                    },
+                    "07.09": {
+                        "description": "Vertical continuous, slaty cleavage — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "#"
+                            }
+                        }
+                    },
+                    "07.10": {
+                        "description": "Inclined (dip direction to right) continuous, slaty cleavage, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "$"
+                            }
+                        }
+                    },
+                    "07.11": {
+                        "description": "Inclined (dip direction to left) continuous, slaty cleavage, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "%"
+                            }
+                        }
+                    },
+                    "07.12": {
+                        "description": "Vertical continuous slaty, cleavage, for multiple observations at one locality — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "&"
+                            }
+                        }
+                    },
+                    "07.13": {
+                        "description": "Horizontal disjunctive, spaced cleavage.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "'"
+                            }
+                        }
+                    },
+                    "07.14": {
+                        "description": "Inclined disjunctive, spaced cleavage — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "("
+                            }
+                        }
+                    },
+                    "07.15": {
+                        "description": "Vertical disjunctive, spaced cleavage — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": ")"
+                            }
+                        }
+                    },
+                    "07.16": {
+                        "description": "Inclined (dip direction to right) disjunctive, spaced cleavage, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "*"
+                            }
+                        }
+                    },
+                    "07.17": {
+                        "description": "Inclined (dip direction to left) disjunctive, spaced cleavage, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "+"
+                            }
+                        }
+                    },
+                    "07.18": {
+                        "description": "Vertical disjunctive, spaced cleavage, for multiple observations at one locality — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": ","
+                            }
+                        }
+                    },
+                    "07.19": {
+                        "description": "Horizontal disjunctive, symmetric crenulation cleavage.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "-"
+                            }
+                        }
+                    },
+                    "07.20": {
+                        "description": "Inclined disjunctive, symmetric crenulation cleavage — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "."
+                            }
+                        }
+                    },
+                    "07.21": {
+                        "description": "Vertical or near-vertical disjunctive, symmetric crenulation cleavage — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "/"
+                            }
+                        }
+                    },
+                    "07.22": {
+                        "description": "Inclined (dip direction to right) disjunctive, symmetric crenulation cleavage, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "0"
+                            }
+                        }
+                    },
+                    "07.23": {
+                        "description": "Inclined (dip direction to left) disjunctive, symmetric crenulation cleavage, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "1"
+                            }
+                        }
+                    },
+                    "07.24": {
+                        "description": "Vertical or near-vertical disjunctive, symmetric crenulation cleavage, for multiple observations at one locality — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "2"
+                            }
+                        }
+                    },
+                    "07.25": {
+                        "description": "Horizontal disjunctive, asymmetric (S-shaped, counterclockwise sense of shear) crenulation cleavage.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "3"
+                            }
+                        }
+                    },
+                    "07.26": {
+                        "description": "Inclined disjunctive, asymmetric (S-shaped, counterclockwise sense of shear) crenulation cleavage — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "4"
+                            }
+                        }
+                    },
+                    "07.27": {
+                        "description": "Vertical or near-vertical disjunctive, asymmetric (S-shaped, counterclockwise sense of shear) crenulation cleavage — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "5"
+                            }
+                        }
+                    },
+                    "07.28": {
+                        "description": "Inclined (dip direction to right) disjunctive, asymmetric (S-shaped, counterclockwise sense of shear) crenulation cleavage, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "6"
+                            }
+                        }
+                    },
+                    "07.29": {
+                        "description": "Inclined (dip direction to left) disjunctive, asymmetric (S-shaped, counterclockwise sense of shear) crenulation cleavage, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "7"
+                            }
+                        }
+                    },
+                    "07.30": {
+                        "description": "Vertical or near-vertical disjunctive, asymmetric (S-shaped, counterclockwise sense of shear) crenulation cleavage, for multiple observations at one locality — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "8"
+                            }
+                        }
+                    },
+                    "07.31": {
+                        "description": "Horizontal disjunctive, asymmetric (Z-shaped, clockwise sense of shear) crenulation cleavage.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "9"
+                            }
+                        }
+                    },
+                    "07.32": {
+                        "description": "Inclined disjunctive, asymmetric (Z-shaped, clockwise sense of shear) crenulation cleavage — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": ":"
+                            }
+                        }
+                    },
+                    "07.33": {
+                        "description": "Vertical or near-vertical disjunctive, asymmetric (Z-shaped, clockwise sense of shear) crenulation cleavage — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": ";"
+                            }
+                        }
+                    },
+                    "07.34": {
+                        "description": "Inclined (dip direction to right) disjunctive, asymmetric (Z-shaped, clockwise sense of shear) crenulation cleavage, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "<"
+                            }
+                        }
+                    },
+                    "07.35": {
+                        "description": "Inclined (dip direction to left) disjunctive, asymmetric (Z-shaped, clockwise sense of shear) crenulation cleavage, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "="
+                            }
+                        }
+                    },
+                    "07.36": {
+                        "description": "Vertical or near-vertical disjunctive, asymmetric (Z-shaped, clockwise sense of shear) crenulation cleavage, for multiple observations at one locality — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": ">"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "title": "FGDC 8.1",
+                "category": "Generic Foliation",
+                "definitions": {
+                    "08.01.01": {
+                        "description": "Horizontal generic (origin not known or not specified) foliation.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "?"
+                            }
+                        }
+                    },
+                    "08.01.02": {
+                        "description": "Inclined generic (origin not known or not specified) foliation — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "@"
+                            }
+                        }
+                    },
+                    "08.01.03": {
+                        "description": "Vertical generic (origin not known or not specified) foliation — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "A"
+                            }
+                        }
+                    },
+                    "08.01.04": {
+                        "description": "Inclined (dip direction to right) generic (origin not known or not specified) foliation, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "B"
+                            }
+                        }
+                    },
+                    "08.01.05": {
+                        "description": "Inclined (dip direction to left) generic (origin not known or not specified) foliation, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "C"
+                            }
+                        }
+                    },
+                    "08.01.06": {
+                        "description": "Vertical generic (origin not known or not specified) foliation or foliation, for multiple observations at one locality — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "D"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "title": "FGDC 8.2",
+                "category": "Primary Foliation",
+                "definitions": {
+                    "08.02.01": {
+                        "description": "Massive igneous rock.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "E"
+                            }
+                        }
+                    },
+                    "08.02.02": {
+                        "description": "Horizontal flow banding, lamination, layering, or foliation in igneous rock.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "F"
+                            }
+                        }
+                    },
+                    "08.02.03": {
+                        "description": "Inclined flow banding, lamination, layering, or foliation in igneous rock — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "G"
+                            }
+                        }
+                    },
+                    "08.02.04": {
+                        "description": "Vertical flow banding, lamination, layering, or foliation in igneous rock — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "H"
+                            }
+                        }
+                    },
+                    "08.02.05": {
+                        "description": "Inclined (dip direction to right) flow banding, lamination, layering, or foliation in igneous rock, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "I"
+                            }
+                        }
+                    },
+                    "08.02.06": {
+                        "description": "Inclined (dip direction to left) flow banding, lamination, layering, or foliation in igneous rock, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "J"
+                            }
+                        }
+                    },
+                    "08.02.07": {
+                        "description": "Vertical flow banding, lamination, layering, or foliation in igneous rock, for multiple observations at one locality — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "K"
+                            }
+                        }
+                    },
+                    "08.02.08": {
+                        "description": "Inclined crinkled or deformed flow banding, lamination, layering, or foliation in igneous rock — Showing approximate strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "L"
+                            }
+                        }
+                    },
+                    "08.02.09": {
+                        "description": "Vertical or near-vertical crinkled or deformed flow banding, lamination, layering, or foliation in igneous rock — Showing approximate strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "M"
+                            }
+                        }
+                    },
+                    "08.02.10": {
+                        "description": "Horizontal cumulate foliation.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "N"
+                            }
+                        }
+                    },
+                    "08.02.11": {
+                        "description": "Inclined cumulate foliation — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "O"
+                            }
+                        }
+                    },
+                    "08.02.12": {
+                        "description": "Vertical cumulate foliation — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "P"
+                            }
+                        }
+                    },
+                    "08.02.13": {
+                        "description": "Overturned cumulate foliation — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Q"
+                            }
+                        }
+                    },
+                    "08.02.14": {
+                        "description": "Inclined cumulate foliation, where top direction of layers is known from local features — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "R"
+                            }
+                        }
+                    },
+                    "08.02.15": {
+                        "description": "Vertical cumulate foliation, where top direction of layers is known from local features — Showing strike. Ball shows top direction.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "S"
+                            }
+                        }
+                    },
+                    "08.02.16": {
+                        "description": "Overturned cumulate foliation, where top direction of layers is known from local features — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "T"
+                            }
+                        }
+                    },
+                    "08.02.17": {
+                        "description": "Inclined crinkled or deformed cumulate foliation — Showing approximate strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "U"
+                            }
+                        }
+                    },
+                    "08.02.18": {
+                        "description": "Vertical or near-vertical crinkled or deformed cumulate foliation — Showing approximate strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "V"
+                            }
+                        }
+                    },
+                    "08.02.19": {
+                        "description": "Horizontal eutaxitic foliation.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "W"
+                            }
+                        }
+                    },
+                    "08.02.20": {
+                        "description": "Inclined eutaxitic foliation — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "X"
+                            }
+                        }
+                    },
+                    "08.02.21": {
+                        "description": "Vertical or near-vertical eutaxitic foliation — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Y"
+                            }
+                        }
+                    },
+                    "08.02.22": {
+                        "description": "Inclined (dip direction to right) eutaxitic foliation, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Z"
+                            }
+                        }
+                    },
+                    "08.02.23": {
+                        "description": "Inclined (dip direction to left) eutaxitic foliation, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "["
+                            }
+                        }
+                    },
+                    "08.02.24": {
+                        "description": "Vertical or near-vertical eutaxitic foliation, for multiple observations at one locality — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "\\"
+                            }
+                        }
+                    },
+                    "08.02.25": {
+                        "description": "Inclined crinkled or deformed eutaxitic foliation — Showing approximate strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "]"
+                            }
+                        }
+                    },
+                    "08.02.26": {
+                        "description": "Vertical or near-vertical crinkled or deformed eutaxitic foliation — Showing approximate strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "^"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "title": "FGDC 8.3",
+                "category": "Secondary Foliation",
+                "definitions": {
+                    "08.03.01": {
+                        "description": "Horizontal metamorphic or tectonic foliation.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "_"
+                            }
+                        }
+                    },
+                    "08.03.02": {
+                        "description": "Inclined metamorphic or tectonic foliation — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "`"
+                            }
+                        }
+                    },
+                    "08.03.03": {
+                        "description": "Vertical metamorphic or tectonic foliation — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "a"
+                            }
+                        }
+                    },
+                    "08.03.04": {
+                        "description": "Inclined (dip direction to right) metamorphic or tectonic foliation, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "b"
+                            }
+                        }
+                    },
+                    "08.03.05": {
+                        "description": "Inclined (dip direction to left) metamorphic or tectonic foliation, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "c"
+                            }
+                        }
+                    },
+                    "08.03.06": {
+                        "description": "Vertical metamorphic or tectonic foliation, for multiple observations at one locality — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "d"
+                            }
+                        }
+                    },
+                    "08.03.07": {
+                        "description": "Horizontal metamorphic or tectonic foliation parallel to bedding.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "e"
+                            }
+                        }
+                    },
+                    "08.03.08": {
+                        "description": "Inclined metamorphic or tectonic foliation parallel to bedding — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "f"
+                            }
+                        }
+                    },
+                    "08.03.09": {
+                        "description": "Vertical metamorphic or tectonic foliation parallel to bedding — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "g"
+                            }
+                        }
+                    },
+                    "08.03.10": {
+                        "description": "Inclined metamorphic or tectonic foliation parallel to overturned bedding — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "h"
+                            }
+                        }
+                    },
+                    "08.03.11": {
+                        "description": "Inclined metamorphic or tectonic foliation parallel to upright bedding, where top direction of beds is known from local features — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "i"
+                            }
+                        }
+                    },
+                    "08.03.12": {
+                        "description": "Vertical metamorphic or tectonic foliation parallel to bedding, where top direction of beds is known from local features — Showing strike. Ball shows top direction.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "j"
+                            }
+                        }
+                    },
+                    "08.03.13": {
+                        "description": "Inclined metamorphic or tectonic foliation parallel to overturned bedding, where top direction of beds is known from local features — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "k"
+                            }
+                        }
+                    },
+                    "08.03.14": {
+                        "description": "Inclined crinkled or deformed metamorphic or tectonic foliation — Showing approximate strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "l"
+                            }
+                        }
+                    },
+                    "08.03.15": {
+                        "description": "Vertical or near-vertical crinkled or deformed metamorphic or tectonic foliation — Showing approximate strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "m"
+                            }
+                        }
+                    },
+                    "08.03.16": {
+                        "description": "Horizontal continuous, penetrative foliation.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "n"
+                            }
+                        }
+                    },
+                    "08.03.17": {
+                        "description": "Inclined continuous, penetrative foliation — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "o"
+                            }
+                        }
+                    },
+                    "08.03.18": {
+                        "description": "Vertical continuous, penetrative foliation — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "p"
+                            }
+                        }
+                    },
+                    "08.03.19": {
+                        "description": "Inclined (dip direction to right) continuous, penetrative foliation, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "q"
+                            }
+                        }
+                    },
+                    "08.03.20": {
+                        "description": "Inclined (dip direction to left) continuous, penetrative foliation, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "r"
+                            }
+                        }
+                    },
+                    "08.03.21": {
+                        "description": "Vertical continuous, penetrative foliation, for multiple observations at one locality — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "s"
+                            }
+                        }
+                    },
+                    "08.03.22": {
+                        "description": "Horizontal disjunctive, spaced foliation.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "t"
+                            }
+                        }
+                    },
+                    "08.03.23": {
+                        "description": "Inclined disjunctive, spaced foliation — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "u"
+                            }
+                        }
+                    },
+                    "08.03.24": {
+                        "description": "Vertical disjunctive, spaced foliation — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "v"
+                            }
+                        }
+                    },
+                    "08.03.25": {
+                        "description": "Inclined (dip direction to right) disjunctive, spaced foliation, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "w"
+                            }
+                        }
+                    },
+                    "08.03.26": {
+                        "description": "Inclined (dip direction to left) disjunctive, spaced foliation, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "x"
+                            }
+                        }
+                    },
+                    "08.03.27": {
+                        "description": "Vertical disjunctive, spaced foliation, for multiple observations at one locality — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "y"
+                            }
+                        }
+                    },
+                    "08.03.28": {
+                        "description": "Horizontal disjunctive, symmetric crenulation foliation.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "z"
+                            }
+                        }
+                    },
+                    "08.03.29": {
+                        "description": "Inclined disjunctive, symmetric crenulation foliation — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "{"
+                            }
+                        }
+                    },
+                    "08.03.30": {
+                        "description": "Vertical or near-vertical disjunctive, symmetric crenulation foliation — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "|"
+                            }
+                        }
+                    },
+                    "08.03.31": {
+                        "description": "Inclined (dip direction to right) disjunctive, symmetric crenulation foliation, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "}"
+                            }
+                        }
+                    },
+                    "08.03.32": {
+                        "description": "Inclined (dip direction to left) disjunctive, symmetric crenulation foliation, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "~"
+                            }
+                        }
+                    },
+                    "08.03.33": {
+                        "description": "Vertical or near-vertical disjunctive, symmetric crenulation foliation, for multiple observations at one locality — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "¡"
+                            }
+                        }
+                    },
+                    "08.03.34": {
+                        "description": "Horizontal disjunctive, asymmetric (S-shaped, counterclockwise sense of shear) crenulation foliation.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "¢"
+                            }
+                        }
+                    },
+                    "08.03.35": {
+                        "description": "Inclined disjunctive, asymmetric (S-shaped, counterclockwise sense of shear) crenulation foliation — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "£"
+                            }
+                        }
+                    },
+                    "08.03.36": {
+                        "description": "Vertical or near-vertical disjunctive, asymmetric (S-shaped, counterclockwise sense of shear) crenulation foliation — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "¤"
+                            }
+                        }
+                    },
+                    "08.03.37": {
+                        "description": "Inclined (dip direction to right) disjunctive, asymmetric (S-shaped, counterclockwise sense of shear) crenulation foliation, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "¥"
+                            }
+                        }
+                    },
+                    "08.03.38": {
+                        "description": "Inclined (dip direction to left) disjunctive, asymmetric (S-shaped, counterclockwise sense of shear) crenulation foliation, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "¦"
+                            }
+                        }
+                    },
+                    "08.03.39": {
+                        "description": "Vertical or near-vertical disjunctive, asymmetric (S-shaped, counterclockwise sense of shear) crenulation foliation, for multiple observations at one locality — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "§"
+                            }
+                        }
+                    },
+                    "08.03.40": {
+                        "description": "Horizontal disjunctive, asymmetric (Z-shaped, clockwise sense of shear) crenulation foliation.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "¨"
+                            }
+                        }
+                    },
+                    "08.03.41": {
+                        "description": "Inclined disjunctive, asymmetric (Z-shaped, clockwise sense of shear) crenulation foliation — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "©"
+                            }
+                        }
+                    },
+                    "08.03.42": {
+                        "description": "Vertical or near-vertical disjunctive, asymmetric (Z-shaped, clockwise sense of shear) crenulation foliation — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "ª"
+                            }
+                        }
+                    },
+                    "08.03.43": {
+                        "description": "Inclined (dip direction to right) disjunctive, asymmetric (Z-shaped, clockwise sense of shear) crenulation foliation, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "«"
+                            }
+                        }
+                    },
+                    "08.03.44": {
+                        "description": "Inclined (dip direction to left) disjunctive, asymmetric (Z-shaped, clockwise sense of shear) crenulation foliation, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "¬"
+                            }
+                        }
+                    },
+                    "08.03.46": {
+                        "description": "Horizontal gneissic layering.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "®"
+                            }
+                        }
+                    },
+                    "08.03.47": {
+                        "description": "Inclined gneissic layering — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "¯"
+                            }
+                        }
+                    },
+                    "08.03.48": {
+                        "description": "Vertical or near-vertical gneissic layering — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "°"
+                            }
+                        }
+                    },
+                    "08.03.49": {
+                        "description": "Inclined (dip direction to right) gneissic layering, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "±"
+                            }
+                        }
+                    },
+                    "08.03.50": {
+                        "description": "Inclined (dip direction to left) gneissic layering, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "²"
+                            }
+                        }
+                    },
+                    "08.03.51": {
+                        "description": "Vertical or near-vertical gneissic layering, for multiple observations at one locality — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "³"
+                            }
+                        }
+                    },
+                    "08.03.52": {
+                        "description": "Horizontal undulatory gneissic layering.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "´"
+                            }
+                        }
+                    },
+                    "08.03.53": {
+                        "description": "Inclined undulatory gneissic layering — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "µ"
+                            }
+                        }
+                    },
+                    "08.03.54": {
+                        "description": "Vertical or near-vertical undulatory gneissic layering — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "¶"
+                            }
+                        }
+                    },
+                    "08.03.55": {
+                        "description": "Horizontal mylonitic foliation.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "·"
+                            }
+                        }
+                    },
+                    "08.03.56": {
+                        "description": "Inclined mylonitic foliation — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "¸"
+                            }
+                        }
+                    },
+                    "08.03.57": {
+                        "description": "Vertical or near-vertical mylonitic foliation — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "¹"
+                            }
+                        }
+                    },
+                    "08.03.58": {
+                        "description": "Inclined (dip direction to right) mylonitic foliation, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "º"
+                            }
+                        }
+                    },
+                    "08.03.59": {
+                        "description": "Inclined (dip direction to left) mylonitic foliation, for multiple observations at one locality — Showing strike and dip.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "»"
+                            }
+                        }
+                    },
+                    "08.03.60": {
+                        "description": "Vertical or near-vertical mylonitic foliation, for multiple observations at one locality — Showing strike.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "¼"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "title": "FGDC 9",
+                "category": "Lineation",
+                "definitions": {
+                    "09.001": {
+                        "description": "Approximate plunge direction of inclined generic (origin or type not known or not specified) lineation or linear structure (1st option).",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "½"
+                            }
+                        }
+                    },
+                    "09.002": {
+                        "description": "Approximate plunge direction of inclined generic (origin or type not known or not specified) lineation or linear structure (2nd option).",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "¾"
+                            }
+                        }
+                    },
+                    "09.003": {
+                        "description": "Inclined generic (origin or type not known or not specified) lineation or linear structure (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "½"
+                            }
+                        }
+                    },
+                    "09.004": {
+                        "description": "Inclined generic (origin or type not known or not specified) lineation or linear structure (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "¾"
+                            }
+                        }
+                    },
+                    "09.005": {
+                        "description": "Horizontal generic (origin or type not known or not specified) lineation or linear structure (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "¿"
+                            }
+                        }
+                    },
+                    "09.006": {
+                        "description": "Horizontal generic (origin or type not known or not specified) lineation or linear structure (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "À"
+                            }
+                        }
+                    },
+                    "09.007": {
+                        "description": "Vertical or near-vertical generic (origin or type not known or not specified) lineation or linear structure (1st option).",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Á"
+                            }
+                        }
+                    },
+                    "09.008": {
+                        "description": "Vertical or near-vertical generic (origin or type not known or not specified) lineation or linear structure (2nd option).",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Â"
+                            }
+                        }
+                    },
+                    "09.009": {
+                        "description": "Inclined parting lineation in sedimentary materials (1st option) — Showing bearing and plunge,",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Ã"
+                            }
+                        }
+                    },
+                    "09.010": {
+                        "description": "Inclined parting lineation in sedimentary materials (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Ä"
+                            }
+                        }
+                    },
+                    "09.011": {
+                        "description": "Horizontal parting lineation in sedimentary materials (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Å"
+                            }
+                        }
+                    },
+                    "09.012": {
+                        "description": "Horizontal parting lineation in sedimentary materials (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Æ"
+                            }
+                        }
+                    },
+                    "09.013": {
+                        "description": "Inclined sole mark, tool mark, scour mark, flute mark, groove, or channel in sedimentary materials (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Ç"
+                            }
+                        }
+                    },
+                    "09.014": {
+                        "description": "Inclined sole mark, tool mark, scour mark, flute mark, groove, or channel in sedimentary materials (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "È"
+                            }
+                        }
+                    },
+                    "09.015": {
+                        "description": "Horizontal sole mark, tool mark, scour mark, flute mark, groove, or channel in sedimentary materials (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "É"
+                            }
+                        }
+                    },
+                    "09.016": {
+                        "description": "Horizontal sole mark, tool mark, scour mark, flute mark, groove, or channel in sedimentary materials (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Ê"
+                            }
+                        }
+                    },
+                    "09.017": {
+                        "description": "Inclined slickenline, groove, or striation on fault surface (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Ë"
+                            }
+                        }
+                    },
+                    "09.018": {
+                        "description": "Inclined slickenline, groove, or striation on fault surface (2nd option)—Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Ì"
+                            }
+                        }
+                    },
+                    "09.019": {
+                        "description": "Horizontal slickenline, groove, or striation on fault surface (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Í"
+                            }
+                        }
+                    },
+                    "09.020": {
+                        "description": "Horizontal slickenline, groove, or striation on fault surface (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Î"
+                            }
+                        }
+                    },
+                    "09.021": {
+                        "description": "Inclined surface groove or striation (origin not known or not specified) (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Ï"
+                            }
+                        }
+                    },
+                    "09.022": {
+                        "description": "Inclined surface groove or striation (origin not known or not specified) (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Ð"
+                            }
+                        }
+                    },
+                    "09.023": {
+                        "description": "Horizontal surface groove or striation (origin not known or not specified) (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Ñ"
+                            }
+                        }
+                    },
+                    "09.024": {
+                        "description": "Horizontal surface groove or striation (origin not known or not specified) (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Ò"
+                            }
+                        }
+                    },
+                    "09.025": {
+                        "description": "Inclined aligned-object lineation (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Ó"
+                            }
+                        }
+                    },
+                    "09.026": {
+                        "description": "Inclined aligned-object lineation (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Ô"
+                            }
+                        }
+                    },
+                    "09.027": {
+                        "description": "Horizontal aligned-object lineation (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Õ"
+                            }
+                        }
+                    },
+                    "09.028": {
+                        "description": "Horizontal aligned-object lineation (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Ö"
+                            }
+                        }
+                    },
+                    "09.029": {
+                        "description": "Inclined aligned-clast or aligned-grain lineation (in sedimentary materials) (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "×"
+                            }
+                        }
+                    },
+                    "09.030": {
+                        "description": "Inclined aligned-clast or aligned-grain lineation (in sedimentary materials) (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Ø"
+                            }
+                        }
+                    },
+                    "09.031": {
+                        "description": "Horizontal aligned-clast or aligned-grain lineation (in sedimentary materials) (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Ù"
+                            }
+                        }
+                    },
+                    "09.032": {
+                        "description": "Horizontal aligned-clast or aligned-grain lineation (in sedimentary materials) (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Ú"
+                            }
+                        }
+                    },
+                    "09.033": {
+                        "description": "Inclined aligned-inclusion lineation (in igneous rocks) (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Û"
+                            }
+                        }
+                    },
+                    "09.034": {
+                        "description": "Inclined aligned-inclusion lineation (in igneous rocks) (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Ü"
+                            }
+                        }
+                    },
+                    "09.035": {
+                        "description": "Horizontal aligned-inclusion lineation (in igneous rocks) (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Ý"
+                            }
+                        }
+                    },
+                    "09.036": {
+                        "description": "Horizontal aligned-inclusion lineation (in igneous rocks) (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "Þ"
+                            }
+                        }
+                    },
+                    "09.037": {
+                        "description": "Inclined aligned-mineral lineation (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "ß"
+                            }
+                        }
+                    },
+                    "09.038": {
+                        "description": "Inclined aligned-mineral lineation (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "à"
+                            }
+                        }
+                    },
+                    "09.039": {
+                        "description": "Horizontal aligned-mineral lineation (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "á"
+                            }
+                        }
+                    },
+                    "09.040": {
+                        "description": "Horizontal aligned-mineral lineation (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "â"
+                            }
+                        }
+                    },
+                    "09.041": {
+                        "description": "Inclined aligned mineral-aggregate lineation (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "ã"
+                            }
+                        }
+                    },
+                    "09.042": {
+                        "description": "Inclined aligned mineral-aggregate lineation (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "ä"
+                            }
+                        }
+                    },
+                    "09.043": {
+                        "description": "Horizontal aligned mineral-aggregate lineation (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "å"
+                            }
+                        }
+                    },
+                    "09.044": {
+                        "description": "Horizontal aligned mineral-aggregate lineation (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "æ"
+                            }
+                        }
+                    },
+                    "09.045": {
+                        "description": "Inclined aligned deformed-mineral lineation (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "ç"
+                            }
+                        }
+                    },
+                    "09.046": {
+                        "description": "Inclined aligned deformed-mineral lineation (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "è"
+                            }
+                        }
+                    },
+                    "09.047": {
+                        "description": "Horizontal aligned deformed-mineral lineation (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "é"
+                            }
+                        }
+                    },
+                    "09.048": {
+                        "description": "Horizontal aligned deformed-mineral lineation (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "ê"
+                            }
+                        }
+                    },
+                    "09.049": {
+                        "description": "Inclined aligned stretched-object lineation (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "ë"
+                            }
+                        }
+                    },
+                    "09.050": {
+                        "description": "Inclined aligned stretched-object lineation (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "ì"
+                            }
+                        }
+                    },
+                    "09.051": {
+                        "description": "Horizontal aligned stretched-object lineation (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "í"
+                            }
+                        }
+                    },
+                    "09.052": {
+                        "description": "Horizontal aligned stretched-object lineation (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "î"
+                            }
+                        }
+                    },
+                    "09.053": {
+                        "description": "Inclined aligned stretched-pebble lineation (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "ï"
+                            }
+                        }
+                    },
+                    "09.054": {
+                        "description": "Inclined aligned stretched-pebble lineation (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "ð"
+                            }
+                        }
+                    },
+                    "09.055": {
+                        "description": "Horizontal aligned stretched-pebble lineation (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "ñ"
+                            }
+                        }
+                    },
+                    "09.056": {
+                        "description": "Horizontal aligned stretched-pebble lineation (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "ò"
+                            }
+                        }
+                    },
+                    "09.057": {
+                        "description": "Inclined aligned stretched-ooid lineation (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "ó"
+                            }
+                        }
+                    },
+                    "09.058": {
+                        "description": "Inclined aligned stretched-ooid lineation (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "ô"
+                            }
+                        }
+                    },
+                    "09.059": {
+                        "description": "Horizontal aligned stretched-ooid lineation (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "õ"
+                            }
+                        }
+                    },
+                    "09.060": {
+                        "description": "Horizontal aligned stretched-ooid lineation (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "ö"
+                            }
+                        }
+                    },
+                    "09.061": {
+                        "description": "Inclined rodding (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "÷"
+                            }
+                        }
+                    },
+                    "09.062": {
+                        "description": "Inclined rodding (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "ø"
+                            }
+                        }
+                    },
+                    "09.063": {
+                        "description": "Horizontal rodding (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "ù"
+                            }
+                        }
+                    },
+                    "09.064": {
+                        "description": "Horizontal rodding (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "ú"
+                            }
+                        }
+                    },
+                    "09.065": {
+                        "description": "Inclined mullions (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "û"
+                            }
+                        }
+                    },
+                    "09.066": {
+                        "description": "Inclined mullions (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "ü"
+                            }
+                        }
+                    },
+                    "09.067": {
+                        "description": "Horizontal mullions (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "ý"
+                            }
+                        }
+                    },
+                    "09.068": {
+                        "description": "Horizontal mullions (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "þ"
+                            }
+                        }
+                    },
+                    "09.069": {
+                        "description": "Inclined boudins (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym02",
+                                "key": "ÿ"
+                            }
+                        }
+                    },
+                    "09.070": {
+                        "description": "Inclined boudins (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "!"
+                            }
+                        }
+                    },
+                    "09.071": {
+                        "description": "Horizontal boudins (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "\""
+                            }
+                        }
+                    },
+                    "09.072": {
+                        "description": "Horizontal boudins (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "#"
+                            }
+                        }
+                    },
+                    "09.073": {
+                        "description": "Inclined pencil structure (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "$"
+                            }
+                        }
+                    },
+                    "09.074": {
+                        "description": "Inclined pencil structure (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "%"
+                            }
+                        }
+                    },
+                    "09.075": {
+                        "description": "Horizontal pencil structure (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "&"
+                            }
+                        }
+                    },
+                    "09.076": {
+                        "description": "Horizontal pencil structure (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "'"
+                            }
+                        }
+                    },
+                    "09.077": {
+                        "description": "Inclined lineation at intersection of bedding and cleavage (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "("
+                            }
+                        }
+                    },
+                    "09.078": {
+                        "description": "Inclined lineation at intersection of bedding and cleavage (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": ")"
+                            }
+                        }
+                    },
+                    "09.079": {
+                        "description": "Horizontal lineation at intersection of bedding and cleavage (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "*"
+                            }
+                        }
+                    },
+                    "09.080": {
+                        "description": "Horizontal lineation at intersection of bedding and cleavage (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "+"
+                            }
+                        }
+                    },
+                    "09.081": {
+                        "description": "Inclined lineation at intersection of two cleavages (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": ","
+                            }
+                        }
+                    },
+                    "09.082": {
+                        "description": "Inclined lineation at intersection of two cleavages (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "-"
+                            }
+                        }
+                    },
+                    "09.083": {
+                        "description": "Horizontal lineation at intersection of two cleavages (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "."
+                            }
+                        }
+                    },
+                    "09.084": {
+                        "description": "Horizontal lineation at intersection of two cleavages (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "/"
+                            }
+                        }
+                    },
+                    "09.085": {
+                        "description": "Inclined lineation at intersection of two fractures or joints (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "0"
+                            }
+                        }
+                    },
+                    "09.086": {
+                        "description": "Inclined lineation at intersection of two fractures or joints (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "1"
+                            }
+                        }
+                    },
+                    "09.087": {
+                        "description": "Horizontal lineation at intersection of two fractures or joints (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "2"
+                            }
+                        }
+                    },
+                    "09.088": {
+                        "description": "Horizontal lineation at intersection of two fractures or joints (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "3"
+                            }
+                        }
+                    },
+                    "09.089": {
+                        "description": "Inclined lineation at intersection of two foliations (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "4"
+                            }
+                        }
+                    },
+                    "09.090": {
+                        "description": "Inclined lineation at intersection of two foliations (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "5"
+                            }
+                        }
+                    },
+                    "09.091": {
+                        "description": "Horizontal lineation at intersection of two foliations (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "6"
+                            }
+                        }
+                    },
+                    "09.092": {
+                        "description": "Horizontal lineation at intersection of two foliations (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "7"
+                            }
+                        }
+                    },
+                    "09.093": {
+                        "description": "Inclined lineation at intersection of two surfaces (origin or type unspecified) (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "8"
+                            }
+                        }
+                    },
+                    "09.094": {
+                        "description": "Inclined lineation at intersection of two surfaces (origin or type unspecified) (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "9"
+                            }
+                        }
+                    },
+                    "09.095": {
+                        "description": "Horizontal lineation at intersection of two surfaces (origin or type unspecified) (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": ":"
+                            }
+                        }
+                    },
+                    "09.096": {
+                        "description": "Horizontal lineation at intersection of two surfaces (origin or type unspecified) (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": ";"
+                            }
+                        }
+                    },
+                    "09.097": {
+                        "description": "Inclined fold hinge of generic (type or orientation unspecified) small, minor fold (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "<"
+                            }
+                        }
+                    },
+                    "09.098": {
+                        "description": "Inclined fold hinge of generic (type or orientation unspecified) small, minor fold (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "="
+                            }
+                        }
+                    },
+                    "09.099": {
+                        "description": "Horizontal fold hinge of generic (type or orientation unspecified) small, minor fold (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": ">"
+                            }
+                        }
+                    },
+                    "09.100": {
+                        "description": "Horizontal fold hinge of generic (type or orientation unspecified) small, minor fold (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "?"
+                            }
+                        }
+                    },
+                    "09.101": {
+                        "description": "Inclined fold hinge of small, minor penecontemporaneous soft-sediment fold (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "@"
+                            }
+                        }
+                    },
+                    "09.102": {
+                        "description": "Inclined fold hinge of small, minor penecontemporaneous soft-sediment fold (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "A"
+                            }
+                        }
+                    },
+                    "09.103": {
+                        "description": "Horizontal fold hinge of small, minor penecontemporaneous soft-sediment fold (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "B"
+                            }
+                        }
+                    },
+                    "09.104": {
+                        "description": "Horizontal fold hinge of small, minor penecontemporaneous soft-sediment fold (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "C"
+                            }
+                        }
+                    },
+                    "09.105": {
+                        "description": "Inclined fold hinge of small, minor anticline (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "D"
+                            }
+                        }
+                    },
+                    "09.106": {
+                        "description": "Inclined fold hinge of small, minor anticline (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "E"
+                            }
+                        }
+                    },
+                    "09.107": {
+                        "description": "Horizontal fold hinge of small, minor anticline (1st option) — Showing bearing. Ball on topographically higher side of fold.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "F"
+                            }
+                        }
+                    },
+                    "09.108": {
+                        "description": "Horizontal fold hinge of small, minor anticline (2nd option) — Showing bearing. Ball on topographically higher side of fold.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "G"
+                            }
+                        }
+                    },
+                    "09.109": {
+                        "description": "Inclined fold hinge of small, minor antiform (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "H"
+                            }
+                        }
+                    },
+                    "09.110": {
+                        "description": "Inclined fold hinge of small, minor antiform (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "I"
+                            }
+                        }
+                    },
+                    "09.111": {
+                        "description": "Horizontal fold hinge of small, minor antiform (1st option) — Showing bearing. Ball on topographically higher side of fold.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "J"
+                            }
+                        }
+                    },
+                    "09.112": {
+                        "description": "Horizontal fold hinge of small, minor antiform (2nd option) — Showing bearing. Ball on topographically higher side of fold.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "K"
+                            }
+                        }
+                    },
+                    "09.113": {
+                        "description": "Inclined fold hinge of small, minor syncline (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "L"
+                            }
+                        }
+                    },
+                    "09.114": {
+                        "description": "Inclined fold hinge of small, minor syncline (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "M"
+                            }
+                        }
+                    },
+                    "09.115": {
+                        "description": "Horizontal fold hinge of small, minor syncline (1st option) — Showing bearing. Ball on topographically higher side of fold.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "N"
+                            }
+                        }
+                    },
+                    "09.116": {
+                        "description": "Horizontal fold hinge of small, minor syncline (2nd option) — Showing bearing. Ball on topographically higher side of fold.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "O"
+                            }
+                        }
+                    },
+                    "09.117": {
+                        "description": "Inclined fold hinge of small, minor synform (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "P"
+                            }
+                        }
+                    },
+                    "09.118": {
+                        "description": "Inclined fold hinge of small, minor synform (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "Q"
+                            }
+                        }
+                    },
+                    "09.119": {
+                        "description": "Horizontal fold hinge of small, minor synform (1st option) — Showing bearing. Ball on topographically higher side of fold.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "R"
+                            }
+                        }
+                    },
+                    "09.120": {
+                        "description": "Horizontal fold hinge of small, minor synform (2nd option) — Showing bearing. Ball on topographically higher side of fold.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "S"
+                            }
+                        }
+                    },
+                    "09.121": {
+                        "description": "Inclined symmetric minor fold hinge (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "T"
+                            }
+                        }
+                    },
+                    "09.122": {
+                        "description": "Inclined symmetric minor fold hinge (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "U"
+                            }
+                        }
+                    },
+                    "09.123": {
+                        "description": "Horizontal symmetric minor fold hinge (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "V"
+                            }
+                        }
+                    },
+                    "09.124": {
+                        "description": "Horizontal symmetric minor fold hinge (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "W"
+                            }
+                        }
+                    },
+                    "09.125": {
+                        "description": "Inclined asymmetric (S-shaped, counterclockwise sense of shear) minor fold hinge (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "X"
+                            }
+                        }
+                    },
+                    "09.126": {
+                        "description": "Inclined asymmetric (S-shaped, counterclockwise sense of shear) minor fold hinge (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "Y"
+                            }
+                        }
+                    },
+                    "09.127": {
+                        "description": "Horizontal asymmetric (S-shaped, counterclockwise sense of shear) minor fold hinge (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "Z"
+                            }
+                        }
+                    },
+                    "09.128": {
+                        "description": "Horizontal asymmetric (S-shaped, counterclockwise sense of shear) minor fold hinge (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "["
+                            }
+                        }
+                    },
+                    "09.129": {
+                        "description": "Inclined asymmetric (Z-shaped, clockwise sense of shear) minor fold hinge (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "\\"
+                            }
+                        }
+                    },
+                    "09.130": {
+                        "description": "Inclined asymmetric (Z-shaped, clockwise sense of shear) minor fold hinge (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "]"
+                            }
+                        }
+                    },
+                    "09.131": {
+                        "description": "Horizontal asymmetric (Z-shaped, clockwise sense of shear) minor fold hinge (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "^"
+                            }
+                        }
+                    },
+                    "09.132": {
+                        "description": "Horizontal asymmetric (Z-shaped, clockwise sense of shear) minor fold hinge (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "_"
+                            }
+                        }
+                    },
+                    "09.133": {
+                        "description": "Inclined crenulation lineation (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "`"
+                            }
+                        }
+                    },
+                    "09.134": {
+                        "description": "Inclined crenulation lineation (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "a"
+                            }
+                        }
+                    },
+                    "09.135": {
+                        "description": "Horizontal crenulation lineation (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "b"
+                            }
+                        }
+                    },
+                    "09.136": {
+                        "description": "Horizontal crenulation lineation (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "c"
+                            }
+                        }
+                    },
+                    "09.137": {
+                        "description": "Inclined asymmetric (S-shaped, counterclockwise sense of shear) kink-band crenulation lineation (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "d"
+                            }
+                        }
+                    },
+                    "09.138": {
+                        "description": "Inclined asymmetric (S-shaped, counterclockwise sense of shear) kink-band crenulation lineation (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "e"
+                            }
+                        }
+                    },
+                    "09.139": {
+                        "description": "Horizontal asymmetric (S-shaped, counterclockwise sense of shear) kink-band crenulation lineation (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "f"
+                            }
+                        }
+                    },
+                    "09.140": {
+                        "description": "Horizontal asymmetric (S-shaped, counterclockwise sense of shear) kink-band crenulation lineation (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "g"
+                            }
+                        }
+                    },
+                    "09.141": {
+                        "description": "Inclined asymmetric (Z-shaped, clockwise sense of shear) kink-band crenulation lineation (1st option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "h"
+                            }
+                        }
+                    },
+                    "09.142": {
+                        "description": "Inclined asymmetric (Z-shaped, clockwise sense of shear) kink-band crenulation lineation (2nd option) — Showing bearing and plunge.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "i"
+                            }
+                        }
+                    },
+                    "09.143": {
+                        "description": "Horizontal asymmetric (Z-shaped, clockwise sense of shear) kink-band crenulation lineation (1st option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "j"
+                            }
+                        }
+                    },
+                    "09.144": {
+                        "description": "Horizontal asymmetric (Z-shaped, clockwise sense of shear) kink-band crenulation lineation (2nd option) — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "k"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "title": "FGDC 16",
+                "category": "Eolian Features",
+                "definitions": {
+                    "16.07": {
+                        "description": "Sediment transport direction determined from dune forms.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "»"
+                            }
+                        }
+                    },
+                    "16.08": {
+                        "description": "Sediment transport direction determined from dune bedding in horizontal section.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "¼"
+                            }
+                        }
+                    },
+                    "16.09": {
+                        "description": "Sediment transport direction determined from eolian crossbedding in vertical or near-vertical section.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym03",
+                                "key": "½"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "title": "FGDC 17",
+                "category": "Landslide and Mass-Wasting Features",
+                "definitions": {
+                    "17.47": {
+                        "description": "Soil creep or incipient sliding on landslide.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym04",
+                                "key": "]"
+                            }
+                        }
+                    },
+                    "17.48": {
+                        "description": "Spring, seep, or drainage (runoff) on landslide.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym04",
+                                "key": "^"
+                            }
+                        }
+                    },
+                    "17.51": {
+                        "description": "Hummock on landslide (shown as point symbol when too small to outline at map scale).",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym04",
+                                "key": "`"
+                            }
+                        }
+                    },
+                    "17.52": {
+                        "description": "Tilt direction of surface of landslide.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym04",
+                                "key": "a"
+                            }
+                        }
+                    },
+                    "17.54": {
+                        "description": "Displacement vector — Showing bearing.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym04",
+                                "key": "b"
+                            }
+                        }
+                    },
+                    "17.56": {
+                        "description": "Active, reactivated, or historically active debris flow, showing a sharply defined morphology.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym04",
+                                "key": "c"
+                            }
+                        }
+                    },
+                    "17.62": {
+                        "description": "Rock slide, slump, block-glide landslide, rotational landslide, or Toreva block, consisting of a relatively intact mass of displaced materials.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym04",
+                                "key": "d"
+                            }
+                        }
+                    },
+                    "17.63": {
+                        "description": "Earth flow, consisting of a relatively thick and jumbled mixture of displaced materials.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym04",
+                                "key": "e"
+                            }
+                        }
+                    },
+                    "17.64": {
+                        "description": "Debris slide, consisting of a loose and relatively shallow veneer of displaced materials.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym04",
+                                "key": "f"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "title": "FGDC 18",
+                "category": "Volcanic Features",
+                "definitions": {
+                    "18.55": {
+                        "description": "Small cone, vent, cinder cone, or spatter cone.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym04",
+                                "key": "m"
+                            }
+                        }
+                    },
+                    "18.56": {
+                        "description": "Large cone, vent, cinder cone, or spatter cone.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym04",
+                                "key": "n"
+                            }
+                        }
+                    },
+                    "18.57": {
+                        "description": "Small hornito.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym04",
+                                "key": "o"
+                            }
+                        }
+                    },
+                    "18.58": {
+                        "description": "Large hornito.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym04",
+                                "key": "p"
+                            }
+                        }
+                    },
+                    "18.62": {
+                        "description": "Thermal spring.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym04",
+                                "key": "r"
+                            }
+                        }
+                    },
+                    "18.63": {
+                        "description": "Geyser.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym04",
+                                "key": "s"
+                            }
+                        }
+                    },
+                    "18.64": {
+                        "description": "Fumarole or steam vent.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym04",
+                                "key": "t"
+                            }
+                        }
+                    },
+                    "18.65": {
+                        "description": "Recent volcano on small-scale maps.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym04",
+                                "key": "u"
+                            }
+                        }
+                    },
+                    "18.66": {
+                        "description": "Active volcano on small-scale map.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym04",
+                                "key": "v"
+                            }
+                        }
+                    },
+                    "18.67": {
+                        "description": "Inactive volcano on small-scale maps.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym04",
+                                "key": "w"
+                            }
+                        }
+                    },
+                    "18.68": {
+                        "description": "Cinder cone on small-scale maps.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym04",
+                                "key": "x"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "title": "FGDC 21",
+                "category": "Neotectonic and Earthquake-hazard",
+                "definitions": {
+                    "21.01": {
+                        "description": "Earthquake epicenter, magnitude 7.5 or larger.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym05",
+                                "key": "4"
+                            }
+                        }
+                    },
+                    "21.02": {
+                        "description": "Earthquake epicenter, magnitude 7-7.49.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym05",
+                                "key": "5"
+                            }
+                        }
+                    },
+                    "21.03": {
+                        "description": "Earthquake epicenter, magnitude 6.5-6.99.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym05",
+                                "key": "6"
+                            }
+                        }
+                    },
+                    "21.04": {
+                        "description": "Earthquake epicenter, magnitude 6-6.49.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym05",
+                                "key": "5"
+                            }
+                        }
+                    },
+                    "21.05": {
+                        "description": "Earthquake epicenter, magnitude 5.5-5.99.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym05",
+                                "key": "7"
+                            }
+                        }
+                    },
+                    "21.06": {
+                        "description": "Earthquake epicenter, magnitude 4-5.49.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym05",
+                                "key": "8"
+                            }
+                        }
+                    },
+                    "21.07": {
+                        "description": "Earthquake epicenter, magnitude less than 4.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym05",
+                                "key": "9"
+                            }
+                        }
+                    },
+                    "21.08": {
+                        "description": "Fault-plane or focal-mechanism diagram for vertical, down-to-the-left offset along north-striking, vertical fault — Black quadrant indicates region of compression.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym05",
+                                "key": ":"
+                            }
+                        }
+                    },
+                    "21.09": {
+                        "description": "Fault-plane or focal-mechanism diagram for right-lateral strike-slip offset along north-striking, vertical fault — Black quadrants indicate regions of compression.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym05",
+                                "key": ";"
+                            }
+                        }
+                    },
+                    "21.11": {
+                        "description": "Fault-plane or focal-mechanism diagram for normal, down-to-the-left offset along north-striking, westdipping (at 45°) fault — Black quadrants indicate regions of compression.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym05",
+                                "key": "<"
+                            }
+                        }
+                    },
+                    "21.12": {
+                        "description": "Fault-plane or focal-mechanism diagram for normal, down-to-the-left offset along northwest-striking, southwest-dipping (at 30°) fault — Black quadrants indicate regions of compression.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym05",
+                                "key": "="
+                            }
+                        }
+                    },
+                    "21.13": {
+                        "description": "Fault-plane or focal-mechanism diagram for reverse, left-side-up offset along north-striking, west-dipping (at 45°) fault — Black quadrant indicates region of compression.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym05",
+                                "key": ">"
+                            }
+                        }
+                    },
+                    "21.14": {
+                        "description": "Fault-plane or focal-mechanism diagram for reverse, left-side-up offset along northwest-striking, southwest-dipping (at 60°) fault — Black quadrant indicates region of compression.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym05",
+                                "key": "?"
+                            }
+                        }
+                    },
+                    "21.15": {
+                        "description": "Fault-plane or focal-mechanism diagram for oblique reverse, left-side-up offset along northwest-striking, southwest-dipping (at 60°) fault — Black quadrants indicate regions of compression.",
+                        "style": {
+                            "symbol": {
+                                "set": "FGDCGeoSym05",
+                                "key": "@"
+                            }
+                        }
+                    }
+                }
+            }
+        ]
+    }
+}

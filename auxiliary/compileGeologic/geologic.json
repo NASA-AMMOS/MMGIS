@@ -1,0 +1,6040 @@
+{
+  "geologic": {
+    "patterns": {
+      "groups": [
+        {
+          "title": "series_100",
+          "category": "surficial",
+          "baseUrl": "/images/geologic/patterns/series_100.surficial/{tag}.svg",
+          "definitions": {
+            "101": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "102": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M",
+                "R"
+              ]
+            },
+            "103": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "104": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "105": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "106": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "114": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "116": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "117": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M",
+                "R"
+              ]
+            },
+            "118": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "119": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M",
+                "R"
+              ]
+            },
+            "120": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "121": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M",
+                "R"
+              ]
+            },
+            "122": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "123": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "124": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "132": {
+              "description": "",
+              "colors": [
+                "B",
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "134": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M",
+                "R"
+              ]
+            },
+            "135": {
+              "description": "",
+              "colors": [
+                "B",
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "136": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M",
+                "R"
+              ]
+            },
+            "137": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M",
+                "R"
+              ]
+            }
+          }
+        },
+        {
+          "title": "series_200",
+          "category": "sedimentary",
+          "baseUrl": "/images/geologic/patterns/series_200.sedimentary/{tag}.svg",
+          "definitions": {
+            "201": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "202": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "204": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "206": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "207": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "214": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "215": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "216": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "217": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "218": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "219": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "226": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M",
+                "R"
+              ]
+            },
+            "228": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "229": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M",
+                "R"
+              ]
+            },
+            "230": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "231": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "232": {
+              "description": "",
+              "colors": [
+                "B",
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "233": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            }
+          }
+        },
+        {
+          "title": "series_300",
+          "category": "igneous",
+          "baseUrl": "/images/geologic/patterns/series_300.igneous/{tag}.svg",
+          "definitions": {
+            "301": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "302": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "303": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "304": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "305": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "306": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "313": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "314": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "315": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "316": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "317": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M",
+                "R"
+              ]
+            },
+            "318": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "319": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "327": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M",
+                "R"
+              ]
+            },
+            "328": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M",
+                "R"
+              ]
+            },
+            "330": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "331": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            }
+          }
+        },
+        {
+          "title": "series_400",
+          "category": "miscellaneous_and_metamorphic",
+          "baseUrl": "/images/geologic/patterns/series_400.miscellaneous_and_metamorphic/{tag}.svg",
+          "definitions": {
+            "401": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "402": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "403": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "405": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M",
+                "R"
+              ]
+            },
+            "406": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M",
+                "R"
+              ]
+            },
+            "411": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "412": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "416": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "417": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "418": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "419": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M",
+                "R"
+              ]
+            },
+            "420": {
+              "description": "",
+              "colors": [
+                "C",
+                "K"
+              ]
+            },
+            "423": {
+              "description": "",
+              "colors": [
+                "C",
+                "K"
+              ]
+            },
+            "424": {
+              "description": "",
+              "colors": [
+                "C",
+                "K"
+              ]
+            },
+            "426": {
+              "description": "",
+              "colors": [
+                "CMYK"
+              ]
+            },
+            "427": {
+              "description": "",
+              "colors": [
+                "K",
+                "R"
+              ]
+            },
+            "428": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M",
+                "R"
+              ]
+            },
+            "429": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M",
+                "R"
+              ]
+            },
+            "430": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "431": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "432": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "433": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M"
+              ]
+            },
+            "434": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M",
+                "R"
+              ]
+            },
+            "435": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M",
+                "R"
+              ]
+            },
+            "436": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K",
+                "M",
+                "R"
+              ]
+            }
+          }
+        },
+        {
+          "title": "series_500",
+          "category": "glacial_and_periglacial",
+          "baseUrl": "/images/geologic/patterns/series_500.glacial_and_periglacial/{tag}.svg",
+          "definitions": {
+            "521": {
+              "description": "",
+              "colors": [
+                "C",
+                "K"
+              ]
+            },
+            "522": {
+              "description": "",
+              "colors": [
+                "C",
+                "K"
+              ]
+            },
+            "523": {
+              "description": "",
+              "colors": [
+                "C",
+                "DO",
+                "K"
+              ]
+            },
+            "524": {
+              "description": "",
+              "colors": [
+                "C",
+                "K"
+              ]
+            },
+            "591": {
+              "description": "",
+              "colors": [
+                "C",
+                "K"
+              ]
+            },
+            "592": {
+              "description": "",
+              "colors": [
+                "C",
+                "K"
+              ]
+            },
+            "593": {
+              "description": "",
+              "colors": [
+                "C",
+                "K"
+              ]
+            },
+            "594": {
+              "description": "",
+              "colors": [
+                "C",
+                "K"
+              ]
+            },
+            "595": {
+              "description": "",
+              "colors": [
+                "C",
+                "K"
+              ]
+            }
+          }
+        },
+        {
+          "title": "series_600",
+          "category": "sedimentary_lithology",
+          "baseUrl": "/images/geologic/patterns/series_600.sedimentary_lithology/{tag}.svg",
+          "definitions": {
+            "601": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "602": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "603": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "605": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "606": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "607": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "608": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "609": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "610": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "611": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "612": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "613": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "614": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "616": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "617": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "618": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "619": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "620": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "621": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "622": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "623": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "624": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "625": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "626": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "627": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "628": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "629": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "630": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "631": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "632": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "633": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "634": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "635": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "636": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "637": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "638": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "639": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "640": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "641": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "642": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "643": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "644": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "645": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "646": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "647": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "648": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "649": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "650": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "651": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "652": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "653": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "654": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "655": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "656": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "657": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "658": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "659": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "660": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "661": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "662": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "663": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "664": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "665": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "666": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "667": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "668": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "669": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "670": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "671": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "672": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "673": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "674": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "675": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "676": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "677": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "678": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "679": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "680": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "681": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "682": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "683": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "684": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "685": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "686": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "series_700",
+          "category": "metamorphic_igneous_and_vein-matter_lithography",
+          "baseUrl": "/images/geologic/patterns/series_700.metamorphic_igneous_and_vein-matter_lithography/{tag}.svg",
+          "definitions": {
+            "701": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "702": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "703": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "704": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "705": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "706": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "707": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "708": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "709": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "710": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "711": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "712": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "713": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "714": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "715": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "716": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "717": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "719": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "720": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "721": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "722": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "723": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "724": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "725": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "726": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "727": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "728": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "729": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "730": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "731": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "732": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "733": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "symbols": {
+      "groups": [
+        {
+          "title": "usgs_02",
+          "category": "faults",
+          "baseUrl": "/images/geologic/symbols/usgs_02.faults/{tag}.svg",
+          "definitions": {
+            "2.15.1_inclined": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "2.15.2_vertical": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "2.15.3_shear": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_03",
+          "category": "geophysical",
+          "baseUrl": "/images/geologic/symbols/usgs_03.geophysical/{tag}.svg",
+          "definitions": {
+            "3.3.4_horiz_control": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "3.3.5_survey_stn": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_04",
+          "category": "joints",
+          "baseUrl": "/images/geologic/symbols/usgs_04.joints/{tag}.svg",
+          "definitions": {
+            "4.3.01_jt_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "4.3.02_jt_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "4.3.03_jt_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "4.3.04_jt_multi_incld_R": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "4.3.05_jt_multi_incld_L": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "4.3.05_jt_multi_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "4.3.07_jt_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "4.3.08_jt_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "4.3.09_jt_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "4.3.10_jt_multi_incld_R": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "4.3.11_jt_multi_incld_L": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "4.3.12_jt_multi_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_05",
+          "category": "folds",
+          "baseUrl": "/images/geologic/symbols/usgs_05.folds/{tag}.svg",
+          "definitions": {
+            "5.11.01_horiz_axial": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.02_dome": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.03_basin": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.04_antic_vert1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.05_antic_incl1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.06_antic_vert2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.07_antic_incl2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.08_antif_vert1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.09_antif_incl1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.10_antif_vert2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.11_antif_incl2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.12_antic_ass_vert1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.13_antic_ass_incl1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.14_antic_ass_vert2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.15_antic_ass_incl2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.16_antic_over_vert1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.17_antic_over_incl1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.18_antic_over_vert2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.19_antic_over_incl2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.20_antic_inv_vert1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.21_antic_inv_incl1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.22_antic_inv_vert2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.23_antic_inv_incl2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.24_sync_vert1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.25_sync_incl1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.26_sync_vert2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.27_sync_incl2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.28_synf_vert1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.29_synf_incl1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.30_synf_vert2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.31_synf_incl2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.32_sync_ass_vert1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.33_sync_ass_incl1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.34_sync_ass_vert2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.35_sync_ass_incl2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.36_sync_over_vert1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.37_sync_over_incl1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.38_sync_over_vert2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.39_sync_over_incl2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.40_sync_inv_vert1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.41_sync_inv_incl1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.42_sync_inv_vert2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "5.11.43_sync_inv_incl2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_06",
+          "category": "bedding",
+          "baseUrl": "/images/geologic/symbols/usgs_06.bedding/{tag}.svg",
+          "definitions": {
+            "6.01_bdg_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.02_bdg_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.03_bdg_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.04_bdg_ovtrn": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.05_bdg_ovtrn_more": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.06_bdg_incld_R": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.07_bdg_incld_L": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.08_bdg_vert_multi": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.09_bdg_ovtrn_R": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.10_bdg_ovtrn_L": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.11_bdg_ovtrn_more_R": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.12_bdg_ovtrn_more_L": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.13_bdg_incld_top": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.14_bdg_vert_top": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.15_bdg_ovtrn_top": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.16_bdg_ovtrn_more_top": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.17_bdg_top_R_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.18_bdg_top_L_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.19_bdg_top_R_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.20_bdg_top_L_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.21_bdg_top_R_ovtrn": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.22_bdg_top_L_ovtrn": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.23_bdg_top_R_ovtrn_more": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.24_bdg_top_L_ovtrn_more": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.25_bdg_cren_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.26_bdg_cren_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.27_bdg_grad_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.28_bdg_grad_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.29_bdg_grad_ovtrn": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.30_bdg_cross_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.31_bdg_cross_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.32_bdg_cross_ovtrn": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.33_bdg_apprx_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.34_bdg_apprx_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.35_bdg_apprx_ovtrn": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.36_bdg_top_apprx_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.37_bdg_top_apprx_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.38_bdg_top_apprx_ovtrn": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.39_bdg_rmte_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.40_bdg_rmte_gntl": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.41_bdg_rmte_mdrt": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.42_bdg_rmte_stp": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.43_bdg_rmte_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.44_bdg_rmte_ovtrn_gntl": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.45_bdg_rmte_ovtrn_mdrt": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "6.46_bdg_rmte_ovtrn_stp": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_07",
+          "category": "cleavage",
+          "baseUrl": "/images/geologic/symbols/usgs_07.cleavage/{tag}.svg",
+          "definitions": {
+            "7.01_clvg_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.02_clvg_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.03_clvg_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.04_clvg_multi_incld_R": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.05_clvg_multi_incld_L": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.06_clvg_multi_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.07_clvg_slaty_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.08_clvg_slaty_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.09_clvg_slaty_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.10_clvg_slaty_multi_incld_R": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.11_clvg_slaty_multi_incld_L": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.12_clvg_slaty_multi_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.13_clvg_spcd_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.14_clvg_spcd_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.15_clvg_spcd_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.16_clvg_spcd_multi_incld_R": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.17_clvg_spcd_multi_incld_L": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.18_clvg_spcd_multi_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.19_clvg_cren_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.20_clvg_cren_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.21_clvg_cren_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.22_clvg_cren_multi_incld_R": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.23_clvg_cren_multi_incld_L": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.24_clvg_cren_multi_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.25_clvg_S_cren_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.26_clvg_S_cren_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.27_clvg_S_cren_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.28_clvg_S_cren_multi_incld_R": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.29_clvg_S_cren_multi_incld_L": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.30_clvg_S_cren_multi_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.31_clvg_Z_cren_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.32_clvg_Z_cren_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.33_clvg_Z_cren_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.34_clvg_Z_cren_multi_incld_R": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.35_clvg_Z_cren_multi_incld_L": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "7.36_clvg_Z_cren_multi_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_08",
+          "category": "foliation",
+          "baseUrl": "/images/geologic/symbols/usgs_08.foliation/{tag}.svg",
+          "definitions": {
+            "8.1.01_fol_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.1.02_fol_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.1.03_fol_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.1.04_fol_multi_incld_R": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.1.05_fol_multi_incld_L": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.1.06_fol_multi_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.01_lyr_mass": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.02_lyr_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.03_lyr_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.04_lyr_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.05_lyr_multi_incld_R": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.06_lyr_multi_incld_L": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.07_lyr_multi_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.08_lyr_crnk_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.09_lyr_crnk_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.10_fol_cum_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.11_fol_cum_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.12_fol_cum_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.13_fol_cum_ovtrn": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.14_fol_cum_incld_top": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.15_fol_cum_vert_top": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.16_fol_cum_ovtrn_top": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.17_fol_cum_crnk_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.18_fol_cum_crnk_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.19_fol_eutx_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.20_fol_eutx_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.21_fol_eutx_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.22_fol_eutx_multi_incld_R": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.23_fol_eutx_multi_incld_L": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.24_fol_eutx_multi_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.25_fol_eutx_crnk_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.2.26_fol_eutx_crnk_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.01_fol_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.02_fol_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.03_fol_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.04_fol_multi_incld_R": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.05_fol_multi_incld_L": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.06_fol_multi_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.07_fol_bdg_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.08_fol_bdg_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.09_fol_bdg_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.10_fol_bdg_ovtrn": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.11_fol_bdg_incld_top": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.12_fol_bdg_vert_top": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.13_fol_bdg_ovtrn_top": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.14_fol_crnk_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.15_fol_crnk_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.16_fol_pentr_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.17_fol_pentr_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.18_fol_pentr_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.19_fol_pentr_multi_incld_R": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.20_fol_pentr_multi_incld_L": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.21_fol_pentr_multi_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.22_fol_spaced_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.23_fol_spaced_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.24_fol_spcd_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.25_fol_spcd_multi_incld_R": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.26_fol_spcd_multi_incld_L": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.27_fol_spcd_multi_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.28_fol_cren_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.29_fol_cren_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.30_fol_cren_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.31_fol_cren_multi_incld_R": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.32_fol_cren_multi_incld_L": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.33_fol_cren_multi_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.34_fol_cren_S_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.35_fol_cren_S_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.36_fol_cren_S_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.37_fol_cren_S_multi_incld_R": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.38_fol_cren_S_multi_incld_L": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.39_fol_cren_S_multi_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.40_fol_cren_Z_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.41_fol_cren_Z_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.42_fol_cren_Z_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.43_fol_cren_Z_multi_incld_R": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.44_fol_cren_Z_multi_incld_L": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.45_fol_cren_Z_multi_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.46_gns_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.47_gns_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.48_gns_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.49_gns_multi_incld_R": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.50_gns_multi_incld_L": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.51_gns_multi_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.52_gns_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.53_gns_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.54_gns_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.55_myl_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.56_myl_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.57_myl_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.58_myl_multi_incld_R": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.59_myl_multi_incld_L": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "8.3.60_myl_multi_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_09",
+          "category": "lineation",
+          "baseUrl": "/images/geologic/symbols/usgs_09.lineation/{tag}.svg",
+          "definitions": {
+            "9.001_lin_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.002_lin_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.003_lin_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.004_lin_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.005_lin_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.006_lin_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.007_lin_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.008_lin_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.009_lin_prt_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.010_lin_prt_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.011_lin_prt_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.012_lin_prt_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.013_lin_chnl_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.014_lin_chnl_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.015_lin_chnl_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.016_lin_chnlv": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.017_lin_slick_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.018_lin_slick_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.019_lin_slick_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.020_lin_slick_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.021_lin_stri_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.022_lin_stri_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.023_lin_striv": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.024_lin_stri_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.025_lin_obj_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.026_lin_obj_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.027_lin_obj_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.028_lin_objv": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.029_lin_clas_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.030_lin_clas_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.031_lin_clas_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.032_lin_clas_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.033_lin_incl_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.034_lin_incl_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.035_lin_incl_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.036_lin_incl_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.037_lin_min_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.038_lin_min_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.039_lin_min_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.040_lin_min_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.041_lin_aggr_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.042_lin_aggr_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.043_lin_aggr_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.044_lin_aggr_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.045_lin_defm_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.046_lin_defm_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.047_lin_defm_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.048_lin_defm_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.049_lin_strobj_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.050_lin_strobj_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.051_lin_strobj_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.052_lin_strobj_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.053_lin_strpbl_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.054_lin_strpbl_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.055_lin_strpbl_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.056_lin_strpbl_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.057_lin_strooid_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.058_lin_strooid_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.059_lin_strooid_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.060_lin_strooidv": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.061_rod_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.062_rod_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.063_rod_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.064_rod_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.065_mul_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.066_mul_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.067_mul_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.068_mulv": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.069_bdn_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.070_bdnv": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.071_bdn_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.072_bdn_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.073_pncl_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.074_pncl_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.075_pncl_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.076_pncl_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.077_lin_bdgclvg_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.078_lin_bdgclvg_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.079_lin_bdgclvg_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.080_lin_bdgclvgv": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.081_lin_2clvg_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.082_lin_2clvg_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.083_lin_2clvg_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.084_lin_2clvg_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.085_lin_2frac_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.086_lin_2frac_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.087_lin_2fracv": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.088_lin_2frac_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.089_lin_2fol_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.090_lin_2fol_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.091_lin_2fol_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.092_lin_2fol_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.093_lin_2surf_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.094_lin_2surf_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.095_lin_2surf_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.096_lin_2surf_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.097_fldhng_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.098_fldhng_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.099_fldhng_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.100_fldhng_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.101_fldhng_soft_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.102_fldhng_soft_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.103_fldhng_soft_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.104_fldhng_soft_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.105_fldhng_antc_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.106_fldhng_antc_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.107_fldhng_antc_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.108_fldhng_antc_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.109_fldhng_antf_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.110_fldhng_antf_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.111_fldhng_antf_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.112_fldhng_antf_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.113_fldhng_sync_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.114_fldhng_sync_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.115_fldhng_sync_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.116_fldhng_sync_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.117_fldhng_synf_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.118_fldhng_synf_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.119_fldhng_synf_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.120_fldhng_synf_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.121_fldhng_M_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.122_fldhng_M_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.123_fldhng_M_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.124_fldhng_M_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.125_fldhng_S_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.126_fldhng_S_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.127_fldhng_S_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.128_fldhng_S_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.129_fldhng_Z_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.130_fldhng_Z_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.131_fldhng_Z_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.132_fldhng_Z_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.133_lin_cren_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.134_lin_cren_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.135_lin_cren_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.136_lin_cren_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.137_lin_cren_S_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.138_lin_cren_S_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.139_lin_cren_S_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.140_lin_cren_S_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.141_lin_cren_Z_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.142_lin_cren_Z_incld": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.143_lin_cren_Z_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "9.144_lin_cren_Z_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_10",
+          "category": "fossils",
+          "baseUrl": "/images/geologic/symbols/usgs_10.fossils/{tag}.svg",
+          "definitions": {
+            "10.1.1_locality": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.01_macro": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.02_invert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.03_annelid": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.04_arthropod": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.05_arachnid": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.06_crustacean": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.07_insect": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.08_trilobite": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.09_brachiopod": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.10_bryozoan": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.11_cnidarian": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.12_coral": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.13_stromatoporoid": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.14_echinoderm": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.15_crinoid": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.16_echinoid": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.17_graptolite": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.18_mollusk": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.19_cephalopod": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.20_ammonoid": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.21_belemnoid": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.22_nautiloid": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.23_gastropod": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.24_pelecypod": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.25_sponge": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.26_vertebrate": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.27_amphibian": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.28_fish": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.29_mammal": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.30_reptile": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.31_plant": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.32_leaf": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.33_root": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.34_wood": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.35_algae": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.36_conifer": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.37_fern": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.38_flowering": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.39_stromatolite": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.40_fungi": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.41_trace": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.42_burrow": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.43_coprolite": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.44_track": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.45_micro": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.46_conodont": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.47_diatom": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.48_foram": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.49_lg_foram": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.50_sm_foram_benth": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.51_sm_foram_plank": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.52_nanno": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.53_ostracod": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.54_palynomorph": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.55_acritarch": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.56_chitinozoa": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.57_dinoflagellate": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.58_pollen": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.59_radiolaria": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.60_silicoflagellate": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "10.2.61_spicule": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_11",
+          "category": "geophysical",
+          "baseUrl": "/images/geologic/symbols/usgs_11.geophysical/{tag}.svg",
+          "definitions": {
+            "11.10_data_locn": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "11.11_data_locn_value": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "11.12_max_min": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "11.22_outcrop_contr1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "11.32_outcrop_contr2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "11.42_outcrop_contr3": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_12",
+          "category": "fluvial",
+          "baseUrl": "/images/geologic/symbols/usgs_12.fluvial/{tag}.svg",
+          "definitions": {
+            "12.5_transport": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "12.6_imbrication": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "12.7_crossbeds": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "12.8_flute_casts": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_13",
+          "category": "glacial",
+          "baseUrl": "/images/geologic/symbols/usgs_13.glacial/{tag}.svg",
+          "definitions": {
+            "13.03_spill": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "13.04_spill_elev": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "13.05_spill_inf": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "13.06_spill_inf_elev": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "13.20_drumlin": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "13.21_drumlin_flow1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "13.22_drumlin_flow2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "13.25_kettle": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "13.29_stria_young": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "13.30_stria_young_dirn": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "13.31_stria_old": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "13.32_stria_old_dirn": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "13.33_stria_young_gen": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "13.34_stria_young_brng": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "13.35_stria_old_gen": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "13.36_stria_old_brng": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_14",
+          "category": "periglacial",
+          "baseUrl": "/images/geologic/symbols/usgs_14.periglacial/{tag}.svg",
+          "definitions": {
+            "14.1_pingo": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "14.8_ice_polygon": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_16",
+          "category": "eolian",
+          "baseUrl": "/images/geologic/symbols/usgs_16.eolian/{tag}.svg",
+          "definitions": {
+            "16.7_transport_form": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "16.8_transport_horiz": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "16.9_transport_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_17",
+          "category": "mass_wasting",
+          "baseUrl": "/images/geologic/symbols/usgs_17.mass_wasting/{tag}.svg",
+          "definitions": {
+            "17.47_soil_creep": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "17.48_spring": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "17.51_hummock": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "17.52_tilt": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "17.53_tilt_angle": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "17.54_displ": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "17.55_displ_dist": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "17.56_active": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "17.57_dormant": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "17.62_rock_slide": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "17.63_earth_flow": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "17.64_debris_slide": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_18",
+          "category": "volcanic",
+          "baseUrl": "/images/geologic/symbols/usgs_18.volcanic/{tag}.svg",
+          "definitions": {
+            "18.55_small_cone": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "18.56_large_cone": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "18.57_small_hornito": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "18.58_large_hornito": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "18.62_thermal_spring": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "18.63_geyser": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "18.64_fumarole": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "18.65_recent": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "18.66_active": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "18.67_inactive": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "18.68_cinder_cone": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "18.69_diatreme": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "18.70_breccia_pipe": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "18.71_collapse": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_19",
+          "category": "natural_resource",
+          "baseUrl": "/images/geologic/symbols/usgs_19.natural_resource/{tag}.svg",
+          "definitions": {
+            "19.1.12_vein_incl": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.1.13_vein_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.01_prospect": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.02_sand_pit": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.03_sand_pit_abd": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.04_open_pit": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.05_open_pit_abd": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.09_adit1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.10_adit1_approx": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.11_adit1_destroyed": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.12_adit1_abd": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.13_adit1_incl": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.14_adit2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.15_adit2_approx": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.16_adit2_destroyed": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.17_adit2_abd": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.18_adit2_incl": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.19_portal": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.20_portal_approx": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.21_portal_destroyed": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.22_portal_abd": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.23_portal_open_cut": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.24_portal_incl": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.25_dh_minex": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.26_dh_minex_no_data": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.29_dh_low_grade": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.30_dh_high_grade": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.35_shaft_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.37_shaft_abd": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.38_shaft_incl": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "19.3.39_shaft_incl_dip": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_20",
+          "category": "hazard",
+          "baseUrl": "/images/geologic/symbols/usgs_20.hazard/{tag}.svg",
+          "definitions": {
+            "20.1_haz_waste_site": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "20.2_haz_waste_site_flow": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "20.3_active_haz_waste_site": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "20.4_inactive_haz_waste_site": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "20.5_cleanup_in_progress": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "20.6_cleanup_complete": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_21",
+          "category": "earthquake",
+          "baseUrl": "/images/geologic/symbols/usgs_21.earthquake/{tag}.svg",
+          "definitions": {
+            "21.01_epicenter_7.5_over": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "21.02_epicenter_7": {
+              "description": "",
+              "colors": [
+                "7.49"
+              ]
+            },
+            "21.03_epicenter_6.5": {
+              "description": "",
+              "colors": [
+                "6.99"
+              ]
+            },
+            "21.04_epicenter_6": {
+              "description": "",
+              "colors": [
+                "6.49"
+              ]
+            },
+            "21.05_epicenter_5.5": {
+              "description": "",
+              "colors": [
+                "5.99"
+              ]
+            },
+            "21.06_epicenter_4": {
+              "description": "",
+              "colors": [
+                "5.49"
+              ]
+            },
+            "21.07_epicenter_below4": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "21.08_flt_foc_vert": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "21.09_flt_foc_rt_lat": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "21.10_flt_foc_lf_lat": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "21.11_flt_foc_norm_45": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "21.12_flt_foc_norm_30": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "21.13_flt_foc_rev_45": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "21.14_flt_foc_rev_60": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "21.15_flt_foc_oblq_60": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_22",
+          "category": "plate_tectonic",
+          "baseUrl": "/images/geologic/symbols/usgs_22.plate_tectonic/{tag}.svg",
+          "definitions": {
+            "22.38_seamt_nonvolc": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "22.39_seamt_volc": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_23",
+          "category": "uplift_collapse",
+          "baseUrl": "/images/geologic/symbols/usgs_23.uplift_collapse/{tag}.svg",
+          "definitions": {
+            "23.12_uplift": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "23.13_salt_dome": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "23.14_salt_dome_poss": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_24",
+          "category": "impact",
+          "baseUrl": "/images/geologic/symbols/usgs_24.impact/{tag}.svg",
+          "definitions": {
+            "24.1_primary1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "24.2_secondary1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "24.3_primary2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "24.4_secondary2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_25",
+          "category": "planetary",
+          "baseUrl": "/images/geologic/symbols/usgs_25.planetary/{tag}.svg",
+          "definitions": {
+            "25.069_channel": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "25.070_eolian": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "25.076_shield_v_small": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "25.077_shield_small": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "25.078_shield_large": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "25.079_mesa": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "25.082_knob": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "25.085_edifice": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "25.086_edifice_part": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "25.087_edifice_lg": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "25.088_tholi_v_small": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "25.089_tholi_small": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "25.101_central_peak1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "25.102_central_peak2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "25.104_pit2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "25.106_endogenic_small": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_26",
+          "category": "hydro",
+          "baseUrl": "/images/geologic/symbols/usgs_26.hydro/{tag}.svg",
+          "definitions": {
+            "26.1.01_well": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.02_well_unused": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.03_well_capped": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.04_well_shutin": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.05_dry_hole": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.06_well_data": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.07_domestic": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.08_artes_domest_flow": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.09_artes_domest_noflow": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.10_rechrg_domest": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.11_obs_domest": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.12_obs_domest_rec": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.13_dry_domest": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.14_destr_domest": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.15_test_domest": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.16_well_stock": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.17_artes_stock_flow": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.18_artes_stock_noflow": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.19_rechrg_stock": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.20_obs_stock": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.21_obs_stock_rec": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.22_dry_stock": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.23_destr_stock": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.24_test_stock": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.25_well_irrig": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.26_artes_irrig_flow": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.27_artes_irrig_noflow": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.28_rechrg_irrig": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.29_obs_irrig": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.30_obs_irrig_rec": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.31_dry_irrig": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.32_destr_irrig": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.33_test_irrig": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.34_well_indust": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.35_artes_indust_flow": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.36_artes_indust_noflow": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.37_rechrg_indust": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.38_obs_indust": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.39_obs_indust_rec": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.40_dry_indust": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.41_destr_indust": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.42_test_indust": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.43_well_public": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.44_artes_public_flow": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.45_artes_public_noflow": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.46_rechrg_public": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.47_obs_public": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.48_obs_public_rec": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.49_dry_public": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.50_destr_public": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.1.51_test_public": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.2.01_spring": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.2.02_spring_unused": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.2.03_spring_data": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.2.04_spring_dom": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.2.05_spring_dom_therm": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.2.06_spring_dom_min": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.2.07_spring_dom_extinct": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.2.08_spring_stock": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.2.09_spring_stock_therm": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.2.10_spring_stock_min": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.2.11_spring_stock_extinct": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.2.12_spring_irrig": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.2.13_spring_irrig_therm": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.2.14_spring_irrig_min": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.2.15_spring_irrig_extinct": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.2.16_spring_indust": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.2.17_spring_indust_therm": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.2.18_spring_indust_min": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.2.19_spring_indust_extinct": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.2.20_spring_public": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.2.21_spring_public_therm": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.2.22_spring_public_min": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.2.23_spring_public_extinct": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.3.01_gaging": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.3.02_gaging_disc": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.3.03_gaging_cont": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.3.04_gaging_cont_tele": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.3.05_gaging_cont_peak": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.3.06_gaging_cont_low": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.3.07_gaging_cont_stage": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.3.08_gaging_flood": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.3.09_gaging_flood_tele": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.3.10_gaging_flood_peak": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.3.11_gaging_flood_low": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.3.12_gaging_flood_stage": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.3.13_no_gage": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.3.14_no_gage_tele": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.3.15_no_gage_peak": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.3.16_no_gage_low": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.3.17_no_gage_stage": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.4.01_qual": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.4.02_qual_inact": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.4.03_qual_act": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.4.04_qual_act_chem": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.4.05_qual_act_temp": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.4.06_qual_act_bio": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.4.07_qual_act_sed": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.4.08_qual_act_mon": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.4.09_qual_act_mon_chem": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.4.10_qual_act_mon_temp": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.4.11_qual_act_mon_bio": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.4.12_qual_act_mon_sed": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.7.08_grnd_acc1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.7.09_grnd_acc2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.7.10_grnd_approx1": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "26.7.11_grnd_approx2": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_27",
+          "category": "weather",
+          "baseUrl": "/images/geologic/symbols/usgs_27.weather/{tag}.svg",
+          "definitions": {
+            "27.01_wstn": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "27.02_wstn_disc": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "27.03_snow_tele": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "27.04_snow_rec": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "27.05_wstn_rain_tele": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "27.06_wstn_rain_rec": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "27.07_wstn_evap_tele": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "27.08_wstn_evap_rec": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "27.09_wstn_temp_tele": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "27.10_wstn_temp_rec": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "27.11_wstn_hum_tele": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "27.12_wstn_hum_rec": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "27.13_wstn_sol_tele": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "27.14_wstn_sol_rec": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "27.15_wstn_wind_tele": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "27.16_wstn_wind_rec": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "27.17_wstn_all_tele": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "27.18_wstn_all_rec": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        },
+        {
+          "title": "usgs_30",
+          "category": "topo",
+          "baseUrl": "/images/geologic/symbols/usgs_30.topo/{tag}.svg",
+          "definitions": {
+            "30.3.01_map_pit": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "30.3.02_map_gvl_pit": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "30.3.03_map_adit": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "30.3.04_map_cave": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "30.3.05_map_prospect": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "30.3.06_map_shaft": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "30.3.07_map_landmark": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "30.3.08_map_windmill": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "30.3.09_map_well_petro": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "30.3.10_map_well_water": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "30.3.11_map_well_geoth": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "30.3.12_map_spring": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "30.3.13_map_geyser": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "30.3.14_map_gage": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "30.3.15_map_pump": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "30.3.16_map_rock": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            },
+            "30.3.17_map_wreck": {
+              "description": "",
+              "colors": [
+                false
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}
