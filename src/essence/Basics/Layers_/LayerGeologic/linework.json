@@ -422,14 +422,14 @@
                         }
                     },
                     "25.029": {
-                        "description": "Regional fracture, planetary",
+                        "description": "Regional fracture, planetary.",
                         "style": {
                             "weight": 3,
                             "color": "#00aeef"
                         }
                     },
                     "25.030": {
-                        "description": "Partly buried regional fracture, planetary",
+                        "description": "Partly buried regional fracture, planetary.",
                         "style": {
                             "weight": 3,
                             "dashArray": "8,4",
@@ -437,14 +437,14 @@
                         }
                     },
                     "25.031": {
-                        "description": "Arcuate fracture, planetary",
+                        "description": "Arcuate fracture, planetary.",
                         "style": {
                             "weight": 2,
                             "color": "#263996"
                         }
                     },
                     "25.032": {
-                        "description": "Partly buried arcuate fracture, planetary",
+                        "description": "Partly buried arcuate fracture, planetary.",
                         "style": {
                             "weight": 2,
                             "dashArray": "8,4",
@@ -452,32 +452,393 @@
                         }
                     },
                     "25.033": {
-                        "description": "Radial fracture, planetary (associated with coronae)",
+                        "description": "Radial fracture, planetary (associated with coronae).",
                         "style": {
                             "weight": 3,
                             "color": "#263996"
                         }
                     },
                     "25.034": {
-                        "description": "Concentric fracture, planetary (associated with coronae)",
+                        "description": "Concentric fracture, planetary (associated with coronae).",
                         "style": {
                             "weight": 2,
                             "color": "#953c96"
                         }
                     },
                     "25.035": {
-                        "description": "Fold crest, planetary",
+                        "description": "Fold crest, planetary.",
                         "style": {
                             "weight": 3,
                             "color": "#ee1b2c"
                         }
                     },
                     "25.036": {
-                        "description": "Broad warp, planetary",
+                        "description": "Broad warp, planetary.",
                         "style": {
                             "weight": 5,
                             "dashArray": "4,4",
                             "color": "#ee1b2c"
+                        }
+                    },
+                    "25.037": {
+                        "description": "Wrinkle ridge, planetary.",
+                        "style": {
+                            "weight": 2,
+                            "color": "#f037a4"
+                        }
+                    },
+                    "25.038": {
+                        "description": "Ribbon trends, planetary.",
+                        "style": {
+                            "weight": 2,
+                            "color": "#01ab66"
+                        }
+                    },
+                    "25.039": {
+                        "description": "Ridge belt, planetary.",
+                        "style": {
+                            "weight": 2,
+                            "color": "#ee1b2c",
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "-",
+                                    "pos": "center",
+                                    "color": "R",
+                                    "size": 22,
+                                    "rot": 90,
+                                    "rep": 70
+                                }
+                            ]
+                        }
+                    },
+                    "25.040": {
+                        "description": "Broad ridge crest, planetary (generally associated with coronae).",
+                        "style": {
+                            "weight": 5,
+                            "color": "#ee1b2c"
+                        }
+                    },
+                    "25.041": {
+                        "description": "Ridge crest, planetary (1st option).",
+                        "style": {
+                            "weight": 2,
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym04",
+                                    "key": "[",
+                                    "pos": "center",
+                                    "color": "K",
+                                    "size": 22,
+                                    "rot": 0,
+                                    "rep": 70
+                                }
+                            ]
+                        }
+                    },
+                    "25.042": {
+                        "description": "Ridge crest, planetary (2nd option).",
+                        "style": {
+                            "weight": 2,
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym04",
+                                    "key": "Z",
+                                    "pos": "center",
+                                    "color": "K",
+                                    "size": 22,
+                                    "rot": 0,
+                                    "rep": 70
+                                }
+                            ]
+                        }
+                    },
+                    "25.045": {
+                        "description": "Ridge crest (possible dike), planetary.",
+                        "style": {
+                            "weight": 2,
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym03",
+                                    "key": "p",
+                                    "pos": "center",
+                                    "color": "K",
+                                    "size": 22,
+                                    "rot": 90,
+                                    "rep": 70
+                                }
+                            ]
+                        }
+                    },
+                    "25.046": {
+                        "description": "Corona annulus ridge, planetary — Showing axial trace and plunge. Short arrow indicates steeper limb or scarp bounding corona trough.",
+                        "style": {
+                            "weight": 2,
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym05",
+                                    "key": "'",
+                                    "pos": "center",
+                                    "color": "K",
+                                    "size": 30,
+                                    "rot": 270,
+                                    "rep": 70
+                                }
+                            ]
+                        }
+                    },
+                    "25.047": {
+                        "description": "Groove (generic), planetary.",
+                        "style": {
+                            "weight": 2
+                        }
+                    },
+                    "25.048": {
+                        "description": "Sharp groove, planetary.",
+                        "style": {
+                            "weight": 2,
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym04",
+                                    "key": "h",
+                                    "pos": "center",
+                                    "color": "K",
+                                    "size": 14,
+                                    "rot": 90,
+                                    "rep": 70
+                                }
+                            ]
+                        }
+                    },
+                    "25.049": {
+                        "description": "Subdued groove, planetary.",
+                        "style": {
+                            "weight": 2,
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym04",
+                                    "key": "g",
+                                    "pos": "center",
+                                    "color": "K",
+                                    "size": 14,
+                                    "rot": 90,
+                                    "rep": 70
+                                }
+                            ]
+                        }
+                    },
+                    "25.050": {
+                        "description": "Radially grooved ejecta (schematic), planetary.",
+                        "style": {
+                            "weight": 2,
+                            "dashArray": "6 6 2 6 6 6"
+                        }
+                    },
+                    "25.051": {
+                        "description": "Furrow, planetary.",
+                        "style": {
+                            "weight": 2,
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "*",
+                                    "pos": "center",
+                                    "color": "K",
+                                    "size": 14,
+                                    "rot": 90,
+                                    "rep": 70
+                                }
+                            ]
+                        }
+                    },
+                    "25.055": {
+                        "description": "Shallow, linear depression or valley, or narrow channel, planetary.",
+                        "style": {
+                            "weight": 2,
+                            "color": "#00FFFF"
+                        }
+                    },
+                    "25.056": {
+                        "description": "Channel (canali), planetary.",
+                        "style": {
+                            "weight": 2,
+                            "dashArray": "15 3 3 3"
+                        }
+                    },
+                    "25.057": {
+                        "description": "Channel (canali), planetary — Two short dashes where structureless or indefinite.",
+                        "style": {
+                            "weight": 2,
+                            "dashArray": "15 3 3 3 3 3"
+                        }
+                    },
+                    "25.058": {
+                        "description": "Narrow channel (possible lava channel), planetary — Arrows point in direction of flow.",
+                        "style": {
+                            "weight": 2,
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym03",
+                                    "key": "w",
+                                    "pos": "center",
+                                    "color": "K",
+                                    "size": 14,
+                                    "rot": 0,
+                                    "rep": 30
+                                }
+                            ]
+                        }
+                    },
+                    "25.059": {
+                        "description": "Erosional boundary, planetary — Erosion increases in direction of arrows.",
+                        "style": {
+                            "weight": 2,
+                            "color": "rgba(0,0,0,0)",
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym04",
+                                    "key": "X",
+                                    "pos": "center",
+                                    "color": "K",
+                                    "size": 32,
+                                    "rot": 30,
+                                    "rep": 20
+                                }
+                            ]
+                        }
+                    },
+                    "25.060": {
+                        "description": "Angular unconformity, planetary — Hachures indicate truncated beds.",
+                        "style": {
+                            "weight": 2,
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "#",
+                                    "pos": "right",
+                                    "color": "K",
+                                    "size": 14,
+                                    "rot": 90,
+                                    "rep": 20
+                                }
+                            ]
+                        }
+                    },
+                    "25.061": {
+                        "description": "Angular unconformity, planetary — Uncertain. Hachures indicate truncated beds.",
+                        "style": {
+                            "weight": 2,
+                            "dashArray": "20 4",
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "#",
+                                    "pos": "right",
+                                    "color": "K",
+                                    "size": 14,
+                                    "rot": 90,
+                                    "rep": 20
+                                }
+                            ]
+                        }
+                    },
+                    "25.062": {
+                        "description": "Layer, planetary.",
+                        "style": {
+                            "weight": 2,
+                            "dashArray": "10 2"
+                        }
+                    },
+                    "25.063": {
+                        "description": "Lineament, planetary.",
+                        "style": {
+                            "weight": 3,
+                            "dashArray": "12 4"
+                        }
+                    },
+                    "25.071": {
+                        "description": "Scarp, planetary — Hachures point downscarp.",
+                        "style": {
+                            "weight": 2,
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "#",
+                                    "pos": "right",
+                                    "color": "K",
+                                    "size": 14,
+                                    "rot": 90,
+                                    "rep": 70
+                                }
+                            ]
+                        }
+                    },
+                    "25.072": {
+                        "description": "Lobate scarp, planetary — Hachures point downscarp.",
+                        "style": {
+                            "weight": 2,
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "#",
+                                    "pos": "right",
+                                    "color": "K",
+                                    "size": 14,
+                                    "rot": 90,
+                                    "rep": 30
+                                }
+                            ]
+                        }
+                    },
+                    "25.073": {
+                        "description": "Basal scarp, planetary — Hachures point downscarp.",
+                        "style": {
+                            "weight": 2,
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "#",
+                                    "pos": "right",
+                                    "color": "K",
+                                    "size": 14,
+                                    "rot": 90,
+                                    "rep": 35
+                                }
+                            ]
+                        }
+                    },
+                    "25.074": {
+                        "description": "Base of scarp, planetary — Barb points downscarp.",
+                        "style": {
+                            "weight": 2,
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym04",
+                                    "key": "T",
+                                    "pos": "left",
+                                    "color": "K",
+                                    "size": 14,
+                                    "rot": 90,
+                                    "rep": 90
+                                }
+                            ]
+                        }
+                    },
+                    "25.114": {
+                        "description": "Flow front, planetary — Arrow indicates flow direction.",
+                        "style": {
+                            "weight": 2,
+                            "symbols": [
+                                {
+                                    "set": "FGDCGeoSym01",
+                                    "key": "F",
+                                    "pos": "left",
+                                    "color": "K",
+                                    "size": 24,
+                                    "rot": 90,
+                                    "rep": 90
+                                }
+                            ]
                         }
                     }
                 }
