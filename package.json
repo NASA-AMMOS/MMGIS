@@ -38,6 +38,7 @@
   "scripts": {
     "start": "node run/server.js",
     "start:prod": "cross-env NODE_ENV=production node run/server.js",
+    "start:analyzer": "node run/server.js --analyze",
     "build": "node run/build.js",
     "test": "node run/test.js"
   },
@@ -205,5 +206,8 @@
     "presets": [
       "react-app"
     ]
+  },
+  "devDependencies": {
+    "webpack-bundle-analyzer": "^4.5.0"
   }
 }
