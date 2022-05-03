@@ -220,7 +220,7 @@ let Map_ = {
         if (on)
             this.graticule = L.latlngGraticule({
                 showLabel: true,
-                color: '#bbb',
+                color: 'rgba(255,255,255,0.75)',
                 weight: 1,
                 zoomInterval: [
                     { start: 2, end: 3, interval: 40 },

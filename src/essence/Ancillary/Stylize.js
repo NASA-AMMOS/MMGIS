@@ -21,7 +21,10 @@ export function stylize() {
             L_.configData.look.secondarycolor &&
             L_.configData.look.secondarycolor != ''
         )
-            r.style.setProperty('--color-i', L_.configData.look.secondarycolor)
+            r.style.setProperty(
+                '--color-a-5',
+                L_.configData.look.secondarycolor
+            )
         if (
             L_.configData.look.tertiarycolor &&
             L_.configData.look.tertiarycolor != ''

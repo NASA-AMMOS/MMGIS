@@ -60,6 +60,8 @@ function triggerWebhooks(action, payload) {
           drawFileDelete(wh, payload);
         }
         break;
+      default:
+        break;
     }
   });
 }
