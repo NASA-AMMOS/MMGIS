@@ -170,7 +170,7 @@ var UserInterface = {
             .append('div')
             .attr('id', 'viewer')
             .style('position', 'absolute')
-            .style('background-color', 'var(--color-a1)')
+            .style('background-color', 'var(--color-a-5)')
             .style('width', '100%')
             .style('height', '100%')
         this.viewerToolBar = this.viewerScreen
@@ -206,7 +206,7 @@ var UserInterface = {
             .append('div')
             .attr('id', 'map')
             .style('position', 'absolute')
-            .style('background-color', 'var(--color-a)')
+            .style('background-color', 'var(--color-a-5)')
             .style('width', '100%')
             .style('height', '100%')
         //.style( 'height', 'calc( 100% - ' + this.splitterSize + 'px )' );

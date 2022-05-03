@@ -27,6 +27,21 @@ let Globe_ = {
             zoom: initialView[2] != null ? initialView[2] : L_.view[2],
         }
 
+        const initialCamera = L_.FUTURES.globeCamera
+            ? {
+                  position: {
+                      x: L_.FUTURES.globeCamera[0],
+                      y: L_.FUTURES.globeCamera[1],
+                      z: L_.FUTURES.globeCamera[2],
+                  },
+                  target: {
+                      x: L_.FUTURES.globeCamera[3],
+                      y: L_.FUTURES.globeCamera[4],
+                      z: L_.FUTURES.globeCamera[5],
+                  },
+              }
+            : null
+
         const tmr =
             L_.configData.projection && L_.configData.projection.custom === true
                 ? {
@@ -52,6 +67,7 @@ let Globe_ = {
         const lithoConfig = {
             initialView,
             //opt
+            initialCamera,
             tileMapResource: tmr,
             majorRadius: F_.radiusOfPlanetMajor,
             minorRadius: F_.radiusOfPlanetMinor,
