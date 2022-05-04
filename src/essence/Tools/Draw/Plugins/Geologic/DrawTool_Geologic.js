@@ -25,6 +25,18 @@ const Geologic = {
         'none',
         '#000000',
         '#ffffff',
+        '#c50f0f',
+        '#c56a0f',
+        '#c5c50f',
+        '#6ac50f',
+        '#0fc50f',
+        '#0fc56a',
+        '#0fc5c5',
+        '#0f6ac5',
+        '#0f0fc5',
+        '#6a0fc5',
+        '#c50fc5',
+        '#c50f6a',
         '#c43541',
         '#11495c',
         '#87b051',
@@ -524,6 +536,35 @@ const Geologic = {
 
             Geologic.optionValues.position =
                 def.style.symbols[0].pos || Geologic.optionValues.position
+
+            if (Geologic.optionValues.position === 'center') {
+                $("#geologicOptionPositionInput > option[value='left']").prop(
+                    'disabled',
+                    true
+                )
+                $("#geologicOptionPositionInput > option[value='center']").prop(
+                    'disabled',
+                    false
+                )
+                $("#geologicOptionPositionInput > option[value='right']").prop(
+                    'disabled',
+                    true
+                )
+            } else {
+                $("#geologicOptionPositionInput > option[value='left']").prop(
+                    'disabled',
+                    false
+                )
+                $("#geologicOptionPositionInput > option[value='center']").prop(
+                    'disabled',
+                    true
+                )
+                $("#geologicOptionPositionInput > option[value='right']").prop(
+                    'disabled',
+                    false
+                )
+            }
+
             $('#geologicOptionPositionInput').val(
                 Geologic.optionValues.position
             )

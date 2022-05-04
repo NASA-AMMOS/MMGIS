@@ -310,7 +310,7 @@ var Editing = {
                     ? style.fillOpacity
                     : fallbackStyle.fillOpacity != null
                     ? fallbackStyle.fillOpacity
-                    : '0.2'
+                    : '0.6'
             style.symbol = style.symbol || fallbackStyle.symbol || ''
             style.radius = style.radius || fallbackStyle.radius || ''
             file = DrawTool.getFileObjectWithId(fileid)
@@ -419,7 +419,7 @@ var Editing = {
                         ? style.fillOpacity
                         : fallbackStyle.fillOpacity != null
                         ? fallbackStyle.fillOpacity
-                        : '0.2'
+                        : '0.6'
                 style.symbol = style.symbol || fallbackStyle.symbol || ''
                 style.radius = style.radius || fallbackStyle.radius || ''
 
@@ -1567,7 +1567,7 @@ var Editing = {
             updateFillOpacity(v)
         })
         function updateFillOpacity(v, layer) {
-            v = v != null ? v : 0.2
+            v = v != null ? v : 0.6
             var t = v * 100 + '%'
 
             DrawTool.contextMenuChanges.style.fillOpacity = true

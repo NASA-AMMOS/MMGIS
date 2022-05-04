@@ -1327,10 +1327,21 @@ var Files = {
                     }
 
                     if (coreFeatures.features.length > 0) {
+                        // 3D doesn't support patterns yet so we'll reset their polygon fills to 0
+                        const coreFeaturesNormalized = []
+                        coreFeatures.features.forEach((f) => {
+                            const feat = JSON.parse(JSON.stringify(f))
+                            if (
+                                feat.properties?.style?.geologic?.type ===
+                                'pattern'
+                            )
+                                feat.properties.style.fillOpacity = 0
+                            coreFeaturesNormalized.push(feat)
+                        })
                         Globe_.litho.addLayer('clamped', {
                             name: 'camptool_' + layerId,
                             on: true,
-                            geojson: coreFeatures,
+                            geojson: F_.getBaseGeoJSON(coreFeaturesNormalized),
                             opacity: 1,
                             minZoom: 0,
                             maxZoom: 30,

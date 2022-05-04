@@ -393,7 +393,7 @@ var DrawTool = {
             fillColor: 'rgb(255, 255, 255)',
             weight: 2,
             opacity: 1,
-            fillOpacity: 0.2,
+            fillOpacity: 0.6,
         },
         polygon: {
             color: 'rgb(255, 255, 255)',
@@ -401,7 +401,7 @@ var DrawTool = {
             fillColor: 'rgb(255, 255, 255)',
             weight: 2,
             opacity: 1,
-            fillOpacity: 0.2,
+            fillOpacity: 0.6,
         },
         line: {
             color: 'rgb(255, 255, 255)',
