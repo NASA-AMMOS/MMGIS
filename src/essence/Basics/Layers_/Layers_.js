@@ -1440,6 +1440,28 @@ var L_ = {
         }
         return false
     },
+    reorderLayers: function (newLayersOrdered) {
+        // Check that newLayersOrdered is valid
+        let isValid = true
+        if (newLayersOrdered.length === L_.layersOrdered.length) {
+            L_.layersOrdered.forEach((l) => {
+                if (!newLayersOrdered.includes(l)) isValid = false
+            })
+        } else isValid = false
+
+        if (!isValid) {
+            console.warn(
+                "reorderLayers: newLayersOrdered is not consistent, won't run."
+            )
+            return
+        }
+
+        L_.layersOrdered = newLayersOrdered
+
+        if (L_.Map_) {
+            L_.Map_.orderedBringToFront(true)
+        }
+    },
     clearVectorLayer: function (layerName) {
         try {
             L_.layersGroup[layerName].clearLayers()

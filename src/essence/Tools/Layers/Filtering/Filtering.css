@@ -1,6 +1,6 @@
 #layersTool_filtering {
-    border-top: 1px solid var(--color-k);
-    background: var(--color-a1-5);
+    border-top: 1px solid var(--color-a);
+    background: var(--color-a2);
     display: none;
 }
 .gears_on #layersTool_filtering {

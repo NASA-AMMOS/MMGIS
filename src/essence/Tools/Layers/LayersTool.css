@@ -300,9 +300,25 @@
     line-height: 19px;
 }
 
-.layersToolColor {
-    width: 6px;
+.layersToolColorOFF {
+    width: 12px;
     height: 100%;
+}
+.layersToolColor {
+    width: 12px;
+    height: 100%;
+    cursor: ns-resize;
+    color: rgba(255,255,255,0.6);
+    border-right: 1px solid var(--color-a);
+    box-sizing: unset;
+    transition: all 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+.layersToolColor > i.mdi:before {
+    font-size: 14px;
+    margin-left: -1px;
+}
+.layersToolColor:hover {
+    color: white;
 }
 .layersToolColor.vector {
     background: var(--color-p8);
@@ -457,7 +473,7 @@
 }
 
 #layersTool .layernotfound {
-    background: #260d0d;
+    background: #541d1d;
     cursor: not-allowed;
 }
 #layersTool .layernotfound > div {

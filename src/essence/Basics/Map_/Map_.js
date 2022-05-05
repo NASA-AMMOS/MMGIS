@@ -306,27 +306,38 @@ let Map_ = {
     //Redraws all layers, starting with the bottom one
     orderedBringToFront: function () {
         let hasIndex = []
+        let hasIndexRaster = []
+
         for (let i = L_.layersOrdered.length - 1; i >= 0; i--) {
             if (Map_.hasLayer(L_.layersOrdered[i])) {
-                if (
-                    L_.layersNamed[L_.layersOrdered[i]] &&
-                    L_.layersNamed[L_.layersOrdered[i]].type === 'vector'
-                ) {
-                    if (L_.layersGroupSublayers[L_.layersOrdered[i]]) {
-                        for (let s in L_.layersGroupSublayers[
-                            L_.layersOrdered[i]
-                        ]) {
-                            Map_.rmNotNull(
-                                L_.layersGroupSublayers[L_.layersOrdered[i]][s]
-                                    .layer
-                            )
+                if (L_.layersNamed[L_.layersOrdered[i]]) {
+                    if (L_.layersNamed[L_.layersOrdered[i]].type === 'vector') {
+                        if (L_.layersGroupSublayers[L_.layersOrdered[i]]) {
+                            for (let s in L_.layersGroupSublayers[
+                                L_.layersOrdered[i]
+                            ]) {
+                                Map_.rmNotNull(
+                                    L_.layersGroupSublayers[
+                                        L_.layersOrdered[i]
+                                    ][s].layer
+                                )
+                            }
                         }
+                        Map_.map.removeLayer(
+                            L_.layersGroup[L_.layersOrdered[i]]
+                        )
+                        hasIndex.push(i)
+                    } else if (
+                        L_.layersNamed[L_.layersOrdered[i]].type === 'tile' ||
+                        L_.layersNamed[L_.layersOrdered[i]].type === 'data'
+                    ) {
+                        hasIndexRaster.push(i)
                     }
-                    Map_.map.removeLayer(L_.layersGroup[L_.layersOrdered[i]])
-                    hasIndex.push(i)
                 }
             }
         }
+
+        // First only vectors
         for (let i = 0; i < hasIndex.length; i++) {
             if (L_.layersGroupSublayers[L_.layersOrdered[hasIndex[i]]]) {
                 for (let s in L_.layersGroupSublayers[
@@ -350,11 +361,16 @@ let Map_ = {
                     }
                 }
             }
-
             Map_.map.addLayer(L_.layersGroup[L_.layersOrdered[hasIndex[i]]])
         }
 
         enforceVisibilityCutoffs()
+
+        // Now only rasters
+        // They're separate because its better to only change the raster z-index
+        for (let i = 0; i < hasIndexRaster.length; i++) {
+            L_.layersGroup[L_.layersOrdered[hasIndexRaster[i]]].setZIndex(i + 1)
+        }
     },
     refreshLayer: function (layerObj) {
         // We need to find and remove all points on the map that belong to the layer

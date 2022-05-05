@@ -1,5 +1,6 @@
 import $ from 'jquery'
 import * as d3 from 'd3'
+import Sortable from 'sortablejs'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
@@ -396,7 +397,7 @@ function interfaceWithMMGIS() {
                         [
                             '<li class="layersToolHeader" id="header_' + headerI + '" type="' + node[i].type + '" depth="' + depth + '" childrenon="true" style="margin-left: ' + depth * 17 + 'px;">' +
                                 '<div class="title" id="headerstart">' +
-                                    '<div class="layersToolColor ' + node[i].type + '"></div>',
+                                    '<div class="layersToolColorOFF ' + node[i].type + '"></div>',
                                     '<div>',
                                         '<i class="headerChevron mdi mdi-menu-down mdi-24px"></i>',
                                     '</div>',
@@ -417,7 +418,9 @@ function interfaceWithMMGIS() {
                         [
                             '<li id="LayersTool' + F_.getSafeName(node[i].name) + '" class="' + ((!quasiLayers.includes(node[i].type) && L_.layersGroup[node[i].name] == null) ? 'layernotfound' : '') + '" type="' + node[i].type + '" on="true" depth="' + depth + '" name="' + node[i].name + '" parent="' + parent.name + '" style="margin-left: ' + (depth * 16) + 'px;">',
                                 '<div class="title" id="layerstart' + F_.getSafeName(node[i].name) + '">',
-                                    '<div class="layersToolColor ' + node[i].type + '"></div>',
+                                    '<div class="layersToolColor ' + node[i].type + '">',
+                                        '<i class="mdi mdi-drag-vertical mdi-12px"></i>',
+                                    '</div>',
                                     '<div class="checkboxcont">',
                                         '<div class="checkbox ' + (L_.toggledArray[node[i].name] ? 'on' : 'off') + '"></div>',
                                     '</div>',
@@ -723,6 +726,24 @@ function interfaceWithMMGIS() {
                 }
             }
         })
+    })
+
+    // Make it all sortable
+    const listToSort = document.getElementById('layersToolList')
+    const sortable = Sortable.create(listToSort, {
+        animation: 200,
+        easing: 'cubic-bezier(0.37, 0, 0.63, 1)',
+        handle: '.layersToolColor',
+        onEnd: function (e) {
+            const newLayersOrdered = []
+            $('#layersToolList')
+                .children('li')
+                .each(function () {
+                    if ($(this).attr('name') != null)
+                        newLayersOrdered.push($(this).attr('name'))
+                })
+            L_.reorderLayers(newLayersOrdered)
+        },
     })
 
     //Share everything. Don't take things that aren't yours.
