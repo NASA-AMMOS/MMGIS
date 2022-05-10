@@ -1,0 +1,50 @@
+a {
+    color: #08aeea;
+}
+
+.search-input {
+    color: white;
+}
+
+.main-content a {
+    white-space: inherit;
+}
+
+.main-content h2 {
+    color: #58c6ee;
+}
+.main-content h3 {
+    color: #ffdd5c;
+}
+.main-content h4 {
+    color: #5af5b2;
+}
+
+h4 code {
+    font-size: 16px;
+}
+
+.site-footer {
+    opacity: 0.5;
+}
+
+::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+}
+::-webkit-scrollbar-thumb {
+    border: 3px solid rgba(0, 0, 0, 0);
+    background-clip: padding-box;
+    border-radius: 0px;
+    background-color: #666;
+    box-shadow: inset -1px -1px 0px rgba(0, 0, 0, 0.05),
+        inset 1px 1px 0px rgba(0, 0, 0, 0.05);
+}
+::-webkit-scrollbar-button {
+    width: 0;
+    height: 0;
+    display: none;
+}
+::-webkit-scrollbar-corner {
+    background-color: transparent;
+}
