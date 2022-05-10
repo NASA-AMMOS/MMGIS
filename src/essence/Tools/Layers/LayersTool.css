@@ -214,6 +214,21 @@
     font-size: 12px;
     padding-left: 4px;
 }
+#layersTool .settings span {
+    font-size: 12px;
+    padding-left: 4px;
+}
+#layersTool .settings .dataShader .dropy__title > span {
+    width: calc(100% - 19px);
+}
+#layersTool .settings .dataShader .dropy__title > i {
+    line-height: 13px;
+    right: 0;
+    line-height: 22px;
+    background: var(--color-a1-5);
+    height: 22px;
+    top: -9px;
+}
 
 #layersTool #layersToolList > li.download_on,
 #layersTool #layersToolList > li.gears_on {

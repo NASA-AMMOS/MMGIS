@@ -81,14 +81,15 @@ let BottomBar = {
                     windowWidth: documentElm.offsetWidth,
                     windowHeight: documentElm.offsetHeight,
                     onclone: function (e) {
-                        const original = document.body.querySelectorAll(
+                        // Fix svg layer shift
+                        const originalSVG = document.body.querySelectorAll(
                             'svg.leaflet-zoom-animated'
                         )
-                        const copy = e.body.querySelectorAll(
+                        const copySVG = e.body.querySelectorAll(
                             'svg.leaflet-zoom-animated'
                         )
-                        copy.forEach((copyEle, i) => {
-                            const attribute = original
+                        copySVG.forEach((copyEle, i) => {
+                            const attribute = originalSVG
                                 .item(i)
                                 .getAttribute('style')
                             const parentElement = copyEle.parentElement
@@ -98,6 +99,20 @@ let BottomBar = {
                             parentElement.appendChild(temp)
                             temp.setAttribute('style', attribute)
                             copyEle.removeAttribute('style')
+                        })
+
+                        // Fix tile layer z-indices
+                        const originalZ = document.body.querySelectorAll(
+                            '.leaflet-tile-pane > div.leaflet-layer'
+                        )
+                        const copyZ = e.body.querySelectorAll(
+                            '.leaflet-tile-pane > div.leaflet-layer'
+                        )
+                        copyZ.forEach((copyEle, i) => {
+                            const attribute = originalZ
+                                .item(i)
+                                .getAttribute('style')
+                            copyEle.setAttribute('style', attribute)
                         })
                     },
                 }).then(function (canvas) {

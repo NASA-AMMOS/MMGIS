@@ -141,7 +141,7 @@ let DataShaders = {
                         `<input style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${name}" parameter="max" type="number" value="0" default="0">`,
                     '</div>',
                 '</li>',
-                `<li class="dataShader_${cname}_colorize">`,
+                `<li class="dataShader dataShader_${cname}_colorize">`,
                     '<div style="padding: 2px 0px;">',
                         `<div id="dataShader_${cname}_colorize_ramps" style="width: 100%;"></div>`,
                     '</div>',
