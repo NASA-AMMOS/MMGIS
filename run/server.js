@@ -8,7 +8,7 @@ var bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const express = require("express");
 var swaggerUi = require("swagger-ui-express");
-var swaggerDocumentMain = require("../docs/pages/swaggers/swaggerMain.json");
+var swaggerDocumentMain = require("../documentation/pages/swaggers/swaggerMain.json");
 var exec = require("child_process").exec;
 var execFile = require("child_process").execFile;
 const createError = require("http-errors");
@@ -345,8 +345,8 @@ function ensureUser() {
 }
 
 var swaggerOptions = {
-  customCssUrl: "/docs/pages/swaggers/swaggerCSS.css",
-  customJs: "/docs/pages/swaggers/swaggerJS.js",
+  customCssUrl: "/documentation/pages/swaggers/swaggerCSS.css",
+  customJs: "/documentation/pages/swaggers/swaggerJS.js",
 };
 
 const useSwaggerSchema =
@@ -482,7 +482,10 @@ setups.getBackendSetups(function (setups) {
     );
 
   app.use("/build", ensureUser(), express.static(path.join(rootDir, "/build")));
-  app.use("/docs", express.static(path.join(rootDir, "/docs")));
+  app.use(
+    "/documentation",
+    express.static(path.join(rootDir, "/documentation"))
+  );
   app.use("/README.md", express.static(path.join(rootDir, "/README.md")));
   app.use("/config/login", express.static(path.join(rootDir, "/config/login")));
   app.use(
@@ -527,7 +530,7 @@ setups.getBackendSetups(function (setups) {
   app.get("/docs", ensureUser(), ensureGroup(permissions.users), (req, res) => {
     res.render("docs", {});
   });
-  
+
   //help
   app.get("/help", ensureUser(), ensureGroup(permissions.users), (req, res) => {
     res.render("help", {});
@@ -566,7 +569,7 @@ setups.getBackendSetups(function (setups) {
           lon2,
           steps,
           axes,
-          1
+          1,
         ],
         function (error, stdout, stderr) {
           res.send(stdout);

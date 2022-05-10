@@ -7,7 +7,7 @@
 
 <pre align="center">Spatial Data Infrastructure for Planetary Missions</pre>
 
-<span style="display:block;text-align:center">![Example](/docs/images/Full_Example.png)</span>
+<span style="display:block;text-align:center">![Example](/documentation/images/Full_Example.png)</span>
 
 ---
 
