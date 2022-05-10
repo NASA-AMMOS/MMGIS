@@ -1,8 +1,8 @@
 ---
 layout: page
-title: Formats
-permalink: /configure/formats
+title: Layers
+permalink: /configure/layers
 parent: Configure
 has_children: true
-nav_order: 5
+nav_order: 2
 ---

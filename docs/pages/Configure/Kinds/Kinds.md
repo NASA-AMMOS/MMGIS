@@ -3,7 +3,7 @@ layout: page
 title: Kinds
 permalink: /configure/kinds
 parent: Configure
-nav_order: 2
+nav_order: 3
 ---
 
 # Kinds
