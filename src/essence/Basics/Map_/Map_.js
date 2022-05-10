@@ -369,7 +369,13 @@ let Map_ = {
         // Now only rasters
         // They're separate because its better to only change the raster z-index
         for (let i = 0; i < hasIndexRaster.length; i++) {
-            L_.layersGroup[L_.layersOrdered[hasIndexRaster[i]]].setZIndex(i + 1)
+            L_.layersGroup[L_.layersOrdered[hasIndexRaster[i]]].setZIndex(
+                L_.layersOrdered.length +
+                    1 -
+                    L_.layersOrdered.indexOf(
+                        L_.layersOrdered[hasIndexRaster[i]]
+                    )
+            )
         }
     },
     refreshLayer: function (layerObj) {

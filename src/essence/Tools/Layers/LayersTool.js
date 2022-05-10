@@ -395,7 +395,7 @@ function interfaceWithMMGIS() {
                     // prettier-ignore
                     $('#layersToolList').append(
                         [
-                            '<li class="layersToolHeader" id="header_' + headerI + '" type="' + node[i].type + '" depth="' + depth + '" childrenon="true" style="margin-left: ' + depth * 17 + 'px;">' +
+                            '<li class="layersToolHeader" id="header_' + headerI + '" type="' + node[i].type + '" depth="' + depth + '" childrenon="true" style="margin-left: ' + depth * 16 + 'px;">' +
                                 '<div class="title" id="headerstart">' +
                                     '<div class="layersToolColorOFF ' + node[i].type + '"></div>',
                                     '<div>',
@@ -730,7 +730,7 @@ function interfaceWithMMGIS() {
 
     // Make it all sortable
     const listToSort = document.getElementById('layersToolList')
-    const sortable = Sortable.create(listToSort, {
+    Sortable.create(listToSort, {
         animation: 200,
         easing: 'cubic-bezier(0.37, 0, 0.63, 1)',
         handle: '.layersToolColor',

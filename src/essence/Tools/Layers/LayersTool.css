@@ -125,7 +125,7 @@
     font-size: 14px;
     margin: 1px 0px;
     color: var(--color-f);
-    background: var(--color-j);
+    background: var(--color-a1);
     overflow: hidden;
 }
 #layersToolList > li.forceOff {
@@ -301,14 +301,14 @@
 }
 
 .layersToolColorOFF {
-    width: 12px;
+    width: 10px;
     height: 100%;
 }
 .layersToolColor {
     width: 12px;
     height: 100%;
     cursor: ns-resize;
-    color: rgba(255,255,255,0.6);
+    color: rgba(255, 255, 255, 0.6);
     border-right: 1px solid var(--color-a);
     box-sizing: unset;
     transition: all 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);

@@ -312,7 +312,7 @@ var L_ = {
                         demUrl = undefined
                     L_.Globe_.litho.addLayer('tile', {
                         name: s.name,
-                        order: 99999 - L_.layersIndex[s.name],
+                        order: L_.layersOrdered,
                         on: L_.opacityArray[s.name],
                         format: s.tileformat || 'tms',
                         formatOptions: {},
@@ -394,7 +394,7 @@ var L_ = {
                         if (s.type === 'vector') {
                             L_.Globe_.litho.addLayer('clamped', {
                                 name: s.name,
-                                order: 1000 - L_.layersIndex[s.name], // Since higher order in litho is on top
+                                order: L_.layersOrdered, // Since higher order in litho is on top
                                 on: L_.opacityArray[s.name] ? true : false,
                                 geojson: L_.layersGroup[s.name].toGeoJSON(),
                                 onClick: (feature, lnglat, layer) => {
@@ -537,15 +537,6 @@ var L_ = {
                 (L_.layersData[i].type === 'model' ||
                     L_.layersGroup[L_.layersData[i].name] != null)
             ) {
-                if (L_.layersData[i].type === 'tile') {
-                    // Make sure all tile layers follow z-index order at start instead of element order
-                    L_.layersGroup[L_.layersData[i].name].setZIndex(
-                        L_.layersOrdered.length +
-                            1 -
-                            L_.layersOrdered.indexOf(L_.layersData[i].name)
-                    )
-                }
-
                 // Add Map layers
                 if (L_.layersGroup[L_.layersData[i].name]) {
                     try {
@@ -626,7 +617,7 @@ var L_ = {
                     if (L_.layersData[i].type === 'tile')
                         L_.Globe_.litho.addLayer('tile', {
                             name: s.name,
-                            order: 99999 - L_.layersIndex[s.name],
+                            order: L_.layersOrdered,
                             on: L_.opacityArray[s.name],
                             format: s.tileformat || 'tms',
                             formatOptions: {},
@@ -647,7 +638,7 @@ var L_ = {
                 } else if (L_.layersData[i].type === 'model') {
                     L_.Globe_.litho.addLayer('model', {
                         name: s.name,
-                        order: 99999 - L_.layersIndex[s.name],
+                        order: L_.layersOrdered,
                         on: true,
                         path: layerUrl,
                         opacity: L_.opacityArray[s.name],
@@ -672,7 +663,7 @@ var L_ = {
                                 : L_.layersData[i].type,
                             {
                                 name: s.name,
-                                order: 1000 - L_.layersIndex[s.name], // Since higher order in litho is on top
+                                order: L_.layersOrdered, // Since higher order in litho is on top
                                 on: L_.opacityArray[s.name] ? true : false,
                                 geojson: L_.layersGroup[s.name].toGeoJSON(),
                                 onClick: (feature, lnglat, layer) => {
@@ -1458,9 +1449,9 @@ var L_ = {
 
         L_.layersOrdered = newLayersOrdered
 
-        if (L_.Map_) {
-            L_.Map_.orderedBringToFront(true)
-        }
+        if (L_.Map_) L_.Map_.orderedBringToFront(true)
+
+        if (L_.Globe_) L_.Globe_.litho.orderLayers(L_.layersOrdered)
     },
     clearVectorLayer: function (layerName) {
         try {

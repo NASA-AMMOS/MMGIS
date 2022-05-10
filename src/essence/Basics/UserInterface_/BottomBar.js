@@ -6,7 +6,7 @@ import L_ from '../Layers_/Layers_'
 
 import QueryURL from '../../Ancillary/QueryURL'
 import Modal from '../../Ancillary/Modal'
-import HTML2Canvas from '../../../external/HTML2Canvas/html2canvas.min'
+import HTML2Canvas from 'html2canvas'
 
 import './BottomBar.css'
 
@@ -70,9 +70,36 @@ let BottomBar = {
                 $('.leaflet-control-scalefactor').css('display', 'none')
                 $('.leaflet-control-zoom').css('display', 'none')
                 $('#topBarScreenshotLoading').css('display', 'block')
-                HTML2Canvas(document.getElementById('mapScreen'), {
+
+                const documentElm = document.getElementById('mapScreen')
+                HTML2Canvas(documentElm, {
                     allowTaint: true,
                     useCORS: true,
+                    logging: false,
+                    scrollX: -window.scrollX,
+                    scrollY: -window.scrollY,
+                    windowWidth: documentElm.offsetWidth,
+                    windowHeight: documentElm.offsetHeight,
+                    onclone: function (e) {
+                        const original = document.body.querySelectorAll(
+                            'svg.leaflet-zoom-animated'
+                        )
+                        const copy = e.body.querySelectorAll(
+                            'svg.leaflet-zoom-animated'
+                        )
+                        copy.forEach((copyEle, i) => {
+                            const attribute = original
+                                .item(i)
+                                .getAttribute('style')
+                            const parentElement = copyEle.parentElement
+                            parentElement.removeChild(copyEle)
+                            const temp = document.createElement('div')
+                            temp.appendChild(copyEle)
+                            parentElement.appendChild(temp)
+                            temp.setAttribute('style', attribute)
+                            copyEle.removeAttribute('style')
+                        })
+                    },
                 }).then(function (canvas) {
                     canvas.id = 'mmgisScreenshot'
                     document.body.appendChild(canvas)
@@ -102,7 +129,10 @@ let BottomBar = {
         d3.select('#topBarScreenshot')
             .append('i')
             .attr('id', 'topBarScreenshotLoading')
-            .attr('title', 'Taking Screenshot')
+            .attr(
+                'title',
+                'Taking Screenshot...\nYou may need to permit multiple downloads in your browser.'
+            )
             .attr('tabindex', 102)
             .style('display', 'none')
             .style('border-radius', '50%')
