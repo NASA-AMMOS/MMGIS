@@ -125,7 +125,7 @@
     font-size: 14px;
     margin: 1px 0px;
     color: var(--color-f);
-    background: var(--color-j);
+    background: var(--color-a1);
     overflow: hidden;
 }
 #layersToolList > li.forceOff {
@@ -214,6 +214,21 @@
     font-size: 12px;
     padding-left: 4px;
 }
+#layersTool .settings span {
+    font-size: 12px;
+    padding-left: 4px;
+}
+#layersTool .settings .dataShader .dropy__title > span {
+    width: calc(100% - 19px);
+}
+#layersTool .settings .dataShader .dropy__title > i {
+    line-height: 13px;
+    right: 0;
+    line-height: 22px;
+    background: var(--color-a1-5);
+    height: 22px;
+    top: -9px;
+}
 
 #layersTool #layersToolList > li.download_on,
 #layersTool #layersToolList > li.gears_on {
@@ -300,9 +315,25 @@
     line-height: 19px;
 }
 
-.layersToolColor {
-    width: 6px;
+.layersToolColorOFF {
+    width: 10px;
     height: 100%;
+}
+.layersToolColor {
+    width: 12px;
+    height: 100%;
+    cursor: ns-resize;
+    color: rgba(255, 255, 255, 0.6);
+    border-right: 1px solid var(--color-a);
+    box-sizing: unset;
+    transition: all 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+.layersToolColor > i.mdi:before {
+    font-size: 14px;
+    margin-left: -1px;
+}
+.layersToolColor:hover {
+    color: white;
 }
 .layersToolColor.vector {
     background: var(--color-p8);
@@ -457,7 +488,7 @@
 }
 
 #layersTool .layernotfound {
-    background: #260d0d;
+    background: #541d1d;
     cursor: not-allowed;
 }
 #layersTool .layernotfound > div {

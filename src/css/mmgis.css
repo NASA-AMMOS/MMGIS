@@ -101,17 +101,17 @@ body {
     --color-r6: #8be04e;
     --color-r7: #ebdc78;
 
-    --color-p0: #bdbd0f;
+    --color-p0: #dbb658; /*#eae308;*/
     --color-p1: #c0822f;
     --color-p2: #ffeaaf;
-    --color-p3: #62bd0f;
-    --color-p4: #bd0f32;
+    --color-p3: #87b051; /*#08ea71;*/
+    --color-p4: #c43541; /*#ea0808;*/
     --color-p5: #edd49e;
     --color-p6: #e7bdcb;
     --color-p7: #72d1cb;
-    --color-p8: #08aeea;
-    --color-p9: #770fbd;
-    --color-p10: #bd0f8e;
+    --color-p8: #11495c;
+    --color-p9: #75351e; /*#5708ea;*/
+    --color-p10: #78b1c2;
 }
 
 #nodeenv {
@@ -798,4 +798,9 @@ body {
 }
 #_lithosphere_control_mmgisLithoNavigation svg {
     box-sizing: unset !important;
+}
+
+.mdi-12px.mdi-set,
+.mdi-12px.mdi:before {
+    font-size: 12px;
 }
