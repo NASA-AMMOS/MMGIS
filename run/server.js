@@ -600,6 +600,32 @@ setups.getBackendSetups(function (setups) {
     }
   );
 
+  /*
+  //http://localhost:8888/test/timeLayer?start=2022-05-12T16:10:11.648750Z&end=2022-05-12T16:25:25.084933Z
+  app.get("/test/timeLayer", (req, res) => {
+    res.send({
+      type: "FeatureCollection",
+      properties: { crs_code: "IAU2000:30100" },
+      features: [
+        {
+          type: "Feature",
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [137.3717, parseFloat("-4.666" + parseInt(Math.random() * 100))],
+              [137.3797, parseFloat("-4.667" + parseInt(Math.random() * 100))],
+            ],
+          },
+          properties: {
+            event_utc: [req.query.start, req.query.end],
+            crs_code: "IAU2000:30100",
+          },
+        },
+      ],
+    });
+  });
+  */
+
   // Validate envs
   if (process.env.NODE_ENV === "development") {
     console.log(chalk.cyan("Validating Environment Variables...\n"));

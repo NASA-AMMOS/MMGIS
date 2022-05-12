@@ -180,7 +180,6 @@ var TimeControl = {
         if (typeof layer == 'string') {
             layer = L_.layersNamed[layer]
         }
-        console.log('Reloading ' + layer.name)
         if (layer.time && layer.time.enabled == true) {
             var layerTimeFormat = d3.utcFormat(layer.time.format)
             layer.time.current = TimeControl.currentTime // keeps track of when layer was refreshed
@@ -292,13 +291,10 @@ var TimeControl = {
     },
 }
 
-function initLayerTimes () {
+function initLayerTimes() {
     for (let layerName in L_.layersNamed) {
         const layer = L_.layersNamed[layerName]
-        if (
-            layer.time &&
-            layer.time.enabled == true
-        ) {
+        if (layer.time && layer.time.enabled == true) {
             layer.time.start = TimeControl.startTime
             layer.time.end = TimeControl.endTime
             d3.select('.starttime.' + layer.name.replace(/\s/g, '')).text(

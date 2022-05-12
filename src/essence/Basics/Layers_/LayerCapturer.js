@@ -32,12 +32,13 @@ export const captureVector = (layerObj, options, cb) => {
         layerObj.time == null
             ? d3.utcFormat('%Y-%m-%dT%H:%M:%SZ')
             : d3.utcFormat(layerObj.time.format)
-    const startTime = 
-        layerObj.time == null
+
+    const startTime =
+        layerObj.time == null || layerObj.time.start == ''
             ? layerTimeFormat(Date.parse(TimeControl.getStartTime()))
             : layerObj.time.start
     const endTime =
-        layerObj.time == null
+        layerObj.time.end == null || layerObj.time.end == ''
             ? layerTimeFormat(Date.parse(TimeControl.getEndTime()))
             : layerObj.time.end
 
