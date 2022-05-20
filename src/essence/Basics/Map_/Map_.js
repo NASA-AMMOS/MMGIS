@@ -1118,6 +1118,65 @@ function allLayersLoaded() {
 
 //This would be better moved to Layers_
 function enforceVisibilityCutoffs() {
+    const layerNames = Object.keys(L_.layersNamed)
+
+    layerNames.forEach((layerName) => {
+        const layerObj = L_.layersNamed[layerName]
+        const layer = L_.layersGroup[layerName]
+
+        // vector, loaded and on
+        if (
+            layerObj.type === 'vector' &&
+            layer &&
+            layer._layers &&
+            L_.toggledArray[layerName] === true
+        ) {
+            let minZoom = null
+            let maxZoom = null
+            if (
+                layerObj.hasOwnProperty('minZoom') ||
+                layerObj.hasOwnProperty('maxZoom')
+            ) {
+                minZoom = layerObj.minZoom != null ? layerObj.minZoom : null
+                maxZoom = layerObj.maxZoom != null ? layerObj.maxZoom : null
+            } else if (layerObj.hasOwnProperty('visibilitycutoff')) {
+                // Backwards compatibility
+                minZoom =
+                    layerObj.visibilitycutoff > 0
+                        ? layerObj.visibilitycutoff
+                        : null
+                maxZoom =
+                    layerObj.visibilitycutoff < 0
+                        ? layerObj.visibilitycutoff
+                        : null
+            }
+
+            minZoom = minZoom != null ? minZoom : 0
+            maxZoom = maxZoom != null ? maxZoom : 100
+
+            for (let layerId in layer._layers) {
+                const l = layer._layers[layerId]
+                let featureMinZoom = null
+                let featureMaxZoom = null
+                if (l.feature?.properties?.style?.minZoom != null)
+                    featureMinZoom = l.feature.properties.style.minZoom
+                if (l.feature?.properties?.style?.maxZoom != null)
+                    featureMaxZoom = l.feature.properties.style.maxZoom
+
+                if (
+                    F_.isInZoomRange(
+                        featureMinZoom != null ? featureMinZoom : minZoom,
+                        featureMaxZoom != null ? featureMaxZoom : maxZoom,
+                        Map_.map.getZoom()
+                    )
+                )
+                    l._path.style.display = 'inherit'
+                else l._path.style.display = 'none'
+            }
+        }
+    })
+
+    return
     var settingsEnforceVC = true //We don't have setting yet
     var layerElements
     var names = Object.keys(L_.layersNamed)
@@ -1126,6 +1185,7 @@ function enforceVisibilityCutoffs() {
         layerElements = d3.selectAll(
             '.' + names[i].replace(/\s/g, '').toLowerCase()
         )
+        console.log(L_.layersGroup[names[i]])
         if (
             L_.layersGroup[names[i]] != undefined &&
             Map_.map.hasLayer(L_.layersGroup[names[i]]) &&

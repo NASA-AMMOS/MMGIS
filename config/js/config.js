@@ -837,11 +837,11 @@ function makeLayerBarAndModal(d, level) {
       break;
     case "vector":
         nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; controlledEl = "block"; demtileurlEl = "none";  demparserEl = "none"; legendEl = "block";
-        visEl = "block"; viscutEl = "block"; initOpacEl = "block"; togwheadEl = "none"; minzEl = "none";
+        visEl = "block"; viscutEl = "block"; initOpacEl = "block"; togwheadEl = "none"; minzEl = "block";
         tileformatEl = "none";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
-        maxnzEl = "none"; maxzEl = "none"; strcolEl = "block"; filcolEl = "block";
+        maxnzEl = "none"; maxzEl = "block"; strcolEl = "block"; filcolEl = "block";
         weightEl = "block"; opacityEl = "block"; radiusEl = "block"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
         timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "block";
@@ -1251,10 +1251,6 @@ function makeLayerBarAndModal(d, level) {
               "</select>" +
               "<label>Initial Visibility</label>" +
             "</div>" +
-            "<div id='viscutEl' class='input-field col s2 push-s1' style='display: " + viscutEl + "'>" +
-              "<input id='Visibilitycutoff" + n + "' type='text' class='validate' value='" + d.visibilitycutoff + "'>" +
-              "<label for='Visibilitycutoff" + n + "'>Visibility Cutoff</label>" +
-            "</div>" +
             "<div id='initOpacEl' class='input-field col s2 push-s1' style='display: " + initOpacEl + "'>" +
               "<input id='InitialOpacity" + n + "' type='text' class='validate' value='" + ( d.initialOpacity == null ? 1 : d.initialOpacity ) + "'>" +
               "<label for='InitialOpacity" + n + "'>Initial Opacity [0 - 1]</label>" +
@@ -1550,10 +1546,10 @@ function mmgisLinkModalsToLayersTypeChange(e) {
       break;
     case "vector": barColor = "rgb(15, 119, 189)";
         nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; demparserEl = "none"; controlledEl = "block"; legendEl = "block";
-        tileformatEl = "none"; visEl = "block"; viscutEl = "block"; initOpacEl = "block"; togwheadEl = "none"; minzEl = "none"; maxnzEl = "none";
+        tileformatEl = "none"; visEl = "block"; viscutEl = "block"; initOpacEl = "block"; togwheadEl = "none"; minzEl = "block"; maxnzEl = "none";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
-        maxzEl = "none"; strcolEl = "block"; filcolEl = "block"; weightEl = "block";
+        maxzEl = "block"; strcolEl = "block"; filcolEl = "block"; weightEl = "block";
         opacityEl = "block"; radiusEl = "block"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
         timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
@@ -1592,7 +1588,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
   mainThis.find("#legendEl").css("display", legendEl);
   mainThis.find("#tileformatEl").css("display", tileformatEl);
   mainThis.find("#visEl").css("display", visEl);
-  mainThis.find("#viscutEl").css("display", viscutEl);
+  //mainThis.find("#viscutEl").css("display", viscutEl);
   mainThis.find("#initOpacEl").css("display", initOpacEl);
   //mainThis.find("#togwheadEl").css("display", togwheadEl);
   mainThis.find("#minzEl").css("display", minzEl);
@@ -1883,7 +1879,7 @@ function save() {
           .toLowerCase();
         if (modalVis == "true") modalVis = true;
         else modalVis = false;
-        var modalViscut = parseInt(modal.find("#viscutEl input").val());
+        //var modalViscut = parseInt(modal.find("#viscutEl input").val());
         var modalInitOpac = parseFloat(modal.find("#initOpacEl input").val());
         var modalTogwhead = modal
           .find("#togwheadEl select option:selected")
@@ -1959,7 +1955,6 @@ function save() {
         if (modalTileFormat != "undefined")
           layerObject.tileformat = modalTileFormat;
         if (modalType != "header") layerObject.visibility = modalVis;
-        if (!isNaN(modalViscut)) layerObject.visibilitycutoff = modalViscut;
         if (!isNaN(modalInitOpac)) layerObject.initialOpacity = modalInitOpac;
         if (modalType != "header")
           layerObject.togglesWithHeader = modalTogwhead;

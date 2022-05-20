@@ -615,6 +615,137 @@
     width: 160px;
 }
 
+/*Svelte Slider*/
+/* slider colorings overrides
+/* ****************************** */
+.svelteSlider {
+    --range-slider: #646c7c;
+    --handle-border: var(--handle);
+    --range-inactive: var(--handle-focus);
+    --range: var(--handle-focus);
+    --float-inactive: var(--handle-focus);
+    --float: var(--handle-focus);
+    --float-text: white;
+    --pip-active: white;
+    --pip-active-text: var(--pip-active);
+    --handle1: #00cfff;
+    --handle3: #ff2b66;
+    --handle2: #3edd8b;
+    --handle4: #f5d556;
+  }
+  
+  /* slider handle color overrides
+  /* ****************************** */
+  .svelteSlider .rangeHandle {
+    --handle-focus: var(--handle);
+    --handle-inactive: var(--handle);
+    --handle-border: var(--handle);
+  }
+  
+  .svelteSlider .rangeHandle:nth-of-type(1) {
+    --handle: var(--handle1);
+  }
+  
+  .svelteSlider .rangeHandle:nth-of-type(2) {
+    --handle: var(--handle2);
+  }
+  
+  .svelteSlider .rangeHandle:nth-of-type(3) {
+    --handle: var(--handle3);
+  }
+  
+  .svelteSlider .rangeHandle:nth-of-type(4) {
+    --handle: var(--handle4);
+  }
+  
+  /* shared slider styles
+  /* ****************************** */
+  .svelteSlider {
+    height: 3px;
+  }
+  
+  .svelteSlider .rangeNub {
+    opacity: 0.5;
+  }
+  .svelteSlider.focus .rangeNub, .svelteSlider:hover .rangeNub {
+    opacity: 0.75;
+  }
+  .svelteSlider .rangeHandle.active .rangeNub {
+    opacity: 1;
+  }
+  
+  .svelteSlider.rangeFloat {
+    opacity: 0.5;
+    background: transparent;
+  }
+  
+  .svelteSliderr.focus .rangeFloat {
+    opacity: 1;
+  }
+  
+
+  
+  /* second slider styling
+  /* ****************************** */
+  .svelteSlider .rangeHandle {
+    width: 15px;
+    height: 15px;
+    top: 1px;
+  }
+  .svelteSlider .rangeHandle .rangeNub {
+    opacity: 1;
+  }
+  
+  /* pips under sliders styling
+  /* ****************************** */
+  .svelteSlider .pip {
+    height: 4px;
+    font-weight: 200;
+  }
+  .svelteSlider .pip.selected .pipVal {
+    font-weight: 300;
+  }
+  .svelteSlider .pip .pipVal {
+    display: none;
+    font-size: 12px;
+    top: 8px;
+  }
+  
+  .svelteSlider .pip:nth-child(5n+1) {
+    height: 8px;
+  }
+  .svelteSlider .pip:nth-child(5n+1).selected {
+    height: 12px;
+  }
+  .svelteSlider .pip:nth-child(5n+1).selected .pipVal {
+    top: 12px;
+  }
+  .svelteSlider .pip:nth-child(5n+1) .pipVal {
+    display: block;
+  }
+  
+  .svelteSlider .rangeBar {
+    height: 3px;
+    background: linear-gradient(90deg, var(--handle1), var(--handle1) 25%, var(--handle2) 75%, var(--handle2));
+  }
+  
+  .svelteSlider .rangePips .pip,
+  .svelteSlider.rangePips .pipVal {
+    transition: all 0.66s ease-out;
+  }
+  
+  .svelteSlider .rangePips .pip.selected,
+  .svelteSlider .rangePips .pip.selected .pipVal {
+    transition: none;
+  }
+  
+  .svelteSlider.range .rangePips .pip.selected,
+  .svelteSlider.range .rangePips .pip.selected .pipVal {
+    transition: all 0.15s ease;
+  }
+  
+  
+
 /*Custom Scrollbar for webkit*/
 .mmgisScrollbar::-webkit-scrollbar-track {
     -webkit-box-shadow: inset 0px 0px 6px rgba(0, 0, 0, 0.3);

@@ -392,6 +392,8 @@ var L_ = {
                                 L_.layersOrdered.indexOf(s.name)
                         )
                         if (s.type === 'vector') {
+                            console.log(s)
+
                             L_.Globe_.litho.addLayer('clamped', {
                                 name: s.name,
                                 order: L_.layersOrdered, // Since higher order in litho is on top
@@ -419,8 +421,14 @@ var L_ = {
                                         : null,
                                 },
                                 opacity: L_.opacityArray[s.name],
-                                minZoom: 0, //s.minZoom,
-                                maxZoom: 100, //s.maxNativeZoom,
+                                minZoom:
+                                    s.visibilitycutoff > 0
+                                        ? s.visibilitycutoff
+                                        : null,
+                                maxZoom:
+                                    s.visibilitycutoff < 0
+                                        ? s.visibilitycutoff
+                                        : null,
                             })
                         }
                     }
@@ -688,8 +696,14 @@ var L_ = {
                                         : null,
                                 },
                                 opacity: L_.opacityArray[s.name],
-                                minZoom: 0, //s.minZoom,
-                                maxZoom: 100, //s.maxNativeZoom,
+                                minZoom:
+                                    s.visibilitycutoff > 0
+                                        ? s.visibilitycutoff
+                                        : null,
+                                maxZoom:
+                                    s.visibilitycutoff < 0
+                                        ? s.visibilitycutoff
+                                        : null,
                             }
                         )
                 }
