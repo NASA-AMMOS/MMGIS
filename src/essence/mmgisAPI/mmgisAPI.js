@@ -11,8 +11,10 @@ var mmgisAPI_ = {
     fina: function (map_) {
         mmgisAPI_.map = map_.map
         mmgisAPI.map = map_.map
-        if (typeof mmgisAPI_.onLoadCallback === 'function')
+        if (typeof mmgisAPI_.onLoadCallback === 'function') {
             mmgisAPI_.onLoadCallback()
+            mmgisAPI_.onLoadCallback = null
+        }
     },
     // Returns an array of all features in a given extent
     featuresContained: function () {
