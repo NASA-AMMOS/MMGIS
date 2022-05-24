@@ -737,7 +737,7 @@ function makeLayerBarAndModal(d, level) {
   //Which form elements to hide ( based on display property )
   // prettier-ignore
   var nameEl = "block", kindEl = "block", typeEl = "block", urlEl = "block", demtileurlEl = "block", demparserEl = "block", controlledEl = "block", legendEl = "block",
-      visEl = "block", viscutEl = "block", initOpacEl = "block", togwheadEl = "block", minzEl = "block",
+      visEl = "block", viscutEl = "block", initOpacEl = "block", togwheadEl = "block", minzEl = "block", layer3dEl = "block",
       tileformatEl = "block",
       visEl = "block",
       viscutEl = "block",
@@ -777,7 +777,7 @@ function makeLayerBarAndModal(d, level) {
   switch( d.type ) {
     case "header":
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "none"; demtileurlEl = "none"; demparserEl = "none"; controlledEl = "none"; legendEl = "none";
-        visEl = "block"; viscutEl = "none"; initOpacEl = "none"; togwheadEl = "none"; minzEl = "none";
+        visEl = "block"; viscutEl = "none"; initOpacEl = "none"; togwheadEl = "none"; minzEl = "none"; layer3dEl = "none";
         tileformatEl = "none";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
@@ -789,7 +789,7 @@ function makeLayerBarAndModal(d, level) {
       break;
     case "tile":
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "none"; legendEl = "block";
-        visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "block";
+        visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "block"; layer3dEl = "none";
         tileformatEl = "block";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
@@ -801,7 +801,7 @@ function makeLayerBarAndModal(d, level) {
       break;
     case "vectortile":
         nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "none"; legendEl = "block";
-        visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "block";
+        visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "block"; layer3dEl = "none";
         tileformatEl = "block";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
@@ -813,7 +813,7 @@ function makeLayerBarAndModal(d, level) {
       break;
     case "data":
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "none"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "none"; legendEl = "block";
-        visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "block";
+        visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "block"; layer3dEl = "none";
         tileformatEl = "none";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
@@ -825,7 +825,7 @@ function makeLayerBarAndModal(d, level) {
       break;
     case "query":
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "none"; demtileurlEl = "none"; demparserEl = "none"; controlledEl = "none"; legendEl = "none";
-        visEl = "none"; viscutEl = "none"; initOpacEl = "none"; togwheadEl = "none"; minzEl = "none";
+        visEl = "none"; viscutEl = "none"; initOpacEl = "none"; togwheadEl = "none"; minzEl = "none"; layer3dEl = "none";
         tileformatEl = "none";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
@@ -837,7 +837,7 @@ function makeLayerBarAndModal(d, level) {
       break;
     case "vector":
         nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; controlledEl = "block"; demtileurlEl = "none";  demparserEl = "none"; legendEl = "block";
-        visEl = "block"; viscutEl = "block"; initOpacEl = "block"; togwheadEl = "none"; minzEl = "block";
+        visEl = "block"; viscutEl = "block"; initOpacEl = "block"; togwheadEl = "none"; minzEl = "block"; layer3dEl = "block";
         tileformatEl = "none";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
@@ -848,7 +848,7 @@ function makeLayerBarAndModal(d, level) {
       break;
     case "model":
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; demparserEl = "none"; controlledEl = "none"; legendEl = "none";
-        visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "none"; minzEl = "none";
+        visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "none"; minzEl = "none"; layer3dEl = "none";
         tileformatEl = "none";
         modelLonEl = "block"; modelLatEl = "block"; modelElevEl = "block";
         modelRotXEl = "block"; modelRotYEl = "block"; modelRotZEl = "block"; modelScaleEl = "block";
@@ -954,6 +954,16 @@ function makeLayerBarAndModal(d, level) {
       visIcon = "none";
       break;
     default:
+  }
+
+  var layer3dClampedSel = "",
+    layer3dVectorSel = "";
+  switch (d.layer3dType) {
+    case "vector":
+      layer3dVectorSel = "selected";
+      break;
+    default:
+      layer3dClampedSel = "selected";
   }
 
   var timeTrueSel = "",
@@ -1255,6 +1265,13 @@ function makeLayerBarAndModal(d, level) {
               "<input id='InitialOpacity" + n + "' type='text' class='validate' value='" + ( d.initialOpacity == null ? 1 : d.initialOpacity ) + "'>" +
               "<label for='InitialOpacity" + n + "'>Initial Opacity [0 - 1]</label>" +
             "</div>" +
+            "<div id='layer3dEl' class='input-field col s2 push-s1' style='display: " + layer3dEl + "'>" +
+              "<select>" +
+                  "<option value='clamped' " + layer3dClampedSel + ">Clamped</option>" +
+                  "<option value='vector' " + layer3dVectorSel + ">Vector</option>" +
+              "</select>" +
+              "<label>3D Layer Type</label>" +
+            "</div>" +
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
@@ -1477,7 +1494,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
 
   // prettier-ignore
   var nameEl = "block", kindEl = "block", typeEl = "block", urlEl = "block", demtileurlEl = "block", demparserEl = "block", controlledEl = "none", legendEl = "block",
-      tileformatEl = "block", visEl = "block", viscutEl = "block", initOpacEl = "block", togwheadEl = "block", minzEl = "block",
+      tileformatEl = "block", visEl = "block", viscutEl = "block", initOpacEl = "block", togwheadEl = "block", minzEl = "block", layer3dEl = "none",
       modelLonEl = "block", modelLatEl = "block", modelElevEl = "block",
       modelRotXEl = "block", modelRotYEl = "block", modelRotZEl = "block", modelScaleEl = "block",
       maxnzEl = "block", maxzEl = "block", strcolEl = "block", filcolEl = "block",
@@ -1491,7 +1508,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
   switch( $( this ).find( "select option:selected" ).val().toLowerCase() ) {
     case "header": barColor = "#505050";
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "none"; demtileurlEl = "none"; demparserEl = "none"; controlledEl = "none"; legendEl = "none";
-        tileformatEl = "none"; visEl = "block"; viscutEl = "none"; initOpacEl = "none"; togwheadEl = "none"; minzEl = "none"; maxnzEl = "none";
+        tileformatEl = "none"; visEl = "block"; viscutEl = "none"; initOpacEl = "none"; togwheadEl = "none"; minzEl = "none"; maxnzEl = "none"; layer3dEl = "none";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxzEl = "none"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
@@ -1502,7 +1519,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
       break;
     case "tile": barColor = "rgb(119, 15, 189)";
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "none"; legendEl = "block";
-        tileformatEl = "block"; visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "block"; maxnzEl = "block";
+        tileformatEl = "block"; visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "block"; maxnzEl = "block"; layer3dEl = "none";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxzEl = "block"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
@@ -1513,7 +1530,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
       break;
     case "vectortile": barColor = "#bd0f8e";
         nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "none"; legendEl = "block";
-        tileformatEl = "block"; visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "block"; maxnzEl = "block";
+        tileformatEl = "block"; visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "block"; maxnzEl = "block"; layer3dEl = "none";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxzEl = "block"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
@@ -1524,7 +1541,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
       break;
     case "data": barColor = "rgb(189, 15, 50)";
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "none"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "none"; legendEl = "block";
-        tileformatEl = "none"; visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "block"; maxnzEl = "block";
+        tileformatEl = "none"; visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "block"; maxnzEl = "block"; layer3dEl = "none";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxzEl = "block"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
@@ -1535,7 +1552,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
       break;
     case "query": barColor = "#0fbd4d";
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "none"; demtileurlEl = "none"; demparserEl = "none"; controlledEl = "none"; legendEl = "none";
-        tileformatEl = "none"; visEl = "none"; viscutEl = "none"; initOpacEl = "none"; togwheadEl = "none"; minzEl = "none"; maxnzEl = "none";
+        tileformatEl = "none"; visEl = "none"; viscutEl = "none"; initOpacEl = "none"; togwheadEl = "none"; minzEl = "none"; maxnzEl = "none"; layer3dEl = "none";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxzEl = "none"; strcolEl = "block"; filcolEl = "block"; weightEl = "block";
@@ -1546,7 +1563,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
       break;
     case "vector": barColor = "rgb(15, 119, 189)";
         nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; demparserEl = "none"; controlledEl = "block"; legendEl = "block";
-        tileformatEl = "none"; visEl = "block"; viscutEl = "block"; initOpacEl = "block"; togwheadEl = "none"; minzEl = "block"; maxnzEl = "none";
+        tileformatEl = "none"; visEl = "block"; viscutEl = "block"; initOpacEl = "block"; togwheadEl = "none"; minzEl = "block"; maxnzEl = "none"; layer3dEl = "block";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxzEl = "block"; strcolEl = "block"; filcolEl = "block"; weightEl = "block";
@@ -1557,7 +1574,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
       break;
     case "model": barColor = "rgb(189, 189, 15)";
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; demparserEl = "none"; controlledEl = "none"; legendEl = "none";
-        tileformatEl = "none"; visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "none"; minzEl = "none"; maxnzEl = "none"; 
+        tileformatEl = "none"; visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "none"; minzEl = "none"; maxnzEl = "none"; layer3dEl = "none";
         modelLonEl = "block"; modelLatEl = "block"; modelElevEl = "block";
         modelRotXEl = "block"; modelRotYEl = "block"; modelRotZEl = "block"; modelScaleEl = "block";
         maxzEl = "none"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
@@ -1594,6 +1611,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
   mainThis.find("#minzEl").css("display", minzEl);
   mainThis.find("#maxnzEl").css("display", maxnzEl);
   mainThis.find("#maxzEl").css("display", maxzEl);
+  mainThis.find("#layer3dEl").css("display", layer3dEl);
   mainThis.find("#modelLonEl").css("display", modelLonEl);
   mainThis.find("#modelLatEl").css("display", modelLatEl);
   mainThis.find("#modelElevEl").css("display", modelElevEl);
@@ -1877,6 +1895,10 @@ function save() {
           .find("#visEl select option:selected")
           .text()
           .toLowerCase();
+        var modalLayer3d = modal
+          .find("#layer3dEl select option:selected")
+          .val()
+          .toLowerCase();
         if (modalVis == "true") modalVis = true;
         else modalVis = false;
         //var modalViscut = parseInt(modal.find("#viscutEl input").val());
@@ -1950,6 +1972,8 @@ function save() {
           layerObject.demparser = modaldemparser;
         if (modalControlledEl != "undefined")
           layerObject.controlled = modalControlledEl;
+        if (modalType == "vector" && modalLayer3d != "undefined")
+          layerObject.layer3dType = modalLayer3d;
         if (modalLegend != "undefined" && modalLegend != "")
           layerObject.legend = modalLegend;
         if (modalTileFormat != "undefined")

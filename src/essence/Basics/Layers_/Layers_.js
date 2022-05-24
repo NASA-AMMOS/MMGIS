@@ -392,42 +392,46 @@ var L_ = {
                                 L_.layersOrdered.indexOf(s.name)
                         )
                         if (s.type === 'vector') {
-                            L_.Globe_.litho.addLayer('clamped', {
-                                name: s.name,
-                                order: L_.layersOrdered, // Since higher order in litho is on top
-                                on: L_.opacityArray[s.name] ? true : false,
-                                geojson: L_.layersGroup[s.name].toGeoJSON(),
-                                onClick: (feature, lnglat, layer) => {
-                                    this.selectFeature(layer.name, feature)
-                                },
-                                useKeyAsHoverName: s.useKeyAsName,
-                                style: {
-                                    // Prefer feature[f].properties.style values
-                                    letPropertiesStyleOverride: true, // default false
-                                    default: {
-                                        fillColor: s.style.fillColor, //Use only rgb and hex. No css color names
-                                        fillOpacity: parseFloat(
-                                            s.style.fillOpacity
-                                        ),
-                                        color: s.style.color,
-                                        weight: s.style.weight,
-                                        radius: s.radius,
+                            L_.Globe_.litho.addLayer(
+                                s.layer3dType || 'clamped',
+                                {
+                                    name: s.name,
+                                    order: L_.layersOrdered, // Since higher order in litho is on top
+                                    on: L_.opacityArray[s.name] ? true : false,
+                                    geojson: L_.layersGroup[s.name].toGeoJSON(),
+                                    onClick: (feature, lnglat, layer) => {
+                                        this.selectFeature(layer.name, feature)
                                     },
-                                    bearing: s.variables?.markerAttachments
-                                        ?.bearing
-                                        ? s.variables.markerAttachments.bearing
-                                        : null,
-                                },
-                                opacity: L_.opacityArray[s.name],
-                                minZoom:
-                                    s.visibilitycutoff > 0
-                                        ? s.visibilitycutoff
-                                        : null,
-                                maxZoom:
-                                    s.visibilitycutoff < 0
-                                        ? s.visibilitycutoff
-                                        : null,
-                            })
+                                    useKeyAsHoverName: s.useKeyAsName,
+                                    style: {
+                                        // Prefer feature[f].properties.style values
+                                        letPropertiesStyleOverride: true, // default false
+                                        default: {
+                                            fillColor: s.style.fillColor, //Use only rgb and hex. No css color names
+                                            fillOpacity: parseFloat(
+                                                s.style.fillOpacity
+                                            ),
+                                            color: s.style.color,
+                                            weight: s.style.weight,
+                                            radius: s.radius,
+                                        },
+                                        bearing: s.variables?.markerAttachments
+                                            ?.bearing
+                                            ? s.variables.markerAttachments
+                                                  .bearing
+                                            : null,
+                                    },
+                                    opacity: L_.opacityArray[s.name],
+                                    minZoom:
+                                        s.visibilitycutoff > 0
+                                            ? s.visibilitycutoff
+                                            : null,
+                                    maxZoom:
+                                        s.visibilitycutoff < 0
+                                            ? s.visibilitycutoff
+                                            : null,
+                                }
+                            )
                         }
                     }
                 }
@@ -662,10 +666,14 @@ var L_ = {
                         },
                     })
                 } else if (L_.layersData[i].type != 'header') {
+                    console.log(
+                        L_.layersData[i].name,
+                        L_.layersData[i].layer3dType
+                    )
                     if (typeof L_.layersGroup[s.name].toGeoJSON === 'function')
                         L_.Globe_.litho.addLayer(
                             L_.layersData[i].type == 'vector'
-                                ? 'clamped'
+                                ? L_.layersData[i].layer3dType || 'clamped'
                                 : L_.layersData[i].type,
                             {
                                 name: s.name,
