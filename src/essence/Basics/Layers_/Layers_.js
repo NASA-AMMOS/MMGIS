@@ -392,7 +392,7 @@ var L_ = {
                                 L_.layersOrdered.indexOf(s.name)
                         )
                         if (s.type === 'vector') {
-                            console.log(s)
+                            console.log(s, L_.layersGroup[s.name].toGeoJSON())
 
                             L_.Globe_.litho.addLayer('clamped', {
                                 name: s.name,
@@ -1018,6 +1018,10 @@ var L_ = {
             arrowLayer.start = start
             arrowLayer.end = end
             arrowLayer.feature = feature
+
+            arrowLayer.toGeoJSON = function () {
+                return feature
+            }
             return arrowLayer
         }
         if (index != null) {
@@ -1121,6 +1125,9 @@ var L_ = {
             andAddToMap,
         }
         popup.feature = feature
+        popup.toGeoJSON = function () {
+            return feature
+        }
         if (andAddToMap) {
             popup.addTo(L_.Map_.map)
             L_.layersGroup[layerId].push(popup)
