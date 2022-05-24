@@ -392,8 +392,6 @@ var L_ = {
                                 L_.layersOrdered.indexOf(s.name)
                         )
                         if (s.type === 'vector') {
-                            console.log(s, L_.layersGroup[s.name].toGeoJSON())
-
                             L_.Globe_.litho.addLayer('clamped', {
                                 name: s.name,
                                 order: L_.layersOrdered, // Since higher order in litho is on top
