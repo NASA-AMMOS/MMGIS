@@ -45,6 +45,7 @@ import ThreeAR from './external/THREE/three.ar'
 import OpenSeadragon from './external/OpenSeadragon/openseadragon'
 import fabricOverlay from './external/OpenSeadragon/openseadragon-fabricjs-overlay'
 import fabricA from './external/OpenSeadragon/fabric.adapted'
+import rsp from './external/svelte-range-slider-pips/svelte-range-slider-pips'
 
 import './fonts/materialdesignicons/css/materialdesignicons.min.css'
 import './external/Leaflet/leaflet1.5.1.css'
