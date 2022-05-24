@@ -7,6 +7,8 @@ import Map_ from '../../Basics/Map_/Map_'
 import UserInterface_ from '../../Basics/UserInterface_/UserInterface_'
 import turf from 'turf'
 
+import RangeSlider from '../../../external/svelte-range-slider-pips/svelte-range-slider-pips'
+
 import calls from '../../../pre/calls'
 
 var DrawTool = null
@@ -172,26 +174,27 @@ var Editing = {
             )
         }
 
-        var featureType
+        let featureType
 
-        var hasLengthMetric = false
-        var hasPerimeterMetric = false
-        var hasAreaMetric = false
+        let hasLengthMetric = false
+        let hasPerimeterMetric = false
+        let hasAreaMetric = false
 
-        var hasStrokeColor = false
-        var hasStrokeOpacity = false
-        var hasStrokeStyle = false
-        var hasStrokeWeight = false
-        var hasFillColor = false
-        var hasFillOpacity = false
-        var hasSymbol = false
-        var hasRadius = false
-        var hasWidth = false
-        var hasLength = false
-        var hasLineCap = false
-        var hasLineJoin = false
-        var hasFontSize = false
-        var hasRotation = false
+        let hasStrokeColor = false
+        let hasStrokeOpacity = false
+        let hasStrokeStyle = false
+        let hasStrokeWeight = false
+        let hasFillColor = false
+        let hasFillOpacity = false
+        let hasSymbol = false
+        let hasRadius = false
+        let hasWidth = false
+        let hasLength = false
+        let hasLineCap = false
+        let hasLineJoin = false
+        let hasFontSize = false
+        let hasRotation = false
+        let hasVisibilityRange = false
 
         if (DrawTool.contextMenuLayer.feature.properties.arrow === true) {
             //Arrow
@@ -208,6 +211,7 @@ var Editing = {
             hasLength = true
             hasLineCap = true
             hasLineJoin = true
+            hasVisibilityRange = true
         } else if (
             DrawTool.contextMenuLayer.feature.properties.annotation === true
         ) {
@@ -220,6 +224,7 @@ var Editing = {
             hasFillColor = true
             hasFontSize = true
             hasRotation = true
+            hasVisibilityRange = true
         } else if (
             DrawTool.contextMenuLayer.feature.geometry.type.toLowerCase() ===
             'point'
@@ -235,6 +240,7 @@ var Editing = {
             hasFillOpacity = true
             hasSymbol = true
             hasRadius = true
+            hasVisibilityRange = true
         } else if (
             DrawTool.contextMenuLayer.feature.geometry.type.toLowerCase() ===
             'linestring'
@@ -250,6 +256,7 @@ var Editing = {
             hasStrokeWeight = true
             //hasLineCap = true
             //hasLineJoin = true
+            hasVisibilityRange = true
         } else {
             //Polygon
             featureType = 'polygon'
@@ -263,9 +270,10 @@ var Editing = {
             hasStrokeWeight = true
             hasFillColor = true
             hasFillOpacity = true
+            hasVisibilityRange = true
         }
 
-        var hideStyle = false
+        let hideStyle = false
         if (
             typeof DrawTool.contextMenuLayer.toGeoJSON !== 'function' &&
             featureType !== 'note'
@@ -310,9 +318,12 @@ var Editing = {
                     ? style.fillOpacity
                     : fallbackStyle.fillOpacity != null
                     ? fallbackStyle.fillOpacity
+                    : featureType === 'note'
+                    ? '1'
                     : '0.6'
             style.symbol = style.symbol || fallbackStyle.symbol || ''
             style.radius = style.radius || fallbackStyle.radius || ''
+
             file = DrawTool.getFileObjectWithId(fileid)
 
             var bbox = turf.bbox(DrawTool.contextMenuLayerOriginalGeoJSON)
@@ -419,6 +430,8 @@ var Editing = {
                         ? style.fillOpacity
                         : fallbackStyle.fillOpacity != null
                         ? fallbackStyle.fillOpacity
+                        : featureType === 'note'
+                        ? '1'
                         : '0.6'
                 style.symbol = style.symbol || fallbackStyle.symbol || ''
                 style.radius = style.radius || fallbackStyle.radius || ''
@@ -668,7 +681,7 @@ var Editing = {
 
                 "<div class='styleprop flexbetween' style='display: " + ( (hasStrokeStyle) ? 'flex' : 'none' ) + "'>",
                 "<div class='flexbetween'>Stroke Style<div class='drawToolStyleHighlight'></div></div>",
-                "<div  v='" + style.dashArray + "' pick='strokestylepick' class='picker strokestyle stylevalue'><svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#F5F5F5' stroke-width='4' stroke-dasharray='" + style.dashArray + "' /></svg></div>",
+                "<div  v='" + style.dashArray + "' pick='strokestylepick' class='picker strokestyle stylevalue'><svg width='100%' height='100%'><line x1='0' y1='20' x2='80' y2='20' stroke='#F5F5F5' stroke-width='4' stroke-dasharray='" + style.dashArray + "' /></svg></div>",
                 "</div>",
                 "<div class='picking strokestylepick strokeStylePicker column mediumsmall' style='display: " + ( (hasStrokeStyle) ? 'flex' : 'none' ) + "'>",
                 "<div value=''><svg width='100%' height='100%'><line x1='0' y1='12' x2='310' y2='12' stroke='#F5F5F5' stroke-width='4' /></svg></div>",
@@ -680,7 +693,7 @@ var Editing = {
 
                 "<div class='styleprop flexbetween' style='display: " + ( (hasStrokeWeight) ? 'flex' : 'none' ) + "'>",
                 "<div class='flexbetween'>Stroke Weight<div class='drawToolStyleHighlight'></div></div>",
-                "<div v='" + style.weight + "' pick='strokeweightpick' class='picker strokeweight stylevalue'><svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#F5F5F5' stroke-width='" + style.weight + "' /></svg></div>",
+                "<div v='" + style.weight + "' pick='strokeweightpick' class='picker strokeweight stylevalue'><svg width='100%' height='100%'><line x1='0' y1='20' x2='80' y2='20' stroke='#F5F5F5' stroke-width='" + style.weight + "' /></svg></div>",
                 "</div>",
                 "<div class='picking strokeweightpick strokeWeightPicker column medium' style='display: " + ( (hasStrokeWeight) ? 'flex' : 'none' ) + "'>",
                 "<div value='0'>None</div>",
@@ -785,6 +798,16 @@ var Editing = {
                 "<div class='picking rotationpick rotationPicker' style='display: " + ( (hasRotation) ? 'flex' : 'none' ) + "'>",
                     "<input class='slider3' type='range' min='-90' max='90' step='2' value='" + (style.rotation || 0) + "'/>",
                 "</div>",
+
+                "<div class='styleprop flexbetween' style='display: " + ( (hasVisibilityRange) ? 'flex' : 'none' ) + "'>",
+                "<div class='flexbetween' title='Set which zoom levels for which this feature is visible.'>Visibility Zoom-level Range<div class='drawToolStyleHighlight'></div></div>",
+                "<div v='" + (style.minZoom || '0') + ',' + (style.maxZoom || '24') + "' pick='visibilityrangepick' class='picker visibilityrange stylevalue'>" + (style.minZoom || '0') + ' ➝ ' + (style.maxZoom || '24') + "</div>",
+                "</div>",
+                "<div class='picking visibilityrangepick small visibilityRangePicker' style='display: " + ( (hasVisibilityRange) ? 'flex' : 'none' ) + "'>",
+                    "<div id='visibilityRange-slider-range' class='svelteSlider' style='width: 100%; padding: 8px; overflow: hidden; height: 100%;'></div>",
+                    `<div>Current Map Zoom-level: <span class='map-autoset-zoom'>${Map_.map.getZoom()}</span></div>`,
+                "</div>",
+
                 "</div>",
             "</div>",
             Editing.getPluginUIs(ownedByUser,
@@ -897,14 +920,14 @@ var Editing = {
                     updateStrokeOpacity(l.properties.style.opacity, l.shape)
                     updateStrokeStyle(
                         l.properties.style.dashArray,
-                        "<svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#222' stroke-width='4' stroke-dasharray='" +
+                        "<svg width='100%' height='100%'><line x1='0' y1='20' x2='80' y2='20' stroke='#222' stroke-width='4' stroke-dasharray='" +
                             (properties ? properties.style.dashArray : '') +
                             "' /></svg>",
                         l.shape
                     )
                     updateStrokeWeight(
                         l.properties.style.weight,
-                        "<svg width='100%' height='100%'><line x1='0' y1='14' x2='50' y2='14' stroke='#222' stroke-width='" +
+                        "<svg width='100%' height='100%'><line x1='0' y1='20' x2='80' y2='20' stroke='#222' stroke-width='" +
                             (properties ? properties.style.weight : 4) +
                             "' /></svg>",
                         l.shape,
@@ -1286,6 +1309,9 @@ var Editing = {
         function updateStrokeStyle(v, h, layer) {
             DrawTool.contextMenuChanges.style.dashArray = true
 
+            h = h.replace('y1="10"', 'y1="20"')
+            h = h.replace('y2="10"', 'y2="20"')
+
             $('.strokestyle').html(h)
             $('.strokestyle').attr('v', v)
 
@@ -1350,6 +1376,9 @@ var Editing = {
         })
         function updateStrokeWeight(v, h, layer, resetStyle) {
             DrawTool.contextMenuChanges.style.weight = true
+
+            h = h.replace('y1="10"', 'y1="20"')
+            h = h.replace('y2="10"', 'y2="20"')
 
             $('.strokeweight').html(h)
             $('.strokeweight').attr('v', v)
@@ -1452,8 +1481,8 @@ var Editing = {
                     .css('background', DrawTool.highlightGradient)
             else $('.strokeweight').prev().css('background', 'inherit')
         }
-        //FILL COLOR
 
+        //FILL COLOR
         $('.fillcolorpick').html(F_.makeColorGrid(11, 12))
         $('.fillcolorpick .colorgridsquare').on('click', function () {
             $('.fillcolorpick .colorgridsquare').removeClass('active')
@@ -1561,6 +1590,7 @@ var Editing = {
                 $(this).css('background', 'rgba(255,0,0,0.5)')
             }
         })
+
         //FILL OPACITY
         $('.fillopacitypick > div').on('click', function () {
             var v = $(this).attr('value')
@@ -1628,6 +1658,7 @@ var Editing = {
                     .css('background', DrawTool.highlightGradient)
             else $('.fillopacity').prev().css('background', 'inherit')
         }
+
         //SYMBOL
         $('.symbolpick > div').on('click', function () {
             var v = $(this).text()
@@ -1657,6 +1688,7 @@ var Editing = {
                     .css('background', DrawTool.highlightGradient)
             else $('.symbol').prev().css('background', 'inherit')
         }
+
         //RADIUS
         $('.radiuspick > div').on('click', function () {
             var v = $(this).text()
@@ -1721,6 +1753,7 @@ var Editing = {
                     .css('background', DrawTool.highlightGradient)
             else $('.radius').prev().css('background', 'inherit')
         }
+
         //WIDTH
         $('.widthpick > div').on('click', function () {
             var v = $(this).text()
@@ -1786,6 +1819,7 @@ var Editing = {
                 $('.width').prev().css('background', DrawTool.highlightGradient)
             else $('.width').prev().css('background', 'inherit')
         }
+
         //LENGTH
         $('.lengthpick > div').on('click', function () {
             var v = $(this).text()
@@ -1851,6 +1885,7 @@ var Editing = {
                     .css('background', DrawTool.highlightGradient)
             else $('.length').prev().css('background', 'inherit')
         }
+
         //LINECAP
         $('.linecappick > div').on('click', function () {
             var v = $(this).text()
@@ -1916,6 +1951,7 @@ var Editing = {
                     .css('background', DrawTool.highlightGradient)
             else $('.linecap').prev().css('background', 'inherit')
         }
+
         //LINEJOIN
         $('.linejoinpick > div').on('click', function () {
             var v = $(this).text()
@@ -2052,6 +2088,53 @@ var Editing = {
                     .css('background', DrawTool.highlightColor)
             else
                 $('.rotation')
+                    .parent()
+                    .find('.drawToolStyleHighlight')
+                    .css('background', 'inherit')
+
+            //Group change
+            if (!layer && DrawTool.contextMenuChanges.use)
+                $('.rotation')
+                    .prev()
+                    .css('background', DrawTool.highlightGradient)
+            else $('.rotation').prev().css('background', 'inherit')
+        }
+
+        //VISIBILITY RANGE
+        const mySlider = new RangeSlider({
+            target: document.querySelector('#visibilityRange-slider-range'),
+            props: {
+                values: [style.minZoom || 0, style.maxZoom || 24],
+                pips: true,
+                min: 0,
+                max: 24,
+                range: true,
+                pushy: false,
+            },
+        })
+
+        mySlider.$on('change', function (e) {
+            updateVisibilityRange(e.detail.values[0], e.detail.values[1])
+        })
+
+        function updateVisibilityRange(vMin, vMax, layer) {
+            if (vMin == null || vMax == null) return
+
+            DrawTool.contextMenuChanges.style.visibilityRange = true
+
+            $('.visibilityrange.stylevalue').text(vMin + ' ➝ ' + vMax)
+            $('.visibilityrange.stylevalue').attr('v', vMin + ',' + vMax)
+
+            if (
+                properties &&
+                (vMin != properties.style.minZoom || vMax != properties.maxZoom)
+            )
+                $('.visibilityrange')
+                    .parent()
+                    .find('.drawToolStyleHighlight')
+                    .css('background', DrawTool.highlightColor)
+            else
+                $('.visibilityrange')
                     .parent()
                     .find('.drawToolStyleHighlight')
                     .css('background', 'inherit')
@@ -2528,6 +2611,17 @@ var Editing = {
                 newProperties.style.rotation = $(
                     '.drawToolContextMenu .rotationPicker > input'
                 ).val()
+
+            if (
+                hasVisibilityRange &&
+                (force || DrawTool.contextMenuChanges.style.visibilityRange)
+            ) {
+                const v = $('.drawToolContextMenu .visibilityrange.stylevalue')
+                    .attr('v')
+                    .split(',')
+                newProperties.style.minZoom = parseInt(v[0])
+                newProperties.style.maxZoom = parseInt(v[1])
+            }
             return newProperties
         }
     },

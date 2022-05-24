@@ -564,7 +564,6 @@ const Geologic = {
                     false
                 )
             }
-
             $('#geologicOptionPositionInput').val(
                 Geologic.optionValues.position
             )

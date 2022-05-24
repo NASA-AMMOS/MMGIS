@@ -628,9 +628,11 @@
     --float-text: white;
     --pip-active: white;
     --pip-active-text: var(--pip-active);
-    --handle1: #00cfff;
+    --range-pip-active: var(--color-c);
+    --range-pip: var(--color-a2);
+    --handle1: var(--color-c);
+    --handle2: #08ea77;
     --handle3: #ff2b66;
-    --handle2: #3edd8b;
     --handle4: #f5d556;
   }
   
@@ -662,6 +664,7 @@
   /* ****************************** */
   .svelteSlider {
     height: 3px;
+    font-size: 14px;
   }
   
   .svelteSlider .rangeNub {

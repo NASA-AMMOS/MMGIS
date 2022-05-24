@@ -1170,9 +1170,9 @@
 }
 .drawToolContextMenuStyle > div {
     width: 100%;
-    height: 30px;
-    line-height: 30px;
-    padding: 0px 15px;
+    height: 40px;
+    line-height: 40px;
+    padding: 0px 10px;
     display: flex;
     text-align: right;
     border-bottom: 1px solid var(--color-e);
@@ -1198,8 +1198,8 @@
     height: 10px;
     border-radius: 5px;
     background: transparent;
-    margin-left: 5px;
-    margin-top: 5px;
+    margin-left: 10px;
+    margin-top: 15px;
     text-align: center;
     cursor: pointer;
     color: rgba(255, 255, 255, 0);
@@ -1565,6 +1565,7 @@
     width: 100%;
     padding: 0;
     overflow-y: hidden;
+    background: var(--color-a1);
     transition: height 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
 }
 .drawToolContextMenu .picking.column {
@@ -1579,7 +1580,10 @@
     cursor: pointer;
 }
 .drawToolContextMenu .picking.open {
-    height: 28px;
+    height: 40px;
+}
+.drawToolContextMenu .picking.small.open {
+    height: 90px;
 }
 .drawToolContextMenu .picking.column.open {
     height: 120px;
@@ -1687,22 +1691,44 @@
 .drawToolContextMenu .lineJoinPicker > div,
 .drawToolContextMenu .fontSizePicker > div {
     flex: 1;
-    height: 27px;
+    height: 39px;
     text-align: center;
     cursor: pointer;
+    transition: background 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 .drawToolContextMenu .strokeStylePicker > div,
 .drawToolContextMenu .strokeWeightPicker > div {
     flex: unset;
     transition: background 0.2s ease-out;
 }
+.drawToolContextMenu .styleOpacityPicker > div:hover,
 .drawToolContextMenu .strokeStylePicker > div:hover,
-.drawToolContextMenu .strokeWeightPicker > div:hover {
-    background: var(--color-a1-5);
+.drawToolContextMenu .strokeWeightPicker > div:hover,
+.drawToolContextMenu .symbolPicker > div:hover,
+.drawToolContextMenu .radiusPicker > div:hover,
+.drawToolContextMenu .widthPicker > div:hover,
+.drawToolContextMenu .lengthPicker > div:hover,
+.drawToolContextMenu .lineCapPicker > div:hover,
+.drawToolContextMenu .lineJoinPicker > div:hover,
+.drawToolContextMenu .fontSizePicker > div:hover {
+    background: var(--color-a2);
 }
 .drawToolContextMenu .strokeStylePicker,
 .drawToolContextMenu .strokeWeightPicker {
     padding: 0px 25px;
+}
+
+.drawToolContextMenu .rotationPicker > input {
+    margin: 11px;
+}
+
+.drawToolContextMenu .visibilityRangePicker {
+    flex-flow: column;
+
+}
+.drawToolContextMenu .visibilityRangePicker > div:last-child {
+    text-align: center;
+    color: var(--color-a6);
 }
 
 .styleInput {
@@ -1717,30 +1743,32 @@
     font-size: 12px;
     transition: opacity 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
 }
+
+.styleprop {
+    font-size: 16px;
+}
 .styleprop.open .styleInput {
     opacity: 1;
     pointer-events: inherit;
 }
 
 .styleprop > div:first-child {
-    border-radius: 3px;
-    height: 20px;
-    line-height: 21px;
-    margin-top: 4px;
+    height: 40px;
+    line-height: 40px;
 }
 
 .drawToolContextMenu .stylevalue {
-    width: 50px;
-    margin-top: 4px;
-    height: 20px;
-    line-height: 20px;
+    width: 80px;
+    height: 40px;
+    line-height: 40px;
     text-align: right;
 }
 
 .drawToolContextMenu .stylevalue2 {
-    width: 20px;
-    height: 20px;
-    margin: 4px 0px;
+    width: 30px;
+    height: 30px;
+    margin: 5px 0px;
+    border: 1px solid var(--color-a2);
 }
 
 .drawToolContextMenu .drawToolContextMenuSave {

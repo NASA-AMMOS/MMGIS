@@ -216,9 +216,11 @@ var InfoTool = {
 
         // Locate
         $('#infoToolLocate').on('click', function () {
-            if (typeof InfoTool.currentLayer.getBounds === 'function')
-                Map_.map.fitBounds(InfoTool.currentLayer.getBounds())
-            else Map_.map.panTo(InfoTool.currentLayer._latlng)
+            try {
+                if (typeof InfoTool.currentLayer.getBounds === 'function')
+                    Map_.map.fitBounds(InfoTool.currentLayer.getBounds())
+                else Map_.map.panTo(InfoTool.currentLayer._latlng)
+            } catch (err) {}
         })
 
         // Filter
@@ -241,10 +243,11 @@ var InfoTool = {
         const depthMultiplier = 10
 
         let lastWasAHeader = false
-        if (
-            this.info[this.activeFeatureI].geometry.type.toLowerCase() ===
-            'point'
-        )
+
+        const geometryType = this.info[this.activeFeatureI].geometry.type
+            ? this.info[this.activeFeatureI].geometry.type.toLowerCase()
+            : null
+        if (geometryType === 'point')
             depthTraversal(
                 {
                     Coordinates: {
@@ -271,8 +274,6 @@ var InfoTool = {
                 delete props[element]
             })
         }
-        const geometryType =
-            this.info[this.activeFeatureI].geometry.type.toLowerCase()
         if (geometryType === 'linestring' || geometryType === 'multilinestring')
             props.Metrics = {
                 Length: F_.getFeatureLength(

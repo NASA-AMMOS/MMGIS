@@ -1308,10 +1308,7 @@ var Files = {
                             )
                         }
 
-                        if (
-                            features[i].properties.annotation !== true &&
-                            features[i].properties.arrow !== true
-                        ) {
+                        if (features[i].properties.arrow !== true) {
                             var last = L_.layersGroup[layerId].length - 1
                             var llast = L_.layersGroup[layerId][last]
                             var layer
@@ -1355,6 +1352,7 @@ var Files = {
                     if (populateShapesAfter)
                         DrawTool.populateShapes(id, selectedFeatureIds)
 
+                    L_.enforceVisibilityCutoffs([layerId])
                     DrawTool.maintainLayerOrder()
 
                     DrawTool.refreshMasterCheckbox()
