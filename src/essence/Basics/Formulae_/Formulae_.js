@@ -467,6 +467,16 @@ var Formulae_ = {
         }
         return index
     },
+    // Simple function to check whether we're inside a zoom range
+    isInZoomRange(minZoom, maxZoom, zoom) {
+        if (minZoom != null || maxZoom != null) {
+            minZoom = minZoom || 0
+            maxZoom = maxZoom || Infinity
+            if (zoom >= minZoom && zoom <= maxZoom) return true
+            else return false
+        }
+        return true
+    },
     //Returns the line with points no greater than meters apart
     subdivideLine(line, meters) {
         let subdividedLine = []

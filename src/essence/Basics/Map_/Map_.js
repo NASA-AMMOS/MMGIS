@@ -193,7 +193,10 @@ let Map_ = {
 
         //When done zooming, hide the things you're too far out to see/reveal the things you're close enough to see
         this.map.on('zoomend', function () {
-            enforceVisibilityCutoffs()
+            L_.enforceVisibilityCutoffs()
+
+            // Set all zoom elements
+            $('.map-autoset-zoom').text(Map_.map.getZoom())
         })
 
         this.map.on('move', (e) => {
@@ -364,7 +367,7 @@ let Map_ = {
             Map_.map.addLayer(L_.layersGroup[L_.layersOrdered[hasIndex[i]]])
         }
 
-        enforceVisibilityCutoffs()
+        L_.enforceVisibilityCutoffs()
 
         // Now only rasters
         // They're separate because its better to only change the raster z-index
@@ -1110,46 +1113,9 @@ function allLayersLoaded() {
         //Then do these
         essenceFina()
         L_.addVisible(Map_)
-        enforceVisibilityCutoffs()
+        L_.enforceVisibilityCutoffs()
 
         //OTHER TEMPORARY TEST STUFF THINGS
-    }
-}
-
-//This would be better moved to Layers_
-function enforceVisibilityCutoffs() {
-    var settingsEnforceVC = true //We don't have setting yet
-    var layerElements
-    var names = Object.keys(L_.layersNamed)
-    var vc = 0
-    for (var i = 0; i < names.length; i++) {
-        layerElements = d3.selectAll(
-            '.' + names[i].replace(/\s/g, '').toLowerCase()
-        )
-        if (
-            L_.layersGroup[names[i]] != undefined &&
-            Map_.map.hasLayer(L_.layersGroup[names[i]]) &&
-            L_.layersNamed[names[i]].hasOwnProperty('visibilitycutoff')
-        ) {
-            vc = L_.layersNamed[names[i]].visibilitycutoff
-            if (vc > 0) {
-                if (Map_.map.getZoom() < vc && settingsEnforceVC) {
-                    layerElements.attr('display', 'none')
-                    layerElements.style('display', 'none')
-                } else {
-                    layerElements.attr('display', 'inherit')
-                    layerElements.style('display', 'inherit')
-                }
-            } else {
-                if (Map_.map.getZoom() > Math.abs(vc) && settingsEnforceVC) {
-                    layerElements.attr('display', 'none')
-                    layerElements.style('display', 'none')
-                } else {
-                    layerElements.attr('display', 'inherit')
-                    layerElements.style('display', 'inherit')
-                }
-            }
-        }
     }
 }
 

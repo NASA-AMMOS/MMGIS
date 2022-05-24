@@ -33,7 +33,9 @@ The priorities of stylings are as follows (from highest to lowest):
            "lineCap": "square",
            "lineJoin": "miter",
            "noclick": true,
-           "nointeraction": true
+           "nointeraction": true,
+           "minZoom": 10,
+           "maxZoom": 17
        }
    }
    ```
@@ -51,6 +53,8 @@ The priorities of stylings are as follows (from highest to lowest):
    - `lineJoin`: How to join line segments. See [stroke-linejoin](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-linejoin).
    - `noclick`: True sets the feature to be unclickable.
    - `nointeraction`: True sets the feature to have no interactions (no click, no hover, can click through).
+   - `minZoom`: Minimum zoom to render this feature. Overrides the layer's overall `minZoom` (and legeacy `visibilityCutoff`).
+   - `maxZoom`: Maximum zoom to render this feature. Overrides the layer's overall `maxZoom` (and legeacy `visibilityCutoff`).
 
 3. Vector Layer configuration style fields (non-`prop:geojson_property_key`)
    - A named color

@@ -392,6 +392,8 @@ var L_ = {
                                 L_.layersOrdered.indexOf(s.name)
                         )
                         if (s.type === 'vector') {
+                            console.log(s)
+
                             L_.Globe_.litho.addLayer('clamped', {
                                 name: s.name,
                                 order: L_.layersOrdered, // Since higher order in litho is on top
@@ -419,8 +421,14 @@ var L_ = {
                                         : null,
                                 },
                                 opacity: L_.opacityArray[s.name],
-                                minZoom: 0, //s.minZoom,
-                                maxZoom: 100, //s.maxNativeZoom,
+                                minZoom:
+                                    s.visibilitycutoff > 0
+                                        ? s.visibilitycutoff
+                                        : null,
+                                maxZoom:
+                                    s.visibilitycutoff < 0
+                                        ? s.visibilitycutoff
+                                        : null,
                             })
                         }
                     }
@@ -688,8 +696,14 @@ var L_ = {
                                         : null,
                                 },
                                 opacity: L_.opacityArray[s.name],
-                                minZoom: 0, //s.minZoom,
-                                maxZoom: 100, //s.maxNativeZoom,
+                                minZoom:
+                                    s.visibilitycutoff > 0
+                                        ? s.visibilitycutoff
+                                        : null,
+                                maxZoom:
+                                    s.visibilitycutoff < 0
+                                        ? s.visibilitycutoff
+                                        : null,
                             }
                         )
                 }
@@ -720,10 +734,11 @@ var L_ = {
         Description.updatePoint(L_.Map_.activeLayer)
 
         if (layer) {
+            const props = layer.feature?.properties || layer.properties || {}
             L_.Globe_.highlight(
                 L_.Globe_.findSpriteObject(
                     layer.options.layerName,
-                    layer.feature.properties[layer.useKeyAsName]
+                    props[layer.useKeyAsName]
                 ),
                 false
             )
@@ -766,6 +781,100 @@ var L_ = {
         try {
             layer.bringToFront()
         } catch (err) {}
+    },
+
+    /**
+     *
+     * @param {string[]} forceLayerNames - Enforce visibilities per layer
+     */
+    enforceVisibilityCutoffs: function (forceLayerNames) {
+        const layerNames = forceLayerNames || Object.keys(L_.layersGroup)
+
+        layerNames.forEach((layerName) => {
+            let layerObj = L_.layersNamed[layerName]
+            let layer = L_.layersGroup[layerName]
+
+            if (layerObj == null && layerName.includes('DrawTool'))
+                layerObj = {
+                    type: 'vector',
+                }
+
+            if (layer && layer.length == null) layer = [layer]
+
+            // vector, loaded and on
+            if (
+                layerObj.type === 'vector' &&
+                layer &&
+                (L_.layersNamed[layerName]
+                    ? L_.Map_.map.hasLayer(L_.layersGroup[layerName])
+                    : true)
+            ) {
+                let minZoom = null
+                let maxZoom = null
+                if (
+                    layerObj.hasOwnProperty('minZoom') ||
+                    layerObj.hasOwnProperty('maxZoom')
+                ) {
+                    minZoom = layerObj.minZoom != null ? layerObj.minZoom : null
+                    maxZoom = layerObj.maxZoom != null ? layerObj.maxZoom : null
+                } else if (layerObj.hasOwnProperty('visibilitycutoff')) {
+                    // Backwards compatibility
+                    minZoom =
+                        layerObj.visibilitycutoff > 0
+                            ? layerObj.visibilitycutoff
+                            : null
+                    maxZoom =
+                        layerObj.visibilitycutoff < 0
+                            ? layerObj.visibilitycutoff
+                            : null
+                }
+
+                minZoom = minZoom != null ? minZoom : 0
+                maxZoom = maxZoom != null ? maxZoom : 100
+
+                for (let i = 0; i < layer.length; i++) {
+                    if (layer[i]) {
+                        if (layer[i].feature) {
+                            L_._setVisibilityCuttoffInternal(
+                                layer[i],
+                                minZoom,
+                                maxZoom
+                            )
+                        }
+                        if (layer[i]._layers)
+                            for (let layerId in layer[i]._layers) {
+                                L_._setVisibilityCuttoffInternal(
+                                    layer[i]._layers[layerId],
+                                    minZoom,
+                                    maxZoom
+                                )
+                            }
+                    }
+                }
+            }
+        })
+    },
+    _setVisibilityCuttoffInternal: function (l, minZoom, maxZoom) {
+        let featureMinZoom = null
+        let featureMaxZoom = null
+        if (l.feature?.properties?.style?.minZoom != null)
+            featureMinZoom = l.feature.properties.style.minZoom
+        if (l.feature?.properties?.style?.maxZoom != null)
+            featureMaxZoom = l.feature.properties.style.maxZoom
+
+        if (
+            F_.isInZoomRange(
+                featureMinZoom != null ? featureMinZoom : minZoom,
+                featureMaxZoom != null ? featureMaxZoom : maxZoom,
+                L_.Map_.map.getZoom()
+            )
+        ) {
+            if (l._path) l._path.style.display = 'inherit'
+            if (l._container) l._container.style.display = 'inherit'
+        } else {
+            if (l._path) l._path.style.display = 'none'
+            if (l._container) l._container.style.display = 'none'
+        }
     },
     addArrowToMap: function (
         layerId,
