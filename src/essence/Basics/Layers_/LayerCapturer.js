@@ -38,7 +38,7 @@ export const captureVector = (layerObj, options, cb) => {
             ? layerTimeFormat(Date.parse(TimeControl.getStartTime()))
             : layerObj.time.start
     const endTime =
-        layerObj.time.end == null || layerObj.time.end == ''
+        layerObj.time == null || layerObj.time.end == ''
             ? layerTimeFormat(Date.parse(TimeControl.getEndTime()))
             : layerObj.time.end
 

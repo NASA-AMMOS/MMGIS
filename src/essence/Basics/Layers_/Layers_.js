@@ -666,10 +666,6 @@ var L_ = {
                         },
                     })
                 } else if (L_.layersData[i].type != 'header') {
-                    console.log(
-                        L_.layersData[i].name,
-                        L_.layersData[i].layer3dType
-                    )
                     if (typeof L_.layersGroup[s.name].toGeoJSON === 'function')
                         L_.Globe_.litho.addLayer(
                             L_.layersData[i].type == 'vector'

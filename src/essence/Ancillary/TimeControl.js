@@ -9,7 +9,7 @@ import './TimeControl.css'
 
 // Can be either hh:mm:ss or just seconds
 const relativeTimeFormat = new RegExp(
-    /((?:-?\d*):(?:[0-5]\d):(?:[0-5]\d))|(?:\d*)/
+    /^(-?)(?:2[0-3]|[01]?[0-9]):[0-5][0-9]:[0-5][0-9]$/
 )
 
 var TimeControl = {
@@ -21,6 +21,7 @@ var TimeControl = {
     relativeStartTime: '01:00:00',
     relativeEndTime: '00:00:00',
     globalTimeFormat: null,
+    _updateLockedForAcceptingInput: false,
     init: function () {
         if (L_.configData.time && L_.configData.time.enabled === true) {
             TimeControl.globalTimeFormat = d3.utcFormat(
@@ -63,7 +64,23 @@ var TimeControl = {
 
         d3.select('#offsetTimeInput').on('change', timeInputChange)
         d3.select('#startTimeInput').on('change', timeInputChange)
+        /*
+        d3.select('#startTimeInput').on('focus', () => {
+            TimeControl._updateLockedForAcceptingInput = true
+        })
+        d3.select('#startTimeInput').on('blur', () => {
+            TimeControl._updateLockedForAcceptingInput = false
+        })
+        */
         d3.select('#endTimeInput').on('change', timeInputChange)
+        /*
+        d3.select('#endTimeInput').on('focus', () => {
+            TimeControl._updateLockedForAcceptingInput = true
+        })
+        d3.select('#endTimeInput').on('blur', () => {
+            TimeControl._updateLockedForAcceptingInput = false
+        })
+        */
         d3.select('#startRelativeTimeInput').on('change', timeInputChange)
         d3.select('#endRelativeTimeInput').on('change', timeInputChange)
 
@@ -175,7 +192,7 @@ var TimeControl = {
         if (layer.time) return layer.time.end
         return false
     },
-    reloadLayer: function (layer) {
+    reloadLayer: function (layer, evenIfOff) {
         // reload layer
         if (typeof layer == 'string') {
             layer = L_.layersNamed[layer]
@@ -183,6 +200,7 @@ var TimeControl = {
         if (layer.time && layer.time.enabled == true) {
             var layerTimeFormat = d3.utcFormat(layer.time.format)
             layer.time.current = TimeControl.currentTime // keeps track of when layer was refreshed
+
             if (layer.type == 'tile') {
                 if (
                     typeof L_.layersGroup[layer.name].wmsParams !== 'undefined'
@@ -204,8 +222,10 @@ var TimeControl = {
                 L_.layersGroup[layer.name].options.endtime = layerTimeFormat(
                     Date.parse(layer.time.end)
                 )
-                L_.toggleLayer(layer)
-                L_.toggleLayer(layer)
+                if (L_.toggledArray[layer.name] || evenIfOff) {
+                    L_.toggleLayer(layer)
+                    L_.toggleLayer(layer)
+                }
             } else {
                 // replace start/endtime keywords
                 var originalUrl = layer.url
@@ -219,7 +239,9 @@ var TimeControl = {
                         layerTimeFormat(Date.parse(layer.time.end))
                     )
                 // refresh map
-                Map_.refreshLayer(layer)
+                if (L_.toggledArray[layer.name] || evenIfOff) {
+                    Map_.refreshLayer(layer)
+                }
                 // put start/endtime keywords back
                 layer.url = originalUrl
             }
@@ -308,42 +330,45 @@ function initLayerTimes() {
 }
 
 function updateTime() {
-    // Continuously update global time clock and UI elements
-    var now = new Date()
-    var offset = 0
-    var offsetTime = d3.select('#offsetTimeInput').property('value')
-    if (relativeTimeFormat.test(offsetTime)) {
-        offset = parseTime(offsetTime)
-    }
-    var currentTime = new moment(now).add(offset, 'seconds')
-    d3.select('#currentTimeLabel').text(
-        TimeControl.globalTimeFormat(currentTime)
-    )
-    TimeControl.currentTime =
-        currentTime.toDate().toISOString().split('.')[0] + 'Z'
+    if (!TimeControl._updateLockedForAcceptingInput) {
+        // Continuously update global time clock and UI elements
+        var now = new Date()
+        var offset = 0
+        var offsetTime = d3.select('#offsetTimeInput').property('value')
+        if (relativeTimeFormat.test(offsetTime)) {
+            offset = parseTime(offsetTime)
+        }
+        var currentTime = new moment(now).add(offset, 'seconds')
+        d3.select('#currentTimeLabel').text(
+            TimeControl.globalTimeFormat(currentTime)
+        )
+        TimeControl.currentTime =
+            currentTime.toDate().toISOString().split('.')[0] + 'Z'
 
-    if (d3.select('#isRelativeTime').property('checked') == true) {
-        var start = parseTime(
-            d3.select('#startRelativeTimeInput').property('value')
-        )
-        var end = parseTime(
-            d3.select('#endRelativeTimeInput').property('value')
-        )
-        var startTime = new moment(currentTime).subtract(start, 'seconds')
-        var endTime = new moment(currentTime).add(end, 'seconds')
+        if (d3.select('#isRelativeTime').property('checked') == true) {
+            var start = parseTime(
+                d3.select('#startRelativeTimeInput').property('value')
+            )
+            var end = parseTime(
+                d3.select('#endRelativeTimeInput').property('value')
+            )
+            var startTime = new moment(currentTime).subtract(start, 'seconds')
+            var endTime = new moment(currentTime).add(end, 'seconds')
 
-        TimeControl.startTime =
-            startTime.toDate().toISOString().split('.')[0] + 'Z'
-        TimeControl.endTime = endTime.toDate().toISOString().split('.')[0] + 'Z'
+            TimeControl.startTime =
+                startTime.toDate().toISOString().split('.')[0] + 'Z'
+            TimeControl.endTime =
+                endTime.toDate().toISOString().split('.')[0] + 'Z'
 
-        d3.select('#startTimeInput').property(
-            'value',
-            startTime.toISOString().split('.')[0] + 'Z'
-        )
-        d3.select('#endTimeInput').property(
-            'value',
-            endTime.toISOString().split('.')[0] + 'Z'
-        )
+            d3.select('#startTimeInput').property(
+                'value',
+                startTime.toISOString().split('.')[0] + 'Z'
+            )
+            d3.select('#endTimeInput').property(
+                'value',
+                endTime.toISOString().split('.')[0] + 'Z'
+            )
+        }
     }
     setTimeout(updateTime, 100)
 }
@@ -351,10 +376,11 @@ function updateTime() {
 function timeInputChange() {
     // Validate time format
     var timeInput = d3.select(this).property('value')
+
     if (relativeTimeFormat.test(timeInput)) {
-        d3.select(this).style('background-color', '#ffffff')
+        d3.select(this).style('border', '1px solid Transparent')
     } else {
-        d3.select(this).style('background-color', '#ff0000')
+        d3.select(this).style('border', '1px solid var(--color-red)')
     }
 
     TimeControl.startTime = d3.select('#startTimeInput').property('value')
