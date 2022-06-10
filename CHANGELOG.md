@@ -1,5 +1,39 @@
 # MMGIS Changelog
 
+## 2.7.0
+
+_Jun 9, 2022_
+
+#### Summary
+
+This release adds geologic mapping to the DrawTool, layer reordering to the LayersTool and 3D annotations to the Globe.
+
+#### Added
+
+- [FGDC](https://ngmdb.usgs.gov/fgdc_gds/geolsymstd/download.php) Geologic patterns, linework and symbols in the DrawTool
+- Annotation in the Globe View for both standard layers and drawn layers
+- Ability for users to reorder layers in the LayersTool
+- The Globe has 3d controls once again
+- Visibility ranges can be added per feature with `minZoom` and `maxZoom` attributes under a feature's `properties.style`
+- A true documentation site at https://nasa-ammos.github.io/MMGIS/
+
+#### Changed
+
+- The vector layer `Visibility Cutoff` configuration has been deprecated (though it still works) in favor of `Minimum Zoom` and `Maximum Zoom`
+- Improved the screenshot function
+- Layer color indicators are more muted
+- Default color scheme is a lighter black
+- Lithosphere 1.3.0 => 1.5.1 - [See LithoSphere Releases](https://github.com/NASA-AMMOS/LithoSphere/releases)
+
+#### Fixed
+
+- Issue where `onLoaded` would fire multiple times
+- Default MMGIS login fields are now removed from the DOM when not in use (merely hiding caused some annoyances with password extensions)
+- Issue where deep link didn't position the camera in the Globe correctly
+- Issue where some vector points the use DivIcons were not clickable
+
+---
+
 ## 2.6.0
 
 _Mar 16, 2022_
