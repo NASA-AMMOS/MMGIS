@@ -677,34 +677,69 @@ export const constructSublayers = (geojson, layerObj) => {
 
     const modelSettings = {
         model: F_.getIn(modelVar, 'path', null),
+        pathProp: F_.getIn(modelVar, 'pathProp', null),
         mtlPath: F_.getIn(modelVar, 'mtlPath', null),
-        yawProp: F_.getIn(modelVar, 'yawProp', 0),
+        mtlProp: F_.getIn(modelVar, 'mtlProp', null),
+        yawProp: F_.getIn(modelVar, 'yawProp', null),
         yawUnit: F_.getIn(modelVar, 'yawUnit', 'rad'),
         invertYaw: F_.getIn(modelVar, 'invertYaw', false),
-        pitchProp: F_.getIn(modelVar, 'pitchProp', 0),
+        pitchProp: F_.getIn(modelVar, 'pitchProp', null),
         pitchUnit: F_.getIn(modelVar, 'pitchUnit', 'rad'),
         invertPitch: F_.getIn(modelVar, 'invertPitch', false),
-        rollProp: F_.getIn(modelVar, 'rollProp', 0),
+        rollProp: F_.getIn(modelVar, 'rollProp', null),
         rollUnit: F_.getIn(modelVar, 'rollUnit', 'rad'),
         invertRoll: F_.getIn(modelVar, 'invertRoll', false),
-        elevationProp: F_.getIn(modelVar, 'elevationProp', 0),
+        elevationProp: F_.getIn(modelVar, 'elevationProp', null),
         scaleProp: F_.getIn(modelVar, 'scaleProp', 1),
         show: F_.getIn(modelVar, 'show', 'click'),
         onlyLastN: F_.getIn(modelVar, 'onlyLastN', false),
     }
+
     let modelOptions
-
-    if (modelSettings.model && modelSettings.show === 'always') {
-        if (
-            !F_.isUrlAbsolute(modelSettings.model) &&
-            !modelSettings.model.startsWith('public')
-        )
-            modelSettings.model = L_.missionPath + modelSettings.model
-
+    if (
+        (modelSettings.model || modelSettings.pathProp) &&
+        modelSettings.show === 'always'
+    ) {
         geojson.features.forEach((f, idx) => {
             if (typeof modelSettings.onlyLastN === 'number') {
                 if (idx < geojson.features.length - modelSettings.onlyLastN)
                     return
+            }
+
+            // Figure out model path
+            if (!modelSettings.model && modelSettings.pathProp) {
+                modelSettings.model = F_.getIn(
+                    f.properties,
+                    modelSettings.pathProp,
+                    null
+                )
+                if (
+                    modelSettings.model &&
+                    !F_.isUrlAbsolute(modelSettings.model) &&
+                    !modelSettings.model.startsWith('public')
+                )
+                    modelSettings.model = L_.missionPath + modelSettings.model
+            }
+            if (modelSettings.model == null) return
+
+            // Figure out mtl path if any
+            console.log('A', modelSettings.mtlPath, modelSettings.mtlProp)
+            if (modelSettings.mtlPath || modelSettings.mtlProp) {
+                if (modelSettings.mtlPath == null)
+                    modelSettings.mtlPath = F_.getIn(
+                        f.properties,
+                        modelSettings.mtlProp,
+                        null
+                    )
+                if (
+                    modelSettings.mtlPath &&
+                    !F_.isUrlAbsolute(modelSettings.mtlPath) &&
+                    !modelSettings.mtlPath.startsWith('public')
+                )
+                    modelSettings.mtlPath =
+                        L_.missionPath + modelSettings.mtlPath
+
+                console.log('C', L_.missionPath, modelSettings.mtlPath)
             }
 
             if (f.geometry.type.toLowerCase() === 'point') {
@@ -753,7 +788,6 @@ export const constructSublayers = (geojson, layerObj) => {
                     typeof modelSettings.scaleProp === 'number'
                         ? modelSettings.scaleProp
                         : F_.getIn(f.properties, modelSettings.scaleProp, 1)
-
                 modelPositions.push(position)
                 modelRotations.push(rotation)
                 modelScales.push(scale)
@@ -772,6 +806,7 @@ export const constructSublayers = (geojson, layerObj) => {
             rotation: modelRotations,
             scale: modelScales,
         }
+        console.log(modelOptions)
     }
 
     const sublayers = {

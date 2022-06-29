@@ -164,8 +164,9 @@ Example:
         },
         "model": {
           "path": "path to model (.dae, .glb, .gltf, .obj)",
-          "pathProp": "path to model. take priority over path",
+          "pathProp": "path to model in feature properties. take priority over path",
           "mtlPath": "if .obj, path to material file (.mtl)",
+          "mtlProp": "path to mtl in feature props",
           "yawProp": "path.to.yaw.prop",
           "yawUnit": "deg || rad",
           "invertYaw": false,

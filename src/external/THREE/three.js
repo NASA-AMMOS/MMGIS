@@ -12,11 +12,12 @@ define([
     'OBJLoader',
     'MTLLoader',
     'ColladaLoader',
+    //'GLTFLoader',
     'LineWidthPR',
     'WebGLWireframes',
     'WebVR',
     'VRControls',
     'ThreeAR',
-], function(threeCore) {
+], function (threeCore) {
     return threeCore
 })

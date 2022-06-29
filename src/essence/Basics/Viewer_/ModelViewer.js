@@ -127,65 +127,99 @@ export default function (domEl, lookupPath, options) {
 
         //Texture
         var ext = F_.getExtension(modelFile).toLowerCase()
-        if (ext === 'obj') {
-            var textureFile = textureFile //findTexture(modelFile, allFiles)
+        switch (ext) {
+            case 'obj':
+                var textureFile = textureFile //findTexture(modelFile, allFiles)
 
-            var manager = new THREE.LoadingManager()
-            manager.onProgress = function (item, loaded, total) {
-                return
-                console.log(item, loaded, total)
-            }
-            var textureLoader = new THREE.TextureLoader(manager)
-            var texture = textureLoader.load(textureFile)
-            //Model
-            var onProgress = function (xhr) {
-                if (xhr.lengthComputable) {
-                    var percentComplete = (xhr.loaded / xhr.total) * 100
-                    progressCalback(Math.round(percentComplete, 2))
+                var manager = new THREE.LoadingManager()
+                manager.onProgress = function (item, loaded, total) {
+                    return
+                    console.log(item, loaded, total)
                 }
-            }
-            var onError = function (xhr) {}
-            var loader = new THREE.OBJLoader(manager)
-            loader.load(
-                modelFile,
-                function (object) {
-                    var model = object
-                    model.traverse(function (child) {
-                        if (child instanceof THREE.Mesh) {
-                            child.material.map = texture
-                        }
-                    })
-                    model.rotation.x = -Math.PI / 2
-                    scene.add(model)
-                    animate()
-                },
-                onProgress,
-                onError
-            )
-        } else if (ext == 'dae') {
-            var daeLoader = new THREE.ColladaLoader()
-            daeLoader.load(
-                modelFile,
-                function (mesh) {
-                    //Done
-                    scene.add(mesh.scene)
-                    //ugly as it waits for image to load
-                    setTimeout(function () {
-                        progressCalback(100)
+                var textureLoader = new THREE.TextureLoader(manager)
+                var texture = textureLoader.load(textureFile)
+                //Model
+                var onProgress = function (xhr) {
+                    if (xhr.lengthComputable) {
+                        var percentComplete = (xhr.loaded / xhr.total) * 100
+                        progressCalback(Math.round(percentComplete, 2))
+                    }
+                }
+                var onError = function (xhr) {}
+                var loader = new THREE.OBJLoader(manager)
+                loader.load(
+                    modelFile,
+                    function (object) {
+                        var model = object
+                        model.traverse(function (child) {
+                            if (child instanceof THREE.Mesh) {
+                                child.material.map = texture
+                            }
+                        })
+                        model.rotation.x = -Math.PI / 2
+                        scene.add(model)
                         animate()
-                    }, 2000)
-                },
-                onProgress,
-                function (error) {
-                    //Error
-                    console.log('Failed to load .dae at: ' + modelFile)
-                }
-            )
+                    },
+                    onProgress,
+                    onError
+                )
+                break
+            case 'dae':
+                var daeLoader = new THREE.ColladaLoader()
+                daeLoader.load(
+                    modelFile,
+                    function (mesh) {
+                        //Done
+                        scene.add(mesh.scene)
+                        //ugly as it waits for image to load
+                        setTimeout(function () {
+                            progressCalback(100)
+                            animate()
+                        }, 2000)
+                    },
+                    onProgress,
+                    function (error) {
+                        //Error
+                        console.log(
+                            `Viewer - Failed to load .dae at: ${modelFile}`
+                        )
+                    }
+                )
+                break
+            /*
+            case 'gltf':
+            case 'glb':
+                let gltfLoader = new THREE.GLTFLoader()
+                gltfLoader.load(
+                    modelFile,
+                    function (mesh) {
+                        //Done
+                        scene.add(mesh.scene)
+                        //ugly as it waits for image to load
+                        setTimeout(function () {
+                            progressCalback(100)
+                            animate()
+                        }, 2000)
+                    },
+                    onProgress,
+                    function (error) {
+                        //Error
+                        console.log(
+                            `Viewer - Failed to load ${ext} at: ${modelFile}`
+                        )
+                    }
+                )
+                break
+                */
+            default:
+                console.warn(`Viewer - Unsupported model type: ${ext}`)
         }
-
-        if (typeof callback === 'function') {
-            callback()
-        }
+        if (ext === 'obj') {
+        } else if (ext == 'dae') {
+        } else if (ext)
+            if (typeof callback === 'function') {
+                callback()
+            }
     }
 
     function findTexture(file, allFiles) {
