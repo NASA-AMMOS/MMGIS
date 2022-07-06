@@ -2847,6 +2847,17 @@ function layerPopulateVariable(modalId, layerType) {
       };
     } else {
       currentLayerVars.useKeyAsName = currentLayerVars.useKeyAsName || "prop";
+      currentLayerVars.coordinateAttachments =
+        currentLayerVars.coordinateAttachments || {
+          marker: {
+            initialVisibility: true,
+            color: "stroke css color (or prop:...)",
+            weight: 2,
+            fillColor: "fill css color (or prop:...)",
+            fillOpacity: 1,
+            radius: 8,
+          },
+        };
       currentLayerVars.markerAttachments =
         currentLayerVars.markerAttachments || {
           bearing: {
@@ -2893,6 +2904,11 @@ function layerPopulateVariable(modalId, layerType) {
             onlyLastN: false,
           },
         };
+      currentLayerVars.pathGradient = currentLayerVars.pathGradient || {
+        colorWith: "path.to.prop",
+        userControllable: true,
+        colorRamp: ["cssColor1", "cssColor2"],
+      };
       currentLayerVars.datasetLinks = currentLayerVars.datasetLinks || [
         {
           prop: "{prop}",

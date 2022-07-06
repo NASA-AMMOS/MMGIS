@@ -1769,6 +1769,32 @@ var Formulae_ = {
         //return the new canvas
         return newCanvas
     },
+    // leaf arrays must be of strings or numbers
+    // mainly used for geojson coordinate traversal
+    coordinateDepthTraversal(array, onEachLeaf) {
+        for (var i = 0; i < array.length; i++) {
+            if (typeof array[i] !== 'string' && array[i].length != null) {
+                Formulae_.coordinateDepthTraversal(array[i], onEachLeaf)
+            } else if (
+                typeof array[i] === 'string' ||
+                typeof array[i] === 'number'
+            ) {
+                onEachLeaf(array)
+                return
+            }
+        }
+    },
+    // Stitches two arrays together into an object
+    stitchArrays(keyArray, valueArray) {
+        keyArray = keyArray || []
+        valueArray = valueArray || []
+
+        const stitched = {}
+        keyArray.forEach((k, idx) => {
+            if (k != null) stitched[k] = valueArray[idx] || null
+        })
+        return stitched
+    },
     bracketReplace(str, obj, replace) {
         if (str === null) return ''
         let matches = str.match(/\{.*?\}/gi)
