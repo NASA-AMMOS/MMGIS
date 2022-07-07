@@ -7,7 +7,7 @@ import * as d3 from 'd3'
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
 import LayerGeologic from './LayerGeologic/LayerGeologic'
-import { parseExtendedGeoJSON } from './ExtendedGeoJSON'
+import { parseExtendedGeoJSON, getCoordProperties } from './ExtendedGeoJSON'
 
 let L = window.L
 /**
@@ -26,7 +26,27 @@ export const constructVectorLayer = (
     let fiC = layerObj.style.fillColor
     let fiO = String(layerObj.style.fillOpacity)
     let leafletLayerObject = {
-        style: function (feature) {
+        style: function (feature, preferedStyle) {
+            if (preferedStyle) {
+                col = preferedStyle.color != null ? preferedStyle.color : col
+                opa =
+                    preferedStyle.opacity != null
+                        ? String(preferedStyle.opacity)
+                        : opa
+                wei =
+                    preferedStyle.weight != null
+                        ? String(preferedStyle.weight)
+                        : wei
+                fiC =
+                    preferedStyle.fillColor != null
+                        ? preferedStyle.fillColor
+                        : fiC
+                fiO =
+                    preferedStyle.fillOpacity != null
+                        ? String(preferedStyle.fillOpacity)
+                        : fiO
+            }
+
             if (feature.properties.hasOwnProperty('style')) {
                 let className = layerObj.style.className
                 let layerName = layerObj.style.layerName
@@ -57,7 +77,7 @@ export const constructVectorLayer = (
                         : feature.style && feature.style.weight != null
                         ? feature.style.weight
                         : wei
-                if (!isNaN(parseInt(wei))) finalWei = parseInt(wei)
+                if (!isNaN(parseInt(finalWei))) finalWei = parseInt(finalWei)
                 var finalFiC =
                     fiC.toLowerCase().substring(0, 4) === 'prop'
                         ? F_.parseColor(feature.properties[fiC.substring(5)]) ||
@@ -77,6 +97,9 @@ export const constructVectorLayer = (
                     layerObj.radius == 1
                         ? parseFloat(feature.properties['radius'])
                         : layerObj.radius
+
+                if (preferedStyle && preferedStyle.radius != null)
+                    layerObj.style.radius = preferedStyle.radius
 
                 var noPointerEventsClass =
                     feature.style && feature.style.nointeraction
@@ -121,6 +144,7 @@ export const constructVectorLayer = (
                     Map_.map
                 )
             }
+
             return layerObj.style
         },
         onEachFeature: (function (layerObjName) {
@@ -310,104 +334,116 @@ export const constructVectorLayer = (
         }
     }
 
-    const layer = L.geoJson(geojson, leafletLayerObject)
+    let layer
 
-    Object.keys(layer._layers).forEach((idx) => {
-        let l = layer._layers[idx]
-        const savedUseKeyAsName = l.useKeyAsName
-        const savedOptions = l.options
+    if (F_.getIn(layerObj, 'variables.hideMainFeature') === true) {
+        layer = L.geoJson(F_.getBaseGeoJSON(), leafletLayerObject)
+    } else {
+        layer = L.geoJson(geojson, leafletLayerObject)
 
-        if (l.feature?.properties?.style?.geologic != null) {
-            const geom = l.feature.geometry
-            const style = l.feature?.properties?.style
-            let made = false
-            switch (l.feature?.properties?.style?.geologic.type) {
-                case 'pattern':
-                    // We can augment existing polygons for this so patterns are
-                    // implemented above in the style object
-                    made = false
-                    break
-                case 'linework':
-                    if (geom.type.toLowerCase() === 'linestring') {
-                        layer._layers[idx] = LayerGeologic.createLinework(
-                            l.feature,
-                            style
-                        )
-                        made = true
-                    }
-                    break
-                case 'symbol':
-                    if (geom.type.toLowerCase() === 'point') {
-                        layer._layers[idx] = LayerGeologic.createSymbolMarker(
-                            geom.coordinates[1],
-                            geom.coordinates[0],
-                            style
-                        )
-                        made = true
-                    }
-                    break
-                default:
-                    made = false
-                    break
-            }
-            if (made) {
-                layer._layers[idx].options.layerName = savedOptions.layerName
-                layer._layers[idx].feature = l.feature
-                layer._layers[idx].useKeyAsName = savedUseKeyAsName
-                l.feature.style = l.feature.style || {}
-                onEachFeatureDefault(l.feature, layer._layers[idx])
-                if (layer._layers[idx]._layers) {
-                    Object.keys(layer._layers[idx]._layers).forEach((idx2) => {
-                        layer._layers[idx]._layers[idx2].options.layerName =
-                            savedOptions.layerName
-                        layer._layers[idx]._layers[idx2].feature = l.feature
-                        layer._layers[idx]._layers[idx2].useKeyAsName =
-                            savedUseKeyAsName
+        Object.keys(layer._layers).forEach((idx) => {
+            let l = layer._layers[idx]
+            const savedUseKeyAsName = l.useKeyAsName
+            const savedOptions = l.options
 
-                        l.feature.style = l.feature.style || {}
-                        onEachFeatureDefault(
-                            l.feature,
-                            layer._layers[idx]._layers[idx2]
-                        )
-                    })
+            if (l.feature?.properties?.style?.geologic != null) {
+                const geom = l.feature.geometry
+                const style = l.feature?.properties?.style
+                let made = false
+                switch (l.feature?.properties?.style?.geologic.type) {
+                    case 'pattern':
+                        // We can augment existing polygons for this so patterns are
+                        // implemented above in the style object
+                        made = false
+                        break
+                    case 'linework':
+                        if (geom.type.toLowerCase() === 'linestring') {
+                            layer._layers[idx] = LayerGeologic.createLinework(
+                                l.feature,
+                                style
+                            )
+                            made = true
+                        }
+                        break
+                    case 'symbol':
+                        if (geom.type.toLowerCase() === 'point') {
+                            layer._layers[idx] =
+                                LayerGeologic.createSymbolMarker(
+                                    geom.coordinates[1],
+                                    geom.coordinates[0],
+                                    style
+                                )
+                            made = true
+                        }
+                        break
+                    default:
+                        made = false
+                        break
                 }
-            }
-        } else if (l.feature?.properties?.arrow === true) {
-            const c = l.feature.geometry.coordinates
-            const start = new L.LatLng(c[0][1], c[0][0])
-            const end = new L.LatLng(c[1][1], c[1][0])
+                if (made) {
+                    layer._layers[idx].options.layerName =
+                        savedOptions.layerName
+                    layer._layers[idx].feature = l.feature
+                    layer._layers[idx].useKeyAsName = savedUseKeyAsName
+                    l.feature.style = l.feature.style || {}
+                    onEachFeatureDefault(l.feature, layer._layers[idx])
+                    if (layer._layers[idx]._layers) {
+                        Object.keys(layer._layers[idx]._layers).forEach(
+                            (idx2) => {
+                                layer._layers[idx]._layers[
+                                    idx2
+                                ].options.layerName = savedOptions.layerName
+                                layer._layers[idx]._layers[idx2].feature =
+                                    l.feature
+                                layer._layers[idx]._layers[idx2].useKeyAsName =
+                                    savedUseKeyAsName
 
-            layer._layers[idx] = L_.addArrowToMap(
-                null,
-                start,
-                end,
-                l.feature?.properties?.style,
-                l.feature
-            )
-            layer._layers[idx].useKeyAsName = savedUseKeyAsName
-            layer._layers[idx].options = savedOptions
-            Object.keys(layer._layers[idx]._layers).forEach((idx2) => {
-                layer._layers[idx]._layers[idx2].options.layerName =
-                    savedOptions.layerName
-                layer._layers[idx]._layers[idx2].feature = l.feature
-                layer._layers[idx]._layers[idx2].useKeyAsName =
-                    savedUseKeyAsName
-                l.feature.style = l.feature.style || {}
-                l.feature.style.noclick = true
-                onEachFeatureDefault(
-                    l.feature,
-                    layer._layers[idx]._layers[idx2]
+                                l.feature.style = l.feature.style || {}
+                                onEachFeatureDefault(
+                                    l.feature,
+                                    layer._layers[idx]._layers[idx2]
+                                )
+                            }
+                        )
+                    }
+                }
+            } else if (l.feature?.properties?.arrow === true) {
+                const c = l.feature.geometry.coordinates
+                const start = new L.LatLng(c[0][1], c[0][0])
+                const end = new L.LatLng(c[1][1], c[1][0])
+
+                layer._layers[idx] = L_.addArrowToMap(
+                    null,
+                    start,
+                    end,
+                    l.feature?.properties?.style,
+                    l.feature
                 )
-            })
-        } else if (l.feature?.properties?.annotation === true) {
-            layer._layers[idx] = L_.createAnnotation(
-                l.feature,
-                'LayerAnnotation',
-                layer._layers[idx].options.layerName,
-                idx
-            )
-        }
-    })
+                layer._layers[idx].useKeyAsName = savedUseKeyAsName
+                layer._layers[idx].options = savedOptions
+                Object.keys(layer._layers[idx]._layers).forEach((idx2) => {
+                    layer._layers[idx]._layers[idx2].options.layerName =
+                        savedOptions.layerName
+                    layer._layers[idx]._layers[idx2].feature = l.feature
+                    layer._layers[idx]._layers[idx2].useKeyAsName =
+                        savedUseKeyAsName
+                    l.feature.style = l.feature.style || {}
+                    l.feature.style.noclick = true
+                    onEachFeatureDefault(
+                        l.feature,
+                        layer._layers[idx]._layers[idx2]
+                    )
+                })
+            } else if (l.feature?.properties?.annotation === true) {
+                layer._layers[idx] = L_.createAnnotation(
+                    l.feature,
+                    'LayerAnnotation',
+                    layer._layers[idx].options.layerName,
+                    idx
+                )
+            }
+        })
+    }
 
     return {
         layer: layer,
@@ -416,6 +452,7 @@ export const constructVectorLayer = (
 }
 
 export const constructSublayers = (geojson, layerObj, leafletLayerObject) => {
+    // note: sublayer ordering here does denote render order (bottom on top).
     const sublayers = {
         uncertainty_ellipses: uncertaintyEllipses(
             geojson,
@@ -429,6 +466,7 @@ export const constructSublayers = (geojson, layerObj, leafletLayerObject) => {
             layerObj,
             leafletLayerObject
         ),
+        path_gradient: pathGradient(geojson, layerObj, leafletLayerObject),
     }
 
     const sublayerArray = []
@@ -570,320 +608,337 @@ const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {
                 return uncertaintyEllipse
             },
         }
-    }
-
-    return uncertaintyVar && curtainUncertaintyOptions
-        ? {
-              on:
-                  uncertaintyVar.initialVisibility != null
-                      ? uncertaintyVar.initialVisibility
-                      : true,
-              type: 'uncertainty_ellipses',
-              curtainLayerId: curtainUncertaintyOptions.name,
-              curtainOptions: curtainUncertaintyOptions,
-              clampedLayerId: clampedUncertaintyOptions.name,
-              clampedOptions: clampedUncertaintyOptions,
-              geojson: geojson,
-              layer: L.geoJson(geojson, leafletLayerObjectUncertaintyEllipse),
-          }
-        : false
+        return curtainUncertaintyOptions
+            ? {
+                  on:
+                      uncertaintyVar.initialVisibility != null
+                          ? uncertaintyVar.initialVisibility
+                          : true,
+                  type: 'uncertainty_ellipses',
+                  curtainLayerId: curtainUncertaintyOptions.name,
+                  curtainOptions: curtainUncertaintyOptions,
+                  clampedLayerId: clampedUncertaintyOptions.name,
+                  clampedOptions: clampedUncertaintyOptions,
+                  geojson: geojson,
+                  layer: L.geoJson(
+                      geojson,
+                      leafletLayerObjectUncertaintyEllipse
+                  ),
+              }
+            : false
+    } else return false
 }
 
 const imageOverlays = (geojson, layerObj, leafletLayerObject) => {
     // IMAGE
     const imageVar = F_.getIn(layerObj, 'variables.markerAttachments.image')
-    const imageShow = F_.getIn(
-        layerObj,
-        'variables.markerAttachments.image.show',
-        'click'
-    )
-    let leafletLayerObjectImageOverlay
 
-    if (imageVar && imageShow === 'always')
-        leafletLayerObjectImageOverlay = {
-            pointToLayer: (feature, latlong) => {
-                const path = F_.getIn(
-                    layerObj,
-                    'variables.markerAttachments.image.path',
-                    'public/images/rovers/PerseveranceTopDown.png'
-                )
-                let imageSettings = {
-                    image: F_.getIn(
-                        feature.properties,
-                        F_.getIn(
-                            layerObj,
-                            'variables.markerAttachments.image.pathProp',
+    if (imageVar) {
+        const imageShow = F_.getIn(
+            layerObj,
+            'variables.markerAttachments.image.show',
+            'click'
+        )
+        let leafletLayerObjectImageOverlay
+
+        if (imageVar && imageShow === 'always')
+            leafletLayerObjectImageOverlay = {
+                pointToLayer: (feature, latlong) => {
+                    const path = F_.getIn(
+                        layerObj,
+                        'variables.markerAttachments.image.path',
+                        'public/images/rovers/PerseveranceTopDown.png'
+                    )
+                    let imageSettings = {
+                        image: F_.getIn(
+                            feature.properties,
+                            F_.getIn(
+                                layerObj,
+                                'variables.markerAttachments.image.pathProp',
+                                path
+                            ),
                             path
                         ),
-                        path
-                    ),
-                    widthMeters: F_.getIn(
-                        layerObj,
-                        'variables.markerAttachments.image.widthMeters',
-                        2.6924
-                    ),
-                    widthPixels: F_.getIn(
-                        layerObj,
-                        'variables.markerAttachments.image.widthPixels',
-                        420
-                    ),
-                    heightPixels: F_.getIn(
-                        layerObj,
-                        'variables.markerAttachments.image.heightPixels',
-                        600
-                    ),
-                    angleProp: F_.getIn(
-                        layerObj,
-                        'variables.markerAttachments.image.angleProp',
-                        'yaw_rad'
-                    ),
-                    angleUnit: F_.getIn(
-                        layerObj,
-                        'variables.markerAttachments.image.angleUnit',
-                        'rad'
-                    ),
-                    show: F_.getIn(
-                        layerObj,
-                        'variables.markerAttachments.image.show',
-                        'click'
-                    ),
-                }
-                const wm = parseFloat(imageSettings.widthMeters)
-                const w = parseFloat(imageSettings.widthPixels)
-                const h = parseFloat(imageSettings.heightPixels)
-                let angle = -F_.getIn(
-                    feature.properties,
-                    imageSettings.angleProp,
-                    0
-                )
-                if (imageSettings.angleProp === 'deg')
-                    angle = angle * (Math.PI / 180)
-
-                const crs = window.mmgisglobal.customCRS
-                const centerEN = crs.project(latlong)
-                const center = [centerEN.x, centerEN.y]
-                const xM = wm / 2
-                const yM = (wm * (h / w)) / 2
-                const topLeft = crs.unproject(
-                    F_.rotatePoint(
-                        {
-                            y: centerEN.y + yM,
-                            x: centerEN.x - xM,
-                        },
-                        center,
-                        angle
+                        widthMeters: F_.getIn(
+                            layerObj,
+                            'variables.markerAttachments.image.widthMeters',
+                            2.6924
+                        ),
+                        widthPixels: F_.getIn(
+                            layerObj,
+                            'variables.markerAttachments.image.widthPixels',
+                            420
+                        ),
+                        heightPixels: F_.getIn(
+                            layerObj,
+                            'variables.markerAttachments.image.heightPixels',
+                            600
+                        ),
+                        angleProp: F_.getIn(
+                            layerObj,
+                            'variables.markerAttachments.image.angleProp',
+                            'yaw_rad'
+                        ),
+                        angleUnit: F_.getIn(
+                            layerObj,
+                            'variables.markerAttachments.image.angleUnit',
+                            'rad'
+                        ),
+                        show: F_.getIn(
+                            layerObj,
+                            'variables.markerAttachments.image.show',
+                            'click'
+                        ),
+                    }
+                    const wm = parseFloat(imageSettings.widthMeters)
+                    const w = parseFloat(imageSettings.widthPixels)
+                    const h = parseFloat(imageSettings.heightPixels)
+                    let angle = -F_.getIn(
+                        feature.properties,
+                        imageSettings.angleProp,
+                        0
                     )
-                )
+                    if (imageSettings.angleProp === 'deg')
+                        angle = angle * (Math.PI / 180)
 
-                const topRight = crs.unproject(
-                    F_.rotatePoint(
-                        {
-                            y: centerEN.y + yM,
-                            x: centerEN.x + xM,
-                        },
-                        center,
-                        angle
+                    const crs = window.mmgisglobal.customCRS
+                    const centerEN = crs.project(latlong)
+                    const center = [centerEN.x, centerEN.y]
+                    const xM = wm / 2
+                    const yM = (wm * (h / w)) / 2
+                    const topLeft = crs.unproject(
+                        F_.rotatePoint(
+                            {
+                                y: centerEN.y + yM,
+                                x: centerEN.x - xM,
+                            },
+                            center,
+                            angle
+                        )
                     )
-                )
 
-                const bottomRight = crs.unproject(
-                    F_.rotatePoint(
-                        {
-                            y: centerEN.y - yM,
-                            x: centerEN.x + xM,
-                        },
-                        center,
-                        angle
+                    const topRight = crs.unproject(
+                        F_.rotatePoint(
+                            {
+                                y: centerEN.y + yM,
+                                x: centerEN.x + xM,
+                            },
+                            center,
+                            angle
+                        )
                     )
-                )
 
-                const bottomLeft = crs.unproject(
-                    F_.rotatePoint(
-                        {
-                            y: centerEN.y - yM,
-                            x: centerEN.x - xM,
-                        },
-                        center,
-                        angle
+                    const bottomRight = crs.unproject(
+                        F_.rotatePoint(
+                            {
+                                y: centerEN.y - yM,
+                                x: centerEN.x + xM,
+                            },
+                            center,
+                            angle
+                        )
                     )
-                )
 
-                const anchors = [
-                    [topLeft.lat, topLeft.lng],
-                    [topRight.lat, topRight.lng],
-                    [bottomRight.lat, bottomRight.lng],
-                    [bottomLeft.lat, bottomLeft.lng],
-                ]
+                    const bottomLeft = crs.unproject(
+                        F_.rotatePoint(
+                            {
+                                y: centerEN.y - yM,
+                                x: centerEN.x - xM,
+                            },
+                            center,
+                            angle
+                        )
+                    )
 
-                return L.layerGroup([
-                    L.imageTransform(imageSettings.image, anchors, {
-                        opacity: 1,
-                        clip: anchors,
-                    }),
-                ])
-            },
-        }
+                    const anchors = [
+                        [topLeft.lat, topLeft.lng],
+                        [topRight.lat, topRight.lng],
+                        [bottomRight.lat, bottomRight.lng],
+                        [bottomLeft.lat, bottomLeft.lng],
+                    ]
 
-    return imageVar && imageShow === 'always'
-        ? {
-              on:
-                  imageVar.initialVisibility != null
-                      ? imageVar.initialVisibility
-                      : true,
-              layer: L.geoJson(geojson, leafletLayerObjectImageOverlay),
-          }
-        : false
+                    return L.layerGroup([
+                        L.imageTransform(imageSettings.image, anchors, {
+                            opacity: 1,
+                            clip: anchors,
+                        }),
+                    ])
+                },
+            }
+        return imageShow === 'always'
+            ? {
+                  on:
+                      imageVar.initialVisibility != null
+                          ? imageVar.initialVisibility
+                          : true,
+                  layer: L.geoJson(geojson, leafletLayerObjectImageOverlay),
+              }
+            : false
+    } else return false
 }
 
 const models = (geojson, layerObj, leafletLayerObject) => {
     // MODEL
     const modelVar = F_.getIn(layerObj, 'variables.markerAttachments.model')
-    const modelShow = F_.getIn(modelVar, 'show', 'click')
-    const modelPositions = []
-    const modelRotations = []
-    const modelScales = []
 
-    const modelSettings = {
-        model: F_.getIn(modelVar, 'path', null),
-        pathProp: F_.getIn(modelVar, 'pathProp', null),
-        mtlPath: F_.getIn(modelVar, 'mtlPath', null),
-        mtlProp: F_.getIn(modelVar, 'mtlProp', null),
-        yawProp: F_.getIn(modelVar, 'yawProp', null),
-        yawUnit: F_.getIn(modelVar, 'yawUnit', 'rad'),
-        invertYaw: F_.getIn(modelVar, 'invertYaw', false),
-        pitchProp: F_.getIn(modelVar, 'pitchProp', null),
-        pitchUnit: F_.getIn(modelVar, 'pitchUnit', 'rad'),
-        invertPitch: F_.getIn(modelVar, 'invertPitch', false),
-        rollProp: F_.getIn(modelVar, 'rollProp', null),
-        rollUnit: F_.getIn(modelVar, 'rollUnit', 'rad'),
-        invertRoll: F_.getIn(modelVar, 'invertRoll', false),
-        elevationProp: F_.getIn(modelVar, 'elevationProp', null),
-        scaleProp: F_.getIn(modelVar, 'scaleProp', 1),
-        show: F_.getIn(modelVar, 'show', 'click'),
-        onlyLastN: F_.getIn(modelVar, 'onlyLastN', false),
-    }
+    if (modelVar) {
+        const modelShow = F_.getIn(modelVar, 'show', 'click')
+        const modelPositions = []
+        const modelRotations = []
+        const modelScales = []
 
-    let modelOptions
-    if (
-        (modelSettings.model || modelSettings.pathProp) &&
-        modelSettings.show === 'always'
-    ) {
-        geojson.features.forEach((f, idx) => {
-            if (typeof modelSettings.onlyLastN === 'number') {
-                if (idx < geojson.features.length - modelSettings.onlyLastN)
-                    return
-            }
+        const modelSettings = {
+            model: F_.getIn(modelVar, 'path', null),
+            pathProp: F_.getIn(modelVar, 'pathProp', null),
+            mtlPath: F_.getIn(modelVar, 'mtlPath', null),
+            mtlProp: F_.getIn(modelVar, 'mtlProp', null),
+            yawProp: F_.getIn(modelVar, 'yawProp', null),
+            yawUnit: F_.getIn(modelVar, 'yawUnit', 'rad'),
+            invertYaw: F_.getIn(modelVar, 'invertYaw', false),
+            pitchProp: F_.getIn(modelVar, 'pitchProp', null),
+            pitchUnit: F_.getIn(modelVar, 'pitchUnit', 'rad'),
+            invertPitch: F_.getIn(modelVar, 'invertPitch', false),
+            rollProp: F_.getIn(modelVar, 'rollProp', null),
+            rollUnit: F_.getIn(modelVar, 'rollUnit', 'rad'),
+            invertRoll: F_.getIn(modelVar, 'invertRoll', false),
+            elevationProp: F_.getIn(modelVar, 'elevationProp', null),
+            scaleProp: F_.getIn(modelVar, 'scaleProp', 1),
+            show: F_.getIn(modelVar, 'show', 'click'),
+            onlyLastN: F_.getIn(modelVar, 'onlyLastN', false),
+        }
 
-            // Figure out model path
-            if (!modelSettings.model && modelSettings.pathProp) {
-                modelSettings.model = F_.getIn(
-                    f.properties,
-                    modelSettings.pathProp,
-                    null
-                )
-                if (
-                    modelSettings.model &&
-                    !F_.isUrlAbsolute(modelSettings.model) &&
-                    !modelSettings.model.startsWith('public')
-                )
-                    modelSettings.model = L_.missionPath + modelSettings.model
-            }
-            if (modelSettings.model == null) return
+        let modelOptions
+        if (
+            (modelSettings.model || modelSettings.pathProp) &&
+            modelSettings.show === 'always'
+        ) {
+            geojson.features.forEach((f, idx) => {
+                if (typeof modelSettings.onlyLastN === 'number') {
+                    if (idx < geojson.features.length - modelSettings.onlyLastN)
+                        return
+                }
 
-            // Figure out mtl path if any
-            if (modelSettings.mtlPath || modelSettings.mtlProp) {
-                if (modelSettings.mtlPath == null)
-                    modelSettings.mtlPath = F_.getIn(
+                // Figure out model path
+                if (!modelSettings.model && modelSettings.pathProp) {
+                    modelSettings.model = F_.getIn(
                         f.properties,
-                        modelSettings.mtlProp,
+                        modelSettings.pathProp,
                         null
                     )
-                if (
-                    modelSettings.mtlPath &&
-                    !F_.isUrlAbsolute(modelSettings.mtlPath) &&
-                    !modelSettings.mtlPath.startsWith('public')
-                )
-                    modelSettings.mtlPath =
-                        L_.missionPath + modelSettings.mtlPath
-            }
+                    if (
+                        modelSettings.model &&
+                        !F_.isUrlAbsolute(modelSettings.model) &&
+                        !modelSettings.model.startsWith('public')
+                    )
+                        modelSettings.model =
+                            L_.missionPath + modelSettings.model
+                }
+                if (modelSettings.model == null) return
 
-            if (f.geometry.type.toLowerCase() === 'point') {
-                const coords = f.geometry.coordinates
-                const position = {
-                    latitude: coords[1],
-                    longitude: coords[0],
-                    elevation:
-                        typeof modelSettings.elevationProp === 'number'
-                            ? modelSettings.elevationProp
-                            : F_.getIn(
-                                  f.properties,
-                                  modelSettings.elevationProp,
-                                  coords[2]
-                              ),
+                // Figure out mtl path if any
+                if (modelSettings.mtlPath || modelSettings.mtlProp) {
+                    if (modelSettings.mtlPath == null)
+                        modelSettings.mtlPath = F_.getIn(
+                            f.properties,
+                            modelSettings.mtlProp,
+                            null
+                        )
+                    if (
+                        modelSettings.mtlPath &&
+                        !F_.isUrlAbsolute(modelSettings.mtlPath) &&
+                        !modelSettings.mtlPath.startsWith('public')
+                    )
+                        modelSettings.mtlPath =
+                            L_.missionPath + modelSettings.mtlPath
                 }
 
-                const rotation = {
-                    y:
-                        typeof modelSettings.yawProp === 'number'
-                            ? modelSettings.yawProp
-                            : F_.getIn(f.properties, modelSettings.yawProp, 0),
-                    x:
-                        typeof modelSettings.pitchProp === 'number'
-                            ? modelSettings.pitchProp
-                            : F_.getIn(
-                                  f.properties,
-                                  modelSettings.pitchProp,
-                                  0
-                              ),
-                    z:
-                        typeof modelSettings.rollProp === 'number'
-                            ? modelSettings.rollProp
-                            : F_.getIn(f.properties, modelSettings.rollProp, 0),
+                if (f.geometry.type.toLowerCase() === 'point') {
+                    const coords = f.geometry.coordinates
+                    const position = {
+                        latitude: coords[1],
+                        longitude: coords[0],
+                        elevation:
+                            typeof modelSettings.elevationProp === 'number'
+                                ? modelSettings.elevationProp
+                                : F_.getIn(
+                                      f.properties,
+                                      modelSettings.elevationProp,
+                                      coords[2]
+                                  ),
+                    }
+
+                    const rotation = {
+                        y:
+                            typeof modelSettings.yawProp === 'number'
+                                ? modelSettings.yawProp
+                                : F_.getIn(
+                                      f.properties,
+                                      modelSettings.yawProp,
+                                      0
+                                  ),
+                        x:
+                            typeof modelSettings.pitchProp === 'number'
+                                ? modelSettings.pitchProp
+                                : F_.getIn(
+                                      f.properties,
+                                      modelSettings.pitchProp,
+                                      0
+                                  ),
+                        z:
+                            typeof modelSettings.rollProp === 'number'
+                                ? modelSettings.rollProp
+                                : F_.getIn(
+                                      f.properties,
+                                      modelSettings.rollProp,
+                                      0
+                                  ),
+                    }
+                    if (modelSettings.yawUnit === 'deg')
+                        rotation.y *= Math.PI / 180
+                    if (modelSettings.invertYaw) rotation.y *= -1
+                    if (modelSettings.pitchUnit === 'deg')
+                        rotation.x *= Math.PI / 180
+                    if (modelSettings.invertPitch) rotation.x *= -1
+                    if (modelSettings.rollUnit === 'deg')
+                        rotation.z *= Math.PI / 180
+                    if (modelSettings.invertRoll) rotation.z *= -1
+
+                    const scale =
+                        typeof modelSettings.scaleProp === 'number'
+                            ? modelSettings.scaleProp
+                            : F_.getIn(f.properties, modelSettings.scaleProp, 1)
+                    modelPositions.push(position)
+                    modelRotations.push(rotation)
+                    modelScales.push(scale)
                 }
-                if (modelSettings.yawUnit === 'deg') rotation.y *= Math.PI / 180
-                if (modelSettings.invertYaw) rotation.y *= -1
-                if (modelSettings.pitchUnit === 'deg')
-                    rotation.x *= Math.PI / 180
-                if (modelSettings.invertPitch) rotation.x *= -1
-                if (modelSettings.rollUnit === 'deg')
-                    rotation.z *= Math.PI / 180
-                if (modelSettings.invertRoll) rotation.z *= -1
+            })
 
-                const scale =
-                    typeof modelSettings.scaleProp === 'number'
-                        ? modelSettings.scaleProp
-                        : F_.getIn(f.properties, modelSettings.scaleProp, 1)
-                modelPositions.push(position)
-                modelRotations.push(rotation)
-                modelScales.push(scale)
+            modelOptions = {
+                name: `markerAttachmentModel_${layerObj.name}`,
+                order: 99999,
+                on: true,
+                path: modelSettings.model,
+                mtlPath: modelSettings.mtlPath,
+                opacity: 1,
+                isArrayed: true,
+                position: modelPositions,
+                rotation: modelRotations,
+                scale: modelScales,
             }
-        })
-
-        modelOptions = {
-            name: `markerAttachmentModel_${layerObj.name}`,
-            order: 99999,
-            on: true,
-            path: modelSettings.model,
-            mtlPath: modelSettings.mtlPath,
-            opacity: 1,
-            isArrayed: true,
-            position: modelPositions,
-            rotation: modelRotations,
-            scale: modelScales,
         }
-    }
 
-    return modelVar && modelShow === 'always' && modelOptions
-        ? {
-              on:
-                  modelVar.initialVisibility != null
-                      ? modelVar.initialVisibility
-                      : true,
-              type: 'model',
-              layerId: modelOptions.name,
-              modelOptions: modelOptions,
-          }
-        : false
+        return modelShow === 'always' && modelOptions
+            ? {
+                  on:
+                      modelVar.initialVisibility != null
+                          ? modelVar.initialVisibility
+                          : true,
+                  type: 'model',
+                  layerId: modelOptions.name,
+                  modelOptions: modelOptions,
+              }
+            : false
+    } else return false
 }
 
 const coordinateMarkers = (geojson, layerObj, leafletLayerObject) => {
@@ -893,32 +948,147 @@ const coordinateMarkers = (geojson, layerObj, leafletLayerObject) => {
         'variables.coordinateAttachments.marker'
     )
 
-    const coordMarkerSettings = {
-        initialVisibility: F_.getIn(coordMarkerVar, 'initialVisibility', true),
-        color: F_.getIn(coordMarkerVar, 'color', 'black'),
-        weight: F_.getIn(coordMarkerVar, 'weight', 1),
-        fillColor: F_.getIn(coordMarkerVar, 'fillColor', 'white'),
-        fillOpacity: F_.getIn(coordMarkerVar, 'fillOpacity', 1),
-        radius: F_.getIn(coordMarkerVar, 'radius', 4),
-    }
-
     if (coordMarkerVar) {
-        console.log(parseExtendedGeoJSON(geojson, ['coord_properties']))
-    }
-    //if( coordMarkerSettings.color.startsWith('prop:') )
-    return false
-    return coordMarkerVar
-        ? {
-              on:
-                  coordMarkerVar.initialVisibility != null
-                      ? coordMarkerVar.initialVisibility
-                      : true,
-              type: 'coordinate_markers',
-              geojson: geojson,
-              layer: L.geoJson(
-                  parseExtendedGeoJSON(geojson, ['coord_properties']),
-                  leafletLayerObject
-              ),
-          }
-        : false
+        const coordMarkerSettings = {
+            initialVisibility: F_.getIn(
+                coordMarkerVar,
+                'initialVisibility',
+                true
+            ),
+            opacity: F_.getIn(coordMarkerVar, 'opacity', null),
+            color: F_.getIn(coordMarkerVar, 'color', null),
+            weight: F_.getIn(coordMarkerVar, 'weight', null),
+            fillColor: F_.getIn(coordMarkerVar, 'fillColor', null),
+            fillOpacity: F_.getIn(coordMarkerVar, 'fillOpacity', null),
+            radius: F_.getIn(coordMarkerVar, 'radius', null),
+        }
+
+        const leafletLayerObjectCoordinateMarkers = {
+            onEachFeature: leafletLayerObject.onEachFeature,
+            pointToLayer: leafletLayerObject.pointToLayer,
+            style: function (feature) {
+                return leafletLayerObject.style(feature, coordMarkerSettings)
+            },
+        }
+
+        return {
+            on:
+                coordMarkerVar.initialVisibility != null
+                    ? coordMarkerVar.initialVisibility
+                    : true,
+            type: 'coordinate_markers',
+            geojson: geojson,
+            layer: L.geoJson(
+                parseExtendedGeoJSON(geojson, ['coord_properties']),
+                leafletLayerObjectCoordinateMarkers
+            ),
+        }
+    } else return false
+}
+
+const pathGradient = (geojson, layerObj, leafletLayerObject) => {
+    // PATH GRADIENT
+    const pathGradientVar = F_.getIn(
+        layerObj,
+        'variables.pathAttachments.gradient'
+    )
+    if (pathGradientVar) {
+        const pathGradientSettings = {
+            initialVisibility: F_.getIn(
+                pathGradientVar,
+                'initialVisibility',
+                true
+            ),
+            colorWithProp: F_.getIn(pathGradientVar, 'colorWithProp', null),
+            userControlsProp: F_.getIn(
+                pathGradientVar,
+                'userControlsProp',
+                false
+            ),
+            colorRamp: F_.getIn(pathGradientVar, 'colorRamp', [
+                'lime',
+                'yellow',
+                'red',
+            ]),
+            weight: F_.getIn(pathGradientVar, 'weight', 4),
+        }
+
+        // check validity
+        if (pathGradientSettings.colorWithProp == null) {
+            console.warn(
+                'LayerConstructor - `pathAttachments.gradient` set but required `pathAttachments.gradient.colorWithProp` is unset.'
+            )
+            return false
+        }
+
+        // format colorRamp
+        const steppedColorRamp = {}
+        pathGradientSettings.colorRamp.forEach((color, idx) => {
+            steppedColorRamp[
+                idx / (pathGradientSettings.colorRamp.length - 1)
+            ] = color
+        })
+
+        const paths = []
+        var min = Infinity
+        var max = -Infinity
+        var prevParentIndex = null
+        geojson.features.forEach((feature) => {
+            let path = []
+            F_.coordinateDepthTraversal(
+                feature.geometry.coordinates,
+                (array, _path) => {
+                    // Find breaks in the coordinate array to find sepearate features
+                    const splitPath = _path.split('.')
+                    let parentIndex = null
+                    if (splitPath.length >= 2) {
+                        parentIndex = splitPath[splitPath.length - 2]
+                        if (
+                            prevParentIndex != null &&
+                            parentIndex != prevParentIndex
+                        ) {
+                            paths.push(path)
+                            path = []
+                        }
+                    }
+
+                    const value = F_.getIn(
+                        getCoordProperties(geojson, feature, array),
+                        pathGradientSettings.colorWithProp,
+                        0
+                    )
+                    if (min > value) min = value
+                    if (max < value) max = value
+
+                    path.push([array[1], array[0], value])
+
+                    // Save this for next run through
+                    prevParentIndex = parentIndex
+                }
+            )
+            paths.push(path)
+        })
+
+        const hotlines = []
+        paths.forEach((path) => {
+            hotlines.push(
+                L.hotline(path, {
+                    min: min,
+                    max: max,
+                    palette: steppedColorRamp,
+                    weight: pathGradientSettings.weight,
+                })
+            )
+        })
+
+        return {
+            on:
+                pathGradientVar.initialVisibility != null
+                    ? pathGradientVar.initialVisibility
+                    : true,
+            type: 'path_gradient',
+            geojson: geojson,
+            layer: L.layerGroup(hotlines),
+        }
+    } else return false
 }

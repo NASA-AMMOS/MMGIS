@@ -24,7 +24,7 @@ const parseCoordProperties = (geojson) => {
     }
 
     const globalCoordProps = geojson.coord_properties || null
-    console.log(features)
+
     for (let i = 0; i < features.length; i++) {
         const coordProps = F_.getIn(
             features[i],
@@ -57,4 +57,25 @@ const parseCoordProperties = (geojson) => {
     }
 
     return F_.getBaseGeoJSON(parsedFeatures)
+}
+
+export const getCoordProperties = (geojson, feature, coordArray) => {
+    const globalCoordProps = geojson.coord_properties || null
+    const coordProps = F_.getIn(
+        feature,
+        'properties.coord_properties',
+        globalCoordProps
+    )
+
+    if (coordProps) {
+        let props = JSON.parse(JSON.stringify(feature.properties))
+        delete props.coord_properties
+
+        return {
+            ...props,
+            ...F_.stitchArrays(coordProps, coordArray),
+        }
+    } else {
+        return feature.properties
+    }
 }
