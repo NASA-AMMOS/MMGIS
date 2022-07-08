@@ -16,6 +16,10 @@ let calls = {
     type: "POST",
     url: "api/configure/add",
   },
+  validate: {
+    type: "POST",
+    url: "api/configure/validate",
+  },
   upsert: {
     type: "POST",
     url: "api/configure/upsert",

@@ -328,6 +328,12 @@ function validateLongTermToken(token, successCallback, failureCallback) {
 
 function ensureUser() {
   return (req, res, next) => {
+    console.log(
+      req.session.permission,
+      typeof req.session.permission,
+      req.user,
+      req.originalUrl
+    );
     if (
       process.env.AUTH != "local" ||
       (typeof req.session.permission === "string" &&
@@ -335,6 +341,7 @@ function ensureUser() {
     ) {
       next();
     } else {
+      console.log("render login");
       res.render("login", {
         user: req.user,
         CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER || "CL##-####",

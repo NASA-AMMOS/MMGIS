@@ -2555,6 +2555,19 @@ function save() {
     }
 
     //SAVE HERE
+
+    $.ajax({
+      type: calls.validate.type,
+      url: calls.validate.url,
+      data: {
+        config: JSON.stringify(json),
+      },
+      success: function (data) {
+        if (data.status == "success") {
+        }
+      },
+    });
+
     if (!isInvalidData && !isNonHeader) {
       saveConfig(json);
     } else {

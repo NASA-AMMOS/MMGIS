@@ -10,6 +10,8 @@ const logger = require("../../../logger");
 const Config = require("../models/config");
 const config_template = require("../../../templates/config_template");
 
+const validate = require("../validate");
+
 const fs = require("fs");
 
 let fullAccess = false;
@@ -458,6 +460,23 @@ if (fullAccess)
         return null;
       });
     return null;
+  });
+
+if (fullAccess)
+  router.post("/validate", function (req, res, next) {
+    const validation = validate(JSON.parse(req.body.config));
+    if (validation.valid) {
+      res.send({
+        status: "success",
+        message: "Configuration object is valid.",
+      });
+    } else {
+      res.send({
+        status: "failure",
+        message: "Configuration object is invalid.",
+        errors: validation,
+      });
+    }
   });
 
 module.exports = router;
