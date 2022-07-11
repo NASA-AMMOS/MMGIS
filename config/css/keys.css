@@ -7,8 +7,8 @@
 
 .keys #keys_title {
   text-align: center;
-  font-size: 100px;
-  color: #ddd;
+  font-size: 28px;
+  color: #1a1a1a;
 }
 
 .keys ul {
@@ -16,6 +16,7 @@
 }
 
 .keys .keys_generate {
+  line-height: 34px;
   background-color: #c09015 !important;
 }
 .keys .keys_generate i {
@@ -83,4 +84,64 @@
 .keys #keys_examples span {
   background: #fbf3df;
   border-bottom: 1px solid #c09015;
+}
+
+.keys #keys_existing ul li {
+  margin: 0px 8.5%;
+  width: 83%;
+  height: 36px;
+  line-height: 36px;
+  display: flex;
+  border-bottom: 1px solid #c09015;
+}
+.keys #keys_existing ul li:first-child {
+  border-top: 1px solid #c09015;
+}
+.keys #keys_existing ul li > div:nth-child(1) {
+  background: #1a1a1a;
+  color: white;
+  padding: 0px 16px;
+}
+.keys #keys_existing ul li > div:nth-child(2) {
+  padding: 0px 16px;
+  flex: 1;
+  border-right: 1px solid #c09015;
+}
+.keys #keys_existing ul li > div:nth-child(3) {
+  padding: 0px 16px;
+  text-align: center;
+  font-size: 13px;
+  min-width: 260px;
+  display: flex;
+  text-transform: uppercase;
+}
+.expire-expired {
+  width: 16px;
+  height: 16px;
+  margin: 10px;
+  border-radius: 50%;
+  background: #c01515;
+}
+.expire-active {
+  width: 16px;
+  height: 16px;
+  margin: 10px;
+  border-radius: 50%;
+  background: #2fc015;
+}
+.expire-never {
+  width: 16px;
+  height: 16px;
+  margin: 10px;
+  border-radius: 50%;
+  background: #15c0c0;
+}
+.keys #keys_existing ul li > div:nth-child(4) {
+  padding: 0px 8px;
+  background: #1a1a1a;
+  color: white;
+  cursor: pointer;
+}
+.keys #keys_existing ul li > div:nth-child(4):hover {
+  background: #c01515;
 }

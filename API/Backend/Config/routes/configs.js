@@ -64,7 +64,10 @@ function get(req, res, next, cb) {
                   config: mission.config,
                   version: mission.version,
                 });
-            } else res.send(mission.config);
+            } else {
+              if (cb) cb(mission.config);
+              else res.send(mission.config);
+            }
             return null;
           })
           .catch((err) => {
@@ -236,6 +239,17 @@ function upsert(req, res, next, cb) {
       return -1;
     })
     .then((version) => {
+      const validation = validate(versionConfig || JSON.parse(req.body.config));
+
+      if (!validation.valid) {
+        res.send({
+          status: "failure",
+          message: "Configuration object is invalid.",
+          ...validation,
+        });
+        return;
+      }
+
       Config.create({
         mission: req.body.mission,
         config: versionConfig || JSON.parse(req.body.config),
@@ -477,6 +491,128 @@ if (fullAccess)
         errors: validation,
       });
     }
+  });
+
+// === Quick API Functions ===
+
+if (fullAccess)
+  /** /addLayer
+ * body: {
+    "mission": "",
+    "layer": {
+      "name": "",
+      "type": "",
+      "...": "..."
+    },
+    "order?": {
+      "path": "Features",
+      "position?": 5
+    },
+    "notifyClients?": true
+  }
+ */
+  router.post("/addLayer", function (req, res, next) {
+    get(
+      {
+        query: {
+          mission: req.body.mission,
+        },
+      },
+      null,
+      null,
+      (resp) => {}
+    );
+    res.send({
+      status: "failure",
+      message: "Not Implemented.",
+    });
+  });
+
+if (fullAccess)
+  /** 
+ * /updateLayer
+ * body: {
+    "mission": "",
+    "layerName": "",
+    "layer": {
+      "name?": "",
+      "type?": "",
+      "...?": "..."
+    },
+    "order?": {
+      "path": "Features",
+      "position?": 5
+    },
+    "notifyClients?": true
+  }
+ */
+  router.post("/updateLayer", function (req, res, next) {
+    get(
+      {
+        query: {
+          mission: req.body.mission,
+        },
+      },
+      null,
+      null,
+      (resp) => {}
+    );
+    res.send({
+      status: "failure",
+      message: "Not Implemented.",
+    });
+  });
+
+if (fullAccess)
+  /** 
+ * /removeLayer
+ * body: {
+    "mission": "",
+    "layerName": ""
+    "notifyClients?": true
+  }
+ */
+  router.post("/removeLayer", function (req, res, next) {
+    get(
+      {
+        query: {
+          mission: req.body.mission,
+        },
+      },
+      null,
+      null,
+      (resp) => {}
+    );
+    res.send({
+      status: "failure",
+      message: "Not Implemented.",
+    });
+  });
+
+if (fullAccess)
+  /** 
+ * /updateInitialView
+ * body: {
+    "latitude?": 0,
+    "longitude?": 0,
+    "zoom?": 0
+  }
+ */
+  router.post("/updateInitialView", function (req, res, next) {
+    get(
+      {
+        query: {
+          mission: req.body.mission,
+        },
+      },
+      null,
+      null,
+      (resp) => {}
+    );
+    res.send({
+      status: "failure",
+      message: "Not Implemented.",
+    });
   });
 
 module.exports = router;

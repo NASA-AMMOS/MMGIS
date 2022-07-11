@@ -1,6 +1,11 @@
 const validate = (config) => {
   let errs = [];
-  errs = errs.concat(validateLayers(config));
+
+  errs = errs.concat(validateStructure(config));
+
+  if (errs.length === 0) {
+    errs = errs.concat(validateLayers(config));
+  }
 
   if (errs.length === 0) return { valid: true };
   else
@@ -8,6 +13,23 @@ const validate = (config) => {
       valid: false,
       errors: errs,
     };
+};
+
+const validateStructure = (config) => {
+  const errs = [];
+  if (config == null) errs.push(err(`Configuration is missing.`));
+  if (config.msv == null)
+    errs.push(
+      err(`Configuration is missing the 'msv' (mission-site-view) object.`, [
+        "msv",
+      ])
+    );
+  if (config.layers == null)
+    errs.push(err(`Configuration is missing the 'layers' object.`, ["layers"]));
+  if (config.tools == null)
+    errs.push(err(`Configuration is missing the 'tools' object.`, ["tools"]));
+
+  return errs;
 };
 
 const validateLayers = (config) => {
@@ -18,6 +40,8 @@ const validateLayers = (config) => {
     errs = errs.concat(isValidLayerName(layer.name));
 
     switch (layer.type) {
+      case "header":
+        break;
       case "tile":
         // Check url
         errs = errs.concat(isValidUrl(layer));
@@ -51,6 +75,9 @@ const validateLayers = (config) => {
         errs = errs.concat(isValidModelParams(layer));
         break;
       default:
+        errs = errs.concat(
+          err(`Unknown layer type: '${layer.type}'`, ["layers[layer].type"])
+        );
     }
   });
 
@@ -85,7 +112,7 @@ const isValidLayerName = (name) => {
     );
   if (!validCSSName(name))
     errs.push(
-      err(`Layer: ${name} must not contain symbols or begin with numbers.`, [
+      err(`Layer: '${name}' must not contain symbols or begin with numbers.`, [
         "layers[layer].name",
       ])
     );
@@ -103,12 +130,14 @@ const isValidLayerName = (name) => {
 const isValidUrl = (layer) => {
   const errs = [];
   if (layer.url == null)
-    errs.push(err(`Layer ${layer.name} has URL: null.`, ["layers[layer].url"]));
+    errs.push(
+      err(`Layer '${layer.name}' has URL: null.`, ["layers[layer].url"])
+    );
   if (layer.url === "")
-    errs.push(err(`Layer ${layer.name} has URL: ''`, ["layers[layer].url"]));
+    errs.push(err(`Layer '${layer.name}' has URL: ''`, ["layers[layer].url"]));
   if (layer.url === "undefined")
     errs.push(
-      err(`Layer ${layer.name} has URL: undefined`, ["layers[layer].url"])
+      err(`Layer '${layer.name}' has URL: undefined`, ["layers[layer].url"])
     );
   return errs;
 };
@@ -117,19 +146,19 @@ const isValidEndpoint = (layer) => {
   const errs = [];
   if (layer.query?.endpoint == null)
     errs.push(
-      err(`Layer ${layer.name} has Endpoint: null.`, [
+      err(`Layer '${layer.name}' has Endpoint: null.`, [
         "layers[layer].query.endpoint",
       ])
     );
   if (layer.query?.endpoint === "")
     errs.push(
-      err(`Layer ${layer.name} has Endpoint: ''`, [
+      err(`Layer '${layer.name}' has Endpoint: ''`, [
         "layers[layer].query.endpoint",
       ])
     );
   if (layer.query?.endpoint === "undefined")
     errs.push(
-      err(`Layer ${layer.name} has Endpoint: undefined`, [
+      err(`Layer '${layer.name}' has Endpoint: undefined`, [
         "layers[layer].query.endpoint",
       ])
     );
@@ -141,25 +170,25 @@ const isValidZooms = (layer) => {
 
   if (isNaN(layer.minZoom))
     errs.push(
-      err(`Layer ${layer.name} has Minimum Zoom: undefined`, [
+      err(`Layer '${layer.name}' has Minimum Zoom: undefined`, [
         "layers[layer].minZoom",
       ])
     );
   else if (layer.minZoom < 0)
     errs.push(
-      err(`Layer ${layer.name} has Minimum Zoom: < 0`, [
+      err(`Layer '${layer.name}' has Minimum Zoom: < 0`, [
         "layers[layer].minZoom",
       ])
     );
   if (isNaN(layer.maxNativeZoom))
     errs.push(
-      err(`Layer ${layer.name} has Maximum Native Zoom: undefined`, [
+      err(`Layer '${layer.name}' has Maximum Native Zoom: undefined`, [
         "layers[layer].maxNativeZoom",
       ])
     );
   if (isNaN(layer.maxZoom))
     errs.push(
-      err(`Layer ${layer.name} has Maximum Zoom: undefined`, [
+      err(`Layer '${layer.name}' has Maximum Zoom: undefined`, [
         "layers[layer].maxZoom",
       ])
     );
@@ -170,7 +199,7 @@ const isValidZooms = (layer) => {
     layer.minZoom > layer.maxNativeZoom
   )
     errs.push(
-      err(`Layer ${layer.name} has Minimum Zoom > Maximum Native Zoom`, [
+      err(`Layer '${layer.name}' has Minimum Zoom > Maximum Native Zoom`, [
         "layers[layer].minZoom",
         "layers[layer].maxNativeZoom",
       ])
@@ -189,7 +218,7 @@ const isValidModelParams = (layer) => {
   )
     errs.push(
       err(
-        `Layer ${layer.name} has invalid Longitude, Latitude or Elevation. Defaulting to 0.`,
+        `Layer '${layer.name}' has invalid Longitude, Latitude or Elevation. Defaulting to 0.`,
         [
           "layers[layer].position.longitude",
           "layers[layer].position.latitude",
@@ -205,7 +234,7 @@ const isValidModelParams = (layer) => {
   )
     errs.push(
       err(
-        `Layer ${layer.name} has invalid Rotation X, Y or Z. Defaulting to 0.`,
+        `Layer '${layer.name}' has invalid Rotation X, Y or Z. Defaulting to 0.`,
         [
           "layers[layer].rotation.x",
           "layers[layer].rotation.y",
@@ -217,7 +246,7 @@ const isValidModelParams = (layer) => {
   if (isNaN(layer.scale))
     errs.push(
       err(
-        `Layer ${layer.name} has invalid Scale. Defaulting to 0.`,
+        `Layer '${layer.name}' has invalid Scale. Defaulting to 0.`,
         ["layers[layer].scale"],
         true
       )
@@ -231,7 +260,7 @@ const hasNonHeaderWithSublayers = (config) => {
   traverseLayers(config.layers, (layer) => {
     if (layer.type !== "header" && layer.sublayers != null)
       errs.push(
-        err(`Non-header layer ${layer.name} has sublayers.`, [
+        err(`Non-header layer '${layer.name}' has sublayers.`, [
           "layers[non-header-layer].!sublayer",
         ])
       );
@@ -260,7 +289,7 @@ const hasDuplicateLayerNames = (config) => {
     if (!unique.includes(name)) unique.push(name);
     else
       errs.push(
-        err(`Found duplicate layer name: ${name}`, ["layers[layer].name"])
+        err(`Found duplicate layer name: '${name}'`, ["layers[layer].name"])
       );
   });
 

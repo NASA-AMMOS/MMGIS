@@ -57,11 +57,7 @@ function initialize() {
         try {
           config = JSON.parse(e.target.result);
         } catch (e) {
-          Materialize.toast(
-            "<span id='toast_failure80'>Bad JSON.</span>",
-            4000
-          );
-          $("#toast_failure80").parent().css("background-color", "#a11717");
+          toast("error", "Bad JSON.");
           return;
         }
         if (
@@ -71,11 +67,7 @@ function initialize() {
         )
           saveConfig(config);
         else {
-          Materialize.toast(
-            "<span id='toast_failure81'>Bad config.</span>",
-            4000
-          );
-          $("#toast_failure81").parent().css("background-color", "#a11717");
+          toast("error", "Bad Config. Missing 'msv, layers and tools'");
         }
       };
     })(f);
@@ -113,11 +105,7 @@ function initialize() {
         }
         getConfigConfig();
       } else {
-        Materialize.toast(
-          "<span id='toast_failure8'>Error loading available mission.</span>",
-          500000
-        );
-        $("#toast_failure8").parent().css("background-color", "#a11717");
+        toast("error", "Error loading available mission.", 5000000);
       }
     },
   });
@@ -536,21 +524,14 @@ function initialize() {
                   },
                 });
               } else {
-                Materialize.toast(
-                  "<span id='toast_failure8'>Failure loading " +
-                    mission +
-                    "'s configuration.</span>",
-                  4000
-                );
-                $("#toast_failure8")
-                  .parent()
-                  .css("background-color", "#a11717");
+                toast("error", `Failure loading ${mission}'s configuration.`);
               }
             },
           });
         });
       },
       error: function (jqXHR, textStatus, error) {
+        toast("warning", "Error getting tools configurations.");
         console.warn("Error getting tools configurations.");
       },
     });
@@ -597,27 +578,13 @@ function initialize() {
       },
       success: function (data) {
         if (data.status == "success") {
-          Materialize.toast(
-            "<span id='toast_success_clone'>Mission Clone Successful.</span>",
-            3000
-          );
-          $("#toast_success_clone").parent().css("background-color", "#1565C0");
-          Materialize.toast(
-            "<span id='toast_success_cloner'>Page will now reload...</span>",
-            3000
-          );
-          $("#toast_success_cloner")
-            .parent()
-            .css("background-color", "#1565C0");
+          toast("success", "Mission Clone Successful.", 3000);
+          toast("success", "Page will now reload...", 3000);
           setTimeout(function () {
             location.reload();
           }, 3000);
         } else {
-          Materialize.toast(
-            "<span id='toast_bad_clone'>" + data.message + "</span>",
-            5000
-          );
-          $("#toast_bad_clone").parent().css("background-color", "#a11717");
+          toast("error", data.message, 5000);
         }
       },
     });
@@ -649,11 +616,7 @@ function initialize() {
     var name = $("#deleteMissionName").val();
 
     if (name != mission) {
-      Materialize.toast(
-        "<span id='toast_delete_failure2'>Confirmation mission name didn't match.</span>",
-        7000
-      );
-      $("#toast_delete_failure2").parent().css("background-color", "#a11717");
+      toast("error", "Confirmation mission name didn't match.", 7000);
       return;
     }
 
@@ -665,27 +628,13 @@ function initialize() {
       },
       success: function (data) {
         if (data.status == "success") {
-          Materialize.toast(
-            "<span id='toast_success4'>Mission Removal Successful.</span>",
-            4000
-          );
-          $("#toast_success4").parent().css("background-color", "#1565C0");
-          Materialize.toast(
-            "<span id='toast_success5'>Page will now reload...</span>",
-            4000
-          );
-          $("#toast_success5").parent().css("background-color", "#1565C0");
+          toast("success", "Mission Removal Successful.");
+          toast("success", "Page will now reload...");
           setTimeout(function () {
             location.reload();
           }, 4000);
         } else {
-          Materialize.toast(
-            "<span id='toast_delete_failure'>" + data["message"] + "</span>",
-            7000
-          );
-          $("#toast_delete_failure")
-            .parent()
-            .css("background-color", "#a11717");
+          toast("error", data.message, 7000);
         }
       },
     });
@@ -1833,15 +1782,11 @@ function save() {
           if (editorVal.length > 0) {
             var editorText = editors[tData[i].name].getValue();
             if (editorText.indexOf("'") > -1) {
-              Materialize.toast(
-                "<span id='toast_warninget1'>Error: " +
-                  tData[i].name +
-                  " tool json contains single quotes. Single quotes are not valid json.</span>",
+              toast(
+                "error",
+                `Error: ${tData[i].name} tool json contains single quotes. Single quotes are not valid json.`,
                 5000
               );
-              $("#toast_warninget1")
-                .parent()
-                .css("background-color", "#a11717");
               return;
             }
             toolsjson["variables"] = JSON.parse(
@@ -2025,15 +1970,11 @@ function save() {
             try {
               layerObject.variables = JSON.parse(modalVariable);
             } catch (e) {
-              Materialize.toast(
-                "<span id='toast_warningovparse1'>WARNING: Skipping badly formed raw variable JSON - " +
-                  modalName +
-                  "</span>",
+              toast(
+                "warning",
+                `Skipping badly formed raw variable JSON of '${modalName}'`,
                 5000
               );
-              $("#toast_warningovparse1")
-                .parent()
-                .css("background-color", "#a11717");
             }
           }
           layerObject.radius = 1;
@@ -2095,413 +2036,6 @@ function save() {
           };
         }
 
-        if (!validName(modalName)) {
-          isInvalidData = true;
-          Materialize.toast(
-            "<span id='toast_warningov1'>WARNING: Invalid layer name - " +
-              modalName +
-              "</span>",
-            5000
-          );
-          $("#toast_warningov1").parent().css("background-color", "#a11717");
-        }
-
-        //Check if data is properly filled out
-        switch (modalType) {
-          case "header":
-            if (modalName.length < 1) {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningh1'>WARNING: header with no name.</span>",
-                5000
-              );
-              $("#toast_warningh1").parent().css("background-color", "#a11717");
-            }
-            break;
-          case "tile":
-            if (modalName == "undefined") {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningt1'>WARNING: tile with undefined name.</span>",
-                5000
-              );
-              $("#toast_warningt1").parent().css("background-color", "#a11717");
-            } else if (modalName.length < 1) {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningt2'>WARNING: tile with no name.</span>",
-                5000
-              );
-              $("#toast_warningt2").parent().css("background-color", "#a11717");
-            }
-            if (modalUrl == "undefined" || modalUrl == "") {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningt3'>WARNING: " +
-                  modalName +
-                  " has undefined url.</span>",
-                5000
-              );
-              $("#toast_warningt3").parent().css("background-color", "#a11717");
-            }
-            if (isNaN(modalMinz)) {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningt4'>WARNING: " +
-                  modalName +
-                  " has undefined minz.</span>",
-                5000
-              );
-              $("#toast_warningt4").parent().css("background-color", "#a11717");
-            } else if (modalMinz < 0) {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningt5'>WARNING: " +
-                  modalName +
-                  " has minz under 0.</span>",
-                5000
-              );
-              $("#toast_warningt5").parent().css("background-color", "#a11717");
-            }
-            if (isNaN(modalMaxnz)) {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningt6'>WARNING: " +
-                  modalName +
-                  " has undefined maxnz.</span>",
-                5000
-              );
-              $("#toast_warningt6").parent().css("background-color", "#a11717");
-            }
-            if (isNaN(modalMaxz)) {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningt7'>WARNING: " +
-                  modalName +
-                  " has undefined maxz.</span>",
-                5000
-              );
-              $("#toast_warningt7").parent().css("background-color", "#a11717");
-            }
-            if (
-              !isNaN(modalMinz) &&
-              !isNaN(modalMaxnz) &&
-              !isNaN(modalMaxz) &&
-              modalMinz > modalMaxnz
-            ) {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningt8'>WARNING: " +
-                  modalName +
-                  " has minz larger than maxnz.</span>",
-                5000
-              );
-              $("#toast_warningt8").parent().css("background-color", "#a11717");
-            }
-            break;
-          case "vectortile":
-            if (modalName == "undefined") {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningtv1'>WARNING: vector tile with undefined name.</span>",
-                5000
-              );
-              $("#toast_warningvt1")
-                .parent()
-                .css("background-color", "#a11717");
-            } else if (modalName.length < 1) {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningvt2'>WARNING: vector tile with no name.</span>",
-                5000
-              );
-              $("#toast_warningvt2")
-                .parent()
-                .css("background-color", "#a11717");
-            }
-            if (modalUrl == "undefined" || modalUrl == "") {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningvt3'>WARNING: " +
-                  modalName +
-                  " has undefined url.</span>",
-                5000
-              );
-              $("#toast_warningvt3")
-                .parent()
-                .css("background-color", "#a11717");
-            }
-            if (isNaN(modalMinz)) {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningvt4'>WARNING: " +
-                  modalName +
-                  " has undefined minz.</span>",
-                5000
-              );
-              $("#toast_warningvt4")
-                .parent()
-                .css("background-color", "#a11717");
-            } else if (modalMinz < 0) {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningvt5'>WARNING: " +
-                  modalName +
-                  " has minz under 0.</span>",
-                5000
-              );
-              $("#toast_warningvt5")
-                .parent()
-                .css("background-color", "#a11717");
-            }
-            if (isNaN(modalMaxnz)) {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningvt6'>WARNING: " +
-                  modalName +
-                  " has undefined maxnz.</span>",
-                5000
-              );
-              $("#toast_warningvt6")
-                .parent()
-                .css("background-color", "#a11717");
-            }
-            if (isNaN(modalMaxz)) {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningvt7'>WARNING: " +
-                  modalName +
-                  " has undefined maxz.</span>",
-                5000
-              );
-              $("#toast_warningvt7")
-                .parent()
-                .css("background-color", "#a11717");
-            }
-            if (
-              !isNaN(modalMinz) &&
-              !isNaN(modalMaxnz) &&
-              !isNaN(modalMaxz) &&
-              modalMinz > modalMaxnz
-            ) {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningvt8'>WARNING: " +
-                  modalName +
-                  " has minz larger than maxnz.</span>",
-                5000
-              );
-              $("#toast_warningvt8")
-                .parent()
-                .css("background-color", "#a11717");
-            }
-            break;
-          case "data":
-            if (modalName == "undefined") {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningt1'>WARNING: data with undefined name.</span>",
-                5000
-              );
-              $("#toast_warningt1").parent().css("background-color", "#a11717");
-            } else if (modalName.length < 1) {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningt2'>WARNING: data with no name.</span>",
-                5000
-              );
-              $("#toast_warningdt2")
-                .parent()
-                .css("background-color", "#a11717");
-            }
-            if (isNaN(modalMinz)) {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningt4'>WARNING: " +
-                  modalName +
-                  " has undefined minz.</span>",
-                5000
-              );
-              $("#toast_warningdt4")
-                .parent()
-                .css("background-color", "#a11717");
-            } else if (modalMinz < 0) {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningt5'>WARNING: " +
-                  modalName +
-                  " has minz under 0.</span>",
-                5000
-              );
-              $("#toast_warningdt5")
-                .parent()
-                .css("background-color", "#a11717");
-            }
-            if (isNaN(modalMaxnz)) {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningt6'>WARNING: " +
-                  modalName +
-                  " has undefined maxnz.</span>",
-                5000
-              );
-              $("#toast_warningdt6")
-                .parent()
-                .css("background-color", "#a11717");
-            }
-            if (isNaN(modalMaxz)) {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningt7'>WARNING: " +
-                  modalName +
-                  " has undefined maxz.</span>",
-                5000
-              );
-              $("#toast_warningdt7")
-                .parent()
-                .css("background-color", "#a11717");
-            }
-            if (
-              !isNaN(modalMinz) &&
-              !isNaN(modalMaxnz) &&
-              !isNaN(modalMaxz) &&
-              modalMinz > modalMaxnz
-            ) {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningt8'>WARNING: " +
-                  modalName +
-                  " has minz larger than maxnz.</span>",
-                5000
-              );
-              $("#toast_warningdt8")
-                .parent()
-                .css("background-color", "#a11717");
-            }
-            break;
-          case "query":
-            if (modalName == "undefined") {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningp1'>WARNING: query with undefined name.</span>",
-                5000
-              );
-              $("#toast_warningp1").parent().css("background-color", "#a11717");
-            } else if (modalName.length < 1) {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningp2'>WARNING: query with no name.</span>",
-                5000
-              );
-              $("#toast_warningp2").parent().css("background-color", "#a11717");
-            }
-            if (modalQueryEndpoint == "undefined" || modalQueryEndpoint == "") {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningp3'>WARNING: " +
-                  modalName +
-                  " has undefined endpoint.</span>",
-                5000
-              );
-              $("#toast_warningp3").parent().css("background-color", "#a11717");
-            }
-            break;
-          case "vector":
-            if (modalName == "undefined") {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningv1'>WARNING: vector with undefined name.</span>",
-                5000
-              );
-              $("#toast_warningv1").parent().css("background-color", "#a11717");
-            } else if (modalName.length < 1) {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningv2'>WARNING: vector with no name.</span>",
-                5000
-              );
-              $("#toast_warningv2").parent().css("background-color", "#a11717");
-            }
-            if (
-              (modalUrl == "undefined" || modalUrl == "") &&
-              !modalControlledEl
-            ) {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningv3'>WARNING: " +
-                  modalName +
-                  " has undefined url.</span>",
-                5000
-              );
-              $("#toast_warningv3").parent().css("background-color", "#a11717");
-            }
-            break;
-          case "model":
-            if (modalName == "undefined") {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningm1'>WARNING: model with undefined name.</span>",
-                5000
-              );
-              $("#toast_warningm1").parent().css("background-color", "#a11717");
-            } else if (modalName.length < 1) {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningv2'>WARNING: model with no name.</span>",
-                5000
-              );
-              $("#toast_warningm2").parent().css("background-color", "#a11717");
-            }
-            if (modalUrl == "undefined" || modalUrl == "") {
-              isInvalidData = true;
-              Materialize.toast(
-                "<span id='toast_warningm3'>WARNING: " +
-                  modalName +
-                  " has undefined url.</span>",
-                5000
-              );
-              $("#toast_warningm3").parent().css("background-color", "#a11717");
-            }
-            if (
-              isNaN(modalModelLon) ||
-              isNaN(modalModelLat) ||
-              isNaN(modalModelElev)
-            ) {
-              Materialize.toast(
-                "<span id='toast_warningm4'>WARNING: " +
-                  modalName +
-                  " has invalid Lon, Lat, or Elev. Defaulting to 0.</span>",
-                5000
-              );
-              $("#toast_warningm4").parent().css("background-color", "#aeae09");
-            }
-            if (
-              isNaN(modalModelRotX) ||
-              isNaN(modalModelRotY) ||
-              isNaN(modalModelRotZ)
-            ) {
-              Materialize.toast(
-                "<span id='toast_warningm5'>WARNING: " +
-                  modalName +
-                  " has invalid Rotation X, Y or Z. Defaulting to 0.</span>",
-                5000
-              );
-              $("#toast_warningm5").parent().css("background-color", "#aeae09");
-            }
-            if (isNaN(modalModelScale)) {
-              Materialize.toast(
-                "<span id='toast_warningm6'>WARNING: " +
-                  modalName +
-                  " has invalid Scale. Defaulting to 0.</span>",
-                5000
-              );
-              $("#toast_warningm6").parent().css("background-color", "#aeae09");
-            }
-            break;
-          default:
-            console.warn(`Unknown modal type: ${modalType}`);
-        }
-
         //This is now the proper spelling and 'broke' is the misspelling
         var breaked = false;
         for (var i = prevIndentations.length - 1; i >= 0; i--) {
@@ -2510,18 +2044,6 @@ function save() {
               prevLayerObjects[i].sublayers = [];
             }
             prevLayerObjects[i].sublayers.push(layerObject);
-
-            //Some validity checking
-            if (prevLayerObjects[i].type != "header") {
-              isNonHeader = true;
-              console.warn(
-                "WARNING! NON-HEADER has sublayers: " +
-                  prevLayerObjects[i].name +
-                  " holds " +
-                  layerObject.name
-              );
-            }
-
             breaked = true;
             break;
           }
@@ -2534,52 +2056,11 @@ function save() {
         prevIndentations.push(indentation);
         prevLayerObjects.push(layerObject);
       });
-    if (isNonHeader) {
-      Materialize.toast(
-        "<span id='toast_warning'>WARNING: non-header(s).</span>",
-        5000
-      );
-      $("#toast_warning").parent().css("background-color", "#a11717");
-    }
-
-    let duplicatedNames = getDuplicatedNames(json);
-    if (duplicatedNames.length > 0) {
-      Materialize.toast(
-        `<span id='toast_warningdupn1'>ERROR: Layer names must be unique: ${duplicatedNames.join(
-          ", "
-        )}</span>`,
-        5000
-      );
-      $("#toast_warningdupn1").parent().css("background-color", "#a11717");
-      isInvalidData = true;
-    }
 
     //SAVE HERE
-
-    $.ajax({
-      type: calls.validate.type,
-      url: calls.validate.url,
-      data: {
-        config: JSON.stringify(json),
-      },
-      success: function (data) {
-        if (data.status == "success") {
-        }
-      },
-    });
-
-    if (!isInvalidData && !isNonHeader) {
-      saveConfig(json);
-    } else {
-      Materialize.toast("<span id='toast_failure'>Save Failed.</span>", 5000);
-      $("#toast_failure").parent().css("background-color", "#a11717");
-    }
+    saveConfig(json);
   } else {
-    Materialize.toast(
-      "<span id='toast_warning'>No mission selected.</span>",
-      5000
-    );
-    $("#toast_warning").parent().css("background-color", "#aeae09");
+    toast("warning", "No Mission selected.", 5000);
   }
 }
 
@@ -2588,11 +2069,7 @@ function addMission() {
 
   if (missionname.length > 0) {
     if (!/^[\w\d\s-]+$/.test(missionname)) {
-      Materialize.toast(
-        "<span id='toast_failure6'>Don't use special characters in the mission name.</span>",
-        5000
-      );
-      $("#toast_failure6").parent().css("background-color", "#a11717");
+      toast("error", "Don't use special characters in the mission name.", 5000);
       return;
     }
 
@@ -2607,31 +2084,20 @@ function addMission() {
       },
       success: function (data) {
         if (data.status == "success") {
-          Materialize.toast(
-            "<span id='toast_success1'>Mission: " +
-              missionname +
-              " Created. Page will now reload...</span>",
-            4000
+          toast(
+            "success",
+            `Mission: '${missionname}' created. Page will now reload...`
           );
-          $("#toast_success1").parent().css("background-color", "#1565C0");
           setTimeout(function () {
             location.reload();
           }, 4000);
         } else {
-          Materialize.toast(
-            "<span id='toast_failure7'>" + data["message"] + "</span>",
-            5000
-          );
-          $("#toast_failure7").parent().css("background-color", "#a11717");
+          toast("error", data.message, 5000);
         }
       },
     });
   } else {
-    Materialize.toast(
-      "<span id='toast_failure4'>Please enter a new mission name.</span>",
-      5000
-    );
-    $("#toast_failure4").parent().css("background-color", "#a11717");
+    toast("error", "Please enter a new mission name", 5000);
   }
 }
 
@@ -2645,22 +2111,11 @@ function saveConfig(json) {
     },
     success: function (data) {
       if (data.status == "success") {
-        Materialize.toast(
-          "<span id='toast_success'>Save Successful.</span>",
-          1600
-        );
-        $("#toast_success").parent().css("background-color", "#1565C0");
-        /*
-        Materialize.toast( "<span id='toast_success3'>Page will now reload...</span>" , 4000);
-        $( "#toast_success3" ).parent().css("background-color", "#1565C0");
-        setTimeout( function() { location.reload(); }, 4000 );
-        */
+        toast("success", "Save Successful!", 1600);
       } else {
-        Materialize.toast(
-          "<span id='toast_failure8'>" + data["message"] + "</span>",
-          5000
-        );
-        $("#toast_failure8").parent().css("background-color", "#a11717");
+        if (data && data.errors?.length > 0)
+          toast(data.errors[0].type, data.errors[0].reason, 5000);
+        else toast("error", "Failed to save. Uncaught reason.", 5000);
       }
     },
   });
@@ -2708,13 +2163,7 @@ function projectionPopulateFromXML() {
       Materialize.updateTextFields();
     },
     error: function (XMLHttpRequest, textStatus, errorThrown) {
-      Materialize.toast(
-        "<span id='toast_failure_populateXML'>Failed to Populate From XML</span>",
-        5000
-      );
-      $("#toast_failure_populateXML")
-        .parent()
-        .css("background-color", "#a11717");
+      toast("error", "Failed to Populate From XML", 5000);
     },
   });
 }
@@ -2795,15 +2244,7 @@ function tilelayerPopulateFromXML(modalId) {
       Materialize.updateTextFields();
     },
     error: function (XMLHttpRequest, textStatus, errorThrown) {
-      Materialize.toast(
-        "<span id='toast_failure_populateXMLtilelayer'>Failed to Populate From " +
-          xmlPath +
-          "</span>",
-        5000
-      );
-      $("#toast_failure_populateXMLtilelayer")
-        .parent()
-        .css("background-color", "#a11717");
+      toast("error", `Failed to Populate From ${xmlPath}`, 5000);
     },
   });
 }
@@ -2981,13 +2422,7 @@ function vtlayerPopulateStyle(modalId) {
           try {
             currentLayerStyles = JSON.parse(currentLayerStyles);
           } catch (e) {
-            Materialize.toast(
-              "<span id='toast_failure_populatemetajsonvtlayer1'>Current styles are not valid JSON.</span>",
-              5000
-            );
-            $("#toast_failure_populatemetajsonvtlayer1")
-              .parent()
-              .css("background-color", "#a11717");
+            toast("error", "Current styles are not valid JSON.", 5000);
             return;
           }
         else currentLayerStyles = {};
@@ -3008,15 +2443,7 @@ function vtlayerPopulateStyle(modalId) {
       }
     },
     error: function (XMLHttpRequest, textStatus, errorThrown) {
-      Materialize.toast(
-        "<span id='toast_failure_populatemetajsonvtlayer'>Failed to Populate From " +
-          metadatajsonPath +
-          "</span>",
-        5000
-      );
-      $("#toast_failure_populatemetajsonvtlayer")
-        .parent()
-        .css("background-color", "#a11717");
+      toast("error", `Failed to Populate From ${metadatajsonPath}`, 5000);
     },
   });
 }
@@ -3055,25 +2482,13 @@ function populateVersions(versions) {
       },
       success: function (data) {
         if (data.status == "success") {
-          Materialize.toast(
-            "<span id='toast_success'>Save Successful.</span>",
-            4000
-          );
-          $("#toast_success").parent().css("background-color", "#1565C0");
-          Materialize.toast(
-            "<span id='toast_success3'>Page will now reload...</span>",
-            4000
-          );
-          $("#toast_success3").parent().css("background-color", "#1565C0");
+          toast("success", "Save Successful.");
+          toast("success", "Page will now reload.");
           setTimeout(function () {
             location.reload();
           }, 4000);
         } else {
-          Materialize.toast(
-            "<span id='toast_failure8'>" + data["message"] + "</span>",
-            5000
-          );
-          $("#toast_failure8").parent().css("background-color", "#a11717");
+          toast("error", data.message, 5000);
         }
       },
     });
@@ -3099,17 +2514,9 @@ function populateVersions(versions) {
             ".json",
             true
           );
-          Materialize.toast(
-            "<span id='toast_success'>Download Successful.</span>",
-            4000
-          );
-          $("#toast_success").parent().css("background-color", "#1565C0");
+          toast("success", "Download Successful.");
         } else {
-          Materialize.toast(
-            "<span id='toast_failure8'>" + data["message"] + "</span>",
-            5000
-          );
-          $("#toast_failure8").parent().css("background-color", "#a11717");
+          toast("error", data.message, 5000);
         }
       },
     });
@@ -3187,4 +2594,27 @@ function getDuplicatedNames(json) {
   });
 
   return duplicated;
+}
+
+let toastId = 0;
+function toast(type, message, duration) {
+  let color = "#000000";
+  switch (type) {
+    case "success":
+      color = "#1565C0";
+      break;
+    case "warning":
+      color = "#aeae09";
+      break;
+    case "error":
+      color = "#a11717";
+      break;
+    default:
+      return;
+  }
+  const id = `toast_${type}_${toastId}`;
+  Materialize.toast(`<span id='${id}'>${message}</span>`, duration || 4000);
+  $(`#${id}`).parent().css("background-color", color);
+
+  toastId++;
 }

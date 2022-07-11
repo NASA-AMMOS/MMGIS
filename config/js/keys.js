@@ -4,10 +4,13 @@ var Keys = {
     // prettier-ignore
     var markup = [
         "<div class='keys'>",
-          "<div id='keys_title'>Keys</div>",
-          "<ul>",
+          "<div id='keys_title'>API Tokens</div>",
+          "<ul id='keys_generate'>",
             "<li class='keys_generation row'>",
-              "<div id='keys_generation_periodEl' class='input-field col s2 push-s5'>",
+            "<div id='keysTokenName' class='input-field col s2 push-s4'>",
+              "<input type='text' placeholder='Token Name (optional)' value='' />",
+            "</div>",
+              "<div id='keys_generation_periodEl' class='input-field col s2 push-s4'>",
                 "<select class='keys_generation_period'>",
                   "<option value='never' selected=''>Never</option>",
                   "<option value='31557600000'>1 Year</option>",
@@ -20,7 +23,7 @@ var Keys = {
               "</div>",
             "</li>",
             "<li class='row'>",
-              "<div class='keys_generate btn waves-effect waves-light blue darken-3 col s2 push-s5'>Generate Key<i class='mdi mdi-key mdi-18px'></i></div>",
+              "<div class='keys_generate btn waves-effect waves-light blue darken-3 col s2 push-s5'>Generate New Token<i class='mdi mdi-key mdi-18px'></i></div>",
             "</li>",
             "<li id='keys_result' class='row'>",
               "<div id='keys_token_title'>Token</div>",
@@ -28,6 +31,7 @@ var Keys = {
               "<div id='keys_token_copy' title='Copy to Clipboard'><i class='mdi mdi-clipboard-text-multiple mdi-24px'></i></div>",
             "</li>",
           "</ul>",
+          "<div id='keys_existing'><ul></ul></div>",
           "<div id='keys_examples'>",
             "<ul>",
               "<li class='row'>",
@@ -48,10 +52,12 @@ var Keys = {
     $(".keys select").material_select();
 
     $(".keys_generate").on("click", function () {
+      const keyName = $("#keysTokenName input").val();
       $.ajax({
         type: calls.longtermtoken_generate.type,
         url: calls.longtermtoken_generate.url,
         data: {
+          name: keyName || null,
           period: $("select.keys_generation_period").val(),
         },
         success: function (data) {
@@ -59,6 +65,7 @@ var Keys = {
             Keys.token = data.body.token;
             $("#keys_token").text(Keys.token);
             $("#keys_examples span").text(Keys.token);
+            Keys.refreshExistingLongTermTokenList();
           }
         },
         error: function (err) {
@@ -85,6 +92,8 @@ var Keys = {
     $(".container").css({
       display: "none",
     });
+
+    Keys.refreshExistingLongTermTokenList();
   },
   destroy: function () {
     $(".container_keys").css({
@@ -94,6 +103,60 @@ var Keys = {
     });
     $(".container").css({
       display: "block",
+    });
+  },
+  refreshExistingLongTermTokenList() {
+    $.ajax({
+      type: calls.longtermtoken_get.type,
+      url: calls.longtermtoken_get.url,
+      success: function (data) {
+        if (data.status == "success") {
+          $(".keys #keys_existing ul").html("");
+          data.tokens.forEach((token) => {
+            let expires = "";
+            let expireType = "";
+            if (token.period === "never") {
+              expires = "never expires";
+              expireType = "never";
+            } else {
+              const timeDif = Date.now() - new Date(token.createdAt).getTime();
+              const timePeriod = parseInt(token.period);
+              if (timeDif >= timePeriod) {
+                expires = "expired";
+                expireType = "expired";
+              } else {
+                expires = `expires in ${(
+                  (timePeriod - timeDif) /
+                  86400000
+                ).toFixed(2)} days`;
+                expireType = "active";
+              }
+            }
+            $(".keys #keys_existing ul").append(
+              `<li><div title='ID'>${token.id}</div><div title='Partial Token'>${token.token}</div><div><div class='expire-${expireType}'></div>${expires}</div><div class='tokenClear' tokenId='${token.id}' title='Revoke Token'><i class='mdi mdi-delete mdi-18px'></i></div></li>`
+            );
+          });
+
+          $(".keys #keys_existing ul li .tokenClear").on("click", function () {
+            const id = $(this).attr("tokenId");
+            $.ajax({
+              type: calls.longtermtoken_clear.type,
+              url: calls.longtermtoken_clear.url,
+              data: {
+                id: id,
+              },
+              success: function (data) {
+                if (data.status == "success")
+                  Keys.refreshExistingLongTermTokenList();
+              },
+              error: function (err) {
+                console.log(err);
+              },
+            });
+          });
+        }
+      },
+      error: function (err) {},
     });
   },
   copyToClipboard(text) {
