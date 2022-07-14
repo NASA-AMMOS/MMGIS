@@ -108,7 +108,7 @@
 }
 #drawToolDrawingTypeDiv div {
     background: var(--color-a);
-    padding: 7px 10px 3px 10px;
+    padding: 6px 7px 2px 7px;
     line-height: 20px;
     cursor: pointer;
     transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),

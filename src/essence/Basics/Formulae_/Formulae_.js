@@ -1429,6 +1429,24 @@ var Formulae_ = {
     doBoundingBoxesIntersect(a, b) {
         return a[1] <= b[3] && a[3] >= b[1] && a[0] <= b[2] && a[2] >= b[0]
     },
+    boundingBoxToFeature(nE, sW) {
+        return {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+                type: 'Polygon',
+                coordinates: [
+                    [
+                        [nE.lng, nE.lat],
+                        [sW.lng, nE.lat],
+                        [sW.lng, sW.lat],
+                        [nE.lng, sW.lat],
+                        [nE.lng, nE.lat],
+                    ],
+                ],
+            },
+        }
+    },
     pointsInPoint(point, layers) {
         var points = []
 

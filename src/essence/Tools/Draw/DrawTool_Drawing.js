@@ -4,6 +4,7 @@ import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
 import CursorInfo from '../../Ancillary/CursorInfo'
 import turf from 'turf'
+import { circle as turfCircle } from '@turf/turf'
 
 import calls from '../../../pre/calls'
 
@@ -238,6 +239,8 @@ var Drawing = {
     },
     endDrawing: function () {
         DrawTool.drawing.polygon.end()
+        DrawTool.drawing.circle.end()
+        DrawTool.drawing.rectangle.end()
         DrawTool.drawing.line.end()
         DrawTool.drawing.point.end()
         DrawTool.drawing.annotation.end()
@@ -247,6 +250,12 @@ var Drawing = {
         switch (type) {
             case 'polygon':
                 DrawTool.drawing.polygon.begin(type)
+                break
+            case 'circle':
+                DrawTool.drawing.circle.begin(type)
+                break
+            case 'rectangle':
+                DrawTool.drawing.rectangle.begin(type)
                 break
             case 'line':
                 DrawTool.drawing.line.begin(type)
@@ -311,6 +320,8 @@ var Drawing = {
                 break
             default:
                 DrawTool.drawing.polygon.end()
+                DrawTool.drawing.circle.end()
+                DrawTool.drawing.rectangle.end()
                 DrawTool.drawing.point.end()
                 DrawTool.drawing.line.end()
                 DrawTool.drawing.annotation.end()
@@ -362,6 +373,8 @@ var drawing = {
             }
 
             //Clear any other drawing events
+            drawing.circle.end()
+            drawing.rectangle.end()
             drawing.line.end()
             drawing.point.end()
             drawing.annotation.end()
@@ -523,6 +536,204 @@ var drawing = {
         drawing: {},
         shape: {},
     },
+    circle: {
+        begin: function (intent, overrideStyle) {
+            var d = drawing.circle
+            //Overwrite Leaflet.Draw esc key to restart drawing
+            L.Draw.Feature.prototype._cancelDrawing = function (e) {
+                if (e.keyCode === 27) {
+                    d.end()
+                    d.begin()
+                }
+            }
+
+            //Clear any other drawing events
+            drawing.polygon.end()
+            drawing.rectangle.end()
+            drawing.line.end()
+            drawing.point.end()
+            drawing.annotation.end()
+            drawing.arrow.end()
+
+            d.end()
+
+            d.movemode = false
+            d.shiftDisabled = false
+            d.lastVertex = null
+
+            if (intent != undefined) {
+                d.intent =
+                    DrawTool.intentType === 'all'
+                        ? 'polygon'
+                        : DrawTool.intentType
+                d.style = DrawTool.categoryStyles[d.intent]
+            }
+            if (overrideStyle) {
+                d.style = overrideStyle
+            }
+
+            d.drawing = new L.Draw.Circle(Map_.map, {
+                shapeOptions: d.style,
+            })
+            d.drawing.enable()
+
+            d.shape = d.drawing
+
+            Map_.map.on('draw:created', d.stop)
+        },
+        end: function () {
+            var d = drawing.circle
+
+            d.stopclick = false
+
+            Map_.map.off('click', d.start)
+            Map_.map.off('draw:created', d.stop)
+            if (typeof d.drawing.disable === 'function') d.drawing.disable()
+        },
+        stop: function () {
+            var d = drawing.circle
+
+            if (d.shiftDisabled) return
+
+            d.shape = d.drawing._shape
+            d.shape = turfCircle(
+                [d.shape._latlng.lng, d.shape._latlng.lat],
+                d.shape._mRadius,
+                { steps: 64, units: 'meters' }
+            )
+
+            d.shape.properties.style = d.style
+            var n = $('#drawToolDrawFeaturesNewName')
+            d.shape.properties.name =
+                n.val() || n.attr('placeholder') || 'Circle'
+
+            DrawTool.addDrawing(
+                {
+                    file_id: DrawTool.currentFileId,
+                    intent: d.intent,
+                    properties: JSON.stringify(d.shape.properties),
+                    geometry: JSON.stringify(d.shape.geometry),
+                },
+                (function (shape) {
+                    return function (data) {
+                        DrawTool.refreshFile(DrawTool.currentFileId, null, true)
+
+                        d.begin()
+                    }
+                })(JSON.parse(JSON.stringify(d.shape))),
+                function () {
+                    if (d.end && d.begin) {
+                        d.end()
+                        d.begin()
+                    }
+                }
+            )
+        },
+        stopclick: false,
+        shiftDisabled: false,
+        intent: null,
+        style: {},
+        drawing: {},
+        shape: {},
+    },
+    rectangle: {
+        begin: function (intent, overrideStyle) {
+            var d = drawing.rectangle
+            //Overwrite Leaflet.Draw esc key to restart drawing
+            L.Draw.Feature.prototype._cancelDrawing = function (e) {
+                if (e.keyCode === 27) {
+                    d.end()
+                    d.begin()
+                }
+            }
+
+            //Clear any other drawing events
+            drawing.polygon.end()
+            drawing.circle.end()
+            drawing.line.end()
+            drawing.point.end()
+            drawing.annotation.end()
+            drawing.arrow.end()
+
+            d.end()
+
+            d.movemode = false
+            d.shiftDisabled = false
+            d.lastVertex = null
+
+            if (intent != undefined) {
+                d.intent =
+                    DrawTool.intentType === 'all'
+                        ? 'polygon'
+                        : DrawTool.intentType
+                d.style = DrawTool.categoryStyles[d.intent]
+            }
+            if (overrideStyle) {
+                d.style = overrideStyle
+            }
+
+            d.drawing = new L.Draw.Rectangle(Map_.map, {
+                shapeOptions: d.style,
+            })
+            d.drawing.enable()
+
+            d.shape = d.drawing
+
+            Map_.map.on('draw:created', d.stop)
+        },
+        end: function () {
+            var d = drawing.rectangle
+
+            d.stopclick = false
+
+            Map_.map.off('draw:created', d.stop)
+            if (typeof d.drawing.disable === 'function') d.drawing.disable()
+        },
+        stop: function (ctx) {
+            var d = drawing.rectangle
+
+            if (d.shiftDisabled) return
+
+            const bounds = ctx.layer._bounds
+            d.shape = F_.boundingBoxToFeature(
+                bounds._northEast,
+                bounds._southWest
+            )
+
+            d.shape.properties.style = d.style
+            var n = $('#drawToolDrawFeaturesNewName')
+            d.shape.properties.name =
+                n.val() || n.attr('placeholder') || 'Rectangle'
+
+            DrawTool.addDrawing(
+                {
+                    file_id: DrawTool.currentFileId,
+                    intent: d.intent,
+                    properties: JSON.stringify(d.shape.properties),
+                    geometry: JSON.stringify(d.shape.geometry),
+                },
+                (function (shape) {
+                    return function (data) {
+                        DrawTool.refreshFile(DrawTool.currentFileId, null, true)
+
+                        d.begin()
+                    }
+                })(JSON.parse(JSON.stringify(d.shape))),
+                function () {
+                    if (d.end && d.begin) {
+                        d.end()
+                        d.begin()
+                    }
+                }
+            )
+        },
+        stopclick: false,
+        shiftDisabled: false,
+        intent: null,
+        style: {},
+        drawing: {},
+        shape: {},
+    },
     line: {
         begin: function (intent, overrideStyle, overrideFinishCallback) {
             var d = drawing.line
@@ -537,6 +748,8 @@ var drawing = {
 
             //Clear any other drawing events
             drawing.polygon.end()
+            drawing.circle.end()
+            drawing.rectangle.end()
             drawing.point.end()
             drawing.annotation.end()
             drawing.arrow.end()
@@ -741,6 +954,8 @@ var drawing = {
 
             //Clear any other drawing events
             drawing.polygon.end()
+            drawing.circle.end()
+            drawing.rectangle.end()
             drawing.line.end()
             drawing.annotation.end()
             drawing.arrow.end()
@@ -778,7 +993,7 @@ var drawing = {
         },
         start: function () {},
         keydown: function (e) {
-            var d = drawing.polygon
+            var d = drawing.point
 
             if (
                 e.which == '17' ||
@@ -791,7 +1006,7 @@ var drawing = {
             }
         },
         keyup: function (e) {
-            var d = drawing.polygon
+            var d = drawing.point
 
             if (
                 e.which == '17' ||
@@ -868,6 +1083,8 @@ var drawing = {
 
             //Clear any other drawing events
             drawing.polygon.end()
+            drawing.circle.end()
+            drawing.rectangle.end()
             drawing.line.end()
             drawing.point.end()
             drawing.arrow.end()
@@ -1060,6 +1277,8 @@ var drawing = {
 
             //Clear any other drawing events
             drawing.polygon.end()
+            drawing.circle.end()
+            drawing.rectangle.end()
             drawing.line.end()
             drawing.point.end()
             drawing.annotation.end()

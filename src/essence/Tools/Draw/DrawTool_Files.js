@@ -91,7 +91,16 @@ var Files = {
         //Draw type
         $('#drawToolDrawingTypeDiv > div').off('click')
         $('#drawToolDrawingTypeDiv > div').on('click', function (e) {
-            if (DrawTool.intentType == 'all') {
+            const drawType = $(this).attr('draw')
+            if (
+                DrawTool.intentType == 'all' ||
+                ((DrawTool.intentType === 'roi' ||
+                    DrawTool.intentType === 'campaign' ||
+                    DrawTool.intentType === 'campsite') &&
+                    (drawType === 'polygon' ||
+                        drawType === 'circle' ||
+                        drawType === 'rectangle'))
+            ) {
                 $('#drawToolDrawingTypeDiv > div').removeClass('active')
                 $('#drawToolDrawingTypeDiv > div').css('border-radius', 0)
                 $('#drawToolDrawingTypeDiv > div').css(
@@ -104,7 +113,7 @@ var Files = {
                     $('#drawToolDrawingTypeDiv').css('background')
                 )
 
-                DrawTool.setDrawingType($(this).attr('draw'))
+                DrawTool.setDrawingType(drawType)
             }
         })
 
