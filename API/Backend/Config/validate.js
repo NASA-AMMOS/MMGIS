@@ -1,3 +1,5 @@
+const Utils = require("../../utils.js");
+
 const validate = (config) => {
   let errs = [];
 
@@ -35,7 +37,7 @@ const validateStructure = (config) => {
 const validateLayers = (config) => {
   let errs = [];
 
-  traverseLayers(config.layers, (layer) => {
+  Utils.traverseLayers(config.layers, (layer) => {
     // Check layer name
     errs = errs.concat(isValidLayerName(layer.name));
 
@@ -85,19 +87,6 @@ const validateLayers = (config) => {
   errs = errs.concat(hasNonHeaderWithSublayers(config));
 
   return errs;
-};
-
-const traverseLayers = (layers, onLayer) => {
-  depthTraversal(layers, 0);
-  function depthTraversal(node, depth) {
-    for (var i = 0; i < node.length; i++) {
-      onLayer(node[i]);
-      //Add other feature information while we're at it
-      if (node[i].sublayers != null && node[i].sublayers.length > 0) {
-        depthTraversal(node[i].sublayers, depth + 1);
-      }
-    }
-  }
 };
 
 const isValidLayerName = (name) => {
@@ -257,7 +246,7 @@ const isValidModelParams = (layer) => {
 
 const hasNonHeaderWithSublayers = (config) => {
   const errs = [];
-  traverseLayers(config.layers, (layer) => {
+  Utils.traverseLayers(config.layers, (layer) => {
     if (layer.type !== "header" && layer.sublayers != null)
       errs.push(
         err(`Non-header layer '${layer.name}' has sublayers.`, [

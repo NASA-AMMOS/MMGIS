@@ -11,6 +11,7 @@ const Config = require("../models/config");
 const config_template = require("../../../templates/config_template");
 
 const validate = require("../validate");
+const Utils = require("../../../utils.js");
 
 const fs = require("fs");
 
@@ -504,9 +505,9 @@ if (fullAccess)
       "type": "",
       "...": "..."
     },
-    "order?": {
-      "path": "Features",
-      "position?": 5
+    "placement": {
+      "path": "path.to.header" // default {layers.length}
+      "index": 0 // default end
     },
     "notifyClients?": true
   }
@@ -520,12 +521,67 @@ if (fullAccess)
       },
       null,
       null,
-      (resp) => {}
+      (config) => {
+        if (config.status === "failure") {
+          res.send(config);
+        } else {
+          let placementPath = req.body.placement?.path;
+          let placementIndex = req.body.placement?.index;
+
+          if (placementPath) {
+            placementPath = placementPath
+              .replace(/\./g, ".sublayers.")
+              .split(".")
+              .concat("sublayers")
+              .join(".");
+
+            const level = Utils.getIn(config.layers, placementPath, null, true);
+            if (level == null) {
+              res.send({
+                status: "failure",
+                message: `Path specified in 'placement.path' not found.`,
+              });
+              return;
+            }
+            if (placementIndex == null) placementIndex = level.length;
+            placementIndex = Math.max(
+              0,
+              Math.min(placementIndex, level.length)
+            );
+
+            placementPath += ".";
+          } else {
+            placementPath = "";
+            if (placementIndex == null) placementIndex = config.layers.length;
+            placementIndex = Math.max(
+              0,
+              Math.min(placementIndex, config.layers.length)
+            );
+          }
+
+          const didSet = Utils.setIn(
+            config.layers,
+            `${placementPath}${placementIndex}`,
+            req.body.layer,
+            true,
+            true
+          );
+
+          if (didSet)
+            res.send({
+              status: "success",
+              resp: config,
+              pp: placementPath,
+              l: req.body.layer,
+            });
+          else
+            res.send({
+              status: "failure",
+              message: `Failed to add layer. setIn() operation failed.`,
+            });
+        }
+      }
     );
-    res.send({
-      status: "failure",
-      message: "Not Implemented.",
-    });
   });
 
 if (fullAccess)

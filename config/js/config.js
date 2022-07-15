@@ -2497,7 +2497,26 @@ function populateVersions(versions) {
   $(".version_download").on("click", function () {
     let downloadMission = $(this).attr("mission");
     let downloadVersion = $(this).attr("version");
-
+    $.ajax({
+      type: "POST",
+      url: "api/configure/addLayer",
+      data: {
+        mission: "MSL",
+        layer: { msg: "HI" },
+        placement: {
+          path: "Basemaps2",
+          index: 1,
+        },
+        notifyClients: false,
+      },
+      success: function (data) {
+        console.log(data);
+        if (data.status == "success") {
+        } else {
+        }
+      },
+    });
+    return;
     $.ajax({
       type: calls.get.type,
       url: calls.get.url,
