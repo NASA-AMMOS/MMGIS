@@ -1,3 +1,5 @@
+import * as moment from 'moment'
+
 import L_ from '../Basics/Layers_/Layers_'
 import T_ from '../Basics/ToolController_/ToolController_'
 import calls from '../../pre/calls'
@@ -30,6 +32,9 @@ var QueryURL = {
         var viewerLoc = this.getSingleQueryVariable('viewerLoc')
 
         var rmcxyzoom = this.getSingleQueryVariable('rmcxyzoom')
+
+        var startTime = this.getSingleQueryVariable('startTime')
+        var endTime = this.getSingleQueryVariable('endTime')
 
         if (urlSite !== false) {
             L_.FUTURES.site = urlSite
@@ -143,6 +148,24 @@ var QueryURL = {
                         console.warn(d)
                     }
                 )
+            }
+        }
+
+        if (startTime !== false) {
+            const date = new moment(startTime)
+            if (!isNaN(date) && date.isValid()) {
+                L_.FUTURES.startTime = date
+            } else {
+                console.warn('Invalid startTime from deep link in the url')
+            }
+        }
+
+        if (endTime !== false) {
+            const date = new moment(endTime)
+            if (!isNaN(date) && date.isValid()) {
+                L_.FUTURES.endTime = date
+            } else {
+                console.warn('Invalid endTime from deep link in the url')
             }
         }
 

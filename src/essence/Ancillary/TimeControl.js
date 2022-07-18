@@ -202,26 +202,8 @@ var TimeControl = {
             layer.time.current = TimeControl.currentTime // keeps track of when layer was refreshed
 
             if (layer.type == 'tile') {
-                if (
-                    typeof L_.layersGroup[layer.name].wmsParams !== 'undefined'
-                ) {
-                    L_.layersGroup[layer.name].wmsParams.TIME = layerTimeFormat(
-                        Date.parse(layer.time.end)
-                    )
-                    L_.layersGroup[layer.name].wmsParams.STARTTIME =
-                        layerTimeFormat(Date.parse(layer.time.start))
-                    L_.layersGroup[layer.name].wmsParams.ENDTIME =
-                        layerTimeFormat(Date.parse(layer.time.end))
-                }
-                L_.layersGroup[layer.name].options.time = layerTimeFormat(
-                    Date.parse(layer.time.end)
-                )
-                L_.layersGroup[layer.name].options.starttime = layerTimeFormat(
-                    Date.parse(layer.time.start)
-                )
-                L_.layersGroup[layer.name].options.endtime = layerTimeFormat(
-                    Date.parse(layer.time.end)
-                )
+                setLayerWmsParams(layer)
+
                 if (L_.toggledArray[layer.name] || evenIfOff) {
                     L_.toggleLayer(layer)
                     L_.toggleLayer(layer)
@@ -311,20 +293,54 @@ var TimeControl = {
         }
         return updatedLayers
     },
+    setLayerWmsParams: function (layer) {
+        var layerTimeFormat = d3.utcFormat(layer.time.format)
+
+        if (layer.type == 'tile') {
+            if (
+                typeof L_.layersGroup[layer.name].wmsParams !== 'undefined'
+            ) {
+                L_.layersGroup[layer.name].wmsParams.TIME = layerTimeFormat(
+                    Date.parse(layer.time.end)
+                )
+                L_.layersGroup[layer.name].wmsParams.STARTTIME =
+                    layerTimeFormat(Date.parse(layer.time.start))
+                L_.layersGroup[layer.name].wmsParams.ENDTIME =
+                    layerTimeFormat(Date.parse(layer.time.end))
+            }
+            L_.layersGroup[layer.name].options.time = layerTimeFormat(
+                Date.parse(layer.time.end)
+            )
+            L_.layersGroup[layer.name].options.starttime = layerTimeFormat(
+                Date.parse(layer.time.start)
+            )
+            L_.layersGroup[layer.name].options.endtime = layerTimeFormat(
+                Date.parse(layer.time.end)
+            )
+        }
+    },
 }
 
 function initLayerTimes() {
     for (let layerName in L_.layersNamed) {
         const layer = L_.layersNamed[layerName]
         if (layer.time && layer.time.enabled == true) {
-            layer.time.start = TimeControl.startTime
-            layer.time.end = TimeControl.endTime
+            layer.time.start = L_.FUTURES.startTime
+                ? L_.FUTURES.startTime.toISOString().split('.')[0] + 'Z'
+                : TimeControl.startTime
+            layer.time.end = L_.FUTURES.endTime
+                ? L_.FUTURES.endTime.toISOString().split('.')[0] + 'Z'
+                : TimeControl.endTime
             d3.select('.starttime.' + layer.name.replace(/\s/g, '')).text(
                 layer.time.start
             )
             d3.select('.endtime.' + layer.name.replace(/\s/g, '')).text(
                 layer.time.end
             )
+
+            // Make sure to set the WMS parameters for WMS layers,
+            // otherwise the first load will not have the WMS parameters
+            TimeControl.setLayerWmsParams(layer)
         }
     }
 }
