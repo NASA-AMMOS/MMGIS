@@ -3,11 +3,13 @@ const Utils = require("../../utils.js");
 const validate = (config) => {
   let errs = [];
 
-  errs = errs.concat(validateStructure(config));
+  if (config) {
+    errs = errs.concat(validateStructure(config));
 
-  if (errs.length === 0) {
-    errs = errs.concat(validateLayers(config));
-  }
+    if (errs.length === 0) {
+      errs = errs.concat(validateLayers(config));
+    }
+  } else errs.push(err(`Configuration object is missing.`));
 
   if (errs.length === 0) return { valid: true };
   else
@@ -39,7 +41,13 @@ const validateLayers = (config) => {
 
   Utils.traverseLayers(config.layers, (layer) => {
     // Check layer name
-    errs = errs.concat(isValidLayerName(layer.name));
+    const validNameErrs = isValidLayerName(layer.name);
+    if (validNameErrs.length > 0) {
+      errs = errs.concat(validNameErrs);
+      return;
+    }
+
+    fillInMissingFieldsWithDefaults(layer);
 
     switch (layer.type) {
       case "header":
@@ -69,6 +77,7 @@ const validateLayers = (config) => {
       case "vector":
         // Check url
         errs = errs.concat(isValidUrl(layer));
+
         break;
       case "model":
         // Check url
@@ -101,14 +110,17 @@ const isValidLayerName = (name) => {
     );
   if (!validCSSName(name))
     errs.push(
-      err(`Layer: '${name}' must not contain symbols or begin with numbers.`, [
-        "layers[layer].name",
-      ])
+      err(
+        `Layer: '${name}' must not be empty, a non-string, contain symbols or begin with numbers.`,
+        ["layers[layer].name"]
+      )
     );
 
   return errs;
 
   function validCSSName(name) {
+    if (name == null || typeof name !== "string") return false;
+
     const match = name.match(/[_A-Z ]+[_A-Z0-9- ]+/gi);
     if (match && match[0].length === name.length) return true;
 
@@ -283,6 +295,42 @@ const hasDuplicateLayerNames = (config) => {
   });
 
   return errs;
+};
+
+const fillInMissingFieldsWithDefaults = (layer) => {
+  if (layer.type != "header") {
+    layer.initialOpacity =
+      layer.initialOpacity == null ? 1 : layer.initialOpacity;
+    layer.visibility = layer.visibility == null ? true : layer.visibility;
+  }
+  switch (layer.type) {
+    case "header":
+      break;
+    case "tile":
+      layer.tileformat = layer.tileformat == null ? "tms" : layer.tileformat;
+      break;
+    case "vectortile":
+      layer.style = layer.style || {};
+      layer.style.className = layer.name.replace(/ /g, "").toLowerCase();
+      break;
+    case "data":
+      layer.style = layer.style || {};
+      layer.style.className = layer.name.replace(/ /g, "").toLowerCase();
+
+      layer.tileformat = layer.tileformat == null ? "tms" : layer.tileformat;
+      break;
+    case "query":
+      layer.style = layer.style || {};
+      layer.style.className = layer.name.replace(/ /g, "").toLowerCase();
+      break;
+    case "vector":
+      layer.style = layer.style || {};
+      layer.style.className = layer.name.replace(/ /g, "").toLowerCase();
+      break;
+    case "model":
+      break;
+    default:
+  }
 };
 
 const err = (reason, invalidFields, onlyAWarning) => {

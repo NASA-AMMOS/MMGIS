@@ -27,7 +27,7 @@ var Webhooks = {
     $(".webhooks select").material_select();
 
     //Add webhook button
-    $("#addNewWebhook").on("click", function () {
+    $("#addNewWebhook > a").on("click", function () {
       makeWebhookCard();
       refreshWebhooks();
     });

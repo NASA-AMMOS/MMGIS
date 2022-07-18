@@ -1907,33 +1907,36 @@ function save() {
           modalType == "query"
         ) {
           layerObject.kind = modalKind;
+          // shape property
+          layerObject.shape = modalShape; // circle, square, triangle, star, hexagon
         }
         layerObject.type = modalType;
-        if (modalUrl != "undefined") layerObject.url = modalUrl;
-        if (modalUrl == "undefined" && modalControlledEl) layerObject.url = "";
-        if (modaldemtileUrl != "undefined")
-          layerObject.demtileurl = modaldemtileUrl;
-        if (modaldemparser != "undefined")
-          layerObject.demparser = modaldemparser;
-        if (modalControlledEl != "undefined")
-          layerObject.controlled = modalControlledEl;
-        if (modalType == "vector" && modalLayer3d != "undefined")
-          layerObject.layer3dType = modalLayer3d;
-        if (modalLegend != "undefined" && modalLegend != "")
-          layerObject.legend = modalLegend;
-        if (modalTileFormat != "undefined")
-          layerObject.tileformat = modalTileFormat;
-        if (modalType != "header") layerObject.visibility = modalVis;
-        if (!isNaN(modalInitOpac)) layerObject.initialOpacity = modalInitOpac;
-        if (modalType != "header")
-          layerObject.togglesWithHeader = modalTogwhead;
-        if (!isNaN(modalMinz)) layerObject.minZoom = modalMinz;
-        if (!isNaN(modalMaxnz)) layerObject.maxNativeZoom = modalMaxnz;
-        if (!isNaN(modalMaxz)) layerObject.maxZoom = modalMaxz;
-        if (typeof modalBB === "string") {
-          modalBB = modalBB.replace(/[\[\]']+/g, "");
-          modalBB = modalBB.split(",").map(Number);
-          if (modalBB.length === 4) layerObject.boundingBox = modalBB;
+        if (modalType != "header") {
+          if (modalUrl != "undefined") layerObject.url = modalUrl;
+          if (modalUrl == "undefined" && modalControlledEl)
+            layerObject.url = "";
+          if (modaldemtileUrl != "undefined")
+            layerObject.demtileurl = modaldemtileUrl;
+          if (modaldemparser != "undefined")
+            layerObject.demparser = modaldemparser;
+          if (modalControlledEl != "undefined")
+            layerObject.controlled = modalControlledEl;
+          if (modalType == "vector" && modalLayer3d != "undefined")
+            layerObject.layer3dType = modalLayer3d;
+          if (modalLegend != "undefined" && modalLegend != "")
+            layerObject.legend = modalLegend;
+          if (modalType != "header") layerObject.visibility = modalVis;
+          if (!isNaN(modalInitOpac)) layerObject.initialOpacity = modalInitOpac;
+          if (modalType != "header")
+            layerObject.togglesWithHeader = modalTogwhead;
+          if (!isNaN(modalMinz)) layerObject.minZoom = modalMinz;
+          if (!isNaN(modalMaxnz)) layerObject.maxNativeZoom = modalMaxnz;
+          if (!isNaN(modalMaxz)) layerObject.maxZoom = modalMaxz;
+          if (typeof modalBB === "string") {
+            modalBB = modalBB.replace(/[\[\]']+/g, "");
+            modalBB = modalBB.split(",").map(Number);
+            if (modalBB.length === 4) layerObject.boundingBox = modalBB;
+          }
         }
         if (modalType == "model") {
           layerObject.position = {};
@@ -1986,6 +1989,11 @@ function save() {
             layerObject.radius = styleRadius;
           }
         }
+        if (modalType == "tile" || modalType == "data") {
+          if (modalTileFormat != "undefined")
+            layerObject.tileformat = modalTileFormat;
+        }
+
         if (modalType == "vectortile") {
           layerObject.style = {};
           layerObject.style.color =
@@ -2014,26 +2022,30 @@ function save() {
           }
         }
 
-        // time properties
-        layerObject.time = {};
-        layerObject.time.enabled = modalTime; // static or timed
-        layerObject.time.type = modalTimeType; // 'global or individual'
-        layerObject.time.isRelative = true; // absolute or relative
-        layerObject.time.current = new Date().toISOString().split(".")[0] + "Z"; // initial time
-        layerObject.time.start = ""; // initial start
-        layerObject.time.end = ""; // initial end
-        layerObject.time.format = modalTimeFormat; // time string format
-        layerObject.time.refresh = "1 hours"; // refresh when the layer becomes stale
-        layerObject.time.increment = "5 minutes"; // time bar steps
-
-        // shape property
-        layerObject.shape = modalShape; // circle, square, triangle, star, hexagon
+        if (modalType != "header" && modalType != "model") {
+          // time properties
+          layerObject.time = {};
+          layerObject.time.enabled = modalTime; // static or timed
+          layerObject.time.type = modalTimeType; // 'global or individual'
+          layerObject.time.isRelative = true; // absolute or relative
+          layerObject.time.current =
+            new Date().toISOString().split(".")[0] + "Z"; // initial time
+          layerObject.time.start = ""; // initial start
+          layerObject.time.end = ""; // initial end
+          layerObject.time.format = modalTimeFormat; // time string format
+          layerObject.time.refresh = "1 hours"; // refresh when the layer becomes stale
+          layerObject.time.increment = "5 minutes"; // time bar steps
+        }
 
         if (modalType === "query") {
           layerObject.query = {
             endpoint: modalQueryEndpoint,
             type: modalQueryType,
           };
+        }
+
+        if (modalType === "header") {
+          layerObject.sublayers = [];
         }
 
         //This is now the proper spelling and 'broke' is the misspelling
@@ -2502,10 +2514,14 @@ function populateVersions(versions) {
       url: "api/configure/addLayer",
       data: {
         mission: "MSL",
-        layer: { msg: "HI" },
+        layer: {
+          name: "testAddLayer2",
+          type: "vector",
+          url: "Layers/GPR_1/GPR_1.json",
+        },
         placement: {
-          path: "Basemaps2",
-          index: 1,
+          path: "Features.CAMP.DeepHeader",
+          index: 6,
         },
         notifyClients: false,
       },

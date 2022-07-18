@@ -39,8 +39,16 @@ function get(req, res, next, cb) {
 
       if (version < 0) {
         //mission doesn't exist
-        if (cb) cb({ status: "failure", message: "Mission not found." });
-        else res.send({ status: "failure", message: "Mission not found." });
+        if (cb)
+          cb({
+            status: "failure",
+            message: `Mission not found. Bad version: ${version}.`,
+          });
+        else
+          res.send({
+            status: "failure",
+            message: `Mission not found. Bad version: ${version}.`,
+          });
         return null;
       } else {
         Config.findOne({
@@ -72,8 +80,16 @@ function get(req, res, next, cb) {
             return null;
           })
           .catch((err) => {
-            if (cb) cb({ status: "failure", message: "Mission not found." });
-            else res.send({ status: "failure", message: "Mission not found." });
+            if (cb)
+              cb({
+                status: "failure",
+                message: `Mission '${req.query.mission} v${version}' not found.`,
+              });
+            else
+              res.send({
+                status: "failure",
+                message: `Mission '${req.query.mission} v${version}' not found.`,
+              });
             return null;
           });
       }
@@ -216,8 +232,19 @@ if (fullAccess)
     add(req, res, next);
   });
 
+/**
+ * Updates and mission's full config
+ * @param req {object}
+ * {
+ *    mission: '',
+ *    version?: 0,
+ *    config?: {}
+ * }
+ */
 function upsert(req, res, next, cb) {
   let hasVersion = false;
+  req.body = req.body || {};
+
   if (req.body.version != null) hasVersion = true;
   let versionConfig = null;
 
@@ -240,20 +267,47 @@ function upsert(req, res, next, cb) {
       return -1;
     })
     .then((version) => {
-      const validation = validate(versionConfig || JSON.parse(req.body.config));
+      let configJSON;
+      if (versionConfig) configJSON = versionConfig;
+      else {
+        if (typeof req.body.config === "string") {
+          try {
+            configJSON = JSON.parse(req.body.config);
+          } catch (err) {
+            if (cb)
+              cb({
+                status: "failure",
+                message: "Stringified configuration object is not JSON.",
+              });
+            else
+              res.send({
+                status: "failure",
+                message: "Stringified configuration object is not JSON.",
+              });
+          }
+        } else configJSON = req.body.config;
+      }
+      const validation = validate(configJSON);
 
       if (!validation.valid) {
-        res.send({
-          status: "failure",
-          message: "Configuration object is invalid.",
-          ...validation,
-        });
+        if (cb)
+          cb({
+            status: "failure",
+            message: "Configuration object is invalid.",
+            ...validation,
+          });
+        else
+          res.send({
+            status: "failure",
+            message: "Configuration object is invalid.",
+            ...validation,
+          });
         return;
       }
 
       Config.create({
         mission: req.body.mission,
-        config: versionConfig || JSON.parse(req.body.config),
+        config: configJSON,
         version: version + 1,
       })
         .then((created) => {
@@ -300,8 +354,8 @@ function upsert(req, res, next, cb) {
       return null;
     })
     .catch((err) => {
-      logger("error", "Failed to update mission.", req.originalUrl, req, err);
-      if (cb) cb({ status: "failure", message: "Failed to update mission." });
+      logger("error", "Failed to find mission.", req.originalUrl, req, err);
+      if (cb) cb({ status: "failure", message: "Failed to find mission." });
       else res.send({ status: "failure", message: "Failed to find mission." });
       return null;
     });
@@ -497,22 +551,40 @@ if (fullAccess)
 // === Quick API Functions ===
 
 if (fullAccess)
-  /** /addLayer
- * body: {
-    "mission": "",
-    "layer": {
-      "name": "",
-      "type": "",
-      "...": "..."
-    },
-    "placement": {
-      "path": "path.to.header" // default {layers.length}
-      "index": 0 // default end
-    },
-    "notifyClients?": true
-  }
- */
   router.post("/addLayer", function (req, res, next) {
+    const exampleBody = {
+      mission: "{mission_name}",
+      layer: {
+        name: "{new_unique_layer_name}",
+        type: "header || vector || vectortile || query || model || tile || data",
+        "more...": "...",
+      },
+      "placement?": {
+        "path?":
+          "{path.to.header}, path to header in 'layers' to place new layer, a simple path ('sublayers' are added), default no group",
+        "index?":
+          "{0}, index in 'layers' to place new layer out of range placement indices are best fit; default end",
+      },
+      "notifyClients?": "{true}; default false",
+    };
+
+    if (req.body.mission == null) {
+      res.send({
+        status: "failure",
+        message: `Required parameter 'mission' is unset.`,
+        example: exampleBody,
+      });
+      return;
+    }
+    if (req.body.layer == null) {
+      res.send({
+        status: "failure",
+        message: `Required parameter 'layer' is unset.`,
+        example: exampleBody,
+      });
+      return;
+    }
+
     get(
       {
         query: {
@@ -525,60 +597,88 @@ if (fullAccess)
         if (config.status === "failure") {
           res.send(config);
         } else {
-          let placementPath = req.body.placement?.path;
-          let placementIndex = req.body.placement?.index;
+          try {
+            let placementPath = req.body.placement?.path;
+            let placementIndex = req.body.placement?.index;
 
-          if (placementPath) {
-            placementPath = placementPath
-              .replace(/\./g, ".sublayers.")
-              .split(".")
-              .concat("sublayers")
-              .join(".");
+            if (placementPath) {
+              placementPath = placementPath
+                .replace(/\./g, ".sublayers.")
+                .split(".")
+                .concat("sublayers")
+                .join(".");
 
-            const level = Utils.getIn(config.layers, placementPath, null, true);
-            if (level == null) {
+              const level = Utils.getIn(
+                config.layers,
+                placementPath,
+                null,
+                true
+              );
+              if (level == null) {
+                res.send({
+                  status: "failure",
+                  message: `Path specified in 'placement.path' not found in 'layers': ${placementPath}.`,
+                });
+                return;
+              }
+              if (placementIndex == null) placementIndex = level.length;
+              placementIndex = Math.max(
+                0,
+                Math.min(placementIndex, level.length)
+              );
+
+              placementPath += ".";
+            } else {
+              placementPath = "";
+              if (placementIndex == null) placementIndex = config.layers.length;
+              placementIndex = Math.max(
+                0,
+                Math.min(placementIndex, config.layers.length)
+              );
+            }
+
+            const didSet = Utils.setIn(
+              config.layers,
+              `${placementPath}${placementIndex}`,
+              req.body.layer,
+              true,
+              true
+            );
+
+            if (didSet) {
+              upsert(
+                {
+                  body: { mission: req.body.mission, config: config },
+                },
+                null,
+                null,
+                (response) => {
+                  if (response.status === "success")
+                    res.send({
+                      status: "success",
+                      message: `Added layer to the ${response.mission} mission. Configuration versioned ${response.version}.`,
+                    });
+                  else res.send(response);
+                }
+              );
+            } else
               res.send({
                 status: "failure",
-                message: `Path specified in 'placement.path' not found.`,
+                message: `Failed to add layer. setIn() operation failed.`,
               });
-              return;
-            }
-            if (placementIndex == null) placementIndex = level.length;
-            placementIndex = Math.max(
-              0,
-              Math.min(placementIndex, level.length)
+          } catch (err) {
+            logger(
+              "error",
+              "Failed to to add layer.",
+              req.originalUrl,
+              req,
+              err
             );
-
-            placementPath += ".";
-          } else {
-            placementPath = "";
-            if (placementIndex == null) placementIndex = config.layers.length;
-            placementIndex = Math.max(
-              0,
-              Math.min(placementIndex, config.layers.length)
-            );
-          }
-
-          const didSet = Utils.setIn(
-            config.layers,
-            `${placementPath}${placementIndex}`,
-            req.body.layer,
-            true,
-            true
-          );
-
-          if (didSet)
-            res.send({
-              status: "success",
-              resp: config,
-              pp: placementPath,
-              l: req.body.layer,
-            });
-          else
             res.send({
               status: "failure",
-              message: `Failed to add layer. setIn() operation failed.`,
+              message: `Failed to add layer. Uncaught reason.`,
             });
+          }
         }
       }
     );
