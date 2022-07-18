@@ -202,7 +202,7 @@ var TimeControl = {
             layer.time.current = TimeControl.currentTime // keeps track of when layer was refreshed
 
             if (layer.type == 'tile') {
-                setLayerWmsParams(layer)
+                TimeControl.setLayerWmsParams(layer)
 
                 if (L_.toggledArray[layer.name] || evenIfOff) {
                     L_.toggleLayer(layer)
@@ -297,17 +297,6 @@ var TimeControl = {
         var layerTimeFormat = d3.utcFormat(layer.time.format)
 
         if (layer.type == 'tile') {
-            if (
-                typeof L_.layersGroup[layer.name].wmsParams !== 'undefined'
-            ) {
-                L_.layersGroup[layer.name].wmsParams.TIME = layerTimeFormat(
-                    Date.parse(layer.time.end)
-                )
-                L_.layersGroup[layer.name].wmsParams.STARTTIME =
-                    layerTimeFormat(Date.parse(layer.time.start))
-                L_.layersGroup[layer.name].wmsParams.ENDTIME =
-                    layerTimeFormat(Date.parse(layer.time.end))
-            }
             L_.layersGroup[layer.name].options.time = layerTimeFormat(
                 Date.parse(layer.time.end)
             )
