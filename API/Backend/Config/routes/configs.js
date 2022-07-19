@@ -367,7 +367,7 @@ if (fullAccess)
     upsert(req, res, next);
   });
 
-router.post("/missions", function (req, res, next) {
+router.get("/missions", function (req, res, next) {
   Config.aggregate("mission", "DISTINCT", { plain: false })
     .then((missions) => {
       let allMissions = [];
@@ -386,10 +386,10 @@ router.post("/missions", function (req, res, next) {
 });
 
 if (fullAccess)
-  router.post("/versions", function (req, res, next) {
+  router.get("/versions", function (req, res, next) {
     Config.findAll({
       where: {
-        mission: req.body.mission,
+        mission: req.query.mission,
       },
       attributes: ["mission", "version", "createdAt"],
       order: [["id", "ASC"]],
@@ -533,7 +533,19 @@ if (fullAccess)
 
 if (fullAccess)
   router.post("/validate", function (req, res, next) {
-    const validation = validate(JSON.parse(req.body.config));
+    let configJSON;
+    if (typeof req.body.config === "string") {
+      try {
+        configJSON = JSON.parse(req.body.config);
+      } catch (err) {
+        res.send({
+          status: "failure",
+          message: "Stringified configuration object is not JSON.",
+        });
+      }
+    } else configJSON = req.body.config;
+
+    const validation = validate(configJSON);
     if (validation.valid) {
       res.send({
         status: "success",

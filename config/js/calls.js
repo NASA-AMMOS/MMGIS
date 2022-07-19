@@ -33,11 +33,11 @@ let calls = {
     url: "api/configure/destroy",
   },
   missions: {
-    type: "POST",
+    type: "GET",
     url: "api/configure/missions",
   },
   versions: {
-    type: "POST",
+    type: "GET",
     url: "api/configure/versions",
   },
   geodatasets_recreate: {

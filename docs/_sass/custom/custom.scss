@@ -1,50 +1,85 @@
+body {
+  background-color: #1a1a1a;
+}
+.side-bar {
+  background-color: #1a1a1a;
+}
+#main-header {
+  background-color: #1a1a1a;
+}
+.search-input {
+  background-color: #1a1a1a;
+}
+
 a {
-    color: #08aeea;
+  color: #08aeea;
 }
 
 .search-input {
-    color: white;
+  color: white;
 }
 
 .main-content a {
-    white-space: inherit;
+  white-space: inherit;
 }
 
 .main-content h2 {
-    color: #58c6ee;
+  color: #58c6ee;
 }
 .main-content h3 {
-    color: #ffdd5c;
+  color: #ffdd5c;
 }
 .main-content h4 {
-    color: #5af5b2;
+  color: #5af5b2;
 }
 
 h4 code {
-    font-size: 16px;
+  font-size: 16px;
+}
+
+.highlight .nl {
+  color: #5af5b2;
+}
+.highlight .nx {
+  color: #5af5b2;
+}
+.highlight .na {
+  color: #ff5c73;
+}
+.highlight .mi {
+  color: #f1dd5c;
+}
+.highlight .mf {
+  color: #f1dd5c;
+}
+.highlight .s2 {
+  color: #32c3b7;
+}
+.highlight .nb {
+  color: #d6a100;
 }
 
 .site-footer {
-    opacity: 0.5;
+  opacity: 0.5;
 }
 
 ::-webkit-scrollbar {
-    width: 14px;
-    height: 14px;
+  width: 14px;
+  height: 14px;
 }
 ::-webkit-scrollbar-thumb {
-    border: 3px solid rgba(0, 0, 0, 0);
-    background-clip: padding-box;
-    border-radius: 0px;
-    background-color: #666;
-    box-shadow: inset -1px -1px 0px rgba(0, 0, 0, 0.05),
-        inset 1px 1px 0px rgba(0, 0, 0, 0.05);
+  border: 3px solid rgba(0, 0, 0, 0);
+  background-clip: padding-box;
+  border-radius: 0px;
+  background-color: #666;
+  box-shadow: inset -1px -1px 0px rgba(0, 0, 0, 0.05),
+    inset 1px 1px 0px rgba(0, 0, 0, 0.05);
 }
 ::-webkit-scrollbar-button {
-    width: 0;
-    height: 0;
-    display: none;
+  width: 0;
+  height: 0;
+  display: none;
 }
 ::-webkit-scrollbar-corner {
-    background-color: transparent;
+  background-color: transparent;
 }

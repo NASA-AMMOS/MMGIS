@@ -6,7 +6,7 @@ const c = {
         url: 'api/configure/get',
     },
     missions: {
-        type: 'POST',
+        type: 'GET',
         url: 'api/configure/missions',
     },
     login: {

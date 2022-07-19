@@ -7,7 +7,7 @@ parent: APIs
 
 # JavaScript API
 
-The `src/essence/mmgisAPI/mmgisAPI.js` file exposes functions that can be called using the global `window.mmgisAPI` object.
+A client side API for use when using MMGIS embedded as an iframe. The `src/essence/mmgisAPI/mmgisAPI.js` file exposes functions that can be called using the global `window.mmgisAPI` object.
 
 ## Layer Control
 
