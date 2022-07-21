@@ -43,9 +43,9 @@ To use the Configure API through HTTP requests, an API Token must be used for au
 
 ### GET /missions
 
-Gets a list of all configured missions.
+Gets a list of all configured missions. _Auth token not needed._
 
-#### Examples
+#### Example
 
 `curl -X GET http://localhost:8889/api/configure/missions`
 
@@ -55,9 +55,9 @@ Gets a list of all configured missions.
 
 Gets a list of available versions of a mission's configuration object.
 
-#### Examples
+#### Example
 
-`curl -X GET http://localhost:8889/api/configure/versions?mission=Test`
+`curl -X GET -H "Authorization:Bearer <token>" http://localhost:8889/api/configure/versions?mission=Test`
 
 ---
 
@@ -71,7 +71,7 @@ Gets a mission's configuration object. _Auth token not needed._
 | **version** | _number_  |  false   | latest  |       Version of configuration        |
 |  **full**   | _boolean_ |  false   |  false  | Return additional metadata and status |
 
-#### Examples
+#### Example
 
 `curl -X GET http://localhost:8889/api/configure/get?mission=Test`
 
@@ -85,9 +85,9 @@ Validates a configuration object and performs no action if valid.
 | :--------: | :------: | :------: | :-----: | :-----------------------: |
 | **config** | _object_ |  false   |   N/A   | Full configuration object |
 
-#### Examples
+#### Example
 
-`curl -X POST http://localhost:8889/api/configure/validate`
+`curl -X POST -H "Authorization:Bearer <token>" -H "Content-Type: application/json" -d '{"config":{}}' http://localhost:8889/api/configure/validate`
 
 ---
 
@@ -101,9 +101,9 @@ Sets a mission's configuration object. Only complete configuration objects are a
 | **config**  | _object_ |  false   |   N/A   |                 Full configuration object                 |
 | **version** | _number_ |  false   |   N/A   | Set a configuration version number to rollback to instead |
 
-#### Examples
+#### Example
 
-`curl -X POST -H "Authorization:Bearer <token>" http://localhost:8889/api/configure/upsert`
+`curl -X POST -H "Authorization:Bearer <token>" -H "Content-Type: application/json" -d '{"mission":"Test", "config":{}}' http://localhost:8889/api/configure/upsert`
 
 ---
 
@@ -119,9 +119,9 @@ Adds a single layer to a mission's configuration object. A wrapping helper to `u
 | **placement.index** | _number_  |  false   |   end   |          Index in 'layers' (or path) to place the new layer. Out of range placement indices are best fit.          |
 |  **notifyClients**  | _boolean_ |  false   |  false  |                             Set a configuration version number to rollback to instead                              |
 
-#### Examples
+#### Example
 
-`curl -X POST -H "Authorization:Bearer <token>" http://localhost:8889/api/configure/addLayer`
+`curl -X POST -H "Authorization:Bearer <token>" -H "Content-Type: application/json" -d '{"mission":"Test", "layer":{"name":"", "type":""}}' http://localhost:8889/api/configure/addLayer`
 
 ---
 
@@ -138,9 +138,9 @@ Updates a single layer. Specified layer values are deep merged and overwrite exi
 | **placement.index** | _number_  |  false   |   end   |          Index in 'layers' (or path) to place the new layer. Out of range placement indices are best fit.          |
 |  **notifyClients**  | _boolean_ |  false   |  false  |                             Set a configuration version number to rollback to instead                              |
 
-#### Examples
+#### Example
 
-`curl -X POST -H "Authorization:Bearer <token>" http://localhost:8889/api/configure/updateLayer`
+`curl -X POST -H "Authorization:Bearer <token>" -H "Content-Type: application/json" -d '{"mission":"Test", "layerName":"name", "layer":{}}}' http://localhost:8889/api/configure/updateLayer`
 
 ---
 
@@ -154,9 +154,9 @@ Removes a single layer from the configuration object.
 |   **layerName**   | _string_  |   true   |   N/A   |                      Layer to update                      |
 | **notifyClients** | _boolean_ |  false   |  false  | Set a configuration version number to rollback to instead |
 
-#### Examples
+#### Example
 
-`curl -X POST -H "Authorization:Bearer <token>" http://localhost:8889/api/configure/removeLayer`
+`curl -X POST -H "Authorization:Bearer <token>" -H "Content-Type: application/json" -d '{"mission":"Test", "layerName":"name"}' http://localhost:8889/api/configure/removeLayer`
 
 ---
 
@@ -171,9 +171,9 @@ Updates the initial latitude, longitude, zoom of the map when users first arrive
 | **longitude** | _number_ |  false   | existing | Map Longitude center coordinate |
 |   **zoom**    | _number_ |  false   | existing |         Map zoom level          |
 
-#### Examples
+#### Example
 
-`curl -X POST -H "Authorization:Bearer <token>" http://localhost:8889/api/configure/updateInitialView`
+`curl -X POST -H "Authorization:Bearer <token>" -H "Content-Type: application/json" -d '{"mission":"Test", "zoom":12}' http://localhost:8889/api/configure/updateInitialView`
 
 ---
 

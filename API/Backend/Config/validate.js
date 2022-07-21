@@ -66,7 +66,7 @@ const validateLayers = (config) => {
         break;
       case "data":
         // Check url
-        errs = errs.concat(isValidUrl(layer));
+        errs = errs.concat(isValidDemUrl(layer));
         // Check zooms
         errs = errs.concat(isValidZooms(layer));
         break;
@@ -139,6 +139,28 @@ const isValidUrl = (layer) => {
   if (layer.url === "undefined")
     errs.push(
       err(`Layer '${layer.name}' has URL: undefined`, ["layers[layer].url"])
+    );
+  return errs;
+};
+const isValidDemUrl = (layer) => {
+  const errs = [];
+  if (layer.demtileurl == null)
+    errs.push(
+      err(`Layer '${layer.name}' has DEM tile URL: null.`, [
+        "layers[layer].demtileurl",
+      ])
+    );
+  if (layer.demtileurl === "")
+    errs.push(
+      err(`Layer '${layer.name}' has DEM tile URL: ''`, [
+        "layers[layer].demtileurl",
+      ])
+    );
+  if (layer.demtileurl === "undefined")
+    errs.push(
+      err(`Layer '${layer.name}' has DEM tile URL: undefined`, [
+        "layers[layer].demtileurl",
+      ])
     );
   return errs;
 };

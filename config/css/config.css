@@ -237,58 +237,58 @@ body {
 
 #new_mission {
   height: 30px;
-  width: calc(100% - 16px);
+  width: 100%;
   line-height: 30px;
-  margin: 4px 8px;
+  margin: 4px 0px;
   font-size: 14px;
 }
 #new_mission:hover {
-  color: #5ea1ed;
+  color: #08aeea;
 }
 
 #manage_keys {
   height: 30px;
-  width: calc(100% - 16px);
+  width: 100%;
   line-height: 30px;
-  margin: 4px 8px;
+  border-top: 1px solid black;
   font-size: 12px;
   color: #ddd;
 }
 #manage_keys:hover {
-  color: #5ea1ed;
+  color: #08aeea;
 }
 #manage_datasets {
   height: 30px;
-  width: calc(100% - 16px);
+  width: 100%;
   line-height: 30px;
-  margin: 4px 8px;
+  border-top: 1px solid black;
   font-size: 12px;
   color: #ddd;
 }
 #manage_datasets:hover {
-  color: #5ea1ed;
+  color: #08aeea;
 }
 #manage_geodatasets {
   height: 30px;
-  width: calc(100% - 16px);
+  width: 100%;
   line-height: 30px;
-  margin: 4px 8px;
+  border-top: 1px solid black;
   font-size: 12px;
   color: #ddd;
 }
 #manage_geodatasets:hover {
-  color: #5ea1ed;
+  color: #08aeea;
 }
 #manage_webhooks {
   height: 30px;
-  width: calc(100% - 16px);
+  width: 100%;
   line-height: 30px;
-  margin: 4px 8px;
+  border-top: 1px solid black;
   font-size: 12px;
   color: #ddd;
 }
 #manage_webhooks:hover {
-  color: #5ea1ed;
+  color: #08aeea;
 }
 
 textarea {
