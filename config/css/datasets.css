@@ -15,8 +15,9 @@
 }
 .datasets .existing .title {
   text-align: center;
-  font-size: 100px;
-  color: #ddd;
+  margin-top: 20px;
+  font-size: 28px;
+  color: #1a1a1a;
 }
 .datasets .existing ul {
   padding: 0;

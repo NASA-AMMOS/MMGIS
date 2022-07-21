@@ -144,7 +144,6 @@ function checkHeadersCodeInjection(req, res, next) {
     "password",
     "delete",
     "insert",
-    "update",
     "select",
     "disable",
     "enable",
@@ -255,6 +254,8 @@ function ensureGroup(allowedGroups) {
 function ensureAdmin(toLoginPage, denyLongTermTokens) {
   return (req, res, next) => {
     let url = req.originalUrl.split("?")[0].toLowerCase();
+    const remoteAddress =
+      req.headers["x-forwarded-for"] || req.connection.remoteAddress;
 
     if (
       url.endsWith("/api/configure/get") ||
@@ -277,7 +278,7 @@ function ensureAdmin(toLoginPage, denyLongTermTokens) {
           res.send({ status: "failure", message: "Unauthorized Token!" });
           logger(
             "warn",
-            "Unauthorized token call made and rejected",
+            `Unauthorized token call made and rejected (from ${remoteAddress}, with token ${req.headers.authorization})`,
             req.originalUrl,
             req
           );
@@ -287,7 +288,7 @@ function ensureAdmin(toLoginPage, denyLongTermTokens) {
       res.send({ status: "failure", message: "Unauthorized!" });
       logger(
         "warn",
-        "Unauthorized call made and rejected",
+        `Unauthorized call made and rejected (from ${remoteAddress})`,
         req.originalUrl,
         req
       );

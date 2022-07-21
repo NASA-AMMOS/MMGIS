@@ -124,7 +124,7 @@ export default function (domEl, lookupPath, options) {
     function changeModel(modelFile, textureFile, callback, progressCalback) {
         //Remove old model
         scene.remove(model)
-
+        console.log(modelFile, textureFile)
         //Texture
         var ext = F_.getExtension(modelFile).toLowerCase()
         switch (ext) {

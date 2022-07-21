@@ -6,8 +6,8 @@
 }
 .webhooks .title {
   text-align: center;
-  font-size: 100px;
-  color: #ddd;
+  font-size: 28px;
+  color: #1a1a1a;
 }
 .webhooks .row {
   margin-left: 2.5%;
@@ -16,7 +16,7 @@
 .webhooks .CodeMirror {
   margin: 0;
 }
-.webhooks .inject-label{
+.webhooks .inject-label {
   margin-top: 0%;
 }
 .webhooks .card:nth-of-type(even) {

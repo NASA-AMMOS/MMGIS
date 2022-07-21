@@ -10,7 +10,11 @@ const logger = require("../../../logger");
 const Config = require("../models/config");
 const config_template = require("../../../templates/config_template");
 
+const validate = require("../validate");
+const Utils = require("../../../utils.js");
+
 const fs = require("fs");
+const deepmerge = require("deepmerge");
 
 let fullAccess = false;
 if (
@@ -36,8 +40,16 @@ function get(req, res, next, cb) {
 
       if (version < 0) {
         //mission doesn't exist
-        if (cb) cb({ status: "failure", message: "Mission not found." });
-        else res.send({ status: "failure", message: "Mission not found." });
+        if (cb)
+          cb({
+            status: "failure",
+            message: `Mission not found. Bad version: ${version}.`,
+          });
+        else
+          res.send({
+            status: "failure",
+            message: `Mission not found. Bad version: ${version}.`,
+          });
         return null;
       } else {
         Config.findOne({
@@ -62,12 +74,23 @@ function get(req, res, next, cb) {
                   config: mission.config,
                   version: mission.version,
                 });
-            } else res.send(mission.config);
+            } else {
+              if (cb) cb(mission.config);
+              else res.send(mission.config);
+            }
             return null;
           })
           .catch((err) => {
-            if (cb) cb({ status: "failure", message: "Mission not found." });
-            else res.send({ status: "failure", message: "Mission not found." });
+            if (cb)
+              cb({
+                status: "failure",
+                message: `Mission '${req.query.mission} v${version}' not found.`,
+              });
+            else
+              res.send({
+                status: "failure",
+                message: `Mission '${req.query.mission} v${version}' not found.`,
+              });
             return null;
           });
       }
@@ -210,8 +233,19 @@ if (fullAccess)
     add(req, res, next);
   });
 
+/**
+ * Updates and mission's full config
+ * @param req {object}
+ * {
+ *    mission: '',
+ *    version?: 0,
+ *    config?: {}
+ * }
+ */
 function upsert(req, res, next, cb) {
   let hasVersion = false;
+  req.body = req.body || {};
+
   if (req.body.version != null) hasVersion = true;
   let versionConfig = null;
 
@@ -234,9 +268,47 @@ function upsert(req, res, next, cb) {
       return -1;
     })
     .then((version) => {
+      let configJSON;
+      if (versionConfig) configJSON = versionConfig;
+      else {
+        if (typeof req.body.config === "string") {
+          try {
+            configJSON = JSON.parse(req.body.config);
+          } catch (err) {
+            if (cb)
+              cb({
+                status: "failure",
+                message: "Stringified configuration object is not JSON.",
+              });
+            else
+              res.send({
+                status: "failure",
+                message: "Stringified configuration object is not JSON.",
+              });
+          }
+        } else configJSON = req.body.config;
+      }
+      const validation = validate(configJSON);
+
+      if (!validation.valid) {
+        if (cb)
+          cb({
+            status: "failure",
+            message: "Configuration object is invalid.",
+            ...validation,
+          });
+        else
+          res.send({
+            status: "failure",
+            message: "Configuration object is invalid.",
+            ...validation,
+          });
+        return;
+      }
+
       Config.create({
         mission: req.body.mission,
-        config: versionConfig || JSON.parse(req.body.config),
+        config: configJSON,
         version: version + 1,
       })
         .then((created) => {
@@ -283,8 +355,8 @@ function upsert(req, res, next, cb) {
       return null;
     })
     .catch((err) => {
-      logger("error", "Failed to update mission.", req.originalUrl, req, err);
-      if (cb) cb({ status: "failure", message: "Failed to update mission." });
+      logger("error", "Failed to find mission.", req.originalUrl, req, err);
+      if (cb) cb({ status: "failure", message: "Failed to find mission." });
       else res.send({ status: "failure", message: "Failed to find mission." });
       return null;
     });
@@ -296,7 +368,7 @@ if (fullAccess)
     upsert(req, res, next);
   });
 
-router.post("/missions", function (req, res, next) {
+router.get("/missions", function (req, res, next) {
   Config.aggregate("mission", "DISTINCT", { plain: false })
     .then((missions) => {
       let allMissions = [];
@@ -315,10 +387,10 @@ router.post("/missions", function (req, res, next) {
 });
 
 if (fullAccess)
-  router.post("/versions", function (req, res, next) {
+  router.get("/versions", function (req, res, next) {
     Config.findAll({
       where: {
-        mission: req.body.mission,
+        mission: req.query.mission,
       },
       attributes: ["mission", "version", "createdAt"],
       order: [["id", "ASC"]],
@@ -458,6 +530,516 @@ if (fullAccess)
         return null;
       });
     return null;
+  });
+
+if (fullAccess)
+  router.post("/validate", function (req, res, next) {
+    let configJSON;
+    if (typeof req.body.config === "string") {
+      try {
+        configJSON = JSON.parse(req.body.config);
+      } catch (err) {
+        res.send({
+          status: "failure",
+          message: "Stringified configuration object is not JSON.",
+        });
+      }
+    } else configJSON = req.body.config;
+
+    const validation = validate(configJSON);
+    if (validation.valid) {
+      res.send({
+        status: "success",
+        message: "Configuration object is valid.",
+      });
+    } else {
+      res.send({
+        status: "failure",
+        message: "Configuration object is invalid.",
+        errors: validation,
+      });
+    }
+  });
+
+// === Quick API Functions ===
+function addLayer(req, res, next, cb, forceConfig) {
+  const exampleBody = {
+    mission: "{mission_name}",
+    layer: {
+      name: "{new_unique_layer_name}",
+      type: "header || vector || vectortile || query || model || tile || data",
+      "more...": "...",
+    },
+    "placement?": {
+      "path?":
+        "{path.to.header}, path to header in 'layers' to place new layer, a simple path ('sublayers' are added), default no group",
+      "index?":
+        "{0}, index in 'layers' to place new layer out of range placement indices are best fit; default end",
+    },
+    "notifyClients?": "{true}; default false",
+  };
+
+  if (req.body.mission == null) {
+    res.send({
+      status: "failure",
+      message: `Required parameter 'mission' is unset.`,
+      example: exampleBody,
+    });
+    return;
+  }
+  if (req.body.layer == null) {
+    res.send({
+      status: "failure",
+      message: `Required parameter 'layer' is unset.`,
+      example: exampleBody,
+    });
+    return;
+  }
+
+  get(
+    {
+      query: {
+        mission: req.body.mission,
+      },
+    },
+    null,
+    null,
+    (config) => {
+      config = forceConfig || config;
+      if (config.status === "failure") {
+        res.send(config);
+      } else {
+        try {
+          let placementPath = req.body.placement?.path;
+          let placementIndex = req.body.placement?.index;
+
+          if (placementPath) {
+            placementPath = placementPath
+              .replace(/\./g, ".sublayers.")
+              .split(".")
+              .concat("sublayers")
+              .join(".");
+
+            const level = Utils.getIn(config.layers, placementPath, null, true);
+            if (level == null) {
+              if (cb)
+                cb({
+                  status: "failure",
+                  message: `Path specified in 'placement.path' not found in 'layers': ${placementPath}.`,
+                });
+              else
+                res.send({
+                  status: "failure",
+                  message: `Path specified in 'placement.path' not found in 'layers': ${placementPath}.`,
+                });
+              return;
+            }
+            if (placementIndex == null) placementIndex = level.length;
+            placementIndex = Math.max(
+              0,
+              Math.min(placementIndex, level.length)
+            );
+
+            placementPath += ".";
+          } else {
+            placementPath = "";
+            if (placementIndex == null) placementIndex = config.layers.length;
+            placementIndex = Math.max(
+              0,
+              Math.min(placementIndex, config.layers.length)
+            );
+          }
+
+          const didSet = Utils.setIn(
+            config.layers,
+            `${placementPath}${placementIndex}`,
+            req.body.layer,
+            true,
+            true
+          );
+
+          if (didSet) {
+            upsert(
+              {
+                body: { mission: req.body.mission, config: config },
+              },
+              null,
+              null,
+              (response) => {
+                if (response.status === "success")
+                  if (cb)
+                    cb({
+                      status: "success",
+                      message: `Added layer to the ${response.mission} mission. Configuration versioned ${response.version}.`,
+                      mission: response.mission,
+                      version: response.version,
+                    });
+                  else
+                    res.send({
+                      status: "success",
+                      message: `Added layer to the ${response.mission} mission. Configuration versioned ${response.version}.`,
+                      mission: response.mission,
+                      version: response.version,
+                    });
+                else res.send(response);
+              }
+            );
+          } else if (cb)
+            cb({
+              status: "failure",
+              message: `Failed to add layer. setIn() operation failed.`,
+            });
+          else
+            res.send({
+              status: "failure",
+              message: `Failed to add layer. setIn() operation failed.`,
+            });
+        } catch (err) {
+          logger("error", "Failed to add layer.", req.originalUrl, req, err);
+          if (cb)
+            cb({
+              status: "failure",
+              message: `Failed to add layer. Uncaught reason.`,
+            });
+          else
+            res.send({
+              status: "failure",
+              message: `Failed to add layer. Uncaught reason.`,
+            });
+        }
+      }
+    }
+  );
+}
+if (fullAccess)
+  router.post("/addLayer", function (req, res, next) {
+    addLayer(req, res, next);
+  });
+
+if (fullAccess)
+  /**
+   * /updateLayer
+   * Finds the existing layer, merges new layer items, deletes and readds with addLayer.
+   */
+  router.post("/updateLayer", function (req, res, next) {
+    const exampleBody = {
+      mission: "{mission_name}",
+      layerName: "{existing_layer_name}",
+      layer: {
+        "...": "...",
+      },
+      "placement?": {
+        "path?":
+          "{path.to.header}, path to header in 'layers' to place new layer, a simple path ('sublayers' are added), default no group",
+        "index?":
+          "{0}, index in 'layers' to place new layer out of range placement indices are best fit; default end",
+      },
+      "notifyClients?": "{true}; default false",
+    };
+
+    if (req.body.mission == null) {
+      res.send({
+        status: "failure",
+        message: `Required parameter 'mission' is unset.`,
+        example: exampleBody,
+      });
+      return;
+    }
+    if (req.body.layerName == null) {
+      res.send({
+        status: "failure",
+        message: `Required parameter 'layerName' is unset. (a layer.name is not sufficient)`,
+        example: exampleBody,
+      });
+      return;
+    }
+    if (req.body.layer == null) {
+      res.send({
+        status: "failure",
+        message: `Required parameter 'layer' is unset.`,
+        example: exampleBody,
+      });
+      return;
+    }
+
+    get(
+      {
+        query: {
+          mission: req.body.mission,
+        },
+      },
+      null,
+      null,
+      (config) => {
+        if (config.status === "failure") {
+          res.send(config);
+        } else {
+          try {
+            // Fill out layer and placement before addLayer
+            let existingLayer = null;
+            let placementPath = req.body.placement?.path;
+            let placementIndex = req.body.placement?.index;
+
+            Utils.traverseLayers(config.layers, (layer, path, index) => {
+              if (layer.name === req.body.layerName) {
+                existingLayer = JSON.parse(JSON.stringify(layer));
+                if (placementPath == null) placementPath = path;
+                if (placementIndex == null) placementIndex = index;
+                return "remove";
+              }
+            });
+
+            if (existingLayer == null) {
+              res.send({
+                status: "failure",
+                message: `Layer ${req.body.layerName} not found. Cannot update.`,
+              });
+              return;
+            }
+
+            // Merge existing and new
+            let newLayer = deepmerge(
+              existingLayer,
+              JSON.parse(JSON.stringify(req.body.layer))
+            );
+            let body = {
+              mission: req.body.mission,
+              layer: newLayer,
+              placement: req.body.placement || {
+                path: placementPath,
+                index: placementIndex,
+              },
+              notifyClients: req.body.notifyClients,
+            };
+
+            addLayer(
+              {
+                body: body,
+              },
+              res,
+              next,
+              (resp) => {
+                if (resp.status === "success") {
+                  res.send({
+                    status: "success",
+                    message: `Updated layer '${req.body.layerName}' in the ${resp.mission} mission. Configuration versioned ${resp.version}.`,
+                  });
+                } else {
+                  resp.message = `Update layer failed with: ${resp.message}`;
+                  res.send(resp);
+                }
+              },
+              config
+            );
+            // Remove Existing
+          } catch (err) {
+            logger(
+              "error",
+              `Failed to update layer: ${req.body.layerName}.`,
+              req.originalUrl,
+              req,
+              err
+            );
+            res.send({
+              status: "failure",
+              message: `Failed to update layer: ${req.body.layerName}. Uncaught reason.`,
+            });
+          }
+        }
+      }
+    );
+  });
+
+function removeLayer(req, res, next, cb) {
+  const exampleBody = {
+    mission: "{mission_name}",
+    layerName: "{existing_layer_name}",
+    "notifyClients?": "{true}; default false",
+  };
+
+  if (req.body.mission == null) {
+    res.send({
+      status: "failure",
+      message: `Required parameter 'mission' is unset.`,
+      example: exampleBody,
+    });
+    return;
+  }
+  if (req.body.layerName == null) {
+    res.send({
+      status: "failure",
+      message: `Required parameter 'layerName' is unset.`,
+      example: exampleBody,
+    });
+    return;
+  }
+
+  get(
+    {
+      query: {
+        mission: req.body.mission,
+      },
+    },
+    null,
+    null,
+    (config) => {
+      if (config.status === "failure") {
+        res.send(config);
+      } else {
+        try {
+          let didRemove = false;
+          Utils.traverseLayers(config.layers, (layer, path, index) => {
+            if (layer.name === req.body.layerName) {
+              didRemove = true;
+              return "remove";
+            }
+          });
+
+          if (didRemove) {
+            upsert(
+              {
+                body: {
+                  mission: req.body.mission,
+                  config: config,
+                },
+              },
+              res,
+              next,
+              (resp) => {
+                if (resp.status === "success") {
+                  res.send({
+                    status: "success",
+                    message: `Successfully removed layer '${req.body.layerName}'.`,
+                  });
+                } else {
+                  res.send({
+                    status: "failure",
+                    message: `Failed to remove layer '${req.body.layerName}': ${resp.message}`,
+                  });
+                }
+              }
+            );
+          } else {
+            res.send({
+              status: "failure",
+              message: `Failed to remove layer '${req.body.layerName}'. Layer not found.`,
+            });
+          }
+        } catch (err) {}
+      }
+    }
+  );
+}
+if (fullAccess)
+  /** 
+ * /removeLayer
+ * body: {
+    "mission": "",
+    "layerName": ""
+    "notifyClients?": true
+  }
+ */
+  router.post("/removeLayer", function (req, res, next) {
+    removeLayer(req, res, next);
+  });
+
+if (fullAccess)
+  /** 
+ * /updateInitialView
+ * body: {
+    mission: "{mission_name}",
+    "latitude?": 0,
+    "longitude?": 0,
+    "zoom?": 0
+  }
+ */
+  router.post("/updateInitialView", function (req, res, next) {
+    const exampleBody = {
+      mission: "{mission_name}",
+      "latitude?": 0,
+      "longitude?": 0,
+      "zoom?": 5,
+    };
+
+    if (req.body.mission == null) {
+      res.send({
+        status: "failure",
+        message: `Required parameter 'mission' is unset.`,
+        example: exampleBody,
+      });
+      return;
+    }
+
+    get(
+      {
+        query: {
+          mission: req.body.mission,
+        },
+      },
+      null,
+      null,
+      (config) => {
+        if (config.status === "failure") {
+          res.send(config);
+        } else {
+          try {
+            let lat =
+              req.body.latitude != null && !isNaN(req.body.latitude)
+                ? `${req.body.latitude}`
+                : config.msv.view[0];
+            let lng =
+              req.body.longitude != null && !isNaN(req.body.longitude)
+                ? `${req.body.longitude}`
+                : config.msv.view[1];
+            let zoom =
+              req.body.zoom != null && !isNaN(req.body.zoom)
+                ? `${parseInt(req.body.zoom)}`
+                : config.msv.view[2];
+
+            const existingView = config.msv.view;
+            const newView = [lat, lng, zoom];
+
+            if (JSON.stringify(newView) !== JSON.stringify(existingView)) {
+              config.msv.view = [lat, lng, zoom];
+
+              upsert(
+                {
+                  body: {
+                    mission: req.body.mission,
+                    config: config,
+                  },
+                },
+                res,
+                next,
+                (resp) => {
+                  if (resp.status === "success") {
+                    res.send({
+                      status: "success",
+                      message: `Successfully updated initial view of the '${req.body.mission}' mission.`,
+                    });
+                  } else {
+                    res.send({
+                      status: "failure",
+                      message: `Failed to update the initial view of the '${req.body.mission}' mission: ${resp.message}`,
+                    });
+                  }
+                }
+              );
+            } else {
+              res.send({
+                status: "success",
+                message: `The initial view of the '${req.body.mission}' mission needs no changes.`,
+              });
+            }
+          } catch (err) {
+            res.send({
+              status: "failure",
+              message: `Failed to update the initial view of the '${req.body.mission}' mission. Uncaught reason.`,
+            });
+          }
+        }
+      }
+    );
   });
 
 module.exports = router;

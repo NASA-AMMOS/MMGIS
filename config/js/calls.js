@@ -33,11 +33,11 @@ let calls = {
     url: "api/configure/destroy",
   },
   missions: {
-    type: "POST",
+    type: "GET",
     url: "api/configure/missions",
   },
   versions: {
-    type: "POST",
+    type: "GET",
     url: "api/configure/versions",
   },
   geodatasets_recreate: {
@@ -64,9 +64,17 @@ let calls = {
     type: "GET",
     url: "api/datasets/get",
   },
+  longtermtoken_get: {
+    type: "GET",
+    url: "api/longtermtoken/get",
+  },
   longtermtoken_generate: {
     type: "POST",
     url: "api/longtermtoken/generate",
+  },
+  longtermtoken_clear: {
+    type: "POST",
+    url: "api/longtermtoken/clear",
   },
   webhooks_save: {
     type: "POST",

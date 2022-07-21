@@ -1,7 +1,7 @@
 function login() {
   if (
-    document.getElementById("username").value == "" ||
-    document.getElementById("pwd").value == ""
+    document.getElementById("username").value === "" ||
+    document.getElementById("pwd").value === ""
   ) {
     document.getElementById("msg").innerHTML = "Missing username or password";
     document.getElementById("msg").style.opacity = 1;
@@ -18,7 +18,7 @@ function login() {
     success: function (data) {
       if (
         !data.hasOwnProperty("status") ||
-        (data.hasOwnProperty("status") && data.status == "success")
+        (data.hasOwnProperty("status") && data.status === "success")
       ) {
         //success
         document.cookie =
@@ -27,7 +27,7 @@ function login() {
             username: data.username,
             token: data.token,
           });
-        location.reload();
+        window.location.reload();
       } else {
         //error
         document.getElementById("msg").innerHTML =
@@ -45,7 +45,7 @@ function login() {
 
 $(document).ready(function () {
   $(document).on("keypress", function (e) {
-    if (e.which == 13) {
+    if (e.which === 13) {
       login();
     }
   });

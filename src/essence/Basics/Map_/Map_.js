@@ -802,6 +802,7 @@ async function makeLayer(layerObj, evenIfOff) {
                     return
                 }
 
+                layerObj.style = layerObj.style || {}
                 layerObj.style.layerName = layerObj.name
 
                 layerObj.style.opacity = L_.opacityArray[layerObj.name]
