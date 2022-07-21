@@ -1376,9 +1376,7 @@ var L_ = {
         }
         if (ignoreWarnings !== true)
             console.warn(
-                'Warning: Tried to get Tool: ' +
-                    toolName +
-                    "'s config variables and failed."
+                `WARNING: Tried to get ${toolName} Tool's config variables and failed.`
             )
         return {}
     },

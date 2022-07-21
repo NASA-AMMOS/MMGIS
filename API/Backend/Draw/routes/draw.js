@@ -1325,7 +1325,6 @@ router.post("/split", function (req, res, next) {
                   return null;
                 })
                 .catch((err) => {
-                  console.log(err);
                   addLoop(i + 1);
                   return null;
                 });

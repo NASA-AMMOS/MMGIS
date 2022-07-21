@@ -116,10 +116,13 @@ let ToolController_ = {
             .style('pointer-events', 'auto')
             .style('opacity', '1')
 
-        for (let t in ToolController_.toolModules) {
-            if (typeof ToolController_.toolModules[t].initialize === 'function')
+        ToolController_.toolModuleNames.forEach((t) => {
+            if (
+                ToolController_.toolModules[t] &&
+                typeof ToolController_.toolModules[t].initialize === 'function'
+            )
                 ToolController_.toolModules[t].initialize()
-        }
+        })
 
         ToolController_.loaded = true
         L_.toolsLoaded = true

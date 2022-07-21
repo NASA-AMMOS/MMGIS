@@ -36,7 +36,6 @@ const Utils = {
     return index;
   },
   setIn: function (obj, keyArray, value, splice, assumeLayerHierarchy) {
-    console.log(keyArray);
     if (keyArray == null || keyArray === []) return false;
     if (typeof keyArray === "string") keyArray = keyArray.split(".");
     let object = obj;
@@ -60,13 +59,26 @@ const Utils = {
     return true;
   },
   traverseLayers: function (layers, onLayer) {
-    depthTraversal(layers, 0);
-    function depthTraversal(node, depth) {
+    depthTraversal(layers, 0, []);
+    function depthTraversal(node, depth, path) {
       for (var i = 0; i < node.length; i++) {
-        onLayer(node[i], node.type === "header" ? node : null);
+        const ret = onLayer(node[i], path, i);
+
+        if (ret === "remove") {
+          node.splice(i, 1);
+          i--;
+        }
         //Add other feature information while we're at it
-        if (node[i].sublayers != null && node[i].sublayers.length > 0) {
-          depthTraversal(node[i].sublayers, depth + 1);
+        else if (
+          node[i] &&
+          node[i].sublayers != null &&
+          node[i].sublayers.length > 0
+        ) {
+          depthTraversal(
+            node[i].sublayers,
+            depth + 1,
+            `${path.length > 0 ? path + "." : ""}${node[i].name}`
+          );
         }
       }
     }

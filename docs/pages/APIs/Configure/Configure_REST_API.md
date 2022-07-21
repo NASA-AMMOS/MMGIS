@@ -111,13 +111,13 @@ Sets a mission's configuration object. Only complete configuration objects are a
 
 Adds a single layer to a mission's configuration object. A wrapping helper to `upsert`.
 
-|      Parameter      |   Type   | Required | Default |                                                    Description                                                     |
-| :-----------------: | :------: | :------: | :-----: | :----------------------------------------------------------------------------------------------------------------: |
-|     **mission**     | _string_ |   true   |   N/A   |                                                    Mission name                                                    |
-|      **layer**      | _object_ |   true   |   N/A   |            Full new layer configuration object. See browser console-network tab responses for examples.            |
-| **placement.path**  | _string_ |  false   |   ''    | A path to a header in 'layers' to place the new layer. A simple path ('sublayers' are added). Defaults to no group |
-| **placement.index** | _number_ |  false   |   end   |          Index in 'layers' (or path) to place the new layer. Out of range placement indices are best fit.          |
-|  **notifyClients**  | _number_ |  false   |  false  |                             Set a configuration version number to rollback to instead                              |
+|      Parameter      |   Type    | Required | Default |                                                    Description                                                     |
+| :-----------------: | :-------: | :------: | :-----: | :----------------------------------------------------------------------------------------------------------------: |
+|     **mission**     | _string_  |   true   |   N/A   |                                                    Mission name                                                    |
+|      **layer**      | _object_  |   true   |   N/A   |            Full new layer configuration object. See browser console-network tab responses for examples.            |
+| **placement.path**  | _string_  |  false   |   ''    | A path to a header in 'layers' to place the new layer. A simple path ('sublayers' are added). Defaults to no group |
+| **placement.index** | _number_  |  false   |   end   |          Index in 'layers' (or path) to place the new layer. Out of range placement indices are best fit.          |
+|  **notifyClients**  | _boolean_ |  false   |  false  |                             Set a configuration version number to rollback to instead                              |
 
 #### Examples
 
@@ -127,11 +127,16 @@ Adds a single layer to a mission's configuration object. A wrapping helper to `u
 
 ### POST /updateLayer
 
-Adds a single layer to a mission's configuration object. A wrapping helper to `upsert`.
+Updates a single layer. Specified layer values are deep merged and overwrite existing values. Layer can be rename and repositioned.
 
-|  Parameter  |   Type   | Required | Default | Description  |
-| :---------: | :------: | :------: | :-----: | :----------: |
-| **mission** | _string_ |   true   |   N/A   | Mission name |
+|      Parameter      |   Type    | Required | Default |                                                    Description                                                     |
+| :-----------------: | :-------: | :------: | :-----: | :----------------------------------------------------------------------------------------------------------------: |
+|     **mission**     | _string_  |   true   |   N/A   |                                                    Mission name                                                    |
+|    **layerName**    | _string_  |   true   |   N/A   |                                                  Layer to update                                                   |
+|      **layer**      | _object_  |   true   |   N/A   |           A partial layer configuration object. See browser console-network tab responses for examples.            |
+| **placement.path**  | _string_  |  false   |   ''    | A path to a header in 'layers' to place the new layer. A simple path ('sublayers' are added). Defaults to no group |
+| **placement.index** | _number_  |  false   |   end   |          Index in 'layers' (or path) to place the new layer. Out of range placement indices are best fit.          |
+|  **notifyClients**  | _boolean_ |  false   |  false  |                             Set a configuration version number to rollback to instead                              |
 
 #### Examples
 
@@ -141,11 +146,13 @@ Adds a single layer to a mission's configuration object. A wrapping helper to `u
 
 ### POST /removeLayer
 
-Adds a single layer to a mission's configuration object. A wrapping helper to `upsert`.
+Removes a single layer from the configuration object.
 
-|  Parameter  |   Type   | Required | Default | Description  |
-| :---------: | :------: | :------: | :-----: | :----------: |
-| **mission** | _string_ |   true   |   N/A   | Mission name |
+|     Parameter     |   Type    | Required | Default |                        Description                        |
+| :---------------: | :-------: | :------: | :-----: | :-------------------------------------------------------: |
+|    **mission**    | _string_  |   true   |   N/A   |                       Mission name                        |
+|   **layerName**   | _string_  |   true   |   N/A   |                      Layer to update                      |
+| **notifyClients** | _boolean_ |  false   |  false  | Set a configuration version number to rollback to instead |
 
 #### Examples
 
@@ -155,11 +162,14 @@ Adds a single layer to a mission's configuration object. A wrapping helper to `u
 
 ### POST /updateInitialView
 
-Adds a single layer to a mission's configuration object. A wrapping helper to `upsert`.
+Updates the initial latitude, longitude, zoom of the map when users first arrive to the site.
 
-|  Parameter  |   Type   | Required | Default | Description  |
-| :---------: | :------: | :------: | :-----: | :----------: |
-| **mission** | _string_ |   true   |   N/A   | Mission name |
+|   Parameter   |   Type   | Required | Default  |           Description           |
+| :-----------: | :------: | :------: | :------: | :-----------------------------: |
+|  **mission**  | _string_ |   true   |   N/A    |          Mission name           |
+| **latitude**  | _number_ |  false   | existing | Map latitude center coordinate  |
+| **longitude** | _number_ |  false   | existing | Map Longitude center coordinate |
+|   **zoom**    | _number_ |  false   | existing |         Map zoom level          |
 
 #### Examples
 

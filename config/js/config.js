@@ -2509,30 +2509,7 @@ function populateVersions(versions) {
   $(".version_download").on("click", function () {
     let downloadMission = $(this).attr("mission");
     let downloadVersion = $(this).attr("version");
-    $.ajax({
-      type: "POST",
-      url: "api/configure/addLayer",
-      data: {
-        mission: "MSL",
-        layer: {
-          name: "testAddLayer2",
-          type: "vector",
-          url: "Layers/GPR_1/GPR_1.json",
-        },
-        placement: {
-          path: "Features.CAMP.DeepHeader",
-          index: 6,
-        },
-        notifyClients: false,
-      },
-      success: function (data) {
-        console.log(data);
-        if (data.status == "success") {
-        } else {
-        }
-      },
-    });
-    return;
+
     $.ajax({
       type: calls.get.type,
       url: calls.get.url,
