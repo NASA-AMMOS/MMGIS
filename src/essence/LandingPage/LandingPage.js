@@ -56,7 +56,10 @@ export default {
                 .append('i')
                 .attr('class', 'mdi mdi-information-outline mdi-14px')
 
-            if (window.mmgisglobal.CLEARANCE_NUMBER) {
+            if (
+                window.mmgisglobal.CLEARANCE_NUMBER &&
+                window.mmgisglobal.CLEARANCE_NUMBER != 'undefined'
+            ) {
                 background
                     .append('div')
                     .attr('class', 'clearance')
@@ -83,7 +86,6 @@ export default {
                 .style('cursor', 'default')
                 .style('padding', '0px 10px')
                 .html("<img src='" + mmgisLogoURL + "' alt='Full logo'/>")
-            background.append('div').attr('id', 'landingPanelUnder')
             background.append('div').attr('id', 'landingPanel')
 
             var missionsDiv = background
