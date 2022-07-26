@@ -381,26 +381,30 @@ let Map_ = {
             )
         }
     },
-    refreshLayer: function (layerObj) {
+    refreshLayer: async function (layerObj) {
         // We need to find and remove all points on the map that belong to the layer
         // Not sure if there is a cleaner way of doing this
         for (var i = L_.layersOrdered.length - 1; i >= 0; i--) {
-            if (Map_.hasLayer(L_.layersOrdered[i])) {
-                if (
-                    L_.layersNamed[L_.layersOrdered[i]] &&
-                    L_.layersNamed[L_.layersOrdered[i]].type == 'vector' &&
-                    L_.layersNamed[L_.layersOrdered[i]].name == layerObj.name
-                ) {
-                    Map_.map.removeLayer(L_.layersGroup[L_.layersOrdered[i]])
-                    L_.layersLoaded[
-                        L_.layersOrdered.indexOf(layerObj.name)
-                    ] = false
-                }
+            if (
+                L_.layersNamed[L_.layersOrdered[i]] &&
+                L_.layersNamed[L_.layersOrdered[i]].type == 'vector' &&
+                L_.layersNamed[L_.layersOrdered[i]].name == layerObj.name
+            ) {
+                const wasOn = L_.toggledArray[layerObj.name]
+                if (wasOn) L_.toggleLayer(L_.layersNamed[layerObj.name]) // turn off if on
+                // fake on
+                L_.toggledArray[layerObj.name] = true
+                await makeLayer(layerObj, true)
+                L_.addVisible(Map_, [layerObj.name])
+
+                // turn off if was off
+                if (wasOn) L_.toggledArray[layerObj.name] = false
+                L_.toggleLayer(L_.layersNamed[layerObj.name]) // turn back on/off
+
+                L_.enforceVisibilityCutoffs()
+                return
             }
         }
-        Map_.allLayersLoadedPassed = false
-        makeLayer(layerObj, true)
-        allLayersLoaded()
     },
     setPlayerArrow(lng, lat, rot) {
         var playerMapArrowOffsets = [
@@ -725,7 +729,7 @@ async function makeLayer(layerObj, evenIfOff) {
 
                     //figure out how to construct searchStr in URL. For example: a ChemCam target can sometime
                     //be searched by "target sol", or it can be searched by "sol target" depending on config file.
-                    var searchToolVars = L_.getToolVars('search', true)
+                    var searchToolVars = L_.getToolVars('search')
                     var searchfields = {}
                     if (searchToolVars.hasOwnProperty('searchfields')) {
                         for (var layerfield in searchToolVars.searchfields) {

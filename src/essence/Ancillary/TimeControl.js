@@ -13,6 +13,7 @@ const relativeTimeFormat = new RegExp(
 )
 
 var TimeControl = {
+    enabled: false,
     isRelative: true,
     currentTime: new Date().toISOString().split('.')[0] + 'Z',
     timeOffset: '01:00:00',
@@ -24,6 +25,7 @@ var TimeControl = {
     _updateLockedForAcceptingInput: false,
     init: function () {
         if (L_.configData.time && L_.configData.time.enabled === true) {
+            TimeControl.enabled = true
             TimeControl.globalTimeFormat = d3.utcFormat(
                 L_.configData.time.format
             )
@@ -102,6 +104,9 @@ var TimeControl = {
         isRelative,
         timeOffset = '00:00:00'
     ) {
+        if (!TimeControl.enabled || startTime == null || endTime == null)
+            return false
+
         var now = new Date()
         var offset = 0
         if (relativeTimeFormat.test(timeOffset)) {
@@ -192,7 +197,7 @@ var TimeControl = {
         if (layer.time) return layer.time.end
         return false
     },
-    reloadLayer: function (layer, evenIfOff) {
+    reloadLayer: async function (layer, evenIfOff) {
         // reload layer
         if (typeof layer == 'string') {
             layer = L_.layersNamed[layer]
@@ -240,7 +245,7 @@ var TimeControl = {
                     )
                 // refresh map
                 if (L_.toggledArray[layer.name] || evenIfOff) {
-                    Map_.refreshLayer(layer)
+                    await Map_.refreshLayer(layer)
                 }
                 // put start/endtime keywords back
                 layer.url = originalUrl
@@ -330,7 +335,7 @@ function initLayerTimes() {
 }
 
 function updateTime() {
-    if (!TimeControl._updateLockedForAcceptingInput) {
+    if (!TimeControl._updateLockedForAcceptingInput && TimeControl.enabled) {
         // Continuously update global time clock and UI elements
         var now = new Date()
         var offset = 0

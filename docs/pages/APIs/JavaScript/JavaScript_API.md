@@ -346,18 +346,19 @@ The following is an example of how to call the `reloadTimeLayers` function:
 window.mmgisAPI.reloadTimeLayers()[("Lunaserv", "Earthquakes")];
 ```
 
-### reloadLayer(layer)
+### reloadLayer(layer, evenIfOff)
 
-This function will reload the given time-enabled layer by re-fetching the data and re-drawing on the map. It should be called after `setTime` or `setLayerTime`.
+This async function will reload the given time-enabled layer by re-fetching the data and re-drawing on the map. It should be called after `setTime` or `setLayerTime`.
 
 #### Function parameters
 
 - `layer` - The layer name string or a layer object
+- `evenIfOff` - Reload this layer even if the user has it toggled off
 
 The following is an example of how to call the `reloadLayer` function:
 
 ```javascript
-window.mmgisAPI.reloadLayer("Earthquakes");
+window.mmgisAPI.reloadLayer("Earthquakes", true);
 ```
 
 ### setLayersTimeStatus(color)
