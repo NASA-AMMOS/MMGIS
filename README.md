@@ -51,8 +51,10 @@
 
 1. GDAL and Python are weaker dependencies (without them not everything will work)
 
-   - GDAL [2.+](https://gdal.org/download.html) with Python bindings
+   - GDAL [2.+](https://gdal.org/download.html) with Python bindings (Windows users may find [these](https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal) helpful)
    - Python [2.7+](https://www.python.org/downloads/release/python-2718/)/[3.6+](https://www.python.org/downloads/release/python-396/)
+     - `python -m pip install numpy`
+     - Note: MMGIS expects and uses the command `python` only and not `python3` or variations.
 
 ### Setup
 

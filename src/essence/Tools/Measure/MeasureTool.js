@@ -63,6 +63,8 @@ const Measure = () => {
         Viewer_.imageViewer.style('cursor', 'default')
     }, [])
 
+    const dems = MeasureTool.getDems()
+
     return (
         <div className='MeasureTool'>
             <div id='measureLeft'>
@@ -84,6 +86,20 @@ const Measure = () => {
                             <i className='mdi mdi-refresh mdi-18px'></i>
                         </div>
                     </div>
+                </div>
+                <div id='measureDem'>
+                    <div title='Digital Elevation Model'>DEM</div>
+                    <select
+                        className='dropdown'
+                        defaultValue={dems[0].path}
+                        onChange={MeasureTool.changeDem}
+                    >
+                        {dems.map((l, idx) => (
+                            <option key={idx} value={idx}>
+                                {l.name}
+                            </option>
+                        ))}
+                    </select>
                 </div>
                 <div id='measureMode'>
                     <div>Mode</div>
@@ -311,6 +327,8 @@ let MeasureTool = {
     data: [],
     lastData: [],
     mapFocusMarker: null,
+    dems: [],
+    activeDemIdx: 0,
     colorRamp: [
         '#e60049',
         '#0bb4ff',
@@ -346,6 +364,8 @@ let MeasureTool = {
 
         //Get tool variables
         this.vars = L_.getToolVars('measure')
+
+        this.dems = MeasureTool.getDems()
 
         ReactDOM.render(<Measure />, document.getElementById('tools'))
     },
@@ -389,6 +409,30 @@ let MeasureTool = {
         CursorInfo.hide()
 
         MeasureTool.clearFocusPoint()
+    },
+    getDems: function () {
+        console.log(this.vars, L_)
+
+        const onlyShowDemIfLayerOn =
+            this.vars.onlyShowDemIfLayerOn == null
+                ? true
+                : this.vars.onlyShowDemIfLayerOn
+                ? true
+                : false
+
+        let dems = []
+        if (MeasureTool.vars.dem)
+            dems.push({ name: 'Main', path: MeasureTool.vars.dem })
+        if (MeasureTool.vars.layerDems)
+            for (let name in MeasureTool.vars.layerDems) {
+                dems.push({
+                    name: name,
+                    path: MeasureTool.vars.layerDems[name],
+                })
+            }
+        if (dems.length === 0)
+            dems.push({ name: 'Misconfigured', path: 'none' })
+        return dems
     },
     clickMap: function (e) {
         if (mode === 'segment' && clickedLatLngs.length >= 2) {
@@ -588,6 +632,10 @@ let MeasureTool = {
 
         updateProfileData([])
     },
+    changeDem: function (e) {
+        MeasureTool.activeDemIdx = parseInt(e.target.value)
+        makeProfile()
+    },
     changeMode: function (e) {
         MeasureTool.reset()
         mode = e.target.value || 'segment'
@@ -726,13 +774,13 @@ function makeMeasureToolLayer() {
 }
 function makeProfile() {
     var numOfPts = clickedLatLngs.length
-    if (numOfPts > 1 && MeasureTool.vars.dem) {
-        // enable remote access via GDAL Virtual File Systems /vsi* prefix 
-        if (MeasureTool.vars.dem.startsWith('/vsi')) {
-            var pathDEM = MeasureTool.vars.dem
-        } else {
-            var pathDEM = 'Missions/' + L_.mission + '/' + MeasureTool.vars.dem
-        }
+    const path = MeasureTool.dems[MeasureTool.activeDemIdx].path
+    if (numOfPts > 1 && path && path != 'none' && path != 'undefined') {
+        // enable remote access via GDAL Virtual File Systems /vsi* prefix
+        let pathDEM
+        if (path.startsWith('/vsi')) pathDEM = path
+        else pathDEM = 'Missions/' + L_.mission + '/' + path
+
         //elevPoints.push([{"x": clickedLatLngs[numOfPts - 2].x, "y": clickedLatLngs[numOfPts - 2].y}, {"x": clickedLatLngs[numOfPts - 1].x, "y": clickedLatLngs[numOfPts - 1].y}]);
         elevPoints = [
             {
