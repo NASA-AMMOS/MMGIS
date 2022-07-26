@@ -2,9 +2,13 @@
     "defaultIcon": "tape-measure",
     "description": "Measure distances and generates elevation profiles.",
     "descriptionFull": {
-        "title": "Specify a path to a Digital Elevation Model (dem) .tif. Measure distances and generates elevation profiles. Can also query specific bands at specific points of images and generate profiles of them.",
+        "title": "Specify a path to a Digital Elevation Model (dem) .tif. Measure distances and generates elevation profiles. Can also query specific bands at specific points of images and generate profiles of them. If multiple dems are specified, a dropdown will be present for users to toggle between them.",
         "example": {
-            "dem": "(str) path to Data/missionDEM.tif"
+            "dem": "(str) path to Data/defaultDEM.tif",
+            "layerDems": {
+                "[layer_name]": "(str) path/to/layers/dem.tif"
+            },
+            "onlyShowDemIfLayerOn": true
         }
     },
     "hasVars": true,
