@@ -79,7 +79,7 @@ Gets a mission's configuration object. _Auth token not needed._
 
 ### POST /validate
 
-Validates a configuration object and performs no action if valid.
+Validates a configuration object and performs no other action.
 
 | Parameter  |   Type   | Required | Default |        Description        |
 | :--------: | :------: | :------: | :-----: | :-----------------------: |
@@ -117,7 +117,7 @@ Adds a single layer to a mission's configuration object. A wrapping helper to `u
 |      **layer**      | _object_  |   true   |   N/A   |            Full new layer configuration object. See browser console-network tab responses for examples.            |
 | **placement.path**  | _string_  |  false   |   ''    | A path to a header in 'layers' to place the new layer. A simple path ('sublayers' are added). Defaults to no group |
 | **placement.index** | _number_  |  false   |   end   |          Index in 'layers' (or path) to place the new layer. Out of range placement indices are best fit.          |
-|  **notifyClients**  | _boolean_ |  false   |  false  |                             Set a configuration version number to rollback to instead                              |
+|  **notifyClients**  | _boolean_ |  false   |  false  |                                          Push the change out to clients.                                           |
 
 #### Example
 
@@ -127,7 +127,7 @@ Adds a single layer to a mission's configuration object. A wrapping helper to `u
 
 ### POST /updateLayer
 
-Updates a single layer. Specified layer values are deep merged and overwrite existing values. Layer can be rename and repositioned.
+Updates a single layer. Specified layer values are deep merged and overwrite existing values. Layers can be renamed and repositioned.
 
 |      Parameter      |   Type    | Required | Default |                                                    Description                                                     |
 | :-----------------: | :-------: | :------: | :-----: | :----------------------------------------------------------------------------------------------------------------: |
@@ -136,7 +136,7 @@ Updates a single layer. Specified layer values are deep merged and overwrite exi
 |      **layer**      | _object_  |   true   |   N/A   |           A partial layer configuration object. See browser console-network tab responses for examples.            |
 | **placement.path**  | _string_  |  false   |   ''    | A path to a header in 'layers' to place the new layer. A simple path ('sublayers' are added). Defaults to no group |
 | **placement.index** | _number_  |  false   |   end   |          Index in 'layers' (or path) to place the new layer. Out of range placement indices are best fit.          |
-|  **notifyClients**  | _boolean_ |  false   |  false  |                             Set a configuration version number to rollback to instead                              |
+|  **notifyClients**  | _boolean_ |  false   |  false  |                                          Push the change out to clients.                                           |
 
 #### Example
 
@@ -148,11 +148,11 @@ Updates a single layer. Specified layer values are deep merged and overwrite exi
 
 Removes a single layer from the configuration object.
 
-|     Parameter     |   Type    | Required | Default |                        Description                        |
-| :---------------: | :-------: | :------: | :-----: | :-------------------------------------------------------: |
-|    **mission**    | _string_  |   true   |   N/A   |                       Mission name                        |
-|   **layerName**   | _string_  |   true   |   N/A   |                      Layer to update                      |
-| **notifyClients** | _boolean_ |  false   |  false  | Set a configuration version number to rollback to instead |
+|     Parameter     |   Type    | Required | Default |           Description           |
+| :---------------: | :-------: | :------: | :-----: | :-----------------------------: |
+|    **mission**    | _string_  |   true   |   N/A   |          Mission name           |
+|   **layerName**   | _string_  |   true   |   N/A   |         Layer to update         |
+| **notifyClients** | _boolean_ |  false   |  false  | Push the change out to clients. |
 
 #### Example
 

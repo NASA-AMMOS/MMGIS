@@ -87,20 +87,22 @@ const Measure = () => {
                         </div>
                     </div>
                 </div>
-                <div id='measureDem'>
-                    <div title='Digital Elevation Model'>DEM</div>
-                    <select
-                        className='dropdown'
-                        defaultValue={dems[0].path}
-                        onChange={MeasureTool.changeDem}
-                    >
-                        {dems.map((l, idx) => (
-                            <option key={idx} value={idx}>
-                                {l.name}
-                            </option>
-                        ))}
-                    </select>
-                </div>
+                {dems.length > 1 && (
+                    <div id='measureDem'>
+                        <div title='Digital Elevation Model'>DEM</div>
+                        <select
+                            className='dropdown'
+                            defaultValue={dems[0].path}
+                            onChange={MeasureTool.changeDem}
+                        >
+                            {dems.map((l, idx) => (
+                                <option key={idx} value={idx}>
+                                    {l.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
                 <div id='measureMode'>
                     <div>Mode</div>
                     <select
@@ -366,6 +368,7 @@ let MeasureTool = {
         this.vars = L_.getToolVars('measure')
 
         this.dems = MeasureTool.getDems()
+        this.activeDemIdx = 0
 
         ReactDOM.render(<Measure />, document.getElementById('tools'))
     },
@@ -411,8 +414,6 @@ let MeasureTool = {
         MeasureTool.clearFocusPoint()
     },
     getDems: function () {
-        console.log(this.vars, L_)
-
         const onlyShowDemIfLayerOn =
             this.vars.onlyShowDemIfLayerOn == null
                 ? true
@@ -425,10 +426,11 @@ let MeasureTool = {
             dems.push({ name: 'Main', path: MeasureTool.vars.dem })
         if (MeasureTool.vars.layerDems)
             for (let name in MeasureTool.vars.layerDems) {
-                dems.push({
-                    name: name,
-                    path: MeasureTool.vars.layerDems[name],
-                })
+                if (!onlyShowDemIfLayerOn || L_.toggledArray[name])
+                    dems.push({
+                        name: name,
+                        path: MeasureTool.vars.layerDems[name],
+                    })
             }
         if (dems.length === 0)
             dems.push({ name: 'Misconfigured', path: 'none' })
@@ -634,6 +636,8 @@ let MeasureTool = {
     },
     changeDem: function (e) {
         MeasureTool.activeDemIdx = parseInt(e.target.value)
+        // Won't requery all continuous segments again
+        if (mode != 'segment') MeasureTool.reset()
         makeProfile()
     },
     changeMode: function (e) {
