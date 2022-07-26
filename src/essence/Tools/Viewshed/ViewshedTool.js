@@ -74,7 +74,7 @@ let ViewshedTool = {
     initialize: function () {
         this.vars = L_.getToolVars('viewshed')
 
-        if (this.vars) {
+        if (this.vars && this.vars.__noVars !== true) {
             if (this.vars.data == null)
                 console.warn(
                     'ViewshedTool: variables object does not contain key "data"!'
@@ -1158,12 +1158,16 @@ let ViewshedTool = {
                         dlc[z][Math.floor(x)] = dlc[z][Math.floor(x)] || {}
 
                         const tileRow =
-                            (y - Math.floor(data.outputTopLeftTile.y)
-                            - (Math.abs(data.outputTopLeftTile.y) % 1) * 2) * res
+                            (y -
+                                Math.floor(data.outputTopLeftTile.y) -
+                                (Math.abs(data.outputTopLeftTile.y) % 1) * 2) *
+                            res
 
                         const tileCol =
-                            (x - Math.floor(data.outputTopLeftTile.x)
-                            - (Math.abs(data.outputTopLeftTile.x) % 1) * 2) * res
+                            (x -
+                                Math.floor(data.outputTopLeftTile.x) -
+                                (Math.abs(data.outputTopLeftTile.x) % 1) * 2) *
+                            res
 
                         // Draw canvas
                         let px = 0

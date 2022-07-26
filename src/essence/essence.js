@@ -182,7 +182,7 @@ var essence = {
         //Now that the map is made
         Coordinates.init()
         ContextMenu.init()
-        
+
         //Make the time control
         TimeControl.init()
 
@@ -282,20 +282,25 @@ var essence = {
         }
     },
     fina: function () {
-        if (essence.hasSwapped) Globe_.reset()
+        if (!essence.finalized) {
+            // Only finalize once
+            essence.finalized = true
 
-        //FinalizeGlobe
-        Globe_.fina(Coordinates)
-        //Finalize Layers_
-        L_.fina(Viewer_, Map_, Globe_, UserInterface_)
-        //Finalize the interface
-        UserInterface_.fina(L_, Viewer_, Map_, Globe_)
-        //Finalize the Viewer
-        Viewer_.fina(Map_)
-        // Finalize the mmgisAPI
-        mmgisAPI_.fina(Map_)
+            if (essence.hasSwapped) Globe_.reset()
 
-        stylize()
+            //FinalizeGlobe
+            Globe_.fina(Coordinates)
+            //Finalize Layers_
+            L_.fina(Viewer_, Map_, Globe_, UserInterface_)
+            //Finalize the interface
+            UserInterface_.fina(L_, Viewer_, Map_, Globe_)
+            //Finalize the Viewer
+            Viewer_.fina(Map_)
+            // Finalize the mmgisAPI
+            mmgisAPI_.fina(Map_)
+
+            stylize()
+        }
     },
 }
 

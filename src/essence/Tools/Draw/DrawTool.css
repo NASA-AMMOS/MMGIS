@@ -490,6 +490,7 @@
 #drawToolDrawFilterByTagAutocomplete {
     display: none;
     position: absolute;
+    width: 260px;
     top: 30px;
     font-size: 14px;
     color: var(--color-a);
@@ -522,7 +523,7 @@
 #drawToolDrawFilterByTagAutocomplete ul {
     list-style: none;
     text-align: left;
-    width: 250px;
+    width: 260px;
     margin: 0;
     padding: 3px 0px;
     background: #fff;

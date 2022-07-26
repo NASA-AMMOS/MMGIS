@@ -528,7 +528,8 @@ var L_ = {
     },
     // Simply if visibility was set as true in the json,
     // add the layer
-    addVisible: function (map_) {
+    // onlyTheseLayers: ['array', 'of', 'layer', 'names']
+    addVisible: function (map_, onlyTheseLayers) {
         var map = map_
         if (map == null) {
             if (L_.Map_ == null) {
@@ -543,6 +544,8 @@ var L_ = {
         }
         for (var i = L_.layersData.length - 1; i >= 0; i--) {
             if (
+                (onlyTheseLayers == null ||
+                    onlyTheseLayers.includes(L_.layersData[i].name)) &&
                 L_.toggledArray[L_.layersData[i].name] === true &&
                 (L_.layersData[i].type === 'model' ||
                     L_.layersGroup[L_.layersData[i].name] != null)
@@ -584,7 +587,6 @@ var L_ = {
                                 }
                             }
                         }
-
                         map.addLayer(L_.layersGroup[L_.layersData[i].name])
                         // Set markerDiv based opacities if any
                         $(
@@ -1141,12 +1143,12 @@ var L_ = {
         newOpacity = parseFloat(newOpacity)
         if (L_.Globe_) L_.Globe_.litho.setLayerOpacity(name, newOpacity)
         let l = L_.layersGroup[name]
-
         if (l.options.initialFillOpacity == null)
             l.options.initialFillOpacity =
                 L_.layersStyles[name]?.fillOpacity != null
                     ? parseFloat(L_.layersStyles[name]?.fillOpacity)
                     : 1
+
         if (l) {
             try {
                 l.setOpacity(newOpacity)
@@ -1364,7 +1366,7 @@ var L_ = {
         }
         return false
     },
-    getToolVars: function (toolName, ignoreWarnings) {
+    getToolVars: function (toolName, showWarnings) {
         for (var i = 0; i < L_.tools.length; i++) {
             if (
                 L_.tools[i].hasOwnProperty('name') &&
@@ -1374,11 +1376,11 @@ var L_ = {
                 return L_.tools[i].variables
             }
         }
-        if (ignoreWarnings !== true)
+        if (showWarnings)
             console.warn(
                 `WARNING: Tried to get ${toolName} Tool's config variables and failed.`
             )
-        return {}
+        return { __noVars: true }
     },
     /**
      * @param {object} layer - leaflet layer object

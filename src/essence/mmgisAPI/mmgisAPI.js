@@ -184,7 +184,7 @@ var mmgisAPI_ = {
     addEventListener: function (eventName, functionReference) {
         const listener = mmgisAPI_.getLeafletMapEvent(eventName)
         if (listener) {
-            console.log('Add listener', listener)
+            console.log('Add listener:', listener)
             mmgisAPI_.map.addEventListener(listener, functionReference)
         } else {
             //mmgisAPI_.customListeners[eventName] = mmgisAPI_.customListeners[eventName] || []
@@ -198,7 +198,7 @@ var mmgisAPI_ = {
     removeEventListener: function (eventName, functionReference) {
         const listener = mmgisAPI_.getLeafletMapEvent(eventName)
         if (listener) {
-            console.log('Remove listener', listener)
+            console.log('Remove listener:', listener)
             mmgisAPI_.map.removeEventListener(listener, functionReference)
         } else {
             //if(mmgisAPI_.customListeners[eventName]) {
