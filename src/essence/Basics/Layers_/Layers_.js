@@ -1160,6 +1160,47 @@ var L_ = {
                         .toLowerCase()}`
                 ).css({ opacity: newOpacity })
             }
+
+            const sublayers = L_.layersGroupSublayers[name]
+            if (sublayers) {
+                for (let sub in sublayers) {
+                    if (
+                        sublayers[sub] !== false &&
+                        sublayers[sub].layer != null &&
+                        !['models'].includes(sub)
+                    ) {
+                        try {
+                            sublayers[sub].layer.setOpacity(newOpacity)
+                        } catch (error) {
+                            try {
+                                sublayers[sub].layer.setStyle({
+                                    opacity: newOpacity,
+                                    fillOpacity:
+                                        newOpacity *
+                                        l.options.initialFillOpacity,
+                                })
+                            } catch (error2) {
+                                if (sublayers[sub].layer._layers)
+                                    for (let sl in sublayers[sub].layer
+                                        ._layers) {
+                                        console.log(
+                                            sublayers[sub].layer._layers[sl]
+                                        )
+                                        sublayers[sub].layer._layers[
+                                            sl
+                                        ].setStyle({
+                                            opacity: newOpacity,
+                                            fillOpacity:
+                                                newOpacity *
+                                                l.options.initialFillOpacity,
+                                        })
+                                    }
+                            }
+                        }
+                    }
+                }
+            }
+
             try {
                 l.options.fillOpacity =
                     newOpacity * l.options.initialFillOpacity
