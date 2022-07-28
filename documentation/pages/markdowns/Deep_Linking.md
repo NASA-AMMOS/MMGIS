@@ -124,6 +124,22 @@ If no `mission` is set in the URL, there exists only one configured mission and 
 - _dependencies_: mission is unset
 - _unset:_ The landing page will redirect to the only mission if there exists only one configured mission
 
+### startTime=<br>`<start time>`
+
+Sets the start time for the time control feature.
+
+- _form:_ `<string>`
+- _dependencies_: Time control
+- _unset:_  Will default to current time if time control feature is enabled
+
+### endTime=<br>`<end time>`
+
+Sets the end time for the time control feature.
+
+- _form:_ `<string>`
+- _dependencies_: Time control
+- _unset:_  Will default to current time if time control feature is enabled
+
 ## Examples
 
 #### General

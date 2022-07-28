@@ -1,6 +1,9 @@
+import * as moment from 'moment'
+
 import L_ from '../Basics/Layers_/Layers_'
 import T_ from '../Basics/ToolController_/ToolController_'
 import calls from '../../pre/calls'
+import TimeControl from './TimeControl'
 
 var QueryURL = {
     checkIfMission: function () {
@@ -30,6 +33,9 @@ var QueryURL = {
         var viewerLoc = this.getSingleQueryVariable('viewerLoc')
 
         var rmcxyzoom = this.getSingleQueryVariable('rmcxyzoom')
+
+        var startTime = this.getSingleQueryVariable('startTime')
+        var endTime = this.getSingleQueryVariable('endTime')
 
         if (urlSite !== false) {
             L_.FUTURES.site = urlSite
@@ -143,6 +149,24 @@ var QueryURL = {
                         console.warn(d)
                     }
                 )
+            }
+        }
+
+        if (startTime !== false) {
+            const date = new moment(startTime)
+            if (!isNaN(date) && date.isValid()) {
+                L_.FUTURES.startTime = date
+            } else {
+                console.warn('Invalid startTime from deep link in the url')
+            }
+        }
+
+        if (endTime !== false) {
+            const date = new moment(endTime)
+            if (!isNaN(date) && date.isValid()) {
+                L_.FUTURES.endTime = date
+            } else {
+                console.warn('Invalid endTime from deep link in the url')
             }
         }
 
@@ -261,6 +285,10 @@ var QueryURL = {
         var viewerImg = L_.Viewer_.getLastImageId()
         var viewerLoc = L_.Viewer_.getLocation()
 
+        const timeEnabled = L_.configData.time && L_.configData.time.enabled === true
+        var startTime = timeEnabled ? TimeControl.getStartTime() : null
+        var endTime = timeEnabled ? TimeControl.getEndTime() : null
+
         //mission
         var urlAppendage = '?mission=' + L_.mission
 
@@ -341,6 +369,10 @@ var QueryURL = {
         //tools
         var urlTools = T_.getToolsUrl()
         if (urlTools !== false) urlAppendage += '&tools=' + urlTools
+
+        //time
+        if (L_.FUTURES.startTime) urlAppendage += '&startTime=' + startTime
+        if (L_.FUTURES.endTime) urlAppendage += '&endTime=' + endTime
 
         var url = urlAppendage
         if (shortenURL) {

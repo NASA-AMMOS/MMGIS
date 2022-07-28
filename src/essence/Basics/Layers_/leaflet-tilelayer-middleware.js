@@ -172,10 +172,24 @@ var wmsExtension = {
             ).join(','),
             url = L.TileLayer.prototype.getTileUrl.call(this, coords)
 
+        const wmsParamsUpdate = {};
+        for (var key in this.wmsParams) {
+            // If the WMS parameter contains {time}, {starttime}, and/or {endtime},
+            // fill in the correct time values
+            if (typeof this.wmsParams[key] === 'string') {
+                wmsParamsUpdate[key] = this.wmsParams[key]
+                    .replace('{time}', this.options.time)
+                    .replace('{starttime}', this.options.starttime)
+                    .replace('{endtime}', this.options.endtime)
+            } else {
+                wmsParamsUpdate[key] = this.wmsParams[key]
+            }
+        }
+
         return (
             url +
             L.Util.getParamString(
-                this.wmsParams,
+                wmsParamsUpdate,
                 url,
                 this.extensionOptions.uppercase
             ) +
@@ -225,6 +239,7 @@ L.tileLayer.colorFilter = function (url, options) {
             console.warn(
                 `WARNING: WMS layer has no "layers" parameter in the url - ${url}`
             )
+
         return new L.TileLayer.WMSColorFilter(urlBaseString, wmsOptions)
     }
     return new L.TileLayer.ColorFilter(url, options)
