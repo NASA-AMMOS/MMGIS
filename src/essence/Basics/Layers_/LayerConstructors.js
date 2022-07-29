@@ -26,24 +26,24 @@ export const constructVectorLayer = (
     let fiC = layerObj.style.fillColor
     let fiO = String(layerObj.style.fillOpacity)
     let leafletLayerObject = {
-        style: function (feature, preferedStyle) {
-            if (preferedStyle) {
-                col = preferedStyle.color != null ? preferedStyle.color : col
+        style: function (feature, preferredStyle) {
+            if (preferredStyle) {
+                col = preferredStyle.color != null ? preferredStyle.color : col
                 opa =
-                    preferedStyle.opacity != null
-                        ? String(preferedStyle.opacity)
+                    preferredStyle.opacity != null
+                        ? String(preferredStyle.opacity)
                         : opa
                 wei =
-                    preferedStyle.weight != null
-                        ? String(preferedStyle.weight)
+                    preferredStyle.weight != null
+                        ? String(preferredStyle.weight)
                         : wei
                 fiC =
-                    preferedStyle.fillColor != null
-                        ? preferedStyle.fillColor
+                    preferredStyle.fillColor != null
+                        ? preferredStyle.fillColor
                         : fiC
                 fiO =
-                    preferedStyle.fillOpacity != null
-                        ? String(preferedStyle.fillOpacity)
+                    preferredStyle.fillOpacity != null
+                        ? String(preferredStyle.fillOpacity)
                         : fiO
             }
 
@@ -53,9 +53,8 @@ export const constructVectorLayer = (
                 layerObj.style = JSON.parse(
                     JSON.stringify(feature.properties.style)
                 )
-
-                layerObj.style.className = className
-                layerObj.style.layerName = layerName
+                if (className) layerObj.style.className = className
+                if (layerName) layerObj.style.layerName = layerName
             } else {
                 // Priority to prop, prop.color, then style color.
                 var finalCol =
@@ -98,8 +97,8 @@ export const constructVectorLayer = (
                         ? parseFloat(feature.properties['radius'])
                         : layerObj.radius
 
-                if (preferedStyle && preferedStyle.radius != null)
-                    layerObj.style.radius = preferedStyle.radius
+                if (preferredStyle && preferredStyle.radius != null)
+                    layerObj.style.radius = preferredStyle.radius
 
                 var noPointerEventsClass =
                     feature.style && feature.style.nointeraction
@@ -335,115 +334,108 @@ export const constructVectorLayer = (
     }
 
     let layer
-
-    if (F_.getIn(layerObj, 'variables.hideMainFeature') === true) {
+    if (F_.getIn(layerObj, 'variables.hideMainFeature') === true)
         layer = L.geoJson(F_.getBaseGeoJSON(), leafletLayerObject)
-    } else {
-        layer = L.geoJson(geojson, leafletLayerObject)
+    else layer = L.geoJson(geojson, leafletLayerObject)
+    layer._sourceGeoJSON = geojson
+    layer._layerName = layerObj.name
 
-        Object.keys(layer._layers).forEach((idx) => {
-            let l = layer._layers[idx]
-            const savedUseKeyAsName = l.useKeyAsName
-            const savedOptions = l.options
+    Object.keys(layer._layers).forEach((idx) => {
+        let l = layer._layers[idx]
+        const savedUseKeyAsName = l.useKeyAsName
+        const savedOptions = l.options
 
-            if (l.feature?.properties?.style?.geologic != null) {
-                const geom = l.feature.geometry
-                const style = l.feature?.properties?.style
-                let made = false
-                switch (l.feature?.properties?.style?.geologic.type) {
-                    case 'pattern':
-                        // We can augment existing polygons for this so patterns are
-                        // implemented above in the style object
-                        made = false
-                        break
-                    case 'linework':
-                        if (geom.type.toLowerCase() === 'linestring') {
-                            layer._layers[idx] = LayerGeologic.createLinework(
-                                l.feature,
-                                style
-                            )
-                            made = true
-                        }
-                        break
-                    case 'symbol':
-                        if (geom.type.toLowerCase() === 'point') {
-                            layer._layers[idx] =
-                                LayerGeologic.createSymbolMarker(
-                                    geom.coordinates[1],
-                                    geom.coordinates[0],
-                                    style
-                                )
-                            made = true
-                        }
-                        break
-                    default:
-                        made = false
-                        break
-                }
-                if (made) {
-                    layer._layers[idx].options.layerName =
-                        savedOptions.layerName
-                    layer._layers[idx].feature = l.feature
-                    layer._layers[idx].useKeyAsName = savedUseKeyAsName
-                    l.feature.style = l.feature.style || {}
-                    onEachFeatureDefault(l.feature, layer._layers[idx])
-                    if (layer._layers[idx]._layers) {
-                        Object.keys(layer._layers[idx]._layers).forEach(
-                            (idx2) => {
-                                layer._layers[idx]._layers[
-                                    idx2
-                                ].options.layerName = savedOptions.layerName
-                                layer._layers[idx]._layers[idx2].feature =
-                                    l.feature
-                                layer._layers[idx]._layers[idx2].useKeyAsName =
-                                    savedUseKeyAsName
-
-                                l.feature.style = l.feature.style || {}
-                                onEachFeatureDefault(
-                                    l.feature,
-                                    layer._layers[idx]._layers[idx2]
-                                )
-                            }
+        if (l.feature?.properties?.style?.geologic != null) {
+            const geom = l.feature.geometry
+            const style = l.feature?.properties?.style
+            let made = false
+            switch (l.feature?.properties?.style?.geologic.type) {
+                case 'pattern':
+                    // We can augment existing polygons for this so patterns are
+                    // implemented above in the style object
+                    made = false
+                    break
+                case 'linework':
+                    if (geom.type.toLowerCase() === 'linestring') {
+                        layer._layers[idx] = LayerGeologic.createLinework(
+                            l.feature,
+                            style
                         )
+                        made = true
                     }
-                }
-            } else if (l.feature?.properties?.arrow === true) {
-                const c = l.feature.geometry.coordinates
-                const start = new L.LatLng(c[0][1], c[0][0])
-                const end = new L.LatLng(c[1][1], c[1][0])
-
-                layer._layers[idx] = L_.addArrowToMap(
-                    null,
-                    start,
-                    end,
-                    l.feature?.properties?.style,
-                    l.feature
-                )
-                layer._layers[idx].useKeyAsName = savedUseKeyAsName
-                layer._layers[idx].options = savedOptions
-                Object.keys(layer._layers[idx]._layers).forEach((idx2) => {
-                    layer._layers[idx]._layers[idx2].options.layerName =
-                        savedOptions.layerName
-                    layer._layers[idx]._layers[idx2].feature = l.feature
-                    layer._layers[idx]._layers[idx2].useKeyAsName =
-                        savedUseKeyAsName
-                    l.feature.style = l.feature.style || {}
-                    l.feature.style.noclick = true
-                    onEachFeatureDefault(
-                        l.feature,
-                        layer._layers[idx]._layers[idx2]
-                    )
-                })
-            } else if (l.feature?.properties?.annotation === true) {
-                layer._layers[idx] = L_.createAnnotation(
-                    l.feature,
-                    'LayerAnnotation',
-                    layer._layers[idx].options.layerName,
-                    idx
-                )
+                    break
+                case 'symbol':
+                    if (geom.type.toLowerCase() === 'point') {
+                        layer._layers[idx] = LayerGeologic.createSymbolMarker(
+                            geom.coordinates[1],
+                            geom.coordinates[0],
+                            style
+                        )
+                        made = true
+                    }
+                    break
+                default:
+                    made = false
+                    break
             }
-        })
-    }
+            if (made) {
+                layer._layers[idx].options.layerName = savedOptions.layerName
+                layer._layers[idx].feature = l.feature
+                layer._layers[idx].useKeyAsName = savedUseKeyAsName
+                l.feature.style = l.feature.style || {}
+                onEachFeatureDefault(l.feature, layer._layers[idx])
+                if (layer._layers[idx]._layers) {
+                    Object.keys(layer._layers[idx]._layers).forEach((idx2) => {
+                        layer._layers[idx]._layers[idx2].options.layerName =
+                            savedOptions.layerName
+                        layer._layers[idx]._layers[idx2].feature = l.feature
+                        layer._layers[idx]._layers[idx2].useKeyAsName =
+                            savedUseKeyAsName
+
+                        l.feature.style = l.feature.style || {}
+                        onEachFeatureDefault(
+                            l.feature,
+                            layer._layers[idx]._layers[idx2]
+                        )
+                    })
+                }
+            }
+        } else if (l.feature?.properties?.arrow === true) {
+            const c = l.feature.geometry.coordinates
+            const start = new L.LatLng(c[0][1], c[0][0])
+            const end = new L.LatLng(c[1][1], c[1][0])
+
+            layer._layers[idx] = L_.addArrowToMap(
+                null,
+                start,
+                end,
+                l.feature?.properties?.style,
+                l.feature
+            )
+            layer._layers[idx].useKeyAsName = savedUseKeyAsName
+            layer._layers[idx].options = savedOptions
+            Object.keys(layer._layers[idx]._layers).forEach((idx2) => {
+                layer._layers[idx]._layers[idx2].options.layerName =
+                    savedOptions.layerName
+                layer._layers[idx]._layers[idx2].feature = l.feature
+                layer._layers[idx]._layers[idx2].useKeyAsName =
+                    savedUseKeyAsName
+                l.feature.style = l.feature.style || {}
+                l.feature.style.noclick = true
+                onEachFeatureDefault(
+                    l.feature,
+                    layer._layers[idx]._layers[idx2]
+                )
+            })
+        } else if (l.feature?.properties?.annotation === true) {
+            layer._layers[idx] = L_.createAnnotation(
+                l.feature,
+                'LayerAnnotation',
+                layer._layers[idx].options.layerName,
+                idx
+            )
+        }
+    })
 
     return {
         layer: layer,
@@ -967,8 +959,21 @@ const coordinateMarkers = (geojson, layerObj, leafletLayerObject) => {
             onEachFeature: leafletLayerObject.onEachFeature,
             pointToLayer: leafletLayerObject.pointToLayer,
             style: function (feature) {
-                return leafletLayerObject.style(feature, coordMarkerSettings)
+                const style = leafletLayerObject.style(
+                    feature,
+                    coordMarkerSettings
+                )
+                feature._style = style
+                return feature._style
             },
+        }
+
+        const layer = L.geoJson(
+            parseExtendedGeoJSON(geojson, ['coord_properties']),
+            leafletLayerObjectCoordinateMarkers
+        )
+        layer.addDataEnhanced = function (geojson) {
+            this.addData(parseExtendedGeoJSON(geojson, ['coord_properties']))
         }
 
         return {
@@ -978,108 +983,137 @@ const coordinateMarkers = (geojson, layerObj, leafletLayerObject) => {
                     : true,
             type: 'coordinate_markers',
             geojson: geojson,
-            layer: L.geoJson(
-                parseExtendedGeoJSON(geojson, ['coord_properties']),
-                leafletLayerObjectCoordinateMarkers
-            ),
+            layer: layer,
         }
     } else return false
 }
 
 const pathGradient = (geojson, layerObj, leafletLayerObject) => {
-    // PATH GRADIENT
-    const pathGradientVar = F_.getIn(
-        layerObj,
-        'variables.pathAttachments.gradient'
-    )
-    if (pathGradientVar) {
-        const pathGradientSettings = {
-            initialVisibility: F_.getIn(
-                pathGradientVar,
-                'initialVisibility',
-                true
-            ),
-            colorWithProp: F_.getIn(pathGradientVar, 'colorWithProp', null),
-            userControlsProp: F_.getIn(
-                pathGradientVar,
-                'userControlsProp',
-                false
-            ),
-            colorRamp: F_.getIn(pathGradientVar, 'colorRamp', [
-                'lime',
-                'yellow',
-                'red',
-            ]),
-            weight: F_.getIn(pathGradientVar, 'weight', 4),
-        }
+    function getLayer(geojson, layerObj) {
+        // PATH GRADIENT
+        const pathGradientVar = F_.getIn(
+            layerObj,
+            'variables.pathAttachments.gradient'
+        )
+        if (pathGradientVar) {
+            const pathGradientSettings = {
+                initialVisibility: F_.getIn(
+                    pathGradientVar,
+                    'initialVisibility',
+                    true
+                ),
+                colorWithProp: F_.getIn(pathGradientVar, 'colorWithProp', null),
+                userControlsProp: F_.getIn(
+                    pathGradientVar,
+                    'userControlsProp',
+                    false
+                ),
+                colorRamp: F_.getIn(pathGradientVar, 'colorRamp', [
+                    'lime',
+                    'yellow',
+                    'red',
+                ]),
+                weight: F_.getIn(pathGradientVar, 'weight', 4),
+            }
 
-        // check validity
-        if (pathGradientSettings.colorWithProp == null) {
-            console.warn(
-                'LayerConstructor - `pathAttachments.gradient` set but required `pathAttachments.gradient.colorWithProp` is unset.'
-            )
-            return false
-        }
+            // check validity
+            if (pathGradientSettings.colorWithProp == null) {
+                console.warn(
+                    'LayerConstructor - `pathAttachments.gradient` set but required `pathAttachments.gradient.colorWithProp` is unset.'
+                )
+                return false
+            }
 
-        // format colorRamp
-        const steppedColorRamp = {}
-        pathGradientSettings.colorRamp.forEach((color, idx) => {
-            steppedColorRamp[
-                idx / (pathGradientSettings.colorRamp.length - 1)
-            ] = color
-        })
+            // format colorRamp
+            const steppedColorRamp = {}
+            pathGradientSettings.colorRamp.forEach((color, idx) => {
+                steppedColorRamp[
+                    idx / (pathGradientSettings.colorRamp.length - 1)
+                ] = color
+            })
 
-        const paths = []
-        var min = Infinity
-        var max = -Infinity
-        var prevParentIndex = null
-        geojson.features.forEach((feature) => {
-            let path = []
-            F_.coordinateDepthTraversal(
-                feature.geometry.coordinates,
-                (array, _path) => {
-                    // Find breaks in the coordinate array to find sepearate features
-                    const splitPath = _path.split('.')
-                    let parentIndex = null
-                    if (splitPath.length >= 2) {
-                        parentIndex = splitPath[splitPath.length - 2]
-                        if (
-                            prevParentIndex != null &&
-                            parentIndex != prevParentIndex
-                        ) {
-                            paths.push(path)
-                            path = []
+            const paths = []
+            var min = Infinity
+            var max = -Infinity
+            var prevParentIndex = null
+            geojson.features.forEach((feature) => {
+                let path = []
+                F_.coordinateDepthTraversal(
+                    feature.geometry.coordinates,
+                    (array, _path) => {
+                        // Find breaks in the coordinate array to find sepearate features
+                        const splitPath = _path.split('.')
+                        let parentIndex = null
+                        if (splitPath.length >= 2) {
+                            parentIndex = splitPath[splitPath.length - 2]
+                            if (
+                                prevParentIndex != null &&
+                                parentIndex != prevParentIndex
+                            ) {
+                                paths.push(path)
+                                path = []
+                            }
                         }
+                        const value = F_.getIn(
+                            getCoordProperties(geojson, feature, array),
+                            pathGradientSettings.colorWithProp,
+                            0
+                        )
+                        if (min > value) min = value
+                        if (max < value) max = value
+
+                        path.push([array[1], array[0], value])
+
+                        // Save this for next run through
+                        prevParentIndex = parentIndex
                     }
+                )
+                paths.push(path)
+            })
 
-                    const value = F_.getIn(
-                        getCoordProperties(geojson, feature, array),
-                        pathGradientSettings.colorWithProp,
-                        0
+            const hotlines = []
+            paths.forEach((path) => {
+                if (path.length > 0)
+                    hotlines.push(
+                        L.hotline(path, {
+                            min: min,
+                            max: max,
+                            palette: steppedColorRamp,
+                            weight: pathGradientSettings.weight,
+                        })
                     )
-                    if (min > value) min = value
-                    if (max < value) max = value
+            })
 
-                    path.push([array[1], array[0], value])
+            const layer = L.layerGroup(hotlines)
+            layer.addDataEnhanced = function (
+                geojson,
+                layerName,
+                subName,
+                Map_
+            ) {
+                Map_.rmNotNull(
+                    L_.layersGroupSublayers[layerName][subName].layer
+                )
+                L_.layersGroupSublayers[layerName][subName].layer = getLayer(
+                    geojson,
+                    L_.layersGroupSublayers[layerName][subName].layer.layerObj
+                )
+                Map_.map.addLayer(
+                    L_.layersGroupSublayers[layerName][subName].layer
+                )
+            }
+            layer.layerObj = layerObj
 
-                    // Save this for next run through
-                    prevParentIndex = parentIndex
-                }
-            )
-            paths.push(path)
-        })
+            return layer
+        } else return false
+    }
 
-        const hotlines = []
-        paths.forEach((path) => {
-            hotlines.push(
-                L.hotline(path, {
-                    min: min,
-                    max: max,
-                    palette: steppedColorRamp,
-                    weight: pathGradientSettings.weight,
-                })
-            )
-        })
+    const layer = getLayer(geojson, layerObj)
+    if (layer) {
+        const pathGradientVar = F_.getIn(
+            layerObj,
+            'variables.pathAttachments.gradient'
+        )
 
         return {
             on:
@@ -1088,7 +1122,7 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                     : true,
             type: 'path_gradient',
             geojson: geojson,
-            layer: L.layerGroup(hotlines),
+            layer: layer,
         }
     } else return false
 }
