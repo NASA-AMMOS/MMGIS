@@ -206,7 +206,8 @@ var TimeControl = {
         layer.time.current = TimeControl.currentTime // keeps track of when layer was refreshed
 
         if (layer.type == 'tile') {
-            TimeControl.setLayerWmsParams(layer)
+            if (layer.time && layer.time.enabled == true)
+                TimeControl.setLayerWmsParams(layer)
 
             if (L_.toggledArray[layer.name] || evenIfOff) {
                 L_.toggleLayer(layer)
@@ -214,22 +215,25 @@ var TimeControl = {
             }
         } else {
             // replace start/endtime keywords
-            var originalUrl = layer.url
-            layer.url = layer.url
-                .replace(
-                    '{starttime}',
-                    layerTimeFormat(Date.parse(layer.time.start))
-                )
-                .replace(
-                    '{endtime}',
-                    layerTimeFormat(Date.parse(layer.time.end))
-                )
+            if (layer.time && layer.time.enabled == true) {
+                var originalUrl = layer.url
+                layer.url = layer.url
+                    .replace(
+                        '{starttime}',
+                        layerTimeFormat(Date.parse(layer.time.start))
+                    )
+                    .replace(
+                        '{endtime}',
+                        layerTimeFormat(Date.parse(layer.time.end))
+                    )
+            }
             // refresh map
             if (L_.toggledArray[layer.name] || evenIfOff) {
                 await Map_.refreshLayer(layer)
             }
             // put start/endtime keywords back
-            layer.url = originalUrl
+            if (layer.time && layer.time.enabled == true)
+                layer.url = originalUrl
         }
 
         return true
