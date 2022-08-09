@@ -491,6 +491,17 @@ function interfaceWithMMGIS() {
                 L_.layersGroup[li.attr('name')] == null
             )
                 li.addClass('layernotfound')
+
+            // Dispatch `layerVisibilityChange` event
+            const layerName = li.attr('name')
+            let _event = new CustomEvent('layerVisibilityChange', {
+                detail: {
+                    layer: L_.layersNamed[layerName],
+                    layerName,
+                    visible: L_.toggledArray[layerName],
+                }
+            })
+            document.dispatchEvent(_event);
         }
     }
     //Add event functions and whatnot

@@ -160,6 +160,15 @@ var mmgisAPI_ = {
 
         return null
     },
+    getActiveTool: function () {
+        if (ToolController_) {
+            return {
+                activeTool: ToolController_.activeTool,
+                activeToolName: ToolController_.activeToolName,
+            }
+        }
+        return null
+    },
     // Returns an object with the visibility state of all layers
     getVisibleLayers: function () {
         // Also return the visibility of the DrawTool layers
@@ -183,9 +192,13 @@ var mmgisAPI_ = {
     // Adds map event listener
     addEventListener: function (eventName, functionReference) {
         const listener = mmgisAPI_.getLeafletMapEvent(eventName)
+        const mmgisListener = mmgisAPI_.checkMMGISEvent(eventName)
         if (listener) {
             console.log('Add listener:', listener)
             mmgisAPI_.map.addEventListener(listener, functionReference)
+        } else if (mmgisListener) {
+            console.log('Add listener', eventName)
+            document.addEventListener(eventName, functionReference);
         } else {
             //mmgisAPI_.customListeners[eventName] = mmgisAPI_.customListeners[eventName] || []
             //mmgisAPI_.customListeners[eventName].push(functionReference)
@@ -197,9 +210,13 @@ var mmgisAPI_ = {
     // Removes map event listener added using the MMGIS API
     removeEventListener: function (eventName, functionReference) {
         const listener = mmgisAPI_.getLeafletMapEvent(eventName)
+        const mmgisListener = mmgisAPI_.checkMMGISEvent(eventName)
         if (listener) {
             console.log('Remove listener:', listener)
             mmgisAPI_.map.removeEventListener(listener, functionReference)
+        } else if (mmgisListener) {
+            console.log('Remove listener', eventName)
+            document.removeEventListener(eventName, functionReference);
         } else {
             //if(mmgisAPI_.customListeners[eventName]) {
             //    mmgisAPI_.customListeners[eventName] = mmgisAPI_.customListeners[eventName].filter(f => f !== functionReference)
@@ -218,6 +235,10 @@ var mmgisAPI_ = {
             return 'click'
         }
         return null
+    },
+    checkMMGISEvent: function (eventName) {
+        const validEvents = ['toolChange', 'layerVisibilityChange']
+        return validEvents.includes(eventName)
     },
     writeCoordinateURL: function () {
         return QueryURL.writeCoordinateURL(false)
@@ -385,20 +406,26 @@ var mmgisAPI = {
      */
     getActiveFeature: mmgisAPI_.getActiveFeature,
 
+    /** getActiveTool - returns the currently active tool
+     * @returns {object} - The currently active tool and the name of the active tool as an object.
+     */
+    getActiveTool: mmgisAPI_.getActiveTool,
+
     /** getVisibleLayers - returns an object with the visibility state of all layers
      * @returns {object} - an object containing the visibility state of each layer
      */
     getVisibleLayers: mmgisAPI_.getVisibleLayers,
 
-    /** addEventListener - adds map event listener.
-     * @param {string} - eventName - name of event to add listener to. Available events: onPan, onZoom, onClick
+    /** addEventListener - adds map event or MMGIS action listener.
+     * @param {string} - eventName - name of event to add listener to. Available events: onPan, onZoom, onClick, toolChange, layerVisibilityChange
+
      * @param {function} - functionReference - function reference to listener event callback function. null value removes all functions for a given eventName
 
      */
     addEventListener: mmgisAPI_.addEventListener,
 
-    /** removeEventListener - removes map event listener added using the MMGIS API.
-     * @param {string} - eventName - name of event to add listener to. Available events: onPan, onZoom, onClick
+    /** removeEventListener - removes map event or MMGIS action listener added using the MMGIS API.
+     * @param {string} - eventName - name of event to add listener to. Available events: onPan, onZoom, onClick, toolChange, layerVisibilityChange
      * @param {function} - functionReference - function reference to listener event callback function. null value removes all functions for a given eventName
      */
     removeEventListener: mmgisAPI_.removeEventListener,
