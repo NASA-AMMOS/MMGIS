@@ -202,36 +202,34 @@ var TimeControl = {
         if (typeof layer == 'string') {
             layer = L_.layersNamed[layer]
         }
-        if (layer.time && layer.time.enabled == true) {
-            var layerTimeFormat = d3.utcFormat(layer.time.format)
-            layer.time.current = TimeControl.currentTime // keeps track of when layer was refreshed
+        var layerTimeFormat = d3.utcFormat(layer.time.format)
+        layer.time.current = TimeControl.currentTime // keeps track of when layer was refreshed
 
-            if (layer.type == 'tile') {
-                TimeControl.setLayerWmsParams(layer)
+        if (layer.type == 'tile') {
+            TimeControl.setLayerWmsParams(layer)
 
-                if (L_.toggledArray[layer.name] || evenIfOff) {
-                    L_.toggleLayer(layer)
-                    L_.toggleLayer(layer)
-                }
-            } else {
-                // replace start/endtime keywords
-                var originalUrl = layer.url
-                layer.url = layer.url
-                    .replace(
-                        '{starttime}',
-                        layerTimeFormat(Date.parse(layer.time.start))
-                    )
-                    .replace(
-                        '{endtime}',
-                        layerTimeFormat(Date.parse(layer.time.end))
-                    )
-                // refresh map
-                if (L_.toggledArray[layer.name] || evenIfOff) {
-                    await Map_.refreshLayer(layer)
-                }
-                // put start/endtime keywords back
-                layer.url = originalUrl
+            if (L_.toggledArray[layer.name] || evenIfOff) {
+                L_.toggleLayer(layer)
+                L_.toggleLayer(layer)
             }
+        } else {
+            // replace start/endtime keywords
+            var originalUrl = layer.url
+            layer.url = layer.url
+                .replace(
+                    '{starttime}',
+                    layerTimeFormat(Date.parse(layer.time.start))
+                )
+                .replace(
+                    '{endtime}',
+                    layerTimeFormat(Date.parse(layer.time.end))
+                )
+            // refresh map
+            if (L_.toggledArray[layer.name] || evenIfOff) {
+                await Map_.refreshLayer(layer)
+            }
+            // put start/endtime keywords back
+            layer.url = originalUrl
         }
 
         return true

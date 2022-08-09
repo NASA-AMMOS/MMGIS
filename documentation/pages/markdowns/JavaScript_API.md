@@ -176,6 +176,20 @@ window.mmgisAPI.appendLineString(
     'end_time');
 ```
 
+## reloadLayer(layer)
+
+This function will reload the given layer by re-fetching the data and re-drawing on the map.
+
+#### Function parameters
+
+- `layer` - The layer name string or a layer object
+
+The following is an example of how to call the `reloadLayer` function:
+
+```javascript
+window.mmgisAPI.reloadLayer('Earthquakes')
+```
+
 ## Time Control
 
 ## toggleTimeUI(visibility)
@@ -313,20 +327,6 @@ The following is an example of how to call the `reloadTimeLayers` function:
 window.mmgisAPI.reloadTimeLayers()
 
 ["Lunaserv", "Earthquakes"]
-```
-
-## reloadLayer(layer)
-
-This function will reload the given time-enabled layer by re-fetching the data and re-drawing on the map. It should be called after `setTime` or `setLayerTime`.
-
-#### Function parameters
-
-- `layer` - The layer name string or a layer object
-
-The following is an example of how to call the `reloadLayer` function:
-
-```javascript
-window.mmgisAPI.reloadLayer('Earthquakes')
 ```
 
 ## setLayersTimeStatus(color)
