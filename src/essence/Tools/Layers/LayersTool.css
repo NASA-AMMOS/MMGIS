@@ -80,7 +80,7 @@
 }
 #layersTool #searchLayers input {
     background: var(--color-g);
-    width: 239px;
+    width: 279px;
     color: #ccc;
     padding-left: 12px;
     border: none;
@@ -91,6 +91,10 @@
     color: #999;
     line-height: 30px;
     pointer-events: none;
+}
+
+#layersTool .sublayerHeading {
+    color: white;
 }
 
 #layersTool #searchLayers > div {
@@ -393,6 +397,11 @@
     border-top-color: #fff;
     animation: layerLoadingSpin 1s ease-in-out infinite;
 }
+#layersTool .checkbox.small {
+    width: 16px;
+    height: 16px;
+    margin: 7px;
+}
 
 #layersTool .checkboxSmall {
     margin: 3px;
@@ -485,6 +494,22 @@
     font-size: 14px;
     color: var(--color-f);
     padding-left: 10px;
+}
+#layersTool .sublayerDropdown {
+    width: unset;
+    height: 20px;
+    margin-top: 5px;
+}
+
+#layersTool .sublayer {
+    display: flex;
+    justify-content: space-between;
+    height: 30px;
+    padding-left: 20px;
+}
+
+#layersTool .sublayer > div:first-child {
+    font-size: 13px;
 }
 
 #layersTool .layernotfound {

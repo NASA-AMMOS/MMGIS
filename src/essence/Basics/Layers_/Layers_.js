@@ -714,6 +714,29 @@ var L_ = {
             }
         }
     },
+    addGeoJSONData: function (layer, geojson) {
+        if (layer._sourceGeoJSON) {
+            if (geojson.features)
+                layer._sourceGeoJSON.features.concat(geojson.features)
+            else layer._sourceGeoJSON.features.push(geojson)
+        }
+
+        // Don't add data if hidden
+        if (
+            L_.layersNamed[layer._layerName] &&
+            F_.getIn(
+                L_.layersNamed[layer._layerName],
+                'variables.hideMainFeature'
+            ) === true
+        )
+            return
+
+        layer.addData(geojson)
+    },
+    clearGeoJSONData: function (layer) {
+        if (layer._sourceGeoJSON) layer._sourceGeoJSON = F_.getBaseGeoJSON()
+        layer.clearLayers()
+    },
     setStyle(layer, newStyle) {
         try {
             layer.setStyle(newStyle)
@@ -1163,6 +1186,38 @@ var L_ = {
                         .toLowerCase()}`
                 ).css({ opacity: newOpacity })
             }
+
+            const sublayers = L_.layersGroupSublayers[name]
+            if (sublayers) {
+                for (let sub in sublayers) {
+                    if (
+                        sublayers[sub] !== false &&
+                        sublayers[sub].layer != null &&
+                        !['models'].includes(sub)
+                    ) {
+                        try {
+                            sublayers[sub].layer.setOpacity(newOpacity)
+                        } catch (error) {
+                            try {
+                                sublayers[sub].layer.setStyle({
+                                    opacity: newOpacity,
+                                    fillOpacity:
+                                        newOpacity *
+                                        l.options.initialFillOpacity,
+                                })
+                            } catch (error2) {
+                                /*
+                                if (sublayers[sub].layer._layers)
+                                    for (let sl in sublayers[sub].layer
+                                        ._layers) {
+                                    }
+                                    */
+                            }
+                        }
+                    }
+                }
+            }
+
             try {
                 l.options.fillOpacity =
                     newOpacity * l.options.initialFillOpacity
@@ -1243,9 +1298,11 @@ var L_ = {
         }
     },
     resetLayerFills: function () {
+        // Regular Layers
         for (let key in this.layersGroup) {
             var s = key.split('_')
             var onId = s[1] != 'master' ? parseInt(s[1]) : s[1]
+
             if (
                 (this.layersGroup[key] &&
                     this.layersNamed[key] &&
@@ -1346,6 +1403,35 @@ var L_ = {
                             })
                         else if (layer._icon?.style) {
                             layer._icon.style.filter = 'unset'
+                        }
+                    }
+                }
+            }
+        }
+
+        // Sublayers
+        // Currently only coordinate_markers
+        // Expects feature._style to be set
+        const highlightableSublayers = ['coordinate_markers']
+        for (let layerName in this.layersGroupSublayers) {
+            if (this.layersGroupSublayers[layerName]) {
+                for (let sublayerName in this.layersGroupSublayers[layerName]) {
+                    if (
+                        this.layersGroupSublayers[layerName][sublayerName] &&
+                        highlightableSublayers.includes(sublayerName)
+                    ) {
+                        for (let sll in this.layersGroupSublayers[layerName][
+                            sublayerName
+                        ].layer._layers) {
+                            try {
+                                this.layersGroupSublayers[layerName][
+                                    sublayerName
+                                ].layer._layers[sll].setStyle(
+                                    this.layersGroupSublayers[layerName][
+                                        sublayerName
+                                    ].layer._layers[sll].feature._style
+                                )
+                            } catch (err) {}
                         }
                     }
                 }
@@ -1573,9 +1659,9 @@ var L_ = {
     },
     clearVectorLayer: function (layerName) {
         try {
-            L_.layersGroup[layerName].clearLayers()
+            L_.clearGeoJSONData(L_.layersGroup[layerName])
             L_.clearVectorLayerInfo()
-            L_.syncSublayerData(layerName, 'clear')
+            L_.syncSublayerData(layerName)
             L_.globeLithoLayerHelper(L_.layersNamed[layerName])
         } catch (e) {
             console.log(e)
@@ -1945,8 +2031,8 @@ var L_ = {
                 }
 
                 L_.clearVectorLayerInfo()
-                updateLayer.clearLayers()
-                updateLayer.addData(layersGeoJSON)
+                L_.clearGeoJSONData(updateLayer)
+                L_.addGeoJSONData(updateLayer, layersGeoJSON)
                 L_.syncSublayerData(layerName)
                 L_.globeLithoLayerHelper(L_.layersNamed[layerName])
             } else {
@@ -2053,8 +2139,8 @@ var L_ = {
                 }
 
                 L_.clearVectorLayerInfo()
-                updateLayer.clearLayers()
-                updateLayer.addData(layersGeoJSON)
+                L_.clearGeoJSONData(updateLayer)
+                L_.addGeoJSONData(updateLayer, layersGeoJSON)
                 L_.syncSublayerData(layerName)
                 L_.globeLithoLayerHelper(L_.layersNamed[layerName])
             } else {
@@ -2077,8 +2163,7 @@ var L_ = {
             const updateLayer = L_.layersGroup[layerName]
 
             try {
-                // Add data
-                updateLayer.addData(inputData)
+                L_.addGeoJSONData(updateLayer, inputData)
             } catch (e) {
                 console.log(e)
                 console.warn(
@@ -2099,9 +2184,13 @@ var L_ = {
     // Make a layer's sublayer match the layers data again
     syncSublayerData: function (layerName) {
         try {
-            const geojson = L_.layersGroup[layerName].toGeoJSON()
+            let geojson = L_.layersGroup[layerName].toGeoJSON()
+            if (L_.layersGroup[layerName]._sourceGeoJSON)
+                geojson = L_.layersGroup[layerName]._sourceGeoJSON
+
             // Now try the sublayers (if any)
             const subUpdateLayers = L_.layersGroupSublayers[layerName]
+
             if (subUpdateLayers) {
                 for (let sub in subUpdateLayers) {
                     if (
@@ -2109,7 +2198,21 @@ var L_ = {
                         subUpdateLayers[sub].layer != null
                     ) {
                         subUpdateLayers[sub].layer.clearLayers()
-                        subUpdateLayers[sub].layer.addData(geojson)
+                        if (
+                            typeof subUpdateLayers[sub].layer
+                                .addDataEnhanced === 'function'
+                        )
+                            subUpdateLayers[sub].layer.addDataEnhanced(
+                                geojson,
+                                layerName,
+                                sub,
+                                L_.Map_
+                            )
+                        else if (
+                            typeof subUpdateLayers[sub].layer.addData ===
+                            'function'
+                        )
+                            subUpdateLayers[sub].layer.addData(geojson)
                     }
                 }
             }

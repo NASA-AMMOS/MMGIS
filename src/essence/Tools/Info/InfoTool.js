@@ -57,7 +57,7 @@ var InfoTool = {
     featureLayers: [],
     filterString: '',
     hiddenShown: false,
-    hiddenRootFields: ['_', 'style', 'images'],
+    hiddenRootFields: ['_', 'style', 'images', 'coord_properties'],
     vars: {},
     MMGISInterface: null,
     make: function () {

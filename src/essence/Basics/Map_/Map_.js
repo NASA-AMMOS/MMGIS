@@ -812,16 +812,14 @@ async function makeLayer(layerObj, evenIfOff) {
                 layerObj.style.opacity = L_.opacityArray[layerObj.name]
                 //layerObj.style.fillOpacity = L_.opacityArray[layerObj.name]
 
-                L_.layersGroupSublayers[layerObj.name] = constructSublayers(
-                    data,
-                    layerObj
-                )
-                L_.layersGroup[layerObj.name] = constructVectorLayer(
+                const vl = constructVectorLayer(
                     data,
                     layerObj,
                     onEachFeatureDefault,
                     Map_
                 )
+                L_.layersGroupSublayers[layerObj.name] = vl.sublayers
+                L_.layersGroup[layerObj.name] = vl.layer
 
                 d3.selectAll(
                     '.' + layerObj.name.replace(/\s/g, '').toLowerCase()
