@@ -113,6 +113,7 @@ Example:
 ```javascript
 {
     "useKeyAsName": "name",
+    "hideMainFeature": false,
     "datasetLinks": [
         {
             "prop": "{prop}",
@@ -134,6 +135,17 @@ Example:
             "value": "Prop: {prop}"
         }
     ],
+    "coordinateAttachments": {
+        "marker": {
+          "initialVisibility": true,
+          "opacity": 1,
+          "color": "stroke css color (or prop:...)",
+          "weight": 2,
+          "fillColor": "fill css color (or prop:...)",
+          "fillOpacity": 1,
+          "radius": 8,
+        }
+    },
     "markerAttachments": {
         "bearing": {
           "angleProp": "path.to.angle.prop",
@@ -182,6 +194,14 @@ Example:
           "onlyLastN": false
         },
     },
+    "pathAttachments": {
+        "gradient": {
+          "colorWithProp": "path.to.prop",
+          "dropdownColorWithProp": ["prop3", "path.to.prop3"],
+          "colorRamp": ["cssColor1", "cssColor2"],
+          "weight": 4,
+        },
+    },
     "markerIcon": { //See: https://leafletjs.com/reference-1.7.1.html#icon-l-icon
         "iconUrl": "pathToMainIconImage.png",
         "shadowUrl": "(opt)pathToShadowImage.png",
@@ -195,6 +215,7 @@ Example:
 ```
 
 - `useNameAsKey`: The property key whose value should be the hover text of each feature. If left unset, the hover key and value will be the first one listed in the feature's properties.
+- `hideMainFeature`: If true, hides all typically rendered features. This is useful if showing only `*Attachments` sublayers is desired. Default false
 - `datasetLinks`: Datasets are csvs uploaded from the "Manage Datasets" page accessible on the lower left. Every time a feature from this layer is clicked with datasetLinks configured, it will request the data from the server and include it with it's regular geojson properties. This is especially useful when single features need a lot of metadata to perform a task as it loads it only as needed.
   - `prop`: This is a property key already within the features properties. It's value will be searched for in the specified dataset column.
   - `dataset`: The name of a dataset to link to. A list of datasets can be found in the "Manage Datasets" page.
@@ -207,7 +228,15 @@ Example:
   - `which`: This only supports the value `last` at this point.
   - `icon`: Any [Material Design Icon](http://materialdesignicons.com/) name
   - `value`: A name to display. All `{prop}`s will be replaced by their corresponding `features[which].properties[prop]` value.
-- `markerBearing`: Sets the bearing direction of this layer's point markers (or markerIcons if set). `{unit}` is either `deg` or `rad` and `{prop}` is the dot notated path to the feature properties that contains the desired rotation angle. Ex. `deg:headings.yaw`.
+- `coordinateAttachments`: Attachment layers for each coordinate of every feature.
+  - `marker`: Place a marker at every coordinate of every feature.
+    - `initialVisibility`: Whether the coordinate marker sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.
+    - `opacity`: Opacity of markers. Default 1
+    - `color`: A stroke css color (or prop:...)
+    - `weight`: Integer for stroke thickness in pixels.
+    - `fillColor`: A fill css color (or prop:...)
+    - `fillOpacity`: Opacity of marker fill. Default 1
+    - `radius`: Integer for radius of marker.
 - `markerAttachments`: An object for attaching dynamic items to point features.
   - `bearing`: Sets the bearing direction of this layer's point markers (or markerIcons if set). Overrides the layer's shape dropdown value.
     - `angleProp`: The dot notated path to the feature properties that contains the desired rotation angle. Ex. `headings.yaw`.
@@ -217,9 +246,9 @@ Example:
     - `initialVisibility`: Whether the uncertainty sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.
     - `xAxisProp`: Prop path to the x axis radius value of the ellipse.
     - `yAxisProp`: Prop path to the y axis radius value of the ellipse.
-    - `axisUnit`: "meters || kilometers",
+    - `axisUnit`: "meters OR kilometers",
     - `angleProp`: Prop path to the rotation of the ellipse.
-    - `angleUnit`: "deg || rad"
+    - `angleUnit`: "deg OR rad"
     - `color`: A css fill color. Will be made more transparent than set. Default 'white'
     - `fillOpacity`: Map and clamped ellipse fill opacity. 0 to 1. Default 0.25
     - `strokeColor`: Map and clamped ellipse stroke/border color. Default 'black'
@@ -236,24 +265,30 @@ Example:
     - `widthPixels`: Image width in pixels.
     - `heightPixels`: Image height in pixel.
     - `angleProp`: Prop path to the rotation of the image.
-    - `angleUnit`: "deg || rad"
-    - `show`: "click || always". If set to "always", overrides the Waypoints Kind (if set) and always renders the image under the marker. "click" just shows the image on click and requires the layer to have the Waypoints Kind.
+    - `angleUnit`: "deg OR rad"
+    - `show`: "click OR always". If set to "always", overrides the Waypoints Kind (if set) and always renders the image under the marker. "click" just shows the image on click and requires the layer to have the Waypoints Kind.
   - `model`:
     - `path`: Path to model (.dae, .glb, .gltf, .obj)
     - `pathProp`: A prop path to a model. Takes priority over path. Useful if model is feature specific.
     - `mtlPath`: If .obj, the path to its material file (.mtl)
     - `yawProp`: Prop path to the model's yaw. If this value is a number, uses it directly.
-    - `yawUnit`: "deg || rad"
+    - `yawUnit`: "deg OR rad"
     - `invertYaw`: Boolean that, if true, multiplies yaw by -1.
     - `pitchProp`: Prop path to the model's pitch. If this value is a number, uses it directly.
-    - `pitchUnit`: "deg || rad"
+    - `pitchUnit`: "deg OR rad"
     - `invertPitch`: Boolean that, if true, multiplies pitch by -1.
     - `rollProp`: Prop path to the model's roll. If this value is a number, uses it directly.
-    - `rollUnit`: "deg || rad"
+    - `rollUnit`: "deg OR rad"
     - `invertRoll`: Boolean that, if true, multiplies roll by -1.
     - `elevationProp`: Prop path to the model's elevation (in meters). If this value is a number, uses it directly. Default 0.
     - `scaleProp`: Prop path to the model's scale. If this value is a number, uses it directly. Default 1.
-    - `show`: "click || always"
+    - `show`: "click OR always"
     - `onlyLastN`: If false, shows models at all points. If a number, only shows models for the last n points.
+- `pathAttachments`: Attach specialized paths to LineStrings and Polygons. Useful with `hideMainFeature: true`.
+  - `gradient`: Renders a "hotline" gradient for visualizing value changes along a path.
+    - `colorWithProp`: Prop path to the value's key to visualize.
+    - `dropdownColorWithProp`: Array of additional prop paths. Users can toggle between value properties in the LayersTool. `colorWithProp`'s path is automatically added here if not already included.
+    - `colorRamp`: Array of css colors indicating the color ramp. The first color represents the min value and the last color represents the max value in the layer.
+    - `weight`: Integer for path thickness in pixels.
 - `markerIcon`: Uses an icon image instead of an svg for all of the layer's point markers. If you're using this as a bearing marker, make sure the base icon is pointing north.
 - `search`: This requires the "Minimalist" option in the Look Tab to be unchecked. When set, this layer will become searchable through the search bar at the top. The search will look for and autocomplete on the properties specified. All properties are enclosed by parentheses and space-separated. `round` can be used like a function to round the property beforehand. `rmunder` works similarly but removes all underscores instead.

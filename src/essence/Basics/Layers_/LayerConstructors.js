@@ -616,6 +616,7 @@ const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {
                       geojson,
                       leafletLayerObjectUncertaintyEllipse
                   ),
+                  title: 'Renders elliptical buffers about point features based on X and Y uncertainty properties.',
               }
             : false
     } else return false
@@ -764,6 +765,7 @@ const imageOverlays = (geojson, layerObj, leafletLayerObject) => {
                           ? imageVar.initialVisibility
                           : true,
                   layer: L.geoJson(geojson, leafletLayerObjectImageOverlay),
+                  title: 'Map rendered image overlays.',
               }
             : false
     } else return false
@@ -928,6 +930,7 @@ const models = (geojson, layerObj, leafletLayerObject) => {
                   type: 'model',
                   layerId: modelOptions.name,
                   modelOptions: modelOptions,
+                  title: 'Associated 3D models for the Globe View.',
               }
             : false
     } else return false
@@ -984,12 +987,13 @@ const coordinateMarkers = (geojson, layerObj, leafletLayerObject) => {
             type: 'coordinate_markers',
             geojson: geojson,
             layer: layer,
+            title: 'Markers rendered at every coordinate pair of every feature.',
         }
     } else return false
 }
 
 const pathGradient = (geojson, layerObj, leafletLayerObject) => {
-    function getLayer(geojson, layerObj) {
+    function getLayer(geojson, layerObj, overrideColorWithProp) {
         // PATH GRADIENT
         const pathGradientVar = F_.getIn(
             layerObj,
@@ -1002,11 +1006,13 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                     'initialVisibility',
                     true
                 ),
-                colorWithProp: F_.getIn(pathGradientVar, 'colorWithProp', null),
-                userControlsProp: F_.getIn(
+                colorWithProp:
+                    overrideColorWithProp ||
+                    F_.getIn(pathGradientVar, 'colorWithProp', null),
+                dropdownColorWithProp: F_.getIn(
                     pathGradientVar,
-                    'userControlsProp',
-                    false
+                    'dropdownColorWithProp',
+                    []
                 ),
                 colorRamp: F_.getIn(pathGradientVar, 'colorRamp', [
                     'lime',
@@ -1023,6 +1029,16 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                 )
                 return false
             }
+
+            // Add colorWithProps to dropdown if not already
+            if (
+                !pathGradientSettings.dropdownColorWithProp.includes(
+                    pathGradientSettings.colorWithProp
+                )
+            )
+                pathGradientSettings.dropdownColorWithProp.unshift(
+                    pathGradientSettings.colorWithProp
+                )
 
             // format colorRamp
             const steppedColorRamp = {}
@@ -1071,6 +1087,8 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                 paths.push(path)
             })
 
+            if (min === 0 && max === 0) max = 1
+
             const hotlines = []
             paths.forEach((path) => {
                 if (path.length > 0)
@@ -1089,17 +1107,31 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                 geojson,
                 layerName,
                 subName,
-                Map_
+                Map_,
+                overrideColorWithProp
             ) {
                 Map_.rmNotNull(
                     L_.layersGroupSublayers[layerName][subName].layer
                 )
                 L_.layersGroupSublayers[layerName][subName].layer = getLayer(
                     geojson,
-                    L_.layersGroupSublayers[layerName][subName].layer.layerObj
+                    L_.layersGroupSublayers[layerName][subName].layer.layerObj,
+                    overrideColorWithProp
                 )
                 Map_.map.addLayer(
                     L_.layersGroupSublayers[layerName][subName].layer
+                )
+            }
+            layer.dropdown = pathGradientSettings.dropdownColorWithProp
+            layer.dropdownValue = pathGradientSettings.colorWithProp
+            layer.dropdownFunc = function (layerName, subName, Map_, prop) {
+                const l = L_.layersGroupSublayers[layerName][subName]
+                l.layer.addDataEnhanced(
+                    l.geojson,
+                    layerName,
+                    subName,
+                    Map_,
+                    prop
                 )
             }
             layer.layerObj = layerObj
@@ -1123,6 +1155,7 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
             type: 'path_gradient',
             geojson: geojson,
             layer: layer,
+            title: 'A colorful visualization of values along a path.\nPoint values from the specified feature property are min-max fit to a color ramp.',
         }
     } else return false
 }

@@ -49,7 +49,7 @@ const quasiLayers = ['model', 'query']
 
 var LayersTool = {
     height: 0,
-    width: 300,
+    width: 340,
     vars: {},
     MMGISInterface: null,
     initialize: function () {
@@ -211,14 +211,24 @@ function interfaceWithMMGIS() {
                                     '<div>Opacity</div>',
                                         '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.opacityArray[node[i].name] + '">',
                                     '</div>',
+                                    L_.layersGroupSublayers[node[i].name] ? `<div class="sublayerHeading">Composite Layers</div>` : null,
                                     L_.layersGroupSublayers[node[i].name] ? Object.keys(L_.layersGroupSublayers[node[i].name]).map((function(i){return function(s) {
                                         return L_.layersGroupSublayers[node[i].name][s] === false ? '' : [
                                             '<div class="sublayer">',
-                                                `<div>${F_.prettifyName(s)}</div>`,
-                                                '<div class="checkboxcont">',
-                                                    `<div class="checkbox ${(L_.layersGroupSublayers[node[i].name][s].on ? 'on' : 'off')}" layername="${node[i].name}" sublayername="${s}" style="margin: 5px 0px 5px 10px;"></div>`,
+                                                `<div title="${L_.layersGroupSublayers[node[i].name][s].title || ''}">${F_.prettifyName(s)}</div>`,
+                                                '<div style="display: flex;">',
+                                                    L_.layersGroupSublayers[node[i].name][s].layer?.dropdown ? [
+                                                        `<select class="dropdown sublayerDropdown" layername="${node[i].name}" sublayername="${s}">`,
+                                                            L_.layersGroupSublayers[node[i].name][s].layer?.dropdown.map((d) =>
+                                                                `<option value="${d}"${(d === L_.layersGroupSublayers[node[i].name][s].layer?.dropdownValue  ? ' selected' : '')}>${d}</option>`
+                                                            ).join('\n'),
+                                                        '</select>'
+                                                    ].join('\n') : null,
+                                                    '<div class="checkboxcont">',
+                                                        `<div class="checkbox small ${(L_.layersGroupSublayers[node[i].name][s].on ? 'on' : 'off')}" layername="${node[i].name}" sublayername="${s}" style="margin: 7px 0px 7px 10px;"></div>`,
+                                                    '</div>',
                                                 '</div>',
-                                            '</div>',
+                                            '</div>'
                                         ].join('\n')
                                     }})(i)).join('\n') : null,
                                 '</div>',
@@ -499,12 +509,34 @@ function interfaceWithMMGIS() {
         toggleLayer($(this))
     })
 
+    $('#layersToolList > li > .settings .sublayer .dropdown').on(
+        'change',
+        function () {
+            const layerName = $(this).attr('layername')
+            const sublayerName = $(this).attr('sublayername')
+            $(this).val()
+
+            if (
+                L_.layersGroupSublayers[layerName] &&
+                L_.layersGroupSublayers[layerName][sublayerName]
+            ) {
+                const l = L_.layersGroupSublayers[layerName][sublayerName]
+                l.layer.dropdownFunc(
+                    layerName,
+                    sublayerName,
+                    Map_,
+                    $(this).val()
+                )
+            }
+        }
+    )
     //Makes sublayers clickable on and off
     $('#layersToolList > li > .settings .sublayer .checkbox').on(
         'click',
         async function () {
             const layerName = $(this).attr('layername')
             const sublayerName = $(this).attr('sublayername')
+
             await L_.toggleSublayer(layerName, sublayerName)
 
             if (

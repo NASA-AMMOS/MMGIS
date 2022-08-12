@@ -2910,7 +2910,7 @@ function layerPopulateVariable(modalId, layerType) {
       currentLayerVars.pathAttachments = currentLayerVars.pathAttachments || {
         gradient: {
           colorWithProp: "path.to.prop",
-          userControlsProp: true,
+          dropdownColorWithProp: ["prop3", "path.to.prop3"],
           colorRamp: ["cssColor1", "cssColor2"],
           weight: 4,
         },
