@@ -509,9 +509,9 @@ function interfaceWithMMGIS() {
                     layer: L_.layersNamed[layerName],
                     layerName,
                     visible: L_.toggledArray[layerName],
-                }
+                },
             })
-            document.dispatchEvent(_event);
+            document.dispatchEvent(_event)
         }
     }
     //Add event functions and whatnot
@@ -618,7 +618,7 @@ function interfaceWithMMGIS() {
 
         let layerName = li.attr('name')
         F_.downloadObject(
-            L_.layersGroup[layerName].toGeoJSON(),
+            L_.layersGroup[layerName].toGeoJSON(10),
             layerName,
             '.json'
         )
