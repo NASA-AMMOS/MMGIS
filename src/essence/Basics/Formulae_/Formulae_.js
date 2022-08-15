@@ -1353,7 +1353,10 @@ var Formulae_ = {
         if (typeof exportObj === 'string') {
             strung = exportObj
         } else {
-            if (exportExt && exportExt == '.geojson') {
+            if (
+                exportExt &&
+                (exportExt === '.json' || exportExt === '.geojson')
+            ) {
                 //pretty print geojson
                 let features = []
                 for (var i = 0; i < exportObj.features.length; i++)
