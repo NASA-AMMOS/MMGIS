@@ -50,7 +50,7 @@
     transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
 }
 .drawToolButton1:hover {
-    background: #124463;
+    background: var(--color-c2);
     color: white;
 }
 
@@ -1474,7 +1474,7 @@
     transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
 }
 #drawToolFileEditOnTagsNewCont > #drawToolFileEditOnTagsNewAdd:hover {
-    background: #124463;
+    background: var(--color-c2);
     color: white;
 }
 #drawToolFileEditOnTagsNewCont > #drawToolFileEditOnTagsNewAdd div {
@@ -1725,7 +1725,6 @@
 
 .drawToolContextMenu .visibilityRangePicker {
     flex-flow: column;
-
 }
 .drawToolContextMenu .visibilityRangePicker > div:last-child {
     text-align: center;

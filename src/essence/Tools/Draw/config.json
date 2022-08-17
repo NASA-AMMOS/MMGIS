@@ -12,7 +12,11 @@
                 "Point_Alias",
                 "All_Alias"
             ],
-            "preferredTags": ["preferredTagA", "example1"],
+            "leads": {
+                "canSetTags": true,
+                "canSetFolders": true,
+                "canMakePrivate": true
+            },
             "hoverLengthOnLines": false
         }
     },
