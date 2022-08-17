@@ -2,6 +2,7 @@
  * JavaScript syntax format: ES5/ES6 - ECMAScript 2015
  * Loading all required dependencies, libraries and packages
  **********************************************************/
+require("dotenv").config();
 const express = require("express");
 const router = express.Router();
 const execFile = require("child_process").execFile;
@@ -12,6 +13,9 @@ const config_template = require("../../../templates/config_template");
 
 const validate = require("../validate");
 const Utils = require("../../../utils.js");
+
+const websocket = require("../../../websocket.js");
+const WebSocket = require('isomorphic-ws');
 
 const fs = require("fs");
 const deepmerge = require("deepmerge");
@@ -561,6 +565,19 @@ if (fullAccess)
     }
   });
 
+function openWebSocket(body, response, type) {
+  const port = parseInt(process.env.PORT || "8888", 10);
+  const path = `ws://localhost:${port}/`
+  const ws = new WebSocket(path);
+  ws.onopen = function () {
+    const data = {
+      type,
+      body,
+    };
+    ws.send(JSON.stringify(data));
+  }
+}
+
 // === Quick API Functions ===
 function addLayer(req, res, next, cb, forceConfig) {
   const exampleBody = {
@@ -666,22 +683,27 @@ function addLayer(req, res, next, cb, forceConfig) {
               null,
               null,
               (response) => {
-                if (response.status === "success")
-                  if (cb)
+                if (response.status === "success") {
+                  if (cb) {
                     cb({
                       status: "success",
                       message: `Added layer to the ${response.mission} mission. Configuration versioned ${response.version}.`,
                       mission: response.mission,
                       version: response.version,
                     });
-                  else
+                  } else {
                     res.send({
                       status: "success",
                       message: `Added layer to the ${response.mission} mission. Configuration versioned ${response.version}.`,
                       mission: response.mission,
                       version: response.version,
                     });
-                else res.send(response);
+                  }
+                  openWebSocket(req.body, response, "addLayer");
+                } else {
+                  res.send(response);
+                }
+
               }
             );
           } else if (cb)
