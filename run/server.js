@@ -30,6 +30,10 @@ const setups = require("../API/setups");
 
 const { updateTools } = require("../API/updateTools");
 
+const { websocket } = require("../API/websocket");
+
+const WebSocket = require('isomorphic-ws');
+
 const chalk = require("chalk");
 const webpack = require("webpack");
 const WebpackDevServer = require("webpack-dev-server");
@@ -676,6 +680,8 @@ setups.getBackendSetups(function (setups) {
           VERSION: packagejson.version,
           FORCE_CONFIG_PATH: process.env.FORCE_CONFIG_PATH,
           CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER,
+          ENABLE_MMGIS_WEBHOOKS: process.env.ENABLE_MMGIS_WEBHOOKS,
+          PORT: process.env.PORT,
           HOSTS: JSON.stringify({
             scienceIntent: process.env.SCIENCE_INTENT_HOST,
           }),
@@ -695,6 +701,11 @@ setups.getBackendSetups(function (setups) {
       "MMGIS successfully started! It's listening on port: " + port,
       "server"
     );
+
+    if (process.env.ENABLE_MMGIS_WEBHOOKS) {
+      console.log(chalk.cyan("Starting websocket...\n"));
+      websocket.init(httpServer);
+    }
   });
 });
 
