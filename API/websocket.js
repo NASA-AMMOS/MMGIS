@@ -35,10 +35,10 @@ const websocket = {
         websocket.wss = wss;
 
         // Broadcast to all clients
-        wss.broadcast = function broadcast(data) {
+        wss.broadcast = function broadcast(data, isBinary) {
             wss.clients.forEach(client => {
                 if (client.readyState === WebSocket.OPEN && data !== undefined) {
-                    client.send(data);
+                    client.send(data, { binary: isBinary });
                 }
             });
         };
