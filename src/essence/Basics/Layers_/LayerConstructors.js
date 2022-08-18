@@ -343,7 +343,6 @@ export const constructVectorLayer = (
         layer._sourceGeoJSON = F_.getBaseGeoJSON(geojson)
     else layer._sourceGeoJSON = F_.getBaseGeoJSON()
 
-    console.log(layer, geojson)
     layer._layerName = layerObj.name
 
     Object.keys(layer._layers).forEach((idx) => {

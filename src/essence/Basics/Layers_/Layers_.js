@@ -716,9 +716,18 @@ var L_ = {
     },
     addGeoJSONData: function (layer, geojson) {
         if (layer._sourceGeoJSON) {
-            if (geojson.features)
-                layer._sourceGeoJSON.features.concat(geojson.features)
-            else layer._sourceGeoJSON.features.push(geojson)
+            if (layer._sourceGeoJSON.features)
+                if (geojson.features)
+                    layer._sourceGeoJSON.features.concat(geojson.features)
+                else layer._sourceGeoJSON.features.push(geojson)
+            else
+                layer._sourceGeoJSON = F_.getBaseGeoJSON(
+                    geojson.features
+                        ? geojson.features
+                        : geojson.length > 0 && geojson[0].type === 'Feature'
+                        ? geojson
+                        : null
+                )
         }
 
         // Don't add data if hidden
