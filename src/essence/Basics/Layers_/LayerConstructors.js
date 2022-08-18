@@ -334,10 +334,16 @@ export const constructVectorLayer = (
     }
 
     let layer
-    if (F_.getIn(layerObj, 'variables.hideMainFeature') === true)
+    if (F_.getIn(layerObj, 'variables.hideMainFeature') === true) {
         layer = L.geoJson(F_.getBaseGeoJSON(), leafletLayerObject)
-    else layer = L.geoJson(geojson, leafletLayerObject)
-    layer._sourceGeoJSON = geojson
+        layer._sourceGeoJSON = F_.getBaseGeoJSON()
+    } else {
+        layer = L.geoJson(geojson, leafletLayerObject)
+        if (geojson?.features) layer._sourceGeoJSON = geojson
+        else if (geojson && geojson.length > 0 && geojson[0].type === 'Feature')
+            layer._sourceGeoJSON = F_.getBaseGeoJSON(geojson)
+        else layer._sourceGeoJSON = F_.getBaseGeoJSON()
+    }
     layer._layerName = layerObj.name
 
     Object.keys(layer._layers).forEach((idx) => {
