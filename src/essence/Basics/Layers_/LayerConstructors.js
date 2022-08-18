@@ -338,7 +338,7 @@ export const constructVectorLayer = (
         layer = L.geoJson(F_.getBaseGeoJSON(), leafletLayerObject)
     else layer = L.geoJson(geojson, leafletLayerObject)
 
-    if (geojson?.features) layer._sourceGeoJSON = geojson
+    if (geojson?.features?.length) layer._sourceGeoJSON = geojson
     else if (geojson && geojson.length > 0 && geojson[0].type === 'Feature')
         layer._sourceGeoJSON = F_.getBaseGeoJSON(geojson)
     else layer._sourceGeoJSON = F_.getBaseGeoJSON()
