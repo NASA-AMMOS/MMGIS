@@ -8,7 +8,8 @@
             "layerDems": {
                 "[layer_name]": "(str) path/to/layers/dem.tif"
             },
-            "onlyShowDemIfLayerOn": true
+            "onlyShowDemIfLayerOn": true,
+            "defaultMode": "segment || continuous || continuous_color"
         }
     },
     "hasVars": true,
