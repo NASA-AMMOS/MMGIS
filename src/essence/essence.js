@@ -107,7 +107,7 @@ $(document).keyup(function (e) {
 $(document.body).keydown(function (e) {
     if (
         ToolController_.activeTool == null &&
-        !$('#loginModal').hasClass('active') &&
+        !$('#loginModal').length &&
         UserInterface_.getPanelPercents().globe == 0 &&
         e.shiftKey &&
         e.keyCode === 84

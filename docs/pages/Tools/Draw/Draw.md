@@ -34,12 +34,14 @@ There are five files that are group editable with the correct permission. The gr
         "done"
     ],
     "hoverLengthOnLines": false
+    "leadsCanEditFileInfo": false
 }
 ```
 
 _"intents"_: The names in quotes will be the group file names.  
 _"preferredTags"_: Users can attach tags or keyword to files to organize them. Preferred Tags are curated tags and promoted over user generated ones.  
 _"hoverLengthOnLines"_: If true, the hover text for line features will include the total length of the line in meters.
+_"leadsCanEditFileInfo"_: If true, lead roles can edit the file info, (name, description, tags, folder, make private) of any user's public file.
 
 ## Tool Use
 
