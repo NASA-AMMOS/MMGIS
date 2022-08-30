@@ -231,7 +231,9 @@ router.post("/make", function (req, res, next) {
                     res.send({
                       status: "success",
                       message: "Successfully made a new file from geojson.",
-                      body: {},
+                      body: {
+                        file_id: created.id,
+                      },
                     });
                     triggerWebhooks("drawFileAdd", {
                       id: created.id,
@@ -277,7 +279,9 @@ router.post("/make", function (req, res, next) {
         res.send({
           status: "success",
           message: "Successfully made a new file.",
-          body: {},
+          body: {
+            file_id: created.id,
+          },
         });
         triggerWebhooks("drawFileAdd", {
           id: created.id,
@@ -421,13 +425,23 @@ router.post("/change", function (req, res, next) {
     toUpdateTo.public = req.body.public;
   }
 
-  Table.update(toUpdateTo, {
+  let updateObj = {
     where: {
       id: req.body.id,
       file_owner: req.user,
       is_master: false, //No editing these
     },
-  })
+  };
+
+  // Alow leads to edit file info
+  if (req.groups && req.groups["mmgis-group"] === true)
+    updateObj = {
+      where: {
+        id: req.body.id,
+        is_master: false, //No editing these
+      },
+    };
+  Table.update(toUpdateTo, updateObj)
     .then(() => {
       res.send({
         status: "success",
