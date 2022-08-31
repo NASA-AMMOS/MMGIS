@@ -283,7 +283,7 @@ var Drawing = {
         } else {
             $('#drawToolDrawingTypeDiv > div').css(
                 'background',
-                'var(--color-a)'
+                'var(--color-a2)'
             )
         }
     },
@@ -333,7 +333,7 @@ var Drawing = {
             $('#drawToolDrawIntentFilterDiv').css('background', color)
             $('#drawToolDrawingTypeDiv > div').css(
                 'background',
-                'var(--color-a)'
+                'var(--color-a2)'
             )
             $('#drawToolDrawingTypeDiv div.active').css('background', color)
             $('#drawToolDrawingTypeDiv').css('background', color)

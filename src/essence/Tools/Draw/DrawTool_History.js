@@ -19,7 +19,7 @@ var History = {
         var file = DrawTool.getFileObjectWithId(DrawTool.currentFileId)
         if (file == null) {
             $('#drawToolHistoryFile')
-                .css({ background: '#ac0404', color: 'white' })
+                .css({ background: 'var(--color-p4)', color: 'white' })
                 .text('No File Selected!')
             return
         }

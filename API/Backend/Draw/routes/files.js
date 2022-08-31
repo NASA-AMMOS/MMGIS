@@ -466,6 +466,94 @@ router.post("/change", function (req, res, next) {
 });
 
 /**
+ * Renames a tags/folders/efolders (efolders = elevated folders)
+ * These were quickly and over time hacked into the file description
+ * If newKeyword is null, removes
+ * {
+ *   keyword: <string>
+ *   type: "tags" || "folders" || "efolders"
+ *   newKeyword: <string>
+ * }
+ */
+router.post("/modifykeyword", function (req, res, next) {
+  let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
+
+  const keyword = req.body.keyword;
+  const type = req.body.type;
+  const newKeyword = req.body.newKeyword;
+  let symbol = null;
+  switch (type.toLowerCase()) {
+    case "tags":
+      symbol = "#";
+      break;
+    case "folders":
+      symbol = "@";
+      break;
+    case "efolders":
+      symbol = "^";
+      break;
+    default:
+      break;
+  }
+
+  if (
+    symbol == null ||
+    keyword == null ||
+    keyword.match(/^[a-z0-9_]+$/i) == null ||
+    (newKeyword != null && newKeyword.match(/^[a-z0-9_]+$/i) == null)
+  ) {
+    res.send({
+      status: "failure",
+      message: `Bad Input. Either: no 'keyword', no 'type', 'keyword' or 'newKeyword' contains non-alphanumerics.`,
+      body: {},
+    });
+    return;
+  }
+
+  const existing = `${symbol}${keyword}`;
+  let replace = "";
+  if (newKeyword != null) replace = `${symbol}${newKeyword}`;
+
+  Table.update(
+    {
+      file_description: Sequelize.fn(
+        "replace",
+        Sequelize.col("file_description"),
+        existing,
+        replace
+      ),
+    },
+    {
+      where: {
+        file_description: { [Sequelize.Op.iRegexp]: `[${existing}]` },
+      },
+    }
+  )
+    .then((data) => {
+      res.send({
+        status: "success",
+        message: `Successfully modified keyword ${existing} into ${replace}`,
+        body: {},
+      });
+      return null;
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        `Failed to modify keyword ${existing} into ${replace}`,
+        req.originalUrl,
+        req,
+        err
+      );
+      res.send({
+        status: "failure",
+        message: `Failed to modify keyword ${existing} into ${replace}`,
+        body: {},
+      });
+    });
+});
+
+/**
  * compile sel file
  * {
  * 	time: int

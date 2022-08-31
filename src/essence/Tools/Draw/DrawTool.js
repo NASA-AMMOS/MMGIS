@@ -43,12 +43,15 @@ var markup = [
       "<div id='drawToolNav'>",
         "<div type='draw' id='drawToolNavButtonDraw' class='drawToolNavButton' title='Draw'>",
           "<i class='mdi mdi-lead-pencil mdi-18px'></i>",
+          "<div>Draw</div>",
         "</div>",
         "<div type='shapes' class='drawToolNavButton' title='Features'>",
           "<i class='mdi mdi-shape mdi-18px'></i>",
+          "<div>Features</div>",
         "</div>",
         "<div type='history' class='drawToolNavButton' title='History'>",
           "<i id='drawToolHistoryButton' class='mdi mdi-history mdi-18px'></i>",
+          "<div>History</div>",
         "</div>",
       "</div>",
       "<div id='drawToolContents'>",
@@ -130,19 +133,6 @@ var markup = [
             "<div id='drawToolDrawFilterDiv2'>",
               //"<div id='drawToolDrawFilterCount'></div>",
               //"<div id='drawToolDrawFilterDiv'>",
-              "<div id='drawToolDrawFilterByTagAutocomplete'>",
-               "<div id='drawToolDrawFilterByTagAutocompleteClose' title='Close tags'></div>",
-                "<div id='drawToolDrawFilterByTagAutocompleteHeading'>",
-                    "<div id='drawToolDrawFilterByTagAutocompleteTitle'>#Tags</div>",
-                    "<select id='drawToolDrawFilterByTagAutocompleteSort' class='ui dropdown dropdown_2 unsetMaxWidth'>",
-                        `<option value='relevance' selected>Relevance</option>`,
-                        `<option value='alphabetical'>Alphabetical</option>`,
-                        `<option value='count'>Count</option>`,
-                    "</select>",
-                "</div>",
-                "<ul id='drawToolDrawFilterByTagAutocompleteList'>",
-                "</ul>",
-              "</div>",
               `<input id='drawToolDrawFilter' type='text' placeholder='Filter Files' autocomplete='off' title="Filter over a file's name, author and description.\nUse '#{tag}' to search over keywords."/>`,
                 "<div id='drawToolDrawFilterClear'><i class='mdi mdi-close mdi-18px'></i></div>",
               //"</div>",
@@ -163,12 +153,17 @@ var markup = [
             "</div>",
 
             "<div id='drawToolDrawFilterOptions'>",
-                "<div id='drawToolDrawFilterByTag' title='Filter by Tag'><i class='mdi mdi-tag-text mdi-18px'></i></div>",
+                "<div id='drawToolDrawGroupingDiv'>",
+                    "<div type='folders' title='Group by Folder' class='active'><i class='mdi mdi-folder mdi-14px'></i></div>",
+                    "<div type='tags' title='Group by Tag'><i class='mdi mdi-tag-text mdi-18px'></i></div>",
+                    "<div type='author' title='Group by Author'><i class='mdi mdi-account-box-outline mdi-18px'></i></div>",
+                    "<div type='alphabetical' title='Group Alphabetically'><i class='mdi mdi-alphabetical-variant mdi-18px'></i></div>",
+                    "<div type='none' title='Files Ungrouped'><i class='mdi mdi-file-outline mdi-18px'></i></div>",
+                "</div>",
                 "<div id='drawToolDrawSortDiv'>",
                     "<div type='public' title='Public Only'><i class='mdi mdi-shield-outline mdi-14px'></i></div>",
                     "<div type='owned' title='Yours Only' class='active'><i class='mdi mdi-account mdi-18px'></i></div>",
                     "<div type='on' title='On Only'><i class='mdi mdi-eye mdi-18px'></i></div>",
-                    //"<div><i class='mdi mdi-account-tie mdi-18px'></i></div>",
                 "</div>",
             "</div>",
           "</div>",
@@ -186,7 +181,7 @@ var markup = [
                         "<div class='drawToolMasterHeaderLeft'>",
                             "<div class='drawToolMasterHeaderLeftLeft'>",
                                 "<div class='drawToolMasterHeaderIntent'></div>",
-                                "<div class='drawToolMasterHeaderChevron'><i class='mdi mdi-chevron-right mdi-24px'></i></div>",
+                                "<div class='drawToolMasterHeaderChevron'><i class='mdi mdi-folder-star mdi-18px'></i></div>",
                                 "<div>Lead Maps</div>",
                             "</div>",
                             "<div class='drawToolMasterHeaderLeftRight'>",
@@ -218,7 +213,7 @@ var markup = [
           "<div id='drawToolShapesCopyDiv'>",
             "<div>Copy to</div>",
             "<div id='drawToolShapesCopyDropdown'></div>",
-            "<div id='drawToolShapesCopyGo'>Go</div>",
+            "<div id='drawToolShapesCopyGo'>GO</div>",
           "</div>",
           "<div id='drawToolShapesCopyMessageDiv'></div>",
         "</div>",
@@ -946,12 +941,15 @@ var DrawTool = {
         }
     },
     // Return in pinned then last modified order
-    getAllTags() {
+    getAllTags(all) {
         let tags = []
         for (var i = 0; i < DrawTool.files.length; i++) {
             tags = tags.concat(
-                DrawTool.getTagsFromFileDescription(
-                    DrawTool.files[i].file_description
+                DrawTool.getTagsFoldersFromFileDescription(
+                    DrawTool.files[i],
+                    true,
+                    'all',
+                    all ? 'all' : 'tags'
                 ).map((t) => {
                     return {
                         tag: t,
@@ -978,16 +976,81 @@ var DrawTool = {
         })
         return allTags
     },
-    getTagsFromFileDescription(file_description) {
+    getTagsFoldersFromFileDescription(file, noDefaults, only, withTypePrefix) {
+        const file_name = file.file_name
+        const file_description = file.file_description
+        const file_owner = file.file_owner
+
+        const tagFolders = {
+            tags: [],
+            folders: [],
+            efolders: [],
+            author: [],
+            alphabetical: [],
+        }
         if (typeof file_description !== 'string') return []
+
         const tags = file_description.match(/#\w*/g) || []
         const uniqueTags = [...tags]
         // remove '#'s
-        return uniqueTags.map((t) => t.substring(1))
+        tagFolders.tags = uniqueTags.map((t) => t.substring(1)) || []
+
+        const folders = file_description.match(/@\w*/g) || []
+        const uniqueFolders = [...folders]
+        // remove '@'s
+        tagFolders.folders = uniqueFolders.map((t) => t.substring(1)) || []
+
+        const efolders = file_description.match(/\^\w*/g) || []
+        const uniqueEFolders = [...efolders]
+        // remove '^'s
+        tagFolders.efolders = uniqueEFolders.map((t) => t.substring(1)) || []
+
+        // At least one folder
+        if (noDefaults !== true) {
+            if (tagFolders.tags.length === 0) tagFolders.tags = ['untagged']
+            if (tagFolders.folders.length === 0)
+                tagFolders.folders = ['unassigned']
+
+            tagFolders.alphabetical = ['a' + file_name.toLowerCase()[0]]
+            tagFolders.author = [file_owner]
+        }
+
+        // Sort all alphabetically
+        tagFolders.tags.sort(function (a, b) {
+            return a.length - b.length
+        })
+        tagFolders.folders.sort(function (a, b) {
+            return a.length - b.length
+        })
+        tagFolders.efolders.sort(function (a, b) {
+            return a.length - b.length
+        })
+
+        if (withTypePrefix) {
+            tagFolders.tags = tagFolders.tags.map((t) => `tag:${t}`)
+            tagFolders.folders = tagFolders.folders.map((t) => `folder:${t}`)
+            tagFolders.efolders = tagFolders.efolders.map(
+                (t) => `elevated-folder:${t}`
+            )
+        }
+        if (only) {
+            if (tagFolders[only]) return tagFolders[only]
+            return []
+                .concat(tagFolders.tags)
+                .concat(tagFolders.folders)
+                .concat(tagFolders.efolders)
+        }
+
+        return tagFolders
     },
     stripTagsFromDescription(file_description) {
         if (typeof file_description !== 'string') return ''
-        return file_description.replaceAll(/#\w*/g, '').trimStart().trimEnd()
+        return file_description
+            .replaceAll(/#\w*/g, '')
+            .replaceAll(/@\w*/g, '')
+            .replaceAll(/\^\w*/g, '')
+            .trimStart()
+            .trimEnd()
     },
     getFiles: function (callback) {
         calls.api(
@@ -995,7 +1058,7 @@ var DrawTool = {
             {},
             function (data) {
                 if (data && data.body) {
-                    //sort files by intent and the alphabetically by name within intent
+                    //sort files by intent and then alphabetically by name within intent
                     //sort alphabetically first
                     data.body.sort(F_.dynamicSort('-file_name'))
                     var sortedBody = []
@@ -1010,7 +1073,15 @@ var DrawTool = {
                     }
                     DrawTool.files = sortedBody
 
-                    DrawTool.allTags = DrawTool.getAllTags()
+                    // Add tags and folders
+                    for (let i = 0; i < DrawTool.files.length; i++) {
+                        DrawTool.files[i]._tagFolders =
+                            DrawTool.getTagsFoldersFromFileDescription(
+                                DrawTool.files[i]
+                            )
+                    }
+
+                    DrawTool.allTags = DrawTool.getAllTags(true)
                     DrawTool.tags = Object.keys(DrawTool.allTags)
                 }
                 if (typeof callback === 'function') callback()
@@ -1027,9 +1098,30 @@ var DrawTool = {
             'files_make',
             body,
             function (data) {
-                DrawTool.getFiles(callback)
+                if (data.status === 'success')
+                    DrawTool.getFiles(() => {
+                        callback(data.body.file_id)
+                    })
+                else
+                    CursorInfo.update(
+                        'Failed to add file.',
+                        6000,
+                        true,
+                        { x: 305, y: 6 },
+                        '#e9ff26',
+                        'black'
+                    )
             },
-            function () {}
+            function () {
+                CursorInfo.update(
+                    'Failed to add file.',
+                    6000,
+                    true,
+                    { x: 305, y: 6 },
+                    '#e9ff26',
+                    'black'
+                )
+            }
         )
     },
     getFile: function (body, callback) {
@@ -1346,8 +1438,8 @@ function interfaceWithMMGIS() {
             file_name: val || 'New File',
             intent: intent,
         }
-        DrawTool.makeFile(body, function () {
-            DrawTool.populateFiles()
+        DrawTool.makeFile(body, function (file_id) {
+            DrawTool.populateFiles(file_id)
 
             $('#drawToolDrawFilesNewName').val('')
         })

@@ -12,11 +12,7 @@
                 "Point_Alias",
                 "All_Alias"
             ],
-            "leads": {
-                "canSetTags": true,
-                "canSetFolders": true,
-                "canMakePrivate": true
-            },
+            "leadsCanEditFileInfo": false,
             "hoverLengthOnLines": false
         }
     },
