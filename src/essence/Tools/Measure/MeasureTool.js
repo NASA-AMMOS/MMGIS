@@ -26,6 +26,7 @@ let clickedLatLngs = []
 let distLineToMouse = null
 let distMousePoint = null
 let distDisplayUnit = 'meters'
+const availableModes = ['segment', 'continuous', 'continuous_color']
 let mode = 'segment'
 let steps = 100
 let profileData = []
@@ -89,7 +90,7 @@ const Measure = () => {
                 </div>
                 {dems.length > 1 && (
                     <div id='measureDem'>
-                        <div title='Digital Elevation Model'>DEM</div>
+                        <div title='Digital Elevation Model'>Dataset</div>
                         <select
                             className='dropdown'
                             defaultValue={dems[0].path}
@@ -107,7 +108,7 @@ const Measure = () => {
                     <div>Mode</div>
                     <select
                         className='dropdown'
-                        defaultValue='segment'
+                        defaultValue={mode}
                         onChange={MeasureTool.changeMode}
                     >
                         <option value='segment'>Segment</option>
@@ -361,11 +362,17 @@ let MeasureTool = {
         MeasureTool.lastData = []
         MeasureTool.datasetMapping = []
         distDisplayUnit = 'meters'
-        mode = 'segment'
         steps = 100
 
         //Get tool variables
         this.vars = L_.getToolVars('measure')
+
+        if (
+            this.vars.defaultMode &&
+            availableModes.includes(this.vars.defaultMode)
+        )
+            mode = this.vars.defaultMode
+        else mode = 'segment'
 
         this.dems = MeasureTool.getDems()
         this.activeDemIdx = 0

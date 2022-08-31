@@ -12,7 +12,7 @@
                 "Point_Alias",
                 "All_Alias"
             ],
-            "preferredTags": ["preferredTagA", "example1"],
+            "leadsCanEditFileInfo": false,
             "hoverLengthOnLines": false
         }
     },

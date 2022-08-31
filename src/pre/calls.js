@@ -78,6 +78,10 @@ const c = {
         type: 'POST',
         url: 'API/files/change',
     },
+    files_modifykeyword: {
+        type: 'POST',
+        url: 'API/files/modifykeyword',
+    },
     files_compile: {
         type: 'GET',
         url: 'API/files/compile',

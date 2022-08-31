@@ -23,11 +23,12 @@ On the Configure page, under Tools, you can specify which digital elevation mode
 }
 ```
 
-|        Parameter         |   Type    | Required | Default |                                                                                       Description                                                                                       |
-| :----------------------: | :-------: | :------: | :-----: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-|         **dem**          | _string_  |  false   |   N/A   |                                                                Path to a primary DEM. Required if `layerDems` is unset.                                                                 |
-|      **layerDems**       | _object_  |  false   |   N/A   | Object of layer names and the paths to thier DEMs. Users may switch between DEMs to profile via a dropdown. The dropdown only renders if there is more than one DEM configured overall. |
-| **onlyShowDemIfLayerOn** | _boolean_ |  false   |  true   | If true, hides the configured `layerDems` of off layers from the tool's DEM selection dropdown. If false, all `layerDems`, even with invalid layer names, always show in the dropdown.  |
+|        Parameter         |   Type    | Required |  Default  |                                                                                       Description                                                                                       |
+| :----------------------: | :-------: | :------: | :-------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+|         **dem**          | _string_  |  false   |    N/A    |                                                                Path to a primary DEM. Required if `layerDems` is unset.                                                                 |
+|      **layerDems**       | _object_  |  false   |    N/A    | Object of layer names and the paths to thier DEMs. Users may switch between DEMs to profile via a dropdown. The dropdown only renders if there is more than one DEM configured overall. |
+| **onlyShowDemIfLayerOn** | _boolean_ |  false   |   true    | If true, hides the configured `layerDems` of off layers from the tool's DEM selection dropdown. If false, all `layerDems`, even with invalid layer names, always show in the dropdown.  |
+|     **defaultMode**      | _string_  |  false   | 'segment' |                                            Which measurement mode to default to. Options are 'segment', 'continuous' and 'continuous_color'                                             |
 
 DEMs should be georeferenced (i.e. have a projection defined).
 

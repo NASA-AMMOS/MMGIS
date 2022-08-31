@@ -66,7 +66,9 @@ var Login = {
     init: function () {
         if (window.mmgisglobal.AUTH == 'off') return
         if (
-            window.mmgisglobal.AUTH == 'csso' &&
+            (window.mmgisglobal.AUTH === 'csso' ||
+                window.mmgisglobal.AUTH === 'none' ||
+                window.mmgisglobal.AUTH === 'local') &&
             window.mmgisglobal.hasOwnProperty('user')
         ) {
             this.loggedIn = true
@@ -146,7 +148,10 @@ var Login = {
             .on('click', function () {
                 if (Login.loggedIn) {
                     //Then Logout
-                    if (Login.beganLoggedIn) {
+                    if (
+                        window.mmgisglobal.AUTH == 'csso' &&
+                        Login.beganLoggedIn
+                    ) {
                         Login.loggedIn = false
                         window.location.href = '/ssologoutredirect'
                     } else {
@@ -185,7 +190,13 @@ var Login = {
                                 MMGISUser.token = ''
 
                                 if (window.mmgisglobal.AUTH === 'local') {
-                                    window.location.reload()
+                                    if (
+                                        window.mmgisglobal.NODE_ENV ===
+                                        'development'
+                                    )
+                                        window.location.href =
+                                            'http://localhost:8888'
+                                    else window.location.reload()
                                 }
                             },
                             function (d) {}
@@ -226,6 +237,7 @@ var Login = {
                     Login.username = d.username
                     window.mmgisglobal.user = Login.username
                     window.mmgisglobal.groups = d.groups
+
                     loginSuccess(d)
                 },
                 function (d) {
@@ -501,29 +513,28 @@ function loginSuccess(data, ignoreError) {
                         validate.email = false
                         validate.password = false
                         validate.retypepassword = false
-                        $('#loginButton').html('logout')
-                        d3.select('#loginoutButton').attr('title', 'Logout')
-                        d3.select('#loginoutButtonIcon').attr(
-                            'class',
-                            'mdi mdi-logout mdi-18px'
-                        )
-
-                        d3.select('#loginUser').attr(
-                            'title',
-                            Login.loggedIn ? Login.username : ''
-                        )
-
-                        $('#loginUser')
-                            .css({
-                                display: 'block',
-                                background: Login.loggedIn
-                                    ? 'var(--color-a)'
-                                    : 'transparent',
-                            })
-                            .html(Login.username[0])
                     }, 600)
                 }
             )
+
+        $('#loginButton').html('logout')
+        d3.select('#loginoutButton').attr('title', 'Logout')
+        d3.select('#loginoutButtonIcon').attr(
+            'class',
+            'mdi mdi-logout mdi-18px'
+        )
+
+        d3.select('#loginUser').attr(
+            'title',
+            Login.loggedIn ? Login.username : ''
+        )
+
+        $('#loginUser')
+            .css({
+                display: 'block',
+                background: Login.loggedIn ? 'var(--color-a)' : 'transparent',
+            })
+            .html(Login.username[0])
     } else {
         document.cookie =
             'MMGISUser=' +
@@ -533,7 +544,9 @@ function loginSuccess(data, ignoreError) {
             })
 
         if (window.mmgisglobal.AUTH === 'local') {
-            window.location.reload()
+            if (window.mmgisglobal.NODE_ENV === 'development')
+                window.location.href = 'http://localhost:8888'
+            else window.location.reload()
         }
         if (ignoreError) return
 

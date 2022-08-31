@@ -7,8 +7,6 @@ import Map_ from '../../Basics/Map_/Map_'
 import UserInterface_ from '../../Basics/UserInterface_/UserInterface_'
 import turf from 'turf'
 
-import RangeSlider from '../../../external/svelte-range-slider-pips/svelte-range-slider-pips'
-
 import calls from '../../../pre/calls'
 
 var DrawTool = null
