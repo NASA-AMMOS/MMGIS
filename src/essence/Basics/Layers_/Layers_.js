@@ -2390,6 +2390,10 @@ function parseConfig(configData, urlOnLayers) {
             L_.toggledArray[d[i].name] =
                 d[i].visibility == undefined ? true : d[i].visibility
 
+            // Headers always start as true
+            // Toggling header visibility toggles between all-off and previous-on states
+            if (d[i].type === 'header') L_.toggledArray[d[i].name] = true
+
             //Create parsed opacity array
             let io = d[i].initialOpacity
             L_.opacityArray[d[i].name] = io == null || io < 0 || io > 1 ? 1 : io

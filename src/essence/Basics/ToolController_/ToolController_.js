@@ -98,10 +98,11 @@ let ToolController_ = {
                             let _event = new CustomEvent('toolChange', {
                                 detail: {
                                     activeTool: ToolController_.activeTool,
-                                    activeToolName: ToolController_.activeToolName,
-                                }
+                                    activeToolName:
+                                        ToolController_.activeToolName,
+                                },
                             })
-                            document.dispatchEvent(_event);
+                            document.dispatchEvent(_event)
                         }
                     })(i)
                 )
