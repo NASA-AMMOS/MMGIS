@@ -15,8 +15,11 @@
 
 #layersTool #searchLayers {
     display: flex;
-    height: 31px;
-    line-height: 30px;
+    height: 36px;
+    line-height: 33px;
+    border-top: 1px solid var(--color-a-5);
+    border-bottom: 1px solid var(--color-a-5);
+    background: var(--color-a1);
 }
 
 #layersTool #filterLayers {
@@ -24,7 +27,6 @@
     height: 40px;
     line-height: 18px;
     color: #ccc;
-    background: var(--color-a);
     justify-content: space-between;
 }
 #layersTool #filterLayers #title {
@@ -79,17 +81,21 @@
     border-bottom: 4px solid rgba(255, 255, 255, 1);
 }
 #layersTool #searchLayers input {
-    background: var(--color-g);
+    background: var(--color-a1);
     width: 279px;
     color: #ccc;
     padding-left: 12px;
     border: none;
+    border-right: 1px solid var(--color-a-5);
+}
+#layersTool #searchLayers input::placeholder {
+    color: var(--color-a4);
 }
 #layersTool #searchLayers .mdi-magnify {
     position: absolute;
     right: 66px;
     color: #999;
-    line-height: 30px;
+    line-height: 36px;
     pointer-events: none;
 }
 
@@ -110,10 +116,16 @@
 #layersTool #searchLayers > div#expand {
     position: absolute;
     right: 30px;
+    background: var(--color-a1);
+    padding-top: 1px;
+    height: 34px;
 }
 #layersTool #searchLayers > div#collapse {
     position: absolute;
     right: 0;
+    background: var(--color-a1);
+    padding-top: 1px;
+    height: 34px;
 }
 
 #layersTool #layersToolList {
@@ -129,7 +141,6 @@
     font-size: 14px;
     margin: 1px 0px;
     color: var(--color-f);
-    background: var(--color-a1);
     overflow: hidden;
 }
 #layersToolList > li.forceOff {
@@ -154,6 +165,7 @@
     justify-content: space-between;
     display: flex;
     width: 100%;
+    background: var(--color-a1-5);
 }
 
 #layersTool .layerExport,
@@ -307,16 +319,18 @@
     overflow: hidden;
 }
 #layersTool .layerCount {
-    display: none;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--color-a1);
     font-size: 11px;
     border-radius: 3px;
     width: 18px;
     height: 18px;
-    margin: 3px;
+    margin: 6px 0px 6px 6px;
     color: #ccc;
     text-align: center;
     line-height: 19px;
+}
+#layersTool .headerChevron {
+    cursor: pointer;
 }
 
 .layersToolColorOFF {
@@ -383,9 +397,13 @@
         border 0.1s cubic-bezier(0.39, 0.575, 0.565, 1),
         border-radius 0.1s cubic-bezier(0.39, 0.575, 0.565, 1);
 }
+
 #layersTool .checkbox.on {
-    background: white;
+    background: var(--color-a7);
     border: 0px solid #777;
+}
+#layersTool .checkbox.small.on {
+    background: var(--color-a7);
 }
 #layersTool .checkbox:not(.on):hover {
     background: rgba(255, 255, 255, 0.1);
@@ -402,7 +420,11 @@
     height: 16px;
     margin: 7px;
 }
-
+#layersTool .checkbox.smaller {
+    width: 12px;
+    height: 12px;
+    margin: 9px;
+}
 #layersTool .checkboxSmall {
     margin: 3px;
     width: 12px;
@@ -523,6 +545,22 @@
 #layersTool .layernotfound .checkboxcont .checkbox {
     background: transparent !important;
     border: 2px solid #777 !important;
+}
+
+#layersTool .headerPowerState {
+    color: var(--color-h);
+    padding: 0px 6px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+#layersTool .headerPowerState:hover {
+    color: var(--color-h);
+}
+#layersTool .headerPowerState.on {
+    color: var(--color-a2);
+}
+#layersTool .headerPowerState.on:hover {
+    color: var(--color-a7);
 }
 
 @keyframes layerLoadingSpin {

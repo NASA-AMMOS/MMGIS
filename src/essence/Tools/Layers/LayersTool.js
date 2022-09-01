@@ -46,6 +46,8 @@ var markup = [
 // These layers are a bit different and we need to account for that.
 // Either they have no map data or not initial data
 const quasiLayers = ['model', 'query']
+const DEPTH_SIZE = 16
+const INDENT_COLOR = 'var(--color-a)'
 
 var LayersTool = {
     height: 0,
@@ -84,8 +86,8 @@ var LayersTool = {
                 elmDepth = t.attr('depth')
                 wasOn = t.attr('childrenon') == 'true'
                 t.attr('childrenon', wasOn ? 'false' : 'true')
-                t.find('.headerChevron').toggleClass('mdi-menu-right')
-                t.find('.headerChevron').toggleClass('mdi-menu-down')
+                t.find('.headerChevron').toggleClass('mdi-chevron-right')
+                t.find('.headerChevron').toggleClass('mdi-chevron-down')
             } else if (found) {
                 if (t.attr('type') == 'header' && t.attr('depth') <= elmDepth) {
                     done = true
@@ -405,17 +407,22 @@ function interfaceWithMMGIS() {
                     // prettier-ignore
                     $('#layersToolList').append(
                         [
-                            '<li class="layersToolHeader" id="header_' + headerI + '" type="' + node[i].type + '" depth="' + depth + '" childrenon="true" style="margin-left: ' + depth * 16 + 'px;">' +
-                                '<div class="title" id="headerstart">' +
-                                    '<div class="layersToolColorOFF ' + node[i].type + '"></div>',
+                            `<li class="layersToolHeader" id="header_${headerI}" name="${node[i].name}" type="${node[i].type}" depth="${depth}" childrenon="true">` +
+                                `<div class="title" id="headerstart" style="border-left: ${depth * DEPTH_SIZE}px solid ${INDENT_COLOR};">` +
+                                    '<div class="layersToolColor ' + node[i].type + '">',
+                                        '<i class="mdi mdi-drag-vertical mdi-12px"></i>',
+                                    '</div>',
                                     '<div>',
-                                        '<i class="headerChevron mdi mdi-menu-down mdi-24px"></i>',
+                                        '<i class="headerChevron mdi mdi-chevron-down mdi-24px"></i>',
                                     '</div>',
                                     `<div class="layerName" title="${node[i].name}">` +
                                         node[i].name,
                                     '</div>',
                                     '<div class="layerCount">' +
                                         (node[i].sublayers ? node[i].sublayers.length : '0'),
+                                    '</div>',
+                                    `<div class="headerPowerState ${L_.toggledArray[node[i].name] ? 'on' : 'off'}" title="Toggle all on inner-layers on or off.">`,
+                                        '<i class="mdi mdi-power-off mdi-18px"></i>',
                                     '</div>',
                                 '</div>',
                             '</li>',
@@ -426,8 +433,8 @@ function interfaceWithMMGIS() {
                     // prettier-ignore
                     $('#layersToolList').append(
                         [
-                            '<li id="LayersTool' + F_.getSafeName(node[i].name) + '" class="' + ((!quasiLayers.includes(node[i].type) && L_.layersGroup[node[i].name] == null) ? 'layernotfound' : '') + '" type="' + node[i].type + '" on="true" depth="' + depth + '" name="' + node[i].name + '" parent="' + parent.name + '" style="margin-left: ' + (depth * 16) + 'px;">',
-                                '<div class="title" id="layerstart' + F_.getSafeName(node[i].name) + '">',
+                            '<li id="LayersTool' + F_.getSafeName(node[i].name) + '" class="' + ((!quasiLayers.includes(node[i].type) && L_.layersGroup[node[i].name] == null) ? 'layernotfound' : '') + '" type="' + node[i].type + '" on="true" depth="' + depth + '" name="' + node[i].name + '" parent="' + parent.name + '">',
+                                `<div class="title" id="layerstart${F_.getSafeName(node[i].name)}" style="border-left: ${depth * DEPTH_SIZE}px solid ${INDENT_COLOR};">`,
                                     '<div class="layersToolColor ' + node[i].type + '">',
                                         '<i class="mdi mdi-drag-vertical mdi-12px"></i>',
                                     '</div>',
@@ -517,6 +524,30 @@ function interfaceWithMMGIS() {
     //Add event functions and whatnot
     //Makes layers clickable on and off
     $('#layersToolList > li > .title .checkbox').on('click', function () {
+        // First, find all parents header (if any), and set power state to on again
+        const elm = $(this).parent().parent().parent()
+        const elmIdx = $('#layersToolList > li').index(elm)
+        const elmDepth = parseInt(elm.attr('depth'))
+        // We need exactly one depth for each depth above elmDepth to 0
+        const depthsChecklist = {}
+        const listLis = $('#layersToolList').children('li').get()
+        $(listLis.reverse()).each(function (idx, item) {
+            idx = listLis.length - 1 - idx
+            if (idx < elmIdx && $(item).attr('type') === 'header') {
+                const depth = parseInt($(item).attr('depth'))
+                if (depth < elmDepth && depthsChecklist[depth] == null) {
+                    depthsChecklist[depth] = true
+                    // Switch power state
+                    $(item).find('.headerPowerState').addClass('on')
+                    $(item).find('.headerPowerState i').removeClass('mdi-power')
+                    $(item)
+                        .find('.headerPowerState i')
+                        .addClass('mdi-power-off')
+                }
+            }
+        })
+
+        // Then toggle as normal
         toggleLayer($(this))
     })
 
@@ -561,9 +592,70 @@ function interfaceWithMMGIS() {
         }
     )
 
-    //Collapse header
+    // Collapse header
     $('.layersToolHeader').on('click', function () {
         LayersTool.toggleHeader($(this).attr('id'))
+    })
+    // Toggle between all-off and previous-on states
+    // Power state switches back to on if any inner layer is toggled (done elsewhere)
+    $('.headerPowerState').on('click', function (e) {
+        e.stopPropagation()
+
+        const wasOn = $(this).hasClass('on')
+        const headElm = $(this).parent().parent()
+        const name = headElm.attr('name')
+        const elmIdx = $('#layersToolList > li').index(headElm)
+        const elmDepth = parseInt(headElm.attr('depth'))
+
+        if (wasOn) {
+            // Then turn off
+            LayersTool._header_states = LayersTool._header_states || {}
+            LayersTool._header_states[name] = []
+            // Iterate every layer below
+            let stillUnder = true
+            $('#layersToolList')
+                .children('li')
+                .each(function (idx, item) {
+                    if (idx > elmIdx) {
+                        if (stillUnder && $(item).attr('depth') > elmDepth) {
+                            // Save state and then turn off
+                            if (
+                                L_.toggledArray[$(item).attr('name')] &&
+                                $(item).attr('type') !== 'header'
+                            ) {
+                                LayersTool._header_states[name].push(
+                                    $(item).attr('name')
+                                )
+                                toggleLayer($(item).find('.title .checkbox'))
+                            }
+                        } else {
+                            stillUnder = false
+                        }
+                    }
+                })
+            // Finally switch power state
+            $(this).removeClass('on')
+            $(this).find('i').removeClass('mdi-power-off')
+            $(this).find('i').addClass('mdi-power')
+        } else {
+            // Then turn on
+            if (LayersTool._header_states[name]) {
+                LayersTool._header_states[name].forEach((layerName) => {
+                    toggleLayer(
+                        $(
+                            `#LayersTool${F_.getSafeName(
+                                layerName
+                            )} .title .checkbox`
+                        )
+                    )
+                })
+            }
+
+            // Finally switch power state
+            $(this).addClass('on')
+            $(this).find('i').removeClass('mdi-power')
+            $(this).find('i').addClass('mdi-power-off')
+        }
     })
 
     //Enables the export dialogue box
@@ -774,15 +866,106 @@ function interfaceWithMMGIS() {
     // Make it all sortable
     const listToSort = document.getElementById('layersToolList')
     Sortable.create(listToSort, {
-        animation: 200,
-        easing: 'cubic-bezier(0.37, 0, 0.63, 1)',
+        animation: 150,
+        easing: 'cubic-bezier(0.39, 0.575, 0.565, 1)',
         handle: '.layersToolColor',
+        onStart: function (e) {
+            const type = $(e.item).attr('type')
+            LayersTool._drag_oldDepth = parseInt($(e.item).attr('depth'))
+            const oldIdx = e.oldIndex
+
+            LayersTool._drag_lisToMoveUnderHeader = []
+            if (type === 'header') {
+                let stillUnder = true
+                $('#layersToolList')
+                    .children('li')
+                    .each(function (idx, item) {
+                        if (idx > oldIdx) {
+                            if (
+                                stillUnder &&
+                                $(item).attr('depth') >
+                                    LayersTool._drag_oldDepth
+                            )
+                                LayersTool._drag_lisToMoveUnderHeader.push(item)
+                            else {
+                                stillUnder = false
+                            }
+                        }
+                    })
+            }
+        },
+        onChange: function (e) {
+            // In here we want to change the indentation of our dragged layer to match
+            // the indentation of the layer above (on none if at top)
+            LayersTool._drag_newDepth = 0
+            if (e.newIndex > 0) {
+                // We need to look for the next VISIBLE above element
+                let aboveElm
+                let upIdx = e.newIndex
+                while (upIdx >= 0) {
+                    aboveElm = $(`#layersToolList > li:nth-child(${upIdx})`)
+                    if (aboveElm.attr('on') !== 'false') upIdx = 0
+                    upIdx--
+                }
+                if (aboveElm.length > 0) {
+                    LayersTool._drag_newDepth = parseInt(aboveElm.attr('depth'))
+                    const type = aboveElm.attr('type')
+                    if (
+                        type === 'header' &&
+                        aboveElm.attr('childrenon') === 'true'
+                    )
+                        LayersTool._drag_newDepth++
+                }
+            }
+
+            // If header and open, depth++
+
+            $(e.item).attr('depth', LayersTool._drag_newDepth)
+            $(e.item)
+                .find('.title')
+                .css({
+                    'border-left': `${
+                        LayersTool._drag_newDepth * DEPTH_SIZE
+                    }px solid ${INDENT_COLOR}`,
+                })
+            // $(e.item)
+            return true
+        },
         onEnd: function (e) {
+            const type = $(e.item).attr('type')
+            if (type === 'header') {
+                // If a header was moved, now move everything under it along with it
+                // If a user drags a header into its own contents, nothing must happen
+                // Inner layers must shift depth along with header depth
+                if (LayersTool._drag_lisToMoveUnderHeader.length > 0) {
+                    let curItem = e.item
+                    LayersTool._drag_lisToMoveUnderHeader.forEach((item) => {
+                        let depth = parseInt($(item).attr('depth'))
+                        depth +=
+                            LayersTool._drag_newDepth -
+                            LayersTool._drag_oldDepth
+                        $(item).insertAfter($(curItem))
+                        $(item).attr('depth', depth)
+                        $(item)
+                            .find('.title')
+                            .css({
+                                'border-left': `${
+                                    depth * DEPTH_SIZE
+                                }px solid ${INDENT_COLOR}`,
+                            })
+                        curItem = item
+                    })
+                }
+            }
+            // Set reorder in data model
             const newLayersOrdered = []
             $('#layersToolList')
                 .children('li')
                 .each(function () {
-                    if ($(this).attr('name') != null)
+                    if (
+                        $(this).attr('type') !== 'header' &&
+                        $(this).attr('name') != null
+                    )
                         newLayersOrdered.push($(this).attr('name'))
                 })
             L_.reorderLayers(newLayersOrdered)
