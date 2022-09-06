@@ -9,6 +9,16 @@ parent: APIs
 
 A client side API for use when using MMGIS embedded as an iframe. The `src/essence/mmgisAPI/mmgisAPI.js` file exposes functions that can be called using the global `window.mmgisAPI` object.
 
+#### _Contents_
+
+- [Layer Control](#layer-control)
+- [Time Control](#time-control)
+- [Event Listeners](#event-listeners)
+- [Map Feature Information](#map-feature-information)
+- [Miscellaneous Features](#miscellaneous-features)
+
+---
+
 ## Layer Control
 
 ### clearVectorLayer(layerName)
@@ -408,7 +418,7 @@ window.mmgisAPI.updateLayersTime();
 
 ### addEventListener(eventName, functionReference)
 
-This function adds a map event listener added using the MMGIS API. This function takes in one of the following events: `onPan`, `onZoom`, `onClick`.
+This function adds a map event or MMGIS action listener added using the MMGIS API. This function takes in one of the following events: `onPan`, `onZoom`, `onClick`, `toolChange`, `layerVisibilityChange`. The MMGIS action listener (`toolChange`, `layerVisibilityChange`) functions are called with an `event` parameter.
 
 #### Function parameters
 
@@ -427,15 +437,20 @@ function listener() {
 }
 
 window.mmgisAPI.addEventListener("onPan", listener);
+
+function mmgisListener(event) {
+  console.log("event", event);
+}
+window.mmgisAPI.addEventListener("toolChange", mmgisListener);
 ```
 
 ### removeEventListener(eventName, functionReference)
 
-This function removes a map event listener added using the MMGIS API.
+This function removes a map event or MMGIS action listener added using the MMGIS API.
 
 #### Function parameters
 
-- `eventName` - name of event to add listener to. Available events: `onPan`, `onZoom`, `onClick`
+- `eventName` - name of event to remove listener from. Available events: `onPan`, `onZoom`, `onClick`, `toolChange`, `layerVisibilityChange`
 - `functionReference` - function reference to listener event callback function. `null` value removes all functions for a given `eventName`
 
 The following is an example of how to call the `removeEventListener` function:
@@ -527,4 +542,14 @@ window.mmgisAPI.onLoaded(() => {
 
   window.mmgisAPI.addEventListener("onPan", listener);
 });
+```
+
+### getActiveTool
+
+This function returns an object with the currently active tool and the name of the active tool.
+
+The following is an example of how to call the `getActiveTool` function:
+
+```javascript
+window.mmgisAPI.getActiveTool();
 ```
