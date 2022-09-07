@@ -171,6 +171,11 @@ var TimeControl = {
             d3.select('.endtime.' + layer.name.replace(/\s/g, '')).text(
                 layer.time.end
             )
+
+            if (layer.type == 'tile') {
+                TimeControl.setLayerWmsParams(layer)
+            }
+
         }
         return true
     },
