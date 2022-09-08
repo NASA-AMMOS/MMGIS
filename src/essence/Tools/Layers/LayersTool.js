@@ -54,6 +54,7 @@ var LayersTool = {
     width: 340,
     vars: {},
     MMGISInterface: null,
+    orderingHistory: [],
     initialize: function () {
         //Get tool variables
         this.vars = L_.getToolVars('layers')
@@ -64,13 +65,35 @@ var LayersTool = {
         }
     },
     make: function () {
+        //Order layers from url
+        if (L_.FUTURES.tools) {
+            for (let t of L_.FUTURES.tools) {
+                const tUrl = t.split('$')
+                if (tUrl[0] === 'LayersTool') {
+                    LayersTool.orderingHistory = []
+                    const orderHistory = tUrl[1].split('.')
+                    orderHistory.forEach((o) => {
+                        const oSplit = o.split('-')
+                        LayersTool.orderingHistory.push([
+                            parseInt(oSplit[0]),
+                            parseInt(oSplit[1]),
+                        ])
+                    })
+                    break
+                }
+            }
+        }
+        console.log(LayersTool.orderingHistory)
         this.MMGISInterface = new interfaceWithMMGIS()
     },
     destroy: function () {
         this.MMGISInterface.separateFromMMGIS()
     },
     getUrlString: function () {
-        return ''
+        if (LayersTool.orderingHistory.length === 0) return ''
+        return LayersTool.orderingHistory
+            .map((hist) => `${hist[0]}-${hist[1]}`)
+            .join('.')
     },
     setHeader: function () {},
     toggleHeader: function (elmIndex) {
@@ -421,7 +444,7 @@ function interfaceWithMMGIS() {
                                     '<div class="layerCount">' +
                                         (node[i].sublayers ? node[i].sublayers.length : '0'),
                                     '</div>',
-                                    `<div class="headerPowerState ${L_.toggledArray[node[i].name] ? 'on' : 'off'}" title="Toggle all on inner-layers on or off.">`,
+                                    `<div class="headerPowerState ${'on'}" title="Toggle all on inner-layers on or off.">`,
                                         '<i class="mdi mdi-power-off mdi-18px"></i>',
                                     '</div>',
                                 '</div>',
@@ -639,7 +662,7 @@ function interfaceWithMMGIS() {
             $(this).find('i').addClass('mdi-power')
         } else {
             // Then turn on
-            if (LayersTool._header_states[name]) {
+            if (LayersTool._header_states && LayersTool._header_states[name]) {
                 LayersTool._header_states[name].forEach((layerName) => {
                     toggleLayer(
                         $(
@@ -864,99 +887,92 @@ function interfaceWithMMGIS() {
     })
 
     // Make it all sortable
-    const listToSort = document.getElementById('layersToolList')
-    Sortable.create(listToSort, {
-        animation: 150,
-        easing: 'cubic-bezier(0.39, 0.575, 0.565, 1)',
-        handle: '.layersToolColor',
-        onStart: function (e) {
-            const type = $(e.item).attr('type')
-            LayersTool._drag_oldDepth = parseInt($(e.item).attr('depth'))
-            const oldIdx = e.oldIndex
+    function sortOnStart(e) {
+        const type = $(e.item).attr('type')
+        LayersTool._drag_oldDepth = parseInt($(e.item).attr('depth'))
+        const oldIdx = e.oldIndex
 
-            LayersTool._drag_lisToMoveUnderHeader = []
-            if (type === 'header') {
-                let stillUnder = true
-                $('#layersToolList')
-                    .children('li')
-                    .each(function (idx, item) {
-                        if (idx > oldIdx) {
-                            if (
-                                stillUnder &&
-                                $(item).attr('depth') >
-                                    LayersTool._drag_oldDepth
-                            )
-                                LayersTool._drag_lisToMoveUnderHeader.push(item)
-                            else {
-                                stillUnder = false
-                            }
+        LayersTool._drag_lisToMoveUnderHeader = []
+        if (type === 'header') {
+            let stillUnder = true
+            $('#layersToolList')
+                .children('li')
+                .each(function (idx, item) {
+                    if (idx > oldIdx) {
+                        if (
+                            stillUnder &&
+                            $(item).attr('depth') > LayersTool._drag_oldDepth
+                        )
+                            LayersTool._drag_lisToMoveUnderHeader.push(item)
+                        else {
+                            stillUnder = false
                         }
-                    })
-            }
-        },
-        onChange: function (e) {
-            // In here we want to change the indentation of our dragged layer to match
-            // the indentation of the layer above (on none if at top)
-            LayersTool._drag_newDepth = 0
-            if (e.newIndex > 0) {
-                // We need to look for the next VISIBLE above element
-                let aboveElm
-                let upIdx = e.newIndex
-                while (upIdx >= 0) {
-                    aboveElm = $(`#layersToolList > li:nth-child(${upIdx})`)
-                    if (aboveElm.attr('on') !== 'false') upIdx = 0
-                    upIdx--
-                }
-                if (aboveElm.length > 0) {
-                    LayersTool._drag_newDepth = parseInt(aboveElm.attr('depth'))
-                    const type = aboveElm.attr('type')
-                    if (
-                        type === 'header' &&
-                        aboveElm.attr('childrenon') === 'true'
-                    )
-                        LayersTool._drag_newDepth++
-                }
-            }
-
-            // If header and open, depth++
-
-            $(e.item).attr('depth', LayersTool._drag_newDepth)
-            $(e.item)
-                .find('.title')
-                .css({
-                    'border-left': `${
-                        LayersTool._drag_newDepth * DEPTH_SIZE
-                    }px solid ${INDENT_COLOR}`,
+                    }
                 })
-            // $(e.item)
-            return true
-        },
-        onEnd: function (e) {
-            const type = $(e.item).attr('type')
-            if (type === 'header') {
-                // If a header was moved, now move everything under it along with it
-                // If a user drags a header into its own contents, nothing must happen
-                // Inner layers must shift depth along with header depth
-                if (LayersTool._drag_lisToMoveUnderHeader.length > 0) {
-                    let curItem = e.item
-                    LayersTool._drag_lisToMoveUnderHeader.forEach((item) => {
-                        let depth = parseInt($(item).attr('depth'))
-                        depth +=
-                            LayersTool._drag_newDepth -
-                            LayersTool._drag_oldDepth
-                        $(item).insertAfter($(curItem))
-                        $(item).attr('depth', depth)
-                        $(item)
-                            .find('.title')
-                            .css({
-                                'border-left': `${
-                                    depth * DEPTH_SIZE
-                                }px solid ${INDENT_COLOR}`,
-                            })
-                        curItem = item
-                    })
-                }
+        }
+    }
+    function sortOnChange(e) {
+        // In here we want to change the indentation of our dragged layer to match
+        // the indentation of the layer above (on none if at top)
+        LayersTool._drag_newDepth = 0
+        if (e.newIndex > 0) {
+            // We need to look for the next VISIBLE above element
+            let aboveElm
+            let upIdx = e.newIndex
+            if (e.upward === true) upIdx++
+            while (upIdx >= 0) {
+                aboveElm = $(`#layersToolList > li:nth-child(${upIdx})`)
+                if (aboveElm.attr('on') !== 'false') upIdx = 0
+                upIdx--
             }
+            if (aboveElm.length > 0) {
+                LayersTool._drag_newDepth = parseInt(aboveElm.attr('depth'))
+                const type = aboveElm.attr('type')
+                if (type === 'header' && aboveElm.attr('childrenon') === 'true')
+                    LayersTool._drag_newDepth++
+            }
+        }
+
+        // If header and open, depth++
+        $(e.item).attr('depth', LayersTool._drag_newDepth)
+        $(e.item)
+            .find('.title')
+            .css({
+                'border-left': `${
+                    LayersTool._drag_newDepth * DEPTH_SIZE
+                }px solid ${INDENT_COLOR}`,
+            })
+
+        return true
+    }
+    function sortOnEnd(e) {
+        const type = $(e.item).attr('type')
+        if (type === 'header') {
+            // If a header was moved, now move everything under it along with it
+            // If a user drags a header into its own contents, nothing must happen
+            // Inner layers must shift depth along with header depth
+            if (LayersTool._drag_lisToMoveUnderHeader.length > 0) {
+                let curItem = e.item
+                LayersTool._drag_lisToMoveUnderHeader.forEach((item) => {
+                    let depth = parseInt($(item).attr('depth'))
+                    depth +=
+                        LayersTool._drag_newDepth - LayersTool._drag_oldDepth
+                    $(item).insertAfter($(curItem))
+                    $(item).attr('depth', depth)
+                    $(item)
+                        .find('.title')
+                        .css({
+                            'border-left': `${
+                                depth * DEPTH_SIZE
+                            }px solid ${INDENT_COLOR}`,
+                        })
+                    curItem = item
+                })
+            }
+        }
+        if (e.ignoreHistory !== true)
+            LayersTool.orderingHistory.push([e.oldIndex, e.newIndex])
+        if (e.ignoreFinalOrder !== true) {
             // Set reorder in data model
             const newLayersOrdered = []
             $('#layersToolList')
@@ -969,7 +985,42 @@ function interfaceWithMMGIS() {
                         newLayersOrdered.push($(this).attr('name'))
                 })
             L_.reorderLayers(newLayersOrdered)
-        },
+        }
+    }
+    LayersTool.orderingHistory.forEach((hist, idx) => {
+        const oldIdx = hist[0]
+        const newIdx = hist[1]
+        const upward = oldIdx > newIdx
+        const item = $(`#layersToolList > li:nth-child(${oldIdx + 1})`)
+        const item2 = $(
+            `#layersToolList > li:nth-child(${newIdx + (upward ? 0 : 1)})`
+        )
+        sortOnStart({ item: item, oldIndex: oldIdx })
+        sortOnChange({
+            item: item,
+            oldIndex: oldIdx,
+            newIndex: newIdx,
+            upward: upward,
+        })
+        if (hist[1] === 0) $(`#layersToolList`).prepend(item)
+        else item.insertAfter(item2)
+        sortOnEnd({
+            item: item,
+            oldIndex: oldIdx,
+            newIndex: newIdx,
+            ignoreHistory: true,
+            ignoreFinalOrder: true, //idx !== LayersTool.orderingHistory.length - 1,
+        })
+    })
+
+    const listToSort = document.getElementById('layersToolList')
+    Sortable.create(listToSort, {
+        animation: 150,
+        easing: 'cubic-bezier(0.39, 0.575, 0.565, 1)',
+        handle: '.layersToolColor',
+        onStart: sortOnStart,
+        onChange: sortOnChange,
+        onEnd: sortOnEnd,
     })
 
     //Share everything. Don't take things that aren't yours.
