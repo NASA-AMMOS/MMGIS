@@ -273,6 +273,10 @@ var TimeControl = {
                     layer.time.end
                 )
                 updatedLayers.push(layer.name)
+
+                if (layer.type == 'tile') {
+                    TimeControl.setLayerWmsParams(layer)
+                }
             }
         }
         return updatedLayers
