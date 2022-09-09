@@ -718,7 +718,7 @@ var L_ = {
         if (layer._sourceGeoJSON) {
             if (layer._sourceGeoJSON.features)
                 if (geojson.features)
-                    layer._sourceGeoJSON.features.concat(geojson.features)
+                    layer._sourceGeoJSON.features = layer._sourceGeoJSON.features.concat(geojson.features)
                 else layer._sourceGeoJSON.features.push(geojson)
             else
                 layer._sourceGeoJSON = F_.getBaseGeoJSON(
@@ -1687,6 +1687,11 @@ var L_ = {
 
         // Remove the layer
         updateLayer.removeLayer(removeLayer)
+
+        var layerName = updateLayer._layerName
+        var layersGeoJSON = L_.layersGroup[layerName].toGeoJSON()
+        L_.clearGeoJSONData(updateLayer)
+        L_.addGeoJSONData(updateLayer, layersGeoJSON)
     },
     trimVectorLayerKeepBeforeTime: function (
         layerName,
