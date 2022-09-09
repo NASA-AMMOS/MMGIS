@@ -2405,8 +2405,9 @@ function parseConfig(configData, urlOnLayers) {
                     L_.toggledArray[d[i].name] = true
                     L_.opacityArray[d[i].name] =
                         urlOnLayers.onLayers[d[i].name].opacity || 1
-                } else if (urlOnLayers.method == 'replace')
+                } else if (urlOnLayers.method == 'replace') {
                     L_.toggledArray[d[i].name] = false
+                }
             }
             //Get the current layers sublayers (returns 0 if none)
             var dNext = getSublayers(d[i])

@@ -139,7 +139,6 @@
     display: flex;
     flex-flow: column;
     font-size: 14px;
-    margin: 1px 0px;
     color: var(--color-f);
     overflow: hidden;
 }

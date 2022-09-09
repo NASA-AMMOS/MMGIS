@@ -64,7 +64,7 @@ var LayersTool = {
             this.width = this.vars.width
         }
     },
-    make: function () {
+    finalize: function () {
         //Order layers from url
         if (L_.FUTURES.tools) {
             for (let t of L_.FUTURES.tools) {
@@ -77,14 +77,20 @@ var LayersTool = {
                         LayersTool.orderingHistory.push([
                             parseInt(oSplit[0]),
                             parseInt(oSplit[1]),
+                            parseInt(oSplit[2]),
                         ])
                     })
                     break
                 }
             }
         }
-        console.log(LayersTool.orderingHistory)
-        this.MMGISInterface = new interfaceWithMMGIS()
+        if (LayersTool.orderingHistory.length > 0) {
+            LayersTool.make(null, true)
+            LayersTool.destroy()
+        }
+    },
+    make: function (t, fromInit) {
+        this.MMGISInterface = new interfaceWithMMGIS(fromInit)
     },
     destroy: function () {
         this.MMGISInterface.separateFromMMGIS()
@@ -92,7 +98,7 @@ var LayersTool = {
     getUrlString: function () {
         if (LayersTool.orderingHistory.length === 0) return ''
         return LayersTool.orderingHistory
-            .map((hist) => `${hist[0]}-${hist[1]}`)
+            .map((hist) => `${hist[0]}-${hist[1]}-${hist[2]}`)
             .join('.')
     },
     setHeader: function () {},
@@ -117,8 +123,8 @@ var LayersTool = {
                 } else if (t.attr('depth') <= elmDepth) {
                     done = true
                 } else {
-                    var nextDepth =
-                        parseInt(t.attr('depth')) == parseInt(elmDepth) + 1
+                    const nextDepth =
+                        parseInt(t.attr('depth')) > parseInt(elmDepth)
 
                     if (wasOn) {
                         if (nextDepth) t.attr('on', 'false')
@@ -141,7 +147,7 @@ var LayersTool = {
 }
 
 //
-function interfaceWithMMGIS() {
+function interfaceWithMMGIS(fromInit) {
     this.separateFromMMGIS = function () {
         separateFromMMGIS()
     }
@@ -151,6 +157,7 @@ function interfaceWithMMGIS() {
     tools.selectAll('*').remove()
     //Add a semantic container
     tools = tools.append('div').style('height', '100%')
+    if (fromInit) tools.style('display', 'none')
     //Add the markup to tools or do it manually
     tools.html(markup)
 
@@ -158,7 +165,6 @@ function interfaceWithMMGIS() {
 
     //This is where the layers list is created in the tool panel.
     depthTraversal(L_.layers, {}, 0)
-    //console.log(L_.layers)
 
     function depthTraversal(node, parent, depth) {
         for (var i = 0; i < node.length; i++) {
@@ -430,7 +436,7 @@ function interfaceWithMMGIS() {
                     // prettier-ignore
                     $('#layersToolList').append(
                         [
-                            `<li class="layersToolHeader" id="header_${headerI}" name="${node[i].name}" type="${node[i].type}" depth="${depth}" childrenon="true">` +
+                            `<li class="layersToolHeader" id="header_${headerI}" name="${node[i].name}" type="${node[i].type}" depth="${depth}" childrenon="true" style="margin-bottom: 1px;">` +
                                 `<div class="title" id="headerstart" style="border-left: ${depth * DEPTH_SIZE}px solid ${INDENT_COLOR};">` +
                                     '<div class="layersToolColor ' + node[i].type + '">',
                                         '<i class="mdi mdi-drag-vertical mdi-12px"></i>',
@@ -456,7 +462,7 @@ function interfaceWithMMGIS() {
                     // prettier-ignore
                     $('#layersToolList').append(
                         [
-                            '<li id="LayersTool' + F_.getSafeName(node[i].name) + '" class="' + ((!quasiLayers.includes(node[i].type) && L_.layersGroup[node[i].name] == null) ? 'layernotfound' : '') + '" type="' + node[i].type + '" on="true" depth="' + depth + '" name="' + node[i].name + '" parent="' + parent.name + '">',
+                            '<li id="LayersTool' + F_.getSafeName(node[i].name) + '" class="' + ((!quasiLayers.includes(node[i].type) && L_.layersGroup[node[i].name] == null) ? 'layernotfound' : '') + '" type="' + node[i].type + '" on="true" depth="' + depth + '" name="' + node[i].name + '" parent="' + parent.name + '"  style="margin-bottom: 1px;">',
                                 `<div class="title" id="layerstart${F_.getSafeName(node[i].name)}" style="border-left: ${depth * DEPTH_SIZE}px solid ${INDENT_COLOR};">`,
                                     '<div class="layersToolColor ' + node[i].type + '">',
                                         '<i class="mdi mdi-drag-vertical mdi-12px"></i>',
@@ -915,11 +921,13 @@ function interfaceWithMMGIS() {
         // In here we want to change the indentation of our dragged layer to match
         // the indentation of the layer above (on none if at top)
         LayersTool._drag_newDepth = 0
+        LayersTool._drag_headerState = 0
         if (e.newIndex > 0) {
             // We need to look for the next VISIBLE above element
             let aboveElm
             let upIdx = e.newIndex
-            if (e.upward === true) upIdx++
+            if (e.downward === true) upIdx++
+
             while (upIdx >= 0) {
                 aboveElm = $(`#layersToolList > li:nth-child(${upIdx})`)
                 if (aboveElm.attr('on') !== 'false') upIdx = 0
@@ -928,8 +936,25 @@ function interfaceWithMMGIS() {
             if (aboveElm.length > 0) {
                 LayersTool._drag_newDepth = parseInt(aboveElm.attr('depth'))
                 const type = aboveElm.attr('type')
-                if (type === 'header' && aboveElm.attr('childrenon') === 'true')
-                    LayersTool._drag_newDepth++
+
+                if (
+                    (e.afterHeader === 0 &&
+                        aboveElm.attr('childrenon') === 'false') ||
+                    (e.afterHeader === 1 &&
+                        aboveElm.attr('childrenon') === 'true')
+                ) {
+                    // toggle header because it's in the opposite state than history requires
+                    LayersTool.toggleHeader(aboveElm.attr('id'))
+                }
+
+                if (type === 'header') {
+                    if (aboveElm.attr('childrenon') === 'true') {
+                        LayersTool._drag_newDepth++
+                        LayersTool._drag_headerState = 2
+                    } else {
+                        LayersTool._drag_headerState = 1
+                    }
+                }
             }
         }
 
@@ -947,6 +972,45 @@ function interfaceWithMMGIS() {
     }
     function sortOnEnd(e) {
         const type = $(e.item).attr('type')
+        // Sortable will place before all hidden layers, we want it always to be after
+        // Move to the end of all hidden / on="false" layers
+        let downIdx = e.newIndex + 1
+        let keepGoing = true
+        let nextElm
+        let afterElm
+        const totalLayers = $(`#layersToolList > li`).length
+
+        nextElm = $(`#layersToolList > li:nth-child(${e.newIndex})`)
+        if (
+            nextElm.attr('type') === 'header' &&
+            nextElm.attr('childrenon') === 'false'
+        ) {
+            downIdx++
+        }
+        while (e.newIndex > 0 && keepGoing) {
+            nextElm = $(`#layersToolList > li:nth-child(${downIdx})`)
+            if (nextElm.length > 0) {
+                if (
+                    downIdx >= totalLayers ||
+                    parseInt(nextElm.css('height')) > 0
+                ) {
+                    afterElm = $(
+                        `#layersToolList > li:nth-child(${
+                            downIdx + (downIdx >= totalLayers ? 0 : -1)
+                        })`
+                    )
+                    keepGoing = false
+                } else {
+                    downIdx++
+                }
+            } else {
+                keepGoing = false
+            }
+        }
+        if (afterElm) {
+            $(e.item).insertAfter(afterElm)
+        } else $(`#layersToolList`).prepend($(e.item))
+
         if (type === 'header') {
             // If a header was moved, now move everything under it along with it
             // If a user drags a header into its own contents, nothing must happen
@@ -971,7 +1035,11 @@ function interfaceWithMMGIS() {
             }
         }
         if (e.ignoreHistory !== true)
-            LayersTool.orderingHistory.push([e.oldIndex, e.newIndex])
+            LayersTool.orderingHistory.push([
+                e.oldIndex,
+                e.newIndex,
+                LayersTool._drag_headerState,
+            ])
         if (e.ignoreFinalOrder !== true) {
             // Set reorder in data model
             const newLayersOrdered = []
@@ -987,29 +1055,29 @@ function interfaceWithMMGIS() {
             L_.reorderLayers(newLayersOrdered)
         }
     }
+
     LayersTool.orderingHistory.forEach((hist, idx) => {
         const oldIdx = hist[0]
         const newIdx = hist[1]
+        const afterHeader = hist[2]
         const upward = oldIdx > newIdx
         const item = $(`#layersToolList > li:nth-child(${oldIdx + 1})`)
-        const item2 = $(
-            `#layersToolList > li:nth-child(${newIdx + (upward ? 0 : 1)})`
-        )
+
         sortOnStart({ item: item, oldIndex: oldIdx })
         sortOnChange({
             item: item,
             oldIndex: oldIdx,
-            newIndex: newIdx,
-            upward: upward,
+            newIndex: newIdx + (upward ? 0 : 1),
+            afterHeader: afterHeader,
         })
-        if (hist[1] === 0) $(`#layersToolList`).prepend(item)
-        else item.insertAfter(item2)
         sortOnEnd({
             item: item,
             oldIndex: oldIdx,
-            newIndex: newIdx,
+            newIndex: newIdx + (upward ? 0 : 1),
             ignoreHistory: true,
-            ignoreFinalOrder: true, //idx !== LayersTool.orderingHistory.length - 1,
+            ignoreFinalOrder: fromInit
+                ? idx !== LayersTool.orderingHistory.length - 1
+                : true,
         })
     })
 

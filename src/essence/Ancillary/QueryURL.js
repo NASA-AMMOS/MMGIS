@@ -376,7 +376,7 @@ var QueryURL = {
         if (L_.FUTURES.endTime) urlAppendage += '&endTime=' + endTime
 
         var url = urlAppendage
-        console.log(url)
+
         if (shortenURL) {
             calls.api(
                 'shortener_shorten',
