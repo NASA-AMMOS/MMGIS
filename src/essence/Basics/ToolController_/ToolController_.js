@@ -252,6 +252,14 @@ let ToolController_ = {
     fina: function (userinterface) {
         this.UserInterface = userinterface
     },
+    finalizeTools: function () {
+        for (let i = 0; i < this.toolModuleNames.length; i++) {
+            const tool = this.toolModules[this.toolModuleNames[i]]
+            if (tool && typeof tool.finalize === 'function') {
+                tool.finalize()
+            }
+        }
+    },
 }
 
 export default ToolController_

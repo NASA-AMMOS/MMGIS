@@ -17,7 +17,7 @@ export const captureVector = (layerObj, options, cb) => {
         return
     }
 
-    if (options.evenIfOff !== true && !layerObj.visibility) {
+    if (options.evenIfOff !== true && !L_.toggledArray[layerObj.name]) {
         cb('off')
         return
     }

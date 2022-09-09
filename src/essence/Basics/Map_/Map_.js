@@ -1118,6 +1118,7 @@ function allLayersLoaded() {
         L_.addVisible(Map_)
         L_.enforceVisibilityCutoffs()
 
+        ToolController_.finalizeTools()
         //OTHER TEMPORARY TEST STUFF THINGS
     }
 }

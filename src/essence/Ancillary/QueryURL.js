@@ -285,7 +285,8 @@ var QueryURL = {
         var viewerImg = L_.Viewer_.getLastImageId()
         var viewerLoc = L_.Viewer_.getLocation()
 
-        const timeEnabled = L_.configData.time && L_.configData.time.enabled === true
+        const timeEnabled =
+            L_.configData.time && L_.configData.time.enabled === true
         var startTime = timeEnabled ? TimeControl.getStartTime() : null
         var endTime = timeEnabled ? TimeControl.getEndTime() : null
 
@@ -375,6 +376,7 @@ var QueryURL = {
         if (L_.FUTURES.endTime) urlAppendage += '&endTime=' + endTime
 
         var url = urlAppendage
+
         if (shortenURL) {
             calls.api(
                 'shortener_shorten',
