@@ -586,7 +586,6 @@ var drawing = {
 
             d.stopclick = false
 
-            Map_.map.off('click', d.start)
             Map_.map.off('draw:created', d.stop)
             if (typeof d.drawing.disable === 'function') d.drawing.disable()
         },
