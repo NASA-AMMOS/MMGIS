@@ -97,7 +97,7 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
   #existing_mission_cont(style='display: none; margin-top: 48px;')
     div(style='height: 48px; width: 100%; background: white; position: fixed; top: 0px; z-index: 20;')
     .row
-      .col.s6.push-s3(style='padding: 0; position: fixed; top: 0px; margin-left: 110px; z-index: 21;')
+      .col.s10.push-s1(style='padding: 0; position: fixed; top: 0px; margin-left: 110px; z-index: 21;')
         ul.tabs.mmgisScrollbar
           li.tab.col.s1
             a.active(href='#tab_overall') Overall
@@ -109,6 +109,8 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
             a(href='#tab_tools') Tools
           li.tab.col.s1
             a(href='#tab_projection') Projection
+          li.tab.col.s1
+            a(href='#tab_coordinates') Coordinates
           li.tab.col.s1
             a(href='#tab_look') Look
           li.tab.col.s1
@@ -217,6 +219,92 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
               #projection_resEl.input-field.col.s4.push-s3
                 input#projection_res.validate(type='text' value='')
                 label(for='projection_res') the units per pixel are
+
+      #tab_coordinates.col.s12
+        a.helpFromDocs(href='docs/?page=Coordinates_Tab' target='__blank' rel='noopener')
+          i.mdi.mdi-help.mdi-14px
+        ul#tab_coordinates_rows
+          li.row.title
+            .col.s2.push-s1 Coordinates
+          li.row
+            #coordinates_coordllEl.input-field.col.s2.push-s1
+              input#coordinates_coordll.filled-in.checkbox-color(type='checkbox')
+              label(for='coordinates_coordll' style='color: black;') Longitude, Latitude
+            #coordinates_coordllElMain.input-field.col.s2.push-s8(title="Is Main Coordinate Type")
+                input#coordinates_coordllMain.coordinates_coordMain(name="main_coord" type="radio" value="ll" checked)
+                label(for='coordinates_coordllMain')
+          li.row(style='margin-bottom: 0px;')
+            #coordinates_coordlngoffsetEl.input-field.col.s2.push-s2
+              input#coordinates_coordlngoffset.validate(type='text' value='')
+              label(for='coordinates_coordlngoffset') Longitude Display Offset
+            #coordinates_coordlatoffsetEl.input-field.col.s2.push-s2
+              input#coordinates_coordlatoffset.validate(type='text' value='')
+              label(for='coordinates_coordlatoffset') Latitude Display Offset
+          li.row
+            #coordinates_coordenEl.input-field.col.s2.push-s1
+              input#coordinates_coorden.filled-in.checkbox-color(type='checkbox')
+              label(for='coordinates_coorden' style='color: black;') Easting, Northing
+            #coordinates_coordenElMain.input-field.col.s2.push-s8(title="Is Main Coordinate Type")
+              input#coordinates_coordenMain.coordinates_coordMain(name="main_coord" type="radio" value="en")
+              label(for='coordinates_coordenMain')
+          li.row(style='margin-bottom: 0px;')
+            #coordinates_coordeastoffsetEl.input-field.col.s2.push-s2
+              input#coordinates_coordeastoffset.validate(type='text' value='')
+              label(for='coordinates_coordeastoffset') Easting Display Offset
+            #coordinates_coordnorthoffsetEl.input-field.col.s2.push-s2
+              input#coordinates_coordnorthoffset.validate(type='text' value='')
+              label(for='coordinates_coordnorthoffset') Northing Display Offset
+            #coordinates_coordeastmultEl.input-field.col.s2.push-s2
+              input#coordinates_coordeastmult.validate(type='text' value='')
+              label(for='coordinates_coordeastmult') Easting Display Multiplier
+            #coordinates_coordnorthmultEl.input-field.col.s2.push-s2
+              input#coordinates_coordnorthmult.validate(type='text' value='')
+              label(for='coordinates_coordnorthmult') Northing Display Multiplier
+          li.row
+            #coordinates_coordcprojEl.input-field.col.s2.push-s1
+              input#coordinates_coordcproj.filled-in.checkbox-color(type='checkbox')
+              label(for='coordinates_coordcproj' style='color: black;') Custom Projection
+            #coordinates_coordcprojElMain.input-field.col.s2.push-s8(title="Is Main Coordinate Type")
+              input#coordinates_coordcprojMain.coordinates_coordMain(name="main_coord" type="radio" value="cproj")
+              label(for='coordinates_coordcprojMain')
+          li.row 
+            #coordinates_coordcprojnameEl.input-field.col.s2.push-s2
+              input#coordinates_coordcprojname.validate(type='text' value='')
+              label(for='coordinates_coordcprojname') Display Name
+            #coordinates_coordcprojstrEl.input-field.col.s6.push-s2
+              div(style="padding: 14px; color: #555;") Uses the PROJ4 String defined in the Projection Tab.
+          li.row
+            #coordinates_coordsprojEl.input-field.col.s2.push-s1
+              input#coordinates_coordsproj.filled-in.checkbox-color(type='checkbox')
+              label(for='coordinates_coordsproj' style='color: black;') Secondary Projection
+            #coordinates_coordsprojElMain.input-field.col.s2.push-s8(title="Is Main Coordinate Type")
+              input#coordinates_coordsprojMain.coordinates_coordMain(name="main_coord" type="radio" value="sproj")
+              label(for='coordinates_coordsprojMain')
+          li.row 
+            #coordinates_coordsprojnameEl.input-field.col.s2.push-s2
+              input#coordinates_coordsprojname.validate(type='text' value='')
+              label(for='coordinates_coordsprojname') Display Name
+            #coordinates_coordsprojstrEl.input-field.col.s6.push-s2
+              input#coordinates_coordsprojstr.validate(type='text' value='')
+              label(for='coordinates_coordsprojstr') PROJ4 String
+          li.row
+            #coordinates_coordrxyEl.input-field.col.s2.push-s1
+              input#coordinates_coordrxy.filled-in.checkbox-color(type='checkbox')
+              label(for='coordinates_coordrxy' style='color: black;') Relative X, Y, (Z)
+          li.row
+            #coordinates_coordsiteEl.input-field.col.s2.push-s1
+              input#coordinates_coordsite.filled-in.checkbox-color(type='checkbox')
+              label(for='coordinates_coordsite' style='color: black;') Relative Y, X, (-Z)
+          li.row.title(style='margin-top: 45px;')
+            .col.s2.push-s1 Elevation
+          li.row(style='padding-bottom: 0px;')
+            #coordinates_coordelevEl.input-field.col.s2.push-s1
+              input#coordinates_coordelev.filled-in.checkbox-color(type='checkbox')
+              label(for='coordinates_coordelev' style='color: black;') With Elevation
+            #coordinates_coordelevurlEl.input-field.col.s7.push-s1
+              input#coordinates_coordelevurl.validate(type='text' value='')
+              label(for='coordinates_coordelevurl') DEM URL
+
       #tab_look.col.s12
         a.helpFromDocs(href='docs/?page=Look_Tab' target='__blank' rel='noopener')
           i.mdi.mdi-help.mdi-14px
@@ -275,51 +363,6 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
             #look_highlightcolorEl.input-field.col.s2.push-s2
               input#look_highlightcolor.validate(type='text' value='')
               label(for='look_highlightcolor') Highlight Color
-
-          li.row.title
-            .col.s2.push-s2 Coordinates
-          li.row.checkboxRow
-            #look_coordllEl.input-field.col.s2.push-s2
-              input#look_coordll.filled-in.checkbox-color(type='checkbox')
-              label(for='look_coordll' style='color: black;') Longitude, Latitude
-            #look_coordenEl.input-field.col.s2.push-s2
-              input#look_coorden.filled-in.checkbox-color(type='checkbox')
-              label(for='look_coorden' style='color: black;') Easting, Northing
-            #look_coordrxyEl.input-field.col.s2.push-s2
-              input#look_coordrxy.filled-in.checkbox-color(type='checkbox')
-              label(for='look_coordrxy' style='color: black;') Relative X, Y, (Z)
-            #look_coordsiteEl.input-field.col.s2.push-s2
-              input#look_coordsite.filled-in.checkbox-color(type='checkbox')
-              label(for='look_coordsite' style='color: black;') Relative Y, X, (-Z)
-          li.row.checkboxRow(style='padding-bottom: 0px;')
-            #look_coordelevEl.input-field.col.s2.push-s2
-              input#look_coordelev.filled-in.checkbox-color(type='checkbox')
-              label(for='look_coordelev' style='color: black;') With Elevation
-            #look_coordelevurlEl.input-field.col.s6.push-s2
-              input#look_coordelevurl.validate(type='text' value='')
-              label(for='look_coordelevurl') DEM URL
-          li.row.title
-            .col.s2.push-s2 Coordinate Display Alterations
-          li.row
-            #look_coordlngoffsetEl.input-field.col.s2.push-s2
-              input#look_coordlngoffset.validate(type='text' value='')
-              label(for='look_coordlngoffset') Longitude Display Offset
-            #look_coordlatoffsetEl.input-field.col.s2.push-s2
-              input#look_coordlatoffset.validate(type='text' value='')
-              label(for='look_coordlatoffset') Latitude Display Offset
-          li.row
-            #look_coordeastoffsetEl.input-field.col.s2.push-s2
-              input#look_coordeastoffset.validate(type='text' value='')
-              label(for='look_coordeastoffset') Easting Display Offset
-            #look_coordnorthoffsetEl.input-field.col.s2.push-s2
-              input#look_coordnorthoffset.validate(type='text' value='')
-              label(for='look_coordnorthoffset') Northing Display Offset
-            #look_coordeastmultEl.input-field.col.s2.push-s2
-              input#look_coordeastmult.validate(type='text' value='')
-              label(for='look_coordeastmult') Easting Display Multiplier
-            #look_coordnorthmultEl.input-field.col.s2.push-s2
-              input#look_coordnorthmult.validate(type='text' value='')
-              label(for='look_coordnorthmult') Northing Display Multiplier
 
           li.row.title
             .col.s2.push-s2 Secondary tools 

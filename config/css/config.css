@@ -457,6 +457,12 @@ textarea {
   margin: 0;
 }
 
+[type="radio"]:checked + label:after,
+[type="radio"].with-gap:checked + label:after {
+  background-color: #1565c0;
+  border: 2px solid #1565c0;
+}
+
 .mmgisScrollbar::-webkit-scrollbar-track {
   background-color: Transparent;
 }

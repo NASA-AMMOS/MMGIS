@@ -37,9 +37,8 @@ export default {
 
             background.append('div').attr('class', 'gradient')
 
-            var imageCredit = background
-                .append('div')
-                .attr('class', 'imagecredit')
+            let bottom = background.append('div').attr('class', 'landingBottom')
+            var imageCredit = bottom.append('div').attr('class', 'imagecredit')
             imageCredit.append('div').text('Wind at Work')
             imageCredit
                 .append('a')
@@ -56,11 +55,21 @@ export default {
                 .append('i')
                 .attr('class', 'mdi mdi-information-outline mdi-14px')
 
+            bottom
+                .append('div')
+                .attr('class', 'version')
+                .style('cursor', 'pointer')
+                .text(`v${window.mmgisglobal.version}`)
+
+            $('.version').on('click', function () {
+                window.location.href = `https://github.com/NASA-AMMOS/MMGIS/releases/tag/${window.mmgisglobal.version}`
+            })
+
             if (
                 window.mmgisglobal.CLEARANCE_NUMBER &&
                 window.mmgisglobal.CLEARANCE_NUMBER != 'undefined'
             ) {
-                background
+                bottom
                     .append('div')
                     .attr('class', 'clearance')
                     .text(window.mmgisglobal.CLEARANCE_NUMBER)
@@ -190,8 +199,8 @@ export default {
                     .attr('title', 'Documentation')
 
                 $('#docsIcon').on('click', function () {
-                    window.location.href =
-                        window.location.href.split('?')[0] + 'docs'
+                    window.location.href = 'https://nasa-ammos.github.io/MMGIS/'
+                    //window.location.href.split('?')[0] + 'docs'
                 })
             }
 

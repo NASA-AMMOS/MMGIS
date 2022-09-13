@@ -116,7 +116,8 @@ dd {
     border-bottom: 1px solid rgba(0, 0, 0, 0.12);
     margin-bottom: 0.9735em;
     padding: 0.625em 0.9735em;
-    font-size: 1em;
+    font-size: 13px;
+    text-align: center;
 }
 .dropy__content .selected {
     font-weight: 700 !important;

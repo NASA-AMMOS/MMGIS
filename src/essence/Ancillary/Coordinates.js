@@ -4,6 +4,7 @@ import * as d3 from 'd3'
 import F_ from '../Basics/Formulae_/Formulae_'
 import Map_ from '../Basics/Map_/Map_'
 import L_ from '../Basics/Layers_/Layers_'
+import Dropy from '../../external/Dropy/dropy'
 import UserInterface from '../Basics/UserInterface_/UserInterface_'
 import calls from '../../pre/calls'
 
@@ -12,7 +13,10 @@ import './Coordinates.css'
 // prettier-ignore
 const markup = [
         "<div class='mouseLngLat'>",
-            "<div id='mouseDesc'></div>",
+            "<div id='mouseDesc' style='display: none;'></div>",
+            "<div id='changeCoordType' title='Change coordinate types.'>",
+                "<div id='changeCoordTypeDropdown' class='ui dropdown short'></div>",
+            "</div>",
             "<div id='mouseLngLat'></div>",
             "<div id='mouseElev'></div>",
         "</div>",
@@ -27,16 +31,13 @@ const markup = [
             "<div id='pickLngLat' title='Pick coordinates.'>",
                 "<i class='mdi mdi-target mdi-18px'></i>",
             "</div>",
-            "<div id='changeLngLat' title='Change coordinate types.'>",
-                "<i class='mdi mdi-axis-arrow mdi-18px' style='line-height: 23px;'></i>",
-            "</div>",
         "</div>",
         "<div id='toggleTimeUI'>",
             "<i class='mdi mdi-clock mdi-18px'></i>",
         "</div>"
     ].join('\n');
 
-var Coordinates = {
+const Coordinates = {
     //[ lng, lat ]
     mouseLngLat: [0, 0],
     coordOffset: [0, 0],
@@ -46,6 +47,7 @@ var Coordinates = {
     ZZnotAP: true,
     //Boolean indicating coords are displayed in decimal degrees not meters
     DDnotM: true,
+    mainType: 'll',
     state: 0,
     states: [],
     damCoordLabel: 'X, Y',
@@ -59,60 +61,119 @@ var Coordinates = {
             .attr('id', 'CoordinatesDiv')
             .html(markup)
 
-        if (L_.configData.look) {
-            if (L_.configData.look.coordll) Coordinates.states.push('ll')
-            if (L_.configData.look.coorden) Coordinates.states.push('en')
-            if (L_.configData.look.coordrxy) Coordinates.states.push('rxy')
-            if (L_.configData.look.coordsite) Coordinates.states.push('site')
+        if (L_.configData.coordinates) {
+            console.log(L_.configData.coordinates)
+            Coordinates.mainType = L_.configData.coordinates.coordMain || 'll'
+            if (L_.configData.coordinates.coordll)
+                Coordinates.states.push({
+                    name: 'Longitude, Latitude',
+                    value: 'll',
+                })
+            if (L_.configData.coordinates.coorden)
+                Coordinates.states.push({
+                    name: 'Easting, Northing',
+                    value: 'en',
+                })
+            if (L_.configData.coordinates.coordcustomproj)
+                Coordinates.states.push({
+                    name:
+                        L_.configData.coordinates.coordcustomprojname ||
+                        'Custom Projection',
+                    value: 'cproj',
+                })
+            if (L_.configData.coordinates.coordsecondaryproj)
+                Coordinates.states.push({
+                    name:
+                        L_.configData.coordinates.coordsecondaryprojname ||
+                        'Secondary Projection',
+                    value: 'sproj',
+                    proj: L_.configData.coordinates.coordsecondaryprojstr,
+                })
+            if (L_.configData.coordinates.coordrxy)
+                Coordinates.states.push({ name: 'Relative', value: 'rxy' })
+            if (L_.configData.coordinates.coordsite)
+                Coordinates.states.push({ name: 'Local Level', value: 'site' })
+            Coordinates.mainType = L_.configData.coordinates.coordMain || 'll'
             if (
-                L_.configData.look.coordlngoffset != null &&
-                !isNaN(L_.configData.look.coordlngoffset)
+                !Coordinates.states
+                    .map((v) => v.name)
+                    .includes(Coordinates.mainType)
+            )
+                Coordinates.mainType = 'll'
+
+            if (
+                L_.configData.coordinates.coordlngoffset != null &&
+                !isNaN(L_.configData.coordinates.coordlngoffset)
             )
                 Coordinates.coordOffset[0] = parseFloat(
-                    L_.configData.look.coordlngoffset || 0
+                    L_.configData.coordinates.coordlngoffset || 0
                 )
             if (
-                L_.configData.look.coordlatoffset != null &&
-                !isNaN(L_.configData.look.coordlatoffset)
+                L_.configData.coordinates.coordlatoffset != null &&
+                !isNaN(L_.configData.coordinates.coordlatoffset)
             )
                 Coordinates.coordOffset[1] = parseFloat(
-                    L_.configData.look.coordlatoffset || 0
+                    L_.configData.coordinates.coordlatoffset || 0
                 )
             if (
-                L_.configData.look.coordeastoffset != null &&
-                !isNaN(L_.configData.look.coordeastoffset)
+                L_.configData.coordinates.coordeastoffset != null &&
+                !isNaN(L_.configData.coordinates.coordeastoffset)
             )
                 Coordinates.coordENOffset[0] = parseFloat(
-                    L_.configData.look.coordeastoffset || 0
+                    L_.configData.coordinates.coordeastoffset || 0
                 )
             if (
-                L_.configData.look.coordnorthoffset != null &&
-                !isNaN(L_.configData.look.coordnorthoffset)
+                L_.configData.coordinates.coordnorthoffset != null &&
+                !isNaN(L_.configData.coordinates.coordnorthoffset)
             )
                 Coordinates.coordENOffset[1] = parseFloat(
-                    L_.configData.look.coordnorthoffset || 0
+                    L_.configData.coordinates.coordnorthoffset || 0
                 )
             if (
-                L_.configData.look.coordeastmult != null &&
-                !isNaN(L_.configData.look.coordeastmult)
+                L_.configData.coordinates.coordeastmult != null &&
+                !isNaN(L_.configData.coordinates.coordeastmult)
             )
                 Coordinates.coordENMultiplier[0] = parseFloat(
-                    L_.configData.look.coordeastmult || 1
+                    L_.configData.coordinates.coordeastmult || 1
                 )
             if (
-                L_.configData.look.coordnorthmult != null &&
-                !isNaN(L_.configData.look.coordnorthmult)
+                L_.configData.coordinates.coordnorthmult != null &&
+                !isNaN(L_.configData.coordinates.coordnorthmult)
             )
                 Coordinates.coordENMultiplier[1] = parseFloat(
-                    L_.configData.look.coordnorthmult || 1
+                    L_.configData.coordinates.coordnorthmult || 1
                 )
         }
-        if (Coordinates.states.length === 0) Coordinates.states = ['ll', 'en']
+        if (Coordinates.states.length === 0)
+            Coordinates.states = [
+                {
+                    name: 'Longitude, Latitude',
+                    value: 'll',
+                },
+                {
+                    name: 'Easting, Northing',
+                    value: 'en',
+                },
+            ]
 
         //true for decimal deg, false for meters
         Coordinates.DDnotM = true
 
-        $('#changeLngLat').on('click', mouseLngLatClick)
+        $('#changeCoordTypeDropdown').html(
+            Dropy.construct(
+                Coordinates.states.map((v) => v.name),
+                'Coordinate Type',
+                0,
+                {
+                    openUp: true,
+                }
+            )
+        )
+        Dropy.init($('#changeCoordTypeDropdown'), function (idx) {
+            changeCoordType(idx)
+        })
+        changeCoordType(0)
+
         $('#pickLngLat').on('click', pickLngLat)
         $('#mouseGoPicking').on('click', pickLngLatGo)
         $('#toggleTimeUI').on('click', toggleTimeUI)
@@ -177,7 +238,7 @@ var Coordinates = {
                 )
             }
         } else {
-            switch (Coordinates.states[Coordinates.state]) {
+            switch (Coordinates.states[Coordinates.state].value) {
                 case 'll':
                     d3.select('#mouseDesc').html('Longitude, Latitude')
                     d3.select('#mouseLngLat').html(
@@ -369,8 +430,8 @@ var Coordinates = {
         clearTimeout(Coordinates.elevationTimeout)
 
         if (
-            L_.configData.look == null ||
-            L_.configData.look.coordelevurl == null
+            L_.configData.coordinates == null ||
+            L_.configData.coordinates.coordelevurl == null
         )
             return
 
@@ -388,7 +449,7 @@ var Coordinates = {
                 (v) => v > now - 60000
             )
 
-            let url = L_.configData.look.coordelevurl
+            let url = L_.configData.coordinates.coordelevurl
             if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
 
             if ($('#mouseElev').css('display') === 'none') return
@@ -430,7 +491,6 @@ var Coordinates = {
     },
     remove: function () {
         //Clear all the stuffes
-        $('#changeLngLat').off('click', mouseLngLatClick)
         $('#pickLngLat').off('click', pickLngLat)
         $('#mouseGoPicking').off('click', pickLngLatGo)
         $('#toggleTimeUI').off('click', toggleTimeUI)
@@ -440,9 +500,9 @@ var Coordinates = {
 }
 
 //Upon clicking the lnglat bar, swap decimal degrees and meters and recalculate
-function mouseLngLatClick() {
-    Coordinates.state = (Coordinates.state + 1) % Coordinates.states.length
-    switch (Coordinates.states[Coordinates.state]) {
+function changeCoordType(newState) {
+    Coordinates.state = newState
+    switch (Coordinates.states[Coordinates.state].value) {
         case 'll':
             Coordinates.DDnotM = true
             Coordinates.ZZnotAP = true
@@ -469,7 +529,10 @@ function mouseLngLatClick() {
 function mouseLngLatMove(e) {
     Coordinates.mouseLngLatRaw = [e.latlng.lng, e.latlng.lat]
     Coordinates.mouseLngLat = [e.latlng.lng, e.latlng.lat]
-    if (L_.configData.look && L_.configData.look.coordelev === true)
+    if (
+        L_.configData.coordinates &&
+        L_.configData.coordinates.coordelev === true
+    )
         Coordinates.getElevation()
     Coordinates.refresh()
     $('#mouseElev').css({ opacity: 0.6 })
@@ -516,7 +579,7 @@ function pickLngLatGo() {
     let finalLng = valA
     let finalLat = valB
 
-    switch (Coordinates.states[Coordinates.state]) {
+    switch (Coordinates.states[Coordinates.state].value) {
         case 'll': //00 lnglat
             finalLng = valA - Coordinates.coordOffset[0]
             finalLat = valB - Coordinates.coordOffset[1]

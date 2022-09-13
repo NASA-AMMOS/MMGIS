@@ -18,7 +18,7 @@ export default {
         return [
             `<dl class="dropy${options.openUp === true ? ' openUp' : ''}">`,
                 `<dt class="dropy__title">`,
-                    `<span>${items[selectedIndex] || placeholder}</span>`,
+                    `<span>${options.forcePlaceholder ? placeholder : items[selectedIndex] || placeholder}</span>`,
                     `<i class='mdi mdi-chevron-down mdi-18px'></i>`,    
                 `</dt>`,
                 '<dd class="dropy__content">',
