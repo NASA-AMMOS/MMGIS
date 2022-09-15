@@ -198,7 +198,7 @@ var mmgisAPI_ = {
             mmgisAPI_.map.addEventListener(listener, functionReference)
         } else if (mmgisListener) {
             console.log('Add listener', eventName)
-            document.addEventListener(eventName, functionReference);
+            document.addEventListener(eventName, functionReference)
         } else {
             //mmgisAPI_.customListeners[eventName] = mmgisAPI_.customListeners[eventName] || []
             //mmgisAPI_.customListeners[eventName].push(functionReference)
@@ -216,7 +216,7 @@ var mmgisAPI_ = {
             mmgisAPI_.map.removeEventListener(listener, functionReference)
         } else if (mmgisListener) {
             console.log('Remove listener', eventName)
-            document.removeEventListener(eventName, functionReference);
+            document.removeEventListener(eventName, functionReference)
         } else {
             //if(mmgisAPI_.customListeners[eventName]) {
             //    mmgisAPI_.customListeners[eventName] = mmgisAPI_.customListeners[eventName].filter(f => f !== functionReference)
@@ -246,6 +246,14 @@ var mmgisAPI_ = {
     onLoadCallback: null,
     onLoaded: function (onLoadCallback) {
         mmgisAPI_.onLoadCallback = onLoadCallback
+    },
+    // Convert {lng: , lat:} to x, y
+    project: function (lnglat) {
+        return window.mmgisglobal.customCRS.project(lnglat)
+    },
+    // Convert {x: , y: } to lng, lat
+    unproject: function (xy) {
+        return window.mmgisglobal.customCRS.unproject(xy)
     },
 }
 
@@ -440,6 +448,18 @@ var mmgisAPI = {
      * @param {function} - onLoadCallback - function reference to function that is called when MMGIS is finished loading
      */
     onLoaded: mmgisAPI_.onLoaded,
+
+    /** project - converts a lnglat into xy coordinates with the current (custom or default web mercator) proj4 definition
+     * @param {object} {lng: 0, lat: 0} - lnglat to convert
+     * @returns {object} {x: 0, y: 0} - converted easting northing xy
+     */
+    project: mmgisAPI_.project,
+
+    /** unproject - converts an xy into lnglat coordinates with the current (custom or default web mercator) proj4 definition
+     * @returns {object} {x: 0, y: 0} - easting northing xy to convert
+     * @param {object} {lng: 0, lat: 0} - converted lnglat
+     */
+    unproject: mmgisAPI_.unproject,
 }
 
 window.mmgisAPI = mmgisAPI

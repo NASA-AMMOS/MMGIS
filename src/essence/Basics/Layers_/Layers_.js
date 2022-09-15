@@ -142,11 +142,12 @@ var L_ = {
             lon: null,
         }
     },
-    fina: function (viewer_, map_, globe_, userinterface_) {
+    fina: function (viewer_, map_, globe_, userinterface_, coordinates) {
         this.Viewer_ = viewer_
         this.Map_ = map_
         this.Globe_ = globe_
         this.UserInterface_ = userinterface_
+        this.Coordinates = coordinates
     },
     fullyLoaded: function () {
         this.selectPoint(this.FUTURES.activePoint)
@@ -718,7 +719,8 @@ var L_ = {
         if (layer._sourceGeoJSON) {
             if (layer._sourceGeoJSON.features)
                 if (geojson.features)
-                    layer._sourceGeoJSON.features = layer._sourceGeoJSON.features.concat(geojson.features)
+                    layer._sourceGeoJSON.features =
+                        layer._sourceGeoJSON.features.concat(geojson.features)
                 else layer._sourceGeoJSON.features.push(geojson)
             else
                 layer._sourceGeoJSON = F_.getBaseGeoJSON(

@@ -82,7 +82,7 @@ let Map_ = {
 
         if (
             L_.configData.projection &&
-            L_.configData.projection.custom == true
+            L_.configData.projection.custom === true
         ) {
             var cp = L_.configData.projection
             //console.log(cp)
@@ -104,6 +104,7 @@ let Map_ = {
                 },
                 parseFloat(L_.configData.msv.radius.major)
             )
+            crs.projString = cp.proj
 
             this.map = L.map('map', {
                 zoomControl: hasZoomControl,
@@ -127,12 +128,15 @@ let Map_ = {
                 //zoomSnap: 0,
                 //wheelPxPerZoomLevel: 500,
             })
-
             // Default CRS
+            const projString = `+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=${F_.radiusOfPlanetMajor} +b=${F_.radiusOfPlanetMinor} +towgs84=0,0,0,0,0,0,0 +units=m +no_defs`
             window.mmgisglobal.customCRS = new L.Proj.CRS(
                 'EPSG:3857',
-                `+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=${F_.radiusOfPlanetMajor} +b=${F_.radiusOfPlanetMinor} +towgs84=0,0,0,0,0,0,0 +units=m +no_defs `
+                projString,
+                null,
+                F_.radiusOfPlanetMajor
             )
+            window.mmgisglobal.customCRS.projString = projString
         }
 
         if (this.map.zoomControl) this.map.zoomControl.setPosition('topright')

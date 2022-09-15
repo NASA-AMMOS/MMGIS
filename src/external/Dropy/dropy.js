@@ -16,7 +16,7 @@ export default {
         options = options || {}
         // prettier-ignore
         return [
-            `<dl class="dropy${options.openUp === true ? ' openUp' : ''}">`,
+            `<dl class="dropy${options.openUp === true ? ' openUp' : ''}${options.dark === true ? ' dark' : ''}">`,
                 `<dt class="dropy__title">`,
                     `<span>${options.forcePlaceholder ? placeholder : items[selectedIndex] || placeholder}</span>`,
                     `<i class='mdi mdi-chevron-down mdi-18px'></i>`,    

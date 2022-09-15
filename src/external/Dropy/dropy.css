@@ -116,8 +116,10 @@ dd {
     border-bottom: 1px solid rgba(0, 0, 0, 0.12);
     margin-bottom: 0.9735em;
     padding: 0.625em 0.9735em;
-    font-size: 13px;
-    text-align: center;
+    font-size: 14px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    font-weight: bold;
 }
 .dropy__content .selected {
     font-weight: 700 !important;
@@ -131,11 +133,29 @@ dd {
 }
 
 .dropy.dark .dropy__title {
-    border-color: #868686;
+    border-color: var(--color-a);
     color: #cccccc;
 }
 .dropy.dark .dropy__title:hover {
-    border-color: #cccccc;
+    border-color: var(--color-a1);
+}
+.dropy.dark .dropy__content ul {
+    background: var(--color-a-5);
+}
+.dropy.dark .dropy__content ul li a {
+    color: var(--color-a5);
+    border-bottom: 1px solid var(--color-a1);
+}
+.dropy.dark .dropy__content ul li a:hover {
+    background: var(--color-a1);
+}
+.dropy.dark .dropy__content ul li a.selected {
+    color: var(--color-c);
+}
+.dropy.dark .dropy__content .dropy__header {
+    border-bottom: 1px solid var(--color-a2);
+    margin-bottom: 0px;
+    color: var(--color-a4);
 }
 
 .dropy.openUp .dropy__content {

@@ -21,7 +21,6 @@ var Formulae_ = {
     radiusOfPlanetMajor: 3396190, //(m) Defaults to Mars
     radiusOfPlanetMinor: 3396190,
     radiusOfEarth: 6371000,
-    dam: false, //degrees as meters
     metersInOneDegree: null,
     getBaseGeoJSON: function (featuresArray) {
         return {
@@ -49,9 +48,6 @@ var Formulae_ = {
             this.radiusOfPlanetMajor = parseFloat(radius)
         else if (which.toLowerCase() == 'minor')
             this.radiusOfPlanetMinor = parseFloat(radius)
-    },
-    useDegreesAsMeters: function (use) {
-        if (use === true || use === false) Formulae_.dam = use
     },
     getEarthToPlanetRatio: function () {
         return this.radiusOfEarth / this.radiusOfPlanetMajor
@@ -1805,7 +1801,11 @@ var Formulae_ = {
                 typeof array[i] === 'string' ||
                 typeof array[i] === 'number'
             ) {
-                onEachLeaf(array, _path)
+                const next = onEachLeaf(array, _path)
+                if (next)
+                    for (let n = 0; n < array.length; n++) {
+                        if (next[n] != null) array[n] = next[n]
+                    }
                 return
             }
         }

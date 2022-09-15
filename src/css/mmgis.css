@@ -629,24 +629,22 @@ body {
     transition: bottom 0.2s ease-out;
 }
 .leaflet-control-scalefactor-line {
-    background: #161616;
+    background: var(--color-a);
     box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.2);
     padding: 0px 4px;
     color: #dcdcdc;
     cursor: default;
-    opacity: 0.85;
     user-select: none;
     white-space: nowrap;
 }
 .leaflet-control-scalefactor-goto {
     white-space: nowrap;
     padding: 0px 4px;
-    background: #161616;
+    background: var(--color-a);
     box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.2);
     padding: 0px 4px 0px 0px;
     color: #dcdcdc;
     cursor: pointer;
-    opacity: 0.85;
     user-select: none;
 }
 

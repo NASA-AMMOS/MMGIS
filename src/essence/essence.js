@@ -119,7 +119,7 @@ $(document.body).keydown(function (e) {
 var essence = {
     configData: null,
     hasSwapped: false,
-    init: function (config, missionsList, swapping, hasDAMTool) {
+    init: function (config, missionsList, swapping) {
         //Save the config data
         this.configData = config
 
@@ -191,13 +191,6 @@ var essence = {
 
             ScaleBar.init(ScaleBox)
         } else {
-            if (!hasDAMTool) {
-                F_.useDegreesAsMeters(false)
-                Coordinates.setDamCoordSwap(false)
-            } else {
-                F_.useDegreesAsMeters(true)
-                Coordinates.setDamCoordSwap(true)
-            }
             Coordinates.refresh()
             ScaleBar.refresh()
         }
@@ -249,16 +242,8 @@ var essence = {
         }
 
         function makeMission(data) {
-            var toolsThatUseDegreesAsMeters = ['InSight']
-            var hasDAMTool = false
             //Remove swap tool from data.tools
             for (var i = data.tools.length - 1; i > 0; i--) {
-                if (
-                    toolsThatUseDegreesAsMeters.indexOf(data.tools[i].name) !==
-                    -1
-                ) {
-                    hasDAMTool = true
-                }
                 if (data.tools[i].name === 'Swap') {
                     data.tools.splice(i, 1)
                 }
@@ -278,7 +263,7 @@ var essence = {
                 data.panels = ['viewer', 'map', 'globe']
             }
 
-            essence.init(data, L_.missionsList, true, hasDAMTool)
+            essence.init(data, L_.missionsList, true)
         }
     },
     fina: function () {
@@ -291,7 +276,7 @@ var essence = {
             //FinalizeGlobe
             Globe_.fina(Coordinates)
             //Finalize Layers_
-            L_.fina(Viewer_, Map_, Globe_, UserInterface_)
+            L_.fina(Viewer_, Map_, Globe_, UserInterface_, Coordinates)
             //Finalize the interface
             UserInterface_.fina(L_, Viewer_, Map_, Globe_)
             //Finalize the Viewer
