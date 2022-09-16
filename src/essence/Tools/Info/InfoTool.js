@@ -200,21 +200,8 @@ var InfoTool = {
 
         // Copy to Clipboard
         $('#infoToolDownload').on('click', function () {
-            const feature = JSON.parse(
-                JSON.stringify(InfoTool.info[InfoTool.activeFeatureI])
-            )
-            F_.coordinateDepthTraversal(
-                feature.geometry.coordinates,
-                (coords) => {
-                    let converted = []
-                    const elev = coords[2]
-                    converted = L_.Coordinates.convertLngLat(
-                        coords[0],
-                        coords[1]
-                    )
-                    if (elev != null) converted[2] = elev
-                    return converted
-                }
+            const feature = L_.convertGeoJSONLngLatsToPrimaryCoordinates(
+                InfoTool.info[InfoTool.activeFeatureI]
             )
             F_.copyToClipboard(JSON.stringify(feature, null, 2))
 
@@ -264,23 +251,25 @@ var InfoTool = {
             : null
         if (geometryType === 'point') {
             const names = L_.Coordinates.states[L_.Coordinates.mainType].names
-            const coords = L_.Coordinates.convertLngLat(
-                this.info[this.activeFeatureI].geometry.coordinates[0],
-                this.info[this.activeFeatureI].geometry.coordinates[1]
-            )
+
+            // Convert coords to main coordinate type; if already lnglat, don't reconvert
+            const coords =
+                L_.Coordinates.mainType === 'll'
+                    ? this.info[this.activeFeatureI].geometry.coordinates
+                    : L_.Coordinates.convertLngLat(
+                          this.info[this.activeFeatureI].geometry
+                              .coordinates[0],
+                          this.info[this.activeFeatureI].geometry
+                              .coordinates[1],
+                          null,
+                          true
+                      )
+
             depthTraversal(
                 {
                     Coordinates: {
                         [names[0]]: coords[0],
                         [names[1]]: coords[1],
-                        /*
-                        Longitude:
-                            this.info[this.activeFeatureI].geometry
-                                .coordinates[0],
-                        Latitude:
-                            this.info[this.activeFeatureI].geometry
-                                .coordinates[1],
-                        */
                         Elevation:
                             this.info[this.activeFeatureI].geometry
                                 .coordinates[2] || 'unk',

@@ -663,11 +663,27 @@ let MeasureTool = {
         distDisplayUnit = e.target.value
     },
     download: function (e) {
-        F_.downloadArrayAsCSV(
-            ['longitude', 'latitude', 'distance', 'distance_3d', 'elevation'],
-            MeasureTool.lastData,
-            'profiledata'
-        )
+        const header = [
+            'longitude',
+            'latitude',
+            'distance',
+            'distance_3d',
+            'elevation',
+        ]
+        const data = JSON.parse(JSON.stringify(MeasureTool.lastData))
+        if (L_.Coordinates.mainType != 'll') {
+            const coordState = L_.Coordinates.states[L_.Coordinates.mainType]
+            header[0] = coordState.names[0]
+            header[1] = coordState.names[1]
+
+            data.forEach((d) => {
+                const converted = L_.Coordinates.convertLngLat(d[0], d[1])
+                d[0] = converted[0]
+                d[1] = converted[1]
+            })
+        }
+
+        F_.downloadArrayAsCSV(header, data, 'profiledata')
     },
     getColor: function (idx, alpha) {
         if (alpha != null) {

@@ -66,14 +66,14 @@ const Coordinates = {
             coordENMultiplier: [1, 1],
         },
         cproj: {
-            title: 'Custom Projection',
+            title: 'Projected',
             names: ['Easting', 'Northing', 'Elevation'],
             units: ['m', 'm', 'm'],
             precision: [3, 3, 3],
             available: false,
         },
         sproj: {
-            title: 'Secondary Projection',
+            title: 'Secondary Projected',
             names: ['Easting', 'Northing', 'Elevation'],
             units: ['m', 'm', 'm'],
             precision: [3, 3, 3],
@@ -168,9 +168,8 @@ const Coordinates = {
             // cproj
             if (L_.configData.coordinates.coordcustomproj) {
                 if (
-                    true ||
-                    (L_.configData.projection &&
-                        L_.configData.projection.custom === true)
+                    L_.configData.projection &&
+                    L_.configData.projection.custom === true
                 )
                     Coordinates.states.cproj.available = true
                 else
@@ -203,6 +202,7 @@ const Coordinates = {
         // Remove all unavailable state
         Object.keys(Coordinates.states).forEach((s) => {
             if (!Coordinates.states[s].available) delete Coordinates.states[s]
+            else delete Coordinates.states[s].available
         })
         Coordinates.stateIndices = Object.keys(Coordinates.states)
 
@@ -211,6 +211,12 @@ const Coordinates = {
         if (!Object.keys(Coordinates.states).includes(Coordinates.mainType))
             Coordinates.mainType = 'll'
         Coordinates.currentType = Coordinates.mainType
+
+        // Make mainType first in dropdown list
+        Coordinates.stateIndices = Coordinates.stateIndices.filter(
+            (item) => item !== Coordinates.mainType
+        )
+        Coordinates.stateIndices.unshift(Coordinates.mainType)
 
         // Create dropdown, dropdown is how user will toggle between coord types/states
         Coordinates.refreshDropdown()
@@ -280,29 +286,17 @@ const Coordinates = {
         d3.select('#mouseLngLat').html(coordsString)
     },
     refresh: function () {
-        const currentState = Coordinates.states[Coordinates.currentType]
         const newCoords = Coordinates.convertLngLat(
             Coordinates.mouseLngLat[0],
             Coordinates.mouseLngLat[1],
             Coordinates.currentType,
             true,
+            true,
             true
         )
 
-        const coord0 = `${newCoords[0].toFixed(currentState.precision[0])}${
-            currentState.units[0]
-        }`
-        const coord1 = `${newCoords[1].toFixed(currentState.precision[1])}${
-            currentState.units[1]
-        }`
-        $('#mouseLngLat').text(`${coord0}, ${coord1}`)
-        $('#mouseElev').text(
-            newCoords[2] != null
-                ? `, ${newCoords[2].toFixed(currentState.precision[2])}${
-                      currentState.units[2]
-                  }`
-                : ''
-        )
+        $('#mouseLngLat').text(`${newCoords[0]}, ${newCoords[1]}`)
+        $('#mouseElev').text(newCoords[2] != null ? `, ${newCoords[2]}` : '')
 
         if (Coordinates.elevation != null) $('#mouseElev').css({ opacity: 1 })
     },
@@ -310,6 +304,7 @@ const Coordinates = {
         lng,
         lat,
         type,
+        withPrecisionAndUnits,
         withElevation,
         withDropdownChanges
     ) {
@@ -464,7 +459,20 @@ const Coordinates = {
             default:
         }
 
-        if (!withElevation) newCoords.pop()
+        if (!withElevation && Coordinates.elevation != null) newCoords.pop()
+
+        if (withPrecisionAndUnits) {
+            newCoords[0] = `${newCoords[0].toFixed(currentState.precision[0])}${
+                currentState.units[0]
+            }`
+            newCoords[1] = `${newCoords[1].toFixed(currentState.precision[1])}${
+                currentState.units[1]
+            }`
+            if (newCoords[2] != null)
+                newCoords[2] = `${newCoords[2].toFixed(
+                    currentState.precision[2]
+                )}${currentState.units[2]}`
+        }
 
         return newCoords
     },
@@ -601,20 +609,22 @@ function pickLngLatGo() {
     let finalLng = valA
     let finalLat = valB
 
-    switch (Coordinates.states[Coordinates.state].value) {
+    const currentState = Coordinates.states[Coordinates.currentType]
+
+    switch (Coordinates.currentType) {
         case 'll': //00 lnglat
-            finalLng = valA - Coordinates.coordOffset[0]
-            finalLat = valB - Coordinates.coordOffset[1]
+            finalLng = valA - currentState.coordOffset[0]
+            finalLat = valB - currentState.coordOffset[1]
             break
         case 'en': //01 easting northing
             const valALng =
-                ((valA - Coordinates.coordENOffset[0]) * (180 / Math.PI)) /
+                ((valA - currentState.coordENOffset[0]) * (180 / Math.PI)) /
                 F_.radiusOfPlanetMajor
             const valBLat =
-                ((valB - Coordinates.coordENOffset[1]) * (180 / Math.PI)) /
+                ((valB - currentState.coordENOffset[1]) * (180 / Math.PI)) /
                 F_.radiusOfPlanetMajor
-            finalLng = valALng / Coordinates.coordENMultiplier[0]
-            finalLat = valBLat / Coordinates.coordENMultiplier[1]
+            finalLng = valALng / currentState.coordENMultiplier[0]
+            finalLat = valBLat / currentState.coordENMultiplier[1]
             break
         case 'rxy': //10 relative easting northing
             let relativeA = 0
@@ -623,8 +633,8 @@ function pickLngLatGo() {
                 relativeA = Map_.activeLayer.feature.geometry.coordinates[0]
                 relativeB = Map_.activeLayer.feature.geometry.coordinates[1]
             }
-            valA /= Coordinates.coordENMultiplier[0]
-            valB /= Coordinates.coordENMultiplier[1]
+            valA /= currentState.coordENMultiplier[0]
+            valB /= currentState.coordENMultiplier[1]
             const valALngRel =
                 (valA * (180 / Math.PI)) / F_.radiusOfPlanetMajor + relativeA
             const valBLatRel =
@@ -643,8 +653,8 @@ function pickLngLatGo() {
                 siteRelativeA = Map_.activeLayer.feature.geometry.coordinates[0]
                 siteRelativeB = Map_.activeLayer.feature.geometry.coordinates[1]
             }
-            valA /= Coordinates.coordENMultiplier[0]
-            valB /= Coordinates.coordENMultiplier[1]
+            valA /= currentState.coordENMultiplier[0]
+            valB /= currentState.coordENMultiplier[1]
             const valSiteALngRel =
                 (valA * (180 / Math.PI)) / F_.radiusOfPlanetMajor +
                 siteRelativeA

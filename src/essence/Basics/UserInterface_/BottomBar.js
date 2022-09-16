@@ -68,8 +68,10 @@ let BottomBar = {
                         $(elm).css('z-index', i + 1)
                     })
                 $('.leaflet-control-scalefactor').css('display', 'none')
+                $('#mmgis-map-compass').css('display', 'none')
                 $('.leaflet-control-zoom').css('display', 'none')
                 $('#topBarScreenshotLoading').css('display', 'block')
+                $('#scaleBar').css('margin-top', '0px')
 
                 const documentElm = document.getElementById('mapScreen')
                 HTML2Canvas(documentElm, {
@@ -138,7 +140,9 @@ let BottomBar = {
                         $(elm).css('z-index', zIndices[i])
                     })
                 $('.leaflet-control-scalefactor').css('display', 'flex')
+                $('#mmgis-map-compass').css('display', 'block')
                 $('.leaflet-control-zoom').css('display', 'block')
+                $('#scaleBar').css('margin-top', '5px')
             })
         // Screenshot loading
         d3.select('#topBarScreenshot')

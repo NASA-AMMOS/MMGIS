@@ -32,6 +32,7 @@ import Coordinates from './Ancillary/Coordinates'
 import Description from './Ancillary/Description'
 import ScaleBar from './Ancillary/ScaleBar'
 import ScaleBox from './Ancillary/ScaleBox'
+import Compass from './Ancillary/Compass'
 //import Swap from './Ancillary/Swap'
 import QueryURL from './Ancillary/QueryURL'
 import TimeControl from './Ancillary/TimeControl'
@@ -188,11 +189,12 @@ var essence = {
 
         if (!swapping) {
             Description.init(L_.mission, L_.site, Map_, L_)
-
             ScaleBar.init(ScaleBox)
+            Compass.init()
         } else {
             Coordinates.refresh()
             ScaleBar.refresh()
+            Compass.refresh()
         }
 
         //Swap.make(this)
