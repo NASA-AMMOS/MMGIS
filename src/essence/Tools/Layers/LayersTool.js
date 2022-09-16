@@ -56,6 +56,8 @@ var LayersTool = {
     MMGISInterface: null,
     orderingHistory: [],
     initialize: function () {
+        console.log("----- LayersTool init -----")
+
         //Get tool variables
         this.vars = L_.getToolVars('layers')
 
@@ -65,6 +67,7 @@ var LayersTool = {
         }
     },
     finalize: function () {
+        console.log("----- finalize -----")
         //Order layers from url
         if (L_.FUTURES.tools) {
             for (let t of L_.FUTURES.tools) {
@@ -88,11 +91,15 @@ var LayersTool = {
             LayersTool.make(null, true)
             LayersTool.destroy()
         }
+
+        console.log(" LayersTool.orderingHistory", JSON.stringify(LayersTool.orderingHistory, null, 4))
     },
     make: function (t, fromInit) {
+        console.log("----- LayersTool make -----")
         this.MMGISInterface = new interfaceWithMMGIS(fromInit)
     },
     destroy: function () {
+        console.log("----- LayersTool destroy -----")
         this.MMGISInterface.separateFromMMGIS()
     },
     getUrlString: function () {
@@ -103,6 +110,7 @@ var LayersTool = {
     },
     setHeader: function () {},
     toggleHeader: function (elmIndex) {
+        console.log("----- LayerTool toggleHeader  -----")
         var found = false
         var done = false
         var elmDepth = 0
@@ -148,6 +156,7 @@ var LayersTool = {
 
 //
 function interfaceWithMMGIS(fromInit) {
+    console.log("----- LayersTool interfaceWithMMGIS ------")
     this.separateFromMMGIS = function () {
         separateFromMMGIS()
     }
@@ -167,7 +176,10 @@ function interfaceWithMMGIS(fromInit) {
     depthTraversal(L_.layers, {}, 0)
 
     function depthTraversal(node, parent, depth) {
+        console.log("----- LayerTools depthTraversal -----")
         for (var i = 0; i < node.length; i++) {
+
+            console.log("node[i].name", node[i].name)
             let currentOpacity
             let currentBrightness
             let currentContrast
@@ -459,6 +471,7 @@ function interfaceWithMMGIS(fromInit) {
                     headerI++
                     break
                 default:
+                    console.log("default", L_.layersGroup,Object.keys(L_.layersGroup), node[i], L_.layersGroup[node[i].name])
                     // prettier-ignore
                     $('#layersToolList').append(
                         [
@@ -522,6 +535,7 @@ function interfaceWithMMGIS(fromInit) {
     }
 
     async function toggleLayer(checkbox) {
+        console.log("----- async function toggleLayer(checkbox)  -----")
         let li = checkbox.parent().parent().parent()
         if (li.attr('type') !== 'header') {
             checkbox.addClass('loading')
@@ -894,6 +908,7 @@ function interfaceWithMMGIS(fromInit) {
 
     // Make it all sortable
     function sortOnStart(e) {
+        console.log("---- LayersTool sortOnStart  ----")
         const type = $(e.item).attr('type')
         LayersTool._drag_oldDepth = parseInt($(e.item).attr('depth'))
         const oldIdx = e.oldIndex
@@ -918,6 +933,7 @@ function interfaceWithMMGIS(fromInit) {
         }
     }
     function sortOnChange(e) {
+        console.log("---- LayersTool sortOnChange  ----")
         // In here we want to change the indentation of our dragged layer to match
         // the indentation of the layer above (on none if at top)
         LayersTool._drag_newDepth = 0
@@ -971,6 +987,7 @@ function interfaceWithMMGIS(fromInit) {
         return true
     }
     function sortOnEnd(e) {
+        console.log("---- LayersTool sortOnEnd  ----")
         const type = $(e.item).attr('type')
         // Sortable will place before all hidden layers, we want it always to be after
         // Move to the end of all hidden / on="false" layers
@@ -1052,11 +1069,15 @@ function interfaceWithMMGIS(fromInit) {
                     )
                         newLayersOrdered.push($(this).attr('name'))
                 })
+
             L_.reorderLayers(newLayersOrdered)
         }
     }
 
     LayersTool.orderingHistory.forEach((hist, idx) => {
+
+        console.log("----- LayersTool.orderingHistory forEach  -----")
+        console.log("hist", hist)
         const oldIdx = hist[0]
         const newIdx = hist[1]
         const afterHeader = hist[2]
@@ -1094,6 +1115,8 @@ function interfaceWithMMGIS(fromInit) {
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
     function separateFromMMGIS() {}
+
+    console.log("----- end of LayersTool interfaceWithMMGIS ------")
 }
 
 //Other functions

@@ -125,6 +125,8 @@ var essence = {
     configData: null,
     hasSwapped: false,
     init: function (config, missionsList, swapping, hasDAMTool) {
+        console.log("----- essence init -----")
+        console.log("config", config)
         //Save the config data
         this.configData = config
 
@@ -224,6 +226,173 @@ var essence = {
                     try {
                         const parsed = JSON.parse(data.data)
                         console.log("Received data", parsed)
+
+                        const type = parsed.type;
+                        const layerName = parsed.body.layer.name;
+
+                        console.log("type", type)
+                        console.log("layerName", layerName)
+                        if (type === 'addLayer') {
+                            console.log("type === addLayer")
+                            console.log("ToolController_.activeToolName", ToolController_.activeToolName)
+                            if (ToolController_.activeToolName === 'LayersTool') {
+                                //L_.parseConfig(parsed)
+
+                                console.log("essence.configData", essence.configData)
+
+                                const mission = essence.configData.msv.mission;
+                                calls.api(
+                                    'get',
+                                    {
+                                        mission,
+                                    },
+                                    async function (data) {
+                                        //makeMission(data)
+                                        console.log("----- call api mission data -----", data)
+
+                                        // Save so we can make sure we reproduce the same layer settings after parsing the config
+                                        //const expanded = { ...L_.expanded }
+                                        const toggledArray = { ...L_.toggledArray } 
+
+                                        // Save the original layer ordering
+                                        const origLayersOrdered = [ ...L_.layersOrdered ]
+
+                                        // Reset for now
+                                        //L_.expanded = {}
+                                        L_.toggledArray = {}
+
+                                        // Reset as these are appended to by parseConfig
+                                        L_.indentArray = []
+                                        L_.layersOrdered = []
+                                        L_.layersOrderedFixed = []
+                                        L_.layersData = []
+                                        L_.layersLoaded = []
+
+                                        L_.parseConfig(data)
+
+                                        console.log("new L_.toggledArray", JSON.stringify(L_.toggledArray, null, 4))
+
+                                        // Set back
+                                        //L_.expanded = { ...L_.expanded, ...expanded }
+                                        L_.toggledArray = { ...L_.toggledArray, ...toggledArray }
+
+                                        console.log("layerName", layerName)
+                                        console.log("fixed L_.toggledArray", JSON.stringify(L_.toggledArray, null, 4))
+                                        //L_.layersOrdered = newLayersOrdered
+                                        //L_.layersOrdered.push(layerName)
+
+                                        console.log("L_.layersOrdered", JSON.stringify(L_.layersOrdered))
+                                        console.log("L_.layersLoaded", JSON.stringify(L_.layersLoaded))
+
+                                        const newLayersOrdered = [ ...L_.layersOrdered ]
+                                        console.log("orig newLayersOrdered", JSON.stringify(newLayersOrdered, null, 4))
+                                        const index = L_.layersOrdered.findIndex(name => name === layerName)
+                                        newLayersOrdered.splice(index, 1)
+
+                                        console.log("updated newLayersOrdered", JSON.stringify(newLayersOrdered, null, 4))
+
+
+                                        console.log("F_.isEqual(origLayersOrdered, newLayersOrdered, obj2, true)",
+                                            F_.isEqual(origLayersOrdered, newLayersOrdered, true))
+                                        // If the layers have been reordered from the default layer order
+                                        if (!F_.isEqual(origLayersOrdered, newLayersOrdered, true)) {
+                                            console.log("attempting to stick the new layer in the correct location")
+                                            const parentLayer = L_.layersParent[layerName]
+                                            if (parentLayer) {
+                                                console.log("L_.layersNamed[parentLayer]", L_.layersNamed[parentLayer])
+
+
+
+                                            }
+                                        }
+
+
+                                        //L_.layersParent[]
+
+
+                                        //await L_.toggleLayer(L_.layersDataByName[layerName])
+                                        //await L_.toggleLayer(L_.layersDataByName[layerName])
+
+                                        //Make the layer
+                                        await Map_.makeLayer(L_.layersDataByName[layerName])
+
+
+                                        L_.addVisible(Map_, [layerName])
+/*
+                                        if (L_.toggledArray[layerName]) {
+                                            await L_.toggleLayer(L_.layersDataByName[layerName])
+                                            await L_.toggleLayer(L_.layersDataByName[layerName])
+                                        }
+*/
+
+                                        //L_.reorderLayers(L_.layersOrderedFixed)
+
+                                        if (L_.Map_) L_.Map_.orderedBringToFront(true)
+
+/*
+                                        for (let layerName in L_.toggledArray) {
+                                            console.log(layerName, L_.toggledArray[layerName])
+
+                                            if (L_.toggledArray[layerName])
+                                                await L_.toggleLayer(L_.layersDataByName[layerName])
+                                        }
+
+                                        const copyToggledArray = { ...L_.toggledArray }
+
+                                        L_.layers = null
+                                        L_.layersNamed = {}
+                                        L_.layersGroup = {}
+                                        L_.layersOrdered = []
+                                        L_.layersOrderedFixed = []
+                                        L_.layersIndex = {}
+                                        L_.layersLoaded = []
+                                        L_.layersStyles = {}
+                                        L_.layersLegends = {}
+                                        L_.layersLegendsData = {}
+                                        L_.expandArray = {}
+                                        L_.layersData = []
+                                        L_.layersDataByName = {}
+                                        L_.indentArray = []
+                                        L_.toggledArray = {}
+                                        L_.expanded = {}
+
+                                        console.log("copyToggledArray", copyToggledArray)
+
+                                        L_.parseConfig(data)
+
+                                        //Make our layers
+                                        await Map_.makeLayers(L_.layersData)
+
+                                        //Just in case we have no layers
+                                        Map_.allLayersLoaded()
+*/
+
+
+                                        console.log("L_.layersGroup", Object.keys(L_.layersGroup))
+                                        ToolController_.activeTool.destroy();
+                                        ToolController_.activeTool.make();
+
+                                    },
+                                    function (e) {
+                                        console.log(
+                                            "Warning: Couldn't load: " + mission + ' configuration.'
+                                        )
+                                        //console.log(
+                                        //    "Warning: Couldn't load: " + to + ' configuration.'
+                                        //)
+                                        //makeMissionNotFoundDiv()
+                                    }
+                                )
+                            }
+                        }
+/*
+                        //Make our layers
+                        Map_.makeLayers(L_.layersData)
+
+                        //Just in case we have no layers
+                        Map_.allLayersLoaded()
+*/
+
                     } catch (e) {
                         console.warn(`Error parsing data from MMGIS websocket: ${e}`)
                     }
@@ -236,6 +405,8 @@ var essence = {
         }
     },
     swapMission(to) {
+        console.log("----- essence swapMission -----")
+        console.log("to", to)
         //console.log( to );
         //Close all tools since they only update when reopened
         ToolController_.closeActiveTool()
