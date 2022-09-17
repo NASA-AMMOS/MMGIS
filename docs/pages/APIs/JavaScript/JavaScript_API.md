@@ -553,3 +553,27 @@ The following is an example of how to call the `getActiveTool` function:
 ```javascript
 window.mmgisAPI.getActiveTool();
 ```
+
+### project
+
+This function convert a Longitude, Latitude object into X, Y (i.e. Easting, Northing) coordinates. It uses the map's base projection and the proj4 library to perform the transformation.
+
+Custom map projections can be set in the Configuration page's Projection tab. Otherwise, the default proj4 string is `+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a={radiusOfPlanetMajor} +b={F_.radiusOfPlanetMinor} +towgs84=0,0,0,0,0,0,0 +units=m +no_defs`
+
+The following is an example of how to call the `project` function:
+
+```javascript
+window.mmgisAPI.project({ lng: 137, lat: -4 });
+// returns {x: 8120633.560692952, y: -237291.62355915268}
+```
+
+### unproject
+
+This function is the inverse of the `project` function. It takes in a X, Y object and returns a Longitude, Latitude.
+
+The following is an example of how to call the `unproject` function:
+
+```javascript
+window.mmgisAPI.unproject({ x: 8120633.560692952, y: -237291.62355915268 });
+// returns {lat: -4.000000000000019, lng: 137}
+```

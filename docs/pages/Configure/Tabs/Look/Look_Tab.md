@@ -24,7 +24,7 @@ If checked, adds `+` and `-` zoom buttons to the top right of the Map.
 
 #### Graticule
 
-_Deprecated. Library license was not permissive._
+Displays a grid of longitudinal and latitudinal lines over the Map.
 
 #### Body Color
 

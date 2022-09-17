@@ -142,11 +142,12 @@ var L_ = {
             lon: null,
         }
     },
-    fina: function (viewer_, map_, globe_, userinterface_) {
+    fina: function (viewer_, map_, globe_, userinterface_, coordinates) {
         this.Viewer_ = viewer_
         this.Map_ = map_
         this.Globe_ = globe_
         this.UserInterface_ = userinterface_
+        this.Coordinates = coordinates
     },
     fullyLoaded: function () {
         this.selectPoint(this.FUTURES.activePoint)
@@ -718,7 +719,8 @@ var L_ = {
         if (layer._sourceGeoJSON) {
             if (layer._sourceGeoJSON.features)
                 if (geojson.features)
-                    layer._sourceGeoJSON.features = layer._sourceGeoJSON.features.concat(geojson.features)
+                    layer._sourceGeoJSON.features =
+                        layer._sourceGeoJSON.features.concat(geojson.features)
                 else layer._sourceGeoJSON.features.push(geojson)
             else
                 layer._sourceGeoJSON = F_.getBaseGeoJSON(
@@ -1525,6 +1527,56 @@ var L_ = {
                     return
                 }
             }
+        }
+    },
+    /**
+     * Converts lnglat geojsons into the primary coordinate type.
+     * @param {object} geojson - geojson object or geojson feature
+     */
+    convertGeoJSONLngLatsToPrimaryCoordinates(geojson) {
+        if (geojson.features) {
+            const nextGeoJSON = JSON.parse(JSON.stringify(geojson))
+            const convertedFeatures = []
+            nextGeoJSON.features.forEach((feature) => {
+                const f = JSON.parse(JSON.stringify(feature))
+                F_.coordinateDepthTraversal(
+                    f.geometry.coordinates,
+                    (coords) => {
+                        let converted = []
+                        const elev = coords[2]
+                        converted = L_.Coordinates.convertLngLat(
+                            coords[0],
+                            coords[1]
+                        )
+                        if (elev != null) converted[2] = elev
+                        return converted
+                    }
+                )
+                convertedFeatures.push(f)
+            })
+            nextGeoJSON.features = convertedFeatures
+            nextGeoJSON._coordinates =
+                L_.Coordinates.states[L_.Coordinates.mainType]
+            nextGeoJSON._coordinates.type = L_.Coordinates.mainType
+
+            return nextGeoJSON
+        } else {
+            // Just a single feature
+            const feature = JSON.parse(JSON.stringify(geojson))
+            F_.coordinateDepthTraversal(
+                feature.geometry.coordinates,
+                (coords) => {
+                    let converted = []
+                    const elev = coords[2]
+                    converted = L_.Coordinates.convertLngLat(
+                        coords[0],
+                        coords[1]
+                    )
+                    if (elev != null) converted[2] = elev
+                    return converted
+                }
+            )
+            return feature
         }
     },
     /**

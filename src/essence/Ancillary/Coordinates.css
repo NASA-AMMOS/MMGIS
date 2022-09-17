@@ -12,7 +12,7 @@
 
 #CoordinatesDiv .mouseLngLat {
     line-height: 30px;
-    padding: 0px 6px;
+    padding: 0px 8px;
     background: var(--color-a);
     border-radius: 3px;
     display: flex;
@@ -46,7 +46,7 @@
     opacity: 0;
     pointer-events: none;
     position: absolute;
-    right: 63px;
+    right: 34px;
     display: flex;
     border-radius: 3px;
     transition: opacity 0.2s ease-in;
@@ -106,8 +106,36 @@
     background: var(--color-l);
 }
 
-#CoordinatesDiv #pickLngLat,
-#CoordinatesDiv #changeLngLat {
+#CoordinatesDiv #changeCoordType {
+    height: 30px;
+}
+#CoordinatesDiv #changeCoordType .dropy {
+    height: 30px;
+    margin-bottom: 0px;
+}
+#CoordinatesDiv #changeCoordType .dropy__title {
+    height: 30px;
+    font-size: 13px;
+    line-height: 30px;
+}
+#CoordinatesDiv #changeCoordType .dropy__title span {
+    padding: 0px 1.875em 0px 0px;
+    color: var(--color-f);
+}
+#CoordinatesDiv #changeCoordType .dropy__title i {
+    line-height: 13px;
+    color: var(--color-f);
+}
+#CoordinatesDiv #changeCoordType .dropy__content {
+    overflow: visible;
+    width: 360px;
+}
+#CoordinatesDiv #changeCoordType .dropy__content li a {
+    padding: 2px 8px;
+    font-size: 13px;
+}
+
+#CoordinatesDiv #pickLngLat {
     background: var(--color-a);
     color: var(--color-f);
     text-align: center;
@@ -120,8 +148,7 @@
     pointer-events: all;
     transition: all 0.2s ease-in;
 }
-#CoordinatesDiv #pickLngLat:hover,
-#CoordinatesDiv #changeLngLat:hover {
+#CoordinatesDiv #pickLngLat:hover {
     color: var(--color-mmgis);
 }
 #CoordinatesDiv #pickLngLat.active {

@@ -200,9 +200,11 @@ var InfoTool = {
 
         // Copy to Clipboard
         $('#infoToolDownload').on('click', function () {
-            F_.copyToClipboard(
-                JSON.stringify(InfoTool.info[InfoTool.activeFeatureI], null, 2)
+            const feature = L_.convertGeoJSONLngLatsToPrimaryCoordinates(
+                InfoTool.info[InfoTool.activeFeatureI]
             )
+            F_.copyToClipboard(JSON.stringify(feature, null, 2))
+
             const icon = $(this).find('i')
             icon.removeClass('mdi-clipboard-outline')
             icon.addClass('mdi-check-bold')
@@ -247,16 +249,27 @@ var InfoTool = {
         const geometryType = this.info[this.activeFeatureI].geometry.type
             ? this.info[this.activeFeatureI].geometry.type.toLowerCase()
             : null
-        if (geometryType === 'point')
+        if (geometryType === 'point') {
+            const names = L_.Coordinates.states[L_.Coordinates.mainType].names
+
+            // Convert coords to main coordinate type; if already lnglat, don't reconvert
+            const coords =
+                L_.Coordinates.mainType === 'll'
+                    ? this.info[this.activeFeatureI].geometry.coordinates
+                    : L_.Coordinates.convertLngLat(
+                          this.info[this.activeFeatureI].geometry
+                              .coordinates[0],
+                          this.info[this.activeFeatureI].geometry
+                              .coordinates[1],
+                          null,
+                          true
+                      )
+
             depthTraversal(
                 {
                     Coordinates: {
-                        Longitude:
-                            this.info[this.activeFeatureI].geometry
-                                .coordinates[0],
-                        Latitude:
-                            this.info[this.activeFeatureI].geometry
-                                .coordinates[1],
+                        [names[0]]: coords[0],
+                        [names[1]]: coords[1],
                         Elevation:
                             this.info[this.activeFeatureI].geometry
                                 .coordinates[2] || 'unk',
@@ -265,6 +278,7 @@ var InfoTool = {
                 [],
                 0
             )
+        }
 
         let props = JSON.parse(
             JSON.stringify(this.info[this.activeFeatureI].properties)

@@ -318,6 +318,152 @@ function initialize() {
                   "click",
                   projectionToggleCustom
                 );
+
+                //Coordinate coords (look is regressive, moved to Coordinates tab)
+                if (
+                  (!cData.coordinates &&
+                    cData.look &&
+                    (cData.look.coordll == true ||
+                      cData.look.coordll == null)) ||
+                  (cData.coordinates &&
+                    (cData.coordinates.coordll == true ||
+                      cData.coordinates.coordll == null))
+                )
+                  $("#tab_coordinates #coordinates_coordll").prop(
+                    "checked",
+                    true
+                  );
+                if (
+                  (!cData.coordinates &&
+                    cData.look &&
+                    (cData.look.coorden == true ||
+                      cData.look.coorden == null)) ||
+                  (cData.coordinates &&
+                    (cData.coordinates.coorden == true ||
+                      cData.coordinates.coorden == null))
+                )
+                  $("#tab_coordinates #coordinates_coorden").prop(
+                    "checked",
+                    true
+                  );
+                if (
+                  (!cData.coordinates &&
+                    cData.look &&
+                    (cData.look.coordrxy == true ||
+                      cData.look.coordrxy == null)) ||
+                  (cData.coordinates &&
+                    (cData.coordinates.coordrxy == true ||
+                      cData.coordinates.coordrxy == null))
+                )
+                  $("#tab_coordinates #coordinates_coordrxy").prop(
+                    "checked",
+                    true
+                  );
+                if (
+                  (!cData.coordinates &&
+                    cData.look &&
+                    cData.look.coordsite == true) ||
+                  (cData.coordinates && cData.coordinates.coordsite == true)
+                )
+                  $("#tab_coordinates #coordinates_coordsite").prop(
+                    "checked",
+                    true
+                  );
+                if (
+                  (!cData.coordinates &&
+                    cData.look &&
+                    cData.look.coordelev == true) ||
+                  (cData.coordinates && cData.coordinates.coordelev == true)
+                )
+                  $("#tab_coordinates #coordinates_coordelev").prop(
+                    "checked",
+                    true
+                  );
+                $("#tab_coordinates #coordinates_coordelevurl").val(
+                  cData.coordinates
+                    ? cData.coordinates.coordelevurl
+                    : cData.look
+                    ? cData.look.coordelevurl
+                    : ""
+                );
+                $("#tab_coordinates #coordinates_coordlngoffset").val(
+                  cData.coordinates
+                    ? cData.coordinates.coordlngoffset
+                    : cData.look
+                    ? cData.look.coordlngoffset
+                    : ""
+                );
+                $("#tab_coordinates #coordinates_coordlatoffset").val(
+                  cData.coordinates
+                    ? cData.coordinates.coordlatoffset
+                    : cData.look
+                    ? cData.look.coordlatoffset
+                    : ""
+                );
+                $("#tab_coordinates #coordinates_coordeastoffset").val(
+                  cData.coordinates
+                    ? cData.coordinates.coordeastoffset
+                    : cData.look
+                    ? cData.look.coordeastoffset
+                    : ""
+                );
+                $("#tab_coordinates #coordinates_coordnorthoffset").val(
+                  cData.coordinates
+                    ? cData.coordinates.coordnorthoffset
+                    : cData.look
+                    ? cData.look.coordnorthoffset
+                    : ""
+                );
+                $("#tab_coordinates #coordinates_coordeastmult").val(
+                  cData.coordinates
+                    ? cData.coordinates.coordeastmult
+                    : cData.look
+                    ? cData.look.coordeastmult
+                    : ""
+                );
+                $("#tab_coordinates #coordinates_coordnorthmult").val(
+                  cData.coordinates
+                    ? cData.coordinates.coordnorthmult
+                    : cData.look
+                    ? cData.look.coordnorthmult
+                    : ""
+                );
+                if (
+                  cData.coordinates &&
+                  cData.coordinates.coordcustomproj == true
+                )
+                  $("#tab_coordinates #coordinates_coordcproj").prop(
+                    "checked",
+                    true
+                  );
+                $("#tab_coordinates #coordinates_coordcprojname").val(
+                  cData.coordinates ? cData.coordinates.coordcustomprojname : ""
+                );
+
+                if (
+                  cData.coordinates &&
+                  cData.coordinates.coordsecondaryproj == true
+                )
+                  $("#tab_coordinates #coordinates_coordsproj").prop(
+                    "checked",
+                    true
+                  );
+
+                $("#tab_coordinates #coordinates_coordsprojname").val(
+                  cData.coordinates
+                    ? cData.coordinates.coordsecondaryprojname
+                    : ""
+                );
+                $("#tab_coordinates #coordinates_coordsprojstr").val(
+                  cData.coordinates
+                    ? cData.coordinates.coordsecondaryprojstr
+                    : ""
+                );
+                if (cData.coordinates?.coordmain)
+                  $(
+                    `.coordinates_coordMain[value="${cData.coordinates?.coordmain}"]`
+                  ).prop("checked", true);
+
                 //look
                 $("#tab_look #look_pagename").val("MMGIS");
                 if (cData.look && cData.look.pagename) {
@@ -333,47 +479,7 @@ function initialize() {
                 if (cData.look && cData.look.graticule == true) {
                   $("#tab_look #look_graticule").prop("checked", true);
                 }
-                //look coords
-                if (
-                  cData.look &&
-                  (cData.look.coordll == true || cData.look.coordll == null)
-                )
-                  $("#tab_look #look_coordll").prop("checked", true);
-                if (
-                  cData.look &&
-                  (cData.look.coorden == true || cData.look.coorden == null)
-                )
-                  $("#tab_look #look_coorden").prop("checked", true);
-                if (
-                  cData.look &&
-                  (cData.look.coordrxy == true || cData.look.coordrxy == null)
-                )
-                  $("#tab_look #look_coordrxy").prop("checked", true);
-                if (cData.look && cData.look.coordsite == true)
-                  $("#tab_look #look_coordsite").prop("checked", true);
-                if (cData.look && cData.look.coordelev == true)
-                  $("#tab_look #look_coordelev").prop("checked", true);
-                $("#tab_look #look_coordelevurl").val(
-                  cData.look ? cData.look.coordelevurl : ""
-                );
-                $("#tab_look #look_coordlngoffset").val(
-                  cData.look ? cData.look.coordlngoffset : ""
-                );
-                $("#tab_look #look_coordlatoffset").val(
-                  cData.look ? cData.look.coordlatoffset : ""
-                );
-                $("#tab_look #look_coordeastoffset").val(
-                  cData.look ? cData.look.coordeastoffset : ""
-                );
-                $("#tab_look #look_coordnorthoffset").val(
-                  cData.look ? cData.look.coordnorthoffset : ""
-                );
-                $("#tab_look #look_coordeastmult").val(
-                  cData.look ? cData.look.coordeastmult : ""
-                );
-                $("#tab_look #look_coordnorthmult").val(
-                  cData.look ? cData.look.coordnorthmult : ""
-                );
+
                 //look colors
                 $("#tab_look #look_primarycolor").val(
                   cData.look ? cData.look.primarycolor : ""
@@ -1652,6 +1758,7 @@ function save() {
     var json = {
       msv: {},
       projection: {},
+      coordinates: {},
       look: {},
       panels: [],
       panelSettings: {},
@@ -1704,24 +1811,67 @@ function save() {
     json.projection["resunitsperpixel"] = $(
       "#tab_projection #projection_res"
     ).val();
+
+    //Coordinates
+    json.coordinates["coordll"] = $(
+      "#tab_coordinates #coordinates_coordll"
+    ).prop("checked");
+    json.coordinates["coorden"] = $(
+      "#tab_coordinates #coordinates_coorden"
+    ).prop("checked");
+    json.coordinates["coordrxy"] = $(
+      "#tab_coordinates #coordinates_coordrxy"
+    ).prop("checked");
+    json.coordinates["coordsite"] = $(
+      "#tab_coordinates #coordinates_coordsite"
+    ).prop("checked");
+    json.coordinates["coordlngoffset"] = $(
+      "#tab_coordinates #coordinates_coordlngoffset"
+    ).val();
+    json.coordinates["coordlatoffset"] = $(
+      "#tab_coordinates #coordinates_coordlatoffset"
+    ).val();
+    json.coordinates["coordeastoffset"] = $(
+      "#tab_coordinates #coordinates_coordeastoffset"
+    ).val();
+    json.coordinates["coordnorthoffset"] = $(
+      "#tab_coordinates #coordinates_coordnorthoffset"
+    ).val();
+    json.coordinates["coordeastmult"] = $(
+      "#tab_coordinates #coordinates_coordeastmult"
+    ).val();
+    json.coordinates["coordnorthmult"] = $(
+      "#tab_coordinates #coordinates_coordnorthmult"
+    ).val();
+    json.coordinates["coordcustomproj"] = $(
+      "#tab_coordinates #coordinates_coordcproj"
+    ).prop("checked");
+    json.coordinates["coordcustomprojname"] = $(
+      "#tab_coordinates #coordinates_coordcprojname"
+    ).val();
+    json.coordinates["coordsecondaryproj"] = $(
+      "#tab_coordinates #coordinates_coordsproj"
+    ).prop("checked");
+    json.coordinates["coordsecondaryprojname"] = $(
+      "#tab_coordinates #coordinates_coordsprojname"
+    ).val();
+    json.coordinates["coordsecondaryprojstr"] = $(
+      "#tab_coordinates #coordinates_coordsprojstr"
+    ).val();
+    json.coordinates["coordelev"] = $(
+      "#tab_coordinates #coordinates_coordelev"
+    ).prop("checked");
+    json.coordinates["coordelevurl"] = $(
+      "#tab_coordinates #coordinates_coordelevurl"
+    ).val();
+    json.coordinates["coordmain"] =
+      $(`.coordinates_coordMain:checked`).val() || "ll";
+
     //Look
     json.look["pagename"] = $("#tab_look #look_pagename").val();
     json.look["minimalist"] = $("#tab_look #look_minimalist").prop("checked");
     json.look["zoomcontrol"] = $("#tab_look #look_zoomcontrol").prop("checked");
     json.look["graticule"] = $("#tab_look #look_graticule").prop("checked");
-    //look coords
-    json.look["coordll"] = $("#tab_look #look_coordll").prop("checked");
-    json.look["coorden"] = $("#tab_look #look_coorden").prop("checked");
-    json.look["coordrxy"] = $("#tab_look #look_coordrxy").prop("checked");
-    json.look["coordsite"] = $("#tab_look #look_coordsite").prop("checked");
-    json.look["coordelev"] = $("#tab_look #look_coordelev").prop("checked");
-    json.look["coordelevurl"] = $("#tab_look #look_coordelevurl").val();
-    json.look["coordlngoffset"] = $("#tab_look #look_coordlngoffset").val();
-    json.look["coordlatoffset"] = $("#tab_look #look_coordlatoffset").val();
-    json.look["coordeastoffset"] = $("#tab_look #look_coordeastoffset").val();
-    json.look["coordnorthoffset"] = $("#tab_look #look_coordnorthoffset").val();
-    json.look["coordeastmult"] = $("#tab_look #look_coordeastmult").val();
-    json.look["coordnorthmult"] = $("#tab_look #look_coordnorthmult").val();
     //look colors
     json.look["primarycolor"] = $("#tab_look #look_primarycolor").val();
     json.look["secondarycolor"] = $("#tab_look #look_secondarycolor").val();

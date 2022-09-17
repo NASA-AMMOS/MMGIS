@@ -695,7 +695,10 @@ var UserInterface = {
             bottom: UserInterface.pxIsTools + (timeUIActive ? 40 : 0) + 'px',
         })
         $('.leaflet-control-scalefactor').css({
-            bottom: UserInterface.pxIsTools + 24 + 'px',
+            bottom: UserInterface.pxIsTools + 28 + 'px',
+        })
+        $('#mmgis-map-compass').css({
+            bottom: UserInterface.pxIsTools + 38 + 'px',
         })
         $('#CoordinatesDiv').css({
             bottom: UserInterface.pxIsTools + (timeUIActive ? 40 : 0) + 'px',

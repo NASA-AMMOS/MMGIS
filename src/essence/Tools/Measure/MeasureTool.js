@@ -663,11 +663,27 @@ let MeasureTool = {
         distDisplayUnit = e.target.value
     },
     download: function (e) {
-        F_.downloadArrayAsCSV(
-            ['longitude', 'latitude', 'distance', 'distance_3d', 'elevation'],
-            MeasureTool.lastData,
-            'profiledata'
-        )
+        const header = [
+            'longitude',
+            'latitude',
+            'distance',
+            'distance_3d',
+            'elevation',
+        ]
+        const data = JSON.parse(JSON.stringify(MeasureTool.lastData))
+        if (L_.Coordinates.mainType != 'll') {
+            const coordState = L_.Coordinates.states[L_.Coordinates.mainType]
+            header[0] = coordState.names[0]
+            header[1] = coordState.names[1]
+
+            data.forEach((d) => {
+                const converted = L_.Coordinates.convertLngLat(d[0], d[1])
+                d[0] = converted[0]
+                d[1] = converted[1]
+            })
+        }
+
+        F_.downloadArrayAsCSV(header, data, 'profiledata')
     },
     getColor: function (idx, alpha) {
         if (alpha != null) {
@@ -707,16 +723,6 @@ function makeMeasureToolLayer() {
                         clickedLatLngs[i - 1].x
                     ) * rAm
                 ) / rAm
-            if (F_.dam)
-                roundedDist =
-                    Math.round(
-                        F_.distanceFormula(
-                            clickedLatLngs[i].y,
-                            clickedLatLngs[i].x,
-                            clickedLatLngs[i - 1].y,
-                            clickedLatLngs[i - 1].x
-                        ) * rAm
-                    ) / rAm
             var roundedTotalDist =
                 Math.round(totalDistToIndex(i + 1) * rAm) / rAm
             var distAzimuth =
@@ -913,10 +919,6 @@ function makeProfile() {
                         distance3d += lastDistance3d
 
                         lastDistance3d = distance3d
-                        if (F_.dam) {
-                            distance = F_.metersToDegrees(distance)
-                            distance3d = F_.metersToDegrees(distance3d)
-                        }
                     }
                     lastDistance = distance
                     MeasureTool.lastData[i].splice(2, 0, distance)
@@ -1038,16 +1040,6 @@ function makeGhostLine(lng, lat) {
                     lat
                 ) * rAm
             ) / rAm
-        if (F_.dam)
-            roundedDist =
-                Math.round(
-                    F_.distanceFormula(
-                        clickedLatLngs[i1].y,
-                        clickedLatLngs[i1].x,
-                        lng,
-                        lat
-                    ) * rAm
-                ) / rAm
         //using actual latlng as meters:
         //var roundedDist = Math.round(Math.sqrt(Math.pow(clickedLatLngs[i1].x - e.latlng.lat, 2) + Math.pow(clickedLatLngs[i1].y - e.latlng.lng, 2)) * 10)/10;
         var roundedTotalDist =
@@ -1157,21 +1149,13 @@ function totalDistToIndex(l) {
     var totalDistance = 0
     for (var i = 1; i < l; i++) {
         //Sum up segment distance
-        if (F_.dam) {
-            totalDistance += F_.distanceFormula(
-                clickedLatLngs[i].y,
-                clickedLatLngs[i].x,
-                clickedLatLngs[i - 1].y,
-                clickedLatLngs[i - 1].x
-            )
-        } else {
-            totalDistance += F_.lngLatDistBetween(
-                clickedLatLngs[i].y,
-                clickedLatLngs[i].x,
-                clickedLatLngs[i - 1].y,
-                clickedLatLngs[i - 1].x
-            )
-        }
+        totalDistance += F_.lngLatDistBetween(
+            clickedLatLngs[i].y,
+            clickedLatLngs[i].x,
+            clickedLatLngs[i - 1].y,
+            clickedLatLngs[i - 1].x
+        )
+
         //using actual latlng as meters:
         //totalDistance += Math.sqrt(Math.pow(clickedLatLngs[i].x - clickedLatLngs[i-1].x, 2) + Math.pow(clickedLatLngs[i].y - clickedLatLngs[i-1].y, 2));
     }

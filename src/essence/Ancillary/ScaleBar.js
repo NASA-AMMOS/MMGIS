@@ -59,23 +59,19 @@ function setScaleBars() {
     //Create appropriate scales by measuring distance between above points
     var distL
     var distS
-    if (F_.dam) {
-        distL = Math.abs(leftLatLong['lng'] - rightLatLongL['lng'])
-        distS = Math.abs(leftLatLong['lng'] - rightLatLongS['lng'])
-    } else {
-        distL = F_.lngLatDistBetween(
-            leftLatLong['lng'],
-            leftLatLong['lat'],
-            rightLatLongL['lng'],
-            rightLatLongL['lat']
-        )
-        distS = F_.lngLatDistBetween(
-            leftLatLong['lng'],
-            leftLatLong['lat'],
-            rightLatLongS['lng'],
-            rightLatLongS['lat']
-        )
-    }
+    distL = F_.lngLatDistBetween(
+        leftLatLong['lng'],
+        leftLatLong['lat'],
+        rightLatLongL['lng'],
+        rightLatLongL['lat']
+    )
+    distS = F_.lngLatDistBetween(
+        leftLatLong['lng'],
+        leftLatLong['lat'],
+        rightLatLongS['lng'],
+        rightLatLongS['lat']
+    )
+
     var XScaleL = d3.scaleLinear().domain([0, distL]).range([0, barLength])
     var XScaleS = d3
         .scaleLinear()

@@ -124,7 +124,27 @@ let Globe_ = {
             'mmgisLithoCoords',
             this.litho.controls.coordinates,
             {
-                existingDivId: 'mouseLngLat',
+                //existingDivId: 'mouseLngLat',
+                hideElement: true,
+                onChange: (lng, lat, elev) => {
+                    if (lng == null || lat == null) {
+                        $('#mouseLngLat').text(`Outer Space`)
+                    } else {
+                        const converted = L_.Coordinates.convertLngLat(
+                            lng,
+                            lat,
+                            L_.Coordinates.currentType,
+                            true
+                        )
+                        $('#mouseLngLat').text(
+                            `${converted[0]}, ${converted[1]}`
+                        )
+                    }
+
+                    $('#mouseElev')
+                        .css({ display: 'block', opacity: 1 })
+                        .text(elev != null ? `, ${elev.toFixed(3)}m` : '')
+                },
             }
         )
 

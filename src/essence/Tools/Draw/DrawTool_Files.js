@@ -533,7 +533,8 @@ var Files = {
                         rect.width +
                         "px; z-index: 2000; font-size: 14px;'>",
                         '<ul>',
-                            !isHead ? "<li id='cmExportGeoJSON'><i class='mdi mdi-download mdi-14px'></i>Export as .geojson</li>" : "",
+                            (!isHead && L_.Coordinates.mainType != 'll') ? "<li id='cmExportGeoJSON' convert='true'><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON (projected)</li>" : "",
+                            !isHead ? "<li id='cmExportSourceGeoJSON' convert='true'><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON (lonlat)</li>" : "",
                             //"<li id='cmExportShp'>Export as .shp</li>",
                             (!isHead && !isPub) ? `<li id='cmToggleLabels'><i class='mdi mdi-label-outline mdi-14px'></i>Toggle Labels</li>` : "",
                             isHead ? `<li id='drawToolcmRenameTagFol'><i class='mdi mdi-rename-box mdi-14px'></i>Rename ${activeTagFolType === 'tags' ? "Tag" : "Folder"}</li>` : "",
@@ -553,10 +554,11 @@ var Files = {
                     published: true,
                 }
             }
-            $('#cmExportGeoJSON').on(
+            $('#cmExportGeoJSON, #cmExportSourceGeoJSON').on(
                 'click',
                 (function (body, isPub) {
                     return function () {
+                        const convert = $(this).attr('convert')
                         DrawTool.getFile(body, function (d) {
                             let geojson = d.geojson
                             let filename = ''
@@ -600,6 +602,11 @@ var Files = {
                             }
 
                             DrawTool.expandPointprops(geojson)
+                            if (convert == 'true')
+                                geojson =
+                                    L_.convertGeoJSONLngLatsToPrimaryCoordinates(
+                                        geojson
+                                    )
                             F_.downloadObject(geojson, filename, '.geojson')
                         })
                     }

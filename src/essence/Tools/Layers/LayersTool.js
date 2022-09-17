@@ -182,9 +182,14 @@ function interfaceWithMMGIS(fromInit) {
                     // prettier-ignore
                     layerExport = [
                         '<ul>',
-                            '<li>',
+                            L_.Coordinates.mainType != 'll' ? ['<li>',
                                 '<div class="layersToolExportGeoJSON">',
-                                    '<div>Export as GeoJSON</div>',
+                                    '<div>Export GeoJSON (projected)</div>',
+                                '</div>',
+                            '</li>'].join('\n') : '',
+                            '<li>',
+                                '<div class="layersToolExportSourceGeoJSON">',
+                                    '<div>Export GeoJSON (lonlat)</div>',
                                 '</div>',
                             '</li>',
                         '</ul>',
@@ -735,6 +740,19 @@ function interfaceWithMMGIS(fromInit) {
 
     //Export GeoJSON
     $('.layersToolExportGeoJSON').on('click', function () {
+        var li = $(this).parent().parent().parent().parent()
+
+        let layerName = li.attr('name')
+        F_.downloadObject(
+            L_.convertGeoJSONLngLatsToPrimaryCoordinates(
+                L_.layersGroup[layerName].toGeoJSON(10)
+            ),
+            layerName,
+            '.json'
+        )
+    })
+    //Export Source GeoJSON
+    $('.layersToolExportSourceGeoJSON').on('click', function () {
         var li = $(this).parent().parent().parent().parent()
 
         let layerName = li.attr('name')

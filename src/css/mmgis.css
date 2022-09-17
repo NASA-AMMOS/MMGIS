@@ -598,6 +598,74 @@ body {
     z-index: 1001;
 }
 
+#mmgis-map-compass {
+    display: flex;
+    cursor: auto;
+    pointer-events: auto;
+    position: absolute;
+    bottom: 38px;
+    left: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 16px;
+    background: var(--color-a);
+    border: 1px solid var(--color-a-5);
+    box-shadow: 0px 0px 3px 0px rgb(0 0 0);
+    transition: bottom 0.2s ease-out;
+}
+#mmgis-map-compass .spin {
+    width: 100%;
+    height: 100%;
+    padding: 2px 11px;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+#mmgis-map-compass .info {
+    margin-left: 5px;
+    margin-top: -1px;
+    background: var(--color-a);
+    pointer-events: none;
+    height: 32px;
+    z-index: 100000;
+    padding: 1px 6px;
+    border-radius: 3px;
+    opacity: 0;
+    border: 1px solid var(--color-a-5);
+    transition: opacity 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+#mmgis-map-compass:hover .info {
+    opacity: 1;
+}
+#mmgis-map-compass .info .angle {
+    line-height: 17px;
+}
+#mmgis-map-compass .info .help {
+    white-space: nowrap;
+    display: flex;
+    line-height: 9px;
+    font-size: 11px;
+}
+#mmgis-map-compass .info .help > div {
+    width: 8px;
+    height: 8px;
+    background: #ff0000;
+    margin-right: 3px;
+}
+#mmgis-map-compass .north {
+    width: 0;
+    height: 0;
+    border-width: 0 4px 12px 4px;
+    border-color: transparent transparent #ff0000 transparent;
+    border-style: solid;
+}
+#mmgis-map-compass .south {
+    width: 0;
+    height: 0;
+    border-width: 12px 4px 0 4px;
+    border-color: var(--color-a7) transparent transparent transparent;
+    border-style: solid;
+    margin-top: 1px;
+}
+
 .autoWidth {
     width: auto !important;
 }
@@ -622,32 +690,30 @@ body {
 
 .leaflet-control-scalefactor {
     position: absolute;
-    bottom: 24px;
-    left: 10px;
+    bottom: 28px;
+    left: 44px;
     display: flex;
     margin-left: 2px !important;
     transition: bottom 0.2s ease-out;
 }
-.leaflet-control-scalefactor-line {
-    background: #161616;
-    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.2);
-    padding: 0px 4px;
-    color: #dcdcdc;
-    cursor: default;
-    opacity: 0.85;
-    user-select: none;
-    white-space: nowrap;
-}
 .leaflet-control-scalefactor-goto {
     white-space: nowrap;
     padding: 0px 4px;
-    background: #161616;
+    background: var(--color-a);
+    width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--color-a-5);
     box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.2);
-    padding: 0px 4px 0px 0px;
+    padding: 0px 0px 0px 1px;
+    line-height: 14px;
     color: #dcdcdc;
     cursor: pointer;
-    opacity: 0.85;
     user-select: none;
+    transition: color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+.leaflet-control-scalefactor-goto:hover {
+    color: var(--color-c);
 }
 
 .cp-color-picker {
