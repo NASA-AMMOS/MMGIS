@@ -588,13 +588,14 @@ function pickLngLat() {
         const currentText = $('#mouseLngLat').html() || '0,0'
         const currentTextSplit = currentText.replace(/ /g, '').split(',')
 
-        const unit = true ? '°' : 'm'
+        const currentState = Coordinates.states[Coordinates.currentType]
+
         // prettier-ignore
         const markup = [
             `<input id='mouseLngLatPickingA' placeholder="${currentDescSplit[0]}" type="number" value="${parseFloat(currentTextSplit[0]).toFixed(4)}"/>`,
-            `<div>${unit}</div>`,
+            `<div>${currentState.units[0]}</div>`,
             `<input id='mouseLngLatPickingB' placeholder="${currentDescSplit[1]}" type="number" value="${parseFloat(currentTextSplit[1]).toFixed(4)}"/>`,
-            `<div>${unit}</div>`
+            `<div>${currentState.units[1]}</div>`
         ].join('\n')
 
         $('#mouseLngLatPicking').html(markup)
@@ -625,6 +626,31 @@ function pickLngLatGo() {
                 F_.radiusOfPlanetMajor
             finalLng = valALng / currentState.coordENMultiplier[0]
             finalLat = valBLat / currentState.coordENMultiplier[1]
+            break
+        case 'cproj':
+            if (
+                window.proj4 != null &&
+                window.mmgisglobal.customCRS?.projString
+            ) {
+                const converted = window
+                    .proj4(window.mmgisglobal.customCRS.projString)
+                    .inverse([valA, valB])
+                finalLng = converted[0]
+                finalLat = converted[1]
+            }
+            break
+        case 'sproj':
+            if (
+                window.proj4 != null &&
+                currentState.proj != null &&
+                currentState.proj.length > 0
+            ) {
+                const converted = window
+                    .proj4(currentState.proj)
+                    .inverse([valA, valB])
+                finalLng = converted[0]
+                finalLat = converted[1]
+            }
             break
         case 'rxy': //10 relative easting northing
             let relativeA = 0

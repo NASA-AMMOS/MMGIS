@@ -141,7 +141,9 @@ let Globe_ = {
                         )
                     }
 
-                    $('#mouseElev').text(elev != null ? `, ${elev}` : '')
+                    $('#mouseElev')
+                        .css({ display: 'block', opacity: 1 })
+                        .text(elev != null ? `, ${elev.toFixed(3)}m` : '')
                 },
             }
         )

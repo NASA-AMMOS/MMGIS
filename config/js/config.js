@@ -342,7 +342,7 @@ function initialize() {
                     (cData.coordinates.coorden == true ||
                       cData.coordinates.coorden == null))
                 )
-                  $("#coordinates_look #coordinates_coorden").prop(
+                  $("#tab_coordinates #coordinates_coorden").prop(
                     "checked",
                     true
                   );
