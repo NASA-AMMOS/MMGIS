@@ -171,6 +171,30 @@ export const captureVector = (layerObj, options, cb) => {
                         }
                     )
                     break
+                case 'drawn':
+                    calls.api(
+                        'files_getfile',
+                        {
+                            id: urlSplit[2],
+                        },
+                        function (data) {
+                            cb(data.body.geojson)
+                        },
+                        function (data) {
+                            if (data) {
+                                console.warn(
+                                    'ERROR! ' +
+                                        data.status +
+                                        ' in ' +
+                                        layerUrl +
+                                        ' /// ' +
+                                        data.message
+                                )
+                            }
+                            cb(null)
+                        }
+                    )
+                    break
                 default:
                     console.warn(
                         `Unknown layer URL ${layerUrl} in layer ${layerObj.name}`

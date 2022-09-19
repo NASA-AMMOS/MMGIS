@@ -60,7 +60,7 @@
     color: #ccc;
 }
 #layersTool #filterLayers div.vector.on {
-    border-bottom: 4px solid var(--color-p8);
+    border-bottom: 4px solid var(--color-c2);
 }
 #layersTool #filterLayers div.tile.on {
     border-bottom: 4px solid var(--color-p9);
@@ -357,7 +357,7 @@
     color: white;
 }
 .layersToolColor.vector {
-    background: var(--color-p8);
+    background: var(--color-c2);
 }
 .layersToolColor.tile {
     background: var(--color-p9);
@@ -538,11 +538,11 @@
 }
 
 #layersTool .layernotfound {
-    background: #541d1d;
     cursor: not-allowed;
 }
 #layersTool .layernotfound > div {
     pointer-events: none;
+    background: #541d1d;
 }
 
 #layersTool .layernotfound .checkboxcont .checkbox {

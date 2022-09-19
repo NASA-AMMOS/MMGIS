@@ -15,13 +15,19 @@ Layers in the Configure CMS can take in a variety of URLs aside from standard ab
 ### `api:publishedall`
 
 _For a vector layer._  
-Grabs all features published via the DrawTool
+Grabs all features published via the DrawTool.
 
 ### `api:published:<file_intent>`
 
 _For a vector layer._  
 Grabs all features published via the DrawTool of a certain intent.
 Possible values are: `roi, campaign, campsite, signpost, trail, all`
+
+### `api:drawn:<file_id>`
+
+_For a vector layer._
+Grabs a user drawn file from the DrawTool.
+The `file_id` is an integer and can be found by hovering over the desired file in the DrawTool. Note that if the file chosen is still private, the file owner will be the only user who can view it.
 
 ### `api:tacticaltargets`
 

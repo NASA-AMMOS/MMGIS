@@ -356,7 +356,7 @@ var Files = {
                     "<div class='drawToolIntentColor' style='height: 100%; width: 7px; background: " + DrawTool.categoryStyles[file.intent].color + "'></div>",
                     "<div class='drawToolFileInfo'>",
                         "<i title='Owned by you!' class='drawToolFileOwner mdi" + ( (ownedByUser) ? ((file.is_master) ? ' mdi-account-tie' : ' mdi-account') : '' ) + " mdi-18px " + ( (ownedByUser) ? 'alwaysShow' : '' )  + "' style='pointer-event: " + ( (ownedByUser) ? 'all' : 'none' ) + "' file_id='" + file.id + "'></i>",
-                        `<div class='drawToolFileName' title='${file.file_name}\nIntent: ${file.intent}\nAuthor: ${file.file_owner}\nSelect to draw in,\nInfo button for information,\nCheck-box to toggle on,\nRight-Click for actions'>${file.file_name}</div>`,
+                        `<div class='drawToolFileName' title='${file.file_name}\nIntent: ${file.intent}\nAuthor: ${file.file_owner}\nId: ${file.id}\nSelect to draw in,\nInfo button for information,\nCheck-box to toggle on,\nRight-Click for actions'>${file.file_name}</div>`,
                     "</div>",
                     "</div>",
                     "<div class='flexbetween'>",
