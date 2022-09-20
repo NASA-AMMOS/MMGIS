@@ -5,8 +5,7 @@
     user-select: none;
 }
 .leaflet-control-update-layer a {
-    /*color: var(--color-f);*/
-    color: var(--color-red);
+    display: flex !important;
     width: 30px;
     height: 30px;
     border-radius: 3px;
@@ -14,13 +13,33 @@
     font-size: 18px !important;
     border: none !important;
     border-radius: 3px !important;
-    background: var(--color-a) !important;
     transition: color 0.2s ease-in 0s;
 }
-.leaflet-control-update-layer a:hover {
-    color: var(--color-mmgis);
+.RELOAD:hover, .ADD_LAYER:hover {
+    color: var(--color-mmgis) !important;
 }
-/*
-    color: var(--color-mmgis);
-    color: var(--color-red);
-*/
+.RELOAD {
+    background: var(--color-h) !important;
+    color: var(--color-a) !important;
+}
+.ADD_LAYER {
+    background: var(--color-green) !important;
+    color: var(--color-a) !important;
+}
+.leaflet-control-update-layer-icon > .mdi-reload-alert,
+.leaflet-control-update-layer-icon > .mdi-reload {
+    width: 100%;
+}
+.update-layer-icon-text:hover {
+    color: var(--color-mmgis) !important;
+}
+.update-layer-icon-text {
+    width: 100%;
+    margin-left: -102%;
+    color: var(--color-a);
+    font-size: 10px;
+    transition: color 0.2s ease-in 0s;
+}
+.update-layer-icon-text.plus {
+    margin-top: -1px;
+}

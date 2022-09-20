@@ -6,7 +6,7 @@ import ToolController_ from '../ToolController_/ToolController_'
 import Login from '../../Ancillary/Login/Login'
 
 import BottomBar from './BottomBar'
-import LayerUpdatedControl from './LayerUpdatedControl' 
+import LayerUpdatedControl from './LayerUpdatedControl'
 
 import './UserInterface_.css'
 
@@ -885,14 +885,6 @@ var UserInterface = {
         this.hasViewer = l_.hasViewer
         this.hasGlobe = l_.hasGlobe
 
-        //console.log("LayerUpdatedControl({ position: 'bottomleft' })", LayerUpdatedControl({ position: 'bottomleft' }))
-/*
-        // !!!!!!!!!!!!
-        var layerUpdatedControl = new LayerUpdatedControl({ position: 'topright' })
-        layerUpdatedControl.addTo(Map_.map);
-        console.log("layerUpdatedControl", layerUpdatedControl)
-*/
-
         $('#topBarTitleName').on('click', L_.home)
 
         if (l_.FUTURES.panelPercents != null)
@@ -938,10 +930,6 @@ var UserInterface = {
         UserInterface.show()
     },
     updateLayerUpdateButton: function(type) {
-        // !!!!!!!!!!!!
-
-        console.log("-----  updateLayerUpdateButton -----")
-        console.log("UserInterface.layerUpdatedControl", UserInterface.layerUpdatedControl)
         if (UserInterface.layerUpdatedControl) {
             UserInterface.removeLayerUpdateButton()
         }
@@ -950,8 +938,6 @@ var UserInterface = {
         UserInterface.layerUpdatedControl.addTo(Map_.map);
     },
     removeLayerUpdateButton: function() {
-        console.log("-----  updateLayerUpdateButton -----")
-        console.log("UserInterface.layerUpdatedControl", UserInterface.layerUpdatedControl)
         if (UserInterface.layerUpdatedControl) {
             UserInterface.layerUpdatedControl.remove(Map_.map)
             UserInterface.layerUpdatedControl = null
@@ -1500,5 +1486,4 @@ $(document).ready(function () {
     UserInterface.init()
 })
 
-window.UserInterface = UserInterface
 export default UserInterface
