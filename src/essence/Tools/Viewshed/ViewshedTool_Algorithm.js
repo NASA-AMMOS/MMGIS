@@ -104,6 +104,7 @@ let ViewshedTool_Algorithm = {
         const o = d.dataSource //observer
 
         const observerHeight = g.refGrid[o.y][o.x] + d.source.height
+        let dataH
 
         // Process Left
         for (let i = o.x - 2; i >= 0; i--) {
@@ -114,16 +115,9 @@ let ViewshedTool_Algorithm = {
             )
 
             // Set visibility if our value is less than the data's
-            if (g.refGrid[o.y][i] <= d.data[o.y][i]) {
-                if (
-                    this.isInElevationFOV(
-                        d,
-                        i,
-                        o.y,
-                        observerHeight,
-                        d.data[o.y][i]
-                    )
-                )
+            dataH = d.data[o.y][i] + d.options.targetHeight
+            if (g.refGrid[o.y][i] <= dataH) {
+                if (this.isInElevationFOV(d, i, o.y, observerHeight, dataH))
                     g.resultGrid[o.y][i] = 1
                 else g.resultGrid[o.y][i] = 0 //8
             }
@@ -145,16 +139,9 @@ let ViewshedTool_Algorithm = {
             )
 
             // Set visibility if our value is less than the data's
-            if (g.refGrid[o.y][i] <= d.data[o.y][i]) {
-                if (
-                    this.isInElevationFOV(
-                        d,
-                        i,
-                        o.y,
-                        observerHeight,
-                        d.data[o.y][i]
-                    )
-                )
+            dataH = d.data[o.y][i] + d.options.targetHeight
+            if (g.refGrid[o.y][i] <= dataH) {
+                if (this.isInElevationFOV(d, i, o.y, observerHeight, dataH))
                     g.resultGrid[o.y][i] = 1
                 else g.resultGrid[o.y][i] = 0 //8
             }
@@ -176,16 +163,9 @@ let ViewshedTool_Algorithm = {
             )
 
             // Set visibility if our value is less than the data's
-            if (g.refGrid[j][o.x] <= d.data[j][o.x]) {
-                if (
-                    this.isInElevationFOV(
-                        d,
-                        o.x,
-                        j,
-                        observerHeight,
-                        d.data[j][o.x]
-                    )
-                )
+            dataH = d.data[j][o.x] + d.options.targetHeight
+            if (g.refGrid[j][o.x] <= dataH) {
+                if (this.isInElevationFOV(d, o.x, j, observerHeight, dataH))
                     g.resultGrid[j][o.x] = 1
                 else g.resultGrid[j][o.x] = 0 //8
             }
@@ -207,16 +187,9 @@ let ViewshedTool_Algorithm = {
             )
 
             // Set visibility if our value is less than the data's
-            if (g.refGrid[j][o.x] <= d.data[j][o.x]) {
-                if (
-                    this.isInElevationFOV(
-                        d,
-                        o.x,
-                        j,
-                        observerHeight,
-                        d.data[j][o.x]
-                    )
-                )
+            dataH = d.data[j][o.x] + d.options.targetHeight
+            if (g.refGrid[j][o.x] <= dataH) {
+                if (this.isInElevationFOV(d, o.x, j, observerHeight, dataH))
                     g.resultGrid[j][o.x] = 1
                 else g.resultGrid[j][o.x] = 0 //8
             }
@@ -233,6 +206,7 @@ let ViewshedTool_Algorithm = {
         const o = d.dataSource //observer
 
         const observerHeight = g.refGrid[o.y][o.x] + d.source.height
+        let dataH
 
         // Scan Up
         for (let j = o.y - 1; j >= 0; j--) {
@@ -274,16 +248,9 @@ let ViewshedTool_Algorithm = {
                 }
 
                 // Set visibility if our value is less than the data's
-                if (g.refGrid[j][i] <= d.data[j][i]) {
-                    if (
-                        this.isInElevationFOV(
-                            d,
-                            i,
-                            j,
-                            observerHeight,
-                            d.data[j][i]
-                        )
-                    )
+                dataH = d.data[j][i] + d.options.targetHeight
+                if (g.refGrid[j][i] <= dataH) {
+                    if (this.isInElevationFOV(d, i, j, observerHeight, dataH))
                         g.resultGrid[j][i] = 1
                     else g.resultGrid[j][i] = 0 //8
                 }
@@ -334,16 +301,9 @@ let ViewshedTool_Algorithm = {
                 }
 
                 // Set visibility if our value is less than the data's
-                if (g.refGrid[j][i] <= d.data[j][i]) {
-                    if (
-                        this.isInElevationFOV(
-                            d,
-                            i,
-                            j,
-                            observerHeight,
-                            d.data[j][i]
-                        )
-                    )
+                dataH = d.data[j][i] + d.options.targetHeight
+                if (g.refGrid[j][i] <= dataH) {
+                    if (this.isInElevationFOV(d, i, j, observerHeight, dataH))
                         g.resultGrid[j][i] = 1
                     else g.resultGrid[j][i] = 0 //8
                 }
@@ -361,6 +321,7 @@ let ViewshedTool_Algorithm = {
         const o = d.dataSource //observer
 
         const observerHeight = g.refGrid[o.y][o.x] + d.source.height
+        let dataH
 
         // Scan Down
         for (let j = o.y + 1; j < d.data.length; j++) {
@@ -402,16 +363,9 @@ let ViewshedTool_Algorithm = {
                 }
 
                 // Set visibility if our value is less than the data's
-                if (g.refGrid[j][i] <= d.data[j][i]) {
-                    if (
-                        this.isInElevationFOV(
-                            d,
-                            i,
-                            j,
-                            observerHeight,
-                            d.data[j][i]
-                        )
-                    )
+                dataH = d.data[j][i] + d.options.targetHeight
+                if (g.refGrid[j][i] <= dataH) {
+                    if (this.isInElevationFOV(d, i, j, observerHeight, dataH))
                         g.resultGrid[j][i] = 1
                     else g.resultGrid[j][i] = 0 //8
                 }
@@ -462,16 +416,9 @@ let ViewshedTool_Algorithm = {
                 }
 
                 // Set visibility if our value is less than the data's
-                if (g.refGrid[j][i] <= d.data[j][i]) {
-                    if (
-                        this.isInElevationFOV(
-                            d,
-                            i,
-                            j,
-                            observerHeight,
-                            d.data[j][i]
-                        )
-                    )
+                dataH = d.data[j][i] + d.options.targetHeight
+                if (g.refGrid[j][i] <= dataH) {
+                    if (this.isInElevationFOV(d, i, j, observerHeight, dataH))
                         g.resultGrid[j][i] = 1
                     else g.resultGrid[j][i] = 0 //8
                 }

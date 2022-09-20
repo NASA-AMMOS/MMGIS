@@ -262,6 +262,8 @@ let ViewshedTool = {
             opacity: initObj.opacity != null ? initObj.opacity : 0.6,
             resolution: initObj.resolution != null ? initObj.resolution : 1,
             invert: initObj.invert != null ? initObj.invert : 0,
+            targetHeight:
+                initObj.targetHeight != null ? initObj.targetHeight : 0,
             height: initObj.height != null ? initObj.height : 2,
             centerAzimuth: initObj.centerAzimuth || 0,
             FOVAzimuth: initObj.FOVAzimuth != null ? initObj.FOVAzimuth : 360,
@@ -384,8 +386,15 @@ let ViewshedTool = {
                                 allCameraPresets,
                             "</select>",
                         "</div>",
+                        "<div class='vstOptionTargetHeight'>",
+                            `<div title='Height above surface of target area.\n"Can I see the spot n meters above the surface here?"'>Target Height</div>`,
+                            "<div class='flexbetween'>",
+                                "<input type='number' min='0' step='1' value='" + initObj.targetHeight + "' default='0'>",
+                                "<div class='vstUnit smallFont'>m</div>",
+                            "</div>",
+                        "</div>",
                         "<div class='vstOptionHeight'>",
-                            "<div title='Height above surface of source point.'>Height</div>",
+                            "<div title='Height above surface of source point.'>Observer Height</div>",
                             "<div class='flexbetween'>",
                                 "<input type='number' min='0' step='1' value='" + initObj.height + "' default='2'>",
                                 "<div class='vstUnit smallFont'>m</div>",
@@ -631,6 +640,22 @@ let ViewshedTool = {
                                 ViewshedTool.setSource()
                             }
                     }
+                }
+            })(id)
+        )
+        $('#vstViewsheds #vstId_' + id + ' .vstOptionTargetHeight input').on(
+            'input',
+            (function (id) {
+                return function () {
+                    $('#vstViewsheds #vstId_' + id + ' .vstRegen').addClass(
+                        'changed'
+                    )
+                    // prettier-ignore
+                    if( $('#vstViewsheds #vstId_' + id + ' .vstShedHeader .checkbox').hasClass('on') &&
+                            $('#vstViewsheds #vstId_' + id + ' .vstOptionResolution select').val() <= ViewshedTool.dynamicUpdateResCutoff) {
+                            ViewshedTool.setActiveElmId(id)
+                            ViewshedTool.setSource()
+                        }
                 }
             })(id)
         )
@@ -1309,6 +1334,13 @@ let ViewshedTool = {
             invert: $(
                 '#vstViewsheds #vstId_' + elmId + ' .vstOptionInvert select'
             ).val(),
+            targetHeight: parseFloat(
+                $(
+                    '#vstViewsheds #vstId_' +
+                        elmId +
+                        ' .vstOptionTargetHeight input'
+                ).val() || 0
+            ),
             height: $(
                 '#vstViewsheds #vstId_' + elmId + ' .vstOptionHeight input'
             ).val(),
