@@ -841,6 +841,7 @@ var L_ = {
 
             // vector, loaded and on
             if (
+                layerObj != null &&
                 layerObj.type === 'vector' &&
                 layer &&
                 (L_.layersNamed[layerName]

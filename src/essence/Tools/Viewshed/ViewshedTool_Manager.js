@@ -117,7 +117,10 @@ let ViewshedTool_Manager = {
         //source
         let halfViewport = L.bounds(minPx, maxPx).getSize().divideBy(2)
         let sourceCenter = Map_.map.project(this.data[viewshedId].source, zoom)
-        let sourceMin = sourceCenter.subtract(halfViewport).divideBy(256).floor()
+        let sourceMin = sourceCenter
+            .subtract(halfViewport)
+            .divideBy(256)
+            .floor()
         let sourceMax = sourceCenter.add(halfViewport).divideBy(256).floor()
 
         let sourceDesiredTiles = []
@@ -325,10 +328,14 @@ let ViewshedTool_Manager = {
                 } else {
                     const tile = this.data[viewshedId].desiredTiles[d]
                     const pxWorldBound = Map_.map.getPixelWorldBounds(tile.z)
-                    const yTileWorldBound = Math.ceil(pxWorldBound.max.y / 256) - 1
+                    const yTileWorldBound =
+                        Math.ceil(pxWorldBound.max.y / 256) - 1
 
                     let filledUrl = url.replace('{x}', tile.x)
-                    filledUrl = filledUrl.replace('{y}', yTileWorldBound - tile.y)
+                    filledUrl = filledUrl.replace(
+                        '{y}',
+                        yTileWorldBound - tile.y
+                    )
                     filledUrl = filledUrl.replace('{z}', tile.z)
                     PNG.load(
                         filledUrl,
@@ -454,7 +461,12 @@ let ViewshedTool_Manager = {
     },
     getTilesetBounds: function (tiles) {
         //Assumes tiles are a grid
-        let bounds = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity }
+        let bounds = {
+            minX: Infinity,
+            maxX: -Infinity,
+            minY: Infinity,
+            maxY: -Infinity,
+        }
         for (let i = 0; i < tiles.length; i++) {
             if (tiles[i].x < bounds.minX) bounds.minX = tiles[i].x
             if (tiles[i].x > bounds.maxX) bounds.maxX = tiles[i].x

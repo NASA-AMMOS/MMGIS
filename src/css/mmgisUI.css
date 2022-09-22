@@ -1452,6 +1452,11 @@ input::-webkit-inner-spin-button {
     height: 20px;
     margin: 5px;
 }
+.mmgis-checkbox.small {
+    width: 16px;
+    height: 16px;
+    margin: 2px;
+}
 
 .mmgis-checkbox label {
     background-color: var(--color-k);
@@ -1465,6 +1470,10 @@ input::-webkit-inner-spin-button {
     border-radius: 3px;
     transition: all 0.2s ease;
 }
+.mmgis-checkbox.small label {
+    width: 16px;
+    height: 16px;
+} 
 @media (pointer: fine) and (hover: hover) {
     .mmgis-checkbox label:hover {
         background-color: var(--color-j);
@@ -1485,6 +1494,10 @@ input::-webkit-inner-spin-button {
     opacity: 0;
     transform: rotate(-45deg);
     transition: all 0.2s ease;
+}
+.mmgis-checkbox.small label::after {
+    left: 2px;
+    top: 3px;
 }
 
 .mmgis-checkbox input[type='checkbox'] {

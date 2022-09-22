@@ -1923,6 +1923,74 @@ var Formulae_ = {
             geometry: { type: 'Polygon', coordinates: [coordinates] },
         }
     },
+    /**
+     * Line of Sight Viewshed in one dimension
+     * @param heightArray - array of elevation values, length should be >2, observer at index 0
+     * @param observerHeight
+     * @param targetHeight
+     */
+    lineOfSight1D(heightArray, observerHeight, targetHeight) {
+        if (heightArray.length <= 2)
+            return new Array(heightArray.length).fill(1)
+
+        const refArray = new Array(heightArray.length).fill(0)
+        const resultArray = new Array(heightArray.length).fill(0)
+
+        refArray[0] = heightArray[0]
+        refArray[1] = heightArray[1]
+        resultArray[0] = 1
+        resultArray[1] = 1
+
+        let observerElev = heightArray[0]
+        observerHeight = observerHeight || 0
+        targetHeight = targetHeight || 0
+
+        for (let i = 2; i < heightArray.length; i++) {
+            refArray[i] = Formulae_.calcHeightLine(
+                i,
+                refArray[i - 1],
+                observerHeight + observerElev
+            )
+
+            // Set visibility if our value is less than the data's
+            const dataH = heightArray[i] + targetHeight
+            if (refArray[i] <= dataH) {
+                //if (this.isInElevationFOV(d, i, o.y, observerHeight, dataH))
+                resultArray[i] = 1
+            } else resultArray[i] = 0
+
+            // Check if NoData
+            if (Formulae_.isNoDataElev(heightArray[i])) resultArray[i] = 9
+
+            // Set ref position to the greater: plane height or actual elevation
+            refArray[i] = Math.max(refArray[i], heightArray[i])
+        }
+
+        return resultArray
+    },
+    // For lineOfSight1D
+    // i - x coordinate from observer, follows image coordinate system
+    // Za - refGrid height value, the "behind" point value
+    // Zo - observer's height, constant per viewshed
+    calcHeightLine: function (i, Za, Zo) {
+        i = Math.abs(i)
+        if (i == 1) return Za
+        else return (Za - Zo) / (i - 1) + Za
+    },
+    // For lineOfSight1D
+    isNoDataElev(data) {
+        if (data == 1010101 || data > 35000 || data < -35000) return true
+        return false
+    },
+    // Breaks an array in multiple arrays of some size
+    chunkArray(arr, size) {
+        return arr.length > size
+            ? [
+                  arr.slice(0, size),
+                  ...Formulae_.chunkArray(arr.slice(size), size),
+              ]
+            : [arr]
+    },
     getCookieValue(a) {
         let b = document.cookie.match('(^|[^;]+)\\s*' + a + '\\s*=\\s*([^;]+)')
         return b ? b.pop() : ''
