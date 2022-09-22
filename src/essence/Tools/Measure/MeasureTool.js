@@ -13,10 +13,14 @@ import metricsGraphics from '../../../external/MetricsGraphics/metricsgraphics.m
 import ReactDOM from 'react-dom'
 import React, { useState, useEffect, useRef } from 'react'
 
+import { Chart } from 'chart.js'
 import { Line } from 'react-chartjs-2'
-import * as zoom from 'chartjs-plugin-zoom'
+import zoomPlugin from 'chartjs-plugin-zoom'
 
 import './MeasureTool.css'
+
+// Zoom isn't working nicely. Keep off
+//Chart.register(zoomPlugin)
 
 // Hacky solution to exposing setState externally
 let updateProfileData = function () {}
@@ -101,12 +105,7 @@ const Measure = () => {
     const dems = MeasureTool.getDems()
 
     // Compute line of sight for each segment and then merge back together
-    MeasureTool.lineOfSight = []
-    F_.chunkArray(profileData, steps).forEach((chunk) => {
-        MeasureTool.lineOfSight = MeasureTool.lineOfSight.concat(
-            F_.lineOfSight1D(chunk, LOS.observerHeight, LOS.targetHeight)
-        )
-    })
+    recomputeLineOfSight()
 
     return (
         <div
@@ -233,33 +232,6 @@ const Measure = () => {
                     </div>
                 </div>
             </div>
-            <div id='measureInfo'>
-                <div id='measureInfoLng' className='measure-info-elm'>
-                    <div>Longitude</div>
-                    <div>--</div>
-                </div>
-
-                <div id='measureInfoLat' className='measure-info-elm'>
-                    <div>Latitude</div>
-                    <div>--</div>
-                </div>
-                <div id='measureInfoElev' className='measure-info-elm'>
-                    <div>Elevation</div>
-                    <div>--</div>
-                </div>
-                <div id='measureInfo2d' className='measure-info-elm'>
-                    <div>2D Distance</div>
-                    <div>--</div>
-                </div>
-                <div id='measureInfo3d' className='measure-info-elm'>
-                    <div>3D Distance</div>
-                    <div>--</div>
-                </div>
-                <div id='measureInfoVis' className='measure-info-elm'>
-                    <div>Visible</div>
-                    <div>--</div>
-                </div>
-            </div>
             <div
                 id='measureGraph'
                 onMouseLeave={() => {
@@ -303,11 +275,11 @@ const Measure = () => {
                                                 ctx.p0DataIndex
                                             ] - 1
                                         if (mode === 'continuous_color') {
-                                            return MeasureTool.getColor(i, 0.1)
+                                            return MeasureTool.getColor(i, 0.4)
                                         } else
                                             return i % 2 === 0
-                                                ? 'rgba(255, 0, 47, 0.2)'
-                                                : 'rgba(255, 0, 47, 0.1)'
+                                                ? 'rgba(255, 0, 47, 0.4)'
+                                                : 'rgba(255, 80, 112, 0.4)'
                                     },
                                     borderColor: (ctx) => {
                                         let alpha = 1
@@ -355,6 +327,22 @@ const Measure = () => {
                             },
                             tooltip: {
                                 enabled: false,
+                            },
+                            zoom: {
+                                pan: {
+                                    enabled: true,
+                                    mode: 'x',
+                                },
+                                zoom: {
+                                    wheel: {
+                                        enabled: true,
+                                        speed: 1 / steps,
+                                    },
+                                    limits: {
+                                        x: 'original',
+                                    },
+                                    mode: 'x',
+                                },
                             },
                         },
                         layout: {
@@ -463,35 +451,46 @@ const Measure = () => {
 
                             if (d) {
                                 $('#measureInfoLng > div:last-child')
-                                    .text(`${d[0].toFixed(8)}°`)
+                                    .text(`${d[0].toFixed(6)}°`)
                                     .css({ opacity: 1 })
+
                                 $('#measureInfoLat > div:last-child')
-                                    .text(`${d[1].toFixed(8)}°`)
+                                    .text(`${d[1].toFixed(6)}°`)
                                     .css({ opacity: 1 })
+
                                 $('#measureInfoElev > div:last-child')
                                     .text(`${d[4].toFixed(3)}m`)
                                     .css({ opacity: 1 })
+
+                                const text2d =
+                                    distDisplayUnit === 'kilometers'
+                                        ? `${(d[2] / 1000).toFixed(2)}km`
+                                        : `${d[2].toFixed(3)}m`
                                 $('#measureInfo2d > div:last-child')
-                                    .text(`${d[2].toFixed(3)}m`)
+                                    .text(text2d)
                                     .css({ opacity: 1 })
+
+                                const text3d =
+                                    distDisplayUnit === 'kilometers'
+                                        ? `${(d[3] / 1000).toFixed(2)}km`
+                                        : `${d[3].toFixed(3)}m`
+
                                 $('#measureInfo3d > div:last-child')
-                                    .text(`${d[3].toFixed(3)}m`)
+                                    .text(text3d)
                                     .css({ opacity: 1 })
+
                                 $('#measureInfoVis > div:last-child')
-                                    .text(`${visible ? 'True' : 'False'}`)
+                                    .text(
+                                        `${
+                                            LOS.on
+                                                ? visible
+                                                    ? 'TRUE'
+                                                    : 'FALSE'
+                                                : 'N/A'
+                                        }`
+                                    )
                                     .css({ opacity: 1 })
                             }
-                        },
-                        pan: {
-                            enabled: true,
-                            mode: 'x',
-                        },
-                        zoom: {
-                            enabled: true,
-                            mode: 'x',
-                            speed: 1 / steps,
-                            threshold: 0,
-                            sensitivity: 0,
                         },
                     }}
                 />
@@ -518,12 +517,39 @@ const Measure = () => {
                 </svg>
                 <div id='measureVerticalCursor'></div>
             </div>
+            <div id='measureInfo'>
+                <div id='measureInfoLng' className='measure-info-elm'>
+                    <div>Longitude</div>
+                    <div>--</div>
+                </div>
+                <div id='measureInfoLat' className='measure-info-elm'>
+                    <div>Latitude</div>
+                    <div>--</div>
+                </div>
+                <div id='measureInfoElev' className='measure-info-elm'>
+                    <div>Elevation</div>
+                    <div>--</div>
+                </div>
+                <div id='measureInfo2d' className='measure-info-elm'>
+                    <div>2D Distance</div>
+                    <div>--</div>
+                </div>
+                <div id='measureInfo3d' className='measure-info-elm'>
+                    <div>3D Distance</div>
+                    <div>--</div>
+                </div>
+                <div id='measureInfoVis' className='measure-info-elm'>
+                    <div>Visible</div>
+                    <div>--</div>
+                </div>
+            </div>
             <div id='measureToolBar'>
                 <div
                     id='measureReset'
                     title='Reset Graph'
                     onClick={() => {
-                        if (refLine) refLine.current.chartInstance.resetZoom()
+                        // Zooming not working nicely, see register above
+                        //if (refLine) refLine.current.chartInstance.resetZoom()
                     }}
                 >
                     <i className='mdi mdi-restore mdi-18px'></i>
@@ -541,7 +567,7 @@ const Measure = () => {
 }
 
 let MeasureTool = {
-    height: 208,
+    height: 217,
     width: 'full',
     disableLayerInteractions: true,
     vars: {},
@@ -892,14 +918,21 @@ let MeasureTool = {
                 .attr('stroke', 'rgba(0,0,0,0)')
         }
         triggerRefresh()
+        makeMeasureToolLayer()
     },
     changeLOSObserverHeight: function (e) {
         LOS.observerHeight = parseFloat(e.target.value || 0)
-        if (LOS.on) triggerRefresh()
+        if (LOS.on) {
+            triggerRefresh()
+            makeMeasureToolLayer()
+        }
     },
     changeLOSTargetHeight: function (e) {
         LOS.targetHeight = parseFloat(e.target.value || 0)
-        if (LOS.on) triggerRefresh()
+        if (LOS.on) {
+            triggerRefresh()
+            makeMeasureToolLayer()
+        }
     },
     clearInfo: function () {
         $('#measureInfoLng > div:last-child').css({ opacity: 0 })
@@ -945,6 +978,17 @@ let MeasureTool = {
                 '#FFFFFF'
             )
     },
+}
+
+function recomputeLineOfSight() {
+    MeasureTool.lineOfSight = []
+    if (LOS.on) {
+        F_.chunkArray(profileData, steps).forEach((chunk) => {
+            MeasureTool.lineOfSight = MeasureTool.lineOfSight.concat(
+                F_.lineOfSight1D(chunk, LOS.observerHeight, LOS.targetHeight)
+            )
+        })
+    }
 }
 
 function makeMeasureToolLayer() {
@@ -1015,52 +1059,66 @@ function makeMeasureToolLayer() {
             new L.LatLng(clickedLatLngs[i].x, clickedLatLngs[i].y)
         )
     }
-    console.log(MeasureTool.lineOfSight, polylinePoints, MeasureTool.lastData)
 
     const segments = []
+    recomputeLineOfSight()
     if (LOS.on && MeasureTool.lineOfSight.length > 0) {
         let currentVis = MeasureTool.lineOfSight[0]
-        let startIdx = 0
-        let endIdx = 0
-        MeasureTool.lineOfSight.forEach((visible, idx) => {
-            if (visible != currentVis) {
-                // draw previous
+        F_.chunkArray(MeasureTool.lineOfSight, steps).forEach(
+            (chunk, chunkIdx) => {
+                let startIdx = 0
+                let endIdx = 0
+                chunk.forEach((visible, idx) => {
+                    const chunkOffset = chunkIdx * steps
+                    if (idx === 0) currentVis = visible
 
-                segments.push(
-                    new L.Polyline(
-                        [
-                            {
-                                lat: MeasureTool.lastData[startIdx][1],
-                                lng: MeasureTool.lastData[startIdx][0],
-                            },
-                            {
-                                lat: MeasureTool.lastData[endIdx][1],
-                                lng: MeasureTool.lastData[endIdx][0],
-                            },
-                        ],
-                        {
-                            color:
-                                currentVis === 0
-                                    ? 'black'
-                                    : mode === 'continuous_color'
-                                    ? MeasureTool.getColor(i - 1)
-                                    : mode === 'continuous'
-                                    ? i % 2
-                                        ? '#ff002f'
-                                        : '#ff5070'
-                                    : '#ff002f',
-                            weight: 3,
-                        }
-                    )
-                )
+                    if (visible != currentVis || idx === chunk.length - 1) {
+                        // draw previous
+                        segments.push(
+                            new L.Polyline(
+                                [
+                                    {
+                                        lat: MeasureTool.lastData[
+                                            startIdx + chunkOffset
+                                        ][1],
+                                        lng: MeasureTool.lastData[
+                                            startIdx + chunkOffset
+                                        ][0],
+                                    },
+                                    {
+                                        lat: MeasureTool.lastData[
+                                            endIdx + chunkOffset
+                                        ][1],
+                                        lng: MeasureTool.lastData[
+                                            endIdx + chunkOffset
+                                        ][0],
+                                    },
+                                ],
+                                {
+                                    color:
+                                        currentVis === 0
+                                            ? 'black'
+                                            : mode === 'continuous_color'
+                                            ? MeasureTool.getColor(chunkIdx)
+                                            : mode === 'continuous'
+                                            ? (chunkIdx + 1) % 2
+                                                ? '#ff002f'
+                                                : '#ff5070'
+                                            : '#ff002f',
+                                    weight: 3,
+                                }
+                            )
+                        )
 
-                currentVis = visible
-                startIdx = idx
-                endIdx++
-            } else {
-                endIdx++
+                        currentVis = visible
+                        startIdx = idx
+                        endIdx++
+                    } else {
+                        endIdx++
+                    }
+                })
             }
-        })
+        )
     } else {
         for (let i = 1; i < polylinePoints.length; i++) {
             segments.push(
