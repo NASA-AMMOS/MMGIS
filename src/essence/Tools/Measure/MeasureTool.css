@@ -79,7 +79,7 @@
 }
 
 .MeasureTool #measureLeft {
-    width: 280px;
+    width: 260px;
     height: 100%;
     display: flex;
     flex-flow: column;
