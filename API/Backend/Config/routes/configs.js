@@ -246,7 +246,7 @@ if (fullAccess)
  *    config?: {}
  * }
  */
-function upsert(req, res, next, cb) {
+function upsert(req, res, next, cb, caller) {
   let hasVersion = false;
   req.body = req.body || {};
 
@@ -289,6 +289,10 @@ function upsert(req, res, next, cb) {
                 status: "failure",
                 message: "Stringified configuration object is not JSON.",
               });
+            openWebSocket(req.body, {
+                status: "failure",
+                message: "Stringified configuration object is not JSON.",
+              }, caller);
           }
         } else configJSON = req.body.config;
       }
@@ -307,6 +311,11 @@ function upsert(req, res, next, cb) {
             message: "Configuration object is invalid.",
             ...validation,
           });
+          openWebSocket(req.body, {
+              status: "failure",
+              message: "Configuration object is invalid.",
+              ...validation,
+            }, caller);
         return;
       }
 
@@ -337,6 +346,11 @@ function upsert(req, res, next, cb) {
               mission: created.mission,
               version: created.version,
             });
+            openWebSocket(req.body, {
+                status: "success",
+                mission: created.mission,
+                version: created.version,
+              }, caller);
           return null;
         })
         .catch((err) => {
@@ -354,6 +368,10 @@ function upsert(req, res, next, cb) {
               status: "failure",
               message: "Failed to update mission.",
             });
+            openWebSocket(req.body, {
+                status: "failure",
+                message: "Failed to update mission.",
+              }, caller);
           return null;
         });
       return null;
@@ -362,6 +380,7 @@ function upsert(req, res, next, cb) {
       logger("error", "Failed to find mission.", req.originalUrl, req, err);
       if (cb) cb({ status: "failure", message: "Failed to find mission." });
       else res.send({ status: "failure", message: "Failed to find mission." });
+      openWebSocket(req.body, { status: "failure", message: "Failed to find mission." }, caller);
       return null;
     });
   return null;
@@ -565,13 +584,13 @@ if (fullAccess)
     }
   });
 
-function openWebSocket(body, response, type) {
+function openWebSocket(body, response, info) {
   const port = parseInt(process.env.PORT || "8888", 10);
   const path = `ws://localhost:${port}/`
   const ws = new WebSocket(path);
   ws.onopen = function () {
     const data = {
-      type,
+      info,
       body,
     };
     ws.send(JSON.stringify(data));
@@ -699,11 +718,13 @@ function addLayer(req, res, next, cb, forceConfig) {
                       version: response.version,
                     });
                   }
-                  openWebSocket(req.body, response, "addLayer");
                 } else {
                   res.send(response);
                 }
-
+              },
+              {
+                type: "addLayer",
+                layerName: req.body.layer.name,
               }
             );
           } else if (cb)

@@ -89,6 +89,7 @@ var L_ = {
     // features manually turned off
     toggledOffFeatures: [],
     mapAndGlobeLinked: false,
+    addLayerQueue: [],
     init: function (configData, missionsList, urlOnLayers) {
         parseConfig(configData, urlOnLayers)
         L_.missionsList = missionsList
@@ -2442,6 +2443,81 @@ var L_ = {
         }
     },
     parseConfig: parseConfig,
+    // Dynamically add new layer (used by WebSocket)
+    addNewLayer: async function(data, layerName) {
+
+        // !!!!!!!!!
+
+        // Save so we can make sure we reproduce the same layer settings after parsing the config
+        //const expanded = { ...L_.expanded }
+        const toggledArray = { ...L_.toggledArray }
+
+        // Save the original layer ordering
+        const origLayersOrdered = [ ...L_.layersOrdered ]
+
+        // Reset for now
+        //L_.expanded = {}
+        L_.toggledArray = {}
+
+        // Reset as these are appended to by parseConfig
+        L_.indentArray = []
+        L_.layersOrdered = []
+        L_.layersOrderedFixed = []
+        L_.layersData = []
+        L_.layersLoaded = []
+
+        L_.parseConfig(data)
+
+        console.log("new L_.toggledArray", JSON.stringify(L_.toggledArray, null, 4))
+
+        // Set back
+        //L_.expanded = { ...L_.expanded, ...expanded }
+        L_.toggledArray = { ...L_.toggledArray, ...toggledArray }
+
+        console.log("layerName", layerName)
+        console.log("fixed L_.toggledArray", JSON.stringify(L_.toggledArray, null, 4))
+        //L_.layersOrdered = newLayersOrdered
+        //L_.layersOrdered.push(layerName)
+
+        console.log("L_.layersOrdered", JSON.stringify(L_.layersOrdered))
+        console.log("L_.layersLoaded", JSON.stringify(L_.layersLoaded))
+
+        const newLayersOrdered = [ ...L_.layersOrdered ]
+        console.log("orig newLayersOrdered", JSON.stringify(newLayersOrdered, null, 4))
+        const index = L_.layersOrdered.findIndex(name => name === layerName)
+        newLayersOrdered.splice(index, 1)
+
+        console.log("updated newLayersOrdered", JSON.stringify(newLayersOrdered, null, 4))
+
+/*
+        console.log("F_.isEqual(origLayersOrdered, newLayersOrdered, obj2, true)",
+            F_.isEqual(origLayersOrdered, newLayersOrdered, true))
+        // If the layers have been reordered from the default layer order
+        if (!F_.isEqual(origLayersOrdered, newLayersOrdered, true)) {
+            console.log("attempting to stick the new layer in the correct location")
+            const parentLayer = L_.layersParent[layerName]
+            if (parentLayer) {
+                console.log("L_.layersNamed[parentLayer]", L_.layersNamed[parentLayer])
+
+
+
+            }
+        }
+*/
+
+        //Make the layer
+        await L_.Map_.makeLayer(L_.layersDataByName[layerName])
+        L_.addVisible(L_.Map_, [layerName])
+
+        if (L_.Map_) L_.Map_.orderedBringToFront(true)
+
+        console.log("L_.layersGroup", Object.keys(L_.layersGroup))
+        // Update the LayersTool in the ToolController if it is active
+        if (ToolController_.activeToolName === 'LayersTool') {
+            ToolController_.activeTool.destroy();
+            ToolController_.activeTool.make();
+        }
+    },
 }
 
 //Takes in a configData object and does a depth-first search through its
