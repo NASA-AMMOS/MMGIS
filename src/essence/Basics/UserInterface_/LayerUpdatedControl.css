@@ -1,0 +1,26 @@
+.leaflet-control-update-layer {
+    border: none !important;
+    margin-top: 0px !important;
+    margin-right: 5px !important;
+    user-select: none;
+}
+.leaflet-control-update-layer a {
+    /*color: var(--color-f);*/
+    color: var(--color-red);
+    width: 30px;
+    height: 30px;
+    border-radius: 3px;
+    margin-bottom: 5px;
+    font-size: 18px !important;
+    border: none !important;
+    border-radius: 3px !important;
+    background: var(--color-a) !important;
+    transition: color 0.2s ease-in 0s;
+}
+.leaflet-control-update-layer a:hover {
+    color: var(--color-mmgis);
+}
+/*
+    color: var(--color-mmgis);
+    color: var(--color-red);
+*/

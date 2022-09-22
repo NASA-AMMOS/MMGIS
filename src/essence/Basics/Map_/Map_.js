@@ -312,6 +312,7 @@ let Map_ = {
     },
     //Redraws all layers, starting with the bottom one
     orderedBringToFront: function () {
+        console.log("----- Map_ orderedBringToFront  -----")
         let hasIndex = []
         let hasIndexRaster = []
 
@@ -504,6 +505,8 @@ let Map_ = {
         return xyzs
     },
     makeLayer: makeLayer,
+    makeLayers: makeLayers,
+    allLayersLoaded: allLayersLoaded,
 }
 
 //Specific internal functions likely only to be used once
@@ -546,6 +549,9 @@ function getLayersChosenNamePropVal(feature, layer) {
 
 //Takes an array of layer objects and makes them map layers
 function makeLayers(layersObj) {
+    console.log("----- Map_ makeLayers -----")
+    console.log("layersObj",layersObj)
+
     //Make each layer (backwards to maintain draw order)
     for (var i = layersObj.length - 1; i >= 0; i--) {
         makeLayer(layersObj[i])
@@ -553,6 +559,9 @@ function makeLayers(layersObj) {
 }
 //Takes the layer object and makes it a map layer
 async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
+    console.log("----- Map_ makeLayer -----")
+    console.log("layerObj",layerObj)
+
     //Decide what kind of layer it is
     //Headers do not need to be made
     if (layerObj.type != 'header') {
@@ -783,6 +792,8 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
 
     //Pretty much like makePointLayer but without the pointToLayer stuff
     async function makeVectorLayer(evenIfOff, useEmptyGeoJSON, forceGeoJSON) {
+        console.log("-----makeVectorLayer -----")
+        console.log("evenIfOff", evenIfOff)
         return new Promise((resolve, reject) => {
             if (forceGeoJSON) add(forceGeoJSON)
             else
@@ -793,6 +804,8 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
                 )
 
             function add(data) {
+                console.log("--- makeVectorLayer add ---")
+                console.log("layerObj.name", layerObj.name)
                 if (data == null || data === 'off') {
                     L_.layersLoaded[
                         L_.layersOrdered.indexOf(layerObj.name)

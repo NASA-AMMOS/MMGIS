@@ -196,6 +196,11 @@ var L_ = {
     //Toggles a layer on and off and accounts for sublayers
     //Takes in a config layer object
     toggleLayer: async function (s) {
+        console.log("----- START toggleLayer -----")
+        console.log("s", s)
+        console.log("L_.toggledArray[s.name]", L_.toggledArray[s.name])
+
+
         if (s == null) return
         let on //if on -> turn off //if off -> turn on
         if (L_.toggledArray[s.name] === true) on = true
@@ -205,7 +210,9 @@ var L_ = {
     },
     toggleLayerHelper: async function (s, on) {
         if (s.type !== 'header') {
+            console.log("s.type !== 'header'")
             if (on) {
+                console.log("ON")
                 if (L_.Map_.map.hasLayer(L_.layersGroup[s.name])) {
                     try {
                         $('.drawToolContextMenuHeaderClose').click()
@@ -248,6 +255,7 @@ var L_ = {
                     L_.Globe_.litho.toggleLayer(s.name, false)
                 } else L_.Globe_.litho.removeLayer(s.name)
             } else {
+                console.log("OFF")
                 if (L_.layersGroup[s.name]) {
                     if (L_.layersGroupSublayers[s.name]) {
                         for (let sub in L_.layersGroupSublayers[s.name]) {
@@ -367,13 +375,16 @@ var L_ = {
                         })
                     }
                 } else {
+                    console.log("beforeHadToMake", JSON.stringify(Object.keys(L_.layersGroup)))
                     let hadToMake = false
                     if (L_.layersGroup[s.name] === false) {
+                        console.log("making layer", s.name)
                         await L_.Map_.makeLayer(s, true)
                         Description.updateInfo()
                         hadToMake = true
                     }
                     if (L_.layersGroup[s.name]) {
+                        console.log("hadToMake", hadToMake)
                         if (!hadToMake) {
                             // Refresh annotation popups
                             if (L_.layersGroup[s.name]._layers)
@@ -2430,11 +2441,17 @@ var L_ = {
             }
         }
     },
+    parseConfig: parseConfig,
 }
 
 //Takes in a configData object and does a depth-first search through its
 // layers and sets L_ variables
 function parseConfig(configData, urlOnLayers) {
+    console.log("----- parseConfig -----")
+    console.log("configData", configData)
+    //console.log("configData", JSON.stringify(configData.layers[0].sublayers[4]))
+    console.log("urlOnLayers", urlOnLayers)
+
     //Create parsed configData
     L_.configData = configData
 
@@ -2605,4 +2622,5 @@ function parseConfig(configData, urlOnLayers) {
     }
 }
 
+window.L_ = L_
 export default L_
