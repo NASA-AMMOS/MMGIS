@@ -598,7 +598,7 @@ function openWebSocket(body, response, info) {
 }
 
 // === Quick API Functions ===
-function addLayer(req, res, next, cb, forceConfig) {
+function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
   const exampleBody = {
     mission: "{mission_name}",
     layer: {
@@ -723,7 +723,7 @@ function addLayer(req, res, next, cb, forceConfig) {
                 }
               },
               {
-                type: "addLayer",
+                type: caller,
                 layerName: req.body.layer.name,
               }
             );
@@ -872,7 +872,8 @@ if (fullAccess)
                   res.send(resp);
                 }
               },
-              config
+              config,
+              "updateLayer"
             );
             // Remove Existing
           } catch (err) {

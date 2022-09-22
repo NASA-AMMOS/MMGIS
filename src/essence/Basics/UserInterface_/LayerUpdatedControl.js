@@ -14,7 +14,7 @@ const BUTTON_TYPES = {
     },
     ADD_LAYER: {
         html: '<i class="mdi mdi-reload mdi-18p"></i>',
-        title: 'Add new layer named: ',
+        title: 'Add new layer named:',
     },
 }
 
@@ -80,8 +80,9 @@ var LayerUpdatedControl = L.Control.extend({
         return link
     },
     _clickAddLayer: function(e) {
+        console.log("----- LayerUpdatedControl _clickAddLayer ----")
         const firstLayer = L_.addLayerQueue.shift()
-        const { data, newLayerName } = firstLayer
+        const { data, newLayerName, type } = firstLayer
 
         // If the user rearranged the layers with the LayersTool, reset the ordering history
         if (ToolController_.toolModules['LayersTool']
@@ -89,7 +90,7 @@ var LayerUpdatedControl = L.Control.extend({
             ToolController_.toolModules['LayersTool'].orderingHistory = []
         }
 
-        L_.addNewLayer(data, newLayerName)
+        L_.addNewLayer(data, newLayerName, type)
 
         setTimeout(() => {
             if (L_.addLayerQueue && L_.addLayerQueue.length > 0) {

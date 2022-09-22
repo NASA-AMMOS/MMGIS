@@ -220,6 +220,9 @@ var essence = {
                         const parsed = JSON.parse(data.data)
                         if ('info' in parsed) {
                             const { type, layerName } = parsed.info
+                            console.log("TYPE", type)
+
+/*
                             if (type === 'addLayer') {
                                 const mission = essence.configData.msv.mission
                                 calls.api(
@@ -231,6 +234,33 @@ var essence = {
                                         L_.addLayerQueue.push({
                                             newLayerName: layerName,
                                             data,
+                                            type,
+                                        })
+                                        UserInterface_.updateLayerUpdateButton('ADD_LAYER')
+                                    },
+                                    function (e) {
+                                        console.log(
+                                            "Warning: Couldn't load: " + mission + ' configuration.'
+                                        )
+                                    }
+                                )
+                            } else if (type === 'updateLayer') {
+
+                            }
+*/
+
+                            if (type === 'addLayer' || type === 'updateLayer') {
+                                const mission = essence.configData.msv.mission
+                                calls.api(
+                                    'get',
+                                    {
+                                        mission,
+                                    },
+                                    async function (data) {
+                                        L_.addLayerQueue.push({
+                                            newLayerName: layerName,
+                                            data,
+                                            type,
                                         })
                                         UserInterface_.updateLayerUpdateButton('ADD_LAYER')
                                     },
@@ -336,7 +366,7 @@ var essence = {
             //FinalizeGlobe
             Globe_.fina(Coordinates)
             //Finalize Layers_
-            L_.fina(Viewer_, Map_, Globe_, UserInterface_, Coordinates)
+            L_.fina(Viewer_, Map_, Globe_, UserInterface_, Coordinates, TimeControl)
             //Finalize the interface
             UserInterface_.fina(L_, Viewer_, Map_, Globe_)
             //Finalize the Viewer

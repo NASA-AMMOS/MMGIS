@@ -4,6 +4,7 @@ import Description from '../../Ancillary/Description'
 import Search from '../../Ancillary/Search'
 import ToolController_ from '../../Basics/ToolController_/ToolController_'
 import LayerGeologic from './LayerGeologic/LayerGeologic'
+//import TimeControl from '../../Ancillary/TimeControl'
 import $ from 'jquery'
 import * as d3 from 'd3'
 
@@ -21,6 +22,7 @@ var L_ = {
     Map_: null,
     Globe_: null,
     UserInterface_: null,
+    TimeControl_: null,
     tools: null,
     //The full, unchanged data
     configData: null,
@@ -146,12 +148,13 @@ var L_ = {
             lon: null,
         }
     },
-    fina: function (viewer_, map_, globe_, userinterface_, coordinates) {
+    fina: function (viewer_, map_, globe_, userinterface_, coordinates, timecontrol_) {
         this.Viewer_ = viewer_
         this.Map_ = map_
         this.Globe_ = globe_
         this.UserInterface_ = userinterface_
         this.Coordinates = coordinates
+        this.TimeControl_ = timecontrol_ 
     },
     fullyLoaded: function () {
         this.selectPoint(this.FUTURES.activePoint)
@@ -2443,10 +2446,12 @@ var L_ = {
         }
     },
     parseConfig: parseConfig,
-    // Dynamically add new layer (used by WebSocket)
-    addNewLayer: async function(data, layerName) {
+    // Dynamically add a new layer or update a layer (used by WebSocket)
+    addNewLayer: async function(data, layerName, type) {
 
         // !!!!!!!!!
+        console.log("----- addNewLayer -----")
+        console.log("data", data, "layerName", layerName, "type", type)
 
         // Save so we can make sure we reproduce the same layer settings after parsing the config
         //const expanded = { ...L_.expanded }
@@ -2489,25 +2494,17 @@ var L_ = {
 
         console.log("updated newLayersOrdered", JSON.stringify(newLayersOrdered, null, 4))
 
-/*
-        console.log("F_.isEqual(origLayersOrdered, newLayersOrdered, obj2, true)",
-            F_.isEqual(origLayersOrdered, newLayersOrdered, true))
-        // If the layers have been reordered from the default layer order
-        if (!F_.isEqual(origLayersOrdered, newLayersOrdered, true)) {
-            console.log("attempting to stick the new layer in the correct location")
-            const parentLayer = L_.layersParent[layerName]
-            if (parentLayer) {
-                console.log("L_.layersNamed[parentLayer]", L_.layersNamed[parentLayer])
+        if (type === 'addLayer') {
+            //Make the layer
+            await L_.Map_.makeLayer(L_.layersDataByName[layerName])
+            L_.addVisible(L_.Map_, [layerName])
+        } else if (type === 'updateLayer') {
+            console.log("---- UPDATELAYER -----")
+            await L_.TimeControl_.reloadLayer(layerName, true)
 
-
-
-            }
+            //L_.toggleLayer(L_.layersGroup[layerName])
+            //L_.toggleLayer(L_.layersGroup[layerName])
         }
-*/
-
-        //Make the layer
-        await L_.Map_.makeLayer(L_.layersDataByName[layerName])
-        L_.addVisible(L_.Map_, [layerName])
 
         if (L_.Map_) L_.Map_.orderedBringToFront(true)
 
