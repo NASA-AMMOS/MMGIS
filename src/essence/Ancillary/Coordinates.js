@@ -51,6 +51,7 @@ const Coordinates = {
     stateIndices: [], // Will be like ['ll', 'cproj', 'rxy']
     states: {
         ll: {
+            ancillaryTitle: 'lonlat',
             names: ['Longitude', 'Latitude', 'Elevation'],
             units: ['°', '°', 'm'],
             precision: [8, 8, 3],
@@ -58,6 +59,7 @@ const Coordinates = {
             coordOffset: [0, 0],
         },
         en: {
+            ancillaryTitle: 'll',
             names: ['Easting', 'Northing', 'Elevation'],
             units: ['m', 'm', 'm'],
             precision: [3, 3, 3],
@@ -179,6 +181,15 @@ const Coordinates = {
                 Coordinates.states.cproj.title =
                     L_.configData.coordinates.coordcustomprojname ||
                     Coordinates.states.cproj.title
+                Coordinates.states.cproj.names[0] =
+                    L_.configData.coordinates.coordcustomprojnamex ||
+                    Coordinates.states.cproj.names[0]
+                Coordinates.states.cproj.names[1] =
+                    L_.configData.coordinates.coordcustomprojnamey ||
+                    Coordinates.states.cproj.names[1]
+                Coordinates.states.cproj.names[2] =
+                    L_.configData.coordinates.coordcustomprojnamez ||
+                    Coordinates.states.cproj.names[2]
             }
 
             // sproj
@@ -189,6 +200,15 @@ const Coordinates = {
                     Coordinates.states.sproj.title
                 Coordinates.states.sproj.proj =
                     L_.configData.coordinates.coordsecondaryprojstr
+                Coordinates.states.sproj.names[0] =
+                    L_.configData.coordinates.coordsecondaryprojnamex ||
+                    Coordinates.states.sproj.names[0]
+                Coordinates.states.sproj.names[1] =
+                    L_.configData.coordinates.coordsecondaryprojnamey ||
+                    Coordinates.states.sproj.names[1]
+                Coordinates.states.sproj.names[2] =
+                    L_.configData.coordinates.coordsecondaryprojnamez ||
+                    Coordinates.states.sproj.names[2]
             }
 
             // rxy
@@ -265,6 +285,13 @@ const Coordinates = {
         changeCoordType(startingIndex)
     },
     clear: function () {},
+    getMainTypeName: function () {
+        return (
+            Coordinates.states[Coordinates.mainType].title ||
+            Coordinates.states[Coordinates.mainType].ancillaryTitle ||
+            'projected'
+        )
+    },
     getLngLat: function () {
         return Coordinates.mouseLngLat
     },

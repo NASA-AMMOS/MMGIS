@@ -105,6 +105,12 @@ Example:
             },
           },
         ],
+        "collapse": "directFieldName",
+		    "sort": [
+          {
+            "fieldName": { "order": "desc or asc" }
+          }
+        ],
         "size": 1000,
       };
 }
@@ -126,5 +132,7 @@ Example:
   - `fields`: Property fields that we want the user to be able to search upon.
   - `geoshapeProp`: The property field of the search result's geoshape feature.
   - `must`: A 'must' stanza to always concatenate with the user's own filtered must.
+  - `collapse`: ElasticSearch collapse returns only the top matched document of identical collapsed fieldName values. Just the string field name is needed and not the full object.
+  - `sort`: Full ElasticSearch sort array.
   - `size`: Max number of results to show. ES has a default hard limit of 10k.
 - _Other high level raw variable fields might still be applicable here but are untested._

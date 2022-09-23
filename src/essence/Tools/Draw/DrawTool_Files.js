@@ -533,8 +533,8 @@ var Files = {
                         rect.width +
                         "px; z-index: 2000; font-size: 14px;'>",
                         '<ul>',
-                            (!isHead && L_.Coordinates.mainType != 'll') ? "<li id='cmExportGeoJSON' convert='true'><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON (projected)</li>" : "",
-                            !isHead ? "<li id='cmExportSourceGeoJSON' convert='true'><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON (lonlat)</li>" : "",
+                            (!isHead && L_.Coordinates.mainType != 'll') ? `<li id='cmExportGeoJSON' convert='true'><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON (${L_.Coordinates.getMainTypeName()})</li>` : "",
+                            !isHead ? `<li id='cmExportSourceGeoJSON' convert='true'><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON ${L_.Coordinates.mainType != 'll' ? '(lonlat)' : '' }</li>` : "",
                             //"<li id='cmExportShp'>Export as .shp</li>",
                             (!isHead && !isPub) ? `<li id='cmToggleLabels'><i class='mdi mdi-label-outline mdi-14px'></i>Toggle Labels</li>` : "",
                             isHead ? `<li id='drawToolcmRenameTagFol'><i class='mdi mdi-rename-box mdi-14px'></i>Rename ${activeTagFolType === 'tags' ? "Tag" : "Folder"}</li>` : "",

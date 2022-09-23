@@ -140,7 +140,7 @@ Updates a single layer. Specified layer values are deep merged and overwrite exi
 
 #### Example
 
-`curl -X POST -H "Authorization:Bearer <token>" -H "Content-Type: application/json" -d '{"mission":"Test", "layerName":"name", "layer":{}}}' http://localhost:8889/api/configure/updateLayer`
+`curl -X POST -H "Authorization:Bearer <token>" -H "Content-Type: application/json" -d '{"mission":"Test", "layerName":"name", "layer":{}}' http://localhost:8889/api/configure/updateLayer`
 
 ---
 

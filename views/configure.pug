@@ -271,8 +271,18 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
             #coordinates_coordcprojnameEl.input-field.col.s2.push-s2
               input#coordinates_coordcprojname.validate(type='text' value='')
               label(for='coordinates_coordcprojname') Display Name
-            #coordinates_coordcprojstrEl.input-field.col.s6.push-s2
-              div(style="padding: 14px; color: #555;") Uses the PROJ4 String defined in the Projection Tab.
+            #coordinates_coordcprojnamexEl.input-field.col.s2.push-s2
+              input#coordinates_coordcprojnamex.validate(type='text' value='')
+              label(for='coordinates_coordcprojnamex') X Coordinate Label
+            #coordinates_coordcprojnameyEl.input-field.col.s2.push-s2
+              input#coordinates_coordcprojnamey.validate(type='text' value='')
+              label(for='coordinates_coordcprojnamey') Y Coordinate Label
+            #coordinates_coordcprojnamezEl.input-field.col.s2.push-s2
+              input#coordinates_coordcprojnamez.validate(type='text' value='')
+              label(for='coordinates_coordcprojnamez') Z Coordinate Label
+          li.row
+            #coordinates_coordcprojstrEl.input-field.col.s8.push-s2
+              div(style="color: #666; text-align: center;") &lpar;Uses the PROJ4 String defined in the Projection Tab&rpar;
           li.row
             #coordinates_coordsprojEl.input-field.col.s2.push-s1
               input#coordinates_coordsproj.filled-in.checkbox-color(type='checkbox')
@@ -284,7 +294,17 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
             #coordinates_coordsprojnameEl.input-field.col.s2.push-s2
               input#coordinates_coordsprojname.validate(type='text' value='')
               label(for='coordinates_coordsprojname') Display Name
-            #coordinates_coordsprojstrEl.input-field.col.s6.push-s2
+            #coordinates_coordsprojnamexEl.input-field.col.s2.push-s2
+              input#coordinates_coordsprojnamex.validate(type='text' value='')
+              label(for='coordinates_coordsprojnamex') X Coordinate Label
+            #coordinates_coordsprojnameyEl.input-field.col.s2.push-s2
+              input#coordinates_coordsprojnamey.validate(type='text' value='')
+              label(for='coordinates_coordsprojnamey') Y Coordinate Label
+            #coordinates_coordsprojnamezEl.input-field.col.s2.push-s2
+              input#coordinates_coordsprojnamez.validate(type='text' value='')
+              label(for='coordinates_coordsprojnamez') Z Coordinate Label
+          li.row
+            #coordinates_coordsprojstrEl.input-field.col.s8.push-s2
               input#coordinates_coordsprojstr.validate(type='text' value='')
               label(for='coordinates_coordsprojstr') PROJ4 String
           li.row

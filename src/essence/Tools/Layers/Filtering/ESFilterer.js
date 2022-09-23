@@ -54,6 +54,13 @@ const ESFilterer = {
                 version: true,
             }
 
+            if (config.collapse)
+                query.collapse = {
+                    field: config.collapse,
+                }
+
+            if (config.sort) query.sort = config.sort
+
             // Spatial Filter
             let spatialFilter
             if (
@@ -112,6 +119,7 @@ const ESFilterer = {
 
             // Fetch
             const resp = config.esResponses ? 'responses.' : ''
+
             fetch(
                 `${config.endpoint}?filter_path=${resp}hits.hits._source,${resp}hits.total,${resp}aggregations`,
                 {

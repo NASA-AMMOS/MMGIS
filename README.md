@@ -27,7 +27,7 @@
 
 ---
 
-### [Full documentation](https://nasa-ammos.github.io/MMGIS/)
+## [Full documentation](https://nasa-ammos.github.io/MMGIS/)
 
 ---
 
@@ -127,7 +127,9 @@ _Note:_ The development environment (`npm start`) and only the development envir
 
 ## Documentation
 
-Documentation pages are served at `http://localhost:8888/docs` or immediately within the [`docs/pages/markdowns`](/docs/pages/markdowns) directory.
+### [The latest online documentation can be found here.](https://nasa-ammos.github.io/MMGIS/)
+
+Additionally, documentation pages are served at `http://localhost:8888/docs` or immediately within the [`docs/pages/markdowns`](/docs/pages/markdowns) directory.
 
 ---
 

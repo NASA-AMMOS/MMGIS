@@ -184,12 +184,12 @@ function interfaceWithMMGIS(fromInit) {
                         '<ul>',
                             L_.Coordinates.mainType != 'll' ? ['<li>',
                                 '<div class="layersToolExportGeoJSON">',
-                                    '<div>Export GeoJSON (projected)</div>',
+                                    `<div>Export GeoJSON (${L_.Coordinates.getMainTypeName()})</div>`,
                                 '</div>',
                             '</li>'].join('\n') : '',
                             '<li>',
                                 '<div class="layersToolExportSourceGeoJSON">',
-                                    '<div>Export GeoJSON (lonlat)</div>',
+                                    `<div>Export GeoJSON ${L_.Coordinates.mainType != 'll' ? '(lonlat)' : '' }</div>`,
                                 '</div>',
                             '</li>',
                         '</ul>',
@@ -865,10 +865,6 @@ function interfaceWithMMGIS(fromInit) {
         })
     })
 
-    //Start collapsed
-    if (LayersTool.vars.expanded !== true)
-        $('#searchLayers > #collapse').click()
-
     $('#filterLayers .right > div').on('click', function () {
         $(this).toggleClass('on')
         var isOn = $(this).hasClass('on')
@@ -912,6 +908,7 @@ function interfaceWithMMGIS(fromInit) {
 
     // Make it all sortable
     function sortOnStart(e) {
+        console.log('Start', e)
         const type = $(e.item).attr('type')
         LayersTool._drag_oldDepth = parseInt($(e.item).attr('depth'))
         const oldIdx = e.oldIndex
@@ -936,6 +933,7 @@ function interfaceWithMMGIS(fromInit) {
         }
     }
     function sortOnChange(e) {
+        console.log('Change', e)
         // In here we want to change the indentation of our dragged layer to match
         // the indentation of the layer above (on none if at top)
         LayersTool._drag_newDepth = 0
@@ -989,6 +987,7 @@ function interfaceWithMMGIS(fromInit) {
         return true
     }
     function sortOnEnd(e) {
+        console.log('End', e)
         const type = $(e.item).attr('type')
         // Sortable will place before all hidden layers, we want it always to be after
         // Move to the end of all hidden / on="false" layers
@@ -1080,7 +1079,6 @@ function interfaceWithMMGIS(fromInit) {
         const afterHeader = hist[2]
         const upward = oldIdx > newIdx
         const item = $(`#layersToolList > li:nth-child(${oldIdx + 1})`)
-
         sortOnStart({ item: item, oldIndex: oldIdx })
         sortOnChange({
             item: item,
@@ -1108,6 +1106,10 @@ function interfaceWithMMGIS(fromInit) {
         onChange: sortOnChange,
         onEnd: sortOnEnd,
     })
+
+    //Start collapsed
+    if (LayersTool.vars.expanded !== true)
+        $('#searchLayers > #collapse').click()
 
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.

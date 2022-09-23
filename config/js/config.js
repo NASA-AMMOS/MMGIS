@@ -439,6 +439,21 @@ function initialize() {
                 $("#tab_coordinates #coordinates_coordcprojname").val(
                   cData.coordinates ? cData.coordinates.coordcustomprojname : ""
                 );
+                $("#tab_coordinates #coordinates_coordcprojnamex").val(
+                  cData.coordinates
+                    ? cData.coordinates.coordcustomprojnamex
+                    : ""
+                );
+                $("#tab_coordinates #coordinates_coordcprojnamey").val(
+                  cData.coordinates
+                    ? cData.coordinates.coordcustomprojnamey
+                    : ""
+                );
+                $("#tab_coordinates #coordinates_coordcprojnamez").val(
+                  cData.coordinates
+                    ? cData.coordinates.coordcustomprojnamez
+                    : ""
+                );
 
                 if (
                   cData.coordinates &&
@@ -448,10 +463,24 @@ function initialize() {
                     "checked",
                     true
                   );
-
                 $("#tab_coordinates #coordinates_coordsprojname").val(
                   cData.coordinates
                     ? cData.coordinates.coordsecondaryprojname
+                    : ""
+                );
+                $("#tab_coordinates #coordinates_coordsprojnamex").val(
+                  cData.coordinates
+                    ? cData.coordinates.coordsecondaryprojnamex
+                    : ""
+                );
+                $("#tab_coordinates #coordinates_coordsprojnamey").val(
+                  cData.coordinates
+                    ? cData.coordinates.coordsecondaryprojnamey
+                    : ""
+                );
+                $("#tab_coordinates #coordinates_coordsprojnamez").val(
+                  cData.coordinates
+                    ? cData.coordinates.coordsecondaryprojnamez
                     : ""
                 );
                 $("#tab_coordinates #coordinates_coordsprojstr").val(
@@ -1849,11 +1878,29 @@ function save() {
     json.coordinates["coordcustomprojname"] = $(
       "#tab_coordinates #coordinates_coordcprojname"
     ).val();
+    json.coordinates["coordcustomprojnamex"] = $(
+      "#tab_coordinates #coordinates_coordcprojnamex"
+    ).val();
+    json.coordinates["coordcustomprojnamey"] = $(
+      "#tab_coordinates #coordinates_coordcprojnamey"
+    ).val();
+    json.coordinates["coordcustomprojnamez"] = $(
+      "#tab_coordinates #coordinates_coordcprojnamez"
+    ).val();
     json.coordinates["coordsecondaryproj"] = $(
       "#tab_coordinates #coordinates_coordsproj"
     ).prop("checked");
     json.coordinates["coordsecondaryprojname"] = $(
       "#tab_coordinates #coordinates_coordsprojname"
+    ).val();
+    json.coordinates["coordsecondaryprojnamex"] = $(
+      "#tab_coordinates #coordinates_coordsprojnamex"
+    ).val();
+    json.coordinates["coordsecondaryprojnamey"] = $(
+      "#tab_coordinates #coordinates_coordsprojnamey"
+    ).val();
+    json.coordinates["coordsecondaryprojnamez"] = $(
+      "#tab_coordinates #coordinates_coordsprojnamez"
     ).val();
     json.coordinates["coordsecondaryprojstr"] = $(
       "#tab_coordinates #coordinates_coordsprojstr"

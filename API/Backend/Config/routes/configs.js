@@ -613,7 +613,7 @@ function addLayer(req, res, next, cb, forceConfig) {
           let placementPath = req.body.placement?.path;
           let placementIndex = req.body.placement?.index;
 
-          if (placementPath) {
+          if (placementPath && typeof placementPath === "string") {
             placementPath = placementPath
               .replace(/\./g, ".sublayers.")
               .split(".")
