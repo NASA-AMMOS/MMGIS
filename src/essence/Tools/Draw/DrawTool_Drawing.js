@@ -83,7 +83,9 @@ var Drawing = {
                     2
                 )
             } else {
-                let features = lg[i] ? lg[i].toGeoJSON().features : null
+                let features = lg[i]
+                    ? lg[i].toGeoJSON(L_.GEOJSON_PRECISION).features
+                    : null
                 if (features != null) {
                     let geojson = features[0]
                     if (F_.doBoundingBoxesIntersect(bb, turf.bbox(geojson))) {
@@ -514,7 +516,7 @@ var drawing = {
             var d = drawing.polygon
             if (d.shiftDisabled) return
 
-            d.shape = d.shape.toGeoJSON()
+            d.shape = d.shape.toGeoJSON(L_.GEOJSON_PRECISION)
 
             d.shape.geometry.type = 'Polygon'
             d.shape.geometry.coordinates.push(d.shape.geometry.coordinates[0])
@@ -782,7 +784,7 @@ var drawing = {
             if (typeof overrideFinishCallback === 'function') {
                 d.overstop = function () {
                     if (typeof d.shape.toGeoJSON === 'function') {
-                        let s = d.shape.toGeoJSON()
+                        let s = d.shape.toGeoJSON(L_.GEOJSON_PRECISION)
                         s.geometry.type = 'LineString'
                         s.properties.style = d.style
                         overrideFinishCallback(s)
@@ -899,7 +901,7 @@ var drawing = {
             var d = drawing.line
 
             if (d.shiftDisabled) return
-            d.shape = d.shape.toGeoJSON()
+            d.shape = d.shape.toGeoJSON(L_.GEOJSON_PRECISION)
             d.shape.geometry.type = 'LineString'
             d.shape.properties.style = d.style
             var n = $('#drawToolDrawFeaturesNewName')
@@ -1397,7 +1399,9 @@ var drawing = {
             var d = drawing.arrow
             if (d.shiftDisabled) return
 
-            d.shape = new L.Polyline([d.startPt, e.latlng]).toGeoJSON()
+            d.shape = new L.Polyline([d.startPt, e.latlng]).toGeoJSON(
+                L_.GEOJSON_PRECISION
+            )
 
             d.shape.properties.style = d.style
             d.shape.properties.name = 'Arrow'

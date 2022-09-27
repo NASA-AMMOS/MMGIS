@@ -79,7 +79,7 @@
                                                 type: 'Point',
                                                 coordinates: p,
                                             },
-                                            l.toGeoJSON().geometry
+                                            l.toGeoJSON(10).geometry
                                         )
                                     ) {
                                         results.push(l)

@@ -40,7 +40,7 @@ const Filtering = {
             try {
                 Filtering.filters[layerName].geojson =
                     Filtering.filters[layerName].geojson ||
-                    L_.layersGroup[layerName].toGeoJSON()
+                    L_.layersGroup[layerName].toGeoJSON(L_.GEOJSON_PRECISION)
             } catch (err) {
                 console.warn(
                     `Filtering - Cannot find GeoJSON to filter on for layer: ${layerName}`

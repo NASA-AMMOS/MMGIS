@@ -71,9 +71,11 @@ var Login = {
                 window.mmgisglobal.AUTH === 'local') &&
             window.mmgisglobal.hasOwnProperty('user')
         ) {
-            this.loggedIn = true
             this.username = window.mmgisglobal.user
-            this.beganLoggedIn = true
+            if (this.username != 'guest') {
+                this.loggedIn = true
+                this.beganLoggedIn = true
+            }
         }
 
         Login.loginBar = d3

@@ -75,6 +75,7 @@ var L_ = {
     },
     //URL search strings
     searchStrings: null,
+    GEOJSON_PRECISION: 10,
     //URL search file
     searchFile: null,
     toolsLoaded: false,
@@ -399,7 +400,9 @@ var L_ = {
                                     name: s.name,
                                     order: L_.layersOrdered, // Since higher order in litho is on top
                                     on: L_.opacityArray[s.name] ? true : false,
-                                    geojson: L_.layersGroup[s.name].toGeoJSON(),
+                                    geojson: L_.layersGroup[s.name].toGeoJSON(
+                                        L_.GEOJSON_PRECISION
+                                    ),
                                     onClick: (feature, lnglat, layer) => {
                                         this.selectFeature(layer.name, feature)
                                     },
@@ -678,7 +681,9 @@ var L_ = {
                                 name: s.name,
                                 order: L_.layersOrdered, // Since higher order in litho is on top
                                 on: L_.opacityArray[s.name] ? true : false,
-                                geojson: L_.layersGroup[s.name].toGeoJSON(),
+                                geojson: L_.layersGroup[s.name].toGeoJSON(
+                                    L_.GEOJSON_PRECISION
+                                ),
                                 onClick: (feature, lnglat, layer) => {
                                     this.selectFeature(layer.name, feature)
                                 },
@@ -1742,7 +1747,9 @@ var L_ = {
         updateLayer.removeLayer(removeLayer)
 
         var layerName = updateLayer._layerName
-        var layersGeoJSON = L_.layersGroup[layerName].toGeoJSON()
+        var layersGeoJSON = L_.layersGroup[layerName].toGeoJSON(
+            L_.GEOJSON_PRECISION
+        )
         L_.clearGeoJSONData(updateLayer)
         L_.addGeoJSONData(updateLayer, layersGeoJSON)
     },
@@ -1969,7 +1976,7 @@ var L_ = {
             const updateLayer = L_.layersGroup[layerName]
 
             var layers = updateLayer.getLayers()
-            var layersGeoJSON = updateLayer.toGeoJSON()
+            var layersGeoJSON = updateLayer.toGeoJSON(L_.GEOJSON_PRECISION)
             var features = layersGeoJSON.features
 
             // All of the features have to be a LineString
@@ -2146,7 +2153,7 @@ var L_ = {
             const updateLayer = L_.layersGroup[layerName]
 
             var layers = updateLayer.getLayers()
-            var layersGeoJSON = updateLayer.toGeoJSON()
+            var layersGeoJSON = updateLayer.toGeoJSON(L_.GEOJSON_PRECISION)
             var features = layersGeoJSON.features
 
             if (features.length > 0) {
@@ -2251,7 +2258,9 @@ var L_ = {
     // Make a layer's sublayer match the layers data again
     syncSublayerData: function (layerName) {
         try {
-            let geojson = L_.layersGroup[layerName].toGeoJSON()
+            let geojson = L_.layersGroup[layerName].toGeoJSON(
+                L_.GEOJSON_PRECISION
+            )
             if (L_.layersGroup[layerName]._sourceGeoJSON)
                 geojson = L_.layersGroup[layerName]._sourceGeoJSON
 
