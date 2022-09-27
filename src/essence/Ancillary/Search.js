@@ -211,7 +211,7 @@ async function changeSearchField(val, selectedPlaceholder) {
         Search.arrayToSearch = []
         let data
         try {
-            data = L_.layersGroup[Search.lname].toGeoJSON()
+            data = L_.layersGroup[Search.lname].toGeoJSON(L_.GEOJSON_PRECISION)
         } catch (err) {
             data = { features: [] }
         }

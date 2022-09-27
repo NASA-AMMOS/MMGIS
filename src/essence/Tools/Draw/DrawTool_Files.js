@@ -24,6 +24,7 @@ var Files = {
         DrawTool.refreshNoteEvents = Files.refreshNoteEvents
         DrawTool.refreshMasterCheckbox = Files.refreshMasterCheckbox
     },
+    currentOpenFolderName: null,
     prevFilterString: '',
     populateFiles: function (activeFileId) {
         $('#drawToolDrawFilesListMaster *').remove()
@@ -464,6 +465,7 @@ var Files = {
             const icons = Files.getGroupingIcons(elmg)
             if (isOpen) {
                 elm.attr('state', 'off')
+                Files.currentOpenFolderName = null
                 li.css({ display: 'none' })
                 elm.find('i').removeClass(icons.open)
                 elm.find('i').addClass(icons.closed)
@@ -483,11 +485,17 @@ var Files = {
                     elm2.find('i').addClass(icons2.closed)
                 })
                 elm.attr('state', 'on')
+                Files.currentOpenFolderName = elm.attr('group_name')
                 li.css({ display: 'block' })
                 elm.find('i').removeClass(icons.closed)
                 elm.find('i').addClass(icons.open)
             }
         })
+
+        if (Files.currentOpenFolderName != null)
+            $(
+                `.drawToolDrawFilesGroupElemHead[group_name=${Files.currentOpenFolderName}]`
+            ).trigger('click')
 
         //Li Elem Context Menu
         $(

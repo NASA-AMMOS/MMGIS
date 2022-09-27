@@ -283,7 +283,7 @@ var Editing = {
         if (!deselecting) {
             if (typeof DrawTool.contextMenuLayer.toGeoJSON === 'function')
                 DrawTool.contextMenuLayerOriginalGeoJSON =
-                    DrawTool.contextMenuLayer.toGeoJSON()
+                    DrawTool.contextMenuLayer.toGeoJSON(L_.GEOJSON_PRECISION)
             else
                 DrawTool.contextMenuLayerOriginalGeoJSON =
                     DrawTool.contextMenuLayer.feature
@@ -395,7 +395,9 @@ var Editing = {
                 DrawTool.contextMenuLayer = DrawTool.contextMenuLayers[0].layer
                 if (typeof DrawTool.contextMenuLayer.toGeoJSON === 'function')
                     DrawTool.contextMenuLayerOriginalGeoJSON =
-                        DrawTool.contextMenuLayer.toGeoJSON()
+                        DrawTool.contextMenuLayer.toGeoJSON(
+                            L_.GEOJSON_PRECISION
+                        )
                 else
                     DrawTool.contextMenuLayerOriginalGeoJSON =
                         DrawTool.contextMenuLayer.feature
@@ -861,7 +863,9 @@ var Editing = {
             Map_.rmNotNull(DrawTool.contextMenuLayers[0].selectionLayer)
             if (typeof DrawTool.contextMenuLayer.toGeoJSON !== 'function')
                 return
-            var bbox = turf.bbox(DrawTool.contextMenuLayer.toGeoJSON())
+            var bbox = turf.bbox(
+                DrawTool.contextMenuLayer.toGeoJSON(L_.GEOJSON_PRECISION)
+            )
             var bounds = [
                 [bbox[1], bbox[0]],
                 [bbox[3], bbox[2]],
@@ -2307,7 +2311,9 @@ var Editing = {
                 //Then just a regular single save
                 if (typeof DrawTool.contextMenuLayer.toGeoJSON === 'function')
                     DrawTool.contextMenuLayerOriginalGeoJSON =
-                        DrawTool.contextMenuLayer.toGeoJSON()
+                        DrawTool.contextMenuLayer.toGeoJSON(
+                            L_.GEOJSON_PRECISION
+                        )
                 else
                     DrawTool.contextMenuLayerOriginalGeoJSON =
                         DrawTool.contextMenuLayer.feature
@@ -2328,14 +2334,16 @@ var Editing = {
 
                 var newGeometry
                 if (featureType != 'note' && featureType != 'arrow') {
-                    newGeometry = DrawTool.contextMenuLayer.toGeoJSON().geometry
+                    newGeometry = DrawTool.contextMenuLayer.toGeoJSON(
+                        L_.GEOJSON_PRECISION
+                    ).geometry
                     if (
                         newGeometry == null &&
                         DrawTool.contextMenuLayer.hasOwnProperty('_layers')
                     )
                         newGeometry = DrawTool.contextMenuLayer._layers
                             .getFirst()
-                            .toGeoJSON().geometry
+                            .toGeoJSON(L_.GEOJSON_PRECISION).geometry
                 } else if (featureType == 'note') {
                     newGeometry = {
                         type: 'Point',

@@ -745,7 +745,7 @@ function interfaceWithMMGIS(fromInit) {
         let layerName = li.attr('name')
         F_.downloadObject(
             L_.convertGeoJSONLngLatsToPrimaryCoordinates(
-                L_.layersGroup[layerName].toGeoJSON(10)
+                L_.layersGroup[layerName].toGeoJSON(L_.GEOJSON_PRECISION)
             ),
             layerName,
             '.json'
@@ -757,7 +757,7 @@ function interfaceWithMMGIS(fromInit) {
 
         let layerName = li.attr('name')
         F_.downloadObject(
-            L_.layersGroup[layerName].toGeoJSON(10),
+            L_.layersGroup[layerName].toGeoJSON(L_.GEOJSON_PRECISION),
             layerName,
             '.json'
         )
