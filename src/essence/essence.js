@@ -178,14 +178,14 @@ var essence = {
         //Make the map
         if (swapping) Map_.clear()
 
+        //Make the time control
+        TimeControl.init()
+
         Map_.init(this.fina)
 
         //Now that the map is made
         Coordinates.init()
         ContextMenu.init()
-
-        //Make the time control
-        TimeControl.init()
 
         if (!swapping) {
             Description.init(L_.mission, L_.site, Map_, L_)
@@ -283,6 +283,8 @@ var essence = {
             UserInterface_.fina(L_, Viewer_, Map_, Globe_)
             //Finalize the Viewer
             Viewer_.fina(Map_)
+            //Finalize the TimeControl
+            TimeControl.fina()
             // Finalize the mmgisAPI
             mmgisAPI_.fina(Map_)
 
