@@ -90,6 +90,8 @@ var TimeControl = {
         if (L_.configData.time.visible == false) {
             TimeControl.toggleTimeUI(false)
         }
+    },
+    fina: function () {
         initLayerTimes()
     },
     toggleTimeUI: function (isOn) {
