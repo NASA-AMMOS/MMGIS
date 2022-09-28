@@ -19,7 +19,7 @@ export default {
             `<dl class="dropy${options.openUp === true ? ' openUp' : ''}${options.dark === true ? ' dark' : ''}">`,
                 `<dt class="dropy__title">`,
                     `<span>${options.forcePlaceholder ? placeholder : items[selectedIndex] || placeholder}</span>`,
-                    `<i class='mdi mdi-chevron-down mdi-18px'></i>`,    
+                    `${options.hideChevron === true ? '' : `<i class='mdi mdi-chevron-down mdi-18px'></i>`}`,    
                 `</dt>`,
                 '<dd class="dropy__content">',
                     '<ul>',

@@ -21,7 +21,9 @@ const LocalFilterer = {
     },
     destroy: function (layerName) {},
     getAggregations: function (geojson) {
-        const aggs = {}
+        const aggs = {
+            'geometry.type': { type: 'string', aggs: {} },
+        }
 
         geojson.features.forEach((feature) => {
             const flatProps = flat.flatten(feature.properties)
@@ -43,6 +45,10 @@ const LocalFilterer = {
                     aggs[p].aggs[flatProps[p]]++
                 }
             }
+            // feature.geometry.type
+            aggs['geometry.type'].aggs[feature.geometry.type] =
+                aggs['geometry.type'].aggs[feature.geometry.type] || 0
+            aggs['geometry.type'].aggs[feature.geometry.type]++
         })
         return aggs
     },
@@ -97,19 +103,22 @@ const LocalFilterer = {
     match: function (feature, filter) {
         if (filter.values.length === 0) return true
 
-        let matches = false
+        // Perform the per row match
         for (let i = 0; i < filter.values.length; i++) {
             const v = filter.values[i]
             if (v && v.key != null) {
-                const featureValue = F_.getIn(feature.properties, v.key)
+                const featureValue =
+                    v.key === 'geometry.type'
+                        ? feature.geometry.type
+                        : F_.getIn(feature.properties, v.key)
                 let filterValue = v.value
                 if (v.type === 'number' && v.op != ',')
                     filterValue = parseFloat(filterValue)
                 if (featureValue != null) {
                     switch (v.op) {
                         case '=':
-                            if (featureValue == filterValue) matches = true
-                            else matches = false
+                            if (featureValue == filterValue) v.matches = true
+                            else v.matches = false
                             break
                         case ',':
                             if (filterValue != null) {
@@ -120,9 +129,9 @@ const LocalFilterer = {
                                         .split(',')
                                         .includes(stringFeatureValue)
                                 )
-                                    matches = true
-                                else matches = false
-                            } else matches = false
+                                    v.matches = true
+                                else v.matches = false
+                            } else v.matches = false
                             break
                         case '<':
                             if (
@@ -131,8 +140,8 @@ const LocalFilterer = {
                                       0
                                     : featureValue < filterValue
                             )
-                                matches = true
-                            else matches = false
+                                v.matches = true
+                            else v.matches = false
                             break
                         case '>':
                             if (
@@ -141,20 +150,64 @@ const LocalFilterer = {
                                       0
                                     : featureValue > filterValue
                             )
-                                matches = true
-                            else matches = false
+                                v.matches = true
+                            else v.matches = false
                             break
                         default:
                             break
                     }
-                    if (!matches) return false
+                    //if (!matches) return false
                 }
-            } else {
-                // True if user never set a key for the filter row
-                matches = true
             }
         }
-        return matches
+
+        // Now group together all matching keys and process
+        // Filter values with the same key are ORed together if = and ANDed if not
+        // i.e. sol = 50, sol = 51 becomes sol == 50 OR sol == 51
+        //      sol > 50, sol < 100 becomes sol > 50 AND sol < 100
+        //      sol > 50, sol < 100, sol = 200 becomes (sol > 50 AND sol < 100) OR sol == 101
+        const groupedValuesByKey = {}
+        filter.values.forEach((v) => {
+            if (v && v.key != null) {
+                groupedValuesByKey[v.key] = groupedValuesByKey[v.key] || []
+                groupedValuesByKey[v.key].push(v)
+            }
+        })
+
+        const matches = []
+        Object.keys(groupedValuesByKey).forEach((key) => {
+            // For grouped values to pass, (all the >,< ANDed must be true) OR (all the rest ORed must be true)
+
+            // To facilitate that, first group by operator
+            const groupedValuesByOp = {}
+            groupedValuesByKey[key].forEach((v) => {
+                let op = v.op
+                if (op === '<' || op === '>') op = '<>'
+
+                groupedValuesByOp[op] = groupedValuesByOp[op] || []
+                groupedValuesByOp[op].push(v)
+            })
+
+            const opMatches = []
+            Object.keys(groupedValuesByOp).forEach((op) => {
+                let match = null
+                groupedValuesByOp[op].forEach((v) => {
+                    if (op === '<>') {
+                        if (match === null) match = true
+                        match = match && v.matches
+                    } else {
+                        if (match === null) match = false
+                        match = match || v.matches
+                    }
+                })
+                opMatches.push(match)
+            })
+            // If at least one true, the op match passes
+            matches.push(opMatches.includes(true))
+        })
+
+        // If all are true
+        return matches.filter(Boolean).length === matches.length
     },
 }
 

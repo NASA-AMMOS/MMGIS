@@ -908,7 +908,6 @@ function interfaceWithMMGIS(fromInit) {
 
     // Make it all sortable
     function sortOnStart(e) {
-        console.log('Start', e)
         const type = $(e.item).attr('type')
         LayersTool._drag_oldDepth = parseInt($(e.item).attr('depth'))
         const oldIdx = e.oldIndex
@@ -933,7 +932,6 @@ function interfaceWithMMGIS(fromInit) {
         }
     }
     function sortOnChange(e) {
-        console.log('Change', e)
         // In here we want to change the indentation of our dragged layer to match
         // the indentation of the layer above (on none if at top)
         LayersTool._drag_newDepth = 0
@@ -987,7 +985,6 @@ function interfaceWithMMGIS(fromInit) {
         return true
     }
     function sortOnEnd(e) {
-        console.log('End', e)
         const type = $(e.item).attr('type')
         // Sortable will place before all hidden layers, we want it always to be after
         // Move to the end of all hidden / on="false" layers

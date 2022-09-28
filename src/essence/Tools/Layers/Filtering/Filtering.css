@@ -18,6 +18,7 @@
 #layersTool_filtering_title {
     font-size: 16px;
     padding-left: 14px;
+    line-height: 31px;
 }
 #layersTool_filtering_count {
     font-size: 12px;
@@ -25,8 +26,23 @@
     color: #d6d6d6;
 }
 #layersTool_filtering_add_value {
-    width: 30px;
     padding: 0px 6px;
+    color: var(--color-a6);
+}
+#layersTool_filtering_add_value:hover {
+    background: var(--color-c);
+    color: var(--color-a7);
+}
+#layersTool_filtering_add_value > div {
+    font-size: 11px;
+    margin-right: 2px;
+    line-height: 32px;
+    text-transform: uppercase;
+}
+
+#layerTool_filtering_filters {
+    border-left: 1px solid var(--color-a2);
+    border-right: 1px solid var(--color-a2);
 }
 
 #layerTool_filtering_filters_spatial {
@@ -38,19 +54,26 @@
     display: flex;
     overflow: hidden;
     white-space: nowrap;
-    padding-left: 8px;
+    padding-left: 0px;
+    margin: 4px 8px;
+    height: 22px;
+    line-height: 22px;
+    border-radius: 4px;
+    background: var(--color-a3);
 }
 #layerTool_filtering_filters_spatial_draw > div {
-    line-height: 32px;
+    line-height: 24px;
     font-size: 13px;
 }
 #layerTool_filtering_filters_spatial_draw > i {
-    color: #888;
-    width: 20px;
-    height: 20px;
-    line-height: 20px;
-    margin: 5px;
-    border-radius: 4px;
+    color: var(--color-a6);
+    width: 22px;
+    height: 22px;
+    line-height: 24px;
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+    padding-left: 2px;
+    margin-right: 6px;
 }
 #layerTool_filtering_filters_spatial.drawing
     #layerTool_filtering_filters_spatial_draw
@@ -61,35 +84,34 @@
 #layerTool_filtering_filters_spatial.drawn
     #layerTool_filtering_filters_spatial_draw
     > i {
-    background: lime;
+    background: var(--color-green2);
     color: black;
 }
 #layerTool_filtering_filters_spatial_draw:hover {
-    background: #111;
+    background: var(--color-c);
 }
 .layerTool_filtering_filters_clear {
     width: 30px;
-    background: #111;
+    background: var(--color-a1-5);
     padding: 0px 6px;
     color: #888;
 }
 .layerTool_filtering_filters_clear:hover {
-    background: #333;
+    background: var(--color-a1);
     color: #fff;
 }
 #layerTool_filtering_filters_spatial_radius_wrapper {
     display: flex;
-    background: var(--color-a1);
+    background: var(--color-a1-5);
     color: #ccc;
-    width: 105px;
+    width: 131px;
     box-sizing: border-box;
-    border-left: 1px solid #333;
-    border-right: 1px solid #333;
+    border-right: 1px solid var(--color-a2);
 }
 #layersTool_filtering
     #layerTool_filtering_filters_spatial_radius_wrapper
     > input {
-    background: var(--color-a1);
+    background: var(--color-a1-5);
     padding-left: 0px;
     text-align: right;
     font-size: 13px;
@@ -97,7 +119,7 @@
 #layersTool_filtering
     #layerTool_filtering_filters_spatial_radius_wrapper
     > input:hover {
-    background: #111;
+    background: var(--color-a1-5);
 }
 #layerTool_filtering_filters_spatial_radius_wrapper > div:first-child {
     line-height: 30px;
@@ -128,15 +150,15 @@
 .layersTool_filtering_value {
     display: flex;
     height: 31px;
-    border-bottom: 1px solid #353535;
+    border-bottom: 1px solid var(--color-a2);
 }
 .layersTool_filtering_value .layersTool_filtering_value_key {
     flex: 1;
 }
 .layersTool_filtering_value_operator {
     box-sizing: border-box;
-    border-left: 1px solid #333;
-    border-right: 1px solid #333;
+    border-left: 1px solid var(--color-a2);
+    border-right: 1px solid var(--color-a2);
 }
 .layersTool_filtering_value .layersTool_filtering_value_value {
     flex: 1;
@@ -169,10 +191,11 @@
 }
 
 #layersTool_filtering input {
-    background: var(--color-a1);
+    background: var(--color-a1-5);
     color: #ccc;
     width: 100%;
     box-sizing: border-box;
+    border-left: 6px solid var(--color-a);
     height: 30px;
     padding-left: 8px;
     border: none;
@@ -180,10 +203,10 @@
     transition: background 0.2s cubic-bezier(0.785, 0.135, 0.15, 0.86);
 }
 #layersTool_filtering input:hover {
-    background: #111;
+    background: var(--color-a1);
 }
 .layersTool_filtering_value_value_input {
-    border-right: 1px solid #333 !important;
+    border-right: 1px solid var(--color-a2) !important;
 }
 #layersTool_filtering select {
     background: #111;
@@ -191,7 +214,7 @@
     height: 30px;
 }
 .layersTool_filtering_value_operator_select {
-    background: #333;
+    background: var(--color-a1);
     color: var(--color-f);
     border: none;
     cursor: pointer;
@@ -199,7 +222,7 @@
     transition: background 0.2s cubic-bezier(0.785, 0.135, 0.15, 0.86);
 }
 .layersTool_filtering_value_operator_select:hover {
-    background: #111;
+    background: var(--color-a2);
 }
 
 .layersTool_filtering_value_remove .mmgisButton5 {
@@ -207,6 +230,9 @@
 }
 #layersTool_filtering_clear {
     padding: 0px 14px;
+}
+#layersTool_filtering_clear:hover {
+    background: var(--color-red2);
 }
 #layersTool_filtering_submit {
     padding: 0px 8px;
