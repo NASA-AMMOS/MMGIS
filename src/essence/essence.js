@@ -253,6 +253,16 @@ var essence = {
                                 UserInterface_.updateLayerUpdateButton('RELOAD')
                             }
                         }
+
+                        // Dispatch `websocketChange` event
+                        let  _event = new CustomEvent('websocketChange', {
+                            detail: {
+                                layer: typeof layerName !== 'undefined' ? layerName : null,
+                                type: typeof type !== 'undefined' ? type : null,
+                                data: parsed,
+                            }
+                        })
+                        document.dispatchEvent(_event);
                     } catch (e) {
                         console.warn(`Error parsing data from MMGIS websocket: ${e}`)
                     }

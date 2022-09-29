@@ -241,7 +241,7 @@ var mmgisAPI_ = {
         return null
     },
     checkMMGISEvent: function (eventName) {
-        const validEvents = ['toolChange', 'layerVisibilityChange']
+        const validEvents = ['toolChange', 'layerVisibilityChange', 'websocketChange']
         return validEvents.includes(eventName)
     },
     writeCoordinateURL: function () {
