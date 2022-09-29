@@ -1,7 +1,11 @@
 import L_ from '../Basics/Layers_/Layers_'
+import F_ from '../Basics/Formulae_/Formulae_'
 import ToolController_ from '../Basics/ToolController_/ToolController_'
 import QueryURL from '../Ancillary/QueryURL'
 import TimeControl from '../Ancillary/TimeControl'
+
+import $ from 'jquery'
+
 let L = window.L
 
 var mmgisAPI_ = {
@@ -255,6 +259,32 @@ var mmgisAPI_ = {
     unproject: function (xy) {
         return window.mmgisglobal.customCRS.unproject(xy)
     },
+    toggleLayer: async function (layerName, on) {
+        if (layerName in L_.layersDataByName) {
+            if (on === undefined || on === null) {
+                // If on is not defined, switch the visibility state of the layer
+                await L_.toggleLayer(L_.layersDataByName[layerName])
+            } else {
+                let state = L_.toggledArray[layerName] && !on ? true : false
+                await L_.toggleLayerHelper(L_.layersDataByName[layerName], state)
+            }
+
+            if (ToolController_.activeToolName === 'LayersTool') {
+                const id = `#layerstart${F_.getSafeName(layerName)} .checkbox`
+
+                if (L_.toggledArray[layerName]) {
+                    $(id).addClass('on')
+                } else {
+                    $(id).removeClass('on')
+                }
+            }
+        } else {
+            console.warn(
+                `'Warning: Unable to find layer named ${layereName}`
+            )
+            return
+        }
+    },
 }
 
 var mmgisAPI = {
@@ -460,6 +490,12 @@ var mmgisAPI = {
      * @param {object} {lng: 0, lat: 0} - converted lnglat
      */
     unproject: mmgisAPI_.unproject,
+
+    /** toggleLayer - set the visibility state for a named layer
+     * @param {string} - layerName - name of layer to set visiblity
+     * @param {boolean} - on - (optional) Set true if the visibility should be on or false if visibility should be off. If not set, the current visiblity state will switch to the opposite state.
+     */
+    toggleLayer: mmgisAPI_.toggleLayer,
 }
 
 window.mmgisAPI = mmgisAPI

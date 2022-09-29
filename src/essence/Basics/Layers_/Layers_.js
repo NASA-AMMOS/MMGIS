@@ -200,6 +200,10 @@ var L_ = {
         let on //if on -> turn off //if off -> turn on
         if (L_.toggledArray[s.name] === true) on = true
         else on = false
+
+        await L_.toggleLayerHelper(s, on)
+    },
+    toggleLayerHelper: async function (s, on) {
         if (s.type !== 'header') {
             if (on) {
                 if (L_.Map_.map.hasLayer(L_.layersGroup[s.name])) {
