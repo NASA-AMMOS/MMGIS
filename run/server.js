@@ -487,6 +487,7 @@ setups.getBackendSetups(function (setups) {
     "/documentation",
     express.static(path.join(rootDir, "/documentation"))
   );
+  app.use("/docs/helps", express.static(path.join(rootDir, "/docs/helps")));
   app.use("/README.md", express.static(path.join(rootDir, "/README.md")));
   app.use("/config/login", express.static(path.join(rootDir, "/config/login")));
   app.use(

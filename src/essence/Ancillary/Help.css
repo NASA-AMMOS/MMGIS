@@ -1,0 +1,87 @@
+#HelpModal {
+    background: var(--color-k);
+    width: 840px;
+    margin: 40px;
+    border-radius: 3px;
+    font-family: sans-serif;
+}
+#HelpModalTitle {
+    padding: 1px 0px 0px 10px;
+    height: 40px;
+    line-height: 39px;
+    font-size: 18px;
+    background: var(--color-i);
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    display: flex;
+    justify-content: space-between;
+    text-transform: capitalize;
+}
+#HelpModalTitle > div:first-child {
+    display: flex;
+}
+#HelpModalTitle > div:first-child > div {
+    margin-left: 6px;
+    line-height: 40px;
+}
+#HelpModalClose {
+    width: 40px;
+    height: 40px;
+    text-align: center;
+}
+#HelpModalContent {
+    padding: 20px 40px 40px 40px;
+    overflow-y: auto;
+    max-height: 80vh;
+}
+
+#HelpModal code {
+    background: var(--color-a1);
+    padding: 0px 4px;
+    border-radius: 2px;
+    color: var(--color-a6);
+}
+#HelpModal h2 {
+    margin-top: 8px;
+    color: var(--color-r5);
+}
+#HelpModal h3 {
+    margin-top: 36px;
+    color: var(--color-p0);
+}
+#HelpModal h4 {
+    color: var(--color-p2);
+}
+#HelpModal ul {
+    margin-left: 30px;
+    margin-bottom: 20px;
+}
+#HelpModal li {
+    margin: 4px 0px;
+    line-height: 22px;
+}
+#HelpModal pre {
+    background: var(--color-a1);
+    border: 1px solid var(--color-a2);
+    padding: 8px;
+}
+#HelpModal pre code {
+    padding: 0px;
+    color: var(--color-p3);
+}
+
+/*Help Button*/
+.mmgisHelpButton {
+    line-height: 18px;
+    margin: 6px 4px;
+    padding: 0px 0px;
+    width: 18px;
+    height: 18px;
+    opacity: 0.7;
+    color: var(--color-h);
+}
+.mmgisHelpButton:hover {
+    opacity: 1;
+    color: var(--color-h);
+    background: rgba(0, 0, 0, 0);
+}

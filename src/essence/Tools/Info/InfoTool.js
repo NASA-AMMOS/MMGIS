@@ -9,7 +9,12 @@ import CursorInfo from '../../Ancillary/CursorInfo'
 import { Kinds } from '../../../pre/tools'
 import Dropy from '../../../external/Dropy/dropy'
 
+import Help from '../../Ancillary/Help'
+import ConfirmationModal from '../../Ancillary/ConfirmationModal'
+
 import './InfoTool.css'
+
+const helpKey = 'InfoTool'
 
 //Add the tool markup if you want to do it this way
 // prettier-ignore
@@ -18,9 +23,16 @@ var markup = [
         "<div id='infoToolHeader'>",
             "<div class='left'>",
                 "<div id='infoToolTitle'>Info</div>",
+                Help.getComponent(helpKey),
                 "<div id='infoToolEquiv' title='Number of overlapping features'></div>",
             "</div>",
             "<div class='right'>",
+                "<div id='infoToolUnhideAll' title='Reshow All Hidden Features'>",
+                    "<i class='mdi mdi-eye-check mdi-18px'></i>",
+                "</div>",
+                "<div id='infoToolHide' title='Hide/Show Feature'>",
+                    "<i class='mdi mdi-eye mdi-18px'></i>",
+                "</div>",
                 "<div id='infoToolDownload' title='Copy Feature to Clipboard'>",
                     "<i class='mdi mdi-clipboard-outline mdi-18px'></i>",
                 "</div>",
@@ -35,8 +47,8 @@ var markup = [
         "<div id='infoToolFilter'>",
             "<input type='text' placeholder='Filter'>",
             "<i class='mdi mdi-filter-variant mdi-18px'></i>",
-            "<div  id='infoToolShowHidden' title='Toggle Hidden Properties'>",
-                "<i class='mdi mdi-eye-off mdi-18px'></i>",
+            "<div id='infoToolShowHidden' title='Toggle Hidden Properties'>",
+                "<i class='mdi mdi-book-outline mdi-18px'></i>",
             "</div>",
         "</div>",
         "<div id='infoToolContent'>",
@@ -57,6 +69,7 @@ var InfoTool = {
     featureLayers: [],
     filterString: '',
     hiddenShown: false,
+    featureHidden: false,
     hiddenRootFields: ['_', 'style', 'images', 'coord_properties'],
     vars: {},
     MMGISInterface: null,
@@ -111,6 +124,12 @@ var InfoTool = {
             this.initialEvent = initialEvent
 
             // Always highlight even if redundant
+
+            // Maintain feature visibility state
+            // Has to be on to click anyway
+            InfoTool.featureHidden = false
+            $('#infoToolHide > i').removeClass('mdi-eye-off')
+            $('#infoToolHide > i').addClass('mdi-eye-on')
         }
         this.featureLayers = featureLayers || []
 
@@ -124,6 +143,13 @@ var InfoTool = {
         tools = tools.append('div').style('height', '100%')
         //Add the markup to tools or do it manually
         tools.html(markup)
+
+        Help.finalize(helpKey)
+
+        $('#infoToolUnhideAll').css(
+            'display',
+            L_.toggledOffFeatures.length > 0 ? 'block' : 'none'
+        )
 
         if (this.info == null || this.info.length == 0) {
             $('#infoToolHeader > .right').css('display', 'none')
@@ -155,16 +181,32 @@ var InfoTool = {
             if (!this.info[i].properties) {
                 if (this.info[i].feature) this.info[i] = this.info[i].feature
             }
-            let name =
-                this.info[i].properties[Object.keys(this.info[i].properties)[0]]
+            let key = this.variables
+                ? this.variables.useKeyAsName || 'name'
+                : 'name'
+
             if (
-                this.variables &&
-                this.variables.useKeyAsName &&
-                this.info[i].properties.hasOwnProperty(
-                    this.variables.useKeyAsName
+                !(
+                    typeof this.info[i].properties[key] === 'string' ||
+                    typeof this.info[i].properties[key] === 'number'
                 )
-            )
-                name = this.info[i].properties[this.variables.useKeyAsName]
+            ) {
+                const propKeys = Object.keys(this.info[i].properties)
+                for (let j = 0; j < propKeys.length; j++) {
+                    if (
+                        typeof this.info[i].properties[propKeys[j]] ===
+                            'string' ||
+                        typeof this.info[i].properties[propKeys[j]] === 'number'
+                    ) {
+                        key = propKeys[j]
+                        break
+                    }
+                }
+            }
+            const name =
+                this.info[i].properties[key] != null
+                    ? this.info[i].properties[key]
+                    : 'Unk'
 
             nameItems.push(this.info.length > 1 ? `${i + 1}. ${name}` : name)
         }
@@ -225,6 +267,41 @@ var InfoTool = {
             } catch (err) {}
         })
 
+        // Unhide all hidden Features
+        $('#infoToolUnhideAll').on('click', function () {
+            ConfirmationModal.prompt(
+                `You have hidden ${L_.toggledOffFeatures.length} feature(s).<br>Do you want to reveal them all?`,
+                (proceed) => {
+                    if (proceed) {
+                        L_.unhideAllFeatures()
+                        InfoTool.featureHidden = false
+                        $('#infoToolHide > i').removeClass('mdi-eye-off')
+                        $('#infoToolHide > i').addClass('mdi-eye')
+                        if (L_.toggledOffFeatures)
+                            $('#infoToolUnhideAll').css(
+                                'display',
+                                L_.toggledOffFeatures.length > 0
+                                    ? 'block'
+                                    : 'none'
+                            )
+                    }
+                }
+            )
+        })
+
+        // Hide/Show Feature
+        $('#infoToolHide').on('click', function () {
+            InfoTool.featureHidden = !InfoTool.featureHidden
+            $(this).find('i').toggleClass('mdi-eye-off')
+            $(this).find('i').toggleClass('mdi-eye')
+            L_.toggleFeature(InfoTool.currentLayer, !InfoTool.featureHidden)
+            if (L_.toggledOffFeatures)
+                $('#infoToolUnhideAll').css(
+                    'display',
+                    L_.toggledOffFeatures.length > 0 ? 'block' : 'none'
+                )
+        })
+
         // Filter
         $('#infoToolFilter > input').on('input', function () {
             InfoTool.filterString = $(this).val()
@@ -234,8 +311,8 @@ var InfoTool = {
         // Toggle hidden
         $('#infoToolShowHidden').on('click', function () {
             InfoTool.hiddenShown = !InfoTool.hiddenShown
-            $(this).find('i').toggleClass('mdi-eye-off')
-            $(this).find('i').toggleClass('mdi-eye')
+            $(this).find('i').toggleClass('mdi-book-outline')
+            $(this).find('i').toggleClass('mdi-book-open-variant')
             InfoTool.createInfo()
         })
     },

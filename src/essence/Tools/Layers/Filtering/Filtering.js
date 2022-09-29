@@ -8,10 +8,13 @@ import Map_ from '../../../Basics/Map_/Map_'
 import LocalFilterer from './LocalFilterer'
 import ESFilterer from './ESFilterer'
 
+import Help from '../../../Ancillary/Help'
 import Dropy from '../../../../external/Dropy/dropy'
 import { circle } from '@turf/turf'
 
 import './Filtering.css'
+
+const helpKey = 'LayersTool-Filtering'
 
 const Filtering = {
     filters: {},
@@ -66,10 +69,11 @@ const Filtering = {
                 "<div id='layersTool_filtering_header'>",
                     "<div id='layersTool_filtering_title_left'>",
                         "<div id='layersTool_filtering_title'>Filter</div>",
+                        Help.getComponent(helpKey),
                         "<div id='layersTool_filtering_count'></div>",
                     "</div>",
                     "<div id='layersTool_filtering_adds'>",
-                        "<div id='layersTool_filtering_add_value' class='mmgisButton5' title='Add New Key-Value Filter'><i class='mdi mdi-plus mdi-18px'></i></div>",
+                        "<div id='layersTool_filtering_add_value' class='mmgisButton5' title='Add New Key-Value Filter'><div>Add</div><i class='mdi mdi-plus mdi-18px'></i></div>",
                     "</div>",
                 "</div>",
                 "<div id='layerTool_filtering_filters'>",
@@ -85,7 +89,7 @@ const Filtering = {
                     "</ul>",
                 "</div>",
                 `<div id='layersTool_filtering_footer'>`,
-                    "<div id='layersTool_filtering_clear' class='mmgisButton5'><div>Clear</div></div>",
+                    "<div id='layersTool_filtering_clear' class='mmgisButton5'><div>Clear Filter</div></div>",
                     "<div id='layersTool_filtering_submit' class='mmgisButton5'><div id='layersTool_filtering_submit_loading'><div></div></div><div id='layersTool_filtering_submit_text'>Submit</div><i class='mdi mdi-arrow-right mdi-18px'></i></div>",
                 "</div>",
             "</div>",
@@ -104,6 +108,11 @@ const Filtering = {
             Filtering.filters[layerName].spatial.center,
             Filtering.filters[layerName].spatial.radius
         )
+
+        // Start with one empty row added
+        Filtering.addValue(layerName)
+
+        Help.finalize(helpKey)
     },
     destroy: function () {
         // Clear Spatial Filter
@@ -361,7 +370,7 @@ const Filtering = {
             layerName
         )}_${id}`
         $(elmId).on('focus', function () {
-            $(this).parent().css('flex', '2.5 1')
+            $(this).parent().css('flex', '4 1')
         })
         $(elmId).on('blur', function () {
             $(this).parent().css('flex', '1 1')
@@ -370,7 +379,7 @@ const Filtering = {
             layerName
         )}_${id}`
         $(elmId).on('focus', function () {
-            $(this).parent().css('flex', '2.5 1')
+            $(this).parent().css('flex', '4 1')
         })
         $(elmId).on('blur', function () {
             $(this).parent().css('flex', '1 1')
@@ -442,6 +451,10 @@ const Filtering = {
                 Filtering.updateValuesAutoComplete(id, layerName)
                 Filtering.setSubmitButtonState(true)
                 $(this).css('border', 'none')
+                $(this).css(
+                    'border-left',
+                    `6px solid ${F_.stringToColor(event.value)}`
+                )
             },
         })
 
@@ -459,6 +472,10 @@ const Filtering = {
                     Filtering.setSubmitButtonState(true)
                 }
                 $(this).css('border', 'none')
+                $(this).css(
+                    'border-left',
+                    `6px solid ${F_.stringToColor($(this).val())}`
+                )
             } else $(this).css('border', '1px solid red')
         })
 
@@ -479,7 +496,7 @@ const Filtering = {
                 ],
                 'op',
                 opId,
-                { openUp: true }
+                { openUp: true, hideChevron: true }
             )
         )
         Dropy.init($(elmId), function (idx) {

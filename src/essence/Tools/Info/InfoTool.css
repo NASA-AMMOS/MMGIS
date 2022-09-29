@@ -42,6 +42,35 @@
     display: none;
 }
 
+#infoToolUnhideAll {
+    position: absolute;
+    right: 90px;
+    cursor: pointer;
+    transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    text-align: center;
+    color: var(--color-green);
+}
+#infoToolUnhideAll:hover {
+    color: var(--color-green2)
+}
+
+#infoToolHide {
+    position: absolute;
+    right: 60px;
+    cursor: pointer;
+    color: #999;
+    transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    text-align: center;
+}
+#infoToolHide > i.mdi-eye-off {
+    color: var(--color-red2);
+}
 #infoToolDownload {
     position: absolute;
     right: 30px;
@@ -55,7 +84,7 @@
 }
 #infoToolLocate {
     position: absolute;
-    right: 0px;
+    right: 00px;
     cursor: pointer;
     color: #999;
     transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
@@ -66,17 +95,19 @@
 }
 #infoToolShowHidden {
     position: absolute;
-    right: 0;
+    right: 0px;
     cursor: pointer;
     color: #999;
     transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
     text-align: center;
+    line-height: 34px;
 }
 
 #infoToolDownload:hover,
 #infoToolLocate:hover,
+#infoToolHide:hover,
 #infoToolShowHidden:hover {
     color: var(--color-m);
 }
@@ -84,27 +115,31 @@
 #infoToolSelectedDropdown {
     width: 100%;
     height: 40px;
+    background: var(--color-a1-5);
+    border-top: 1px solid var(--color-a-5);
 }
 
 #infoToolFilter {
     display: flex;
-    height: 31px;
-    line-height: 30px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    height: 36px;
+    line-height: 33px;
+    border-top: 1px solid var(--color-a-5);
+    border-bottom: 1px solid var(--color-a-5);
+    background: var(--color-a1);
 }
 #infoToolFilter input {
-    background: #0f0f0f;
-    width: 270px;
+    background: var(--color-a1);
+    width: 266px;
     color: #ccc;
     padding-left: 9px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-bottom: none;
+    border: none;
+    border-right: 1px solid var(--color-a-5);
 }
 #infoToolFilter .mdi-filter-variant {
     position: absolute;
-    right: 38px;
+    right: 42px;
     color: #999;
-    line-height: 30px;
+    line-height: 34px;
     pointer-events: none;
 }
 
@@ -134,18 +169,18 @@
 }
 #infoToolData > li {
     display: flex;
-    background: var(--color-j);
+    background: var(--color-a1-5);
     padding: 3px 5px 3px 10px;
     margin: 1px 0px;
     transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
 }
 #infoToolData > li:hover {
-    background: #444;
+    background: var(--color-a1);
     cursor: pointer;
 }
 
 #infoToolData > li.infoTool_property {
-    border-left: 3px solid var(--color-mmgis);
+    border-left: 3px solid var(--color-c2);
 }
 #infoToolData > li.infoTool_geometry {
     border-left: 3px solid var(--color-yellow);
@@ -154,7 +189,7 @@
     border-left: 3px solid black;
 }
 #infoToolData > li.infoTool_metrics {
-    border-left: 3px solid var(--color-orange);
+    border-left: 3px solid var(--color-orange2);
 }
 
 #infoToolData > li > div:first-child {
@@ -178,4 +213,8 @@
 #infoToolData > li.expand > div:last-child {
     white-space: unset;
     word-break: break-all;
+}
+
+#infoTool #infoToolHeader .mmgisHelpButton {
+    margin: 11px 4px;
 }

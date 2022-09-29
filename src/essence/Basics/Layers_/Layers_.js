@@ -86,6 +86,8 @@ var L_ = {
         lat: null,
         lon: null,
     },
+    // features manually turned off
+    toggledOffFeatures: [],
     mapAndGlobeLinked: false,
     init: function (configData, missionsList, urlOnLayers) {
         parseConfig(configData, urlOnLayers)
@@ -448,6 +450,24 @@ var L_ = {
         if (!on && s.type === 'vector') {
             L_.Map_.orderedBringToFront()
         }
+
+        // Add annotation click events since onEachFeatureDefault doesn't apply to popups
+        $('.mmgisAnnotation').off('click')
+        $('.mmgisAnnotation').on('click', function () {
+            const layerName = $(this).attr('layerId')
+            const layerCode = $(this).attr('layer')
+            const layer = L_.layersGroup[layerName]._layers[layerCode]
+            L_.Map_.featureDefaultClick(layer.feature, layer, {
+                latlng: layer._latlng,
+            })
+        })
+
+        // Toggling rereveals hidden features, so make sure they stay hidden
+        if (L_.toggledOffFeatures && L_.toggledOffFeatures.length > 0) {
+            L_.toggledOffFeatures.forEach((f) => {
+                L_.toggleFeature(f, false)
+            })
+        }
     },
     toggleSublayer: function (layerName, sublayerName) {
         const sublayers = L_.layersGroupSublayers[layerName] || {}
@@ -747,11 +767,24 @@ var L_ = {
         )
             return
 
-        layer.addData(geojson)
+        // Remake Layer
+        L_.Map_.makeLayer(L_.layersNamed[layer._layerName], true, geojson)
     },
     clearGeoJSONData: function (layer) {
         if (layer._sourceGeoJSON) layer._sourceGeoJSON = F_.getBaseGeoJSON()
         layer.clearLayers()
+
+        // If for some reason we still have layers, explicitly clear them
+        if (Object.keys(layer._layers).length > 0) {
+            layer.eachLayer((innerLayer) => {
+                if (innerLayer._layers) innerLayer.clearLayers()
+                if (layer.hasLayer(innerLayer)) layer.removeLayer(innerLayer)
+                else {
+                    L_.Map_.rmNotNull(innerLayer)
+                }
+            })
+            layer._layers = {}
+        }
     },
     setStyle(layer, newStyle) {
         try {
@@ -799,19 +832,20 @@ var L_ = {
         const color =
             (L_.configData.look && L_.configData.look.highlightcolor) || 'red'
         try {
-            if (layer.feature?.properties?.annotation) {
+            if (
+                layer.feature?.properties?.annotation === true &&
+                layer._container
+            ) {
                 // Annotation
-                let id =
-                    '#DrawToolAnnotation_' +
-                    layer.feature.properties._.file_id +
-                    '_' +
-                    layer.feature.properties._.id
-                d3.select(id).style('color', color)
-            } else if (layer.hasOwnProperty('_layers')) {
+                $(layer._container)
+                    .find('.mmgisAnnotation')
+                    .css('color', 'lime')
+            } else if (layer.feature?.properties?.arrow === true) {
                 // Arrow
-                var layers = layer._layers
-                layers[Object.keys(layers)[0]].setStyle({ color })
-                layers[Object.keys(layers)[1]].setStyle({ color })
+                $(`.LayerArrow_${layer._idx}.mmgisArrowOutline`).css(
+                    'stroke',
+                    color
+                )
             } else {
                 layer.setStyle({
                     color: color,
@@ -822,10 +856,53 @@ var L_ = {
                 layer._icon.style.filter = `drop-shadow(${color}  2px 0px 0px) drop-shadow(${color}  -2px 0px 0px) drop-shadow(${color}  0px 2px 0px) drop-shadow(${color} 0px -2px 0px)`
         }
         try {
-            layer.bringToFront()
+            //layer.bringToFront()
         } catch (err) {}
     },
+    toggleFeature(layer, on) {
+        const display = on ? 'inherit' : 'none'
+        layer._hidden = !on
+        let layers = [layer]
 
+        if (layer.hasOwnProperty('_layers')) {
+            // Arrow
+            const innerLayers = layer._layers
+            Object.keys(innerLayers).forEach((k) => {
+                layers.push(innerLayers[k])
+            })
+        }
+
+        if (layer._isArrow) {
+            $(`.LayerArrow_${layer._idx}`).css('display', display)
+        }
+
+        layers.forEach((l) => {
+            if (l._path) {
+                l._path.style.display = display
+            }
+            if (l._container) {
+                l._container.style.display = display
+            }
+            if (l._icon) {
+                l._icon.style.display = display
+            }
+        })
+        L_.toggledOffFeatures = L_.toggledOffFeatures || []
+        const tofIdx = L_.toggledOffFeatures.indexOf(layer)
+
+        if (layer._hidden && tofIdx === -1) L_.toggledOffFeatures.push(layer)
+        else if (!layer._hidden && tofIdx >= 0) {
+            L_.toggledOffFeatures.splice(tofIdx, 1)
+        }
+    },
+    unhideAllFeatures() {
+        if (L_.toggledOffFeatures) {
+            for (let i = L_.toggledOffFeatures.length - 1; i >= 0; i--)
+                L_.toggleFeature(L_.toggledOffFeatures[i], true)
+        }
+        L_.Map_.orderedBringToFront()
+        L_.setActiveFeature(L_.activeFeature?.layer)
+    },
     /**
      *
      * @param {string[]} forceLayerNames - Enforce visibilities per layer
@@ -899,6 +976,8 @@ var L_ = {
         })
     },
     _setVisibilityCuttoffInternal: function (l, minZoom, maxZoom) {
+        if (l._hidden === true) return
+
         let featureMinZoom = null
         let featureMaxZoom = null
         if (l.feature?.properties?.style?.minZoom != null)
@@ -927,11 +1006,14 @@ var L_ = {
         style,
         feature,
         index,
-        indexedCallback
+        indexedCallback,
+        withClass
     ) {
-        var line
+        const className = withClass ? `mmgisArrow LayerArrow_${index}` : ''
+        const classNameOutline = withClass ? ' mmgisArrowOutline' : ''
+        let line
 
-        var length
+        let length
         if (isNaN(style.length)) length = false
         else length = parseInt(style.length)
 
@@ -939,7 +1021,7 @@ var L_ = {
             color: style.color,
             weight: style.width + style.weight,
         })
-        var arrowBodyOutline
+        let arrowBodyOutline
         if (length === false) {
             arrowBodyOutline = new L.Polyline([start, end], {
                 color: style.color,
@@ -947,6 +1029,7 @@ var L_ = {
                 dashArray: style.dashArray,
                 lineCap: style.lineCap,
                 lineJoin: style.lineJoin,
+                className: className + classNameOutline,
             })
         } else {
             arrowBodyOutline = L.polylineDecorator(line, {
@@ -964,6 +1047,7 @@ var L_ = {
                                 dashArray: style.dashArray,
                                 lineCap: style.lineCap,
                                 lineJoin: style.lineJoin,
+                                className: className + classNameOutline,
                             },
                         }),
                     },
@@ -973,6 +1057,7 @@ var L_ = {
         line = new L.Polyline([start, end], {
             color: style.color,
             weight: style.width + style.weight,
+            className: className,
         })
         var arrowHeadOutline = L.polylineDecorator(line, {
             patterns: [
@@ -988,6 +1073,7 @@ var L_ = {
                             weight: style.width + style.weight,
                             lineCap: style.lineCap,
                             lineJoin: style.lineJoin,
+                            className: className + classNameOutline,
                         },
                     }),
                 },
@@ -996,6 +1082,7 @@ var L_ = {
         line = new L.Polyline([end, start], {
             color: style.fillColor,
             weight: style.width,
+            className: className,
         })
         var arrowBody
         if (length === false) {
@@ -1005,6 +1092,7 @@ var L_ = {
                 dashArray: style.dashArray,
                 lineCap: style.lineCap,
                 lineJoin: style.lineJoin,
+                className: className,
             })
         } else {
             arrowBody = L.polylineDecorator(line, {
@@ -1022,6 +1110,7 @@ var L_ = {
                                 dashArray: style.dashArray,
                                 lineCap: style.lineCap,
                                 lineJoin: style.lineJoin,
+                                className: className,
                             },
                         }),
                     },
@@ -1031,6 +1120,7 @@ var L_ = {
         line = new L.Polyline([start, end], {
             color: style.fillColor,
             weight: style.width,
+            className: className,
         })
         var arrowHead = L.polylineDecorator(line, {
             patterns: [
@@ -1046,6 +1136,7 @@ var L_ = {
                             weight: style.width,
                             lineCap: style.lineCap,
                             lineJoin: style.lineJoin,
+                            className: className,
                         },
                     }),
                 },
@@ -1063,12 +1154,13 @@ var L_ = {
             arrowLayer.end = end
             arrowLayer.feature = feature
 
+            arrowLayer._isArrow = true
+            arrowLayer._idx = index
             arrowLayer.toGeoJSON = function () {
                 return feature
             }
             return arrowLayer
-        }
-        if (index != null) {
+        } else {
             L_.Map_.rmNotNull(L_.layersGroup[layerId][index])
             L_.layersGroup[layerId][index] = L.layerGroup([
                 arrowBodyOutline,
@@ -1076,26 +1168,12 @@ var L_ = {
                 arrowBody,
                 arrowHead,
             ]).addTo(L_.Map_.map)
+            L_.layersGroup[layerId][index]._isArrow = true
+            L_.layersGroup[layerId][index]._idx = index
             L_.layersGroup[layerId][index].start = start
             L_.layersGroup[layerId][index].end = end
             L_.layersGroup[layerId][index].feature = feature
             if (typeof indexedCallback === 'function') indexedCallback()
-        } else {
-            L_.layersGroup[layerId].push(
-                L.layerGroup([
-                    arrowBodyOutline,
-                    arrowHeadOutline,
-                    arrowBody,
-                    arrowHead,
-                ]).addTo(L_.Map_.map)
-            )
-            L_.layersGroup[layerId][L_.layersGroup[layerId].length - 1].start =
-                start
-            L_.layersGroup[layerId][L_.layersGroup[layerId].length - 1].end =
-                end
-            L_.layersGroup[layerId][
-                L_.layersGroup[layerId].length - 1
-            ].feature = feature
         }
     },
     createAnnotation: function (
@@ -1132,9 +1210,10 @@ var L_ = {
                   'deg); '
                 : '')
 
+        const id = className + '_' + id1 + '_' + id2
         // prettier-ignore
         const popup = L.popup({
-            className: `leaflet-popup-annotation${!andAddToMap ? ' noPointerEvents' : ''}`,
+            className: `leaflet-popup-annotation`,
             closeButton: false,
             autoClose: false,
             closeOnEscapeKey: false,
@@ -1150,15 +1229,16 @@ var L_ = {
             )
             .setContent(
                 "<div>" +
-                    "<div id='" + className + '_' + id1 + '_' + id2 +
-                    "' class='drawToolAnnotation " + className + '_' + id1 + "  blackTextBorder'" +
+                    "<div id='" + id +
+                    "' class='mmgisAnnotation " + className + '_' + id1 + " blackTextBorder'" +
                     " layer='" + id1 +
-                    (L_.layersGroup[layerId] != null ? "' index='" + L_.layersGroup[layerId].length : '') +
+                    "' layerId='" + layerId + 
                     "' style='" + styleString + "'>" +
                     `${feature.properties.name.replace(/[<>;{}]/g, '')}`,
                     '</div>' +
                 '</div>'
             )
+
         popup._isAnnotation = true
         popup._annotationParams = {
             feature,
@@ -1169,6 +1249,8 @@ var L_ = {
             andAddToMap,
         }
         popup.feature = feature
+        popup.options = popup.options || {}
+        popup.options.layerName = layerId
         popup.toGeoJSON = function () {
             return feature
         }
@@ -1333,25 +1415,46 @@ var L_ = {
                     this.layersGroup.hasOwnProperty(key) &&
                     this.layersGroup[key] != undefined &&
                     this.layersStyles.hasOwnProperty(key) &&
-                    this.layersStyles[key] != undefined &&
-                    this.layersStyles[key].hasOwnProperty('fillColor')
+                    this.layersStyles[key] != undefined
                 ) {
                     this.layersGroup[key].eachLayer((layer) => {
                         const savedOptions = layer.options
                         const savedUseKeyAsName = layer.useKeyAsName
 
                         let fillColor = this.layersStyles[key].fillColor
+                        let color = this.layersStyles[key].color
                         let opacity = layer.options.opacity
                         let fillOpacity = layer.options.fillOpacity
                         let weight = layer.options.weight
-                        if (!layer._isAnnotation)
+
+                        if (layer._isAnnotation) {
+                            // Annotation
+                            if (layer._container)
+                                $(layer._container)
+                                    .find('.mmgisAnnotation')
+                                    .css(
+                                        'color',
+                                        layer.feature?.properties?.style
+                                            ?.fillColor ||
+                                            layer.options?.fillColor ||
+                                            fillColor ||
+                                            'white'
+                                    )
+                        } else if (layer._isArrow) {
+                            // Arrow
+                            $(
+                                `.LayerArrow_${layer._idx}.mmgisArrowOutline`
+                            ).css('stroke', '')
+                        } else {
                             L_.layersGroup[key].resetStyle(layer)
+                        }
                         try {
                             layer.setStyle({
                                 opacity: opacity,
                                 fillOpacity: fillOpacity,
                                 fillColor: layer.options.fillColor || fillColor,
                                 weight: parseInt(weight),
+                                color: layer.options.color || color,
                             })
                         } catch (err) {
                             if (layer._icon) layer._icon.style.filter = ''

@@ -1,0 +1,72 @@
+#ConfirmationModal {
+    background: var(--color-k);
+    width: 360px;
+    margin: 40px;
+    border-radius: 3px;
+    font-family: sans-serif;
+    box-shadow: 0px 3px 7px 0px rgba(0, 0, 0, 0.3);
+}
+#ConfirmationModalTitle {
+    padding: 1px 0px 0px 10px;
+    height: 40px;
+    line-height: 39px;
+    font-size: 18px;
+    background: var(--color-a1);
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    display: flex;
+    justify-content: space-between;
+    text-transform: capitalize;
+}
+#ConfirmationModalTitle > div:first-child {
+    display: flex;
+}
+#ConfirmationModalTitle > div:first-child > div {
+    margin-left: 6px;
+    line-height: 40px;
+}
+#ConfirmationModalClose {
+    width: 40px;
+    height: 40px;
+    text-align: center;
+    padding-left: 3px;
+}
+#ConfirmationModalContent {
+    padding: 16px 32px;
+    overflow-y: auto;
+    max-height: 80vh;
+    line-height: 26px;
+    font-family: 'roboto';
+    text-align: center;
+    font-size: 16px;
+}
+
+#ConfirmationModalFooter {
+    display: flex;
+    justify-content: center;
+    background: var(--color-a1);
+}
+#ConfirmationModalFooter > div {
+    width: 80px;
+    display: block;
+    border-radius: 2px;
+    margin: 5px 8px;
+    color: var(--color-a6);
+    font-weight: bold;
+}
+#ConfirmationModalFooter > div:hover {
+    color: white;
+}
+#ConfirmationModalNo {
+    background: var(--color-a2);
+}
+#ConfirmationModalNo:hover {
+    background: var(--color-a3);
+}
+#ConfirmationModalYes {
+    background: var(--color-c2);
+}
+#ConfirmationModalYes:hover {
+    background: var(--color-c);
+}
+

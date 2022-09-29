@@ -196,9 +196,33 @@ var Description = {
                 }
             }
 
-            let key =
-                activeLayer.useKeyAsName ||
-                Object.keys(activeLayer.feature.properties)[0]
+            let key = activeLayer.useKeyAsName || 'name'
+
+            !(
+                typeof activeLayer.feature.properties[key] === 'string' ||
+                typeof activeLayer.feature.properties[key] === 'number'
+            )
+
+            if (
+                !(
+                    typeof activeLayer.feature.properties[key] === 'string' ||
+                    typeof activeLayer.feature.properties[key] === 'number'
+                )
+            ) {
+                const propKeys = Object.keys(activeLayer.feature.properties)
+                for (let i = 0; i < propKeys.length; i++) {
+                    if (
+                        typeof activeLayer.feature.properties[propKeys[i]] ===
+                            'string' ||
+                        typeof activeLayer.feature.properties[propKeys[i]] ===
+                            'number'
+                    ) {
+                        key = propKeys[i]
+                        break
+                    }
+                }
+            }
+
             keyAsName =
                 activeLayer.feature.properties[key] +
                 ' <div class="mainDescPointInnerType" style="font-size: 11px; padding: 0px 3px; opacity: 0.8;">(' +
