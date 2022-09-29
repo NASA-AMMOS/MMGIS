@@ -6,7 +6,7 @@
     font-family: sans-serif;
 }
 #HelpModalTitle {
-    padding: 0px 0px 0px 10px;
+    padding: 1px 0px 0px 10px;
     height: 40px;
     line-height: 39px;
     font-size: 18px;
@@ -58,6 +58,7 @@
 }
 #HelpModal li {
     margin: 4px 0px;
+    line-height: 22px;
 }
 #HelpModal pre {
     background: var(--color-a1);

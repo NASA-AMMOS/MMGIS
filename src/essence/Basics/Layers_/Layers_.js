@@ -832,19 +832,20 @@ var L_ = {
         const color =
             (L_.configData.look && L_.configData.look.highlightcolor) || 'red'
         try {
-            if (layer.feature?.properties?.annotation) {
+            if (
+                layer.feature?.properties?.annotation === true &&
+                layer._container
+            ) {
                 // Annotation
-                let id =
-                    '#DrawToolAnnotation_' +
-                    layer.feature.properties._.file_id +
-                    '_' +
-                    layer.feature.properties._.id
-                d3.select(id).style('color', color)
-            } else if (layer.hasOwnProperty('_layers')) {
+                $(layer._container)
+                    .find('.mmgisAnnotation')
+                    .css('color', 'lime')
+            } else if (layer.feature?.properties?.arrow === true) {
                 // Arrow
-                var layers = layer._layers
-                layers[Object.keys(layers)[0]].setStyle({ color })
-                layers[Object.keys(layers)[1]].setStyle({ color })
+                $(`.LayerArrow_${layer._idx}.mmgisArrowOutline`).css(
+                    'stroke',
+                    color
+                )
             } else {
                 layer.setStyle({
                     color: color,
@@ -855,7 +856,7 @@ var L_ = {
                 layer._icon.style.filter = `drop-shadow(${color}  2px 0px 0px) drop-shadow(${color}  -2px 0px 0px) drop-shadow(${color}  0px 2px 0px) drop-shadow(${color} 0px -2px 0px)`
         }
         try {
-            layer.bringToFront()
+            //layer.bringToFront()
         } catch (err) {}
     },
     toggleFeature(layer, on) {
@@ -871,12 +872,15 @@ var L_ = {
             })
         }
 
+        if (layer._isArrow) {
+            $(`.LayerArrow_${layer._idx}`).css('display', display)
+        }
+
         layers.forEach((l) => {
             if (l._path) {
                 l._path.style.display = display
             }
             if (l._container) {
-                console.log(l)
                 l._container.style.display = display
             }
             if (l._icon) {
@@ -896,6 +900,8 @@ var L_ = {
             for (let i = L_.toggledOffFeatures.length - 1; i >= 0; i--)
                 L_.toggleFeature(L_.toggledOffFeatures[i], true)
         }
+        L_.Map_.orderedBringToFront()
+        L_.setActiveFeature(L_.activeFeature?.layer)
     },
     /**
      *
@@ -970,6 +976,8 @@ var L_ = {
         })
     },
     _setVisibilityCuttoffInternal: function (l, minZoom, maxZoom) {
+        if (l._hidden === true) return
+
         let featureMinZoom = null
         let featureMaxZoom = null
         if (l.feature?.properties?.style?.minZoom != null)
@@ -998,11 +1006,14 @@ var L_ = {
         style,
         feature,
         index,
-        indexedCallback
+        indexedCallback,
+        withClass
     ) {
-        var line
+        const className = withClass ? `mmgisArrow LayerArrow_${index}` : ''
+        const classNameOutline = withClass ? ' mmgisArrowOutline' : ''
+        let line
 
-        var length
+        let length
         if (isNaN(style.length)) length = false
         else length = parseInt(style.length)
 
@@ -1010,7 +1021,7 @@ var L_ = {
             color: style.color,
             weight: style.width + style.weight,
         })
-        var arrowBodyOutline
+        let arrowBodyOutline
         if (length === false) {
             arrowBodyOutline = new L.Polyline([start, end], {
                 color: style.color,
@@ -1018,6 +1029,7 @@ var L_ = {
                 dashArray: style.dashArray,
                 lineCap: style.lineCap,
                 lineJoin: style.lineJoin,
+                className: className + classNameOutline,
             })
         } else {
             arrowBodyOutline = L.polylineDecorator(line, {
@@ -1035,6 +1047,7 @@ var L_ = {
                                 dashArray: style.dashArray,
                                 lineCap: style.lineCap,
                                 lineJoin: style.lineJoin,
+                                className: className + classNameOutline,
                             },
                         }),
                     },
@@ -1044,6 +1057,7 @@ var L_ = {
         line = new L.Polyline([start, end], {
             color: style.color,
             weight: style.width + style.weight,
+            className: className,
         })
         var arrowHeadOutline = L.polylineDecorator(line, {
             patterns: [
@@ -1059,6 +1073,7 @@ var L_ = {
                             weight: style.width + style.weight,
                             lineCap: style.lineCap,
                             lineJoin: style.lineJoin,
+                            className: className + classNameOutline,
                         },
                     }),
                 },
@@ -1067,6 +1082,7 @@ var L_ = {
         line = new L.Polyline([end, start], {
             color: style.fillColor,
             weight: style.width,
+            className: className,
         })
         var arrowBody
         if (length === false) {
@@ -1076,6 +1092,7 @@ var L_ = {
                 dashArray: style.dashArray,
                 lineCap: style.lineCap,
                 lineJoin: style.lineJoin,
+                className: className,
             })
         } else {
             arrowBody = L.polylineDecorator(line, {
@@ -1093,6 +1110,7 @@ var L_ = {
                                 dashArray: style.dashArray,
                                 lineCap: style.lineCap,
                                 lineJoin: style.lineJoin,
+                                className: className,
                             },
                         }),
                     },
@@ -1102,6 +1120,7 @@ var L_ = {
         line = new L.Polyline([start, end], {
             color: style.fillColor,
             weight: style.width,
+            className: className,
         })
         var arrowHead = L.polylineDecorator(line, {
             patterns: [
@@ -1117,6 +1136,7 @@ var L_ = {
                             weight: style.width,
                             lineCap: style.lineCap,
                             lineJoin: style.lineJoin,
+                            className: className,
                         },
                     }),
                 },
@@ -1134,12 +1154,13 @@ var L_ = {
             arrowLayer.end = end
             arrowLayer.feature = feature
 
+            arrowLayer._isArrow = true
+            arrowLayer._idx = index
             arrowLayer.toGeoJSON = function () {
                 return feature
             }
             return arrowLayer
-        }
-        if (index != null) {
+        } else {
             L_.Map_.rmNotNull(L_.layersGroup[layerId][index])
             L_.layersGroup[layerId][index] = L.layerGroup([
                 arrowBodyOutline,
@@ -1147,26 +1168,12 @@ var L_ = {
                 arrowBody,
                 arrowHead,
             ]).addTo(L_.Map_.map)
+            L_.layersGroup[layerId][index]._isArrow = true
+            L_.layersGroup[layerId][index]._idx = index
             L_.layersGroup[layerId][index].start = start
             L_.layersGroup[layerId][index].end = end
             L_.layersGroup[layerId][index].feature = feature
             if (typeof indexedCallback === 'function') indexedCallback()
-        } else {
-            L_.layersGroup[layerId].push(
-                L.layerGroup([
-                    arrowBodyOutline,
-                    arrowHeadOutline,
-                    arrowBody,
-                    arrowHead,
-                ]).addTo(L_.Map_.map)
-            )
-            L_.layersGroup[layerId][L_.layersGroup[layerId].length - 1].start =
-                start
-            L_.layersGroup[layerId][L_.layersGroup[layerId].length - 1].end =
-                end
-            L_.layersGroup[layerId][
-                L_.layersGroup[layerId].length - 1
-            ].feature = feature
         }
     },
     createAnnotation: function (
@@ -1231,6 +1238,7 @@ var L_ = {
                     '</div>' +
                 '</div>'
             )
+
         popup._isAnnotation = true
         popup._annotationParams = {
             feature,
@@ -1418,8 +1426,28 @@ var L_ = {
                         let opacity = layer.options.opacity
                         let fillOpacity = layer.options.fillOpacity
                         let weight = layer.options.weight
-                        if (!layer._isAnnotation)
+
+                        if (layer._isAnnotation) {
+                            // Annotation
+                            if (layer._container)
+                                $(layer._container)
+                                    .find('.mmgisAnnotation')
+                                    .css(
+                                        'color',
+                                        layer.feature?.properties?.style
+                                            ?.fillColor ||
+                                            layer.options?.fillColor ||
+                                            fillColor ||
+                                            'white'
+                                    )
+                        } else if (layer._isArrow) {
+                            // Arrow
+                            $(
+                                `.LayerArrow_${layer._idx}.mmgisArrowOutline`
+                            ).css('stroke', '')
+                        } else {
                             L_.layersGroup[key].resetStyle(layer)
+                        }
                         try {
                             layer.setStyle({
                                 opacity: opacity,
@@ -1433,8 +1461,6 @@ var L_ = {
                         }
                         layer.options = savedOptions
                         layer.useKeyAsName = savedUseKeyAsName
-
-                        layer._hidden = false
                     })
                 } else if (s[0] == 'DrawTool') {
                     for (let k in this.layersGroup[key]) {
@@ -1498,8 +1524,6 @@ var L_ = {
                         else if (layer._icon?.style) {
                             layer._icon.style.filter = 'unset'
                         }
-
-                        layer._hidden = false
                     }
                 }
             }

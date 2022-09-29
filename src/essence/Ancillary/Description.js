@@ -198,12 +198,24 @@ var Description = {
 
             let key = activeLayer.useKeyAsName || 'name'
 
-            if (typeof activeLayer.feature.properties[key] !== 'string') {
+            !(
+                typeof activeLayer.feature.properties[key] === 'string' ||
+                typeof activeLayer.feature.properties[key] === 'number'
+            )
+
+            if (
+                !(
+                    typeof activeLayer.feature.properties[key] === 'string' ||
+                    typeof activeLayer.feature.properties[key] === 'number'
+                )
+            ) {
                 const propKeys = Object.keys(activeLayer.feature.properties)
                 for (let i = 0; i < propKeys.length; i++) {
                     if (
                         typeof activeLayer.feature.properties[propKeys[i]] ===
-                        'string'
+                            'string' ||
+                        typeof activeLayer.feature.properties[propKeys[i]] ===
+                            'number'
                     ) {
                         key = propKeys[i]
                         break

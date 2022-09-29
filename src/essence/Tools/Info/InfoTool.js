@@ -30,7 +30,7 @@ var markup = [
                 "<div id='infoToolUnhideAll' title='Reshow All Hidden Features'>",
                     "<i class='mdi mdi-eye-check mdi-18px'></i>",
                 "</div>",
-                "<div id='infoToolHide' title='Temporarily Hide Feature'>",
+                "<div id='infoToolHide' title='Hide/Show Feature'>",
                     "<i class='mdi mdi-eye mdi-18px'></i>",
                 "</div>",
                 "<div id='infoToolDownload' title='Copy Feature to Clipboard'>",
@@ -47,7 +47,7 @@ var markup = [
         "<div id='infoToolFilter'>",
             "<input type='text' placeholder='Filter'>",
             "<i class='mdi mdi-filter-variant mdi-18px'></i>",
-            "<div  id='infoToolShowHidden' title='Toggle Hidden Properties'>",
+            "<div id='infoToolShowHidden' title='Toggle Hidden Properties'>",
                 "<i class='mdi mdi-book-outline mdi-18px'></i>",
             "</div>",
         "</div>",
@@ -185,18 +185,28 @@ var InfoTool = {
                 ? this.variables.useKeyAsName || 'name'
                 : 'name'
 
-            if (typeof this.info[i].properties[key] !== 'string') {
+            if (
+                !(
+                    typeof this.info[i].properties[key] === 'string' ||
+                    typeof this.info[i].properties[key] === 'number'
+                )
+            ) {
                 const propKeys = Object.keys(this.info[i].properties)
                 for (let j = 0; j < propKeys.length; j++) {
                     if (
-                        typeof this.info[i].properties[propKeys[j]] === 'string'
+                        typeof this.info[i].properties[propKeys[j]] ===
+                            'string' ||
+                        typeof this.info[i].properties[propKeys[j]] === 'number'
                     ) {
                         key = propKeys[j]
                         break
                     }
                 }
             }
-            const name = this.info[i].properties[key] || 'Unk'
+            const name =
+                this.info[i].properties[key] != null
+                    ? this.info[i].properties[key]
+                    : 'Unk'
 
             nameItems.push(this.info.length > 1 ? `${i + 1}. ${name}` : name)
         }

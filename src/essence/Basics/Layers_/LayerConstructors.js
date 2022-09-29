@@ -111,8 +111,12 @@ export const constructVectorLayer = (
                 layerObj.style.fillColor = finalFiC
                 layerObj.style.fillOpacity = finalFiO
             }
-            layerObj.style.className =
-                layerObj.style.className + noPointerEventsClass
+            if (
+                noPointerEventsClass != null &&
+                layerObj.style.className.indexOf(noPointerEventsClass) === -1
+            )
+                layerObj.style.className =
+                    layerObj.style.className + noPointerEventsClass
             layerObj.style.metadata = geojson.metadata || {}
 
             if (
@@ -415,18 +419,26 @@ export const constructVectorLayer = (
                 start,
                 end,
                 l.feature?.properties?.style,
-                l.feature
+                l.feature,
+                idx,
+                null,
+                true
             )
             layer._layers[idx].useKeyAsName = savedUseKeyAsName
             layer._layers[idx].options = savedOptions
+            layer._idx = idx
+            layer._isArrow = true
+            layer._layers[idx]._idx = idx
+            layer._layers[idx]._isArrow = true
             Object.keys(layer._layers[idx]._layers).forEach((idx2) => {
+                layer._layers[idx]._layers[idx2]._idx = idx
+                layer._layers[idx]._layers[idx2]._isArrow = true
                 layer._layers[idx]._layers[idx2].options.layerName =
                     savedOptions.layerName
                 layer._layers[idx]._layers[idx2].feature = l.feature
                 layer._layers[idx]._layers[idx2].useKeyAsName =
                     savedUseKeyAsName
                 l.feature.style = l.feature.style || {}
-                l.feature.style.noclick = true
                 onEachFeatureDefault(
                     l.feature,
                     layer._layers[idx]._layers[idx2]
