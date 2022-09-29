@@ -26,8 +26,13 @@
     background: var(--color-green) !important;
     color: var(--color-a) !important;
 }
+.DISCONNECTED {
+    background: var(--color-red) !important;
+    color: var(--color-f) !important;
+}
 .leaflet-control-update-layer-icon > .mdi-reload-alert,
-.leaflet-control-update-layer-icon > .mdi-reload {
+.leaflet-control-update-layer-icon > .mdi-reload,
+.leaflet-control-update-layer-icon > .mdi-alert-outline {
     width: 100%;
 }
 .update-layer-icon-text:hover {
@@ -42,4 +47,31 @@
 }
 .update-layer-icon-text.plus {
     margin-top: -1px;
+}
+.update-modal-section-title {
+    padding: 5px;
+}
+.update-modal-table-container {
+    background: transparent;
+    border: none;
+    color: var(--color-f);
+    width: 100%;
+    height: 300px;
+    padding: 10px 0px 10px 10px;
+    font-family: 'roboto';
+    font-size: 14px;
+    overflow: auto;
+}
+#update-modal-actions {
+    display: flex;
+    margin-top: 5px;
+    padding: 5px;
+    justify-content: space-between;
+    background: var(--color-a1);
+    border-top: 1px solid var(--color-a);
+}
+.update-modal-flex {
+    display: flex;
+    justify-content: space-between;
+    margin-left: auto;
 }

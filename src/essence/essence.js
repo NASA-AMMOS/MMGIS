@@ -210,20 +210,17 @@ var essence = {
             const path = `ws://localhost:${port}/`
             const ws = new WebSocket(path);
             ws.onopen = function () {
-                console.log("Started websocket connection in essence...")
+                console.log("Started websocket connection...")
             }
 
             ws.onmessage = function (data) {
-                console.log('Websocket in essence recieved data...', data)
                 if (data.data) {
                     try {
                         const parsed = JSON.parse(data.data)
                         if ('info' in parsed) {
                             const { type, layerName } = parsed.info
-                            console.log("TYPE", type)
 
-/*
-                            if (type === 'addLayer') {
+                            if (type === 'addLayer' || type === 'updateLayer' || type === 'removeLayer') {
                                 const mission = essence.configData.msv.mission
                                 calls.api(
                                     'get',
@@ -231,41 +228,21 @@ var essence = {
                                         mission,
                                     },
                                     async function (data) {
-                                        L_.addLayerQueue.push({
-                                            newLayerName: layerName,
-                                            data,
-                                            type,
-                                        })
-                                        UserInterface_.updateLayerUpdateButton('ADD_LAYER')
+                                        if (parsed.forceClientUpdate) {
+                                            // Force update the client side
+                                            await L_.autoUpdateLayer(data, layerName, type)
+                                        } else {
+                                            L_.addLayerQueue.push({
+                                                newLayerName: layerName,
+                                                data,
+                                                type,
+                                            })
+
+                                            UserInterface_.updateLayerUpdateButton('ADD_LAYER')
+                                        }
                                     },
                                     function (e) {
-                                        console.log(
-                                            "Warning: Couldn't load: " + mission + ' configuration.'
-                                        )
-                                    }
-                                )
-                            } else if (type === 'updateLayer') {
-
-                            }
-*/
-
-                            if (type === 'addLayer' || type === 'updateLayer') {
-                                const mission = essence.configData.msv.mission
-                                calls.api(
-                                    'get',
-                                    {
-                                        mission,
-                                    },
-                                    async function (data) {
-                                        L_.addLayerQueue.push({
-                                            newLayerName: layerName,
-                                            data,
-                                            type,
-                                        })
-                                        UserInterface_.updateLayerUpdateButton('ADD_LAYER')
-                                    },
-                                    function (e) {
-                                        console.log(
+                                        console.warn(
                                             "Warning: Couldn't load: " + mission + ' configuration.'
                                         )
                                     }
@@ -283,7 +260,8 @@ var essence = {
             }
 
             ws.onclose = function () {
-                console.log("Closed websocket connection in essence...")
+                console.log("Closed websocket connection...")
+                UserInterface_.updateLayerUpdateButton('DISCONNECTED')
             }
         }
     },

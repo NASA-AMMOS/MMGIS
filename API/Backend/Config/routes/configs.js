@@ -246,12 +246,14 @@ if (fullAccess)
  *    config?: {}
  * }
  */
-function upsert(req, res, next, cb, caller) {
+function upsert(req, res, next, cb, info) {
   let hasVersion = false;
   req.body = req.body || {};
 
   if (req.body.version != null) hasVersion = true;
   let versionConfig = null;
+
+  const forceClientUpdate = req.body?.forceClientUpdate || false;
 
   Config.findAll({
     where: {
@@ -289,10 +291,12 @@ function upsert(req, res, next, cb, caller) {
                 status: "failure",
                 message: "Stringified configuration object is not JSON.",
               });
-            openWebSocket(req.body, {
-                status: "failure",
-                message: "Stringified configuration object is not JSON.",
-              }, caller);
+              openWebSocket(req.body, {
+                  status: "failure",
+                  message: "Stringified configuration object is not JSON.",
+                }, info,
+                forceClientUpdate
+              );
           }
         } else configJSON = req.body.config;
       }
@@ -315,7 +319,9 @@ function upsert(req, res, next, cb, caller) {
               status: "failure",
               message: "Configuration object is invalid.",
               ...validation,
-            }, caller);
+            }, info,
+            forceClientUpdate
+          );
         return;
       }
 
@@ -350,7 +356,9 @@ function upsert(req, res, next, cb, caller) {
                 status: "success",
                 mission: created.mission,
                 version: created.version,
-              }, caller);
+              }, info,
+              forceClientUpdate
+            );
           return null;
         })
         .catch((err) => {
@@ -371,7 +379,9 @@ function upsert(req, res, next, cb, caller) {
             openWebSocket(req.body, {
                 status: "failure",
                 message: "Failed to update mission.",
-              }, caller);
+              }, info,
+              forceClientUpdate
+            );
           return null;
         });
       return null;
@@ -380,7 +390,7 @@ function upsert(req, res, next, cb, caller) {
       logger("error", "Failed to find mission.", req.originalUrl, req, err);
       if (cb) cb({ status: "failure", message: "Failed to find mission." });
       else res.send({ status: "failure", message: "Failed to find mission." });
-      openWebSocket(req.body, { status: "failure", message: "Failed to find mission." }, caller);
+      openWebSocket(req.body, { status: "failure", message: "Failed to find mission." }, info, forceClientUpdate);
       return null;
     });
   return null;
@@ -584,7 +594,7 @@ if (fullAccess)
     }
   });
 
-function openWebSocket(body, response, info) {
+function openWebSocket(body, response, info, forceClientUpdate) {
   const port = parseInt(process.env.PORT || "8888", 10);
   const path = `ws://localhost:${port}/`
   const ws = new WebSocket(path);
@@ -592,6 +602,7 @@ function openWebSocket(body, response, info) {
     const data = {
       info,
       body,
+      forceClientUpdate,
     };
     ws.send(JSON.stringify(data));
   }
@@ -612,7 +623,7 @@ function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
       "index?":
         "{0}, index in 'layers' to place new layer out of range placement indices are best fit; default end",
     },
-    "notifyClients?": "{true}; default false",
+    "forceClientUpdate?": "{true}; default false",
   };
 
   if (req.body.mission == null) {
@@ -697,7 +708,7 @@ function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
           if (didSet) {
             upsert(
               {
-                body: { mission: req.body.mission, config: config },
+                body: { mission: req.body.mission, config: config, forceClientUpdate: req.body.forceClientUpdate },
               },
               null,
               null,
@@ -777,7 +788,7 @@ if (fullAccess)
         "index?":
           "{0}, index in 'layers' to place new layer out of range placement indices are best fit; default end",
       },
-      "notifyClients?": "{true}; default false",
+      "forceClientUpdate?": "{true}; default false",
     };
 
     if (req.body.mission == null) {
@@ -852,7 +863,7 @@ if (fullAccess)
                 path: placementPath,
                 index: placementIndex,
               },
-              notifyClients: req.body.notifyClients,
+              forceClientUpdate: req.body.forceClientUpdate,
             };
 
             addLayer(
@@ -898,7 +909,7 @@ function removeLayer(req, res, next, cb) {
   const exampleBody = {
     mission: "{mission_name}",
     layerName: "{existing_layer_name}",
-    "notifyClients?": "{true}; default false",
+    "forceClientUpdate?": "{true}; default false",
   };
 
   if (req.body.mission == null) {
@@ -945,6 +956,7 @@ function removeLayer(req, res, next, cb) {
                 body: {
                   mission: req.body.mission,
                   config: config,
+                  forceClientUpdate: req.body.forceClientUpdate,
                 },
               },
               res,
@@ -961,6 +973,10 @@ function removeLayer(req, res, next, cb) {
                     message: `Failed to remove layer '${req.body.layerName}': ${resp.message}`,
                   });
                 }
+              },
+              {
+                type: 'removeLayer',
+                layerName: req.body.layerName,
               }
             );
           } else {
@@ -980,7 +996,7 @@ if (fullAccess)
  * body: {
     "mission": "",
     "layerName": ""
-    "notifyClients?": true
+    "forceClientUpdate?": true
   }
  */
   router.post("/removeLayer", function (req, res, next) {

@@ -2448,20 +2448,13 @@ var L_ = {
     parseConfig: parseConfig,
     // Dynamically add a new layer or update a layer (used by WebSocket)
     addNewLayer: async function(data, layerName, type) {
-
-        // !!!!!!!!!
-        console.log("----- addNewLayer -----")
-        console.log("data", data, "layerName", layerName, "type", type)
-
         // Save so we can make sure we reproduce the same layer settings after parsing the config
-        //const expanded = { ...L_.expanded }
         const toggledArray = { ...L_.toggledArray }
 
         // Save the original layer ordering
         const origLayersOrdered = [ ...L_.layersOrdered ]
 
         // Reset for now
-        //L_.expanded = {}
         L_.toggledArray = {}
 
         // Reset as these are appended to by parseConfig
@@ -2473,58 +2466,67 @@ var L_ = {
 
         L_.parseConfig(data)
 
-        console.log("new L_.toggledArray", JSON.stringify(L_.toggledArray, null, 4))
-
         // Set back
-        //L_.expanded = { ...L_.expanded, ...expanded }
         L_.toggledArray = { ...L_.toggledArray, ...toggledArray }
 
-        console.log("layerName", layerName)
-        console.log("fixed L_.toggledArray", JSON.stringify(L_.toggledArray, null, 4))
-        //L_.layersOrdered = newLayersOrdered
-        //L_.layersOrdered.push(layerName)
-
-        console.log("L_.layersOrdered", JSON.stringify(L_.layersOrdered))
-        console.log("L_.layersLoaded", JSON.stringify(L_.layersLoaded))
-
         const newLayersOrdered = [ ...L_.layersOrdered ]
-        console.log("orig newLayersOrdered", JSON.stringify(newLayersOrdered, null, 4))
         const index = L_.layersOrdered.findIndex(name => name === layerName)
         newLayersOrdered.splice(index, 1)
 
-        console.log("updated newLayersOrdered", JSON.stringify(newLayersOrdered, null, 4))
-
-        if (type === 'addLayer') {
-            //Make the layer
+        if (type === 'updateLayer' && layerName in L_.layersNamed) {
+            // Update layer
+            await L_.TimeControl_.reloadLayer(layerName, true)
+        } else if (type === 'addLayer') {
+            // Add layer
             await L_.Map_.makeLayer(L_.layersDataByName[layerName])
             L_.addVisible(L_.Map_, [layerName])
-        } else if (type === 'updateLayer') {
-            console.log("---- UPDATELAYER -----")
-            await L_.TimeControl_.reloadLayer(layerName, true)
-
-            //L_.toggleLayer(L_.layersGroup[layerName])
-            //L_.toggleLayer(L_.layersGroup[layerName])
+        } else if (type === 'removeLayer') {
+            // If the layer is visible, we need to remove it,
+            // otherwise do nothing since its already removed from the map
+            if (layerName in L_.toggledArray && L_.toggledArray[layerName]) {
+                // Toggle it to remove it
+                await L_.toggleLayer(L_.layersNamed[layerName])
+            }
+            delete L_.toggledArray[layerName]
         }
+    },
+    updateLayersHelper: async function(layerQueueList) {
+        if (layerQueueList.length > 0) {
+            while (layerQueueList.length > 0) {
+                const firstLayer = layerQueueList.shift()
+                const { data, newLayerName, type } = firstLayer
 
-        if (L_.Map_) L_.Map_.orderedBringToFront(true)
+                await L_.addNewLayer(data, newLayerName, type)
+            }
 
-        console.log("L_.layersGroup", Object.keys(L_.layersGroup))
-        // Update the LayersTool in the ToolController if it is active
-        if (ToolController_.activeToolName === 'LayersTool') {
-            ToolController_.activeTool.destroy();
-            ToolController_.activeTool.make();
+            if (L_.Map_) L_.Map_.orderedBringToFront(true)
+
+            // If the user rearranged the layers with the LayersTool, reset the ordering history
+            if (ToolController_.toolModules['LayersTool']
+                    && ToolController_.toolModules['LayersTool'].orderingHistory.length > 0) {
+                ToolController_.toolModules['LayersTool'].orderingHistory = []
+            }
+
+            // Update the LayersTool in the ToolController if it is active
+            if (ToolController_.activeToolName === 'LayersTool') {
+                ToolController_.activeTool.destroy();
+                ToolController_.activeTool.make();
+            }
         }
+    },
+    // Automatically update a single layer (i.e. add/update/remove) from WebSocket update
+    autoUpdateLayer: async function(data, newLayerName, type) {
+        await L_.updateLayersHelper([{ data, newLayerName, type }])
+    },
+    // Updates everything waiting in the queue from WebSocket updates
+    updateQueueLayers: async function() {
+        await L_.updateLayersHelper(L_.addLayerQueue)
     },
 }
 
 //Takes in a configData object and does a depth-first search through its
 // layers and sets L_ variables
 function parseConfig(configData, urlOnLayers) {
-    console.log("----- parseConfig -----")
-    console.log("configData", configData)
-    //console.log("configData", JSON.stringify(configData.layers[0].sublayers[4]))
-    console.log("urlOnLayers", urlOnLayers)
-
     //Create parsed configData
     L_.configData = configData
 
