@@ -204,8 +204,8 @@ var essence = {
 
         //Swap.make(this)
 
-        // Enable MMGIS backend webhook
-        if (window.mmgisglobal.PORT && window.mmgisglobal.ENABLE_MMGIS_WEBHOOKS) {
+        // Enable MMGIS backend websockets
+        if (window.mmgisglobal.PORT && window.mmgisglobal.ENABLE_MMGIS_WEBSOCKETS) {
             const port = parseInt(process.env.PORT || "8888", 10);
             const path = `ws://localhost:${port}/`
             const ws = new WebSocket(path);

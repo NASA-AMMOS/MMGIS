@@ -596,8 +596,8 @@ if (fullAccess)
 
 function openWebSocket(body, response, info, forceClientUpdate) {
   if (
-    !process.env.hasOwnProperty("ENABLE_MMGIS_WEBHOOKS") ||
-    process.env.ENABLE_MMGIS_WEBHOOKS != "true") {
+    !process.env.hasOwnProperty("ENABLE_MMGIS_WEBSOCKETS") ||
+    process.env.ENABLE_MMGIS_WEBSOCKETS != "true") {
       return
   }
 
