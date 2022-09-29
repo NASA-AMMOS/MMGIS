@@ -1856,6 +1856,7 @@
     border: none;
     padding: 2px;
     white-space: nowrap;
+    user-select: none;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95),
         transform 0s ease-in-out;

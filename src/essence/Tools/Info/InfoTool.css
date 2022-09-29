@@ -42,6 +42,32 @@
     display: none;
 }
 
+#infoToolUnhideAll {
+    position: absolute;
+    right: 90px;
+    cursor: pointer;
+    color: #999;
+    transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    text-align: center;
+    color: var(--color-green);
+}
+#infoToolHide {
+    position: absolute;
+    right: 60px;
+    cursor: pointer;
+    color: #999;
+    transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    text-align: center;
+}
+#infoToolHide > i.mdi-eye-off {
+    color: var(--color-red2);
+}
 #infoToolDownload {
     position: absolute;
     right: 30px;
@@ -55,7 +81,7 @@
 }
 #infoToolLocate {
     position: absolute;
-    right: 0px;
+    right: 00px;
     cursor: pointer;
     color: #999;
     transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
@@ -66,7 +92,7 @@
 }
 #infoToolShowHidden {
     position: absolute;
-    right: 0;
+    right: 0px;
     cursor: pointer;
     color: #999;
     transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
@@ -77,6 +103,7 @@
 
 #infoToolDownload:hover,
 #infoToolLocate:hover,
+#infoToolHide:hover,
 #infoToolShowHidden:hover {
     color: var(--color-m);
 }
@@ -178,4 +205,8 @@
 #infoToolData > li.expand > div:last-child {
     white-space: unset;
     word-break: break-all;
+}
+
+#infoTool #infoToolHeader .mmgisHelpButton {
+    margin: 11px 4px;
 }

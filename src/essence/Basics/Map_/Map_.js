@@ -552,14 +552,14 @@ function makeLayers(layersObj) {
     }
 }
 //Takes the layer object and makes it a map layer
-async function makeLayer(layerObj, evenIfOff) {
+async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
     //Decide what kind of layer it is
     //Headers do not need to be made
     if (layerObj.type != 'header') {
         //Simply call the appropriate function for each layer type
         switch (layerObj.type) {
             case 'vector':
-                await makeVectorLayer(evenIfOff)
+                await makeVectorLayer(evenIfOff, null, forceGeoJSON)
                 break
             case 'tile':
                 makeTileLayer()
@@ -627,177 +627,170 @@ async function makeLayer(layerObj, evenIfOff) {
             )
         ) {
             //Add a click event to send the data to the info tab
-            layer.on('click', function (e) {
-                if (
-                    ToolController_.activeTool &&
-                    ToolController_.activeTool.disableLayerInteractions === true
-                )
-                    return
-
-                //Query dataset links if possible and add that data to the feature's properties
-                if (
-                    layer.options.layerName &&
-                    L_.layersNamed[layer.options.layerName] &&
-                    L_.layersNamed[layer.options.layerName].variables &&
-                    L_.layersNamed[layer.options.layerName].variables
-                        .datasetLinks
-                ) {
-                    const dl =
-                        L_.layersNamed[layer.options.layerName].variables
-                            .datasetLinks
-                    let dlFilled = dl
-                    for (let i = 0; i < dlFilled.length; i++) {
-                        dlFilled[i].search = F_.getIn(
-                            layer.feature.properties,
-                            dlFilled[i].prop.split('.')
-                        )
-                    }
-
-                    calls.api(
-                        'datasets_get',
-                        {
-                            queries: JSON.stringify(dlFilled),
-                        },
-                        function (data) {
-                            const d = data.body
-                            for (let i = 0; i < d.length; i++) {
-                                if (d[i].type == 'images') {
-                                    layer.feature.properties.images =
-                                        layer.feature.properties.images || []
-                                    for (
-                                        let j = 0;
-                                        j < d[i].results.length;
-                                        j++
-                                    ) {
-                                        layer.feature.properties.images.push(
-                                            d[i].results[j]
-                                        )
-                                    }
-                                    //remove duplicates
-                                    layer.feature.properties.images =
-                                        F_.removeDuplicatesInArrayOfObjects(
-                                            layer.feature.properties.images
-                                        )
-                                } else {
-                                    layer.feature.properties._data =
-                                        d[i].results
-                                }
-                            }
-                            keepGoing()
-                        },
-                        function (data) {
-                            keepGoing()
-                        }
-                    )
-                } else {
-                    keepGoing()
-                }
-
-                function keepGoing() {
-                    //View images
-                    var propImages = propertiesToImages(
-                        feature.properties,
-                        layer.options.metadata
-                            ? layer.options.metadata.base_url || ''
-                            : ''
-                    )
-
-                    Kinds.use(
-                        L_.layersNamed[layerObj.name].kind,
-                        Map_,
-                        feature,
-                        layer,
-                        layer.options.layerName,
-                        propImages,
-                        e
-                    )
-
-                    //update url
-                    if (layer != null && layer.hasOwnProperty('options')) {
-                        var keyAsName
-                        if (layer.hasOwnProperty('useKeyAsName')) {
-                            keyAsName =
-                                layer.feature.properties[layer.useKeyAsName]
-                        } else {
-                            keyAsName = layer.feature.properties[0]
-                        }
-                    }
-
-                    Viewer_.changeImages(propImages, feature)
-                    for (var i in propImages) {
-                        if (propImages[i].type == 'radargram') {
-                            //Globe_.radargram( layer.options.layerName, feature.geometry, propImages[i].url, propImages[i].length, propImages[i].depth );
-                            break
-                        }
-                    }
-
-                    //figure out how to construct searchStr in URL. For example: a ChemCam target can sometime
-                    //be searched by "target sol", or it can be searched by "sol target" depending on config file.
-                    var searchToolVars = L_.getToolVars('search')
-                    var searchfields = {}
-                    if (searchToolVars.hasOwnProperty('searchfields')) {
-                        for (var layerfield in searchToolVars.searchfields) {
-                            var fieldString =
-                                searchToolVars.searchfields[layerfield]
-                            fieldString = fieldString.split(')')
-                            for (var i = 0; i < fieldString.length; i++) {
-                                fieldString[i] = fieldString[i].split('(')
-                                var li = fieldString[i][0].lastIndexOf(' ')
-                                if (li != -1) {
-                                    fieldString[i][0] = fieldString[
-                                        i
-                                    ][0].substring(li + 1)
-                                }
-                            }
-                            fieldString.pop()
-                            //0 is function, 1 is parameter
-                            searchfields[layerfield] = fieldString
-                        }
-                    }
-
-                    var str = ''
-                    if (searchfields.hasOwnProperty(layer.options.layerName)) {
-                        var sf = searchfields[layer.options.layerName] //sf for search field
-                        for (var i = 0; i < sf.length; i++) {
-                            str += sf[i][1]
-                            str += ' '
-                        }
-                    }
-                    str = str.substring(0, str.length - 1)
-
-                    var searchFieldTokens = str.split(' ')
-                    var searchStr
-
-                    if (searchFieldTokens.length == 2) {
-                        if (
-                            searchFieldTokens[0].toLowerCase() ==
-                            layer.useKeyAsName.toLowerCase()
-                        ) {
-                            searchStr =
-                                keyAsName + ' ' + layer.feature.properties.Sol
-                        } else {
-                            searchStr =
-                                layer.feature.properties.Sol + ' ' + keyAsName
-                        }
-                    }
-
-                    QueryURL.writeSearchURL(
-                        [searchStr],
-                        layer.options.layerName
-                    )
-                }
+            layer.on('click', (e) => {
+                featureDefaultClick(feature, layer, e)
             })
         }
     }
 
-    //Pretty much like makePointLayer but without the pointToLayer stuff
-    async function makeVectorLayer(evenIfOff, useEmptyGeoJSON) {
-        return new Promise((resolve, reject) => {
-            captureVector(
-                layerObj,
-                { evenIfOff: evenIfOff, useEmptyGeoJSON: useEmptyGeoJSON },
-                add
+    Map_.featureDefaultClick = featureDefaultClick
+    function featureDefaultClick(feature, layer, e) {
+        if (
+            ToolController_.activeTool &&
+            ToolController_.activeTool.disableLayerInteractions === true
+        )
+            return
+
+        //Query dataset links if possible and add that data to the feature's properties
+        if (
+            layer.options.layerName &&
+            L_.layersNamed[layer.options.layerName] &&
+            L_.layersNamed[layer.options.layerName].variables &&
+            L_.layersNamed[layer.options.layerName].variables.datasetLinks
+        ) {
+            const dl =
+                L_.layersNamed[layer.options.layerName].variables.datasetLinks
+            let dlFilled = dl
+            for (let i = 0; i < dlFilled.length; i++) {
+                dlFilled[i].search = F_.getIn(
+                    layer.feature.properties,
+                    dlFilled[i].prop.split('.')
+                )
+            }
+
+            calls.api(
+                'datasets_get',
+                {
+                    queries: JSON.stringify(dlFilled),
+                },
+                function (data) {
+                    const d = data.body
+                    for (let i = 0; i < d.length; i++) {
+                        if (d[i].type == 'images') {
+                            layer.feature.properties.images =
+                                layer.feature.properties.images || []
+                            for (let j = 0; j < d[i].results.length; j++) {
+                                layer.feature.properties.images.push(
+                                    d[i].results[j]
+                                )
+                            }
+                            //remove duplicates
+                            layer.feature.properties.images =
+                                F_.removeDuplicatesInArrayOfObjects(
+                                    layer.feature.properties.images
+                                )
+                        } else {
+                            layer.feature.properties._data = d[i].results
+                        }
+                    }
+                    keepGoing()
+                },
+                function (data) {
+                    keepGoing()
+                }
             )
+        } else {
+            keepGoing()
+        }
+
+        function keepGoing() {
+            //View images
+            var propImages = propertiesToImages(
+                feature.properties,
+                layer.options.metadata
+                    ? layer.options.metadata.base_url || ''
+                    : ''
+            )
+
+            Kinds.use(
+                L_.layersNamed[layerObj.name].kind,
+                Map_,
+                feature,
+                layer,
+                layer.options.layerName,
+                propImages,
+                e
+            )
+
+            //update url
+            if (layer != null && layer.hasOwnProperty('options')) {
+                var keyAsName
+                if (layer.hasOwnProperty('useKeyAsName')) {
+                    keyAsName = layer.feature.properties[layer.useKeyAsName]
+                } else {
+                    keyAsName = layer.feature.properties[0]
+                }
+            }
+
+            Viewer_.changeImages(propImages, feature)
+            for (var i in propImages) {
+                if (propImages[i].type == 'radargram') {
+                    //Globe_.radargram( layer.options.layerName, feature.geometry, propImages[i].url, propImages[i].length, propImages[i].depth );
+                    break
+                }
+            }
+
+            //figure out how to construct searchStr in URL. For example: a ChemCam target can sometime
+            //be searched by "target sol", or it can be searched by "sol target" depending on config file.
+            var searchToolVars = L_.getToolVars('search')
+            var searchfields = {}
+            if (searchToolVars.hasOwnProperty('searchfields')) {
+                for (var layerfield in searchToolVars.searchfields) {
+                    var fieldString = searchToolVars.searchfields[layerfield]
+                    fieldString = fieldString.split(')')
+                    for (var i = 0; i < fieldString.length; i++) {
+                        fieldString[i] = fieldString[i].split('(')
+                        var li = fieldString[i][0].lastIndexOf(' ')
+                        if (li != -1) {
+                            fieldString[i][0] = fieldString[i][0].substring(
+                                li + 1
+                            )
+                        }
+                    }
+                    fieldString.pop()
+                    //0 is function, 1 is parameter
+                    searchfields[layerfield] = fieldString
+                }
+            }
+
+            var str = ''
+            if (searchfields.hasOwnProperty(layer.options.layerName)) {
+                var sf = searchfields[layer.options.layerName] //sf for search field
+                for (var i = 0; i < sf.length; i++) {
+                    str += sf[i][1]
+                    str += ' '
+                }
+            }
+            str = str.substring(0, str.length - 1)
+
+            var searchFieldTokens = str.split(' ')
+            var searchStr
+
+            if (searchFieldTokens.length == 2) {
+                if (
+                    searchFieldTokens[0].toLowerCase() ==
+                    layer.useKeyAsName.toLowerCase()
+                ) {
+                    searchStr = keyAsName + ' ' + layer.feature.properties.Sol
+                } else {
+                    searchStr = layer.feature.properties.Sol + ' ' + keyAsName
+                }
+            }
+
+            QueryURL.writeSearchURL([searchStr], layer.options.layerName)
+        }
+    }
+
+    //Pretty much like makePointLayer but without the pointToLayer stuff
+    async function makeVectorLayer(evenIfOff, useEmptyGeoJSON, forceGeoJSON) {
+        return new Promise((resolve, reject) => {
+            if (forceGeoJSON) add(forceGeoJSON)
+            else
+                captureVector(
+                    layerObj,
+                    { evenIfOff: evenIfOff, useEmptyGeoJSON: useEmptyGeoJSON },
+                    add
+                )
 
             function add(data) {
                 if (data == null || data === 'off') {

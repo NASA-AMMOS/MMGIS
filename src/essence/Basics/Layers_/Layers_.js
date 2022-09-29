@@ -86,6 +86,8 @@ var L_ = {
         lat: null,
         lon: null,
     },
+    // features manually turned off
+    toggledOffFeatures: [],
     mapAndGlobeLinked: false,
     init: function (configData, missionsList, urlOnLayers) {
         parseConfig(configData, urlOnLayers)
@@ -448,6 +450,24 @@ var L_ = {
         if (!on && s.type === 'vector') {
             L_.Map_.orderedBringToFront()
         }
+
+        // Add annotation click events since onEachFeatureDefault doesn't apply to popups
+        $('.mmgisAnnotation').off('click')
+        $('.mmgisAnnotation').on('click', function () {
+            const layerName = $(this).attr('layerId')
+            const layerCode = $(this).attr('layer')
+            const layer = L_.layersGroup[layerName]._layers[layerCode]
+            L_.Map_.featureDefaultClick(layer.feature, layer, {
+                latlng: layer._latlng,
+            })
+        })
+
+        // Toggling rereveals hidden features, so make sure they stay hidden
+        if (L_.toggledOffFeatures && L_.toggledOffFeatures.length > 0) {
+            L_.toggledOffFeatures.forEach((f) => {
+                L_.toggleFeature(f, false)
+            })
+        }
     },
     toggleSublayer: function (layerName, sublayerName) {
         const sublayers = L_.layersGroupSublayers[layerName] || {}
@@ -747,11 +767,24 @@ var L_ = {
         )
             return
 
-        layer.addData(geojson)
+        // Remake Layer
+        L_.Map_.makeLayer(L_.layersNamed[layer._layerName], true, geojson)
     },
     clearGeoJSONData: function (layer) {
         if (layer._sourceGeoJSON) layer._sourceGeoJSON = F_.getBaseGeoJSON()
         layer.clearLayers()
+
+        // If for some reason we still have layers, explicitly clear them
+        if (Object.keys(layer._layers).length > 0) {
+            layer.eachLayer((innerLayer) => {
+                if (innerLayer._layers) innerLayer.clearLayers()
+                if (layer.hasLayer(innerLayer)) layer.removeLayer(innerLayer)
+                else {
+                    L_.Map_.rmNotNull(innerLayer)
+                }
+            })
+            layer._layers = {}
+        }
     },
     setStyle(layer, newStyle) {
         try {
@@ -825,7 +858,45 @@ var L_ = {
             layer.bringToFront()
         } catch (err) {}
     },
+    toggleFeature(layer, on) {
+        const display = on ? 'inherit' : 'none'
+        layer._hidden = !on
+        let layers = [layer]
 
+        if (layer.hasOwnProperty('_layers')) {
+            // Arrow
+            const innerLayers = layer._layers
+            Object.keys(innerLayers).forEach((k) => {
+                layers.push(innerLayers[k])
+            })
+        }
+
+        layers.forEach((l) => {
+            if (l._path) {
+                l._path.style.display = display
+            }
+            if (l._container) {
+                console.log(l)
+                l._container.style.display = display
+            }
+            if (l._icon) {
+                l._icon.style.display = display
+            }
+        })
+        L_.toggledOffFeatures = L_.toggledOffFeatures || []
+        const tofIdx = L_.toggledOffFeatures.indexOf(layer)
+
+        if (layer._hidden && tofIdx === -1) L_.toggledOffFeatures.push(layer)
+        else if (!layer._hidden && tofIdx >= 0) {
+            L_.toggledOffFeatures.splice(tofIdx, 1)
+        }
+    },
+    unhideAllFeatures() {
+        if (L_.toggledOffFeatures) {
+            for (let i = L_.toggledOffFeatures.length - 1; i >= 0; i--)
+                L_.toggleFeature(L_.toggledOffFeatures[i], true)
+        }
+    },
     /**
      *
      * @param {string[]} forceLayerNames - Enforce visibilities per layer
@@ -1132,9 +1203,10 @@ var L_ = {
                   'deg); '
                 : '')
 
+        const id = className + '_' + id1 + '_' + id2
         // prettier-ignore
         const popup = L.popup({
-            className: `leaflet-popup-annotation${!andAddToMap ? ' noPointerEvents' : ''}`,
+            className: `leaflet-popup-annotation`,
             closeButton: false,
             autoClose: false,
             closeOnEscapeKey: false,
@@ -1150,10 +1222,10 @@ var L_ = {
             )
             .setContent(
                 "<div>" +
-                    "<div id='" + className + '_' + id1 + '_' + id2 +
-                    "' class='drawToolAnnotation " + className + '_' + id1 + "  blackTextBorder'" +
+                    "<div id='" + id +
+                    "' class='mmgisAnnotation " + className + '_' + id1 + " blackTextBorder'" +
                     " layer='" + id1 +
-                    (L_.layersGroup[layerId] != null ? "' index='" + L_.layersGroup[layerId].length : '') +
+                    "' layerId='" + layerId + 
                     "' style='" + styleString + "'>" +
                     `${feature.properties.name.replace(/[<>;{}]/g, '')}`,
                     '</div>' +
@@ -1169,6 +1241,8 @@ var L_ = {
             andAddToMap,
         }
         popup.feature = feature
+        popup.options = popup.options || {}
+        popup.options.layerName = layerId
         popup.toGeoJSON = function () {
             return feature
         }
@@ -1333,14 +1407,14 @@ var L_ = {
                     this.layersGroup.hasOwnProperty(key) &&
                     this.layersGroup[key] != undefined &&
                     this.layersStyles.hasOwnProperty(key) &&
-                    this.layersStyles[key] != undefined &&
-                    this.layersStyles[key].hasOwnProperty('fillColor')
+                    this.layersStyles[key] != undefined
                 ) {
                     this.layersGroup[key].eachLayer((layer) => {
                         const savedOptions = layer.options
                         const savedUseKeyAsName = layer.useKeyAsName
 
                         let fillColor = this.layersStyles[key].fillColor
+                        let color = this.layersStyles[key].color
                         let opacity = layer.options.opacity
                         let fillOpacity = layer.options.fillOpacity
                         let weight = layer.options.weight
@@ -1352,12 +1426,15 @@ var L_ = {
                                 fillOpacity: fillOpacity,
                                 fillColor: layer.options.fillColor || fillColor,
                                 weight: parseInt(weight),
+                                color: layer.options.color || color,
                             })
                         } catch (err) {
                             if (layer._icon) layer._icon.style.filter = ''
                         }
                         layer.options = savedOptions
                         layer.useKeyAsName = savedUseKeyAsName
+
+                        layer._hidden = false
                     })
                 } else if (s[0] == 'DrawTool') {
                     for (let k in this.layersGroup[key]) {
@@ -1421,6 +1498,8 @@ var L_ = {
                         else if (layer._icon?.style) {
                             layer._icon.style.filter = 'unset'
                         }
+
+                        layer._hidden = false
                     }
                 }
             }

@@ -2,13 +2,13 @@
 
 _Filter down a layer's displayed features through a logical property-value query or through a spatial query._
 
-Layer filtering works on both `Vector` and `Query` layer types. For `Vector` layers, the performed filter is done solely in the browser using each feature's metadata. For `Query` layers, the filter will be sent to a service (such as `ElasticSearch`) and must be sumbitted at least once before viewing its data.
+Layer filtering works on both `Vector` and `Query` layer types. For `Vector` layers, the performed filter is done solely in the browser using each feature's metadata. For `Query` layers, the filter will be sent to a service (such as `ElasticSearch`) and must be submitted at least once before viewing its data.
 
 ### Property-Value Queries
 
-These queries allow you to filter featuers by property-value equivalencies and ranges. A list of rows of the structure `Property | Operator | Value | Clear` enables this.
+These queries allow you to filter features by property-value equivalencies and ranges. A list of rows of the structure `Property | Operator | Value | Clear` enables this.
 
-- The `Property` field autocompletes and must be one of the autocompeleted values.
+- The `Property` field auto-completes and must be one of the auto-completed values.
 - The `Operator` dropdown contains the following operators:
   - `=` - The feature's `Property` must equal `Value` to remain visible.
   - `in` - The feature's `Property` must equal _at least one of_ of the _comma-separated_ entries of `Value` to remain visible.
@@ -51,11 +51,11 @@ These queries allow you to restrict features to some spatial extent. To begin:
 
 There are two spatial modes and they depend on the value of "R" or Radius.
 
-- _Contains:_ If `Radius=0`, the query feature will be a point and the filter will search for _all features that contain that point_. This primarily works on polygonal features.
-- _Intersects:_ If `Radius>0`, the query feature will be a circle and the filter will search for _all features that either intersect or are contained by the circle._
+- _Contains:_ If `Radius = 0`, the query feature will be a point and the filter will search for _all features that contain that point_. This primarily works on polygonal features.
+- _Intersects:_ If `Radius > 0`, the query feature will be a circle and the filter will search for _all features that either intersect or are contained by the circle._
 
 The spatial query is *AND*ed with the property-value query.
 
 ### Finally
 
-Use the `Submit` button to submit the query and the `Clear Filter` button to reset the layer to its intial unfiltered state.
+Use the `Submit` button to submit the query and the `Clear Filter` button to reset the layer to its initial unfiltered state.

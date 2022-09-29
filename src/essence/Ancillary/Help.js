@@ -9,7 +9,7 @@ showdown.setFlavor('github')
 const Help = {
     converter: new showdown.Converter(),
     getComponent: function (helpKey) {
-        return `<div id='helpModal_${helpKey}' class='mmgisButton5 mmgisHelpButton' title='Help'><i class='mdi mdi-help-circle-outline mdi-18px'></i></div>`
+        return `<div id='helpModal_${helpKey}' class='mmgisButton5 mmgisHelpButton' title='Help'><i class='mdi mdi-help-rhombus-outline mdi-18px'></i></div>`
     },
     finalize: function (helpKey) {
         $(`#helpModal_${helpKey}`).on('click', function () {
@@ -19,7 +19,7 @@ const Help = {
                     [
                         `<div id='HelpModal'>`,
                             `<div id='HelpModalTitle'>`,
-                                `<div><i class='mdi mdi-help-circle-outline mdi-18px'></i><div>Help</div></div>`,
+                                `<div><i class='mdi mdi-help-rhombus-outline mdi-18px'></i><div>Help</div></div>`,
                                 `<div id='HelpModalClose'><i class='mmgisHoverBlue mdi mdi-close mdi-18px'></i></div>`,
                             `</div>`,
                             `<div id='HelpModalContent'>`,
