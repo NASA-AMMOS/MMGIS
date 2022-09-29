@@ -595,6 +595,12 @@ if (fullAccess)
   });
 
 function openWebSocket(body, response, info, forceClientUpdate) {
+  if (
+    !process.env.hasOwnProperty("ENABLE_MMGIS_WEBHOOKS") ||
+    process.env.ENABLE_MMGIS_WEBHOOKS != "true") {
+      return
+  }
+
   const port = parseInt(process.env.PORT || "8888", 10);
   const path = `ws://localhost:${port}/`
   const ws = new WebSocket(path);
