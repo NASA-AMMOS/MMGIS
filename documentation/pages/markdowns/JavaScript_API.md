@@ -472,6 +472,25 @@ The following is an example of how to call the `getVisibleLayers` function:
 window.mmgisAPI.getVisibleLayers()
 ```
 
+### toggleLayer
+
+This function sets the visibility state for a named layer
+
+#### Function parameters
+
+- `layerName` - name of layer to toggle visiblity
+- `on` - (optional) Set `true` if the visibility should be on or `false` if visibility should be off. If not set, the current visiblity state will switch to the opposite state.
+
+The following is an example of how to call the `toggleLayer` function:
+
+```javascript
+# Set 'Layer 1' to be visible
+window.mmgisAPI.toggleLayer('Layer 1', true)
+
+# Toggle the visibility state of 'Layer 1'
+window.mmgisAPI.toggleLayer('Layer 1')
+```
+
 ## Miscellaneous Features
 
 ### writeCoordinateURL
