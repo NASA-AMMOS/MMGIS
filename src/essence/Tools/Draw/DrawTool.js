@@ -1087,7 +1087,7 @@ var DrawTool = {
                 if (typeof callback === 'function') callback()
             },
             function (data) {
-                if (data.message == 'User is not logged in.') {
+                if (data && data.message == 'User is not logged in.') {
                     $('#drawToolNotLoggedIn').css('display', 'inherit')
                 }
             }

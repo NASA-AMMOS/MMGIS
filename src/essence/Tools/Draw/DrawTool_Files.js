@@ -1839,7 +1839,7 @@ var Files = {
         for (var i = 0; i < DrawTool.intentOrder.length; i++) {
             for (var j = 0; j < DrawTool.filesOn.length; j++) {
                 var file = DrawTool.getFileObjectWithId(DrawTool.filesOn[j])
-                if (file.intent === DrawTool.intentOrder[i]) {
+                if (file && file.intent === DrawTool.intentOrder[i]) {
                     for (var e of L_.layersGroup[
                         'DrawTool_' + DrawTool.filesOn[j]
                     ])
