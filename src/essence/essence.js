@@ -217,6 +217,12 @@ var essence = {
                 if (data.data) {
                     try {
                         const parsed = JSON.parse(data.data)
+                        const mission = essence.configData.msv.mission
+
+                        if (!parsed.body.mission || parsed.body.mission !== mission) {
+                            return
+                        }
+
                         if ('info' in parsed) {
                             const { type, layerName } = parsed.info
 
@@ -225,7 +231,6 @@ var essence = {
                                 type === 'updateLayer' ||
                                 type === 'removeLayer'
                             ) {
-                                const mission = essence.configData.msv.mission
                                 calls.api(
                                     'get',
                                     {

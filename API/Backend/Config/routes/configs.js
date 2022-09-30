@@ -291,12 +291,6 @@ function upsert(req, res, next, cb, info) {
                 status: "failure",
                 message: "Stringified configuration object is not JSON.",
               });
-              openWebSocket(req.body, {
-                  status: "failure",
-                  message: "Stringified configuration object is not JSON.",
-                }, info,
-                forceClientUpdate
-              );
           }
         } else configJSON = req.body.config;
       }
@@ -315,13 +309,6 @@ function upsert(req, res, next, cb, info) {
             message: "Configuration object is invalid.",
             ...validation,
           });
-          openWebSocket(req.body, {
-              status: "failure",
-              message: "Configuration object is invalid.",
-              ...validation,
-            }, info,
-            forceClientUpdate
-          );
         return;
       }
 
@@ -376,12 +363,6 @@ function upsert(req, res, next, cb, info) {
               status: "failure",
               message: "Failed to update mission.",
             });
-            openWebSocket(req.body, {
-                status: "failure",
-                message: "Failed to update mission.",
-              }, info,
-              forceClientUpdate
-            );
           return null;
         });
       return null;
@@ -390,7 +371,6 @@ function upsert(req, res, next, cb, info) {
       logger("error", "Failed to find mission.", req.originalUrl, req, err);
       if (cb) cb({ status: "failure", message: "Failed to find mission." });
       else res.send({ status: "failure", message: "Failed to find mission." });
-      openWebSocket(req.body, { status: "failure", message: "Failed to find mission." }, info, forceClientUpdate);
       return null;
     });
   return null;
