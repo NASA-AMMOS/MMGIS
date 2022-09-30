@@ -4,9 +4,8 @@ import * as d3 from 'd3'
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
 import ToolController_ from '../ToolController_/ToolController_.js'
-import CursorInfo from '../../Ancillary/CursorInfo'
 import Modal from '../../Ancillary/Modal'
-
+import ConfirmationModal from '../../Ancillary/ConfirmationModal'
 
 import './LayerUpdatedControl.css'
 
@@ -33,18 +32,16 @@ var LayerUpdatedControl = L.Control.extend({
     },
     onAdd: function (map) {
         var className = 'leaflet-control-update-layer'
+
+        if (L_.configData.look && L_.configData.look.zoomcontrol) {
+            className += ' leaflet-control-update-layer-0-margin'
+        } else {
+            className += ' leaflet-control-update-layer-40-margin'
+        }
+
         var container = L.DomUtil.create('div', className + ' leaflet-bar')
         var options = this.options
         var tooltipText = BUTTON_TYPES[options.type].title
-
-        if (L_.addLayerQueue && L_.addLayerQueue.length > 0 && L_.addLayerQueue.length < 3) {
-            tooltipText = `${tooltipText} '${L_.addLayerQueue[0].newLayerName}'`
-        }
-
-        if (ToolController_.toolModules['LayersTool']
-                && ToolController_.toolModules['LayersTool'].orderingHistory.length > 0) {
-            tooltipText += '; Layers have been reordered but will be reset after the new layer is added'
-        }
 
         if (options.type === 'ADD_LAYER') {
             this._click = this._clickAddLayer
@@ -68,19 +65,6 @@ var LayerUpdatedControl = L.Control.extend({
                 L.DomUtil.addClass(number, 'plus')
             }
         }
-
-        L.DomEvent.on(this._updateLayerButton, 'mouseover', function(e) {
-            const bounds = $(e.target)[0].getBoundingClientRect();
-            CursorInfo.update(BUTTON_TYPES[options.type].title,
-                null,
-                false,
-                { x: bounds.x - bounds.width * 6, y: bounds.y - bounds.height }
-            )
-        });
-
-        L.DomEvent.on(this._updateLayerButton, 'mouseout', function(e) {
-            CursorInfo.hide()
-        });
 
         return container
     },
@@ -109,22 +93,28 @@ var LayerUpdatedControl = L.Control.extend({
         this._showModal()
     },
     _clickReload: function(e) {
-        location.reload();
+        ConfirmationModal.prompt("Refresh this MMGIS page?", (isYes) => {
+            if (isYes) location.reload();
+        })
     },
     _showModal: function() {
         let table = [
             `<table class="table" style="text-align: left;">`,
                 `<tr style="font-width: bold">`,
-                    `<th style="column-width: 100px">Type</th>`,
+                    `<th style="column-width: 100px">Action</th>`,
                     `<th>Layer name</th>`,
                 `</tr>`,
         ];
 
         for (let i in L_.addLayerQueue) {
             const { data, newLayerName, type } = L_.addLayerQueue[i]
+            const typePrettify = type.split(/(?=[A-Z])/).map(e => {
+                return e.charAt(0).toUpperCase() + e.slice(1).toLowerCase()
+            })
+
             table = table.concat([
                 `<tr>`,
-                    `<td style="column-width: 100px">${type}</td>`,
+                    `<td style="column-width: 100px">${typePrettify.join(' ')}</td>`,
                     `<td>${newLayerName}</td>`,
                 `</tr>`,
             ]);

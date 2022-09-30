@@ -1,6 +1,5 @@
 .leaflet-control-update-layer {
     border: none !important;
-    margin-top: 0px !important;
     margin-right: 5px !important;
     user-select: none;
 }
@@ -14,6 +13,12 @@
     border: none !important;
     border-radius: 3px !important;
     transition: color 0.2s ease-in 0s;
+}
+.leaflet-control-update-layer-0-margin {
+    margin-top: 0px !important;
+}
+.leaflet-control-update-layer-40-margin {
+    margin-top: 40px !important;
 }
 .RELOAD:hover, .ADD_LAYER:hover {
     color: var(--color-mmgis) !important;
