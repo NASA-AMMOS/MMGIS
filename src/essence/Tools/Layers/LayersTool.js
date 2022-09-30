@@ -456,6 +456,9 @@ function interfaceWithMMGIS(fromInit) {
                                     '<div class="layerCount">' +
                                         (node[i].sublayers ? node[i].sublayers.length : '0'),
                                     '</div>',
+                                    '<div title="Information" class="LayersToolInfo" id="layerinfo' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
+                                        '<i class="mdi mdi-information-outline mdi-18px" name="layerinfo"></i>',
+                                    '</div>',
                                     `<div class="headerPowerState ${'on'}" title="Toggle all on inner-layers on or off.">`,
                                         '<i class="mdi mdi-power-off mdi-18px"></i>',
                                     '</div>',
@@ -482,16 +485,16 @@ function interfaceWithMMGIS(fromInit) {
                                     '<div class="reset">',
                                         '<i class="mdi mdi-refresh mdi-18px"></i>',
                                     '</div>',
-                                    (layerExport != '') ? ['<div class="layerDownload" id="layerexport' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
+                                    (layerExport != '') ? ['<div title="Download" class="layerDownload" id="layerexport' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
                                         '<i class="mdi mdi-download mdi-18px" name="layerexport"></i>',
                                     '</div>'].join('\n') : '',
                                     (timeDisplay != '') ? ['<div class="time" id="timesettings' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
                                         '<i class="mdi mdi-clock mdi-18px" name="timesettings" style="color:' + node[i].time.status + '"></i>',
                                     '</div>'].join('\n') : '',
-                                    '<div class="gears" id="layersettings' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
+                                    '<div title="Settings" class="gears" id="layersettings' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
                                         '<i class="mdi mdi-tune mdi-18px" name="layersettings"></i>',
                                     '</div>',
-                                    '<div class="LayersToolInfo" id="layerinfo' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
+                                    '<div title="Information" class="LayersToolInfo" id="layerinfo' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
                                         '<i class="mdi mdi-information-outline mdi-18px" name="layerinfo"></i>',
                                     '</div>',
                                 '</div>',
@@ -734,7 +737,8 @@ function interfaceWithMMGIS(fromInit) {
         }
     })
     //Enables the time dialogue box
-    $('.LayersToolInfo').on('click', function () {
+    $('.LayersToolInfo').on('click', function (e) {
+        e.stopPropagation()
         const layerName = $(this).attr('layername')
         LayerInfoModal.open(layerName)
     })

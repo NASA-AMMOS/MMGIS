@@ -60,22 +60,22 @@
     color: #ccc;
 }
 #layersTool #filterLayers div.vector.on {
-    border-bottom: 4px solid var(--color-c2);
+    border-bottom: 4px solid var(--color-vector);
 }
 #layersTool #filterLayers div.tile.on {
-    border-bottom: 4px solid var(--color-p9);
+    border-bottom: 4px solid var(--color-tile);
 }
 #layersTool #filterLayers div.vectortile.on {
-    border-bottom: 4px solid var(--color-p10);
+    border-bottom: 4px solid var(--color-vectortile);
 }
 #layersTool #filterLayers div.query.on {
-    border-bottom: 4px solid var(--color-p3);
+    border-bottom: 4px solid var(--color-query);
 }
 #layersTool #filterLayers div.data.on {
-    border-bottom: 4px solid var(--color-p4);
+    border-bottom: 4px solid var(--color-data);
 }
 #layersTool #filterLayers div.model.on {
-    border-bottom: 4px solid var(--color-p0);
+    border-bottom: 4px solid var(--color-model);
 }
 #layersTool #filterLayers div.visible.on {
     border-bottom: 4px solid rgba(255, 255, 255, 1);
@@ -263,7 +263,8 @@
 
 #layersTool .reset,
 #layersTool .layerDownload,
-#layersTool .gears {
+#layersTool .gears,
+#layersTool .LayersToolInfo {
     width: 30px;
     height: 100%;
     text-align: center;
@@ -275,12 +276,14 @@
 }
 
 #layersTool .layerDownload,
-#layersTool .gears {
+#layersTool .gears,
+#layersTool .LayersToolInfo {
     color: transparent;
 }
 #layersTool .reset:hover,
 #layersTool .layerDownload:hover,
-#layersTool .gears:hover {
+#layersTool .gears:hover,
+#layersTool .LayersToolInfo:hover {
     background: var(--color-k);
 }
 #layersTool .reset {
@@ -289,14 +292,13 @@
 #layersTool #layersToolList > li.gears_on .reset {
     display: block;
 }
-#layersTool .headercollapse:hover,
-#layersTool li.gears_on .gears,
-#layersTool li:hover .gears {
-    color: #fff;
-}
+
 #layersTool .headercollapse:hover,
 #layersTool li.download_on .layerDownload,
-#layersTool li:hover .layerDownload {
+#layersTool li:hover .layerDownload,
+#layersTool li.gears_on .gears,
+#layersTool li:hover .gears,
+#layersTool li:hover .LayersToolInfo {
     color: #fff;
 }
 
@@ -316,8 +318,10 @@
     height: 100%;
     flex: 1;
     user-select: none;
-    text-overflow: ellipsis;
     white-space: nowrap;
+}
+#layersTool li:hover .layerName {
+    text-overflow: ellipsis;
     overflow: hidden;
 }
 #layersTool .layerCount {
@@ -357,22 +361,22 @@
     color: white;
 }
 .layersToolColor.vector {
-    background: var(--color-c2);
+    background: var(--color-vector);
 }
 .layersToolColor.tile {
-    background: var(--color-p9);
+    background: var(--color-tile);
 }
 .layersToolColor.vectortile {
-    background: var(--color-p10);
+    background: var(--color-vectortile);
 }
 .layersToolColor.query {
-    background: var(--color-p3);
+    background: var(--color-query);
 }
 .layersToolColor.data {
-    background: var(--color-p4);
+    background: var(--color-data);
 }
 .layersToolColor.model {
-    background: var(--color-p0);
+    background: var(--color-model);
 }
 
 #LayersToolLayer.model {

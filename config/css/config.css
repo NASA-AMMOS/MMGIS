@@ -425,6 +425,7 @@ textarea {
   overflow: auto !important;
   max-height: calc(100% - 120px) !important;
   transform: translateX(120px) !important;
+  width: 72% !important;
 }
 .modal .modal-title {
   display: flex;

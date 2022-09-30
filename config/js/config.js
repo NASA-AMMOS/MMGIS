@@ -1329,7 +1329,7 @@ function makeLayerBarAndModal(d, level) {
           "<div class='row' style='margin-bottom: 0px;'>" +
             "<div id='tagsEl' class='input-field col s10 push-s1' style='display: " + tagsEl + "'>" +
               "<input id='LayerTags" + n + "' type='text' class='validate' value='" + (d.tags ? d.tags.join(',') : '') + "'>" +
-              "<label for='LayerTags" + n + "'>Tags (comma-separated)</label>" +
+              "<label for='LayerTags" + n + "'>Tags (comma-separated, &lt;cat&gt;:&lt;tag&gt; for category)</label>" +
             "</div>" +
           "</div>" +
 
