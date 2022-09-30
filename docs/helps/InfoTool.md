@@ -12,7 +12,7 @@ Click any vector feature in the Map to view its properties.
 
 ### Feature Dropdown
 
-This dropdown often acts as title for the currently selected feature, however if there were overlapping features where you clicked to select a feature, this dropdown when contains all features that intersect your click. This is useful for selecting otherwise unclickable features.
+This dropdown often acts as title for the currently selected feature, however if there were overlapping features where you clicked to select a feature, this dropdown then contains all features that intersect your click. This is useful for selecting otherwise unclickable features.
 
 ### Filter
 

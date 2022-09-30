@@ -6,6 +6,7 @@ import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
 
 import DataShaders from '../../Ancillary/DataShaders'
+import LayerInfoModal from './LayerInfoModal/LayerInfoModal'
 import Filtering from './Filtering/Filtering'
 
 import './LayersTool.css'
@@ -481,14 +482,17 @@ function interfaceWithMMGIS(fromInit) {
                                     '<div class="reset">',
                                         '<i class="mdi mdi-refresh mdi-18px"></i>',
                                     '</div>',
-                                    (layerExport != '') ? ['<div class="layerDownload" id="layerexport' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + F_.getSafeName(node[i].name) + '">',
+                                    (layerExport != '') ? ['<div class="layerDownload" id="layerexport' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
                                         '<i class="mdi mdi-download mdi-18px" name="layerexport"></i>',
                                     '</div>'].join('\n') : '',
-                                    (timeDisplay != '') ? ['<div class="time" id="timesettings' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' +F_.getSafeName(node[i].name) + '">',
+                                    (timeDisplay != '') ? ['<div class="time" id="timesettings' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
                                         '<i class="mdi mdi-clock mdi-18px" name="timesettings" style="color:' + node[i].time.status + '"></i>',
                                     '</div>'].join('\n') : '',
-                                    '<div class="gears" id="layersettings' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + F_.getSafeName(node[i].name) + '">',
+                                    '<div class="gears" id="layersettings' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
                                         '<i class="mdi mdi-tune mdi-18px" name="layersettings"></i>',
+                                    '</div>',
+                                    '<div class="LayersToolInfo" id="layerinfo' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
+                                        '<i class="mdi mdi-information-outline mdi-18px" name="layerinfo"></i>',
                                     '</div>',
                                 '</div>',
                                 '<div class="layerExport ' + node[i].type + '">',
@@ -728,6 +732,11 @@ function interfaceWithMMGIS(fromInit) {
                 if (!wasOn) Filtering.make($(this).parent().parent(), layerName)
             }
         }
+    })
+    //Enables the time dialogue box
+    $('.LayersToolInfo').on('click', function () {
+        const layerName = $(this).attr('layername')
+        LayerInfoModal.open(layerName)
     })
     //Enables the time dialogue box
     $('.layerName, .time').on('click', function () {
