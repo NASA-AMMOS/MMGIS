@@ -932,20 +932,25 @@ var UserInterface = {
 
         UserInterface.show()
     },
-    updateLayerUpdateButton: function(type) {
+    updateLayerUpdateButton: function (type) {
         if (UserInterface.layerUpdatedControl) {
             UserInterface.removeLayerUpdateButton()
         }
 
-        UserInterface.layerUpdatedControl = new LayerUpdatedControl({ position: 'topright', type })
-        UserInterface.layerUpdatedControl.addTo(Map_.map);
+        if (Map_) {
+            UserInterface.layerUpdatedControl = new LayerUpdatedControl({
+                position: 'topright',
+                type,
+            })
+            UserInterface.layerUpdatedControl.addTo(Map_.map)
+        }
     },
-    removeLayerUpdateButton: function() {
-        if (UserInterface.layerUpdatedControl) {
+    removeLayerUpdateButton: function () {
+        if (UserInterface.layerUpdatedControl && Map_) {
             UserInterface.layerUpdatedControl.remove(Map_.map)
             UserInterface.layerUpdatedControl = null
         }
-    }
+    },
 }
 
 var threshold = 1
