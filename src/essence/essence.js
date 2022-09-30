@@ -212,9 +212,6 @@ var essence = {
             const port = parseInt(process.env.PORT || '8888', 10)
             const path = `ws://localhost:${port}/`
             const ws = new WebSocket(path)
-            ws.onopen = function () {
-                console.log('Started websocket connection...')
-            }
 
             ws.onmessage = function (data) {
                 if (data.data) {

@@ -45,18 +45,8 @@ const websocket = {
 
         wss.on('connection', (ws) => {
             ws.on('message', (message) => {
-                // Log the received message and send it back to all of the connected clients
-                logger(
-                    "info",
-                    `received in websocket API: ${message} ${typeof(message)}`,
-                    "",
-                    ""
-                );
                 wss.broadcast(message);
             });
-
-            // Send a message back immediately upon connnecting
-            ws.send('Hello, I am a WebSocket server started via the API...');
         });
 
         wss.on('close', () => {
