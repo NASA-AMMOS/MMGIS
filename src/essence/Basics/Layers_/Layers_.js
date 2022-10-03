@@ -21,6 +21,7 @@ var L_ = {
     Map_: null,
     Globe_: null,
     UserInterface_: null,
+    TimeControl_: null,
     tools: null,
     //The full, unchanged data
     configData: null,
@@ -89,6 +90,7 @@ var L_ = {
     // features manually turned off
     toggledOffFeatures: [],
     mapAndGlobeLinked: false,
+    addLayerQueue: [],
     init: function (configData, missionsList, urlOnLayers) {
         parseConfig(configData, urlOnLayers)
         L_.missionsList = missionsList
@@ -145,12 +147,13 @@ var L_ = {
             lon: null,
         }
     },
-    fina: function (viewer_, map_, globe_, userinterface_, coordinates) {
+    fina: function (viewer_, map_, globe_, userinterface_, coordinates, timecontrol_) {
         this.Viewer_ = viewer_
         this.Map_ = map_
         this.Globe_ = globe_
         this.UserInterface_ = userinterface_
         this.Coordinates = coordinates
+        this.TimeControl_ = timecontrol_
     },
     fullyLoaded: function () {
         this.selectPoint(this.FUTURES.activePoint)
@@ -2429,6 +2432,83 @@ var L_ = {
                 L_.toggleLayer(s)
             }
         }
+    },
+    parseConfig: parseConfig,
+    // Dynamically add a new layer or update a layer (used by WebSocket)
+    addNewLayer: async function(data, layerName, type) {
+        // Save so we can make sure we reproduce the same layer settings after parsing the config
+        const toggledArray = { ...L_.toggledArray }
+
+        // Save the original layer ordering
+        const origLayersOrdered = [ ...L_.layersOrdered ]
+
+        // Reset for now
+        L_.toggledArray = {}
+
+        // Reset as these are appended to by parseConfig
+        L_.indentArray = []
+        L_.layersOrdered = []
+        L_.layersOrderedFixed = []
+        L_.layersData = []
+        L_.layersLoaded = []
+
+        L_.parseConfig(data)
+
+        // Set back
+        L_.toggledArray = { ...L_.toggledArray, ...toggledArray }
+
+        const newLayersOrdered = [ ...L_.layersOrdered ]
+        const index = L_.layersOrdered.findIndex(name => name === layerName)
+        newLayersOrdered.splice(index, 1)
+
+        if (type === 'updateLayer' && layerName in L_.layersNamed) {
+            // Update layer
+            await L_.TimeControl_.reloadLayer(layerName, true)
+        } else if (type === 'addLayer') {
+            // Add layer
+            await L_.Map_.makeLayer(L_.layersDataByName[layerName])
+            L_.addVisible(L_.Map_, [layerName])
+        } else if (type === 'removeLayer') {
+            // If the layer is visible, we need to remove it,
+            // otherwise do nothing since its already removed from the map
+            if (layerName in L_.toggledArray && L_.toggledArray[layerName]) {
+                // Toggle it to remove it
+                await L_.toggleLayer(L_.layersNamed[layerName])
+            }
+            delete L_.toggledArray[layerName]
+        }
+    },
+    updateLayersHelper: async function(layerQueueList) {
+        if (layerQueueList.length > 0) {
+            while (layerQueueList.length > 0) {
+                const firstLayer = layerQueueList.shift()
+                const { data, newLayerName, type } = firstLayer
+
+                await L_.addNewLayer(data, newLayerName, type)
+            }
+
+            if (L_.Map_) L_.Map_.orderedBringToFront(true)
+
+            // If the user rearranged the layers with the LayersTool, reset the ordering history
+            if (ToolController_.toolModules['LayersTool']
+                    && ToolController_.toolModules['LayersTool'].orderingHistory.length > 0) {
+                ToolController_.toolModules['LayersTool'].orderingHistory = []
+            }
+
+            // Update the LayersTool in the ToolController if it is active
+            if (ToolController_.activeToolName === 'LayersTool') {
+                ToolController_.activeTool.destroy();
+                ToolController_.activeTool.make();
+            }
+        }
+    },
+    // Automatically update a single layer (i.e. add/update/remove) from WebSocket update
+    autoUpdateLayer: async function(data, newLayerName, type) {
+        await L_.updateLayersHelper([{ data, newLayerName, type }])
+    },
+    // Updates everything waiting in the queue from WebSocket updates
+    updateQueueLayers: async function() {
+        await L_.updateLayersHelper(L_.addLayerQueue)
     },
 }
 

@@ -93,6 +93,8 @@ function getClientEnvironment(publicUrl) {
         HOSTS: JSON.stringify({
           scienceIntent: process.env.SCIENCE_INTENT_HOST,
         }),
+        PORT: process.env.PORT,
+        ENABLE_MMGIS_WEBSOCKETS: process.env.ENABLE_MMGIS_WEBSOCKETS,
       }
     );
   // Stringify all values so we can feed into webpack DefinePlugin

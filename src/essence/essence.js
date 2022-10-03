@@ -18,6 +18,7 @@
 */
 
 import $ from 'jquery'
+import WebSocket from 'isomorphic-ws'
 import F_ from './Basics/Formulae_/Formulae_'
 import T_ from './Basics/Test_/Test_'
 import L_ from './Basics/Layers_/Layers_'
@@ -63,6 +64,10 @@ if (typeof window.mmgisglobal.HOSTS === 'string') {
     }
 } else {
     window.mmgisglobal.HOSTS = {}
+}
+
+if (typeof window.mmgisglobal.PORT === 'string') {
+    window.mmgisglobal.PORT = parseInt(window.mmgisglobal.PORT || '8888', 10)
 }
 
 window.mmgisglobal.lastInteraction = Date.now()
@@ -198,6 +203,99 @@ var essence = {
         }
 
         //Swap.make(this)
+
+        // Enable MMGIS backend websockets
+        if (
+            window.mmgisglobal.PORT &&
+            window.mmgisglobal.ENABLE_MMGIS_WEBSOCKETS === 'true'
+        ) {
+            const port = parseInt(process.env.PORT || '8888', 10)
+            const path = `ws://localhost:${port}/`
+            const ws = new WebSocket(path)
+
+            ws.onmessage = function (data) {
+                if (data.data) {
+                    try {
+                        const parsed = JSON.parse(data.data)
+                        const mission = essence.configData.msv.mission
+
+                        if (!parsed.body.mission || parsed.body.mission !== mission) {
+                            return
+                        }
+
+                        if ('info' in parsed) {
+                            const { type, layerName } = parsed.info
+
+                            if (
+                                type === 'addLayer' ||
+                                type === 'updateLayer' ||
+                                type === 'removeLayer'
+                            ) {
+                                calls.api(
+                                    'get',
+                                    {
+                                        mission,
+                                    },
+                                    async function (data) {
+                                        if (parsed.forceClientUpdate) {
+                                            // Force update the client side
+                                            await L_.autoUpdateLayer(
+                                                data,
+                                                layerName,
+                                                type
+                                            )
+                                        } else {
+                                            L_.addLayerQueue.push({
+                                                newLayerName: layerName,
+                                                data,
+                                                type,
+                                            })
+
+                                            UserInterface_.updateLayerUpdateButton(
+                                                'ADD_LAYER'
+                                            )
+                                        }
+                                    },
+                                    function (e) {
+                                        console.warn(
+                                            "Warning: Couldn't load: " +
+                                                mission +
+                                                ' configuration.'
+                                        )
+                                    }
+                                )
+                            }
+                        } else {
+                            if (parsed.body && parsed.body.config) {
+                                UserInterface_.updateLayerUpdateButton('RELOAD')
+                            }
+                        }
+
+                        // Dispatch `websocketChange` event
+                        let _event = new CustomEvent('websocketChange', {
+                            detail: {
+                                layer:
+                                    typeof layerName !== 'undefined'
+                                        ? layerName
+                                        : null,
+                                type: typeof type !== 'undefined' ? type : null,
+                                data: parsed,
+                            },
+                        })
+                        document.dispatchEvent(_event)
+                    } catch (e) {
+                        console.warn(
+                            `Error parsing data from MMGIS websocket: ${e}`
+                        )
+                    }
+                }
+            }
+
+            ws.onclose = function () {
+                console.log('Closed websocket connection...')
+                UserInterface_.updateLayerUpdateButton('DISCONNECTED')
+            }
+        }
     },
     swapMission(to) {
         //console.log( to );
@@ -278,7 +376,14 @@ var essence = {
             //FinalizeGlobe
             Globe_.fina(Coordinates)
             //Finalize Layers_
-            L_.fina(Viewer_, Map_, Globe_, UserInterface_, Coordinates)
+            L_.fina(
+                Viewer_,
+                Map_,
+                Globe_,
+                UserInterface_,
+                Coordinates,
+                TimeControl
+            )
             //Finalize the interface
             UserInterface_.fina(L_, Viewer_, Map_, Globe_)
             //Finalize the Viewer

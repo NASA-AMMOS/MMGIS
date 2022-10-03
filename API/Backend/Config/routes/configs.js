@@ -2,6 +2,7 @@
  * JavaScript syntax format: ES5/ES6 - ECMAScript 2015
  * Loading all required dependencies, libraries and packages
  **********************************************************/
+require("dotenv").config();
 const express = require("express");
 const router = express.Router();
 const execFile = require("child_process").execFile;
@@ -12,6 +13,9 @@ const config_template = require("../../../templates/config_template");
 
 const validate = require("../validate");
 const Utils = require("../../../utils.js");
+
+const websocket = require("../../../websocket.js");
+const WebSocket = require('isomorphic-ws');
 
 const fs = require("fs");
 const deepmerge = require("deepmerge");
@@ -242,12 +246,14 @@ if (fullAccess)
  *    config?: {}
  * }
  */
-function upsert(req, res, next, cb) {
+function upsert(req, res, next, cb, info) {
   let hasVersion = false;
   req.body = req.body || {};
 
   if (req.body.version != null) hasVersion = true;
   let versionConfig = null;
+
+  const forceClientUpdate = req.body?.forceClientUpdate || false;
 
   Config.findAll({
     where: {
@@ -333,6 +339,13 @@ function upsert(req, res, next, cb) {
               mission: created.mission,
               version: created.version,
             });
+            openWebSocket(req.body, {
+                status: "success",
+                mission: created.mission,
+                version: created.version,
+              }, info,
+              forceClientUpdate
+            );
           return null;
         })
         .catch((err) => {
@@ -561,8 +574,28 @@ if (fullAccess)
     }
   });
 
+function openWebSocket(body, response, info, forceClientUpdate) {
+  if (
+    !process.env.hasOwnProperty("ENABLE_MMGIS_WEBSOCKETS") ||
+    process.env.ENABLE_MMGIS_WEBSOCKETS != "true") {
+      return
+  }
+
+  const port = parseInt(process.env.PORT || "8888", 10);
+  const path = `ws://localhost:${port}/`
+  const ws = new WebSocket(path);
+  ws.onopen = function () {
+    const data = {
+      info,
+      body,
+      forceClientUpdate,
+    };
+    ws.send(JSON.stringify(data));
+  }
+}
+
 // === Quick API Functions ===
-function addLayer(req, res, next, cb, forceConfig) {
+function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
   const exampleBody = {
     mission: "{mission_name}",
     layer: {
@@ -576,7 +609,7 @@ function addLayer(req, res, next, cb, forceConfig) {
       "index?":
         "{0}, index in 'layers' to place new layer out of range placement indices are best fit; default end",
     },
-    "notifyClients?": "{true}; default false",
+    "forceClientUpdate?": "{true}; default false",
   };
 
   if (req.body.mission == null) {
@@ -661,27 +694,34 @@ function addLayer(req, res, next, cb, forceConfig) {
           if (didSet) {
             upsert(
               {
-                body: { mission: req.body.mission, config: config },
+                body: { mission: req.body.mission, config: config, forceClientUpdate: req.body.forceClientUpdate },
               },
               null,
               null,
               (response) => {
-                if (response.status === "success")
-                  if (cb)
+                if (response.status === "success") {
+                  if (cb) {
                     cb({
                       status: "success",
                       message: `Added layer to the ${response.mission} mission. Configuration versioned ${response.version}.`,
                       mission: response.mission,
                       version: response.version,
                     });
-                  else
+                  } else {
                     res.send({
                       status: "success",
                       message: `Added layer to the ${response.mission} mission. Configuration versioned ${response.version}.`,
                       mission: response.mission,
                       version: response.version,
                     });
-                else res.send(response);
+                  }
+                } else {
+                  res.send(response);
+                }
+              },
+              {
+                type: caller,
+                layerName: req.body.layer.name,
               }
             );
           } else if (cb)
@@ -734,7 +774,7 @@ if (fullAccess)
         "index?":
           "{0}, index in 'layers' to place new layer out of range placement indices are best fit; default end",
       },
-      "notifyClients?": "{true}; default false",
+      "forceClientUpdate?": "{true}; default false",
     };
 
     if (req.body.mission == null) {
@@ -809,7 +849,7 @@ if (fullAccess)
                 path: placementPath,
                 index: placementIndex,
               },
-              notifyClients: req.body.notifyClients,
+              forceClientUpdate: req.body.forceClientUpdate,
             };
 
             addLayer(
@@ -829,7 +869,8 @@ if (fullAccess)
                   res.send(resp);
                 }
               },
-              config
+              config,
+              "updateLayer"
             );
             // Remove Existing
           } catch (err) {
@@ -854,7 +895,7 @@ function removeLayer(req, res, next, cb) {
   const exampleBody = {
     mission: "{mission_name}",
     layerName: "{existing_layer_name}",
-    "notifyClients?": "{true}; default false",
+    "forceClientUpdate?": "{true}; default false",
   };
 
   if (req.body.mission == null) {
@@ -901,6 +942,7 @@ function removeLayer(req, res, next, cb) {
                 body: {
                   mission: req.body.mission,
                   config: config,
+                  forceClientUpdate: req.body.forceClientUpdate,
                 },
               },
               res,
@@ -917,6 +959,10 @@ function removeLayer(req, res, next, cb) {
                     message: `Failed to remove layer '${req.body.layerName}': ${resp.message}`,
                   });
                 }
+              },
+              {
+                type: 'removeLayer',
+                layerName: req.body.layerName,
               }
             );
           } else {
@@ -936,7 +982,7 @@ if (fullAccess)
  * body: {
     "mission": "",
     "layerName": ""
-    "notifyClients?": true
+    "forceClientUpdate?": true
   }
  */
   router.post("/removeLayer", function (req, res, next) {

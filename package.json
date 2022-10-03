@@ -94,6 +94,7 @@
     "html2canvas": "^1.4.1",
     "html2pug": "^4.0.0",
     "identity-obj-proxy": "3.0.0",
+    "isomorphic-ws": "5.0.0",
     "jest": "24.9.0",
     "jest-environment-jsdom-fourteen": "1.0.1",
     "jest-resolve": "24.9.0",
@@ -140,7 +141,8 @@
     "webpack-dev-server": "^3.11.0",
     "webpack-manifest-plugin": "2.2.0",
     "winston": "^3.3.4",
-    "workbox-webpack-plugin": "4.3.1"
+    "workbox-webpack-plugin": "4.3.1",
+    "ws": "^8.8.1"
   },
   "eslintConfig": {
     "extends": "react-app"

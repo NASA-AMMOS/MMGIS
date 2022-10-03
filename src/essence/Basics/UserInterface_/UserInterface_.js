@@ -6,6 +6,7 @@ import ToolController_ from '../ToolController_/ToolController_'
 import Login from '../../Ancillary/Login/Login'
 
 import BottomBar from './BottomBar'
+import LayerUpdatedControl from './LayerUpdatedControl'
 
 import './UserInterface_.css'
 
@@ -49,6 +50,7 @@ var UserInterface = {
     toolsSplit: null,
     toolbar: null,
     helpOn: true,
+    layerUpdatedControl: null,
     init: function () {
         //Other stylings in mmgis.css
 
@@ -929,6 +931,25 @@ var UserInterface = {
             })
 
         UserInterface.show()
+    },
+    updateLayerUpdateButton: function (type) {
+        if (UserInterface.layerUpdatedControl) {
+            UserInterface.removeLayerUpdateButton()
+        }
+
+        if (Map_) {
+            UserInterface.layerUpdatedControl = new LayerUpdatedControl({
+                position: 'topright',
+                type,
+            })
+            UserInterface.layerUpdatedControl.addTo(Map_.map)
+        }
+    },
+    removeLayerUpdateButton: function () {
+        if (UserInterface.layerUpdatedControl && Map_) {
+            UserInterface.layerUpdatedControl.remove(Map_.map)
+            UserInterface.layerUpdatedControl = null
+        }
     },
 }
 

@@ -504,6 +504,8 @@ let Map_ = {
         return xyzs
     },
     makeLayer: makeLayer,
+    makeLayers: makeLayers,
+    allLayersLoaded: allLayersLoaded,
 }
 
 //Specific internal functions likely only to be used once
