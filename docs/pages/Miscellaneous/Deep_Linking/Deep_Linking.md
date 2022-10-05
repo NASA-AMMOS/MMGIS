@@ -132,6 +132,22 @@ If no `mission` is set in the URL, there exists only one configured mission and 
 - _dependencies_: mission is unset
 - _unset:_ The landing page will redirect to the only mission if there exists only one configured mission
 
+### startTime=<br>`<start time>`
+
+Sets the start time for the Time Control feature.
+
+- _form:_ `<string> (that moment.js understands)`
+- _dependencies_: Time Control to be enabled
+- _unset:_ Will default to current time if Time Control feature is enabled
+
+### endTime=<br>`<end time>`
+
+Sets the end time for the Time Control feature.
+
+- _form:_ `<string> (that moment.js understands)`
+- _dependencies_: Time Control to be enabled
+- _unset:_ Will default to current time if Time Control feature is enabled
+
 ## Examples
 
 #### General
