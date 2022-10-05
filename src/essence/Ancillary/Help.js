@@ -13,7 +13,7 @@ const Help = {
     },
     finalize: function (helpKey) {
         $(`#helpModal_${helpKey}`).on('click', function () {
-            $.get(`/docs/helps/${helpKey}.md`, function (doc) {
+            $.get(`/public/helps/${helpKey}.md`, function (doc) {
                 // prettier-ignore
                 Modal.set(
                     [

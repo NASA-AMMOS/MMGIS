@@ -790,16 +790,28 @@ body {
     pointer-events: initial;
 }
 
+.autocomplete-suggestions {
+    max-height: 60vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border: 1px solid var(--color-a2);
+    border-top: none;
+    background-color: var(--color-a1);
+    box-shadow: 0px 1px 4px 0px rgba(0, 0, 0, 0.2);
+}
 .autocomplete-suggestion {
-    padding: 4px 6px;
-    border-top: 1px solid var(--color-i);
+    padding: 5px 6px;
+    border-top: 1px solid var(--color-a2);
     color: var(--color-f);
     cursor: pointer;
     font-weight: 400;
     font-size: 14px;
 }
+.autocomplete-suggestion:first-child {
+    border-top: 1px solid var(--color-a-5);
+}
 .autocomplete-suggestion:hover {
-    background: var(--color-k);
+    background: var(--color-a2);
 }
 .autocomplete-suggestion > strong {
     font-weight: bold;
@@ -807,8 +819,7 @@ body {
 }
 
 .autocomplete-suggestion.autocomplete-selected {
-    background: var(--color-f);
-    color: black;
+    background: var(--color-a2);
 }
 .autocomplete-suggestion.autocomplete-selected > strong {
     text-decoration: underline;
@@ -896,4 +907,10 @@ body {
 }
 .mmgisAnnotation.highlight {
     color: #7fff00 !important;
+}
+
+mark {
+    background: var(--color-green2) !important;
+    border-radius: 2px;
+    padding: 0px 1px;
 }

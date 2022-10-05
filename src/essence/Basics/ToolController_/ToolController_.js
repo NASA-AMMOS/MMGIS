@@ -3,6 +3,8 @@ import * as d3 from 'd3'
 import L_ from '../Layers_/Layers_'
 import { toolModules } from '../../../pre/tools'
 
+import tippy from 'tippy.js'
+
 let ToolController_ = {
     tools: null,
     incToolsDiv: null,
@@ -39,6 +41,7 @@ let ToolController_ = {
 
             this.incToolsDiv
                 .append('div')
+                .attr('id', `toolButton${tools[i].name}`)
                 .attr('class', 'toolButton')
                 .style(
                     'transition',
@@ -57,7 +60,6 @@ let ToolController_ = {
                 //.style( 'text-shadow', '0px 1px #111' )
                 .style('vertical-align', 'middle')
                 .style('cursor', 'pointer')
-                .attr('title', tools[i].name)
                 .attr('tabindex', i + 1)
                 .style('transition', 'all 0.2s ease-in')
                 .style('color', ToolController_.defaultColor)
@@ -120,6 +122,12 @@ let ToolController_ = {
                 .attr('id', tools[i].name + 'Tool')
                 .attr('class', 'mdi mdi-' + tools[i].icon + ' mdi-18px')
                 .style('cursor', 'pointer')
+
+            tippy(`#toolButton${tools[i].name}`, {
+                content: tools[i].name,
+                placement: 'right',
+                theme: 'blue',
+            })
         }
 
         ToolController_.incToolsDiv
