@@ -20,7 +20,8 @@
 .leaflet-control-update-layer-40-margin {
     margin-top: 40px !important;
 }
-.RELOAD:hover, .ADD_LAYER:hover {
+.RELOAD:hover,
+.ADD_LAYER:hover {
     color: var(--color-mmgis) !important;
 }
 .RELOAD {

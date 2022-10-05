@@ -147,7 +147,14 @@ var L_ = {
             lon: null,
         }
     },
-    fina: function (viewer_, map_, globe_, userinterface_, coordinates, timecontrol_) {
+    fina: function (
+        viewer_,
+        map_,
+        globe_,
+        userinterface_,
+        coordinates,
+        timecontrol_
+    ) {
         this.Viewer_ = viewer_
         this.Map_ = map_
         this.Globe_ = globe_
@@ -498,6 +505,7 @@ var L_ = {
             } else {
                 switch (sublayer.type) {
                     case 'model':
+                        console.log(sublayer.modelOptions)
                         L_.Globe_.litho.addLayer('model', sublayer.modelOptions)
                         break
                     case 'uncertainty_ellipses':
@@ -963,7 +971,7 @@ var L_ = {
                 for (let i = 0; i < layer.length; i++) {
                     if (layer[i]) {
                         if (layer[i].feature) {
-                            L_._setVisibilityCuttoffInternal(
+                            L_._setVisibilityCutoffInternal(
                                 layer[i],
                                 minZoom,
                                 maxZoom
@@ -971,7 +979,7 @@ var L_ = {
                         }
                         if (layer[i]._layers)
                             for (let layerId in layer[i]._layers) {
-                                L_._setVisibilityCuttoffInternal(
+                                L_._setVisibilityCutoffInternal(
                                     layer[i]._layers[layerId],
                                     minZoom,
                                     maxZoom
@@ -982,7 +990,7 @@ var L_ = {
             }
         })
     },
-    _setVisibilityCuttoffInternal: function (l, minZoom, maxZoom) {
+    _setVisibilityCutoffInternal: function (l, minZoom, maxZoom) {
         if (l._hidden === true) return
 
         let featureMinZoom = null
@@ -2435,12 +2443,12 @@ var L_ = {
     },
     parseConfig: parseConfig,
     // Dynamically add a new layer or update a layer (used by WebSocket)
-    addNewLayer: async function(data, layerName, type) {
+    addNewLayer: async function (data, layerName, type) {
         // Save so we can make sure we reproduce the same layer settings after parsing the config
         const toggledArray = { ...L_.toggledArray }
 
         // Save the original layer ordering
-        const origLayersOrdered = [ ...L_.layersOrdered ]
+        const origLayersOrdered = [...L_.layersOrdered]
 
         // Reset for now
         L_.toggledArray = {}
@@ -2457,8 +2465,8 @@ var L_ = {
         // Set back
         L_.toggledArray = { ...L_.toggledArray, ...toggledArray }
 
-        const newLayersOrdered = [ ...L_.layersOrdered ]
-        const index = L_.layersOrdered.findIndex(name => name === layerName)
+        const newLayersOrdered = [...L_.layersOrdered]
+        const index = L_.layersOrdered.findIndex((name) => name === layerName)
         newLayersOrdered.splice(index, 1)
 
         if (type === 'updateLayer' && layerName in L_.layersNamed) {
@@ -2478,7 +2486,7 @@ var L_ = {
             delete L_.toggledArray[layerName]
         }
     },
-    updateLayersHelper: async function(layerQueueList) {
+    updateLayersHelper: async function (layerQueueList) {
         if (layerQueueList.length > 0) {
             while (layerQueueList.length > 0) {
                 const firstLayer = layerQueueList.shift()
@@ -2490,24 +2498,27 @@ var L_ = {
             if (L_.Map_) L_.Map_.orderedBringToFront(true)
 
             // If the user rearranged the layers with the LayersTool, reset the ordering history
-            if (ToolController_.toolModules['LayersTool']
-                    && ToolController_.toolModules['LayersTool'].orderingHistory.length > 0) {
+            if (
+                ToolController_.toolModules['LayersTool'] &&
+                ToolController_.toolModules['LayersTool'].orderingHistory
+                    .length > 0
+            ) {
                 ToolController_.toolModules['LayersTool'].orderingHistory = []
             }
 
             // Update the LayersTool in the ToolController if it is active
             if (ToolController_.activeToolName === 'LayersTool') {
-                ToolController_.activeTool.destroy();
-                ToolController_.activeTool.make();
+                ToolController_.activeTool.destroy()
+                ToolController_.activeTool.make()
             }
         }
     },
     // Automatically update a single layer (i.e. add/update/remove) from WebSocket update
-    autoUpdateLayer: async function(data, newLayerName, type) {
+    autoUpdateLayer: async function (data, newLayerName, type) {
         await L_.updateLayersHelper([{ data, newLayerName, type }])
     },
     // Updates everything waiting in the queue from WebSocket updates
-    updateQueueLayers: async function() {
+    updateQueueLayers: async function () {
         await L_.updateLayersHelper(L_.addLayerQueue)
     },
 }

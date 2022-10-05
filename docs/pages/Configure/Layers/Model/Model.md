@@ -83,3 +83,86 @@ The string format to be used in the URL for `{starttime}` and `{endtime}`. Defau
 ---
 
 _Note:_ Additional vector layer stylings can be found on the [Vector Styling](/MMGIS/configure/formats/vector-styling) page.
+
+---
+
+#### Alternatively
+
+Do know that models can also be added via a Vector layer's `markerAttachments.model`. An example to have vector points show up in the Map and their respective models to appear in both the Viewer and Globe is as follows:
+
+Example .geojson:
+
+```json
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "Name": "OBJ",
+        "images": [
+          {
+            "name": "Model Example",
+            "url": "Data/models/m20a_bettys_rock_1m/m20a_bettys_rock_1m_centered.obj",
+            "texture": "Data/models/m20a_bettys_rock_1m/m20a_bettys_rock.jpg",
+            "type": "image",
+            "isModel": true,
+            "mtl": "Data/models/m20a_bettys_rock_1m/m20a_bettys_rock_1m_centered.mtl",
+            "yaw": 0,
+            "pitch": 0,
+            "roll": 0,
+            "elev": -4369.7648860680883
+          }
+        ]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          137.35458264484535, -4.699610086614438, -4360.7648860680883
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Name": "GLTF",
+        "images": [
+          {
+            "name": "Model Example2",
+            "url": "Data/models/bettys_rock_sol_467_gltf/scene.gltf",
+            "type": "image",
+            "isModel": true,
+            "yaw": 0,
+            "pitch": 0,
+            "roll": 0,
+            "elev": -4369.7648860680883
+          }
+        ]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          137.35058264484535, -4.70610086614438, -4360.7648860680883
+        ]
+      }
+    }
+  ]
+}
+```
+
+Vector Layer Raw Variables
+
+```json
+{
+  "useKeyAsName": "Name",
+  "markerAttachments": {
+    "model": {
+      "pathProp": "images.0.url",
+      "mtlProp": "images.0.mtl",
+      "pitchProp": -90,
+      "pitchUnit": "deg",
+      "show": "always"
+    }
+  }
+}
+```
