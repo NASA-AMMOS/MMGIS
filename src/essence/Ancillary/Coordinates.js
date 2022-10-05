@@ -8,34 +8,36 @@ import Dropy from '../../external/Dropy/dropy'
 import UserInterface from '../Basics/UserInterface_/UserInterface_'
 import calls from '../../pre/calls'
 
+import tippy from 'tippy.js'
+
 import './Coordinates.css'
 
 // prettier-ignore
 const markup = [
-        "<div class='mouseLngLat'>",
-            "<div id='mouseDesc' style='display: none;'></div>",
-            "<div id='changeCoordType' title='Change coordinate types.'>",
-                "<div id='changeCoordTypeDropdown' class='ui dropdown short'></div>",
-            "</div>",
-            "<div id='mouseLngLat'></div>",
-            "<div id='mouseElev'></div>",
+    "<div class='mouseLngLat'>",
+        "<div id='mouseDesc' style='display: none;'></div>",
+        "<div id='changeCoordType'>",
+            "<div id='changeCoordTypeDropdown' class='ui dropdown short'></div>",
         "</div>",
-        "<div class='mouseLngLatPicking'>",
-            "<div id='mouseDescPicking'></div>",
-            "<div id='mouseLngLatPicking'></div>",
-            "<div id='mouseGoPicking' title='Go to coordinate.'>",
-                "<i class='mdi mdi-arrow-right-thick mdi-18px'></i>",
-            "</div>",
+        "<div id='mouseLngLat'></div>",
+        "<div id='mouseElev'></div>",
+    "</div>",
+    "<div class='mouseLngLatPicking'>",
+        "<div id='mouseDescPicking'></div>",
+        "<div id='mouseLngLatPicking'></div>",
+        "<div id='mouseGoPicking' title='Go to coordinate.'>",
+            "<i class='mdi mdi-arrow-right-thick mdi-18px'></i>",
         "</div>",
-        "<div id='buttonsLngLat' style='display: flex;'>",
-            "<div id='pickLngLat' title='Pick coordinates.'>",
-                "<i class='mdi mdi-target mdi-18px'></i>",
-            "</div>",
+    "</div>",
+    "<div id='buttonsLngLat' style='display: flex;'>",
+        "<div id='pickLngLat'>",
+            "<i class='mdi mdi-target mdi-18px'></i>",
         "</div>",
-        "<div id='toggleTimeUI'>",
-            "<i class='mdi mdi-clock mdi-18px'></i>",
-        "</div>"
-    ].join('\n');
+    "</div>",
+    "<div id='toggleTimeUI'>",
+        "<i class='mdi mdi-clock mdi-18px'></i>",
+    "</div>"
+].join('\n');
 
 const Coordinates = {
     //[ lng, lat ]
@@ -105,6 +107,24 @@ const Coordinates = {
             .append('div')
             .attr('id', 'CoordinatesDiv')
             .html(markup)
+
+        tippy('#changeCoordTypeDropdown', {
+            content: 'Change Coordinate Type',
+            placement: 'left',
+            theme: 'blue',
+            offset: [0, 10],
+        })
+        tippy('#pickLngLat', {
+            content: 'Pick Coordinates',
+            placement: 'top',
+            theme: 'blue',
+        })
+        tippy('#toggleTimeUI', {
+            content: 'Time',
+            placement: 'top',
+            theme: 'blue',
+            offset: [0, 20],
+        })
 
         if (L_.configData.coordinates) {
             // ll

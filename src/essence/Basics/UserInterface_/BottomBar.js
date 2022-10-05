@@ -7,6 +7,7 @@ import L_ from '../Layers_/Layers_'
 import QueryURL from '../../Ancillary/QueryURL'
 import Modal from '../../Ancillary/Modal'
 import HTML2Canvas from 'html2canvas'
+import tippy from 'tippy.js'
 
 import './BottomBar.css'
 
@@ -21,7 +22,6 @@ let BottomBar = {
         bottomBar
             .append('i')
             .attr('id', 'topBarLink')
-            .attr('title', 'Copy Link')
             .attr('tabindex', 100)
             .attr('class', 'mmgisHoverBlue mdi mdi-open-in-new mdi-18px')
             .style('padding', '5px 10px')
@@ -44,6 +44,12 @@ let BottomBar = {
                     }, 3000)
                 })
             })
+
+        tippy(`#topBarLink`, {
+            content: `Copy Link`,
+            placement: 'right',
+            theme: 'blue',
+        })
 
         // Screenshot
         bottomBar
@@ -144,6 +150,13 @@ let BottomBar = {
                 $('.leaflet-control-zoom').css('display', 'block')
                 $('#scaleBar').css('margin-top', '5px')
             })
+
+        tippy(`#topBarScreenshot`, {
+            content: `Take Screenshot`,
+            placement: 'right',
+            theme: 'blue',
+        })
+
         // Screenshot loading
         d3.select('#topBarScreenshot')
             .append('i')
@@ -175,7 +188,6 @@ let BottomBar = {
         bottomBar
             .append('i')
             .attr('id', 'topBarFullscreen')
-            .attr('title', 'Fullscreen')
             .attr('tabindex', 103)
             .attr('class', 'mmgisHoverBlue mdi mdi-fullscreen mdi-18px')
             .style('padding', '5px 10px')
@@ -204,11 +216,16 @@ let BottomBar = {
                         .attr('title', 'Fullscreen')
             })
 
+        tippy(`#topBarFullscreen`, {
+            content: `Fullscreen`,
+            placement: 'right',
+            theme: 'blue',
+        })
+
         // Settings
         bottomBar
             .append('i')
             .attr('id', 'bottomBarSettings')
-            .attr('title', 'Settings')
             .attr('tabindex', 104)
             .attr('class', 'mmgisHoverBlue mdi mdi-settings mdi-18px')
             .style('padding', '5px 10px')
@@ -221,6 +238,12 @@ let BottomBar = {
                 const wasOn = that.hasClass('active')
                 BottomBar.toggleSettings(!wasOn)
             })
+
+        tippy(`#bottomBarSettings`, {
+            content: `Settings`,
+            placement: 'right',
+            theme: 'blue',
+        })
 
         // Help
         bottomBar
@@ -242,6 +265,12 @@ let BottomBar = {
                     d3.select('#viewer_Help').style('display', 'none')
                 }
             })
+
+        tippy(`#topBarHelp`, {
+            content: `Help`,
+            placement: 'right',
+            theme: 'blue',
+        })
     },
     toggleSettings: function (on) {
         if (on) {

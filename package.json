@@ -133,6 +133,7 @@
     "style-loader": "0.23.1",
     "swagger-ui-express": "^4.1.4",
     "terser-webpack-plugin": "^4.2.3",
+    "tippy.js": "^6.3.7",
     "ts-pnp": "1.1.6",
     "turf": "^3.0.14",
     "url-loader": "2.3.0",

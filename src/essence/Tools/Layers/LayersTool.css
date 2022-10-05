@@ -13,6 +13,10 @@
     width: 100%;
 }
 
+#layersTool #layersToolHeader .mmgisHelpButton {
+    margin: 11px 4px;
+}
+
 #layersTool #searchLayers {
     display: flex;
     height: 36px;
@@ -84,7 +88,7 @@
     background: var(--color-a1);
     width: 279px;
     color: #ccc;
-    padding-left: 12px;
+    padding-left: 28px;
     border: none;
     border-right: 1px solid var(--color-a-5);
 }
@@ -93,9 +97,9 @@
 }
 #layersTool #searchLayers .mdi-magnify {
     position: absolute;
-    right: 66px;
+    left: 6px;
     color: #999;
-    line-height: 36px;
+    line-height: 35px;
     pointer-events: none;
 }
 
@@ -106,12 +110,22 @@
 #layersTool #searchLayers > div {
     cursor: pointer;
     color: #999;
-    transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+    transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1), opacity 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
     width: 30px;
     text-align: center;
 }
 #layersTool #searchLayers > div:hover {
     color: #fff;
+}
+#layersTool #searchLayers > div#clear {
+    position: absolute;
+    right: 62px;
+    padding-top: 1px;
+    height: 34px;
+    opacity: 0;
+}
+#layersTool #searchLayers > div#clear.shown {
+    opacity: 1;
 }
 #layersTool #searchLayers > div#expand {
     position: absolute;
@@ -398,8 +412,8 @@
     margin: 5px;
     width: 20px;
     height: 20px;
-    border: 2px solid #777;
-    border-radius: 3px;
+    border: 1px solid var(--color-a3);
+    border-radius: 2px;
     transition: background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
         border 0.1s cubic-bezier(0.39, 0.575, 0.565, 1),
         border-radius 0.1s cubic-bezier(0.39, 0.575, 0.565, 1);
@@ -569,6 +583,7 @@
 #layersTool .headerPowerState.on:hover {
     color: var(--color-a7);
 }
+
 
 @keyframes layerLoadingSpin {
     to {

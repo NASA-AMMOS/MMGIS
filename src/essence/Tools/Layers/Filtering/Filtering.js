@@ -562,10 +562,7 @@ const Filtering = {
 
         $('.autocomplete-suggestions').css({
             'max-height': '300px',
-            'overflow-y': 'auto',
-            'overflow-x': 'hidden',
             'border-top': 'none',
-            'background-color': 'var(--color-a)',
         })
 
         // Change type indicator icons too

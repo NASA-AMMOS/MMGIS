@@ -8,8 +8,14 @@ import Map_ from '../../Basics/Map_/Map_'
 import DataShaders from '../../Ancillary/DataShaders'
 import LayerInfoModal from './LayerInfoModal/LayerInfoModal'
 import Filtering from './Filtering/Filtering'
+import Help from '../../Ancillary/Help'
+
+import tippy from 'tippy.js'
+import 'markjs'
 
 import './LayersTool.css'
+
+const helpKey = 'LayersTool'
 
 //Add the tool markup if you want to do it this way
 // prettier-ignore
@@ -19,6 +25,7 @@ var markup = [
             "<div id='filterLayers'>",
                 "<div class='left'>",
                     '<div id="title">Layers</div>',
+                    Help.getComponent(helpKey),
                 "</div>",
                 "<div class='right'>",
                     '<div class="vector" type="vector" title="Hide/Show Vector Layers"><i class="mdi mdi-vector-square mdi-18px"></i></div>',
@@ -31,8 +38,9 @@ var markup = [
                 "</div>",
             "</div>",
             "<div id='searchLayers'>",
-                "<input type='text' placeholder='Search Layers' />",
                 '<i class="mdi mdi-magnify mdi-18px"></i>',
+                "<input type='text' placeholder='Search Layers' />",
+                '<div id="clear"><i class="mdi mdi-close mdi-18px"></i></div>',
                 '<div id="expand"><i class="mdi mdi-arrow-expand-vertical mdi-18px"></i></div>',
                 '<div id="collapse"><i class="mdi mdi-arrow-collapse-vertical mdi-18px"></i></div>',
             "</div>",
@@ -47,7 +55,7 @@ var markup = [
 // These layers are a bit different and we need to account for that.
 // Either they have no map data or not initial data
 const quasiLayers = ['model', 'query']
-const DEPTH_SIZE = 16
+const DEPTH_SIZE = 13
 const INDENT_COLOR = 'var(--color-a)'
 
 var LayersTool = {
@@ -161,6 +169,8 @@ function interfaceWithMMGIS(fromInit) {
     if (fromInit) tools.style('display', 'none')
     //Add the markup to tools or do it manually
     tools.html(markup)
+
+    Help.finalize(helpKey)
 
     let headerI = 0
 
@@ -442,18 +452,18 @@ function interfaceWithMMGIS(fromInit) {
                     // prettier-ignore
                     $('#layersToolList').append(
                         [
-                            `<li class="layersToolHeader" id="header_${headerI}" name="${node[i].name}" type="${node[i].type}" depth="${depth}" childrenon="true" style="margin-bottom: 1px;">` +
-                                `<div class="title" id="headerstart" style="border-left: ${depth * DEPTH_SIZE}px solid ${INDENT_COLOR};">` +
+                            `<li class="layersToolHeader" id="header_${headerI}" name="${node[i].name}" type="${node[i].type}" depth="${depth}" childrenon="true" style="margin-bottom: 1px;">`,
+                                `<div class="title" id="headerstart" style="border-left: ${depth * DEPTH_SIZE}px solid ${INDENT_COLOR};">`,
                                     '<div class="layersToolColor ' + node[i].type + '">',
                                         '<i class="mdi mdi-drag-vertical mdi-12px"></i>',
                                     '</div>',
                                     '<div>',
                                         '<i class="headerChevron mdi mdi-chevron-down mdi-24px"></i>',
                                     '</div>',
-                                    `<div class="layerName" title="${node[i].name}">` +
+                                    `<div class="layerName" title="${node[i].name}">`,
                                         node[i].name,
                                     '</div>',
-                                    '<div class="layerCount">' +
+                                    '<div class="layerCount">',
                                         (node[i].sublayers ? node[i].sublayers.length : '0'),
                                     '</div>',
                                     '<div title="Information" class="LayersToolInfo" id="layerinfo' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
@@ -824,38 +834,140 @@ function interfaceWithMMGIS(fromInit) {
         )
     })
 
-    $('#searchLayers > input').on('input', function () {
-        $('#searchLayers > #expand').click()
-        var input = $(this).val().toLowerCase()
-        $('#layersToolList > li').each(function () {
-            if ($(this).attr('type') != 'header') {
-                if (input == '') {
-                    if ($(this).attr('on') == 'true') {
-                        $(this).css('height', 'auto')
-                        $(this).css('margin-top', '1px')
-                        $(this).css('margin-bottom', '1px')
-                    } else {
-                        $(this).css('height', 0)
-                        $(this).css('margin-top', '0px')
-                        $(this).css('margin-bottom', '0px')
-                    }
-                } else {
-                    if (
-                        $(this).attr('name').toLowerCase().indexOf(input) != -1
-                    ) {
-                        $(this).css('height', 'auto')
-                        $(this).css('margin-top', '1px')
-                        $(this).css('margin-bottom', '1px')
-                    } else {
-                        $(this).css('height', 0)
-                        $(this).css('margin-top', '0px')
-                        $(this).css('margin-bottom', '0px')
-                    }
-                }
-            }
-        })
+    let tags = []
+    Object.keys(L_.layersNamed).forEach((l) => {
+        if (L_.layersNamed[l].tags) tags = tags.concat(L_.layersNamed[l].tags)
+    })
+    // Remove duplicates
+    tags = tags.filter((c, idx) => {
+        return tags.indexOf(c) === idx
     })
 
+    $('#searchLayers > input').autocomplete({
+        lookup: tags,
+        lookupLimit: 400,
+        minChars: 1,
+        transformResult: function (response, originalQuery) {
+            response.suggestions = []
+            if (originalQuery[0] === '#') {
+                const queryWithoutHash = originalQuery.substring(1)
+
+                tags.forEach((tag) => {
+                    if (
+                        queryWithoutHash === '' ||
+                        tag.toLowerCase().indexOf(queryWithoutHash) != -1
+                    ) {
+                        response.suggestions.push({ value: tag, data: null })
+                    }
+                })
+            }
+            return response
+        },
+        onSelect: function (event) {
+            $('#searchLayers > input')
+                .val(`#${event.value}`)
+                .trigger('input')
+                .trigger('blur')
+        },
+    })
+
+    tippy('#searchLayers > input', {
+        content:
+            'Search layers by Name and Description. Prefix with # to search over tags.',
+        placement: 'right',
+        theme: 'blue',
+    })
+
+    $('#searchLayers > input').on('input', function () {
+        $('#searchLayers > #expand').click()
+        const filterString = $(this).val().toLowerCase()
+
+        if (filterString == null || filterString == '')
+            $('#searchLayers > #clear').removeClass('shown')
+        else $('#searchLayers > #clear').addClass('shown')
+
+        markAll()
+        function getThats() {
+            let thats = []
+            $('#layersToolList > li').each(function () {
+                if ($(this).attr('type') != 'header') {
+                    if (filterString == null || filterString == '') {
+                        $(this).css('height', 'auto')
+                        $(this).css('margin-top', '1px')
+                        $(this).css('margin-bottom', '1px')
+                        //Mark
+                        $(this).unmark()
+                    } else {
+                        thats.push(this)
+                    }
+                }
+            })
+            return thats
+        }
+
+        function markAll() {
+            let thats = getThats()
+            //look through name and highlight
+            thats.forEach((that) => {
+                $(that).unmark({
+                    done: function () {
+                        $(that).markRegExp(new RegExp(filterString, 'i'), {
+                            done: function () {
+                                if ($(that).find('mark').length == 0) {
+                                    $(that).css('height', 0)
+                                    $(that).css('margin-top', '0px')
+                                    $(that).css('margin-bottom', '0px')
+                                } else {
+                                    $(that).css('height', 'auto')
+                                    $(that).css('margin-top', '1px')
+                                    $(that).css('margin-bottom', '1px')
+                                }
+                            },
+                        })
+                    },
+                })
+
+                const layerName = $(that).attr('name')
+                const layerObj = L_.layersNamed[layerName]
+
+                if (layerObj) {
+                    //Look at description
+                    if (
+                        layerObj.description &&
+                        layerObj.description.indexOf(filterString) != -1
+                    ) {
+                        $(that).css('height', 'auto')
+                        $(that).css('margin-top', '1px')
+                        $(that).css('margin-bottom', '1px')
+                    }
+                    //look at tag
+                    if (layerObj.tags) {
+                        const filterStringWords = filterString.split(' ')
+                        filterStringWords.forEach((word) => {
+                            if (word[0] === '#') {
+                                const filterTag = word.substring(1)
+                                for (let i = 0; i < layerObj.tags.length; i++) {
+                                    if (
+                                        layerObj.tags[i]
+                                            .toLowerCase()
+                                            .indexOf(filterTag) != -1
+                                    ) {
+                                        $(that).css('height', 'auto')
+                                        $(that).css('margin-top', '1px')
+                                        $(that).css('margin-bottom', '1px')
+                                        break
+                                    }
+                                }
+                            }
+                        })
+                    }
+                }
+            })
+        }
+    })
+    $('#searchLayers > #clear').on('click', function () {
+        $('#searchLayers > input').val('').trigger('input')
+    })
     $('#searchLayers > #expand').on('click', function () {
         $('#layersToolList > li').each(function () {
             if (

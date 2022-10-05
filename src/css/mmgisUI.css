@@ -763,7 +763,7 @@
 
 .mmgisScrollbar::-webkit-scrollbar-thumb {
     border-radius: 0px;
-    background-color: var(--color-b);
+    background-color: var(--color-a2);
 }
 
 ::-webkit-scrollbar {
@@ -774,7 +774,7 @@
     border: 3px solid rgba(0, 0, 0, 0);
     background-clip: padding-box;
     border-radius: 0px;
-    background-color: #666;
+    background-color: var(--color-a2);
     box-shadow: inset -1px -1px 0px rgba(0, 0, 0, 0.05),
         inset 1px 1px 0px rgba(0, 0, 0, 0.05);
 }
@@ -785,6 +785,16 @@
 }
 ::-webkit-scrollbar-corner {
     background-color: transparent;
+}
+
+/* tooltip */
+.tippy-box[data-theme~='blue'] {
+    background-color: var(--color-c2);
+    color: white;
+    border-radius: 2px;
+}
+.tippy-box[data-theme~='blue'] .tippy-arrow {
+    color: var(--color-c2);
 }
 
 /*vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv switch slider vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/

@@ -638,8 +638,17 @@ function initialize() {
                   }
                 }
 
-                //layers
-                expandLayers(cData.layers, 0);
+                // figure out all tags present in mission layers
+                let tags = {};
+                depthLayerTraverse(cData.layers, function (t) {
+                  if (t) {
+                    t.forEach((tag) => {
+                      if (tags[tag]) tags[tag]++;
+                      else tags[tag] = 1;
+                    });
+                  }
+                });
+                expandLayers(cData.layers, 0, { tagList: tags });
 
                 refresh();
                 //Reclick active tab to get indicator to show properly
@@ -797,13 +806,23 @@ function refresh() {
   $("#tab_layers_rows").materializeDraggable();
 }
 
+// Goes through all layers and captures tags
+function depthLayerTraverse(d, cb) {
+  for (let i = 0; i < d.length; i++) {
+    cb(d[i].tags);
+    let dNext = 0;
+    if (d[i].hasOwnProperty("sublayers")) dNext = d[i].sublayers;
+    if (dNext != 0) depthLayerTraverse(dNext, cb);
+  }
+}
+
 //Depth-first iteration through the json layers that sets our variables
-function expandLayers(d, level) {
+function expandLayers(d, level, options) {
   for (var i = 0; i < d.length; i++) {
-    makeLayerBarAndModal(d[i], level);
+    makeLayerBarAndModal(d[i], level, options);
 
     var dNext = getSublayers(d[i]);
-    if (dNext != 0) expandLayers(dNext, level + 1);
+    if (dNext != 0) expandLayers(dNext, level + 1, options);
   }
 }
 function getSublayers(d) {
@@ -811,7 +830,7 @@ function getSublayers(d) {
   else return 0;
 }
 
-function makeLayerBarAndModal(d, level) {
+function makeLayerBarAndModal(d, level, options) {
   //name for classes/ids
   var n = grandLayerCounter; //d.name.replace(/ /g,"_");
   d.__level = level;
@@ -1327,10 +1346,11 @@ function makeLayerBarAndModal(d, level) {
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='tagsEl' class='input-field col s10 push-s1' style='display: " + tagsEl + "'>" +
+            "<div id='tagsEl' class='input-field col s9 push-s1' style='display: " + tagsEl + "'>" +
               "<input id='LayerTags" + n + "' type='text' class='validate' value='" + (d.tags ? d.tags.join(',') : '') + "'>" +
               "<label for='LayerTags" + n + "'>Tags (comma-separated, &lt;cat&gt;:&lt;tag&gt; for category)</label>" +
             "</div>" +
+            `<div class='col s1 push-s1' style='display: ${tagsEl}; text-align: center; margin-top: 39px; color: #333; background: #ddd; cursor: pointer;' onclick='alert("Existing Tags:\\n\\n${Object.keys(options.tagList).map((t) => `${t} (${options.tagList[t]})`).join('\\n')}");'>Existing Tags<i class='mdi mdi-tags mdi-18px'></i></div>` +
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
@@ -2177,7 +2197,12 @@ function save() {
           if (modalDescription != "undefined")
             layerObject.description = modalDescription;
           if (modalTags != "undefined" && modalTags != "")
-            layerObject.tags = modalTags.replace(/ /g, "").split(",");
+            layerObject.tags = modalTags
+              .replace(/ /g, "")
+              .split(",")
+              .filter((c, idx) => {
+                return c != "";
+              });
           if (modalLegend != "undefined" && modalLegend != "")
             layerObject.legend = modalLegend;
           if (modalType != "header") layerObject.visibility = modalVis;
