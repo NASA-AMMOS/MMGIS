@@ -1350,7 +1350,7 @@ function makeLayerBarAndModal(d, level, options) {
               "<input id='LayerTags" + n + "' type='text' class='validate' value='" + (d.tags ? d.tags.join(',') : '') + "'>" +
               "<label for='LayerTags" + n + "'>Tags (comma-separated, &lt;cat&gt;:&lt;tag&gt; for category)</label>" +
             "</div>" +
-            `<div class='col s1 push-s1' style='display: ${tagsEl}; text-align: center; margin-top: 39px; color: #333; background: #ddd; cursor: pointer;' onclick='alert("Existing Tags:\\n\\n${Object.keys(options.tagList).map((t) => `${t} (${options.tagList[t]})`).join('\\n')}");'>Existing Tags<i class='mdi mdi-tags mdi-18px'></i></div>` +
+            `<div class='col s1 push-s1' style='display: ${tagsEl}; text-align: center; margin-top: 39px; color: #333; background: #ddd; cursor: pointer;' onclick='alert("Existing Tags:\\n\\n${options?.tagList ? Object.keys(options.tagList).map((t) => `${t} (${options.tagList[t]})`).join('\\n') : ''}");'>Existing Tags<i class='mdi mdi-tags mdi-18px'></i></div>` +
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +

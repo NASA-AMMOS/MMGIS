@@ -7,12 +7,14 @@ import ToolController_ from '../ToolController_/ToolController_.js'
 import Modal from '../../Ancillary/Modal'
 import ConfirmationModal from '../../Ancillary/ConfirmationModal'
 
+import tippy from 'tippy.js'
+
 import './LayerUpdatedControl.css'
 
 const BUTTON_TYPES = {
     RELOAD: {
         html: '<i class="mdi mdi-reload-alert mdi-18p"></i>',
-        title: 'Reload the entire MMGIS page',
+        title: 'Reload MMGIS',
     },
     ADD_LAYER: {
         html: '<i class="mdi mdi-reload mdi-18p"></i>',
@@ -51,20 +53,42 @@ var LayerUpdatedControl = L.Control.extend({
             this._click = this._clickReload
         }
 
-        this._updateLayerButton = this._createButton(BUTTON_TYPES[options.type].html, tooltipText,
-                "leaflet-control-update-layer-icon", container, this._click)
+        this._updateLayerButton = this._createButton(
+            BUTTON_TYPES[options.type].html,
+            tooltipText,
+            'leaflet-control-update-layer-icon',
+            container,
+            this._click
+        )
 
         L.DomUtil.addClass(this._updateLayerButton, options.type)
 
-        if (options.type === 'ADD_LAYER' && L_.addLayerQueue && L_.addLayerQueue.length > 0) {
+        if (
+            options.type === 'ADD_LAYER' &&
+            L_.addLayerQueue &&
+            L_.addLayerQueue.length > 0
+        ) {
             // The icon shows the correct number of new layers waiting to be added
-            var number = L.DomUtil.create('span', 'update-layer-icon-text', this._updateLayerButton)
+            var number = L.DomUtil.create(
+                'span',
+                'update-layer-icon-text',
+                this._updateLayerButton
+            )
             number.innerHTML = L_.addLayerQueue.length
             if (L_.addLayerQueue.length > 9) {
                 number.innerHTML = '+'
                 L.DomUtil.addClass(number, 'plus')
             }
         }
+
+        // Can't find an afterAdd function. Hate doing this but it works
+        setTimeout(() => {
+            tippy(`.${options.type} `, {
+                content: tooltipText,
+                placement: 'left',
+                theme: 'blue',
+            })
+        }, 1500)
 
         return container
     },
@@ -78,7 +102,6 @@ var LayerUpdatedControl = L.Control.extend({
         var link = L.DomUtil.create('a', className, container)
         link.innerHTML = html
         link.href = '#'
-        link.title = title
 
         link.setAttribute('role', 'button')
         link.setAttribute('aria-label', title)
@@ -89,37 +112,42 @@ var LayerUpdatedControl = L.Control.extend({
 
         return link
     },
-    _clickAddLayer: function(e) {
+    _clickAddLayer: function (e) {
         this._showModal()
     },
-    _clickReload: function(e) {
-        ConfirmationModal.prompt("Refresh this MMGIS page?", (isYes) => {
-            if (isYes) location.reload();
-        })
+    _clickReload: function (e) {
+        ConfirmationModal.prompt(
+            'Do you want to reload MMGIS to receive new updates?',
+            (isYes) => {
+                if (isYes) location.reload()
+            }
+        )
     },
-    _showModal: function() {
+    _showModal: function () {
         let table = [
             `<table class="table" style="text-align: left;">`,
-                `<tr style="font-width: bold">`,
-                    `<th style="column-width: 100px">Action</th>`,
-                    `<th>Layer name</th>`,
-                `</tr>`,
-        ];
+            `<tr style="font-width: bold">`,
+            `<th style="column-width: 100px">Action</th>`,
+            `<th>Layer name</th>`,
+            `</tr>`,
+        ]
 
         for (let i in L_.addLayerQueue) {
             const { data, newLayerName, type } = L_.addLayerQueue[i]
-            const typePrettify = type.split(/(?=[A-Z])/).map(e => {
+            const typePrettify = type.split(/(?=[A-Z])/).map((e) => {
                 return e.charAt(0).toUpperCase() + e.slice(1).toLowerCase()
             })
 
             table = table.concat([
                 `<tr>`,
-                    `<td style="column-width: 100px">${typePrettify.join(' ')}</td>`,
-                    `<td>${newLayerName}</td>`,
+                `<td style="column-width: 100px">${typePrettify.join(
+                    ' '
+                )}</td>`,
+                `<td>${newLayerName}</td>`,
                 `</tr>`,
-            ]);
+            ])
         }
-        table.push(`</table>`);
+        table.push(`</table>`)
 
         // prettier-ignore
         let modalContent = [
@@ -144,33 +172,33 @@ var LayerUpdatedControl = L.Control.extend({
                 `</div>`,
             `</div>`
         ].join('\n');
-        
+
         Modal.set(
             modalContent,
             function () {
                 // Save
                 $('.drawToolFileSave').on('click', function () {
-                    Modal.remove();
+                    Modal.remove()
 
-                    L_.updateQueueLayers();
+                    L_.updateQueueLayers()
 
                     // Destroy self
-                    L_.UserInterface_.removeLayerUpdateButton();
-                });
+                    L_.UserInterface_.removeLayerUpdateButton()
+                })
 
                 // Cancel
                 $('.drawToolFileCancel').on('click', function () {
-                    Modal.remove();
-                });
+                    Modal.remove()
+                })
 
                 // Close
                 $('#mainSettingsModalClose').on('click', function () {
-                    Modal.remove();
-                });
+                    Modal.remove()
+                })
             },
             function () {}
         )
     },
-});
+})
 
 export default LayerUpdatedControl

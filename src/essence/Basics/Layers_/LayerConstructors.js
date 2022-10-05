@@ -50,9 +50,10 @@ export const constructVectorLayer = (
             if (feature.properties.hasOwnProperty('style')) {
                 let className = layerObj.style.className
                 let layerName = layerObj.style.layerName
-                layerObj.style = JSON.parse(
-                    JSON.stringify(feature.properties.style)
-                )
+                layerObj.style = {
+                    ...JSON.parse(JSON.stringify(layerObj.style)),
+                    ...JSON.parse(JSON.stringify(feature.properties.style)),
+                }
                 if (className) layerObj.style.className = className
                 if (layerName) layerObj.style.layerName = layerName
             } else {
@@ -357,6 +358,7 @@ export const constructVectorLayer = (
         if (l.feature?.properties?.style?.geologic != null) {
             const geom = l.feature.geometry
             const style = l.feature?.properties?.style
+
             let made = false
             switch (l.feature?.properties?.style?.geologic.type) {
                 case 'pattern':
@@ -794,6 +796,8 @@ const models = (geojson, layerObj, leafletLayerObject) => {
 
     if (modelVar) {
         const modelShow = F_.getIn(modelVar, 'show', 'click')
+        const modelPaths = []
+        const modelMtlPaths = []
         const modelPositions = []
         const modelRotations = []
         const modelScales = []
@@ -830,21 +834,23 @@ const models = (geojson, layerObj, leafletLayerObject) => {
                 }
 
                 // Figure out model path
+                let modelPath = null
                 if (!modelSettings.model && modelSettings.pathProp) {
-                    modelSettings.model = F_.getIn(
+                    modelPath = F_.getIn(
                         f.properties,
                         modelSettings.pathProp,
                         null
                     )
-                    if (
-                        modelSettings.model &&
-                        !F_.isUrlAbsolute(modelSettings.model) &&
-                        !modelSettings.model.startsWith('public')
-                    )
-                        modelSettings.model =
-                            L_.missionPath + modelSettings.model
+                } else {
+                    modelPath = modelSettings.model
                 }
-                if (modelSettings.model == null) return
+                if (
+                    modelPath &&
+                    !F_.isUrlAbsolute(modelPath) &&
+                    !modelPath.startsWith('public')
+                )
+                    modelPath = L_.missionPath + modelPath
+                modelPaths.push(modelPath)
 
                 // Figure out mtl path if any
                 if (modelSettings.mtlPath || modelSettings.mtlProp) {
@@ -862,6 +868,7 @@ const models = (geojson, layerObj, leafletLayerObject) => {
                         modelSettings.mtlPath =
                             L_.missionPath + modelSettings.mtlPath
                 }
+                modelMtlPaths.push(modelSettings.mtlPath)
 
                 if (f.geometry.type.toLowerCase() === 'point') {
                     const coords = f.geometry.coordinates
@@ -928,8 +935,8 @@ const models = (geojson, layerObj, leafletLayerObject) => {
                 name: `markerAttachmentModel_${layerObj.name}`,
                 order: 99999,
                 on: true,
-                path: modelSettings.model,
-                mtlPath: modelSettings.mtlPath,
+                path: modelPaths,
+                mtlPath: modelMtlPaths,
                 opacity: 1,
                 isArrayed: true,
                 position: modelPositions,

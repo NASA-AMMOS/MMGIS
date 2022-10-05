@@ -68,8 +68,12 @@ export default function (domEl, lookupPath, options) {
             orbitControls.enablePan = true
             orbitControls.enableZoom = true
             orbitControls.autoRotate = false
+            orbitControls.enableDamping = true
+            orbitControls.dampingFactor = 0.13
             orbitControls.autoRotateSpeed = options.speed || 0.5
             orbitControls.flipPanUp = true
+            orbitControls.panSpeed = 0.2
+            orbitControls.rotateSpeed = 0.2
 
             orientationControls = new THREE.DeviceOrientationControls(camera)
 
@@ -79,6 +83,9 @@ export default function (domEl, lookupPath, options) {
             controls.addEventListener('change', render)
 
             scene = new THREE.Scene()
+
+            var grid = new THREE.GridHelper(100, 50, 0x181818, 0x080808)
+            scene.add(grid)
 
             //Light
             var light = new THREE.AmbientLight(0xfefefe)
@@ -95,7 +102,7 @@ export default function (domEl, lookupPath, options) {
     }
 
     function animate() {
-        //requestAnimationFrame(animate);
+        requestAnimationFrame(animate)
         controls.update()
         render()
     }
@@ -121,10 +128,9 @@ export default function (domEl, lookupPath, options) {
         animate()
     }
 
-    function changeModel(modelFile, textureFile, callback, progressCalback) {
-        //Remove old model
-        scene.remove(model)
-        console.log(modelFile, textureFile)
+    function changeModel(modelFile, textureFile, callback, progressCallback) {
+        // Remove old model
+        if (model) scene.remove(model)
         //Texture
         var ext = F_.getExtension(modelFile).toLowerCase()
         switch (ext) {
@@ -134,7 +140,6 @@ export default function (domEl, lookupPath, options) {
                 var manager = new THREE.LoadingManager()
                 manager.onProgress = function (item, loaded, total) {
                     return
-                    console.log(item, loaded, total)
                 }
                 var textureLoader = new THREE.TextureLoader(manager)
                 var texture = textureLoader.load(textureFile)
@@ -142,7 +147,7 @@ export default function (domEl, lookupPath, options) {
                 var onProgress = function (xhr) {
                     if (xhr.lengthComputable) {
                         var percentComplete = (xhr.loaded / xhr.total) * 100
-                        progressCalback(Math.round(percentComplete, 2))
+                        progressCallback(Math.round(percentComplete, 2))
                     }
                 }
                 var onError = function (xhr) {}
@@ -150,7 +155,7 @@ export default function (domEl, lookupPath, options) {
                 loader.load(
                     modelFile,
                     function (object) {
-                        var model = object
+                        model = object
                         model.traverse(function (child) {
                             if (child instanceof THREE.Mesh) {
                                 child.material.map = texture
@@ -169,11 +174,12 @@ export default function (domEl, lookupPath, options) {
                 daeLoader.load(
                     modelFile,
                     function (mesh) {
+                        model = mesh.scene
                         //Done
-                        scene.add(mesh.scene)
+                        scene.add(model)
                         //ugly as it waits for image to load
                         setTimeout(function () {
-                            progressCalback(100)
+                            progressCallback(100)
                             animate()
                         }, 2000)
                     },
@@ -186,36 +192,35 @@ export default function (domEl, lookupPath, options) {
                     }
                 )
                 break
-            /*
             case 'gltf':
             case 'glb':
                 let gltfLoader = new THREE.GLTFLoader()
                 gltfLoader.load(
                     modelFile,
                     function (mesh) {
+                        model = mesh.scene
                         //Done
-                        scene.add(mesh.scene)
+                        scene.add(model)
                         //ugly as it waits for image to load
                         setTimeout(function () {
-                            progressCalback(100)
+                            progressCallback(100)
                             animate()
                         }, 2000)
                     },
                     onProgress,
                     function (error) {
                         //Error
-                        console.log(
+                        console.error(
                             `Viewer - Failed to load ${ext} at: ${modelFile}`
                         )
                     }
                 )
                 break
-                */
             default:
                 console.warn(`Viewer - Unsupported model type: ${ext}`)
         }
         if (ext === 'obj') {
-        } else if (ext == 'dae') {
+        } else if (ext === 'dae') {
         } else if (ext)
             if (typeof callback === 'function') {
                 callback()

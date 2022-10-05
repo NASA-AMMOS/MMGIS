@@ -108,12 +108,6 @@ const Coordinates = {
             .attr('id', 'CoordinatesDiv')
             .html(markup)
 
-        tippy('#changeCoordTypeDropdown', {
-            content: 'Change Coordinate Type',
-            placement: 'left',
-            theme: 'blue',
-            offset: [0, 10],
-        })
         tippy('#pickLngLat', {
             content: 'Pick Coordinates',
             placement: 'top',
