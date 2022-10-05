@@ -90,6 +90,8 @@ var TimeControl = {
         if (L_.configData.time.visible == false) {
             TimeControl.toggleTimeUI(false)
         }
+
+        initLayerDataTimes()
     },
     fina: function () {
         initLayerTimes()
@@ -326,6 +328,26 @@ var TimeControl = {
             )
         }
     },
+}
+
+function initLayerDataTimes() {
+    for (let i in L_.layersData) {
+        const layer = L_.layersData[i]
+        if (layer.time && layer.time.enabled == true) {
+            layer.time.start = L_.FUTURES.startTime
+                ? L_.FUTURES.startTime.toISOString().split('.')[0] + 'Z'
+                : TimeControl.startTime
+            layer.time.end = L_.FUTURES.endTime
+                ? L_.FUTURES.endTime.toISOString().split('.')[0] + 'Z'
+                : TimeControl.endTime
+            d3.select('.starttime.' + layer.name.replace(/\s/g, '')).text(
+                layer.time.start
+            )
+            d3.select('.endtime.' + layer.name.replace(/\s/g, '')).text(
+                layer.time.end
+            )
+        }
+    }
 }
 
 function initLayerTimes() {
