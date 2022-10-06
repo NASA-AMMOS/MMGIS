@@ -783,6 +783,7 @@ var L_ = {
             return
 
         // Remake Layer
+        console.log('addGeojsondata', layer._layerName, true, geojson)
         L_.Map_.makeLayer(L_.layersNamed[layer._layerName], true, geojson)
     },
     clearGeoJSONData: function (layer) {

@@ -39,7 +39,7 @@ var markup = [
             "</div>",
             "<div id='searchLayers'>",
                 '<i class="mdi mdi-magnify mdi-18px"></i>',
-                "<input type='text' placeholder='Search Layers' />",
+                "<input type='text' placeholder='Search Layers (# for tags)' />",
                 '<div id="clear"><i class="mdi mdi-close mdi-18px"></i></div>',
                 '<div id="expand"><i class="mdi mdi-arrow-expand-vertical mdi-18px"></i></div>',
                 '<div id="collapse"><i class="mdi mdi-arrow-collapse-vertical mdi-18px"></i></div>',
