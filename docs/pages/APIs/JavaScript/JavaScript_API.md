@@ -501,7 +501,7 @@ window.mmgisAPI.getVisibleLayers();
 
 ### getLayers
 
-This function returns all the configuration set Leaflet Map layers. If a layer has not yet been loaded, it's value with be false.
+This function returns all the configuration set Leaflet Map layers. If a layer has not yet been loaded, its value with be false.
 
 The following is an example of how to call the `getLayers` function:
 
@@ -517,7 +517,7 @@ The following is an example of how to call the `getLayersConfigs` function:
 
 #### Function parameters
 
-- `match` - (optional) a single depth key-value object to filter returned layers. If not set, all layer configurations will be returned. Can use dot-notation to access paths. If matching on arrays, uses `Array.includes(value)`
+- `match` - (optional) a single depth key-value object to filter returned layers. If not set, all layer configurations will be returned. Can use dot-notation to access paths. If matching on arrays, uses `Array.includes(value)`. Key matches are ORed together.
 
 ```javascript
 window.mmgisAPI.getLayerConfigs();
