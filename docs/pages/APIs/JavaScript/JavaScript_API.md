@@ -513,11 +513,11 @@ window.mmgisAPI.getLayers();
 
 This function returns all the layer configuration objects.
 
-The following is an example of how to call the `getLayersConfigs` function:
-
 #### Function parameters
 
 - `match` - (optional) a single depth key-value object to filter returned layers. If not set, all layer configurations will be returned. Can use dot-notation to access paths. If matching on arrays, uses `Array.includes(value)`. Key matches are ORed together.
+
+The following is an example of how to call the `getLayersConfigs` function:
 
 ```javascript
 window.mmgisAPI.getLayerConfigs();
