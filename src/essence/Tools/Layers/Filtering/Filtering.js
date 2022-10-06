@@ -110,7 +110,11 @@ const Filtering = {
         )
 
         // Start with one empty row added
-        Filtering.addValue(layerName)
+        if (
+            $('#layerTool_filtering_filters_list .layersTool_filtering_value')
+                .length === 0
+        )
+            Filtering.addValue(layerName)
 
         Help.finalize(helpKey)
     },
