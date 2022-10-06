@@ -505,7 +505,6 @@ var L_ = {
             } else {
                 switch (sublayer.type) {
                     case 'model':
-                        console.log(sublayer.modelOptions)
                         L_.Globe_.litho.addLayer('model', sublayer.modelOptions)
                         break
                     case 'uncertainty_ellipses':
@@ -783,7 +782,6 @@ var L_ = {
             return
 
         // Remake Layer
-        console.log('addGeojsondata', layer._layerName, true, geojson)
         L_.Map_.makeLayer(L_.layersNamed[layer._layerName], true, geojson)
     },
     clearGeoJSONData: function (layer) {

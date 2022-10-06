@@ -136,7 +136,7 @@ const ESFilterer = {
                 .then((json) => {
                     const geojson = F_.getBaseGeoJSON()
                     const hits = F_.getIn(json, 'responses.0.hits.hits', [])
-                    console.log(hits)
+
                     hits.forEach((hit) => {
                         const properties = hit._source || {}
                         let geometry
@@ -171,8 +171,6 @@ const ESFilterer = {
                             0
                         )})`
                     )
-
-                    console.log(layerName, geojson)
 
                     // Update layer
                     L_.clearVectorLayer(layerName)

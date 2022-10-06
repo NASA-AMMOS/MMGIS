@@ -555,7 +555,6 @@ function makeLayers(layersObj) {
 }
 //Takes the layer object and makes it a map layer
 async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
-    console.log('makeLay', layerObj, evenIfOff, forceGeoJSON)
     //Decide what kind of layer it is
     //Headers do not need to be made
     if (layerObj.type != 'header') {
