@@ -210,10 +210,12 @@ var essence = {
             window.mmgisglobal.ENABLE_MMGIS_WEBSOCKETS === 'true'
         ) {
             const port = parseInt(process.env.PORT || '8888', 10)
-            const protocol = window.location.protocol === 'https'? 'wss' : 'ws'
-            const path = window.mmgisglobal.NODE_ENV === 'development'
-                ? `${protocol}://localhost:${port}/`
-                : `${protocol}://${window.location.host}/`
+            const protocol =
+                window.location.protocol.indexOf('https') !== -1 ? 'wss' : 'ws'
+            const path =
+                window.mmgisglobal.NODE_ENV === 'development'
+                    ? `${protocol}://localhost:${port}/`
+                    : `${protocol}://${window.location.host}/`
 
             const ws = new WebSocket(path)
 
@@ -223,7 +225,10 @@ var essence = {
                         const parsed = JSON.parse(data.data)
                         const mission = essence.configData.msv.mission
 
-                        if (!parsed.body.mission || parsed.body.mission !== mission) {
+                        if (
+                            !parsed.body.mission ||
+                            parsed.body.mission !== mission
+                        ) {
                             return
                         }
 
