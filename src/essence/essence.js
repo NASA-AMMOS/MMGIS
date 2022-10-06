@@ -210,9 +210,10 @@ var essence = {
             window.mmgisglobal.ENABLE_MMGIS_WEBSOCKETS === 'true'
         ) {
             const port = parseInt(process.env.PORT || '8888', 10)
+            const protocol = window.location.protocol === 'https'? 'wss' : 'ws'
             const path = window.mmgisglobal.NODE_ENV === 'development'
-                ? `ws://localhost:${port}/`
-                : `ws://${window.location.host}/`
+                ? `${protocol}://localhost:${port}/`
+                : `${protocol}://${window.location.host}/`
 
             const ws = new WebSocket(path)
 
