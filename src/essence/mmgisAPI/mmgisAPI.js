@@ -173,6 +173,29 @@ var mmgisAPI_ = {
         }
         return null
     },
+    getLayerConfigs: function (match) {
+        if (match) {
+            const matchedLayers = {}
+            Object.keys(L_.layersNamed).forEach((name) => {
+                const layer = L_.layersNamed[name]
+                let matched = false
+                Object.keys(match).forEach((key) => {
+                    const value = F_.getIn(layer, key)
+                    if (typeof value === 'string' && match[key] === value)
+                        matched = true
+                    else if (Array.isArray(value) && value.includes(match[key]))
+                        matched = true
+                })
+
+                if (matched)
+                    matchedLayers[name] = JSON.parse(JSON.stringify(layer))
+            })
+            return matchedLayers
+        } else return L_.layersNamed
+    },
+    getLayers: function () {
+        return L_.layersGroup
+    },
     // Returns an object with the visibility state of all layers
     getVisibleLayers: function () {
         // Also return the visibility of the DrawTool layers
@@ -241,7 +264,11 @@ var mmgisAPI_ = {
         return null
     },
     checkMMGISEvent: function (eventName) {
-        const validEvents = ['toolChange', 'layerVisibilityChange', 'websocketChange']
+        const validEvents = [
+            'toolChange',
+            'layerVisibilityChange',
+            'websocketChange',
+        ]
         return validEvents.includes(eventName)
     },
     writeCoordinateURL: function () {
@@ -266,7 +293,10 @@ var mmgisAPI_ = {
                 await L_.toggleLayer(L_.layersDataByName[layerName])
             } else {
                 let state = L_.toggledArray[layerName] && !on ? true : false
-                await L_.toggleLayerHelper(L_.layersDataByName[layerName], state)
+                await L_.toggleLayerHelper(
+                    L_.layersDataByName[layerName],
+                    state
+                )
             }
 
             if (ToolController_.activeToolName === 'LayersTool') {
@@ -279,9 +309,7 @@ var mmgisAPI_ = {
                 }
             }
         } else {
-            console.warn(
-                `'Warning: Unable to find layer named ${layereName}`
-            )
+            console.warn(`'Warning: Unable to find layer named ${layereName}`)
             return
         }
     },
@@ -448,6 +476,15 @@ var mmgisAPI = {
      * @returns {object} - The currently active tool and the name of the active tool as an object.
      */
     getActiveTool: mmgisAPI_.getActiveTool,
+
+    /** getLayerConfigs - returns an object with the visibility state of all layers
+     * @returns {object} - an object containing the visibility state of each layer
+     */
+    getLayerConfigs: mmgisAPI_.getLayerConfigs,
+    /** getLayers - returns an object with the visibility state of all layers
+     * @returns {object} - an object containing the visibility state of each layer
+     */
+    getLayers: mmgisAPI_.getLayers,
 
     /** getVisibleLayers - returns an object with the visibility state of all layers
      * @returns {object} - an object containing the visibility state of each layer

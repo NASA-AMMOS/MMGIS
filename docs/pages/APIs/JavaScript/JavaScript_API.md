@@ -7,17 +7,7 @@ parent: APIs
 
 # JavaScript API
 
-A client side API for use when using MMGIS embedded as an iframe. The `src/essence/mmgisAPI/mmgisAPI.js` file exposes functions that can be called using the global `window.mmgisAPI` object.
-
-#### _Contents_
-
-- [Layer Control](#layer-control)
-- [Time Control](#time-control)
-- [Event Listeners](#event-listeners)
-- [Map Feature Information](#map-feature-information)
-- [Miscellaneous Features](#miscellaneous-features)
-
----
+The `src/essence/mmgisAPI/mmgisAPI.js` file exposes functions that can be called using the global `window.mmgisAPI` object.
 
 ## Layer Control
 
@@ -215,6 +205,20 @@ window.mmgisAPI.appendLineString(
 );
 ```
 
+### reloadLayer(layer)
+
+This function will reload the given layer by re-fetching the data and re-drawing on the map.
+
+#### Function parameters
+
+- `layer` - The layer name string or a layer object
+
+The following is an example of how to call the `reloadLayer` function:
+
+```javascript
+window.mmgisAPI.reloadLayer("Earthquakes");
+```
+
 ## Time Control
 
 ### toggleTimeUI(visibility)
@@ -356,21 +360,6 @@ The following is an example of how to call the `reloadTimeLayers` function:
 window.mmgisAPI.reloadTimeLayers()[("Lunaserv", "Earthquakes")];
 ```
 
-### reloadLayer(layer, evenIfOff)
-
-This async function will reload the given time-enabled layer by re-fetching the data and re-drawing on the map. It should be called after `setTime` or `setLayerTime`.
-
-#### Function parameters
-
-- `layer` - The layer name string or a layer object
-- `evenIfOff` - Reload this layer even if the user has it toggled off
-
-The following is an example of how to call the `reloadLayer` function:
-
-```javascript
-window.mmgisAPI.reloadLayer("Earthquakes", true);
-```
-
 ### setLayersTimeStatus(color)
 
 This function will set the status icon color (e.g. to indicate staleness) for all global time enabled layers. It returns a list of the layers that were updated.
@@ -418,7 +407,7 @@ window.mmgisAPI.updateLayersTime();
 
 ### addEventListener(eventName, functionReference)
 
-This function adds a map event or MMGIS action listener added using the MMGIS API. This function takes in one of the following events: `onPan`, `onZoom`, `onClick`, `toolChange`, `layerVisibilityChange`. The MMGIS action listener (`toolChange`, `layerVisibilityChange`) functions are called with an `event` parameter.
+This function adds a map event or MMGIS action listener added using the MMGIS API. This function takes in one of the following events: `onPan`, `onZoom`, `onClick`, `toolChange`, `layerVisibilityChange`. The MMGIS action listener (`toolChange`, `layerVisibilityChange`, `websocketChange`) functions are called with an `event` parameter.
 
 #### Function parameters
 
@@ -441,6 +430,7 @@ window.mmgisAPI.addEventListener("onPan", listener);
 function mmgisListener(event) {
   console.log("event", event);
 }
+
 window.mmgisAPI.addEventListener("toolChange", mmgisListener);
 ```
 
@@ -501,12 +491,62 @@ window.mmgisAPI.getActiveFeature();
 
 ### getVisibleLayers
 
-This function returns an object with the visiblity state of all layers
+This function returns an object with the visibility state of all layers
 
 The following is an example of how to call the `getVisibleLayers` function:
 
 ```javascript
 window.mmgisAPI.getVisibleLayers();
+```
+
+### getLayers
+
+This function returns all the configuration set Leaflet Map layers. If a layer has not yet been loaded, it's value with be false.
+
+The following is an example of how to call the `getLayers` function:
+
+```javascript
+window.mmgisAPI.getLayers();
+```
+
+### getLayerConfigs
+
+This function returns all the layer configuration objects.
+
+The following is an example of how to call the `getLayersConfigs` function:
+
+#### Function parameters
+
+- `match` - (optional) a single depth key-value object to filter returned layers. If not set, all layer configurations will be returned. Can use dot-notation to access paths. If matching on arrays, uses `Array.includes(value)`
+
+```javascript
+window.mmgisAPI.getLayerConfigs();
+// => { Layer1: {...}, Layer2: {...}}
+
+window.mmgisAPI.getLayerConfigs({ name: "Layer2" });
+// => { Layer2: {..., name: "Layer2"}}
+
+window.mmgisAPI.getLayerConfigs({ "style.color": "brown" });
+// => { Layer1: {..., style: {..., color: "brown"}}}
+```
+
+### toggleLayer
+
+This function sets the visibility state for a named layer
+
+#### Function parameters
+
+- `layerName` - name of layer to toggle visibility
+- `on` - (optional) Set `true` if the visibility should be on or `false` if visibility should be off. If not set, the current visibility state will switch to the opposite state.
+
+The following is an example of how to call the `toggleLayer` function:
+
+```javascript
+# Set 'Layer 1' to be visible
+window.mmgisAPI.toggleLayer('Layer 1', true)
+
+# Toggle the visibility state of 'Layer 1'
+window.mmgisAPI.toggleLayer('Layer 1')
 ```
 
 ## Miscellaneous Features
@@ -552,28 +592,4 @@ The following is an example of how to call the `getActiveTool` function:
 
 ```javascript
 window.mmgisAPI.getActiveTool();
-```
-
-### project
-
-This function convert a Longitude, Latitude object into X, Y (i.e. Easting, Northing) coordinates. It uses the map's base projection and the proj4 library to perform the transformation.
-
-Custom map projections can be set in the Configuration page's Projection tab. Otherwise, the default proj4 string is `+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a={radiusOfPlanetMajor} +b={F_.radiusOfPlanetMinor} +towgs84=0,0,0,0,0,0,0 +units=m +no_defs`
-
-The following is an example of how to call the `project` function:
-
-```javascript
-window.mmgisAPI.project({ lng: 137, lat: -4 });
-// returns {x: 8120633.560692952, y: -237291.62355915268}
-```
-
-### unproject
-
-This function is the inverse of the `project` function. It takes in a X, Y object and returns a Longitude, Latitude.
-
-The following is an example of how to call the `unproject` function:
-
-```javascript
-window.mmgisAPI.unproject({ x: 8120633.560692952, y: -237291.62355915268 });
-// returns {lat: -4.000000000000019, lng: 137}
 ```
