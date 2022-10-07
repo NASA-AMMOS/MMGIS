@@ -853,22 +853,23 @@ const models = (geojson, layerObj, leafletLayerObject) => {
                 modelPaths.push(modelPath)
 
                 // Figure out mtl path if any
-                if (modelSettings.mtlPath || modelSettings.mtlProp) {
-                    if (modelSettings.mtlPath == null)
-                        modelSettings.mtlPath = F_.getIn(
-                            f.properties,
-                            modelSettings.mtlProp,
-                            null
-                        )
-                    if (
-                        modelSettings.mtlPath &&
-                        !F_.isUrlAbsolute(modelSettings.mtlPath) &&
-                        !modelSettings.mtlPath.startsWith('public')
+                let mtlPath = null
+                if (!modelSettings.mtlPath && modelSettings.mtlProp) {
+                    mtlPath = F_.getIn(
+                        f.properties,
+                        modelSettings.mtlProp,
+                        null
                     )
-                        modelSettings.mtlPath =
-                            L_.missionPath + modelSettings.mtlPath
+                } else {
+                    mtlPath = modelSettings.mtlPath
                 }
-                modelMtlPaths.push(modelSettings.mtlPath)
+                if (
+                    mtlPath &&
+                    !F_.isUrlAbsolute(mtlPath) &&
+                    !mtlPath.startsWith('public')
+                )
+                    mtlPath = L_.missionPath + mtlPath
+                modelMtlPaths.push(mtlPath)
 
                 if (f.geometry.type.toLowerCase() === 'point') {
                     const coords = f.geometry.coordinates

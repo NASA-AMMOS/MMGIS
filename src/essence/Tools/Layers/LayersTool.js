@@ -246,42 +246,7 @@ function interfaceWithMMGIS(fromInit) {
             switch (node[i].type) {
                 case 'vector':
                 case 'vectortile':
-                    currentOpacity = L_.getLayerOpacity(node[i].name)
-                    if (currentOpacity == null)
-                        currentOpacity = L_.opacityArray[node[i].name]
-
-                    // prettier-ignore
-                    settings = [
-                        '<ul>',
-                            '<li>',
-                                '<div>',
-                                    '<div>Opacity</div>',
-                                        '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.opacityArray[node[i].name] + '">',
-                                    '</div>',
-                                    L_.layersGroupSublayers[node[i].name] ? `<div class="sublayerHeading">Composite Layers</div>` : null,
-                                    L_.layersGroupSublayers[node[i].name] ? Object.keys(L_.layersGroupSublayers[node[i].name]).map((function(i){return function(s) {
-                                        return L_.layersGroupSublayers[node[i].name][s] === false ? '' : [
-                                            '<div class="sublayer">',
-                                                `<div title="${L_.layersGroupSublayers[node[i].name][s].title || ''}">${F_.prettifyName(s)}</div>`,
-                                                '<div style="display: flex;">',
-                                                    L_.layersGroupSublayers[node[i].name][s].layer?.dropdown ? [
-                                                        `<select class="dropdown sublayerDropdown" layername="${node[i].name}" sublayername="${s}">`,
-                                                            L_.layersGroupSublayers[node[i].name][s].layer?.dropdown.map((d) =>
-                                                                `<option value="${d}"${(d === L_.layersGroupSublayers[node[i].name][s].layer?.dropdownValue  ? ' selected' : '')}>${d}</option>`
-                                                            ).join('\n'),
-                                                        '</select>'
-                                                    ].join('\n') : null,
-                                                    '<div class="checkboxcont">',
-                                                        `<div class="checkbox small ${(L_.layersGroupSublayers[node[i].name][s].on ? 'on' : 'off')}" layername="${node[i].name}" sublayername="${s}" style="margin: 7px 0px 7px 10px;"></div>`,
-                                                    '</div>',
-                                                '</div>',
-                                            '</div>'
-                                        ].join('\n')
-                                    }})(i)).join('\n') : null,
-                                '</div>',
-                            '</li>',
-                        '</ul>',
-                    ].join('\n')
+                    settings = getVectorLayerSettings(node[i].name)
                     break
                 case 'tile':
                     currentOpacity = L_.getLayerOpacity(node[i].name)
@@ -546,22 +511,48 @@ function interfaceWithMMGIS(fromInit) {
     async function toggleLayer(checkbox) {
         let li = checkbox.parent().parent().parent()
         if (li.attr('type') !== 'header') {
+            const layerName = li.attr('name')
+
             checkbox.addClass('loading')
-            await L_.toggleLayer(L_.layersNamed[li.attr('name')])
+            await L_.toggleLayer(L_.layersNamed[layerName])
             checkbox.removeClass('loading')
+
             if (
                 quasiLayers.includes(li.attr('type')) ||
-                L_.layersGroup[li.attr('name')]
+                L_.layersGroup[layerName]
             )
                 checkbox.toggleClass('on')
             else if (
                 !quasiLayers.includes(li.attr('type')) &&
-                L_.layersGroup[li.attr('name')] == null
+                L_.layersGroup[layerName] == null
             )
                 li.addClass('layernotfound')
 
+            if (checkbox.hasClass('on')) {
+                if (
+                    L_.layersGroupSublayers[layerName] &&
+                    Object.keys(L_.layersGroupSublayers[layerName]).length >
+                        0 &&
+                    !$(
+                        `#LayersTool${F_.getSafeName(
+                            layerName
+                        )} .sublayerHeading`
+                    ).length
+                ) {
+                    // refresh settings
+                    const mainSettings = $(
+                        `#LayersTool${F_.getSafeName(
+                            layerName
+                        )} > .settingsmainvector`
+                    )
+                    if (mainSettings) {
+                        mainSettings.html(getVectorLayerSettings(layerName))
+                        setSublayerEvents()
+                    }
+                }
+            }
+
             // Dispatch `layerVisibilityChange` event
-            const layerName = li.attr('name')
             let _event = new CustomEvent('layerVisibilityChange', {
                 detail: {
                     layer: L_.layersNamed[layerName],
@@ -602,46 +593,7 @@ function interfaceWithMMGIS(fromInit) {
         toggleLayer($(this))
     })
 
-    $('#layersToolList > li > .settings .sublayer .dropdown').on(
-        'change',
-        function () {
-            const layerName = $(this).attr('layername')
-            const sublayerName = $(this).attr('sublayername')
-            $(this).val()
-
-            if (
-                L_.layersGroupSublayers[layerName] &&
-                L_.layersGroupSublayers[layerName][sublayerName]
-            ) {
-                const l = L_.layersGroupSublayers[layerName][sublayerName]
-                l.layer.dropdownFunc(
-                    layerName,
-                    sublayerName,
-                    Map_,
-                    $(this).val()
-                )
-            }
-        }
-    )
-    //Makes sublayers clickable on and off
-    $('#layersToolList > li > .settings .sublayer .checkbox').on(
-        'click',
-        async function () {
-            const layerName = $(this).attr('layername')
-            const sublayerName = $(this).attr('sublayername')
-
-            await L_.toggleSublayer(layerName, sublayerName)
-
-            if (
-                L_.layersGroupSublayers[layerName] &&
-                L_.layersGroupSublayers[layerName][sublayerName]
-            ) {
-                if (L_.layersGroupSublayers[layerName][sublayerName].on)
-                    $(this).addClass('on')
-                else $(this).removeClass('on')
-            }
-        }
-    )
+    setSublayerEvents()
 
     // Collapse header
     $('.layersToolHeader').on('click', function () {
@@ -800,16 +752,6 @@ function interfaceWithMMGIS(fromInit) {
         })
 
         li.find('.tileblender').val('unset')
-    })
-
-    //Applies slider values to map layers
-    $('.transparencyslider').on('input', function () {
-        var texttransp = $(this).val()
-        L_.setLayerOpacity($(this).attr('layername'), texttransp)
-        $(this)
-            .parent()
-            .find('span')
-            .text(parseInt(texttransp * 100) + '%')
     })
 
     //Applies slider values to map layers
@@ -1232,6 +1174,102 @@ function interfaceWithMMGIS(fromInit) {
     //Start collapsed
     if (LayersTool.vars.expanded !== true)
         $('#searchLayers > #collapse').click()
+
+    // Sublayer things
+
+    function getVectorLayerSettings(layerName) {
+        let currentOpacity = L_.getLayerOpacity(layerName)
+        if (currentOpacity == null) currentOpacity = L_.opacityArray[layerName]
+
+        // prettier-ignore
+        return [
+                '<ul>',
+                    '<li>',
+                        '<div>',
+                            '<div>Opacity</div>',
+                                '<input class="transparencyslider slider2" layername="' + layerName + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.opacityArray[layerName] + '">',
+                            '</div>',
+                            L_.layersGroupSublayers[layerName] ? `<div class="sublayerHeading">Composite Layers</div>` : null,
+                            L_.layersGroupSublayers[layerName] ? Object.keys(L_.layersGroupSublayers[layerName]).map(function(s) {
+                                return L_.layersGroupSublayers[layerName][s] === false ? '' : [
+                                    '<div class="sublayer">',
+                                        `<div title="${L_.layersGroupSublayers[layerName][s].title || ''}">${F_.prettifyName(s)}</div>`,
+                                        '<div style="display: flex;">',
+                                            L_.layersGroupSublayers[layerName][s].layer?.dropdown ? [
+                                                `<select class="dropdown sublayerDropdown" layername="${layerName}" sublayername="${s}">`,
+                                                    L_.layersGroupSublayers[layerName][s].layer?.dropdown.map((d) =>
+                                                        `<option value="${d}"${(d === L_.layersGroupSublayers[layerName][s].layer?.dropdownValue  ? ' selected' : '')}>${d}</option>`
+                                                    ).join('\n'),
+                                                '</select>'
+                                            ].join('\n') : null,
+                                            '<div class="checkboxcont">',
+                                                `<div class="checkbox small ${(L_.layersGroupSublayers[layerName][s].on ? 'on' : 'off')}" layername="${layerName}" sublayername="${s}" style="margin: 7px 0px 7px 10px;"></div>`,
+                                            '</div>',
+                                        '</div>',
+                                    '</div>'
+                                ].join('\n')
+                            }).join('\n') : null,
+                        '</div>',
+                    '</li>',
+                '</ul>',
+            ].join('\n')
+    }
+
+    function setSublayerEvents() {
+        //Applies slider values to map layers
+        $('.transparencyslider').off('input')
+        $('.transparencyslider').on('input', function () {
+            var texttransp = $(this).val()
+            L_.setLayerOpacity($(this).attr('layername'), texttransp)
+            $(this)
+                .parent()
+                .find('span')
+                .text(parseInt(texttransp * 100) + '%')
+        })
+
+        $('#layersToolList > li > .settings .sublayer .dropdown').off('change')
+        $('#layersToolList > li > .settings .sublayer .dropdown').on(
+            'change',
+            function () {
+                const layerName = $(this).attr('layername')
+                const sublayerName = $(this).attr('sublayername')
+                $(this).val()
+
+                if (
+                    L_.layersGroupSublayers[layerName] &&
+                    L_.layersGroupSublayers[layerName][sublayerName]
+                ) {
+                    const l = L_.layersGroupSublayers[layerName][sublayerName]
+                    l.layer.dropdownFunc(
+                        layerName,
+                        sublayerName,
+                        Map_,
+                        $(this).val()
+                    )
+                }
+            }
+        )
+        //Makes sublayers clickable on and off
+        $('#layersToolList > li > .settings .sublayer .checkbox').off('click')
+        $('#layersToolList > li > .settings .sublayer .checkbox').on(
+            'click',
+            async function () {
+                const layerName = $(this).attr('layername')
+                const sublayerName = $(this).attr('sublayername')
+
+                await L_.toggleSublayer(layerName, sublayerName)
+
+                if (
+                    L_.layersGroupSublayers[layerName] &&
+                    L_.layersGroupSublayers[layerName][sublayerName]
+                ) {
+                    if (L_.layersGroupSublayers[layerName][sublayerName].on)
+                        $(this).addClass('on')
+                    else $(this).removeClass('on')
+                }
+            }
+        )
+    }
 
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
