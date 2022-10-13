@@ -135,6 +135,13 @@ Example:
             "value": "Prop: {prop}"
         }
     ],
+    "layerAttachments": {
+        "labels": {
+          "initialVisibility": false,
+          "theme": "default || solid",
+          "size": "default || large"
+        }
+    },
     "coordinateAttachments": {
         "marker": {
           "initialVisibility": true,
@@ -228,6 +235,11 @@ Example:
   - `which`: This only supports the value `last` at this point.
   - `icon`: Any [Material Design Icon](http://materialdesignicons.com/) name
   - `value`: A name to display. All `{prop}`s will be replaced by their corresponding `features[which].properties[prop]` value.
+- `layerAttachments`: Attachments that may apply to the entire layer.
+  - `labels`: Place a label beside each feature. Also applies to `coordinateAttachments.marker` features.
+    - `initialVisibility`: Whether the label sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.
+    - `theme`: Label theme. Either `default` or `solid`. Default is white text with a black border. Solid is white text with a dark-grey background box.
+    - `size`: Label size. Either `default` or `large`. Default is 14px, large is 16px.
 - `coordinateAttachments`: Attachment layers for each coordinate of every feature.
   - `marker`: Place a marker at every coordinate of every feature.
     - `initialVisibility`: Whether the coordinate marker sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.

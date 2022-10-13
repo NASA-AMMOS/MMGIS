@@ -10,6 +10,21 @@ import LayerGeologic from './LayerGeologic/LayerGeologic'
 import { parseExtendedGeoJSON, getCoordProperties } from './ExtendedGeoJSON'
 
 let L = window.L
+
+const tooltipProto = L.Tooltip.prototype
+const tooltipProto_setPosition = tooltipProto._setPosition
+L.Tooltip.include({
+    _setPosition: function (pos) {
+        if (this._source?.feature?.geometry.type === 'Point') {
+            const offset = this.options.pointOffset || [0, 0]
+            L.DomUtil.setPosition(this._container, {
+                x: pos.x + offset[0],
+                y: pos.y + offset[1],
+            })
+        } else tooltipProto_setPosition.call(this, pos)
+    },
+})
+
 /**
  * Takes regular geojson and makes it fancy with annotations and arrows when applicable
  * @return leaflet geojson
@@ -458,13 +473,24 @@ export const constructVectorLayer = (
 
     return {
         layer: layer,
-        sublayers: constructSublayers(geojson, layerObj, leafletLayerObject),
+        sublayers: constructSublayers(
+            geojson,
+            layerObj,
+            leafletLayerObject,
+            layer
+        ),
     }
 }
 
-export const constructSublayers = (geojson, layerObj, leafletLayerObject) => {
+export const constructSublayers = (
+    geojson,
+    layerObj,
+    leafletLayerObject,
+    layer
+) => {
     // note: sublayer ordering here does denote render order (bottom on top).
     const sublayers = {
+        labels: false,
         uncertainty_ellipses: uncertaintyEllipses(
             geojson,
             layerObj,
@@ -479,6 +505,14 @@ export const constructSublayers = (geojson, layerObj, leafletLayerObject) => {
         ),
         path_gradient: pathGradient(geojson, layerObj, leafletLayerObject),
     }
+    // We want this to show up first in the list and also want labels for other sublayers too
+    sublayers.labels = labels(
+        geojson,
+        layerObj,
+        leafletLayerObject,
+        layer,
+        sublayers
+    )
 
     const sublayerArray = []
     for (let s in sublayers) {
@@ -493,6 +527,152 @@ export const constructSublayers = (geojson, layerObj, leafletLayerObject) => {
 }
 
 // ======= SUBLAYER FUNCTIONS ============
+const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
+    //LABELS
+    const labelsVar = F_.getIn(layerObj, 'variables.layerAttachments.labels')
+
+    if (labelsVar) {
+        let theme = ['solid'].includes(labelsVar.theme)
+            ? labelsVar.theme
+            : 'default'
+
+        let size = ['large'].includes(labelsVar.size)
+            ? labelsVar.size
+            : 'default'
+
+        let yOffset
+        if (theme === 'solid' && size === 'default') yOffset = -11
+        else if (theme === 'solid' && size === 'large') yOffset = -12
+        else if (theme === 'default' && size === 'default') yOffset = -9
+        else if (theme === 'default' && size === 'large') yOffset = -11
+
+        // specify tooltip options
+        const customOptions = {
+            className: `mmgisFeatureLabel mmgisLabelTheme-${theme} mmgisLabelSize-${size}`,
+            permanent: true,
+            direction: 'top',
+            opacity: 1,
+            offset: [0, -yOffset + 6],
+            pointOffset: [0, yOffset],
+        }
+
+        const mainDropdownProps = tooltipBuilder(layer)
+        if (sublayers?.coordinate_markers?.layer) {
+            const coordMarkerDropdownProps = tooltipBuilder(
+                sublayers?.coordinate_markers?.layer,
+                mainDropdownProps.dropdownValue
+            )
+
+            mainDropdownProps.dropdown = F_.removeDuplicatesInArray(
+                mainDropdownProps.dropdown.concat(
+                    coordMarkerDropdownProps.dropdown
+                )
+            )
+
+            mainDropdownProps.dropdownValue =
+                mainDropdownProps.dropdownValue ||
+                coordMarkerDropdownProps.dropdownValue
+        }
+
+        function tooltipBuilder(leafletLayer, dropdownValue) {
+            let dropdownProps = {
+                dropdown: [],
+                dropdownValue: null,
+            }
+            leafletLayer.eachLayer((l) => {
+                if (
+                    !l.feature.properties.arrow === true &&
+                    !l.feature.properties.annotation === true
+                ) {
+                    dropdownProps.dropdown = Object.keys(l.feature.properties)
+                    dropdownProps.dropdownValue =
+                        dropdownValue != null ? dropdownValue : l.useKeyAsName
+
+                    const value =
+                        l.feature.properties[dropdownProps.dropdownValue]
+                    let xOffset = 1
+
+                    if (l.feature?.geometry?.type === 'Point')
+                        xOffset +=
+                            (layerObj.style?.radius || 0) +
+                            (layerObj.style?.weight || 0) * 2
+
+                    customOptions.pointOffset[0] = xOffset
+                    if (labelsVar.initialVisibility === true)
+                        l.bindTooltip(
+                            `<div class='mmgisFeatureLabelContent'>${value}</div>`,
+                            customOptions
+                        )
+                }
+            })
+
+            return dropdownProps
+        }
+
+        layer.dropdown = mainDropdownProps.dropdown
+        layer.dropdownValue = mainDropdownProps.dropdownValue
+        layer.dropdownFunc = (layerName, subName, Map_, prop) => {
+            const sublayer = L_.layersGroupSublayers[layerName][subName]
+            layer.dropdownValue = prop
+            if (sublayer.on) layer.on()
+        }
+
+        layer.off = () => {
+            const tooltipLayersOff = (leafletLayer) => {
+                leafletLayer.eachLayer((l) => {
+                    if (l._tooltip) {
+                        l.closeTooltip()
+                        l.unbindTooltip()
+                    }
+                })
+            }
+            tooltipLayersOff(layer)
+            if (sublayers?.coordinate_markers?.layer)
+                tooltipLayersOff(sublayers?.coordinate_markers?.layer)
+        }
+        layer.on = () => {
+            const tooltipLayersOn = (leafletLayer) => {
+                leafletLayer.eachLayer((l) => {
+                    if (
+                        !l.feature.properties.arrow === true &&
+                        !l.feature.properties.annotation === true
+                    ) {
+                        const value = l.feature.properties[layer.dropdownValue]
+                        const content = `<div class='mmgisFeatureLabelContent'>${value}</div>`
+                        if (l._tooltip) l._tooltip.setContent(content)
+                        else {
+                            let xOffset = 1
+                            if (l.feature?.geometry?.type === 'Point')
+                                xOffset +=
+                                    (layerObj.style?.radius || 0) +
+                                    (layerObj.style?.weight || 0) * 2
+
+                            customOptions.pointOffset[0] = xOffset
+                            l.bindTooltip(content, customOptions)
+                        }
+                        l.openTooltip()
+                    }
+                })
+            }
+
+            tooltipLayersOn(layer)
+            if (sublayers?.coordinate_markers?.layer)
+                tooltipLayersOn(sublayers?.coordinate_markers?.layer)
+        }
+
+        return {
+            on:
+                labelsVar.initialVisibility != null
+                    ? labelsVar.initialVisibility
+                    : true,
+            type: 'labels',
+            geojson: geojson,
+            layer: layer,
+            title: 'Feature Labels',
+        }
+    } else return false
+}
+
 const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {
     //UNCERTAINTY
     const uncertaintyVar = F_.getIn(
