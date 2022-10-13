@@ -920,9 +920,7 @@ body {
     display: none;
 }
 .mmgisFeatureLabel .mmgisFeatureLabelContent {
-    line-height: 17px;
     text-align: center;
-    font-size: 14px;
     font-weight: bold;
     color: white;
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000,
@@ -935,6 +933,14 @@ body {
 }
 .mmgisFeatureLabel.mmgisLabelTheme-default {
     box-shadow: none;
+}
+.mmgisFeatureLabel.mmgisLabelSize-default .mmgisFeatureLabelContent {
+    line-height: 17px;
+    font-size: 14px;
+}
+.mmgisFeatureLabel.mmgisLabelSize-large .mmgisFeatureLabelContent {
+    line-height: 21px;
+    font-size: 16px;
 }
 
 mark {

@@ -469,6 +469,13 @@ var Formulae_ = {
         })
         return uniqueArr
     },
+    removeDuplicatesInArray(arr) {
+        arr.filter((c, index) => {
+            return arr.indexOf(c) !== index
+        })
+
+        return arr
+    },
     //Get index of array of objects with key value pair (-1 if not found)
     objectArrayIndexOfKeyWithValue(objectArray, key, value) {
         var index = -1

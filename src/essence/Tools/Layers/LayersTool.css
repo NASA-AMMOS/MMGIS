@@ -419,6 +419,9 @@
         border 0.1s cubic-bezier(0.39, 0.575, 0.565, 1),
         border-radius 0.1s cubic-bezier(0.39, 0.575, 0.565, 1);
 }
+#layersTool .settings .checkbox {
+    border: 1px solid var(--color-a4);
+} 
 
 #layersTool .checkbox.on {
     background: var(--color-a7);
@@ -541,9 +544,11 @@
 }
 #layersTool .sublayerDropdown {
     width: unset;
-    height: 24px;
-    margin-top: 3px;
-    padding: 2px 2px 2px 4px;
+    height: 20px;
+    margin-top: 5px;
+    padding: 0px 2px 1px 2px;
+    line-height: 10px;
+    font-size: 13px;
 }
 
 #layersTool .sublayer {

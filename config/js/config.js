@@ -2600,6 +2600,7 @@ function layerPopulateVariable(modalId, layerType) {
         labels: {
           initialVisibility: false,
           theme: "default || solid",
+          size: "default || large",
         },
       };
       currentLayerVars.coordinateAttachments =

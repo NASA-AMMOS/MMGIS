@@ -5,7 +5,7 @@ import './index.css'
 import RefreshAuth from './pre/RefreshAuth'
 
 import $ from 'jquery'
-import L from './external/Leaflet/leaflet1.5.1' // './external/Leaflet/leaflet-src_DEBUG' //
+import L from './external/Leaflet/leaflet1.5.1' // './external/Leaflet/leaflet1.5.1_DEBUG' //
 import ld from './external/Leaflet/leaflet.draw'
 import lgu from './external/Leaflet/leaflet.geometryutil'
 import ls from './external/Leaflet/leaflet.snap'
