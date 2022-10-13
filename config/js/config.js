@@ -2595,6 +2595,13 @@ function layerPopulateVariable(modalId, layerType) {
       currentLayerVars.useKeyAsName = currentLayerVars.useKeyAsName || "prop";
       currentLayerVars.hideMainFeature =
         currentLayerVars.hideMainFeature || false;
+
+      currentLayerVars.layerAttachments = currentLayerVars.layerAttachments || {
+        labels: {
+          initialVisibility: false,
+          theme: "default || solid",
+        },
+      };
       currentLayerVars.coordinateAttachments =
         currentLayerVars.coordinateAttachments || {
           marker: {

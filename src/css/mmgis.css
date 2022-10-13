@@ -909,6 +909,34 @@ body {
     color: #7fff00 !important;
 }
 
+/* Feature Label */
+.mmgisFeatureLabel {
+    padding: 0;
+    background: transparent;
+    border: none;
+    pointer-events: none;
+}
+.mmgisFeatureLabel::before {
+    display: none;
+}
+.mmgisFeatureLabel .mmgisFeatureLabelContent {
+    line-height: 17px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: bold;
+    color: white;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000,
+        1px 1px 0 #000;
+}
+.mmgisFeatureLabel.mmgisLabelTheme-solid .mmgisFeatureLabelContent {
+    text-shadow: none;
+    background: var(--color-a);
+    padding: 1px 6px;
+}
+.mmgisFeatureLabel.mmgisLabelTheme-default {
+    box-shadow: none;
+}
+
 mark {
     background: var(--color-green2) !important;
     border-radius: 2px;

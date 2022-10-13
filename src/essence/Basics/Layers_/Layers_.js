@@ -244,6 +244,11 @@ var L_ = {
                                             .layer
                                     )
                                     break
+                                case 'labels':
+                                    L_.layersGroupSublayers[s.name][
+                                        sub
+                                    ].layer.off()
+                                    break
                                 default:
                                     L_.Map_.rmNotNull(
                                         L_.layersGroupSublayers[s.name][sub]
@@ -294,6 +299,11 @@ var L_ = {
                                                 1 -
                                                 L_.layersOrdered.indexOf(s.name)
                                         )
+                                        break
+                                    case 'labels':
+                                        L_.layersGroupSublayers[s.name][
+                                            sub
+                                        ].layer.on()
                                         break
                                     default:
                                         L_.Map_.map.addLayer(
@@ -497,6 +507,9 @@ var L_ = {
                         L_.Globe_.litho.removeLayer(sublayer.clampedLayerId)
                         L_.Map_.rmNotNull(sublayer.layer)
                         break
+                    case 'labels':
+                        sublayer.layer.off()
+                        break
                     default:
                         L_.Map_.rmNotNull(sublayer.layer)
                         break
@@ -522,6 +535,9 @@ var L_ = {
                                 1 -
                                 L_.layersOrdered.indexOf(layerName)
                         )
+                        break
+                    case 'labels':
+                        sublayer.layer.on()
                         break
                     default:
                         L_.Map_.map.addLayer(sublayer.layer)
@@ -617,6 +633,9 @@ var L_ = {
                                                 sublayer.clampedOptions
                                             )
                                             map.addLayer(sublayer.layer)
+                                            break
+                                        case 'labels':
+                                            sublayer.layer.on()
                                             break
                                         default:
                                             map.addLayer(sublayer.layer)
@@ -1175,6 +1194,7 @@ var L_ = {
             }
             return arrowLayer
         } else {
+            if (index == null) index = L_.layersGroup[layerId].length
             L_.Map_.rmNotNull(L_.layersGroup[layerId][index])
             L_.layersGroup[layerId][index] = L.layerGroup([
                 arrowBodyOutline,
@@ -1243,10 +1263,11 @@ var L_ = {
             )
             .setContent(
                 "<div>" +
-                    "<div id='" + id +
-                    "' class='mmgisAnnotation " + className + '_' + id1 + " blackTextBorder'" +
+                    `<div id='${id}'` +
+                    ` class='${className === 'DrawToolAnnotation' ? 'drawToolAnnotation' : 'mmgisAnnotation'} ${className}_${id1} blackTextBorder'` +
                     " layer='" + id1 +
                     "' layerId='" + layerId + 
+                    (L_.layersGroup[layerId] != null ? "' index='" + L_.layersGroup[layerId].length : '') +
                     "' style='" + styleString + "'>" +
                     `${feature.properties.name.replace(/[<>;{}]/g, '')}`,
                     '</div>' +

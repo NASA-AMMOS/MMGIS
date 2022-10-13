@@ -110,7 +110,8 @@
 #layersTool #searchLayers > div {
     cursor: pointer;
     color: #999;
-    transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1), opacity 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+    transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
+        opacity 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
     width: 30px;
     text-align: center;
 }
@@ -540,8 +541,9 @@
 }
 #layersTool .sublayerDropdown {
     width: unset;
-    height: 20px;
-    margin-top: 5px;
+    height: 24px;
+    margin-top: 3px;
+    padding: 2px 2px 2px 4px;
 }
 
 #layersTool .sublayer {
@@ -583,7 +585,6 @@
 #layersTool .headerPowerState.on:hover {
     color: var(--color-a7);
 }
-
 
 @keyframes layerLoadingSpin {
     to {

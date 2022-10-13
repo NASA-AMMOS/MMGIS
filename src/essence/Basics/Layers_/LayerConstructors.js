@@ -458,13 +458,24 @@ export const constructVectorLayer = (
 
     return {
         layer: layer,
-        sublayers: constructSublayers(geojson, layerObj, leafletLayerObject),
+        sublayers: constructSublayers(
+            geojson,
+            layerObj,
+            leafletLayerObject,
+            layer
+        ),
     }
 }
 
-export const constructSublayers = (geojson, layerObj, leafletLayerObject) => {
+export const constructSublayers = (
+    geojson,
+    layerObj,
+    leafletLayerObject,
+    layer
+) => {
     // note: sublayer ordering here does denote render order (bottom on top).
     const sublayers = {
+        labels: false,
         uncertainty_ellipses: uncertaintyEllipses(
             geojson,
             layerObj,
@@ -479,6 +490,14 @@ export const constructSublayers = (geojson, layerObj, leafletLayerObject) => {
         ),
         path_gradient: pathGradient(geojson, layerObj, leafletLayerObject),
     }
+    // We want this to show up first in the list and also want labels for other sublayers too
+    sublayers.labels = labels(
+        geojson,
+        layerObj,
+        leafletLayerObject,
+        layer,
+        sublayers
+    )
 
     const sublayerArray = []
     for (let s in sublayers) {
@@ -493,6 +512,78 @@ export const constructSublayers = (geojson, layerObj, leafletLayerObject) => {
 }
 
 // ======= SUBLAYER FUNCTIONS ============
+const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
+    //LABELS
+    const labelsVar = F_.getIn(layerObj, 'variables.layerAttachments.labels')
+
+    if (labelsVar) {
+        let dropdown = []
+        let dropdownValue = null
+
+        let theme = ['solid'].includes(labelsVar.theme)
+            ? labelsVar.theme
+            : 'default'
+
+        // specify tooltip options
+        const customOptions = {
+            className: `mmgisFeatureLabel mmgisLabelTheme-${theme}`,
+            permanent: true,
+            direction: 'top',
+            opacity: 1,
+            offset: [0, -8],
+        }
+
+        layer.eachLayer((l) => {
+            dropdown = Object.keys(l.feature.properties)
+            dropdownValue = l.useKeyAsName
+
+            if (labelsVar.initialVisibility === true)
+                l.bindTooltip(
+                    `<div class='mmgisFeatureLabelContent'>${
+                        l.feature.properties[l.useKeyAsName]
+                    }</div>`,
+                    customOptions
+                )
+        })
+
+        layer.dropdown = dropdown
+        layer.dropdownValue = dropdownValue
+        layer.dropdownFunc = (layerName, subName, Map_, prop) => {
+            const sublayer = L_.layersGroupSublayers[layerName][subName]
+            layer.dropdownValue = prop
+            if (sublayer.on) layer.on()
+        }
+
+        layer.off = () => {
+            layer.eachLayer((l) => {
+                l.closeTooltip()
+                l.unbindTooltip()
+            })
+        }
+        layer.on = () => {
+            layer.eachLayer((l) => {
+                const content = `<div class='mmgisFeatureLabelContent'>${
+                    l.feature.properties[layer.dropdownValue]
+                }</div>`
+                if (l._tooltip) l._tooltip.setContent(content)
+                else l.bindTooltip(content, customOptions)
+                l.openTooltip()
+            })
+        }
+
+        return {
+            on:
+                labelsVar.initialVisibility != null
+                    ? labelsVar.initialVisibility
+                    : true,
+            type: 'labels',
+            geojson: geojson,
+            layer: layer,
+            title: 'Feature Labels',
+        }
+    } else return false
+}
+
 const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {
     //UNCERTAINTY
     const uncertaintyVar = F_.getIn(
