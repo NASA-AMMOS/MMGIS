@@ -1,6 +1,6 @@
 ---
 layout: page
-title: Look
+title: Coordinates
 permalink: /configure/tabs/coordinates
 parent: Tabs
 grand_parent: Configure
