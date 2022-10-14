@@ -99,7 +99,7 @@ let DataShaders = {
     colorize: {
         getHTML: function (name, shaderObj) {
             //const df = shaderObj.defaults || {}
-            const cname = name.replace(' ', '_')
+            const cname = name.replace(/ /g, '_')
             // prettier-ignore
             return [
                 `<li class="dataShader_${cname}_colorize">`,
@@ -292,7 +292,7 @@ let DataShaders = {
         },
         // Like attach immediate events but on layer tool open
         attachEvents: function (name, shaderObj) {
-            const cname = name.replace(' ', '_')
+            const cname = name.replace(/ /g, '_')
             $(`.dataShader_${cname}_colorize select[parameter=dynamic]`).on(
                 'change',
                 function () {
@@ -447,7 +447,7 @@ let DataShaders = {
             }
         },
         setLegend: function (name, shaderObj, rampIdx) {
-            const cname = name.replace(' ', '_')
+            const cname = name.replace(/ /g, '_')
 
             let legend = []
 
@@ -500,7 +500,7 @@ let DataShaders = {
             max,
             dontUpdateMinMix
         ) {
-            const cname = name.replace(' ', '_')
+            const cname = name.replace(/ /g, '_')
             if (min == null) min = L_.layersGroup[name].minValue
             if (max == null) max = L_.layersGroup[name].maxValue
             const isDiscrete =
