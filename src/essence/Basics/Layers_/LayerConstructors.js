@@ -618,20 +618,28 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
         }
 
         layer.off = () => {
-            const tooltipLayersOff = (leafletLayer) => {
+            const tooltipLayersOff = (leafletLayer, subname) => {
                 leafletLayer.eachLayer((l) => {
                     if (l._tooltip) {
                         l.closeTooltip()
                         l.unbindTooltip()
                     }
                 })
+
+                const name = `labels_${layer._layerName}_${
+                    subname || 'main'
+                }`.replace(/ /g, '_')
+                L_.Globe_.litho.removeLayer(name)
             }
             tooltipLayersOff(layer)
             if (sublayers?.coordinate_markers?.layer)
-                tooltipLayersOff(sublayers?.coordinate_markers?.layer)
+                tooltipLayersOff(
+                    sublayers?.coordinate_markers?.layer,
+                    'coordinate_markers'
+                )
         }
-        layer.on = () => {
-            const tooltipLayersOn = (leafletLayer) => {
+        layer.on = (firstTime) => {
+            const tooltipLayersOn = (leafletLayer, subname) => {
                 leafletLayer.eachLayer((l) => {
                     if (
                         !l.feature.properties.arrow === true &&
@@ -653,12 +661,78 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
                         l.openTooltip()
                     }
                 })
+                const setForGlobe = () => {
+                    const globeLabels = []
+                    leafletLayer.eachLayer((l) => {
+                        if (
+                            !l.feature.properties.arrow === true &&
+                            !l.feature.properties.annotation === true &&
+                            l._tooltip?._latlng?.lng != null
+                        ) {
+                            const value =
+                                l.feature.properties[layer.dropdownValue]
+                            const globeLabel = {
+                                type: 'Feature',
+                            }
+                            globeLabel.properties = {
+                                annotation: true,
+                                name: value,
+                            }
+                            globeLabel.geometry = {
+                                type: 'Point',
+                                coordinates: [
+                                    l._tooltip._latlng.lng,
+                                    l._tooltip._latlng.lat,
+                                    l._tooltip._latlng.alt,
+                                ],
+                            }
+                            globeLabels.push(globeLabel)
+                        }
+                    })
+
+                    const name = `labels_${layer._layerName}_${
+                        subname || 'main'
+                    }`.replace(/ /g, '_')
+                    L_.Globe_.litho.removeLayer(name)
+                    L_.Globe_.litho.addLayer('vector', {
+                        name: name,
+                        on: true,
+                        // GeoJSON or path to geojson
+                        // [lng, lat, elev?]
+                        geojson: {
+                            type: 'FeatureCollection',
+                            features: globeLabels,
+                        },
+                        style: {
+                            letPropertiesStyleOverride: true,
+                            default: {
+                                color: 'rgb(0, 0, 0)',
+                                fillColor: 'rgb(255, 255, 255)',
+                                fillOpacity: 1,
+                                weight: 2,
+                                fontSize: size === 'large' ? '18px' : '16px',
+                                elevOffset: 4,
+                            },
+                        },
+                        opacity: 1,
+                    })
+                }
+
+                // Short timeout since initial tooltip placement computation can take a bit
+                setTimeout(() => {
+                    setForGlobe()
+                }, 1500)
             }
 
             tooltipLayersOn(layer)
             if (sublayers?.coordinate_markers?.layer)
-                tooltipLayersOn(sublayers?.coordinate_markers?.layer)
+                tooltipLayersOn(
+                    sublayers?.coordinate_markers?.layer,
+                    'coordinate_markers'
+                )
         }
+
+        if (labelsVar.initialVisibility === true) layer.on(true)
 
         return {
             on:
@@ -669,6 +743,8 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
             geojson: geojson,
             layer: layer,
             title: 'Feature Labels',
+            minZoom: 0,
+            maxZoom: 100,
         }
     } else return false
 }

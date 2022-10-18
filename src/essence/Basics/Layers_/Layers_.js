@@ -455,11 +455,11 @@ var L_ = {
                                     minZoom:
                                         s.visibilitycutoff > 0
                                             ? s.visibilitycutoff
-                                            : null,
+                                            : 0,
                                     maxZoom:
                                         s.visibilitycutoff < 0
                                             ? s.visibilitycutoff
-                                            : null,
+                                            : 100,
                                 }
                             )
                         }
