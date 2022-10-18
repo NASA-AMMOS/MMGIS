@@ -1873,21 +1873,19 @@ var L_ = {
             console.warn('Warning: Unable to clear vector layer: ' + layerName)
         }
     },
-    removeLayerHelper: function (updateLayer, removeLayer) {
+    removeLayerHelper: function (updateLayer, removedLayers, layersGeoJSON) {
         // If we remove a layer but its properties are displayed in the InfoTool
         // and description (i.e. it was clicked), clear the InfoTool and description
         const infoTool = ToolController_.getTool('InfoTool')
-        if (infoTool.currentLayer === removeLayer) {
-            L_.clearVectorLayerInfo()
-        }
+        removedLayers.forEach((removedLayer) => {
+            if (infoTool.currentLayer === removedLayer) {
+                L_.clearVectorLayerInfo()
+            }
 
-        // Remove the layer
-        updateLayer.removeLayer(removeLayer)
+            // Remove the layer
+            updateLayer.removeLayer(removedLayer)
+        })
 
-        var layerName = updateLayer._layerName
-        var layersGeoJSON = L_.layersGroup[layerName].toGeoJSON(
-            L_.GEOJSON_PRECISION
-        )
         L_.clearGeoJSONData(updateLayer)
         L_.addGeoJSONData(updateLayer, layersGeoJSON)
     },
@@ -1957,6 +1955,11 @@ var L_ = {
             const updateLayer = L_.layersGroup[layerName]
 
             if (keepTime) {
+                const layersGeoJSON = updateLayer.toGeoJSON(
+                    L_.GEOJSON_PRECISION
+                )
+                const removedLayers = []
+
                 const keepTimeAsDate = new Date(keepTime)
 
                 var layers = updateLayer.getLayers()
@@ -1975,15 +1978,19 @@ var L_ = {
                         }
                         if (trimType === 'after') {
                             if (layerDate < keepTimeAsDate) {
-                                L_.removeLayerHelper(updateLayer, layer)
+                                removedLayers.push(layer)
+                                layersGeoJSON.features.splice(i, 1)
                             }
                         } else if (trimType === 'before') {
                             if (layerDate > keepTimeAsDate) {
-                                L_.removeLayerHelper(updateLayer, layer)
+                                removedLayers.push(layer)
+                                layersGeoJSON.features.splice(i, 1)
                             }
                         }
                     }
                 }
+
+                L_.removeLayerHelper(updateLayer, removedLayers, layersGeoJSON)
                 L_.syncSublayerData(layerName)
                 L_.globeLithoLayerHelper(L_.layersNamed[layerName])
             }
@@ -2022,18 +2029,44 @@ var L_ = {
                 const updateLayer = L_.layersGroup[layerName]
                 var layers = updateLayer.getLayers()
 
+                const layersGeoJSON = updateLayer.toGeoJSON(
+                    L_.GEOJSON_PRECISION
+                )
+                const removedLayers = []
                 if (keepType === 'last') {
-                    while (layers.length > keepN) {
-                        const removeLayer = layers[0]
-                        L_.removeLayerHelper(updateLayer, removeLayer)
-                        layers = updateLayer.getLayers()
-                    }
+                    keepN = Math.min(keepN, layersGeoJSON.features.length)
+
+                    for (
+                        let i = layersGeoJSON.features.length - 1;
+                        i > layersGeoJSON.features.length - keepN;
+                        i--
+                    )
+                        removedLayers.push(layers[i])
+
+                    layersGeoJSON.features.splice(
+                        0,
+                        layersGeoJSON.features.length - keepN
+                    )
+                    L_.removeLayerHelper(
+                        updateLayer,
+                        removedLayers,
+                        layersGeoJSON
+                    )
                 } else if (keepType === 'first') {
-                    while (layers.length > keepN) {
-                        const removeLayer = layers[layers.length - 1]
-                        L_.removeLayerHelper(updateLayer, removeLayer)
-                        layers = updateLayer.getLayers()
-                    }
+                    keepN = Math.min(keepN, layersGeoJSON.features.length)
+
+                    for (let i = 0; i <= keepN; i++)
+                        removedLayers.push(layers[i])
+
+                    layersGeoJSON.features = layersGeoJSON.features.slice(
+                        0,
+                        keepN
+                    )
+                    L_.removeLayerHelper(
+                        updateLayer,
+                        removedLayers,
+                        layersGeoJSON
+                    )
                 }
                 L_.syncSublayerData(layerName)
                 L_.globeLithoLayerHelper(L_.layersNamed[layerName])
