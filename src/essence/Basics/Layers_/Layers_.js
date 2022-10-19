@@ -800,8 +800,15 @@ var L_ = {
         )
             return
 
+        L_.Map_.rmNotNull(L_.layersGroup[layer._layerName])
         // Remake Layer
-        L_.Map_.makeLayer(L_.layersNamed[layer._layerName], true, geojson)
+        L_.Map_.makeLayer(
+            L_.layersNamed[layer._layerName],
+            true,
+            layer._sourceGeoJSON
+        )
+        if (L_.toggledArray[layer._layerName])
+            L_.layersGroup[layer._layerName].addTo(L_.Map_.map)
     },
     clearGeoJSONData: function (layer) {
         if (layer._sourceGeoJSON) layer._sourceGeoJSON = F_.getBaseGeoJSON()
@@ -2032,14 +2039,15 @@ var L_ = {
                 const layersGeoJSON = updateLayer.toGeoJSON(
                     L_.GEOJSON_PRECISION
                 )
+
                 const removedLayers = []
                 if (keepType === 'last') {
                     keepN = Math.min(keepN, layersGeoJSON.features.length)
 
                     for (
-                        let i = layersGeoJSON.features.length - 1;
-                        i > layersGeoJSON.features.length - keepN;
-                        i--
+                        let i = 0;
+                        i < layersGeoJSON.features.length - keepN;
+                        i++
                     )
                         removedLayers.push(layers[i])
 
@@ -2055,7 +2063,11 @@ var L_ = {
                 } else if (keepType === 'first') {
                     keepN = Math.min(keepN, layersGeoJSON.features.length)
 
-                    for (let i = 0; i <= keepN; i++)
+                    for (
+                        let i = layersGeoJSON.features.length - 1;
+                        i >= keepN;
+                        i--
+                    )
                         removedLayers.push(layers[i])
 
                     layersGeoJSON.features = layersGeoJSON.features.slice(
@@ -2181,8 +2193,8 @@ var L_ = {
                     layerTimeAsDate < timeAsDate &&
                     trimNum > 0
                 ) {
-                    var leftToTrim = trimNum
-                    var updatedFeatures = []
+                    let leftToTrim = trimNum
+                    let updatedFeatures = []
                     // Walk forwards to find the new time
                     while (features.length > 0) {
                         const feature = features[0]
@@ -2229,8 +2241,8 @@ var L_ = {
                     layerTimeAsDate > timeAsDate &&
                     trimNum > 0
                 ) {
-                    var leftToTrim = trimNum
-                    var updatedFeatures = []
+                    let leftToTrim = trimNum
+                    let updatedFeatures = []
                     // Walk backwards to find the new time
                     while (features.length > 0) {
                         const feature = features[features.length - 1]
