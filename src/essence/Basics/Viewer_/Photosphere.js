@@ -77,10 +77,13 @@ export default function (domEl, lookupPath, options, Map_) {
             domEl.appendChild(renderer.domElement)
 
             orbitControls = new THREE.OrbitControls(camera, renderer.domElement)
-            orbitControls.enablePan = true
+            orbitControls.enablePan = false
             orbitControls.enableZoom = true
             orbitControls.autoRotate = false
             orbitControls.autoRotateSpeed = options.speed || 0.5
+            orbitControls.enableDamping = true
+            orbitControls.dampingFactor = 0.25
+            orbitControls.rotateSpeed = 0.07
 
             orientationControls = new THREE.DeviceOrientationControls(camera)
 

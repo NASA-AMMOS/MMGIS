@@ -3,12 +3,15 @@ import $ from 'jquery'
 import * as d3 from 'd3'
 import F_ from '../Basics/Formulae_/Formulae_'
 
+import tippy from 'tippy.js'
+
 var Description = {
     inited: false,
     waitingOnUpdate: false,
     descCont: null,
     descMission: null,
     descPoint: null,
+    tippyDesc: null,
     L_: null,
     init: function (mission, site, Map_, L_) {
         this.L_ = L_
@@ -198,11 +201,6 @@ var Description = {
 
             let key = activeLayer.useKeyAsName || 'name'
 
-            !(
-                typeof activeLayer.feature.properties[key] === 'string' ||
-                typeof activeLayer.feature.properties[key] === 'number'
-            )
-
             if (
                 !(
                     typeof activeLayer.feature.properties[key] === 'string' ||
@@ -224,7 +222,7 @@ var Description = {
             }
 
             keyAsName =
-                activeLayer.feature.properties[key] +
+                ` <div style="max-width: 180px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">${activeLayer.feature.properties[key]}</div>` +
                 ' <div class="mainDescPointInnerType" style="font-size: 11px; padding: 0px 3px; opacity: 0.8;">(' +
                 key +
                 ')</div>'
@@ -233,6 +231,17 @@ var Description = {
                 activeLayer.options.layerName + ': ' + keyAsName
             )
             Description.descPointLinks.html(links)
+
+            if (Description.tippyDesc && Description.tippyDesc[0])
+                Description.tippyDesc[0].setContent(
+                    activeLayer.feature.properties[key]
+                )
+            else
+                Description.tippyDesc = tippy('#mainDescPointInner', {
+                    content: activeLayer.feature.properties[key],
+                    placement: 'bottom',
+                    theme: 'blue',
+                })
         }
     },
     clearDescription: function () {
