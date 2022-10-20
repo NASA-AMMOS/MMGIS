@@ -93,7 +93,7 @@ var markup = [
                 "<div id='drawToolDrawSettingsBody'>",
                     "<ul>",
                         "<li>",
-                            "<div title='Clip drawing or existing shapes'>Draw Clipping</div>",
+                            "<div title='Clip drawing of existing shapes'>Draw Clipping</div>",
                             "<div id='drawToolDrawSettingsTier' class='drawToolRadio'>",
                                 "<div value='over'>Over</div>",
                                 "<div class='active' value='under'>Under</div>",
@@ -111,6 +111,13 @@ var markup = [
                             "<div title='Enable snapping in edit mode'>Edit Snapping</div>",
                             "<div id='drawToolDrawSnapMode' class='drawToolRadio'>",
                                 "<div value='on'>On</div>",
+                                "<div class='active' value='off'>Off</div>",
+                            "</div>",
+                        "</li>",
+                        "<li>",
+                            "<div title='Force radius in meters when drawing circles'>Circle Radius</div>",
+                            "<div id='drawToolDrawSettingsCircle' class='drawToolRadio'>",
+                                "<div value='on'><span>On</span><input id='drawToolDrawSettingsCircleR' type='number' value='100'/></div>",
                                 "<div class='active' value='off'>Off</div>",
                             "</div>",
                         "</li>",
@@ -1346,6 +1353,11 @@ function interfaceWithMMGIS() {
     })
 
     $('#drawToolDrawSettingsMode > div').on('click', function () {
+        $(this).parent().find('div').removeClass('active')
+        $(this).addClass('active')
+    })
+
+    $('#drawToolDrawSettingsCircle > div').on('click', function () {
         $(this).parent().find('div').removeClass('active')
         $(this).addClass('active')
     })
