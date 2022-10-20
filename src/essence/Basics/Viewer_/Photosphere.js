@@ -82,8 +82,8 @@ export default function (domEl, lookupPath, options, Map_) {
             orbitControls.autoRotate = false
             orbitControls.autoRotateSpeed = options.speed || 0.5
             orbitControls.enableDamping = true
-            orbitControls.dampingFactor = 0.25
-            orbitControls.rotateSpeed = 0.07
+            orbitControls.dampingFactor = 0.27
+            orbitControls.rotateSpeed = -0.07
 
             orientationControls = new THREE.DeviceOrientationControls(camera)
 
