@@ -276,6 +276,50 @@ var Formulae_ = {
         }
         return nearestPoint
     },
+    // If crs is passed, circle will be map-projection-based and not screen based
+    circleFeatureFromTwoLngLats: function (
+        lnglatCenter,
+        lnglatRadius,
+        steps,
+        crs
+    ) {
+        const coordinates = []
+        let radialLngLat = lnglatRadius
+        let centerLngLat = lnglatCenter
+
+        if (crs) {
+            radialLngLat = crs.project(radialLngLat)
+            radialLngLat = { lng: radialLngLat.x, lat: radialLngLat.y }
+            centerLngLat = crs.project(centerLngLat)
+            centerLngLat = { lng: centerLngLat.x, lat: centerLngLat.y }
+        }
+
+        const radialPt = { x: radialLngLat.lng, y: radialLngLat.lat }
+        const centerPt = [centerLngLat.lng, centerLngLat.lat]
+
+        for (let i = 0; i < steps; i++) {
+            let pt = Formulae_.rotatePoint(
+                radialPt,
+                centerPt,
+                i * (360 / steps) * (Math.PI / 180)
+            )
+            if (crs) {
+                pt = crs.unproject(pt)
+                pt = { x: pt.lng, y: pt.lat }
+            }
+            coordinates.push([pt.x, pt.y])
+        }
+        coordinates.push(coordinates[0])
+
+        return {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+                type: 'Polygon',
+                coordinates: [coordinates],
+            },
+        }
+    },
     parseColor: function (color) {
         if (Formulae_.isColor(color) || color == null) return color
         return Formulae_.stringToColor(color)

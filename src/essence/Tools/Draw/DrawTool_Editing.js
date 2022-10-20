@@ -616,6 +616,12 @@ var Editing = {
                             `<div>${F_.getFeatureArea(DrawTool.contextMenuLayer.feature, true)}</div>`,
                         "</div>",
                     ].join('\n') : "",
+                    (DrawTool.contextMenuLayer?.feature?.properties?._radius != null) ? [
+                        "<div class='flexbetween' style='margin-bottom: 4px;'>",
+                            "<div>Radius</div>",
+                            `<div>${DrawTool.contextMenuLayer.feature.properties._radius.toFixed(3)}m</div>`,
+                        "</div>",
+                    ].join('\n') : "",
                     (!displayOnly) ? ["<div class='drawToolContextMenuPropertiesReassignUUID flexbetween'>",
                         "<div id='drawToolContextMenuPropertiesReassignUUIDValue'>" + uuid + "</div>",
                         "<div id='drawToolContextMenuPropertiesReassignUUID' class='drawToolButton1'>Reassign</div>",
