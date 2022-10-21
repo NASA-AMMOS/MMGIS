@@ -190,21 +190,32 @@ export default function (domEl, lookupPath, options, Map_) {
         var xyR = [parseInt(imageObj.columns), parseInt(imageObj.rows)]
 
         clearLayers()
-        makeModifiedTexture(url, azR, elR, xyR, function () {
-            addPointLayer(
-                'ChemCam',
-                'Missions/' +
-                    L_.mission +
-                    '/Data/Mosaics/azel_mosaic_targets/azel_targets_' +
-                    croppedName +
-                    '_sol' +
-                    croppedNameSol +
-                    '.csv'
-            )
-            if (typeof callback === 'function') {
-                callback()
+        makeModifiedTexture(
+            url,
+            azR,
+            elR,
+            xyR,
+            function () {
+                addPointLayer(
+                    'ChemCam',
+                    'Missions/' +
+                        L_.mission +
+                        '/Data/Mosaics/azel_mosaic_targets/azel_targets_' +
+                        croppedName +
+                        '_sol' +
+                        croppedNameSol +
+                        '.csv'
+                )
+                if (typeof callback === 'function') {
+                    callback()
+                }
+            },
+            function () {
+                if (typeof callback === 'function') {
+                    callback('Not Found')
+                }
             }
-        })
+        )
     }
 
     function toggleControls() {
@@ -602,7 +613,7 @@ export default function (domEl, lookupPath, options, Map_) {
     //dim is [width, height]
     //zero is [x, y] where 0,0 (az,el) falls in pixel space on the image
     //
-    function makeModifiedTexture(image, az, el, dim, callback) {
+    function makeModifiedTexture(image, az, el, dim, callback, errorCallback) {
         if (!wasInitialized) return
 
         var downsizing = F_.isMobile.iPhone()
@@ -620,6 +631,9 @@ export default function (domEl, lookupPath, options, Map_) {
 
         var img = new Image()
         img.onload = createMeshThenRender
+        img.onerror = () => {
+            errorCallback()
+        }
         img.src = image
 
         function createMeshThenRender() {

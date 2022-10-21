@@ -34,7 +34,7 @@
     left: 0;
     width: 315px;
     height: 100%;
-    background: #1a1a1a;
+    background: var(--color-a);
     box-shadow: 0px 0px 9px 4px rgba(0, 0, 0, 0.4);
 }
 .landingPage #landingMissionsWrapper {

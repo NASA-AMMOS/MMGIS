@@ -263,7 +263,6 @@ var Viewer_ = {
             Viewer_.toolBarLoading.style('opacity', '1')
             this.photosphere.changeImage(o, Viewer_.feature, function (err) {
                 if (err) {
-                    console.log(err)
                     Viewer_.toolBarLoading.html(err)
                 } else {
                     Viewer_.toolBarLoading.style('opacity', '0')
