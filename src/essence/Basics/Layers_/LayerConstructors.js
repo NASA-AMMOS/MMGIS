@@ -734,11 +734,17 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
 
         if (labelsVar.initialVisibility === true) layer.on(true)
 
+        layer.addDataEnhanced = function (geojson, layerName, subName) {
+            this.addData(geojson)
+            if (L_.layersGroupSublayers[layerName][subName].on) this.on()
+        }
+
         return {
-            on:
-                labelsVar.initialVisibility != null
-                    ? labelsVar.initialVisibility
-                    : true,
+            on: L_.layersGroupSublayers[layerObj.name]?.labels
+                ? L_.layersGroupSublayers[layerObj.name]?.labels.on
+                : labelsVar.initialVisibility != null
+                ? labelsVar.initialVisibility
+                : true,
             type: 'labels',
             geojson: geojson,
             layer: layer,

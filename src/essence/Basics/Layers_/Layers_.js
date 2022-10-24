@@ -1874,7 +1874,6 @@ var L_ = {
             L_.clearGeoJSONData(L_.layersGroup[layerName])
             L_.clearVectorLayerInfo()
             L_.syncSublayerData(layerName)
-            L_.globeLithoLayerHelper(L_.layersNamed[layerName])
         } catch (e) {
             console.log(e)
             console.warn('Warning: Unable to clear vector layer: ' + layerName)
@@ -1894,7 +1893,9 @@ var L_ = {
         })
 
         L_.clearGeoJSONData(updateLayer)
+        L_.syncSublayerData(updateLayer._layerName)
         L_.addGeoJSONData(updateLayer, layersGeoJSON)
+        L_.syncSublayerData(updateLayer._layerName)
     },
     trimVectorLayerKeepBeforeTime: function (
         layerName,
@@ -1999,7 +2000,6 @@ var L_ = {
 
                 L_.removeLayerHelper(updateLayer, removedLayers, layersGeoJSON)
                 L_.syncSublayerData(layerName)
-                L_.globeLithoLayerHelper(L_.layersNamed[layerName])
             }
         } else {
             console.warn(
@@ -2080,8 +2080,6 @@ var L_ = {
                         layersGeoJSON
                     )
                 }
-                L_.syncSublayerData(layerName)
-                L_.globeLithoLayerHelper(L_.layersNamed[layerName])
             }
         } else {
             console.warn(
@@ -2291,7 +2289,6 @@ var L_ = {
                 L_.clearGeoJSONData(updateLayer)
                 L_.addGeoJSONData(updateLayer, layersGeoJSON)
                 L_.syncSublayerData(layerName)
-                L_.globeLithoLayerHelper(L_.layersNamed[layerName])
             } else {
                 console.warn(
                     'Warning: Unable to trim the vector layer `' +
@@ -2399,7 +2396,6 @@ var L_ = {
                 L_.clearGeoJSONData(updateLayer)
                 L_.addGeoJSONData(updateLayer, layersGeoJSON)
                 L_.syncSublayerData(layerName)
-                L_.globeLithoLayerHelper(L_.layersNamed[layerName])
             } else {
                 console.warn(
                     'Warning: Unable to append to the vector layer `' +
@@ -2430,7 +2426,6 @@ var L_ = {
                 return
             }
             L_.syncSublayerData(layerName)
-            L_.globeLithoLayerHelper(L_.layersNamed[layerName])
         } else {
             console.warn(
                 'Warning: Unable to update vector layer as it does not exist: ' +
@@ -2457,6 +2452,7 @@ var L_ = {
                         subUpdateLayers[sub].layer != null
                     ) {
                         subUpdateLayers[sub].layer.clearLayers()
+
                         if (
                             typeof subUpdateLayers[sub].layer
                                 .addDataEnhanced === 'function'
@@ -2481,6 +2477,8 @@ var L_ = {
                 'Warning: Failed to update sublayers of layer: ' + layerName
             )
         }
+
+        L_.globeLithoLayerHelper(L_.layersNamed[layerName])
     },
     clearVectorLayerInfo: function () {
         // Clear the InfoTools data
@@ -2498,11 +2496,9 @@ var L_ = {
             // Only toggle the layer to reset if the layer is toggled on,
             // because if the layer is toggled off, it is not on the globe
             if (L_.toggledArray[s.name]) {
-                // Temporarily set layer to "off" so the layer will be redrawn
-                L_.toggledArray[s.name] = false
-
+                await L_.toggleLayerHelper(s, true)
                 // Toggle the layer so its drawn in the globe
-                L_.toggleLayer(s)
+                L_.toggleLayerHelper(s, false)
             }
         }
     },
