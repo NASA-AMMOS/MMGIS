@@ -773,7 +773,7 @@ var L_ = {
             }
         }
     },
-    addGeoJSONData: function (layer, geojson) {
+    addGeoJSONData: async function (layer, geojson) {
         if (layer._sourceGeoJSON) {
             if (layer._sourceGeoJSON.features)
                 if (geojson.features)
@@ -799,16 +799,24 @@ var L_ = {
             ) === true
         )
             return
-
+        const initialOn = L_.toggledArray[layer._layerName]
+        // Remove layer
         L_.Map_.rmNotNull(L_.layersGroup[layer._layerName])
+        // Remove sublayers
+        L_.syncSublayerData(layer._layerName, true)
+
         // Remake Layer
-        L_.Map_.makeLayer(
+        await L_.Map_.makeLayer(
             L_.layersNamed[layer._layerName],
             true,
             layer._sourceGeoJSON
         )
-        if (L_.toggledArray[layer._layerName])
-            L_.layersGroup[layer._layerName].addTo(L_.Map_.map)
+
+        if (initialOn) {
+            L_.toggleLayerHelper(L_.layersNamed[layer._layerName], false)
+            L_.toggledArray[layer._layerName] = true
+        }
+        L_.syncSublayerData(layer._layerName)
     },
     clearGeoJSONData: function (layer) {
         if (layer._sourceGeoJSON) layer._sourceGeoJSON = F_.getBaseGeoJSON()
@@ -1895,7 +1903,6 @@ var L_ = {
         L_.clearGeoJSONData(updateLayer)
         L_.syncSublayerData(updateLayer._layerName)
         L_.addGeoJSONData(updateLayer, layersGeoJSON)
-        L_.syncSublayerData(updateLayer._layerName)
     },
     trimVectorLayerKeepBeforeTime: function (
         layerName,
@@ -2288,7 +2295,6 @@ var L_ = {
                 L_.clearVectorLayerInfo()
                 L_.clearGeoJSONData(updateLayer)
                 L_.addGeoJSONData(updateLayer, layersGeoJSON)
-                L_.syncSublayerData(layerName)
             } else {
                 console.warn(
                     'Warning: Unable to trim the vector layer `' +
@@ -2395,7 +2401,6 @@ var L_ = {
                 L_.clearVectorLayerInfo()
                 L_.clearGeoJSONData(updateLayer)
                 L_.addGeoJSONData(updateLayer, layersGeoJSON)
-                L_.syncSublayerData(layerName)
             } else {
                 console.warn(
                     'Warning: Unable to append to the vector layer `' +
@@ -2425,7 +2430,6 @@ var L_ = {
                 )
                 return
             }
-            L_.syncSublayerData(layerName)
         } else {
             console.warn(
                 'Warning: Unable to update vector layer as it does not exist: ' +
@@ -2434,7 +2438,7 @@ var L_ = {
         }
     },
     // Make a layer's sublayer match the layers data again
-    syncSublayerData: function (layerName) {
+    syncSublayerData: function (layerName, onlyClear) {
         try {
             let geojson = L_.layersGroup[layerName].toGeoJSON(
                 L_.GEOJSON_PRECISION
@@ -2453,21 +2457,23 @@ var L_ = {
                     ) {
                         subUpdateLayers[sub].layer.clearLayers()
 
-                        if (
-                            typeof subUpdateLayers[sub].layer
-                                .addDataEnhanced === 'function'
-                        )
-                            subUpdateLayers[sub].layer.addDataEnhanced(
-                                geojson,
-                                layerName,
-                                sub,
-                                L_.Map_
+                        if (!onlyClear) {
+                            if (
+                                typeof subUpdateLayers[sub].layer
+                                    .addDataEnhanced === 'function'
                             )
-                        else if (
-                            typeof subUpdateLayers[sub].layer.addData ===
-                            'function'
-                        )
-                            subUpdateLayers[sub].layer.addData(geojson)
+                                subUpdateLayers[sub].layer.addDataEnhanced(
+                                    geojson,
+                                    layerName,
+                                    sub,
+                                    L_.Map_
+                                )
+                            else if (
+                                typeof subUpdateLayers[sub].layer.addData ===
+                                'function'
+                            )
+                                subUpdateLayers[sub].layer.addData(geojson)
+                        }
                     }
                 }
             }
@@ -2478,7 +2484,7 @@ var L_ = {
             )
         }
 
-        L_.globeLithoLayerHelper(L_.layersNamed[layerName])
+        L_.globeLithoLayerHelper(L_.layersNamed[layerName], onlyClear)
     },
     clearVectorLayerInfo: function () {
         // Clear the InfoTools data
@@ -2491,14 +2497,15 @@ var L_ = {
         Description.clearDescription()
     },
     //Takes in a config layer object
-    globeLithoLayerHelper: async function (s) {
+    // Not just for globe
+    globeLithoLayerHelper: async function (s, onlyClear) {
         if (L_.Globe_) {
             // Only toggle the layer to reset if the layer is toggled on,
             // because if the layer is toggled off, it is not on the globe
             if (L_.toggledArray[s.name]) {
                 await L_.toggleLayerHelper(s, true)
                 // Toggle the layer so its drawn in the globe
-                L_.toggleLayerHelper(s, false)
+                if (!onlyClear) L_.toggleLayerHelper(s, false)
             }
         }
     },
