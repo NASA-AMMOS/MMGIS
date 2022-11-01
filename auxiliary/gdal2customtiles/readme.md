@@ -46,7 +46,9 @@ Any 32-bit image data can be encoded into the RGBA channels of a PNG. MMGIS uses
 ```
 python gdal2customtiles.py -p raster --extentworld -4022404.001,4022036.893,-4022036.893,4022404.001,367.108150109358121 --dem inputdem.tif output_dir
 ```
+
 _Notes:_
 
 - Does not include the convenience of rasterstotiles.py yet.
 - Can only tile 32-bit images with --dem option.
+- `rasters2customtiles_3.5.2.py` and `gdal2tiles_3.5.2.py` support only the `--dem` option (and not `--raster` yet). `-m` no longer works and must be `--dem`. Tested with gdal 3.4.3. Upgraded to support multi-processes. See `python rasters2customtiles_3.5.2.py --help`. Unlike `gda2customtiles.py`, does not seam-match DEM tiles (better for Data Layers and Viewshed Tool, bad for 3D Globe).

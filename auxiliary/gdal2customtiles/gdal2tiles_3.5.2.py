@@ -37,6 +37,7 @@
 # ******************************************************************************
 
 from __future__ import division, print_function
+import struct
 
 import contextlib
 import glob
@@ -58,14 +59,17 @@ from osgeo import gdal, osr
 
 Options = Any
 
-## MMGIS
-import struct
+# MMGIS
 
-## MMGIS
+# MMGIS
+
+
 def binary(num):
     return ''.join(bin(c).replace('0b', '').rjust(8, '0') for c in struct.pack('!f', num))
 
-## MMGIS
+# MMGIS
+
+
 def getTilePxBounds(self, tx, ty, tz, ds):
 
     querysize = self.tilesize
@@ -129,6 +133,7 @@ def getTilePxBounds(self, tx, ty, tz, ds):
         wx, wy, wxsize, wysize = wb
 
     return [rx, ry, rxsize, rysize, wxsize, wysize]
+
 
 try:
     import numpy
@@ -245,7 +250,8 @@ class TileMatrixSet(object):
         "Maximal scaledown zoom of the pyramid closest to the pixelSize."
 
         for i in range(self.level_count):
-            res = self.resolution * self.tile_size / overriden_tile_size / (2**i)
+            res = self.resolution * self.tile_size / \
+                overriden_tile_size / (2**i)
             if pixelSize > res:
                 return max(0, i - 1)  # We don't want to scale up
         return self.level_count - 1
@@ -253,7 +259,8 @@ class TileMatrixSet(object):
     def PixelsToMeters(self, px, py, zoom, overriden_tile_size):
         "Converts pixel coordinates in given zoom level of pyramid to EPSG:3857"
 
-        res = self.resolution * self.tile_size / overriden_tile_size / (2**zoom)
+        res = self.resolution * self.tile_size / \
+            overriden_tile_size / (2**zoom)
         mx = px * res + self.topleft_x
         my = py * res + (
             self.topleft_y - self.matrix_height * self.tile_size * self.resolution
@@ -310,7 +317,8 @@ class TileMatrixSet(object):
             if tileWidth != tileHeight:
                 raise UnsupportedTileMatrixSet("Only square tiles supported")
             # Convention in OGC TileMatrixSet definition. See gcore/tilematrixset.cpp
-            resolution = tileMatrix["scaleDenominator"] * 0.28e-3 / metersPerUnit
+            resolution = tileMatrix["scaleDenominator"] * \
+                0.28e-3 / metersPerUnit
             if swapaxis:
                 topleft_x, topleft_y = topleft_y, topleft_x
             if i == 0:
@@ -325,7 +333,8 @@ class TileMatrixSet(object):
                 tms.matrix_height = tileMatrix["matrixHeight"]
             else:
                 if topleft_x != tms.topleft_x or topleft_y != tms.topleft_y:
-                    raise UnsupportedTileMatrixSet("All levels should have same origin")
+                    raise UnsupportedTileMatrixSet(
+                        "All levels should have same origin")
                 if abs(tms.resolution / (1 << i) - resolution) > 1e-8 * resolution:
                     raise UnsupportedTileMatrixSet(
                         "Only resolutions varying as power-of-two supported"
@@ -517,7 +526,8 @@ class GlobalMercator(object):
         "Converts given lat/lon in WGS84 Datum to XY in Spherical Mercator EPSG:3857"
 
         mx = lon * self.originShift / 180.0
-        my = math.log(math.tan((90 + lat) * math.pi / 360.0)) / (math.pi / 180.0)
+        my = math.log(math.tan((90 + lat) * math.pi / 360.0)) / \
+            (math.pi / 180.0)
 
         my = my * self.originShift / 180.0
         return mx, my
@@ -573,7 +583,8 @@ class GlobalMercator(object):
     def TileBounds(self, tx, ty, zoom):
         "Returns bounds of the given tile in EPSG:3857 coordinates"
 
-        minx, miny = self.PixelsToMeters(tx * self.tile_size, ty * self.tile_size, zoom)
+        minx, miny = self.PixelsToMeters(
+            tx * self.tile_size, ty * self.tile_size, zoom)
         maxx, maxy = self.PixelsToMeters(
             (tx + 1) * self.tile_size, (ty + 1) * self.tile_size, zoom
         )
@@ -745,7 +756,8 @@ class Zoomify(object):
         self.tierImageSize.append(imagesize)
 
         while imagesize[0] > tile_size or imagesize[1] > tile_size:
-            imagesize = (math.floor(imagesize[0] / 2), math.floor(imagesize[1] / 2))
+            imagesize = (math.floor(
+                imagesize[0] / 2), math.floor(imagesize[1] / 2))
             tiles = (
                 math.ceil(imagesize[0] / tile_size),
                 math.ceil(imagesize[1] / tile_size),
@@ -771,7 +783,8 @@ class Zoomify(object):
     def tilefilename(self, x, y, z):
         """Returns filename for tile with given coordinates"""
 
-        tileIndex = x + y * self.tierSizeInTiles[z][0] + self.tileCountUpToTier[z]
+        tileIndex = x + y * \
+            self.tierSizeInTiles[z][0] + self.tileCountUpToTier[z]
         return os.path.join(
             "TileGroup%.0f" % math.floor(tileIndex / 256),
             "%s-%s-%s.%s" % (z, x, y, self.tileformat),
@@ -823,12 +836,15 @@ def generate_kml(
 
     if tx is None:
         tilekml = False
-        args["xml_escaped_title"] = gdal.EscapeString(options.title, gdal.CPLES_XML)
+        args["xml_escaped_title"] = gdal.EscapeString(
+            options.title, gdal.CPLES_XML)
     else:
         tilekml = True
         args["realtiley"] = GDAL2Tiles.getYTile(ty, tz, options)
-        args["xml_escaped_title"] = "%d/%d/%d.kml" % (tz, tx, args["realtiley"])
-        args["south"], args["west"], args["north"], args["east"] = tileswne(tx, ty, tz)
+        args["xml_escaped_title"] = "%d/%d/%d.kml" % (
+            tz, tx, args["realtiley"])
+        args["south"], args["west"], args["north"], args["east"] = tileswne(
+            tx, ty, tz)
 
     if tx == 0:
         args["drawOrder"] = 2 * tz + 1
@@ -1044,7 +1060,8 @@ def setup_no_data_values(input_dataset: gdal.Dataset, options: Options) -> List[
     if options.srcnodata:
         nds = list(map(float, options.srcnodata.split(",")))
         if len(nds) < input_dataset.RasterCount:
-            in_nodata = (nds * input_dataset.RasterCount)[: input_dataset.RasterCount]
+            in_nodata = (
+                nds * input_dataset.RasterCount)[: input_dataset.RasterCount]
         else:
             in_nodata = nds
     else:
@@ -1142,7 +1159,8 @@ def reproject_dataset(
     If the dataset is already in the correct SRS, returns it unmodified
     """
     if not from_srs or not to_srs:
-        raise GDALError("from and to SRS must be defined to reproject the dataset")
+        raise GDALError(
+            "from and to SRS must be defined to reproject the dataset")
 
     if (from_srs.ExportToProj4() != to_srs.ExportToProj4()) or (
         from_dataset.GetGCPCount() != 0
@@ -1169,7 +1187,8 @@ def reproject_dataset(
                     ct = osr.CoordinateTransformation(from_srs, to_srs)
                     west, south = ct.TransformPoint(from_gt[0], minlat)[:2]
                     east, north = ct.TransformPoint(
-                        from_gt[0] + from_dataset.RasterXSize * from_gt[1], maxlat
+                        from_gt[0] + from_dataset.RasterXSize *
+                        from_gt[1], maxlat
                     )[:2]
                     return gdal.Warp(
                         "",
@@ -1375,7 +1394,6 @@ def create_base_tile(tile_job_info: "TileJobInfo", tile_detail: "TileDetail") ->
     tile_size = tile_job_info.tile_size
     options = tile_job_info.options
 
-
     cached_ds = getattr(threadLocal, "cached_ds", None)
     if cached_ds and cached_ds.GetDescription() == tile_job_info.src_file:
         ds = cached_ds
@@ -1399,24 +1417,26 @@ def create_base_tile(tile_job_info: "TileJobInfo", tile_detail: "TileDetail") ->
     wxsize = tile_detail.wxsize
     wysize = tile_detail.wysize
     querysize = tile_detail.querysize
-    ## MMGIS
+    # MMGIS
     isDEMtile = tile_detail.isDEMtile
-    
+
     tilebands = dataBandsCount + 1
 
-    ## MMGIS
+    # MMGIS
     if isDEMtile == True:
         tilebands = 4
 
     # Tile dataset in memory
-    tilefilename = os.path.join(output, str(tz), str(tx), "%s.%s" % (ty, tileext))
+    tilefilename = os.path.join(output, str(
+        tz), str(tx), "%s.%s" % (ty, tileext))
     dstile = mem_drv.Create("", tile_size, tile_size, tilebands)
 
     data = alpha = None
 
     if options.verbose:
         print(
-            "\tReadRaster Extent: ", (rx, ry, rxsize, rysize), (wx, wy, wxsize, wysize)
+            "\tReadRaster Extent: ", (rx, ry, rxsize,
+                                      rysize), (wx, wy, wxsize, wysize)
         )
 
     # Query is in 'nearest neighbour' but can be bigger in then the tile_size
@@ -1444,7 +1464,7 @@ def create_base_tile(tile_job_info: "TileJobInfo", tile_detail: "TileDetail") ->
     # The tile in memory is a transparent file by default. Write pixel values into it if
     # any
     if data:
-        ## MMGIS
+        # MMGIS
         if isDEMtile:
             dsquery = mem_drv.Create(
                 '', querysize, querysize, tilebands, gdal.GDT_Byte)  # 1bto4b
@@ -1499,7 +1519,8 @@ def create_base_tile(tile_job_info: "TileJobInfo", tile_detail: "TileDetail") ->
                 data,
                 band_list=list(range(1, dataBandsCount + 1)),
             )
-            dstile.WriteRaster(wx, wy, wxsize, wysize, alpha, band_list=[tilebands])
+            dstile.WriteRaster(wx, wy, wxsize, wysize,
+                               alpha, band_list=[tilebands])
 
             # Note: For source drivers based on WaveLet compression (JPEG2000, ECW,
             # MrSID) the ReadRaster function returns high-quality raster (not ugly
@@ -1519,9 +1540,11 @@ def create_base_tile(tile_job_info: "TileJobInfo", tile_detail: "TileDetail") ->
                 data,
                 band_list=list(range(1, dataBandsCount + 1)),
             )
-            dsquery.WriteRaster(wx, wy, wxsize, wysize, alpha, band_list=[tilebands])
+            dsquery.WriteRaster(wx, wy, wxsize, wysize,
+                                alpha, band_list=[tilebands])
 
-            scale_query_to_tile(dsquery, dstile, options, tilefilename=tilefilename)
+            scale_query_to_tile(dsquery, dstile, options,
+                                tilefilename=tilefilename)
             del dsquery
 
     del data
@@ -1592,7 +1615,7 @@ def create_overview_tile(
 
     tilebands = tile_job_info.nb_data_bands + 1
 
-    ## MMGIS
+    # MMGIS
     if options.isDEMtile == True:
         tilebands = 4
 
@@ -1697,7 +1720,8 @@ def create_overview_tile(
             with my_open(
                 os.path.join(
                     output_folder,
-                    "%d/%d/%d.kml" % (overview_tz, overview_tx, overview_ty_real),
+                    "%d/%d/%d.kml" % (overview_tz, overview_tx,
+                                      overview_ty_real),
                 ),
                 "wb",
             ) as f:
@@ -1738,7 +1762,8 @@ def group_overview_base_tiles(
     overview_tz = base_tz - 1
     for tx in range(tminx, tmaxx + 1):
         overview_tx = tx >> 1
-        tiledirname = os.path.join(output_folder, str(overview_tz), str(overview_tx))
+        tiledirname = os.path.join(
+            output_folder, str(overview_tz), str(overview_tx))
         makedirs(tiledirname)
 
     return list(overview_to_bases.values())
@@ -1841,12 +1866,12 @@ def optparse_init() -> optparse.OptionParser:
         dest="quiet",
         help="Disable messages and status to stdout",
     )
-    ## MMGIS
+    # MMGIS
     p.add_option("--extentworld", dest="extentworld",
-        help="The full world meter extent (comma-separated as minx,maxx,miny,maxy,pixelsize) of an inner raster profile.")
-    ## MMGIS
+                 help="The full world meter extent (comma-separated as minx,maxx,miny,maxy,pixelsize) of an inner raster profile.")
+    # MMGIS
     p.add_option("--dem", action="store_true", dest="isDEMtile",
-        help="Indicate if the input is a Digital Elevation Model")
+                 help="Indicate if the input is a Digital Elevation Model")
     p.add_option(
         "--processes",
         dest="nb_processes",
@@ -1864,7 +1889,6 @@ def optparse_init() -> optparse.OptionParser:
         "--tilesize",
         dest="tilesize",
         metavar="PIXELS",
-        default=256,
         type="int",
         help="Width and height in pixel of a tile",
     )
@@ -1919,10 +1943,12 @@ def optparse_init() -> optparse.OptionParser:
         dest="webviewer",
         type="choice",
         choices=webviewer_list,
-        help="Web viewer to generate (%s) - default 'all'" % ",".join(webviewer_list),
+        help="Web viewer to generate (%s) - default 'all'" % ",".join(
+            webviewer_list),
     )
     g.add_option("-t", "--title", dest="title", help="Title of the map")
-    g.add_option("-c", "--copyright", dest="copyright", help="Copyright for the map")
+    g.add_option("-c", "--copyright", dest="copyright",
+                 help="Copyright for the map")
     g.add_option(
         "-g",
         "--googlekey",
@@ -1938,7 +1964,8 @@ def optparse_init() -> optparse.OptionParser:
     p.add_option_group(g)
 
     # MapML options
-    g = optparse.OptionGroup(p, "MapML options", "Options for generated MapML file")
+    g = optparse.OptionGroup(
+        p, "MapML options", "Options for generated MapML file")
     g.add_option(
         "--mapml-template",
         dest="mapml_template",
@@ -2046,7 +2073,8 @@ def options_post_processing(
                 tmaxz = int(zoom_max)
                 if tmaxz < tminz:
                     raise Exception(
-                        "max zoom (%d) less than min zoom (%d)" % (tmaxz, tminz)
+                        "max zoom (%d) less than min zoom (%d)" % (
+                            tmaxz, tminz)
                     )
         else:
             # Single zoom value (min = max)
@@ -2198,10 +2226,10 @@ class GDAL2Tiles(object):
 
         # Tile format
         self.tile_size = 256
+        if options.isDEMtile:
+            self.tile_size = 32
         if options.tilesize:
             self.tile_size = options.tilesize
-        if options.isDEMtile:
-            self.tile_size = 64
 
         self.tiledriver = options.tiledriver
         if options.tiledriver == "PNG":
@@ -2213,7 +2241,8 @@ class GDAL2Tiles(object):
             self.tmp_dir = tempfile.mkdtemp(dir=output_folder)
         else:
             self.tmp_dir = tempfile.mkdtemp()
-        self.tmp_vrt_filename = os.path.join(self.tmp_dir, str(uuid4()) + ".vrt")
+        self.tmp_vrt_filename = os.path.join(
+            self.tmp_dir, str(uuid4()) + ".vrt")
 
         # Should we read bigger window of the input raster and scale it down?
         # Note: Modified later by open_input()
@@ -2234,7 +2263,7 @@ class GDAL2Tiles(object):
         self.output_folder = output_folder
         self.options = options
 
-        ## MMGIS
+        # MMGIS
         if self.options.extentworld:
             extentworld = self.options.extentworld.split(",")
             self.isRasterBounded = True
@@ -2252,7 +2281,7 @@ class GDAL2Tiles(object):
 
         self.tminz, self.tmaxz = self.options.zoom
 
-        ## MMGIS
+        # MMGIS
         if self.options.isDEMtile:
             self.isDEMtile = True
 
@@ -2280,7 +2309,8 @@ class GDAL2Tiles(object):
         # Open the input file
 
         if self.input_file:
-            input_dataset: gdal.Dataset = gdal.Open(self.input_file, gdal.GA_ReadOnly)
+            input_dataset: gdal.Dataset = gdal.Open(
+                self.input_file, gdal.GA_ReadOnly)
         else:
             raise Exception("No input file was specified")
 
@@ -2303,7 +2333,8 @@ class GDAL2Tiles(object):
 
         # Read metadata from the input file
         if input_dataset.RasterCount == 0:
-            exit_with_error("Input file '%s' has no raster band" % self.input_file)
+            exit_with_error("Input file '%s' has no raster band" %
+                            self.input_file)
 
         if input_dataset.GetRasterBand(1).GetRasterColorTable():
             exit_with_error(
@@ -2341,7 +2372,8 @@ class GDAL2Tiles(object):
                 ),
             )
 
-        self.in_srs, self.in_srs_wkt = setup_input_srs(input_dataset, self.options)
+        self.in_srs, self.in_srs_wkt = setup_input_srs(
+            input_dataset, self.options)
 
         self.out_srs = setup_output_srs(self.in_srs, self.options)
 
@@ -2435,11 +2467,13 @@ class GDAL2Tiles(object):
         # Output Bounds - coordinates in the output SRS
         self.ominx = self.out_gt[0]
         self.omaxx = (
-            self.out_gt[0] + self.warped_input_dataset.RasterXSize * self.out_gt[1]
+            self.out_gt[0] +
+            self.warped_input_dataset.RasterXSize * self.out_gt[1]
         )
         self.omaxy = self.out_gt[3]
         self.ominy = (
-            self.out_gt[3] - self.warped_input_dataset.RasterYSize * self.out_gt[1]
+            self.out_gt[3] -
+            self.warped_input_dataset.RasterYSize * self.out_gt[1]
         )
         # Note: maybe round(x, 14) to avoid the gdal_translate behavior, when 0 becomes -1e-15
 
@@ -2463,8 +2497,10 @@ class GDAL2Tiles(object):
             # Generate table with min max tile coordinates for all zoomlevels
             self.tminmax = list(range(0, MAXZOOMLEVEL))
             for tz in range(0, MAXZOOMLEVEL):
-                tminx, tminy = self.mercator.MetersToTile(self.ominx, self.ominy, tz)
-                tmaxx, tmaxy = self.mercator.MetersToTile(self.omaxx, self.omaxy, tz)
+                tminx, tminy = self.mercator.MetersToTile(
+                    self.ominx, self.ominy, tz)
+                tmaxx, tmaxy = self.mercator.MetersToTile(
+                    self.omaxx, self.omaxy, tz)
                 # crop tiles extending world limits (+-180,+-90)
                 tminx, tminy = max(0, tminx), max(0, tminy)
                 tmaxx, tmaxy = min(2**tz - 1, tmaxx), min(2**tz - 1, tmaxy)
@@ -2488,9 +2524,6 @@ class GDAL2Tiles(object):
             if self.tmaxz is None:
                 self.tmaxz = self.mercator.ZoomForPixelSize(self.out_gt[1])
                 self.tmaxz = max(self.tminz, self.tmaxz)
-                ## MMGIS
-                if self.isDEMtile:
-                    self.tmaxz = self.tmaxz - (8 - int(math.log2(self.tile_size)))
 
             self.tminz = min(self.tminz, self.tmaxz)
 
@@ -2521,11 +2554,14 @@ class GDAL2Tiles(object):
             # Generate table with min max tile coordinates for all zoomlevels
             self.tminmax = list(range(0, MAXZOOMLEVEL))
             for tz in range(0, MAXZOOMLEVEL):
-                tminx, tminy = self.geodetic.LonLatToTile(self.ominx, self.ominy, tz)
-                tmaxx, tmaxy = self.geodetic.LonLatToTile(self.omaxx, self.omaxy, tz)
+                tminx, tminy = self.geodetic.LonLatToTile(
+                    self.ominx, self.ominy, tz)
+                tmaxx, tmaxy = self.geodetic.LonLatToTile(
+                    self.omaxx, self.omaxy, tz)
                 # crop tiles extending world limits (+-180,+-90)
                 tminx, tminy = max(0, tminx), max(0, tminy)
-                tmaxx, tmaxy = min(2 ** (tz + 1) - 1, tmaxx), min(2**tz - 1, tmaxy)
+                tmaxx, tmaxy = min(2 ** (tz + 1) - 1,
+                                   tmaxx), min(2**tz - 1, tmaxy)
                 self.tminmax[tz] = (tminx, tminy, tmaxx, tmaxy)
 
             # TODO: Maps crossing 180E (Alaska?)
@@ -2547,9 +2583,6 @@ class GDAL2Tiles(object):
             if self.tmaxz is None:
                 self.tmaxz = self.geodetic.ZoomForPixelSize(self.out_gt[1])
                 self.tmaxz = max(self.tminz, self.tmaxz)
-                ## MMGIS
-                if self.isDEMtile:
-                    self.tmaxz = self.tmaxz - (8 - int(math.log2(self.tile_size)))
 
             self.tminz = min(self.tminz, self.tmaxz)
 
@@ -2593,10 +2626,7 @@ class GDAL2Tiles(object):
             # Get the maximal zoom level (native resolution of the raster)
             if self.tmaxz is None:
                 self.tmaxz = self.nativezoom
-                self.tmaxz = max(self.tminz, self.tmaxz)        
-                ## MMGIS
-                if self.isDEMtile:
-                    self.tmaxz = self.tmaxz - (8 - int(math.log2(self.tile_size)))
+                self.tmaxz = max(self.tminz, self.tmaxz)
 
             elif self.tmaxz > self.nativezoom:
                 # If the user requests at a higher precision than the native
@@ -2705,11 +2735,9 @@ class GDAL2Tiles(object):
             # Get the maximal zoom level
             # (closest possible zoom level up on the resolution of raster)
             if self.tmaxz is None:
-                self.tmaxz = tms.ZoomForPixelSize(self.out_gt[1], self.tile_size)
-                self.tmaxz = max(self.tminz, self.tmaxz)                   
-                ## MMGIS
-                if self.isDEMtile:
-                    self.tmaxz = self.tmaxz - (8 - int(math.log2(self.tile_size)))
+                self.tmaxz = tms.ZoomForPixelSize(
+                    self.out_gt[1], self.tile_size)
+                self.tmaxz = max(self.tminz, self.tmaxz)
 
             self.tminz = min(self.tminz, self.tmaxz)
 
@@ -2745,7 +2773,8 @@ class GDAL2Tiles(object):
                     os.path.join(self.output_folder, "googlemaps.html")
                 ):
                     with my_open(
-                        os.path.join(self.output_folder, "googlemaps.html"), "wb"
+                        os.path.join(self.output_folder,
+                                     "googlemaps.html"), "wb"
                     ) as f:
                         f.write(self.generate_googlemaps().encode("utf-8"))
 
@@ -2920,7 +2949,8 @@ class GDAL2Tiles(object):
                     # Pixel size in the raster covering query geo extent
                     nativesize = wb[0] + wb[2]
                     if self.options.verbose:
-                        print("\tNative Extent (querysize", nativesize, "): ", rb, wb)
+                        print("\tNative Extent (querysize",
+                              nativesize, "): ", rb, wb)
 
                     # Tile bounds in raster coordinates for ReadRaster query
                     rb, wb = self.geo_query(
@@ -3915,7 +3945,8 @@ function ExtDraggableObject(src, opt_drag) {
         """
 
         args = {}
-        args["double_quote_escaped_title"] = self.options.title.replace('"', '\\"')
+        args["double_quote_escaped_title"] = self.options.title.replace(
+            '"', '\\"')
         args["xml_escaped_title"] = gdal.EscapeString(
             self.options.title, gdal.CPLES_XML
         )
@@ -4308,7 +4339,8 @@ function ExtDraggableObject(src, opt_drag) {
             )
 
             if self.options.xyz:
-                args["origin"] = "[%.18g,%.18g]" % (tms.topleft_x, tms.topleft_y)
+                args["origin"] = "[%.18g,%.18g]" % (
+                    tms.topleft_x, tms.topleft_y)
                 args["y_formula"] = "tileCoord[2]"
             else:
                 args["origin"] = "[%.18g,%.18g]" % (
@@ -4429,11 +4461,13 @@ function ExtDraggableObject(src, opt_drag) {
         tminx, tminy, tmaxx, tmaxy = self.tminmax[self.tmaxz]
         s = s.replace("${MINTILEX}", str(tminx))
         s = s.replace(
-            "${MINTILEY}", str(GDAL2Tiles.getYTile(tmaxy, self.tmaxz, self.options))
+            "${MINTILEY}", str(GDAL2Tiles.getYTile(
+                tmaxy, self.tmaxz, self.options))
         )
         s = s.replace("${MAXTILEX}", str(tmaxx))
         s = s.replace(
-            "${MAXTILEY}", str(GDAL2Tiles.getYTile(tminy, self.tmaxz, self.options))
+            "${MAXTILEY}", str(GDAL2Tiles.getYTile(
+                tminy, self.tmaxz, self.options))
         )
         s = s.replace("${CURZOOM}", str(self.tmaxz))
         s = s.replace("${MINZOOM}", str(self.tminz))
@@ -4452,7 +4486,8 @@ function ExtDraggableObject(src, opt_drag) {
         """
         if options.xyz and options.profile != "raster":
             if options.profile in ("mercator", "geodetic"):
-                return (2**tz - 1) - ty  # Convert from TMS to XYZ numbering system
+                # Convert from TMS to XYZ numbering system
+                return (2**tz - 1) - ty
 
             tms = tmsMap[options.profile]
             return (
@@ -4520,7 +4555,8 @@ def get_tile_swne(tile_job_info, options):
 
             def rastertileswne(x, y, z):
                 pixelsizex = (
-                    2 ** (tile_job_info.tmaxz - z) * tile_job_info.out_geo_trans[1]
+                    2 ** (tile_job_info.tmaxz - z) *
+                    tile_job_info.out_geo_trans[1]
                 )
                 west = (
                     tile_job_info.out_geo_trans[0]
@@ -4546,7 +4582,7 @@ def get_tile_swne(tile_job_info, options):
 
             tile_swne = rastertileswne
         else:
-            tile_swne = lambda x, y, z: (0, 0, 0, 0)  # noqa
+            def tile_swne(x, y, z): return (0, 0, 0, 0)  # noqa
     else:
         tile_swne = None
 
@@ -4562,7 +4598,8 @@ def single_threaded_tiling(
     """
     if options.verbose:
         print("Begin tiles details calc")
-    conf, tile_details = worker_tile_details(input_file, output_folder, options)
+    conf, tile_details = worker_tile_details(
+        input_file, output_folder, options)
 
     if options.verbose:
         print("Tiles details calc complete.")
@@ -4590,9 +4627,11 @@ def single_threaded_tiling(
                 overview_progress_bar.start()
 
     for base_tz in range(conf.tmaxz, conf.tminz, -1):
-        base_tile_groups = group_overview_base_tiles(base_tz, output_folder, conf)
+        base_tile_groups = group_overview_base_tiles(
+            base_tz, output_folder, conf)
         for base_tiles in base_tile_groups:
-            create_overview_tile(base_tz, base_tiles, output_folder, conf, options)
+            create_overview_tile(base_tz, base_tiles,
+                                 output_folder, conf, options)
             if not options.verbose and not options.quiet:
                 overview_progress_bar.log_progress()
 
@@ -4607,7 +4646,8 @@ def multi_threaded_tiling(
     if options.verbose:
         print("Begin tiles details calc")
 
-    conf, tile_details = worker_tile_details(input_file, output_folder, options)
+    conf, tile_details = worker_tile_details(
+        input_file, output_folder, options)
 
     if options.verbose:
         print("Tiles details calc complete.")
@@ -4635,7 +4675,8 @@ def multi_threaded_tiling(
                 overview_progress_bar.start()
 
     for base_tz in range(conf.tmaxz, conf.tminz, -1):
-        base_tile_groups = group_overview_base_tiles(base_tz, output_folder, conf)
+        base_tile_groups = group_overview_base_tiles(
+            base_tz, output_folder, conf)
         chunksize = max(1, min(128, len(base_tile_groups) // nb_processes))
         for _ in pool.imap_unordered(
             partial(
