@@ -32,7 +32,7 @@ const { updateTools } = require("../API/updateTools");
 
 const { websocket } = require("../API/websocket");
 
-const WebSocket = require('isomorphic-ws');
+const WebSocket = require("isomorphic-ws");
 
 const chalk = require("chalk");
 const webpack = require("webpack");
@@ -49,6 +49,8 @@ const openBrowser = require("react-dev-utils/openBrowser");
 const paths = require("../configuration/paths");
 const configFactory = require("../configuration/webpack.config");
 const createDevServerConfig = require("../configuration/webpackDevServer.config");
+
+const middleware = require("./middleware").middleware;
 
 const isDevEnv = process.env.NODE_ENV === "development";
 
@@ -519,6 +521,7 @@ setups.getBackendSetups(function (setups) {
   app.use(
     "/Missions",
     ensureUser(),
+    middleware.missions(),
     express.static(path.join(rootDir, "/Missions"))
   );
 

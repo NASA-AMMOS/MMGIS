@@ -44,9 +44,9 @@ export const captureVector = (layerObj, options, cb) => {
 
     if (typeof layerObj.time != 'undefined') {
         layerUrl = layerObj.url
-            .replace('{starttime}', startTime)
-            .replace('{endtime}', endTime)
-            .replace('{time}', endTime)
+            .replace(/{starttime}/g, startTime)
+            .replace(/{endtime}/g, endTime)
+            .replace(/{time}/g, endTime)
     }
     if (!F_.isUrlAbsolute(layerUrl)) layerUrl = L_.missionPath + layerUrl
 

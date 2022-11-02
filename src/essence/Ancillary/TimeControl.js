@@ -179,7 +179,6 @@ var TimeControl = {
             if (layer.type == 'tile') {
                 TimeControl.setLayerWmsParams(layer)
             }
-
         }
         return true
     },
@@ -213,10 +212,11 @@ var TimeControl = {
         }
         var layerTimeFormat = d3.utcFormat(layer.time.format)
         layer.time.current = TimeControl.currentTime // keeps track of when layer was refreshed
-
+        console.log(layer)
         if (layer.type == 'tile') {
-            if (layer.time && layer.time.enabled == true)
+            if (layer.time && layer.time.enabled == true) {
                 TimeControl.setLayerWmsParams(layer)
+            }
 
             if (L_.toggledArray[layer.name] || evenIfOff) {
                 L_.toggleLayer(layer)
@@ -228,11 +228,11 @@ var TimeControl = {
                 var originalUrl = layer.url
                 layer.url = layer.url
                     .replace(
-                        '{starttime}',
+                        /{starttime}/g,
                         layerTimeFormat(Date.parse(layer.time.start))
                     )
                     .replace(
-                        '{endtime}',
+                        /{endtime}/g,
                         layerTimeFormat(Date.parse(layer.time.end))
                     )
             }
@@ -277,7 +277,6 @@ var TimeControl = {
                     layer.time.end
                 )
                 updatedLayers.push(layer.name)
-
                 if (layer.type == 'tile') {
                     TimeControl.setLayerWmsParams(layer)
                 }

@@ -15,6 +15,17 @@ var colorFilterExtension = {
     intialize: function (url, options) {
         L.TileLayer.prototype.initialize.call(this, url, options)
     },
+    getTileUrl: function (coords) {
+        let url = L.TileLayer.prototype.getTileUrl.call(this, coords)
+
+        url = url
+            .replace(/{time}/g, this.options.time)
+            .replace(/{starttime}/g, this.options.starttime)
+            .replace(/{endtime}/g, this.options.endtime)
+
+        if (this.options.time) url += `?time=${this.options.endtime}`
+        return url
+    },
     colorFilter: function () {
         let VALIDFILTERS = [
             'blur:px',
@@ -172,7 +183,7 @@ var wmsExtension = {
             ).join(','),
             url = L.TileLayer.prototype.getTileUrl.call(this, coords)
 
-        const wmsParamsUpdate = {};
+        const wmsParamsUpdate = {}
         for (var key in this.wmsParams) {
             // If the WMS parameter contains {time}, {starttime}, and/or {endtime},
             // fill in the correct time values
@@ -242,5 +253,7 @@ L.tileLayer.colorFilter = function (url, options) {
 
         return new L.TileLayer.WMSColorFilter(urlBaseString, wmsOptions)
     }
+
+    url = url.replace(/{t}/g, '_time_')
     return new L.TileLayer.ColorFilter(url, options)
 }
