@@ -4,6 +4,7 @@ import * as moment from 'moment'
 import $ from 'jquery'
 import L_ from '../Basics/Layers_/Layers_'
 import Map_ from '../Basics/Map_/Map_'
+import TimeUI from './TimeUI'
 
 import './TimeControl.css'
 
@@ -23,6 +24,7 @@ var TimeControl = {
     relativeEndTime: '00:00:00',
     globalTimeFormat: null,
     _updateLockedForAcceptingInput: false,
+    timeUI: null,
     init: function () {
         if (L_.configData.time && L_.configData.time.enabled === true) {
             TimeControl.enabled = true
@@ -58,11 +60,14 @@ var TimeControl = {
                 `<input id='endRelativeTimeInput' value='${this.relativeEndTime}'></input>`,
             ].join('\n');
 
+        TimeControl.timeUI = TimeUI.init()
+
         d3.select('body')
             .append('div')
             .attr('id', 'timeUI')
-            .attr('class', 'center aligned ui padded grid')
-            .html(markup)
+            .html(TimeUI.getElement())
+
+        TimeUI.attachEvents()
 
         d3.select('#offsetTimeInput').on('change', timeInputChange)
         d3.select('#startTimeInput').on('change', timeInputChange)
@@ -86,12 +91,12 @@ var TimeControl = {
         d3.select('#startRelativeTimeInput').on('change', timeInputChange)
         d3.select('#endRelativeTimeInput').on('change', timeInputChange)
 
-        updateTime()
+        //updateTime()
         if (L_.configData.time.visible == false) {
             TimeControl.toggleTimeUI(false)
         }
 
-        initLayerDataTimes()
+        //initLayerDataTimes()
     },
     fina: function () {
         initLayerTimes()
