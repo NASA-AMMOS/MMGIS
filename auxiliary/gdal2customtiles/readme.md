@@ -63,5 +63,5 @@ _Notes:_
 **Example:**
 
 ```
-python gdal2tiles_3.5.2.py --dem input.tif output_dir --srcnodata=-9999 -r antialias --tilesize=128
+python gdal2tiles_3.5.2.py --dem input.tif output_dir --srcnodata=-9999 -r near-composite --tilesize=128
 ```
