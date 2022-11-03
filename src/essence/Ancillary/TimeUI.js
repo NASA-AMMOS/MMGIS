@@ -8,11 +8,9 @@ import $ from 'jquery'
 import F_ from '../Basics/Formulae_/Formulae_'
 
 import { TempusDominus, extend, Namespace } from '@eonasdan/tempus-dominus'
-import customDateFormat from '@eonasdan/tempus-dominus/dist/plugins/customDateFormat'
 import '@eonasdan/tempus-dominus/dist/css/tempus-dominus.css'
 
 import './TimeUI.css'
-extend(customDateFormat)
 
 const MS = {
     year: 31557600000,
@@ -28,32 +26,29 @@ const TimeUI = {
     endTempus: null,
     _startTimestamp: null,
     _endTimestamp: null,
+    now: false,
     init: function () {},
     getElement: function () {
         // prettier-ignore
         return [
             `<div id="mmgisTimeUI">`,
                 `<div id="mmgisTimeUIMain">`,
-                    `<div class="mmgisTimeUIInput">`,
+                    `<div class="mmgisTimeUIInput" id="mmgisTimeUIStartWrapper">`,
+                        `<span>Past Time</span>`,
                         `<input id="mmgisTimeUIStart"/>`,
                     `</div>`,
                     `<div id="mmgisTimeUITimeline">`,
                     `</div>`,
-                    `<div class="mmgisTimeUIInput">`,
+                    `<div class="mmgisTimeUIInput" id="mmgisTimeUIEndWrapper">`,
+                        `<span>Present Time</span>`,
                         `<input id="mmgisTimeUIEnd"/>`,
                     `</div>`,
                 `</div>`,
-                `<div id="mmgisTimeUIActions">`,
-                    `<div id="mmgisTimeUINow">`,
-                        `<i class='mdi mdi-clock-end mdi-18px'></i>`,
+                `<div id="mmgisTimeUIActionsRight">`,
+                    `<div id="mmgisTimeUINow" class="mmgisTimeUIButton">`,
+                        `<i class='mdi mdi-clock-end mdi-24px'></i>`,
                     `</div>`,
-                    `<div id="mmgisTimeUIPlay">`,
-                        `<i class='mdi mdi-play mdi-18px'></i>`,
-                    `</div>`,
-                    `<div id="mmgisTimeUIStep">`,
-                        `<i class='mdi mdi-play mdi-18px'></i>`,
-                    `</div>`,
-                    `<div id="mmgisTimeUIHelp">`,
+                    `<div id="mmgisTimeUIHelp" class="mmgisTimeUIButton">`,
                     `</div>`,
                 `</div>`,
             `</div>`
@@ -147,6 +142,20 @@ const TimeUI = {
             })
         })
 
+        // Disable Now when picking so that date restrictions don't keep applying and hiding calendar
+        TimeUI.startTempus.subscribe(Namespace.events.show, (e) => {
+            if (TimeUI.now) {
+                TimeUI.now = false
+                TimeUI.reNow = true
+            }
+        })
+        TimeUI.startTempus.subscribe(Namespace.events.hide, (e) => {
+            if (TimeUI.reNow) {
+                TimeUI.now = true
+                TimeUI.reNow = false
+            }
+        })
+
         // Drag timeline to shift time range
         /*
         const timelineElm = $('#mmgisTimeUITimeline')
@@ -158,6 +167,33 @@ const TimeUI = {
             timelineElm.on('mouseup', (eUp) => {})
         })
         */
+
+        $('#mmgisTimeUINow').on('click', () => {
+            if (!TimeUI.now) {
+                $('#mmgisTimeUIEnd').css('pointer-events', 'none')
+                $('#mmgisTimeUIEndWrapper').css('cursor', 'not-allowed')
+                $('#mmgisTimeUINow')
+                    .css('background', 'var(--color-c2)')
+                    .css('color', 'white')
+                TimeUI.now = true
+            } else {
+                $('#mmgisTimeUIEnd').css('pointer-events', 'inherit')
+                $('#mmgisTimeUIEndWrapper').css('cursor', 'inherit')
+                $('#mmgisTimeUINow')
+                    .css('background', 'unset')
+                    .css('color', 'var(--color-a4)')
+                TimeUI.now = false
+            }
+        })
+        $('#mmgisTimeUINow').trigger('click')
+
+        TimeUI.loopTime = setInterval(TimeUI._setCurrentTime, 1000)
+    },
+    _setCurrentTime() {
+        if (TimeUI.now === true) {
+            const parsedNow = TimeUI.endTempus.dates.parseInput(new Date())
+            TimeUI.endTempus.dates.setValue(parsedNow)
+        }
     },
     setStartTime(ISOString) {
         const timestamp = Date.parse(ISOString)
@@ -187,9 +223,9 @@ const TimeUI = {
             unit = 'month'
         } else if (dif / MS.day > 2) {
             unit = 'day'
-        } else if (dif / MS.hour > 2) {
+        } else if (dif / MS.hour > 1) {
             unit = 'hour'
-        } else if (dif / MS.minute > 2) {
+        } else if (dif / MS.minute > 1) {
             unit = 'minute'
         } else unit = 'second'
 
