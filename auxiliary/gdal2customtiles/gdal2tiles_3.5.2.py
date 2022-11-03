@@ -151,6 +151,7 @@ __version__ = "$Id$"
 resampling_list = (
     "average",
     "near",
+    "near-composite",
     "bilinear",
     "cubic",
     "cubicspline",
@@ -997,6 +998,33 @@ def scale_query_to_tile(dsquery, dstile, options, tilefilename=""):
                 params["quality"] = options.webp_quality
         im1.save(tilefilename, options.tiledriver, **params)
 
+    elif options.resampling == "near-composite" and numpy_available:
+
+        if tilefilename.startswith("/vsi"):
+            raise Exception(
+                "Outputting to /vsi file systems with near-composite mode is not supported"
+            )
+
+        # Scaling by PIL (Python Imaging Library) - nearest
+        array = numpy.zeros((querysize, querysize, tilebands), numpy.uint8)
+        for i in range(tilebands):
+            array[:, :, i] = gdalarray.BandReadAsArray(
+                dsquery.GetRasterBand(i + 1), 0, 0, querysize, querysize
+            )
+        im = Image.fromarray(array, "RGBA")  # Always four bands
+        im1 = im.resize((tile_size, tile_size), Image.NEAREST)
+        if os.path.exists(tilefilename):
+            im0 = Image.open(tilefilename)
+            im1 = Image.composite(im1, im0, im1)
+
+        params = {}
+        if options.tiledriver == "WEBP":
+            if options.webp_lossless:
+                params["lossless"] = True
+            else:
+                params["quality"] = options.webp_quality
+        im1.save(tilefilename, options.tiledriver, **params)
+
     else:
 
         if options.resampling == "near":
@@ -1549,7 +1577,7 @@ def create_base_tile(tile_job_info: "TileJobInfo", tile_detail: "TileDetail") ->
 
     del data
 
-    if options.resampling != "antialias":
+    if options.resampling != "antialias" and options.resampling != "near-composite":
         # Write a copy of tile to png/jpg
         out_drv.CreateCopy(
             tilefilename, dstile, strict=0, options=_get_creation_options(options)
@@ -1700,7 +1728,7 @@ def create_overview_tile(
 
     scale_query_to_tile(dsquery, dstile, options, tilefilename=tilefilename)
     # Write a copy of tile to png/jpg
-    if options.resampling != "antialias":
+    if options.resampling != "antialias" and options.resampling != "near-composite":
         # Write a copy of tile to png/jpg
         out_driver.CreateCopy(
             tilefilename, dstile, strict=0, options=_get_creation_options(options)
@@ -2093,6 +2121,12 @@ def options_post_processing(
     if options.resampling == "antialias" and not numpy_available:
         exit_with_error(
             "'antialias' resampling algorithm is not available.",
+            "Install PIL (Python Imaging Library) and numpy.",
+        )
+
+    if options.resampling == "near-composite" and not numpy_available:
+        exit_with_error(
+            "'near-composite' resampling algorithm is not available.",
             "Install PIL (Python Imaging Library) and numpy.",
         )
 
@@ -2633,7 +2667,7 @@ class GDAL2Tiles(object):
                 # one, generate an oversample temporary VRT file, and tile from
                 # it
                 oversample_factor = 1 << (self.tmaxz - self.nativezoom)
-                if self.options.resampling in ("average", "antialias"):
+                if self.options.resampling in ("average", "antialias", "near-composite"):
                     resampleAlg = "average"
                 elif self.options.resampling in (
                     "near",
