@@ -32,7 +32,7 @@ const { updateTools } = require("../API/updateTools");
 
 const { websocket } = require("../API/websocket");
 
-const WebSocket = require('isomorphic-ws');
+const WebSocket = require("isomorphic-ws");
 
 const chalk = require("chalk");
 const webpack = require("webpack");

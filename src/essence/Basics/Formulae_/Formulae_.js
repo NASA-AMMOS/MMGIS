@@ -660,7 +660,7 @@ var Formulae_ = {
         return 'zero'
     },
     isUrlAbsolute: function (url) {
-        var r = new RegExp('^(?:[a-z]+:)?//', 'i')
+        const r = new RegExp('^(?:[a-z]+:)?//', 'i')
         return r.test(url)
     },
     populateUrl: function (url, xyz, invertY) {

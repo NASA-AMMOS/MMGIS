@@ -203,6 +203,8 @@ let DataShaders = {
                                 b: data[i + 2],
                                 a: data[i + 3],
                             })
+                            if (noDataValues.includes(value)) continue
+
                             const valR = Math.round(value)
                             if (!histo[valR]) histo[valR] = 1
                             else histo[valR]++
@@ -217,6 +219,24 @@ let DataShaders = {
                     }
                 })
                 L_.layersGroup[name].histogram = histo
+
+                if (noDataValues) {
+                    if (noDataValues[0] != null)
+                        L_.layersGroup[name].setUniform(
+                            'nodatavalue0',
+                            noDataValues[0]
+                        )
+                    if (noDataValues[1] != null)
+                        L_.layersGroup[name].setUniform(
+                            'nodatavalue1',
+                            noDataValues[1]
+                        )
+                    if (noDataValues[2] != null)
+                        L_.layersGroup[name].setUniform(
+                            'nodatavalue2',
+                            noDataValues[2]
+                        )
+                }
 
                 DataShaders.colorize.setMinMaxAnimated(
                     name,
@@ -663,7 +683,10 @@ let DataShaders = {
                 }).join('\n'),
 
                 // And compose the labels on top of everything
-                'gl_FragColor = colour;',
+                `if (pxValue == nodatavalue0) { colour = vec4(0.0, 0.0, 0.0, 0.0); }`,
+                `else if (pxValue == nodatavalue1) { colour = vec4(0.0, 0.0, 0.0, 0.0); }`,
+                `else if (pxValue == nodatavalue2) { colour = vec4(0.0, 0.0, 0.0, 0.0); }`,
+                `gl_FragColor = colour;`,
             '}'
         ].join('\n'),
         settings: [
@@ -678,6 +701,18 @@ let DataShaders = {
             {
                 parameter: 'maxvalue',
                 value: 1,
+            },
+            {
+                parameter: 'nodatavalue0',
+                value: -4294967296,
+            },
+            {
+                parameter: 'nodatavalue1',
+                value: -4294967296,
+            },
+            {
+                parameter: 'nodatavalue2',
+                value: -4294967296,
             },
             {
                 parameter: 'ramp0',
