@@ -1,12 +1,12 @@
 #timeUI {
     background: rgba(29, 31, 32, 0.65);
     height: 40px;
-    width: calc(100vw - 40px);
+    width: 100%;
     position: absolute;
     bottom: -40px;
-    left: 40px;
+    left: 0px;
     margin: 0;
-    z-index: 20;
+    z-index: 777;
     font-size: 14px;
     opacity: 0;
     pointer-events: none;

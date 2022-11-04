@@ -5,9 +5,10 @@
   Modal.remove() programmatically removes it.
 */
 import $ from 'jquery'
+import * as moment from 'moment'
 import F_ from '../Basics/Formulae_/Formulae_'
 
-import { TempusDominus, extend, Namespace } from '@eonasdan/tempus-dominus'
+import { TempusDominus, Namespace } from '@eonasdan/tempus-dominus'
 import '@eonasdan/tempus-dominus/dist/css/tempus-dominus.css'
 
 import './TimeUI.css'
@@ -24,6 +25,7 @@ const MS = {
 const TimeUI = {
     startTempus: null,
     endTempus: null,
+    timeSlider: null,
     _startTimestamp: null,
     _endTimestamp: null,
     now: false,
@@ -38,6 +40,8 @@ const TimeUI = {
                         `<input id="mmgisTimeUIStart"/>`,
                     `</div>`,
                     `<div id="mmgisTimeUITimeline">`,
+                        `<div id="mmgisTimeUITimelineInner"></div>`,
+                        `<div id='mmgisTimeUITimelineSlider' class='svelteSlider'></div>`,
                     `</div>`,
                     `<div class="mmgisTimeUIInput" id="mmgisTimeUIEndWrapper">`,
                         `<span>Present Time</span>`,
@@ -54,7 +58,8 @@ const TimeUI = {
             `</div>`
         ].join('\n')
     },
-    attachEvents: function () {
+    attachEvents: function (timeChange) {
+        TimeUI.timeChange = timeChange
         const options = {
             display: {
                 viewMode: 'months',
@@ -98,6 +103,7 @@ const TimeUI = {
             ...options,
             ...{ useCurrent: false },
         })
+
         const endElm = document.getElementById('mmgisTimeUIEnd')
         TimeUI.endTempus = new TempusDominus(endElm, options)
 
@@ -156,17 +162,12 @@ const TimeUI = {
             }
         })
 
-        // Drag timeline to shift time range
-        /*
-        const timelineElm = $('#mmgisTimeUITimeline')
-        timelineElm.on('mousedown', (eDown) => {
-            TimeUI._dragXStart = eDown.clientX - $(this).offset().left
-            timelineElm.on('mousemove', (eMove) => {
-
-            })
-            timelineElm.on('mouseup', (eUp) => {})
-        })
-        */
+        // Start 1 month ago
+        const startDate = new Date()
+        startDate.setUTCMonth(startDate.getUTCMonth() - 1)
+        const parsedStart = TimeUI.startTempus.dates.parseInput(startDate)
+        TimeUI.startTempus.dates.setValue(parsedStart)
+        TimeUI._startTimestamp = Date.parse(startDate)
 
         $('#mmgisTimeUINow').on('click', () => {
             if (!TimeUI.now) {
@@ -188,6 +189,32 @@ const TimeUI = {
         $('#mmgisTimeUINow').trigger('click')
 
         TimeUI.loopTime = setInterval(TimeUI._setCurrentTime, 1000)
+
+        setTimeout(() => {
+            TimeUI.timeSlider = new RangeSliderPips({
+                target: document.querySelector('#mmgisTimeUITimelineSlider'),
+                props: {
+                    values: [0, 100],
+                    pips: false,
+                    min: TimeUI._startTimestamp,
+                    max: TimeUI._endTimestamp,
+                    range: true,
+                    pushy: false,
+                    float: true,
+                    springValues: {
+                        stiffness: 0.15,
+                        damping: 0.5,
+                    },
+                    handleFormatter: (v) => {
+                        return moment(v).format('MM/DD/yyyy, HH:mm:ss A')
+                    },
+                },
+            })
+
+            TimeUI.timeSlider.$on('stop', (e) => {
+                console.log(e)
+            })
+        }, 2000)
     },
     _setCurrentTime() {
         if (TimeUI.now === true) {
@@ -199,14 +226,44 @@ const TimeUI = {
         const timestamp = Date.parse(ISOString)
         TimeUI._startTimestamp = timestamp
         TimeUI._drawTimeLine()
+
+        if (
+            typeof TimeUI.timeChange === 'function' &&
+            TimeUI._startTimestamp &&
+            TimeUI._endTimestamp
+        )
+            TimeUI.timeChange(
+                new Date(TimeUI._startTimestamp).toISOString(),
+                new Date(TimeUI._endTimestamp).toISOString()
+            )
+        if (TimeUI.timeSlider)
+            TimeUI.timeSlider.$set({
+                min: TimeUI._startTimestamp,
+                max: TimeUI._endTimestamp,
+            })
     },
     setEndTime(ISOString) {
         const timestamp = Date.parse(ISOString)
         TimeUI._endTimestamp = timestamp
         TimeUI._drawTimeLine()
+
+        if (
+            typeof TimeUI.timeChange === 'function' &&
+            TimeUI._startTimestamp &&
+            TimeUI._endTimestamp
+        )
+            TimeUI.timeChange(
+                new Date(TimeUI._startTimestamp).toISOString(),
+                new Date(TimeUI._endTimestamp).toISOString()
+            )
+        if (TimeUI.timeSlider)
+            TimeUI.timeSlider.$set({
+                min: TimeUI._startTimestamp,
+                max: TimeUI._endTimestamp,
+            })
     },
     _drawTimeLine() {
-        const timelineElm = $('#mmgisTimeUITimeline')
+        const timelineElm = $('#mmgisTimeUITimelineInner')
         timelineElm.empty()
 
         const s = TimeUI._startTimestamp

@@ -62,15 +62,15 @@ var TimeControl = {
 
         TimeControl.timeUI = TimeUI.init()
 
-        d3.select('body')
+        d3.select('#splitscreens')
             .append('div')
             .attr('id', 'timeUI')
             .html(TimeUI.getElement())
 
-        TimeUI.attachEvents()
+        TimeUI.attachEvents(timeInputChange)
 
-        d3.select('#offsetTimeInput').on('change', timeInputChange)
-        d3.select('#startTimeInput').on('change', timeInputChange)
+        //d3.select('#offsetTimeInput').on('change', timeInputChange)
+        //d3.select('#startTimeInput').on('change', timeInputChange)
         /*
         d3.select('#startTimeInput').on('focus', () => {
             TimeControl._updateLockedForAcceptingInput = true
@@ -79,7 +79,7 @@ var TimeControl = {
             TimeControl._updateLockedForAcceptingInput = false
         })
         */
-        d3.select('#endTimeInput').on('change', timeInputChange)
+        //d3.select('#endTimeInput').on('change', timeInputChange)
         /*
         d3.select('#endTimeInput').on('focus', () => {
             TimeControl._updateLockedForAcceptingInput = true
@@ -88,8 +88,8 @@ var TimeControl = {
             TimeControl._updateLockedForAcceptingInput = false
         })
         */
-        d3.select('#startRelativeTimeInput').on('change', timeInputChange)
-        d3.select('#endRelativeTimeInput').on('change', timeInputChange)
+        //d3.select('#startRelativeTimeInput').on('change', timeInputChange)
+        //d3.select('#endRelativeTimeInput').on('change', timeInputChange)
 
         //updateTime()
         if (L_.configData.time.visible == false) {
@@ -422,18 +422,9 @@ function updateTime() {
     setTimeout(updateTime, 100)
 }
 
-function timeInputChange() {
-    // Validate time format
-    var timeInput = d3.select(this).property('value')
-
-    if (relativeTimeFormat.test(timeInput)) {
-        d3.select(this).style('border', '1px solid Transparent')
-    } else {
-        d3.select(this).style('border', '1px solid var(--color-red)')
-    }
-
-    TimeControl.startTime = d3.select('#startTimeInput').property('value')
-    TimeControl.endTime = d3.select('#endTimeInput').property('value')
+function timeInputChange(startTime, endTime) {
+    TimeControl.startTime = startTime
+    TimeControl.endTime = endTime
 
     // Update layer times and reload
     TimeControl.updateLayersTime()
