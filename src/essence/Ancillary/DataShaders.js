@@ -170,7 +170,7 @@ let DataShaders = {
                     return
                 }
 
-                if (e.type === 'load') {
+                if (e.type === 'tileload') {
                     DataShaders.colorize.sourceTargets[name] = e.sourceTarget
                 }
                 if (DataShaders.colorize.sourceTargets[name] == null) return
@@ -248,7 +248,7 @@ let DataShaders = {
 
             Map_.map.on('moveend', getMinMax)
             Map_.map.on('zoomend', getMinMax)
-            L_.layersGroup[name].on('load', getMinMax)
+            L_.layersGroup[name].on('tileload', getMinMax)
         },
         lastMinMax: { min: null, max: null },
         intervalMinMax: null,
