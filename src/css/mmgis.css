@@ -948,3 +948,30 @@ mark {
     border-radius: 2px;
     padding: 0px 1px;
 }
+
+/* Tempus Dominus Time Picker */
+.tempus-dominus-widget.dark {
+    background: var(--color-a-5) !important;
+    padding: 12px 8px 8px 8px !important;
+    border-radius: 0px;
+    border-bottom: 2px solid black;
+}
+.tempus-dominus-widget.dark
+    .date-container-decades
+    div:not(.no-highlight).active,
+.tempus-dominus-widget.dark .date-container-years div:not(.no-highlight).active,
+.tempus-dominus-widget.dark
+    .date-container-months
+    div:not(.no-highlight).active,
+.tempus-dominus-widget.dark .date-container-days div:not(.no-highlight).active,
+.tempus-dominus-widget.dark .time-container-clock div:not(.no-highlight).active,
+.tempus-dominus-widget.dark .time-container-hour div:not(.no-highlight).active,
+.tempus-dominus-widget.dark
+    .time-container-minute
+    div:not(.no-highlight).active,
+.tempus-dominus-widget.dark
+    .time-container-second
+    div:not(.no-highlight).active {
+    background: var(--color-c2) !important;
+    border-radius: 0px;
+}

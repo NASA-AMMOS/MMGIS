@@ -60,14 +60,7 @@ var TimeControl = {
                 `<input id='endRelativeTimeInput' value='${this.relativeEndTime}'></input>`,
             ].join('\n');
 
-        TimeControl.timeUI = TimeUI.init()
-
-        d3.select('#splitscreens')
-            .append('div')
-            .attr('id', 'timeUI')
-            .html(TimeUI.getElement())
-
-        TimeUI.attachEvents(timeInputChange)
+        TimeControl.timeUI = TimeUI.init(timeInputChange)
 
         //d3.select('#offsetTimeInput').on('change', timeInputChange)
         //d3.select('#startTimeInput').on('change', timeInputChange)
