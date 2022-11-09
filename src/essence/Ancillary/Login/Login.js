@@ -191,6 +191,9 @@ var Login = {
                                 MMGISUser.username = ''
                                 MMGISUser.token = ''
 
+                                document.cookie =
+                                    'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+
                                 if (window.mmgisglobal.AUTH === 'local') {
                                     if (
                                         window.mmgisglobal.NODE_ENV ===
@@ -538,12 +541,7 @@ function loginSuccess(data, ignoreError) {
             })
             .html(Login.username[0])
     } else {
-        document.cookie =
-            'MMGISUser=' +
-            JSON.stringify({
-                username: '',
-                token: '',
-            })
+        document.cookie = 'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'
 
         if (window.mmgisglobal.AUTH === 'local') {
             if (window.mmgisglobal.NODE_ENV === 'development')
