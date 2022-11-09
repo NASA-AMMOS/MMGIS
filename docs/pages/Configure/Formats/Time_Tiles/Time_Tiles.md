@@ -20,7 +20,7 @@ Examples:
 - /Missions/MSL/Layers/ExampleTimeTiles/2022-10-07T00_00_00/16/57776/31916.png
 - /Missions/MSL/Layers/ExampleTimeTiles/2022-11-07T00_00_00/16/57776/31916.png
 
-Additional `{t}` may be appended with a name. The `time` is still accessed by splitting on `Z-` and receiving the first element.
+Additionally `{t}` may be appended with a name. The `time` is accessed by splitting on the new delimiter `Z-` and taking the first element.
 
 Example:
 
