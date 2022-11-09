@@ -30,9 +30,17 @@ Example:
 
 ## Configuration
 
-For a tile layer, simply:
+For a tile layer in the Layers Tab, simply:
 
 1. Include the proper `{t}` parameter in its URL (see above).
 2. Set `Time Enabled` to `True`.
 
 Note: The positioning of `{t}` does offer some flexibility. Be aware though that MMGIS will scan its full directory for other times to compare too. `../{z}/{x}/{y}/{t}.png` while valid, has not been tested and may be expensive. MMGIS caches active time tile directories for 30 minutes.
+
+In the Time Tab:
+
+- `Enable` and make `Visible` the User Interface.
+
+## Using
+
+In MMGIS, expand the TimeUI bar by clicking the clock icon at the bottom right of the screen.
