@@ -210,7 +210,7 @@ var TimeControl = {
         }
         var layerTimeFormat = d3.utcFormat(layer.time.format)
         layer.time.current = TimeControl.currentTime // keeps track of when layer was refreshed
-        console.log(layer)
+
         if (layer.type == 'tile') {
             if (layer.time && layer.time.enabled == true) {
                 TimeControl.setLayerWmsParams(layer)

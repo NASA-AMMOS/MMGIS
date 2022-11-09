@@ -169,9 +169,25 @@
     justify-content: space-between;
 }
 .mmgisTimeUIButton {
-    width: 40px;
-    height: 40px;
-    line-height: 40px;
+    border-radius: 20px;
+    margin: 5px;
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
     text-align: center;
     cursor: pointer;
+    transition: background 0.2s ease-in-out;
+}
+.mmgisTimeUIButton:hover {
+    background: var(--color-a1);
+}
+
+#mmgisTimeUIIntervalCycler {
+    font-size: 12px;
+    color: var(--color-a5);
+    user-select: none;
+    transition: color 0.2s ease-in-out;
+}
+#mmgisTimeUIIntervalCycler:hover {
+    color: var(--color-a6);
 }
