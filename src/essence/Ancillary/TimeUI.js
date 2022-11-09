@@ -8,6 +8,8 @@ import $ from 'jquery'
 import * as d3 from 'd3'
 import * as moment from 'moment'
 import F_ from '../Basics/Formulae_/Formulae_'
+import L_ from '../Basics/Layers_/Layers_'
+import calls from '../../pre/calls'
 import tippy from 'tippy.js'
 
 import { TempusDominus, Namespace } from '@eonasdan/tempus-dominus'
@@ -61,7 +63,6 @@ const TimeUI = {
     ],
     init: function (timeChange) {
         TimeUI.timeChange = timeChange
-
         // prettier-ignore
         const markup = [
             `<div id="mmgisTimeUI">`,
@@ -71,6 +72,7 @@ const TimeUI = {
                         `<input id="mmgisTimeUIStart"/>`,
                     `</div>`,
                     `<div id="mmgisTimeUITimeline">`,
+                        `<div id="mmgisTimeUITimelineHisto"></div>`,
                         `<div id="mmgisTimeUITimelineInner"></div>`,
                         `<div id='mmgisTimeUITimelineSlider' class='svelteSlider'></div>`,
                     `</div>`,
@@ -83,12 +85,13 @@ const TimeUI = {
                     `<div id="mmgisTimeUIPlay" class="mmgisTimeUIButton">`,
                         `<i class='mdi mdi-play mdi-24px'></i>`,
                     `</div>`,
+                    `<div class="vertDiv"></div>`,
                     `<div id="mmgisTimeUIInterval" class="mmgisTimeUIButton">`,
                         `<div id='mmgisTimeUIIntervalCycler'>${TimeUI.intervalKeys[TimeUI.intervalIndex]}</div>`,
                     `</div>`,
                 `</div>`,
                 `<div id="mmgisTimeUICurrentWrapper">`,
-                    `<div>Current Time</div>`,
+                    `<div>Active Time</div>`,
                     `<div id="mmgisTimeUICurrentTime"></div>`,
                 `</div>`,
             `</div>`
@@ -309,6 +312,93 @@ const TimeUI = {
                 moment.utc(TimeUI.getCurrentTimestamp(true)).format(FORMAT)
             )
             TimeUI.change()
+        })
+
+        if ($('#toggleTimeUI').hasClass('active')) TimeUI._makeHistogram()
+    },
+    _makeHistogram() {
+        const startTimestamp = TimeUI._startTimestamp
+        const endTimestamp = TimeUI.getCurrentTimestamp()
+
+        // Don't remake if nothing changes
+        if (
+            TimeUI.lastHistoStartTimestamp === startTimestamp &&
+            TimeUI.lastHistoEndTimestamp === endTimestamp
+        )
+            return
+        else {
+            TimeUI.lastHistoStartTimestamp = startTimestamp
+            TimeUI.lastHistoEndTimestamp = endTimestamp
+        }
+
+        // Find all on, time-enabled, tile layers
+        const sparklineLayers = []
+        Object.keys(L_.layersNamed).forEach((name) => {
+            const l = L_.layersNamed[name]
+            if (
+                l &&
+                l.type === 'tile' &&
+                l.time &&
+                l.time.enabled === true &&
+                L_.toggledArray[name] === true
+            ) {
+                let layerUrl = l.url
+                if (!F_.isUrlAbsolute(layerUrl)) {
+                    layerUrl = L_.missionPath + layerUrl
+                    if (layerUrl.indexOf('{t}') > -1)
+                        sparklineLayers.push({
+                            name: name,
+                            path: `/${layerUrl}`.replace(/{t}/g, '_time_'),
+                        })
+                }
+            }
+        })
+
+        const starttimeISO = new Date(TimeUI._startTimestamp).toISOString()
+        const endtimeISO = new Date(endTimestamp).toISOString()
+
+        const NUM_BINS = Math.min(endTimestamp - startTimestamp, 360)
+        const bins = new Array(NUM_BINS).fill(0)
+
+        sparklineLayers.forEach((l) => {
+            calls.api(
+                'query_tileset_times',
+                {
+                    path: l.path,
+                    starttime: starttimeISO,
+                    endtime: endtimeISO,
+                },
+                function (data) {
+                    if (data.body && data.body.times) {
+                        data.body.times.forEach((time) => {
+                            bins[
+                                Math.floor(
+                                    F_.linearScale(
+                                        [startTimestamp, endTimestamp],
+                                        [0, NUM_BINS],
+                                        new Date(time.t).getTime()
+                                    )
+                                )
+                            ]++
+                        })
+
+                        const minmax = F_.getMinMaxOfArray(bins)
+
+                        const histoElm = $('#mmgisTimeUITimelineHisto')
+                        histoElm.empty()
+                        bins.forEach((b) => {
+                            histoElm.append(
+                                `<div style="width:${
+                                    (1 / NUM_BINS) * 100
+                                }%; margin-top:${
+                                    40 - (b / minmax.max) * 40
+                                }px"></div>`
+                            )
+                        })
+                    }
+                },
+                function (e) {}
+            )
         })
     },
     _setCurrentTime(force) {

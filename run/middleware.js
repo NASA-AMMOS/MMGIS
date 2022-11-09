@@ -3,7 +3,7 @@ const path = require("path");
 const rootDir = `${__dirname}/..`;
 
 const dirStore = {};
-const DIR_STORE_MAX_AGE = 10800000; // 3hours
+const DIR_STORE_MAX_AGE = 3600000 / 2; // 1hours / 2
 function getTimePath(prepath, suffixPath, time) {
   let dirs = dirStore[prepath];
   if (dirs) {
@@ -11,7 +11,7 @@ function getTimePath(prepath, suffixPath, time) {
     time = time.replace(/:/g, "_").replace("Z", "");
 
     let closestTimeWithoutGoingOver = dirs.filter(function (v) {
-      return v <= time;
+      return v.split("Z-")[0] <= time;
     });
     if (closestTimeWithoutGoingOver.length > 0)
       closestTimeWithoutGoingOver =
@@ -31,6 +31,7 @@ const middleware = {
     return (req, res, next) => {
       const originalUrl = req.originalUrl.split("?")[0];
       const relUrl = req.url.split("?")[0];
+
       if (req.query.time != null && originalUrl.indexOf("_time_") > -1) {
         const urlSplit = originalUrl.split("_time_");
         const relUrlSplit = relUrl.split("_time_");

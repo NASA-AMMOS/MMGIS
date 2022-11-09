@@ -1629,6 +1629,12 @@ var Formulae_ = {
             if (typeof callback === 'function') callback()
         })
     },
+    getMinMaxOfArray(arrayOfNumbers) {
+        return {
+            min: Math.min(...arrayOfNumbers),
+            max: Math.max(...arrayOfNumbers),
+        }
+    },
     uniqueArray(arr) {
         var uniqueArray = []
         for (var i in arr) {
