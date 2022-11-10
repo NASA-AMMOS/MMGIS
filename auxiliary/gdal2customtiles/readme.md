@@ -59,6 +59,7 @@ _Notes:_
 - `rasters2customtiles_3.5.2.py` and `gdal2tiles_3.5.2.py` support only the `--dem` option (and not `--raster` yet). `-m` no longer works and must be `--dem`. Tested with gdal 3.4.3. Upgraded to support multi-processes. See `python rasters2customtiles_3.5.2.py --help`. Unlike `gda2customtiles.py`, does not seam-match DEM tiles (better for Data Layers and Viewshed Tool, bad for 3D Globe).
 - Adds the resampling algorithm `near-composite` that uses nearest-neighbor and ovarlays the new tile onto the old tile (if any in output directory)
 - Certain resampling methods can corrupt `--dem` results.
+- To support the value 0, all 0 data values get mapped to to the value 2^31 (2147483648) (RGBA=79,0,0,0) and then decoded by the MMGIS reader back to 0. This avoids clashes with other nondata-like values writing to 0,0,0,0 in the outputted pngs.
 
 **Example:**
 

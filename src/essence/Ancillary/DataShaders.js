@@ -4,6 +4,10 @@ import L_ from '../Basics/Layers_/Layers_'
 import Map_ from '../Basics/Map_/Map_'
 import F_ from '../Basics/Formulae_/Formulae_'
 
+// Because 0 is a valid value in many datasets yet still special in images being fully transparent,
+// we're going to encode zero's as 2^31  (2147483648) (79, 0, 0, 0) and have the reader parse it back to 0
+const VALUE_ENCODED_AS_ZERO = 2147483648
+
 // rgbaToGFloat from: https://github.com/ihmeuw/glsl-rgba-to-float
 // License: BSD-3 Clause https://github.com/ihmeuw/glsl-rgba-to-float/blob/master/LICENSE.md
 // prettier-ignore
@@ -195,9 +199,10 @@ let DataShaders = {
                         const data =
                             DataShaders.colorize.sourceTargets[name]
                                 ._fetchedTextures[c][0].pixelPerfect.imgData
+                        let oldValue
 
                         for (let i = 0; i < data.length; i += 4) {
-                            const value = F_.RGBAto32({
+                            let value = F_.RGBAto32({
                                 r: data[i + 0],
                                 g: data[i + 1],
                                 b: data[i + 2],
@@ -205,14 +210,23 @@ let DataShaders = {
                             })
                             if (noDataValues.includes(value)) continue
 
+                            // Because 0 is a valid value in many datasets yet still special in images being fully transparent,
+                            // we're going to encode zero's as 2^31  (2147483648) (79, 0, 0, 0) and have the reader parse it back to 0
+                            if (value === VALUE_ENCODED_AS_ZERO) {
+                                value = 0
+                                oldValue = VALUE_ENCODED_AS_ZERO
+                            } else {
+                                oldValue = null
+                            }
+
                             const valR = Math.round(value)
                             if (!histo[valR]) histo[valR] = 1
                             else histo[valR]++
-                            //if (i < 20) console.log(value)
-                            if (value < min && !noDataValues.includes(value)) {
+
+                            if (value < min) {
                                 min = value
                             }
-                            if (value > max && !noDataValues.includes(value)) {
+                            if (value > max) {
                                 max = value
                             }
                         }
@@ -648,6 +662,8 @@ let DataShaders = {
                 'highp vec4 texelColour = texture2D(uTexture0, vec2(vTextureCoords.s, vTextureCoords.t));',
             
                 'highp float pxValue = rgbaToFloat(texelColour, false);',
+                'highp float pxValueOrig = pxValue;',
+                `if (pxValue == ${VALUE_ENCODED_AS_ZERO}.0) { pxValue = 0.0; }`,
             
                 'vec4 colour = vec4(0.0, 0.0, 0.0, 0.0);',
 
@@ -683,9 +699,9 @@ let DataShaders = {
                 }).join('\n'),
 
                 // And compose the labels on top of everything
-                `if (pxValue == nodatavalue0) { colour = vec4(0.0, 0.0, 0.0, 0.0); }`,
-                `else if (pxValue == nodatavalue1) { colour = vec4(0.0, 0.0, 0.0, 0.0); }`,
-                `else if (pxValue == nodatavalue2) { colour = vec4(0.0, 0.0, 0.0, 0.0); }`,
+                `if (pxValueOrig == nodatavalue0) { colour = vec4(0.0, 0.0, 0.0, 0.0); }`,
+                `else if (pxValueOrig == nodatavalue1) { colour = vec4(0.0, 0.0, 0.0, 0.0); }`,
+                `else if (pxValueOrig == nodatavalue2) { colour = vec4(0.0, 0.0, 0.0, 0.0); }`,
                 `gl_FragColor = colour;`,
             '}'
         ].join('\n'),

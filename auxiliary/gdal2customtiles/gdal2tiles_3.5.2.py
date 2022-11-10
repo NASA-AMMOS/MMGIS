@@ -1506,6 +1506,10 @@ def create_base_tile(tile_job_info: "TileJobInfo", tile_detail: "TileDetail") ->
             data3 = []
             data4 = []
             for f in data:
+                # Because 0 is a valid value in many datasets yet still special in images being fully transparent,
+                # we're going to encode zero's as 2^31  (2147483648) (79, 0, 0, 0) and have the reader parse it back to 0
+                if f == 0:
+                    f = pow(2, 31)
                 f = str(binary(f))
                 data1.append(int(f[:8], 2))
                 data2.append(int(f[8:16], 2))
