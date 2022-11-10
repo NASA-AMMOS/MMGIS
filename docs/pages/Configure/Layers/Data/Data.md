@@ -74,7 +74,7 @@ Data layers need a configured `shader` raw variable to be effective. Supported s
 
 - "colorize": Allows users to apply and configure dynamic color ramps to the data. Uses the current minimum and maximum viewport data values to adjust color ramps into the most relevant range.
   - units: A string to append to user displayed data values.
-  - noDataValues: Values to exclude from minimum and maximum calculations.
+  - noDataValues: Values to exclude from minimum and maximum calculations and renderings. Depending on the versions of the custom gdal2tiles, the true data value `0` is represented in the RGBA dem tilesets as 2^31 (2147483648). Ignore 2147483648 as well if you wish to ignore true 0 data values. Max 3 values.
   - sigfigs: How many significant figures to round user displayed values.
   - ramps: An array of arrays of hex color strings. "transparent" is a special keyword for a fully transparent ramp color.
 - "image": (Default) Simply shows the underlying raw data in an image form. Mainly for testing, it can also be useful for development for internal pass-tile-canvas-instead-of-url layers.
