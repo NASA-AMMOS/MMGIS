@@ -156,24 +156,32 @@ const TimeUI = {
 
         // Don't let end date be before start date
         TimeUI.startTempus.subscribe(Namespace.events.change, (e) => {
-            TimeUI.setStartTime(moment.utc(e.date).toISOString())
+            TimeUI.setStartTime(
+                moment.utc(e.date).toISOString(),
+                TimeUI.startTempus.dontChangeNext
+            )
             TimeUI.endTempus.updateOptions({
                 restrictions: {
                     minDate: e.date,
                 },
             })
             TimeUI._remakeTimeSlider()
+            TimeUI.startTempus.dontChangeNext = false
         })
         // Don't let start date be after end date
         TimeUI.endTempus.subscribe(Namespace.events.change, (e) => {
             if (TimeUI._startTimestamp != null) {
-                TimeUI.setEndTime(moment.utc(e.date).toISOString())
+                TimeUI.setEndTime(
+                    moment.utc(e.date).toISOString(),
+                    TimeUI.endTempus.dontChangeNext
+                )
                 TimeUI.startTempus.updateOptions({
                     restrictions: {
                         maxDate: e.date,
                     },
                 })
                 TimeUI._remakeTimeSlider()
+                TimeUI.endTempus.dontChangeNext = false
             }
         })
 
@@ -305,11 +313,7 @@ const TimeUI = {
             )
         })
         TimeUI.timeSlider.$on('stop', (e) => {
-            TimeUI._timeSliderTimestamp = e.detail.value
-            $('#mmgisTimeUICurrentTime').text(
-                moment.utc(TimeUI.getCurrentTimestamp(true)).format(FORMAT)
-            )
-            TimeUI.change()
+            TimeUI.setCurrentTime(new Date(e.detail.value).toISOString())
         })
 
         if ($('#toggleTimeUI').hasClass('active')) TimeUI._makeHistogram()
@@ -412,12 +416,46 @@ const TimeUI = {
             TimeUI.endTempus.dates.setValue(parsedNow)
         }
     },
-    setStartTime(ISOString) {
+    updateTimes(start, end, current) {
+        let date
+
+        // Start
+        if (start != null) {
+            date = new Date(start)
+            const offsetStartDate = new Date(
+                date.getTime() + date.getTimezoneOffset() * 60000
+            )
+            const parsedStart = TimeUI.startTempus.dates.parseInput(
+                new Date(offsetStartDate)
+            )
+            TimeUI.startTempus.dontChangeNext = true
+            TimeUI.startTempus.dates.setValue(parsedStart)
+        }
+
+        // End
+        if (end != null) {
+            date = new Date(end)
+            const offsetEndDate = new Date(
+                date.getTime() + date.getTimezoneOffset() * 60000
+            )
+            const parsedEnd = TimeUI.endTempus.dates.parseInput(
+                new Date(offsetEndDate)
+            )
+            TimeUI.endTempus.dontChangeNext = true
+            TimeUI.endTempus.dates.setValue(parsedEnd)
+        }
+
+        //
+        if (current != null) TimeUI.setCurrentTime(current, true)
+
+        TimeUI.change()
+    },
+    setStartTime(ISOString, disableChange) {
         const timestamp = Date.parse(ISOString)
         TimeUI._startTimestamp = timestamp
 
         TimeUI._drawTimeLine()
-        TimeUI.change()
+        if (disableChange != true) TimeUI.change()
     },
     removeOffset(timestamp) {
         const date = new Date(timestamp)
@@ -439,7 +477,7 @@ const TimeUI = {
             return TimeUI.removeOffset(currentTimestamp)
         } else return currentTimestamp
     },
-    setEndTime(ISOString) {
+    setEndTime(ISOString, disableChange) {
         const sliderFixedToEnd =
             TimeUI._endTimestamp === TimeUI.getCurrentTimestamp()
         const timestamp = Date.parse(ISOString)
@@ -448,8 +486,16 @@ const TimeUI = {
 
         if (sliderFixedToEnd) {
             TimeUI._timeSliderTimestamp = TimeUI._endTimestamp
-            TimeUI.change()
+            if (disableChange != true) TimeUI.change()
         }
+    },
+    setCurrentTime(ISOString, disableChange) {
+        const timestamp = Date.parse(ISOString)
+        TimeUI._timeSliderTimestamp = timestamp
+        $('#mmgisTimeUICurrentTime').text(
+            moment.utc(TimeUI.getCurrentTimestamp(true)).format(FORMAT)
+        )
+        if (disableChange != true) TimeUI.change()
     },
     change() {
         if (
@@ -457,6 +503,16 @@ const TimeUI = {
             TimeUI._startTimestamp &&
             TimeUI._endTimestamp
         ) {
+            console.log(
+                'Change',
+                new Date(
+                    TimeUI.removeOffset(TimeUI._startTimestamp)
+                ).toISOString(),
+                new Date(
+                    TimeUI.removeOffset(TimeUI._endTimestamp)
+                ).toISOString(),
+                new Date(TimeUI.getCurrentTimestamp(true)).toISOString()
+            )
             TimeUI.timeChange(
                 new Date(
                     TimeUI.removeOffset(TimeUI._startTimestamp)

@@ -124,12 +124,12 @@ var TimeControl = {
             TimeControl.startTime = startTimeD.toISOString().split('.')[0] + 'Z'
             TimeControl.endTime = endTimeD.toISOString().split('.')[0] + 'Z'
         }
-        console.log(
+
+        TimeControl.timeUI.updateTimes(
             TimeControl.startTime,
             TimeControl.endTime,
             TimeControl.currentTime
         )
-        TimeControl.updateLayersTime()
         return true
     },
     setLayerTime: function (layer, startTime, endTime) {
