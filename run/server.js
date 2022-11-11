@@ -338,8 +338,10 @@ function ensureUser() {
       (typeof req.session.permission === "string" &&
         req.session.permission[req.session.permission.length - 1] === "1")
     ) {
+      console.log(req.user, req.session.permission);
       next();
     } else {
+      console.log("Login redirect for", req.user);
       res.render("login", {
         user: req.user,
         CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER || "CL##-####",

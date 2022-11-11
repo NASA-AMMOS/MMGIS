@@ -998,6 +998,7 @@ def scale_query_to_tile(dsquery, dstile, options, tilefilename=""):
                 params["quality"] = options.webp_quality
         im1.save(tilefilename, options.tiledriver, **params)
 
+    # MMGIS
     elif options.resampling == "near-composite" and numpy_available:
 
         if tilefilename.startswith("/vsi"):
@@ -1013,9 +1014,29 @@ def scale_query_to_tile(dsquery, dstile, options, tilefilename=""):
             )
         im = Image.fromarray(array, "RGBA")  # Always four bands
         im1 = im.resize((tile_size, tile_size), Image.NEAREST)
+
         if os.path.exists(tilefilename):
             im0 = Image.open(tilefilename)
-            im1 = Image.composite(im1, im0, im1)
+
+            # Make mask, nodatas to alpha
+            nodataPixel = False
+            if options.srcnodata is not None:
+                f = str(binary(float(options.srcnodata)))
+                nodataPixel = [int(f[:8], 2), int(f[8:16], 2),
+                               (int(f[16:24], 2)), int(f[24:], 2)]
+
+            if nodataPixel is not False:
+                for rowI in range(len(array)):
+                    for pixelI in range(len(array[rowI])):
+                        if array[rowI][pixelI][0] == nodataPixel[0] and array[rowI][pixelI][1] == nodataPixel[1] and array[rowI][pixelI][2] == nodataPixel[2] and array[rowI][pixelI][3] == nodataPixel[3]:
+                            array[rowI][pixelI] = [0, 0, 0, 0]
+                        else:
+                            array[rowI][pixelI] = [255, 255, 255, 255]
+
+            imMask = Image.fromarray(array, "RGBA")  # Always four bands
+            im1Mask = imMask.resize((tile_size, tile_size), Image.NEAREST)
+
+            im1 = Image.composite(im1, im0, im1Mask)
 
         params = {}
         if options.tiledriver == "WEBP":

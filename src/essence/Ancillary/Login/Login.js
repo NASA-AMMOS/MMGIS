@@ -194,15 +194,8 @@ var Login = {
                                 document.cookie =
                                     'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'
 
-                                if (window.mmgisglobal.AUTH === 'local') {
-                                    if (
-                                        window.mmgisglobal.NODE_ENV ===
-                                        'development'
-                                    )
-                                        window.location.href =
-                                            'http://localhost:8888'
-                                    else window.location.reload()
-                                }
+                                if (window.mmgisglobal.AUTH === 'local')
+                                    reloadToLogin()
                             },
                             function (d) {}
                         )
@@ -543,15 +536,22 @@ function loginSuccess(data, ignoreError) {
     } else {
         document.cookie = 'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'
 
-        if (window.mmgisglobal.AUTH === 'local') {
-            if (window.mmgisglobal.NODE_ENV === 'development')
-                window.location.href = 'http://localhost:8888'
-            else window.location.reload()
-        }
+        if (window.mmgisglobal.AUTH === 'local') reloadToLogin()
+
         if (ignoreError) return
 
         $('#loginErrorMessage').html(data.message).animate({ opacity: '1' }, 80)
     }
+}
+
+function reloadToLogin() {
+    let href
+    if (window.mmgisglobal.NODE_ENV === 'development')
+        href = 'http://localhost:8888'
+    else href = window.location.href
+    let url = new URL(href)
+    //url.searchParams.set('login', 'true')
+    window.location.href = url.href
 }
 
 export default Login
