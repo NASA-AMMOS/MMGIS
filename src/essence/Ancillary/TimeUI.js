@@ -228,7 +228,6 @@ const TimeUI = {
                 new Date(offsetEndDate)
             )
             TimeUI.endTempus.dates.setValue(parsedEnd)
-            TimeUI._endTimestamp = Date.parse(moment.utc(date))
             // Start 1 month ago
             date.setUTCMonth(date.getUTCMonth() - 1)
             const offsetStartDate = new Date(
@@ -238,7 +237,6 @@ const TimeUI = {
                 new Date(offsetStartDate)
             )
             TimeUI.startTempus.dates.setValue(parsedStart)
-            TimeUI._startTimestamp = Date.parse(moment.utc(date))
 
             $('#mmgisTimeUIPlay').on('click', TimeUI.toggleTimeNow)
 
@@ -386,15 +384,16 @@ const TimeUI = {
 
                         const histoElm = $('#mmgisTimeUITimelineHisto')
                         histoElm.empty()
-                        bins.forEach((b) => {
-                            histoElm.append(
-                                `<div style="width:${
-                                    (1 / NUM_BINS) * 100
-                                }%; margin-top:${
-                                    40 - (b / minmax.max) * 40
-                                }px"></div>`
-                            )
-                        })
+                        if (minmax.max > 0)
+                            bins.forEach((b) => {
+                                histoElm.append(
+                                    `<div style="width:${
+                                        (1 / NUM_BINS) * 100
+                                    }%; margin-top:${
+                                        40 - (b / minmax.max) * 40
+                                    }px"></div>`
+                                )
+                            })
                     }
                 },
                 function (e) {}
@@ -416,8 +415,8 @@ const TimeUI = {
     setStartTime(ISOString) {
         const timestamp = Date.parse(ISOString)
         TimeUI._startTimestamp = timestamp
-        TimeUI._drawTimeLine()
 
+        TimeUI._drawTimeLine()
         TimeUI.change()
     },
     removeOffset(timestamp) {
@@ -461,6 +460,9 @@ const TimeUI = {
             TimeUI.timeChange(
                 new Date(
                     TimeUI.removeOffset(TimeUI._startTimestamp)
+                ).toISOString(),
+                new Date(
+                    TimeUI.removeOffset(TimeUI._endTimestamp)
                 ).toISOString(),
                 new Date(TimeUI.getCurrentTimestamp(true)).toISOString()
             )
