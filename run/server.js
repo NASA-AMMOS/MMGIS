@@ -341,7 +341,7 @@ function ensureUser() {
       console.log(req.user, req.session.permission);
       next();
     } else {
-      console.log("Login redirect for", req.user);
+      console.log("Login redirect for", req.user, req.session);
       res.render("login", {
         user: req.user,
         CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER || "CL##-####",
