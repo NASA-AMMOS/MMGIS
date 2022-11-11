@@ -1030,6 +1030,8 @@ def scale_query_to_tile(dsquery, dstile, options, tilefilename=""):
                     for pixelI in range(len(array[rowI])):
                         if array[rowI][pixelI][0] == nodataPixel[0] and array[rowI][pixelI][1] == nodataPixel[1] and array[rowI][pixelI][2] == nodataPixel[2] and array[rowI][pixelI][3] == nodataPixel[3]:
                             array[rowI][pixelI] = [0, 0, 0, 0]
+                        elif array[rowI][pixelI][0] == 0 and array[rowI][pixelI][1] == 0 and array[rowI][pixelI][2] == 0 and array[rowI][pixelI][3] == 0:
+                            array[rowI][pixelI] = [0, 0, 0, 0]
                         else:
                             array[rowI][pixelI] = [255, 255, 255, 255]
 
