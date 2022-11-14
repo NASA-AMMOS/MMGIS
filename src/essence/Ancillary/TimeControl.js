@@ -74,6 +74,8 @@ var TimeControl = {
     },
     toggleTimeUI: function (isOn) {
         d3.select('#timeUI').style('visibility', function () {
+            if (!isOn) $('#toggleTimeUI').click()
+
             return isOn === true ? 'visible' : 'hidden'
         })
         return isOn
@@ -239,7 +241,7 @@ var TimeControl = {
                 layer.time.type == 'global'
             ) {
                 layer.time.start = TimeControl.startTime
-                layer.time.end = TimeControl.endTime
+                layer.time.end = TimeControl.currentTime
                 d3.select('.starttime.' + layer.name.replace(/\s/g, '')).text(
                     layer.time.start
                 )

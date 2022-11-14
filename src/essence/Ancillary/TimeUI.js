@@ -103,6 +103,8 @@ const TimeUI = {
             .html(markup)
 
         TimeUI.attachEvents()
+
+        return TimeUI
     },
     getElement: function () {},
     attachEvents: function (timeChange) {
@@ -274,7 +276,7 @@ const TimeUI = {
             TimeUI.now = false
         }
     },
-    _remakeTimeSlider() {
+    _remakeTimeSlider(ignoreHistogram) {
         if (TimeUI.timeSlider) {
             $('#mmgisTimeUITimelineSlider').empty()
             TimeUI.timeSlider = null
@@ -316,7 +318,8 @@ const TimeUI = {
             TimeUI.setCurrentTime(new Date(e.detail.value).toISOString())
         })
 
-        if ($('#toggleTimeUI').hasClass('active')) TimeUI._makeHistogram()
+        if ($('#toggleTimeUI').hasClass('active') && ignoreHistogram !== true)
+            TimeUI._makeHistogram()
     },
     _makeHistogram() {
         const startTimestamp = TimeUI._startTimestamp
@@ -445,8 +448,11 @@ const TimeUI = {
             TimeUI.endTempus.dates.setValue(parsedEnd)
         }
 
-        //
-        if (current != null) TimeUI.setCurrentTime(current, true)
+        // Current
+        if (current != null) {
+            TimeUI.setCurrentTime(current, true)
+            TimeUI._remakeTimeSlider(true)
+        }
 
         TimeUI.change()
     },
@@ -503,16 +509,6 @@ const TimeUI = {
             TimeUI._startTimestamp &&
             TimeUI._endTimestamp
         ) {
-            console.log(
-                'Change',
-                new Date(
-                    TimeUI.removeOffset(TimeUI._startTimestamp)
-                ).toISOString(),
-                new Date(
-                    TimeUI.removeOffset(TimeUI._endTimestamp)
-                ).toISOString(),
-                new Date(TimeUI.getCurrentTimestamp(true)).toISOString()
-            )
             TimeUI.timeChange(
                 new Date(
                     TimeUI.removeOffset(TimeUI._startTimestamp)
