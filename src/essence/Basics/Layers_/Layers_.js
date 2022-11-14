@@ -94,6 +94,14 @@ var L_ = {
     init: function (configData, missionsList, urlOnLayers) {
         parseConfig(configData, urlOnLayers)
         L_.missionsList = missionsList
+
+        setTimeout(() => {
+            console.log(L_.toggledArray['Waypoints'])
+            window.mmgisAPI.clearVectorLayer('Waypoints')
+            console.log(L_.toggledArray['Waypoints'])
+            window.mmgisAPI.reloadLayer('Waypoints')
+            console.log(L_.toggledArray['Waypoints'])
+        }, 4000)
     },
     clear: function () {
         L_.mission = null
@@ -213,7 +221,7 @@ var L_ = {
 
         await L_.toggleLayerHelper(s, on)
     },
-    toggleLayerHelper: async function (s, on) {
+    toggleLayerHelper: async function (s, on, ignoreToggleStateChange) {
         if (s.type !== 'header') {
             if (on) {
                 if (L_.Map_.map.hasLayer(L_.layersGroup[s.name])) {
@@ -468,8 +476,10 @@ var L_ = {
             }
         }
 
-        if (on) L_.toggledArray[s.name] = false
-        if (!on) L_.toggledArray[s.name] = true
+        if (!ignoreToggleStateChange) {
+            if (on) L_.toggledArray[s.name] = false
+            if (!on) L_.toggledArray[s.name] = true
+        }
 
         if (!on && s.type === 'vector') {
             L_.Map_.orderedBringToFront()
@@ -2503,9 +2513,11 @@ var L_ = {
             // Only toggle the layer to reset if the layer is toggled on,
             // because if the layer is toggled off, it is not on the globe
             if (L_.toggledArray[s.name]) {
-                await L_.toggleLayerHelper(s, true)
+                // turn off
+                await L_.toggleLayerHelper(s, true, true)
                 // Toggle the layer so its drawn in the globe
-                if (!onlyClear) L_.toggleLayerHelper(s, false)
+                // turn on
+                if (!onlyClear) L_.toggleLayerHelper(s, false, true)
             }
         }
     },
