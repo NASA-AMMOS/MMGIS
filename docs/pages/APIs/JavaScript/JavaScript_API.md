@@ -498,6 +498,41 @@ The following is an example of how to call the `getActiveFeature` function:
 window.mmgisAPI.getActiveFeature();
 ```
 
+### selectFeature
+
+This function selects a vector layer feature. It supports selections either from:
+
+- A longitude, latitude pair
+- A key:value pair to match on (selects first found match)
+- A leaflet layerId
+
+#### Function Parameters
+
+- `layerName` - _string_ - Name of the vector layer to select a feature in.
+- `options` - _{}_
+  - `layerId` - (optional) - A leaflet layer id
+  - `lon` - (optional) - Longitude - needs `lat` set
+  - `lat` - (optional) - Latitude - needs `lon` set
+  - `key` - (optional) - Feature `properties` key. Use dot-notation to choose nested keys. ('desserts.cakes.birthday.name') - needs `value` set
+  - `value` - (optional) - Value to match `key` - needs `key` set
+  - `view` - (optional) - If value is `"go"` pans and zooms to the feature
+  - `zoom` - (optional) - If set, this is the zoom level `view` will go to.
+
+The following is an example of how to call the `selectFeature` function:
+
+```javascript
+window.mmgisAPI.selectFeature("Waypoints", { layerId: 600 });
+
+window.mmgisAPI.selectFeature("Waypoints", { lon: 137, lat: -4 });
+
+window.mmgisAPI.selectFeature("Waypoints", {
+  key: "sol",
+  value: 1159,
+  view: "go",
+  zoom: 14,
+});
+```
+
 ### getVisibleLayers
 
 This function returns an object with the visibility state of all layers

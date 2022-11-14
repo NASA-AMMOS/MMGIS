@@ -94,14 +94,6 @@ var L_ = {
     init: function (configData, missionsList, urlOnLayers) {
         parseConfig(configData, urlOnLayers)
         L_.missionsList = missionsList
-
-        setTimeout(() => {
-            console.log(L_.toggledArray['Waypoints'])
-            window.mmgisAPI.clearVectorLayer('Waypoints')
-            console.log(L_.toggledArray['Waypoints'])
-            window.mmgisAPI.reloadLayer('Waypoints')
-            console.log(L_.toggledArray['Waypoints'])
-        }, 4000)
     },
     clear: function () {
         L_.mission = null
@@ -1767,40 +1759,7 @@ var L_ = {
                         g[l]._latlng.lng == activePoint.lon
                     ) {
                         g[l].fireEvent('click')
-                        if (activePoint.view == 'go') {
-                            let newView = []
-                            if (g[l]._latlng) {
-                                newView = [
-                                    g[l]._latlng.lat,
-                                    g[l]._latlng.lng,
-                                    activePoint.zoom ||
-                                        L_.Map_.mapScaleZoom ||
-                                        L_.Map_.map.getZoom(),
-                                ]
-                            } else if (g[l]._latlngs) {
-                                let lat = 0,
-                                    lng = 0
-                                let llflat = g[l]._latlngs.flat(Infinity)
-                                for (let ll of llflat) {
-                                    lat += ll.lat
-                                    lng += ll.lng
-                                }
-                                newView = [
-                                    lat / llflat.length,
-                                    lng / llflat.length,
-                                    parseInt(
-                                        activePoint.zoom ||
-                                            L_.Map_.mapScaleZoom ||
-                                            L_.Map_.map.getZoom()
-                                    ),
-                                ]
-                            }
-
-                            L_.Map_.resetView(newView)
-                            if (L_.hasGlobe) {
-                                L_.Globe_.litho.setCenter(newView)
-                            }
-                        }
+                        L_._selectPointViewHelper(activePoint, g[l])
                         return true
                     }
                 }
@@ -1822,48 +1781,65 @@ var L_ = {
                             ) == activePoint.value
                         ) {
                             g[l].fireEvent('click')
-                            if (activePoint.view == 'go') {
-                                let newView = []
-                                if (g[l]._latlng) {
-                                    newView = [
-                                        g[l]._latlng.lat,
-                                        g[l]._latlng.lng,
-                                        activePoint.zoom ||
-                                            L_.Map_.mapScaleZoom ||
-                                            L_.Map_.map.getZoom(),
-                                    ]
-                                } else if (g[l]._latlngs) {
-                                    let lat = 0,
-                                        lng = 0
-                                    let llflat = g[l]._latlngs.flat(Infinity)
-                                    for (let ll of llflat) {
-                                        lat += ll.lat
-                                        lng += ll.lng
-                                    }
-                                    newView = [
-                                        lat / llflat.length,
-                                        lng / llflat.length,
-                                        parseInt(
-                                            activePoint.zoom ||
-                                                L_.Map_.mapScaleZoom ||
-                                                L_.Map_.map.getZoom()
-                                        ),
-                                    ]
-                                }
-                                setTimeout(() => {
-                                    L_.Map_.resetView(newView)
-                                }, 50)
-                                if (L_.hasGlobe) {
-                                    L_.Globe_.litho.setCenter(newView)
-                                }
-                            }
+                            L_._selectPointViewHelper(activePoint, g[l])
                             return true
                         }
                     }
                 }
             }
+        } else if (
+            activePoint &&
+            activePoint.layerName != null &&
+            activePoint.layerId != null
+        ) {
+            if (L_.layersGroup.hasOwnProperty(activePoint.layerName)) {
+                let g = L_.layersGroup[activePoint.layerName]._layers
+                const l = activePoint.layerId
+                if (g[l] != null) {
+                    g[l].fireEvent('click')
+                    L_._selectPointViewHelper(activePoint, g[l])
+                    return true
+                }
+            }
         }
         return false
+    },
+    _selectPointViewHelper: function (activePoint, layer) {
+        if (activePoint.view === 'go') {
+            let newView = []
+            if (layer._latlng) {
+                newView = [
+                    layer._latlng.lat,
+                    layer._latlng.lng,
+                    activePoint.zoom ||
+                        L_.Map_.mapScaleZoom ||
+                        L_.Map_.map.getZoom(),
+                ]
+            } else if (layer._latlngs) {
+                let lat = 0,
+                    lng = 0
+                let llflat = layer._latlngs.flat(Infinity)
+                for (let ll of llflat) {
+                    lat += ll.lat
+                    lng += ll.lng
+                }
+                newView = [
+                    lat / llflat.length,
+                    lng / llflat.length,
+                    parseInt(
+                        activePoint.zoom ||
+                            L_.Map_.mapScaleZoom ||
+                            L_.Map_.map.getZoom()
+                    ),
+                ]
+            }
+            setTimeout(() => {
+                L_.Map_.resetView(newView)
+            }, 50)
+            if (L_.hasGlobe) {
+                L_.Globe_.litho.setCenter(newView)
+            }
+        }
     },
     reorderLayers: function (newLayersOrdered) {
         // Check that newLayersOrdered is valid

@@ -164,6 +164,14 @@ var mmgisAPI_ = {
 
         return null
     },
+    selectFeature: function (layerName, options) {
+        return L_.selectPoint({
+            ...{
+                layerName: layerName,
+            },
+            ...options,
+        })
+    },
     getActiveTool: function () {
         if (ToolController_) {
             return {
@@ -471,6 +479,26 @@ var mmgisAPI = {
      * @returns {object} - The currently selected active feature as an object with the layer name as key and value as an array containing the GeoJson Feature object (MMGIS only allows the section of a single feature).
      */
     getActiveFeature: mmgisAPI_.getActiveFeature,
+
+    /** Selects a feature based on latlng, key:value, or layerId
+     * @param {string} [layerName]
+     * @param {object} [options]
+     * options: {
+        lat: num,
+        lon: num,
+        ||
+        key: 'props.dot.notation',
+        value: '',
+        ||
+        layerId: num,
+
+        view: 'go' || null,
+        zoom: 'zoomLevel' || 'map_scale_if_view_is_go',
+        }
+     *
+     * @returns {boolean} - true if found and selected a feature, otherwise false
+     */
+    selectFeature: mmgisAPI_.selectFeature,
 
     /** getActiveTool - returns the currently active tool
      * @returns {object} - The currently active tool and the name of the active tool as an object.
