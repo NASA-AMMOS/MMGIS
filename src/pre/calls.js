@@ -126,6 +126,10 @@ const c = {
         type: 'POST',
         url: 'API/spatial/published',
     },
+    query_tileset_times: {
+        type: 'GET',
+        url: 'API/utils/queryTilesetTimes',
+    },
 }
 
 function api(call, data, success, error) {

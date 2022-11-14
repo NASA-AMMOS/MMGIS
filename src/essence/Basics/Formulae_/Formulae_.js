@@ -59,6 +59,148 @@ var Formulae_ = {
             range[0]
         )
     },
+    monthNumberToName: function (monthNumber) {
+        switch (monthNumber) {
+            case 0:
+                return 'Jan'
+            case 1:
+                return 'Feb'
+            case 2:
+                return 'Mar'
+            case 3:
+                return 'Apr'
+            case 4:
+                return 'May'
+            case 5:
+                return 'Jun'
+            case 6:
+                return 'Jul'
+            case 7:
+                return 'Aug'
+            case 8:
+                return 'Sep'
+            case 9:
+                return 'Oct'
+            case 10:
+                return 'Nov'
+            case 11:
+                return 'Dec'
+            default:
+                return ''
+        }
+    },
+    // Returns an array of timestamps between startTime and endTime timestamps that fall along the unit
+    getTimeStartsBetweenTimestamps: function (startTime, endTime, unit) {
+        const timeStarts = []
+
+        const startDate = new Date(startTime)
+        const endDate = new Date(endTime)
+        startDate.setUTCMilliseconds(0)
+        endDate.setUTCMilliseconds(0)
+
+        let currentDate
+        switch (unit) {
+            case 'year':
+                currentDate = new Date(Date.UTC(startDate.getFullYear()))
+                while (currentDate < endDate) {
+                    currentDate.setUTCFullYear(currentDate.getUTCFullYear() + 1)
+                    timeStarts.push({
+                        ts: Date.parse(currentDate),
+                        label: currentDate.getUTCFullYear(),
+                    })
+                }
+
+                break
+            case 'month':
+                currentDate = new Date(
+                    Date.UTC(startDate.getFullYear(), startDate.getMonth())
+                )
+                while (currentDate < endDate) {
+                    currentDate.setUTCMonth(currentDate.getUTCMonth() + 1)
+                    timeStarts.push({
+                        ts: Date.parse(currentDate),
+                        label: Formulae_.monthNumberToName(
+                            currentDate.getUTCMonth()
+                        ),
+                    })
+                }
+                break
+            case 'day':
+                currentDate = new Date(
+                    Date.UTC(
+                        startDate.getFullYear(),
+                        startDate.getMonth(),
+                        startDate.getDate()
+                    )
+                )
+                while (currentDate < endDate) {
+                    currentDate.setUTCDate(currentDate.getUTCDate() + 1)
+                    timeStarts.push({
+                        ts: Date.parse(currentDate),
+                        label: currentDate.getUTCDate(),
+                    })
+                }
+                break
+            case 'hour':
+                currentDate = new Date(
+                    Date.UTC(
+                        startDate.getFullYear(),
+                        startDate.getMonth(),
+                        startDate.getDate(),
+                        startDate.getHours()
+                    )
+                )
+                while (currentDate < endDate) {
+                    currentDate.setUTCHours(currentDate.getUTCHours() + 1)
+                    timeStarts.push({
+                        ts: Date.parse(currentDate),
+                        label: currentDate.getUTCHours(),
+                    })
+                }
+                break
+            case 'minute':
+                currentDate = new Date(
+                    Date.UTC(
+                        startDate.getFullYear(),
+                        startDate.getMonth(),
+                        startDate.getDate(),
+                        startDate.getHours(),
+                        startDate.getMinutes()
+                    )
+                )
+                while (currentDate < endDate) {
+                    currentDate.setUTCMinutes(currentDate.getUTCMinutes() + 1)
+                    timeStarts.push({
+                        ts: Date.parse(currentDate),
+                        label: currentDate.getUTCMinutes(),
+                    })
+                }
+                break
+            case 'second':
+                currentDate = new Date(
+                    Date.UTC(
+                        startDate.getFullYear(),
+                        startDate.getMonth(),
+                        startDate.getDate(),
+                        startDate.getHours(),
+                        startDate.getMinutes(),
+                        startDate.getSeconds()
+                    )
+                )
+                while (currentDate < endDate) {
+                    currentDate.setUTCSeconds(currentDate.getUTCSeconds() + 1)
+                    timeStarts.push({
+                        ts: Date.parse(currentDate),
+                        label: currentDate.getUTCSeconds(),
+                    })
+                }
+                break
+            default:
+                break
+        }
+
+        return timeStarts
+    },
     //Uses haversine to calculate distances over arcs
     lngLatDistBetween: function (lon1, lat1, lon2, lat2) {
         var R = this.radiusOfPlanetMajor
@@ -1486,6 +1628,12 @@ var Formulae_ = {
             link.remove()
             if (typeof callback === 'function') callback()
         })
+    },
+    getMinMaxOfArray(arrayOfNumbers) {
+        return {
+            min: Math.min(...arrayOfNumbers),
+            max: Math.max(...arrayOfNumbers),
+        }
     },
     uniqueArray(arr) {
         var uniqueArray = []

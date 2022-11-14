@@ -45,6 +45,8 @@
   },
   "dependencies": {
     "@babel/core": "7.9.0",
+    "@eonasdan/tempus-dominus": "^6.2.6",
+    "@popperjs/core": "^2.11.6",
     "@svgr/webpack": "4.3.3",
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^9.5.0",
@@ -216,6 +218,8 @@
     ]
   },
   "devDependencies": {
+    "@babel/plugin-proposal-nullish-coalescing-operator": "^7.18.6",
+    "@babel/plugin-proposal-optional-chaining": "^7.18.9",
     "webpack-bundle-analyzer": "^4.5.0"
   }
 }

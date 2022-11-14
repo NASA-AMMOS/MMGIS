@@ -235,7 +235,7 @@ The following is an example of how to call the `toggleTimeUI` function:
 window.mmgisAPI.toggleTimeUI(false);
 ```
 
-### setTime(startTime, endTime, isRelative, timeOffset)
+### setTime(startTime, endTime, isRelative, timeOffset, currentTime)
 
 This function sets the global time properties for all of MMGIS. All time enabled layers that are configured to use the `Global` time type will be updated by this function.
 
@@ -247,11 +247,20 @@ Note that layers will not be refreshed on the map until `reloadTimeLayers()` (or
 - `endTime` - Can be either `YYYY-MM-DDThh:mm:ssZ` if absolute, or `hh:mm:ss` or seconds if relative
 - `isRelative` - If true, startTime and endTime are relative to the current UTC time
 - `timeOffset` - An offset to use for the current UTC time; can be either a string in `hh:mm:ss` format or an integer value in seconds
+- `currentTime` - If set, offset is ignored and the current working time is set to this currentTime
 
 The following are examples of how to call the `setTime` function:
 
 ```javascript
 window.mmgisAPI.setTime("2021-05-13T01:00:00Z", "2021-05-13T07:00:00Z", false);
+
+window.mmgisAPI.setTime(
+  "2021-05-13T01:00:00Z",
+  "2021-05-13T07:00:00Z",
+  false,
+  null,
+  "2021-05-13T06:00:00Z"
+);
 
 window.mmgisAPI.setTime("02:00:00", "00:00:00", true, "01:00:00");
 

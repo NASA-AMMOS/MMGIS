@@ -50,6 +50,8 @@ const paths = require("../configuration/paths");
 const configFactory = require("../configuration/webpack.config");
 const createDevServerConfig = require("../configuration/webpackDevServer.config");
 
+const middleware = require("./middleware").middleware;
+
 const isDevEnv = process.env.NODE_ENV === "development";
 
 //Username to use when not logged in
@@ -521,6 +523,7 @@ setups.getBackendSetups(function (setups) {
   app.use(
     "/Missions",
     ensureUser(),
+    middleware.missions(),
     express.static(path.join(rootDir, "/Missions"))
   );
 
