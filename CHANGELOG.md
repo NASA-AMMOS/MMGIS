@@ -1,5 +1,49 @@
 # MMGIS Changelog
 
+## 2.8.0
+
+_Nov 14, 2022_
+
+#### Summary
+
+#### Added
+
+- The Viewer Panel supports gltf models
+- The configuration raw variable `markerAttachment.model` now has a `mtlProp` parameter for relative obj material files and can support multiple models per layer
+- The DrawTool now supports drawing Circles and Rectangles
+- The entire Configuration object has an API and can be updated via curl commands. See [ConfigureAPI](https://nasa-ammos.github.io/MMGIS/apis/configure)
+- The MeasureTool now supports multiple DEMs
+- Many additions to the `mmgisAPI`. See [JavaScriptAPI](https://nasa-ammos.github.io/MMGIS/apis/javascript)
+- Adds an extended GeoJSON format to support per coordinate properties. See [Enhanced GeoJSON](https://nasa-ammos.github.io/MMGIS/configure/formats/enhanced-geojson)
+- Deep Links now stores the layer order (if users rearranged them)
+- The ability to define a primary coordinate system through a reworked [Coordinates Tab](https://nasa-ammos.github.io/MMGIS/configure/tabs/coordinates)
+- DrawTool Layers can be added as regular layers by using a url of the form `api:drawn:<draw_file_id>`
+- The ViewshedTool supports target heights
+- The MeasureTool include line-of-sight
+- Users can individually hide features through the InfoTool
+- Layers can now be tagged and assigned a markdown description. Users can filter layers based on these fields as well.
+- Added websockets that can notify users in real-time that a configuration has updated. Enabled with the env: `ENABLE_MMGIS_SOCKETS=true`
+- Automatic labels can be rendered on features by configuring a raw variables `layerAttachments.labels`
+- Added a `gdal2tiles_3.5.2.py` script to tile dem tiles with multi-processing support and tiling on top of an existing tileset
+- The colorize Data Shader can now exclude up to three no data values
+- Tilesets served from the MMGIS Missions directory now accept an optional `{t}` path directory to search and served tiles based on time
+- The TimeUI and the bottom of the screen has been significantly reworked
+
+#### Changed
+
+- Increase GeoJSON math and export precision from `6` to `10` decimal places
+- The DrawTool's tagging system has been expanded and it UI resembles folder structures
+- Photosphere has better damping and rotates with "panning" directions.
+
+#### Fixed
+
+- Dragging a header in the LayersTool now drags the entire group
+- Various fixes to how Time works (through the mmgisAPI, in parameterizing WMS layers, ...)
+- Error if Data Layers had a space in their name
+- Various mmgisAPI function fixes
+
+---
+
 ## 2.7.0
 
 _Jun 9, 2022_

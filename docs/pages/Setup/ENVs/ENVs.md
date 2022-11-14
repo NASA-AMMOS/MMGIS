@@ -103,3 +103,7 @@ When not using AUTH=csso, this is a list of usernames to be treated as leads (us
 #### `CSSO_LEAD_GROUP=`
 
 LDAP group of leads (users with elevated permissions) | string | default `''`
+
+#### `ENABLE_MMGIS_SOCKETS=`
+
+If true, enables the backend MMGIS websockets to tell clients to update layers | boolean | default `false`
