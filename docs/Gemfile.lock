@@ -50,6 +50,7 @@ GEM
     faraday-patron (1.0.0)
     faraday-rack (1.0.0)
     faraday-retry (1.0.3)
+    ffi (1.15.5)
     ffi (1.15.5-x64-mingw-ucrt)
     ffi (1.15.5-x64-mingw32)
     forwardable-extended (2.6.0)
@@ -272,13 +273,14 @@ GEM
     thread_safe (0.3.6)
     typhoeus (1.4.0)
       ethon (>= 0.9.0)
-    tzinfo (1.2.9)
+    tzinfo (1.2.10)
       thread_safe (~> 0.1)
     tzinfo-data (1.2022.1)
       tzinfo (>= 1.0.0)
     unf (0.1.4)
       unf_ext
     unf_ext (0.0.8.1)
+    unf_ext (0.0.8.1-x64-mingw32)
     unicode-display_width (1.8.0)
     wdm (0.1.1)
     webrick (1.7.0)
@@ -287,6 +289,7 @@ GEM
 PLATFORMS
   x64-mingw-ucrt
   x64-mingw32
+  x86_64-linux
 
 DEPENDENCIES
   github-pages (~> 214)
