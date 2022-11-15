@@ -421,7 +421,7 @@
 }
 #layersTool .settings .checkbox {
     border: 1px solid var(--color-a4);
-} 
+}
 
 #layersTool .checkbox.on {
     background: var(--color-a7);
