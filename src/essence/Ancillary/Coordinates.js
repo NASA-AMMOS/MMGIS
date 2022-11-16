@@ -120,6 +120,11 @@ const Coordinates = {
             offset: [0, 20],
         })
 
+        if (!(L_.configData.time && L_.configData.time.enabled === true)) {
+            $('#toggleTimeUI').css({ display: 'none' })
+            $('#CoordinatesDiv').css({ marginRight: '0px' })
+        }
+
         if (L_.configData.coordinates) {
             // ll
             if (L_.configData.coordinates.coordll == false)
