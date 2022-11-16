@@ -24,8 +24,13 @@ module.exports = {
   look: {
     pagename: "MMGIS",
     minimalist: false,
+    topbar: true,
+    toolbar: true,
+    scalebar: true,
+    coordinates: true,
     zoomcontrol: false,
     graticule: false,
+    miscellaneous: true,
     bodycolor: "",
     topbarcolor: "",
     toolbarcolor: "",
@@ -39,7 +44,7 @@ module.exports = {
     helpurl: "",
   },
   panels: ["viewer", "map", "globe"],
-  time:["enabled"],
+  time: ["enabled"],
   tools: [
     {
       name: "Layers",

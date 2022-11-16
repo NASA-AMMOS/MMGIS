@@ -499,14 +499,29 @@ function initialize() {
                   $("#tab_look #look_pagename").val(cData.look.pagename);
                 }
                 $("#tab_look input").prop("checked", false);
-                if (cData.look && cData.look.minimalist == true) {
+                if (cData.look && cData.look.minimalist != true) {
                   $("#tab_look #look_minimalist").prop("checked", true);
                 }
-                if (cData.look && cData.look.zoomcontrol == true) {
+                if (cData.look && cData.look.topbar != true) {
+                  $("#tab_look #look_topbar").prop("checked", true);
+                }
+                if (cData.look && cData.look.toolbar != true) {
+                  $("#tab_look #look_toolbar").prop("checked", true);
+                }
+                if (cData.look && cData.look.scalebar != true) {
+                  $("#tab_look #look_scalebar").prop("checked", true);
+                }
+                if (cData.look && cData.look.coordinates != true) {
+                  $("#tab_look #look_coordinates").prop("checked", true);
+                }
+                if (cData.look && cData.look.zoomcontrol != true) {
                   $("#tab_look #look_zoomcontrol").prop("checked", true);
                 }
-                if (cData.look && cData.look.graticule == true) {
+                if (cData.look && cData.look.graticule != true) {
                   $("#tab_look #look_graticule").prop("checked", true);
+                }
+                if (cData.look && cData.look.miscellaneous != true) {
+                  $("#tab_look #look_miscellaneous").prop("checked", true);
                 }
 
                 //look colors
@@ -1987,8 +2002,15 @@ function save() {
     //Look
     json.look["pagename"] = $("#tab_look #look_pagename").val();
     json.look["minimalist"] = $("#tab_look #look_minimalist").prop("checked");
+    json.look["topbar"] = $("#tab_look #look_topbar").prop("checked");
+    json.look["toolbar"] = $("#tab_look #look_toolbar").prop("checked");
+    json.look["scalebar"] = $("#tab_look #look_scalebar").prop("checked");
+    json.look["coordinates"] = $("#tab_look #look_coordinates").prop("checked");
     json.look["zoomcontrol"] = $("#tab_look #look_zoomcontrol").prop("checked");
     json.look["graticule"] = $("#tab_look #look_graticule").prop("checked");
+    json.look["miscellaneous"] = $("#tab_look #look_miscellaneous").prop(
+      "checked"
+    );
     //look colors
     json.look["primarycolor"] = $("#tab_look #look_primarycolor").val();
     json.look["secondarycolor"] = $("#tab_look #look_secondarycolor").val();

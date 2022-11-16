@@ -412,6 +412,9 @@ let helmetConfig = {
       frameAncestors: process.env.FRAME_ANCESTORS
         ? JSON.parse(process.env.FRAME_ANCESTORS)
         : "none",
+      frameSrc: process.env.FRAME_SRC
+        ? JSON.parse(process.env.FRAME_SRC)
+        : "none",
     },
   },
 };
@@ -517,6 +520,8 @@ setups.getBackendSetups(function (setups) {
     express.static(path.join(rootDir, "/config/fonts"))
   );
 
+  if (process.argv.includes("--with_examples"))
+    app.use("/examples", express.static(path.join(rootDir, "/examples")));
   app.use("/public", express.static(path.join(rootDir, "/public")));
   app.use(
     "/Missions",

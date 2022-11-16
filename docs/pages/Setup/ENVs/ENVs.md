@@ -74,7 +74,11 @@ Potentially logs a bunch of extra stuff for development purposes | bool | defaul
 
 #### `FRAME_ANCESTORS=`
 
-Sets the `Content-Security-Policy: frame-ancestors` header to allow the embedding of MMGIS in the specified external sites | string[] | default `null`
+Sets the `Content-Security-Policy: frame-ancestors` header to allow the embedding of MMGIS in the specified external sites | string[] | default `null` | ex. FRAME_ANCESTORS='["http://localhost:8888"]'
+
+#### `FRAME_SRC=`
+
+Sets the `Content-Security-Policy: frame-src` header to allow the embedding iframes from external origins into MMGIS | string[] | default `null` | ex. FRAME_SRC='["http://localhost:8888"]'
 
 #### `PUBLIC_URL=`
 

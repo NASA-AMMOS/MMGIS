@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Wrapped iframe</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,user-scalable=no,minimum-scale=1,maximum-scale=1"
+    />
+    <meta name="theme-color" content="#1d1f20" />
+    <meta
+      name="description"
+      content="A web-based mapping and localization solution for science operation on planetary missions."
+    />
+    <style>
+      body,
+      html {
+        background: #1d1f20;
+        overflow: hidden;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+      }
+      iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+      }
+      #root {
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-flow: column;
+      }
+      #top {
+        width: 100%;
+        height: 40px;
+        background: #222;
+      }
+      #middle {
+        width: 100%;
+        flex: 1;
+        display: flex;
+      }
+      #bottom {
+        width: 100%;
+        height: 40px;
+        background: #222;
+      }
+      #left {
+        height: 100%;
+        width: 300px;
+        background: #333;
+      }
+      #center {
+        height: 100%;
+        flex: 1;
+      }
+      #right {
+        height: 100%;
+        width: 200px;
+        background: #333;
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root">
+      <div id="top"></div>
+      <div id="middle">
+        <div id="left"></div>
+        <div id="center">
+          <iframe src="http://localhost:8888" title="MMGIS"></iframe>
+        </div>
+        <div id="right"></div>
+      </div>
+      <div id="bottom"></div>
+    </div>
+  </body>
+  <footer></footer>
+</html>

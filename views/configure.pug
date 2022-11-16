@@ -342,15 +342,31 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
           li.row.title
             .col.s2.push-s2 User Interface 
           li.row.checkboxRow
-            #look_minimalistEl.input-field.col.s2.push-s2
+            #look_minimalistEl.input-field.col.s2.push-s2(style='display:none')
               input#look_minimalist.filled-in.checkbox-color(type='checkbox')
               label(for='look_minimalist' style='color: black;') Minimalist UI
+            #look_topbarEl.input-field.col.s2.push-s2
+              input#look_topbar.filled-in.checkbox-color(type='checkbox')
+              label(for='look_topbar' style='color: black;') Top Bar
+            #look_toolbarEl.input-field.col.s2.push-s2
+              input#look_toolbar.filled-in.checkbox-color(type='checkbox')
+              label(for='look_toolbar' style='color: black;') Tool Bar
+            #look_scalebarEl.input-field.col.s2.push-s2
+              input#look_scalebar.filled-in.checkbox-color(type='checkbox')
+              label(for='look_scalebar' style='color: black;') Scale Bar
+            #look_coordinatesEl.input-field.col.s2.push-s2
+              input#look_coordinates.filled-in.checkbox-color(type='checkbox')
+              label(for='look_coordinates' style='color: black;') Coordinates
+          li.row.checkboxRow
             #look_zoomcontrolEl.input-field.col.s2.push-s2
               input#look_zoomcontrol.filled-in.checkbox-color(type='checkbox')
               label(for='look_zoomcontrol' style='color: black;') Map Zoom Control
             #look_graticuleEl.input-field.col.s2.push-s2
               input#look_graticule.filled-in.checkbox-color(type='checkbox')
               label(for='look_graticule' style='color: black;') Map Graticule
+            #look_miscellaneousEl.input-field.col.s2.push-s2
+              input#look_miscellaneous.filled-in.checkbox-color(type='checkbox')
+              label(for='look_miscellaneous' style='color: black;') Miscellaneous
 
           li.row.title
             .col.s2.push-s2 Colors 

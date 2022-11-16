@@ -930,6 +930,17 @@ var UserInterface = {
                 display: l_.configData.look.help ? 'inherit' : 'none',
             })
 
+        if (l_.configData.look && l_.configData.look.topbar === false)
+            BottomBar.changeUIVisibility('topbar', false)
+        if (l_.configData.look && l_.configData.look.toolbar === false)
+            BottomBar.changeUIVisibility('toolbars', false)
+        if (l_.configData.look && l_.configData.look.scalebar === false)
+            BottomBar.changeUIVisibility('scalebar', false)
+        if (l_.configData.look && l_.configData.look.coordinates === false)
+            BottomBar.changeUIVisibility('coordinates', false)
+        if (l_.configData.look && l_.configData.look.miscellaneous === false)
+            BottomBar.changeUIVisibility('miscellaneous', false)
+
         UserInterface.show()
     },
     updateLayerUpdateButton: function (type) {
