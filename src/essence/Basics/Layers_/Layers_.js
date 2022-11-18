@@ -65,6 +65,7 @@ var L_ = {
     layerFilters: {},
     //Name -> parent
     layersParent: {},
+    _localTimeFilterCache: {},
     //FUTURES
     FUTURES: {
         site: null,
@@ -128,6 +129,7 @@ var L_ = {
         L_.opacityArray = {}
         L_.layerFilters = {}
         L_.layersParent = {}
+        L_._localTimeFilterCache = {}
         L_.FUTURES = {
             site: null,
             mapView: null,
@@ -2576,6 +2578,92 @@ var L_ = {
     // Updates everything waiting in the queue from WebSocket updates
     updateQueueLayers: async function () {
         await L_.updateLayersHelper(L_.addLayerQueue)
+    },
+    // Limits a Local, Time-Enabled, Prop-set, vector layer to a range of time
+    // start and end are unix timestamps
+    timeFilterVectorLayer: function (layerName, start, end) {
+        let reset = false
+        if (start === false) reset = true
+
+        start = start || 0
+
+        const layerConfig = L_.layersNamed[layerName]
+        const layer = L_.layersGroup[layerName]
+
+        if (
+            layerConfig.type === 'vector' &&
+            layerConfig.time.type === 'local' &&
+            layerConfig.time.endProp != null &&
+            layer != false &&
+            layer._sourceGeoJSON != null
+        ) {
+            const filteredGeoJSON = JSON.parse(
+                JSON.stringify(
+                    L_._localTimeFilterCache[layer.name] || layer._sourceGeoJSON
+                )
+            )
+            if (L_._localTimeFilterCache[layer.name] == null)
+                L_._localTimeFilterCache[layer.name] = JSON.parse(
+                    JSON.stringify(filteredGeoJSON)
+                )
+
+            if (reset === false) {
+                filteredGeoJSON.features = filteredGeoJSON.features.filter(
+                    (f) => {
+                        let startTimeValue = false
+                        if (layerConfig.time.startProp)
+                            startTimeValue = F_.getIn(
+                                f.properties,
+                                layerConfig.time.startProp,
+                                0
+                            )
+                        let endTimeValue = false
+                        if (layerConfig.time.endProp)
+                            endTimeValue = F_.getIn(
+                                f.properties,
+                                layerConfig.time.endProp,
+                                false
+                            )
+
+                        // No prop, won't show
+                        if (endTimeValue === false) return false
+
+                        if (startTimeValue === false) {
+                            //Single Point in time, just compare end times
+                            let endDate = new Date(endTimeValue)
+                            if (endDate == 'Invalid Date') return false
+
+                            endDate = endDate.getTime()
+                            if (endDate <= end && endDate >= start) return true
+                            return false
+                        } else {
+                            // Then we have a range
+                            let startDate = new Date(startTimeValue)
+                            let endDate = new Date(endTimeValue)
+
+                            // Bad prop value, won't show
+                            if (
+                                startDate == 'Invalid Date' ||
+                                endDate == 'Invalid Date'
+                            )
+                                return false
+
+                            startDate = startDate.getTime()
+                            endDate = endDate.getTime()
+
+                            if (end < startDate) return false
+                            if (start > endDate) return false
+
+                            return true
+                        }
+                    }
+                )
+            }
+
+            // Update layer
+            L_.clearVectorLayer(layerName)
+            L_.updateVectorLayer(layerName, filteredGeoJSON)
+        }
     },
 }
 

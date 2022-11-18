@@ -499,28 +499,28 @@ function initialize() {
                   $("#tab_look #look_pagename").val(cData.look.pagename);
                 }
                 $("#tab_look input").prop("checked", false);
-                if (cData.look && cData.look.minimalist != true) {
+                if (cData.look && cData.look.minimalist != false) {
                   $("#tab_look #look_minimalist").prop("checked", true);
                 }
-                if (cData.look && cData.look.topbar != true) {
+                if (cData.look && cData.look.topbar != false) {
                   $("#tab_look #look_topbar").prop("checked", true);
                 }
-                if (cData.look && cData.look.toolbar != true) {
+                if (cData.look && cData.look.toolbar != false) {
                   $("#tab_look #look_toolbar").prop("checked", true);
                 }
-                if (cData.look && cData.look.scalebar != true) {
+                if (cData.look && cData.look.scalebar != false) {
                   $("#tab_look #look_scalebar").prop("checked", true);
                 }
-                if (cData.look && cData.look.coordinates != true) {
+                if (cData.look && cData.look.coordinates != false) {
                   $("#tab_look #look_coordinates").prop("checked", true);
                 }
-                if (cData.look && cData.look.zoomcontrol != true) {
+                if (cData.look && cData.look.zoomcontrol != false) {
                   $("#tab_look #look_zoomcontrol").prop("checked", true);
                 }
-                if (cData.look && cData.look.graticule != true) {
+                if (cData.look && cData.look.graticule != false) {
                   $("#tab_look #look_graticule").prop("checked", true);
                 }
-                if (cData.look && cData.look.miscellaneous != true) {
+                if (cData.look && cData.look.miscellaneous != false) {
                   $("#tab_look #look_miscellaneous").prop("checked", true);
                 }
 
@@ -619,6 +619,12 @@ function initialize() {
                 }
                 $("#tab_time #time_format").val(
                   cData.time ? cData.time.format : "%Y-%m-%dT%H:%M:%SZ"
+                );
+                $("#tab_time #time_initialstart").val(
+                  cData.time ? cData.time.initialstart : ""
+                );
+                $("#tab_time #time_initialend").val(
+                  cData.time ? cData.time.initialend : "now"
                 );
 
                 //tools
@@ -885,6 +891,8 @@ function makeLayerBarAndModal(d, level, options) {
       vtLayerSetStylesEl = "block",
       timeEl = "block",
       timeTypeEl = "block",
+      timeStartPropEl = "block",
+      timeEndPropEl = "block",
       timeFormatEl = "block",
       timeRefreshEl = "none",
       timeIncrementEl = "none",
@@ -904,7 +912,7 @@ function makeLayerBarAndModal(d, level, options) {
         maxnzEl = "none"; maxzEl = "none"; strcolEl = "none"; filcolEl = "none";
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
-        timeEl = "none"; timeTypeEl = "none"; timeFormatEl = "none"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
+        timeEl = "none"; timeTypeEl = "none"; timeStartPropEl = "none"; timeEndPropEl = "none"; timeFormatEl = "none"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
         queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "tile":
@@ -917,7 +925,7 @@ function makeLayerBarAndModal(d, level, options) {
         maxnzEl = "block"; maxzEl = "block"; strcolEl = "none"; filcolEl = "none";
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
-        timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
+        timeEl = "block"; timeTypeEl = "block"; timeStartPropEl = "none"; timeEndPropEl = "none"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
         queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "vectortile":
@@ -930,7 +938,7 @@ function makeLayerBarAndModal(d, level, options) {
         maxnzEl = "block"; maxzEl = "block"; strcolEl = "none"; filcolEl = "none";
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "block"; vtIdEl = "block"; vtKeyEl = "block"; vtLayerSetStylesEl = "block";
-        timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "block";
+        timeEl = "block"; timeTypeEl = "block"; timeStartPropEl = "none"; timeEndPropEl = "none"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "block";
         queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "data":
@@ -943,7 +951,7 @@ function makeLayerBarAndModal(d, level, options) {
         maxnzEl = "block"; maxzEl = "block"; strcolEl = "none"; filcolEl = "none";
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none"; 
-        timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
+        timeEl = "block"; timeTypeEl = "block"; timeStartPropEl = "none"; timeEndPropEl = "none"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
         queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "query":
@@ -956,7 +964,7 @@ function makeLayerBarAndModal(d, level, options) {
         maxnzEl = "none"; maxzEl = "none"; strcolEl = "block"; filcolEl = "block";
         weightEl = "block"; opacityEl = "block"; radiusEl = "block"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none"; 
-        timeEl = "none"; timeTypeEl = "none"; timeFormatEl = "none"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
+        timeEl = "none"; timeTypeEl = "none"; timeStartPropEl = "none"; timeEndPropEl = "none"; timeFormatEl = "none"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
         queryEndpointEl = "block"; queryTypeEl = "block";
       break;
     case "vector":
@@ -969,7 +977,7 @@ function makeLayerBarAndModal(d, level, options) {
         maxnzEl = "none"; maxzEl = "block"; strcolEl = "block"; filcolEl = "block";
         weightEl = "block"; opacityEl = "block"; radiusEl = "block"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
-        timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "block";
+        timeEl = "block"; timeTypeEl = "block"; timeStartPropEl = "block"; timeEndPropEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "block";
       break;
     case "model":
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; demparserEl = "none"; controlledEl = "none";
@@ -981,7 +989,7 @@ function makeLayerBarAndModal(d, level, options) {
         maxnzEl = "none"; maxzEl = "none"; strcolEl = "none"; filcolEl = "none";
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
-        timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
+        timeEl = "block"; timeTypeEl = "block"; timeStartPropEl = "none"; timeEndPropEl = "none"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
         queryEndpointEl = "none"; queryTypeEl = "none";
       break; 
     default:
@@ -1113,14 +1121,14 @@ function makeLayerBarAndModal(d, level, options) {
   }
 
   var timeGlobalSel = "",
-    timeIndividualSel = "";
+    timeLocalSel = "";
   if (typeof d.time != "undefined") {
     switch (d.time.type) {
       case "global":
         timeGlobalSel = "selected";
         break;
-      case "individual":
-        timeIndividualSel = "selected";
+      case "local":
+        timeLocalSel = "selected";
         break;
       default:
     }
@@ -1434,11 +1442,19 @@ function makeLayerBarAndModal(d, level, options) {
             "<div id='timeTypeEl' class='input-field col s2 push-s1' style='display: " + timeTypeEl + "'>" +
               "<select>" +
                 "<option value='global' " + timeGlobalSel + ">Global</option>" +
-                "<option value='individual' " + timeIndividualSel + ">Individual</option>" +
+                "<option value='local' " + timeLocalSel + ">Local</option>" +
               "</select>" +
-              "<label>Time Type</label>" +
+              "<label style='cursor: default;' title='Global: Will rerequest the entire layer with updated {time-like} parameters.\nLocal: Just filter the existing features based on the specified time properties.'>Tile Type <i class='mdi mdi-information mdi-14px'></i></label>" +
             "</div>" +
-            "<div id='timeFormatEl' class='input-field col s5 push-s1' style='display: " + timeFormatEl + "'>" +
+            "<div id='timeStartPropEl' class='input-field col s2 push-s1' style='display: " + timeStartPropEl + "'>" +
+              "<input id='TimeStartProp" + n + "' type='text' class='validate' value='" + ((typeof d.time != "undefined") ? d.time.startProp || "" : "") + "'>" +
+              "<label for='TimeStartProp" + n + "'>Start Time Property Name</label>" +
+            "</div>" +
+            "<div id='timeEndPropEl' class='input-field col s2 push-s1' style='display: " + timeEndPropEl + "'>" +
+              "<input id='TimeEndProp" + n + "' type='text' class='validate' value='" + ((typeof d.time != "undefined") ? d.time.endProp || "" : "") + "'>" +
+              "<label for='TimeEndProp" + n + "'>Main Time Property Name (End)</label>" +
+            "</div>" +
+            "<div id='timeFormatEl' class='input-field col s2 push-s1' style='display: " + timeFormatEl + "'>" +
               "<input id='TimeFormat" + n + "' type='text' class='validate' value='" + ((typeof d.time != "undefined") ? d.time.format : "%Y-%m-%dT%H:%M:%SZ") + "'>" +
               "<label for='TimeFormat" + n + "'>Time Format</label>" +
             "</div>" +
@@ -1660,7 +1676,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
       maxnzEl = "block", maxzEl = "block", strcolEl = "block", filcolEl = "block",
       weightEl = "block", opacityEl = "block", radiusEl = "block", variableEl = "block",
       vtLayerEl = "none", vtIdEl = "none", vtKeyEl = "none", vtLayerSetStylesEl = "none",
-      timeEl = 'block', timeTypeEl = 'block', timeFormatEl = 'block', timeRefreshEl = 'none', timeIncrementEl = 'none', 
+      timeEl = 'block', timeTypeEl = 'block', timeStartPropEl = 'block', timeEndPropEl = 'block', timeFormatEl = 'block', timeRefreshEl = 'none', timeIncrementEl = 'none', 
       shapeEl = 'block', queryEndpointEl = "none", queryTypeEl = "none";
   //Kind of a repeat of above =\
 
@@ -1675,7 +1691,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         maxzEl = "none"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
         opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none"; 
-        timeEl = 'none'; timeTypeEl = 'none'; timeFormatEl = 'none'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
+        timeEl = 'none'; timeTypeEl = 'none'; timeStartPropEl = 'none'; timeEndPropEl = 'none'; timeFormatEl = 'none'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
         shapeEl = 'none'; queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "tile": barColor = "rgb(119, 15, 189)";
@@ -1687,7 +1703,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         maxzEl = "block"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
         opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
-        timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
+        timeEl = 'block'; timeTypeEl = 'block'; timeStartPropEl = 'none'; timeEndPropEl = 'none'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
         shapeEl = 'none'; queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "vectortile": barColor = "#bd0f8e";
@@ -1699,7 +1715,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         maxzEl = "block"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
         opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "block"; vtIdEl = "block"; vtKeyEl = "block"; vtLayerSetStylesEl = "block";  
-        timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
+        timeEl = 'block'; timeTypeEl = 'block'; timeStartPropEl = 'none'; timeEndPropEl = 'none'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
         shapeEl = 'block'; queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "data": barColor = "rgb(189, 15, 50)";
@@ -1711,7 +1727,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         maxzEl = "block"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
         opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
-        timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
+        timeEl = 'block'; timeTypeEl = 'block'; timeStartPropEl = 'none'; timeEndPropEl = 'none'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
         shapeEl = 'none'; queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "query": barColor = "#0fbd4d";
@@ -1723,7 +1739,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         maxzEl = "none"; strcolEl = "block"; filcolEl = "block"; weightEl = "block";
         opacityEl = "block"; radiusEl = "block"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
-        timeEl = 'none'; timeTypeEl = 'none'; timeFormatEl = 'none'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
+        timeEl = 'none'; timeTypeEl = 'none'; timeStartPropEl = 'none'; timeEndPropEl = 'none'; timeFormatEl = 'none'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
         shapeEl = 'none'; queryEndpointEl = "block"; queryTypeEl = "block";
       break;
     case "vector": barColor = "rgb(15, 119, 189)";
@@ -1735,7 +1751,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         maxzEl = "block"; strcolEl = "block"; filcolEl = "block"; weightEl = "block";
         opacityEl = "block"; radiusEl = "block"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
-        timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
+        timeEl = 'block'; timeTypeEl = 'block'; timeStartPropEl = 'block'; timeEndPropEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
         shapeEl = 'block'; queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "model": barColor = "rgb(189, 189, 15)";
@@ -1747,7 +1763,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         maxzEl = "none"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
         opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
-        timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
+        timeEl = 'block'; timeTypeEl = 'block'; timeStartPropEl = 'none'; timeEndPropEl = 'none'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
         shapeEl = 'none'; queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     default:
@@ -1802,6 +1818,8 @@ function mmgisLinkModalsToLayersTypeChange(e) {
   mainThis.find("#vtLayerSetStylesEl").css("display", vtLayerSetStylesEl);
   mainThis.find("#timeEl").css("display", timeEl);
   mainThis.find("#timeTypeEl").css("display", timeTypeEl);
+  mainThis.find("#timeStartPropEl").css("display", timeStartPropEl);
+  mainThis.find("#timeEndPropEl").css("display", timeEndPropEl);
   mainThis.find("#timeFormatEl").css("display", timeFormatEl);
   mainThis.find("#timeRefreshEl").css("display", timeRefreshEl);
   mainThis.find("#timeIncrementEl").css("display", timeIncrementEl);
@@ -2059,6 +2077,9 @@ function save() {
       json.time.visible = false;
     }
     json.time.format = $("#tab_time #time_format").val();
+    json.time.initialstart = $("#tab_time #time_initialstart").val();
+    json.time.initialend = $("#tab_time #time_initialend").val();
+
     //Tools
     for (var i = 0; i < tData.length; i++) {
       if ($("#tab_tools #tools_" + tData[i].name).prop("checked")) {
@@ -2185,6 +2206,8 @@ function save() {
           .find("#timeTypeEl select option:selected")
           .text()
           .toLowerCase();
+        var modalTimeStartProp = modal.find("#timeStartPropEl input").val();
+        var modalTimeEndProp = modal.find("#timeEndPropEl input").val();
         var modalTimeFormat = modal.find("#timeFormatEl input").val();
         var modalShape = modal.find("#shapeEl select option:selected").val();
 
@@ -2328,12 +2351,14 @@ function save() {
           // time properties
           layerObject.time = {};
           layerObject.time.enabled = modalTime; // static or timed
-          layerObject.time.type = modalTimeType; // 'global or individual'
+          layerObject.time.type = modalTimeType; // 'global or local'
           layerObject.time.isRelative = true; // absolute or relative
           layerObject.time.current =
             new Date().toISOString().split(".")[0] + "Z"; // initial time
           layerObject.time.start = ""; // initial start
           layerObject.time.end = ""; // initial end
+          layerObject.time.startProp = modalTimeStartProp;
+          layerObject.time.endProp = modalTimeEndProp;
           layerObject.time.format = modalTimeFormat; // time string format
           layerObject.time.refresh = "1 hours"; // refresh when the layer becomes stale
           layerObject.time.increment = "5 minutes"; // time bar steps

@@ -230,7 +230,23 @@ const TimeUI = {
         })
 
         setTimeout(() => {
-            let date = new Date()
+            let date
+
+            // Initial end
+            if (
+                L_.configData.time.initialend != null &&
+                L_.configData.time.initialend != 'now'
+            ) {
+                const dateStaged = new Date(L_.configData.time.initialend)
+                if (dateStaged == 'Invalid Date') {
+                    date = new Date()
+                    console.warn(
+                        "Invalid 'Initial End Time' provided. Defaulting to 'now'."
+                    )
+                } else date = dateStaged
+            } else date = new Date()
+            const savedEndDate = new Date(date)
+
             const offsetEndDate = new Date(
                 date.getTime() + date.getTimezoneOffset() * 60000
             )
@@ -238,8 +254,26 @@ const TimeUI = {
                 new Date(offsetEndDate)
             )
             TimeUI.endTempus.dates.setValue(parsedEnd)
+
+            // Initial start
             // Start 1 month ago
-            date.setUTCMonth(date.getUTCMonth() - 1)
+            if (L_.configData.time.initialstart == null)
+                date.setUTCMonth(date.getUTCMonth() - 1)
+            else {
+                const dateStaged = new Date(L_.configData.time.initialstart)
+                if (dateStaged == 'Invalid Date') {
+                    date.setUTCMonth(date.getUTCMonth() - 1)
+                    console.warn(
+                        "Invalid 'Initial Start Time' provided. Defaulting to 1 month before the end time."
+                    )
+                } else if (dateStaged.getTime() > savedEndDate.getTime()) {
+                    date.setUTCMonth(date.getUTCMonth() - 1)
+                    console.warn(
+                        "'Initial Start Time' cannot be later than the end time. Defaulting to 1 month before the end time."
+                    )
+                } else date = dateStaged
+            }
+
             const offsetStartDate = new Date(
                 date.getTime() + date.getTimezoneOffset() * 60000
             )
@@ -256,7 +290,7 @@ const TimeUI = {
             )
 
             TimeUI._remakeTimeSlider()
-            TimeUI._setCurrentTime(true)
+            TimeUI._setCurrentTime(true, savedEndDate)
         }, 2000)
     },
     toggleTimeNow(force) {
@@ -407,9 +441,9 @@ const TimeUI = {
             )
         })
     },
-    _setCurrentTime(force) {
+    _setCurrentTime(force, forceDate) {
         if (TimeUI.now === true || force === true) {
-            let date = new Date()
+            let date = forceDate || new Date()
             const offsetNowDate = new Date(
                 date.getTime() + date.getTimezoneOffset() * 60000
             )

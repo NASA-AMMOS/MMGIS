@@ -458,17 +458,25 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
         ul#tab_time_rows
           li.row.title
             .col.s2.push-s2 User Interface 
-          li.row.checkboxRow.col.s2.push-s2
-            p
+          li.row
+            #time_enabledEl.input-field.col.s2.push-s2
               input#time_enabled.filled-in.checkbox-color(type='checkbox')
               label(for='time_enabled' style='color: black;') Enabled
-            p
+            #time_visibledEl.input-field.col.s2.push-s2
               input#time_visible.filled-in.checkbox-color(type='checkbox')
               label(for='time_visible' style='color: black;') Visible
+          li.row.title
+            .col.s2.push-s2 Settings 
           li.row
-            #time_format_row.input-field.col.s4.push-s2
+            #time_format_row.input-field.col.s3.push-s2
               input#time_format.validate(type='text' value='%Y-%m-%dT%H:%M:%SZ')
               label(for='time_format') Time Format
+            #time_initialstartEl.input-field.col.s3.push-s2
+              input#time_initialstart.validate(type='text' value='' title="Parsable time (defaults to a month before the end time)")
+              label(for='time_initialstart') Initial Start Time
+            #time_initialendEl.input-field.col.s3.push-s2
+              input#time_initialend.validate(type='text' value='now' title="Parsable time (default to 'now')")
+              label(for='time_initialend') Initial End Time
 
       #tab_tools.col.s12
         a.helpFromDocs(href='docs/?page=Tools_Tab' target='__blank' rel='noopener')
