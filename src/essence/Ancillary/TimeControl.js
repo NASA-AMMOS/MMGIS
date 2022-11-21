@@ -182,6 +182,8 @@ var TimeControl = {
         if (typeof layer == 'string') {
             layer = L_.layersNamed[layer]
         }
+        if (L_.layersGroup[layer.name] === null) return
+
         var layerTimeFormat = d3.utcFormat(layer.time.format)
         layer.time.current = TimeControl.currentTime // keeps track of when layer was refreshed
 
@@ -197,24 +199,38 @@ var TimeControl = {
         } else {
             // replace start/endtime keywords
             if (layer.time && layer.time.enabled == true) {
-                var originalUrl = layer.url
-                layer.url = layer.url
-                    .replace(
-                        /{starttime}/g,
-                        layerTimeFormat(Date.parse(layer.time.start))
-                    )
-                    .replace(
-                        /{endtime}/g,
-                        layerTimeFormat(Date.parse(layer.time.end))
-                    )
+                if (layer.time.type === 'global') {
+                    var originalUrl = layer.url
+                    layer.url = layer.url
+                        .replace(
+                            /{starttime}/g,
+                            layerTimeFormat(Date.parse(layer.time.start))
+                        )
+                        .replace(
+                            /{endtime}/g,
+                            layerTimeFormat(Date.parse(layer.time.end))
+                        )
+                }
             }
-            // refresh map
-            if (L_.toggledArray[layer.name] || evenIfOff) {
-                await Map_.refreshLayer(layer)
+            if (
+                layer.type === 'vector' &&
+                layer.time.type === 'local' &&
+                layer.time.endProp != null
+            ) {
+                L_.timeFilterVectorLayer(
+                    layer.name,
+                    new Date(layer.time.start).getTime(),
+                    new Date(layer.time.end).getTime()
+                )
+            } else {
+                // refresh map
+                if (L_.toggledArray[layer.name] || evenIfOff) {
+                    await Map_.refreshLayer(layer)
+                }
+                // put start/endtime keywords back
+                if (layer.time && layer.time.enabled == true)
+                    layer.url = originalUrl
             }
-            // put start/endtime keywords back
-            if (layer.time && layer.time.enabled == true)
-                layer.url = originalUrl
         }
 
         return true
@@ -235,11 +251,7 @@ var TimeControl = {
         var updatedLayers = []
         for (let layerName in L_.layersNamed) {
             const layer = L_.layersNamed[layerName]
-            if (
-                layer.time &&
-                layer.time.enabled == true &&
-                layer.time.type == 'global'
-            ) {
+            if (layer.time && layer.time.enabled == true) {
                 layer.time.start = TimeControl.startTime
                 layer.time.end = TimeControl.currentTime
                 d3.select('.starttime.' + layer.name.replace(/\s/g, '')).text(
@@ -249,7 +261,7 @@ var TimeControl = {
                     layer.time.end
                 )
                 updatedLayers.push(layer.name)
-                if (layer.type == 'tile') {
+                if (layer.type === 'tile') {
                     TimeControl.setLayerWmsParams(layer)
                 }
             }
