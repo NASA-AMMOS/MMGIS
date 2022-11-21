@@ -1247,7 +1247,7 @@ function makeLayerBarAndModal(d, level, options) {
         "<p>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='nameEl' class='input-field col s" + (kindEl == 'none' ? 8 : 6) + " push-s1' style='display: " + nameEl + "'>" +
+            "<div id='nameEl' class='input-field col s" + (kindEl == 'none' ? 6 : 4) + " push-s1' style='display: " + nameEl + "'>" +
               "<input id='Name" + n + "' type='text' class='validate' value='" + unescape(d.name) + "'>" +
               "<label for='Name" + n + "'>Layer Name</label>" +
             "</div>" +
@@ -1273,6 +1273,13 @@ function makeLayerBarAndModal(d, level, options) {
                 "</optgroup>" +
               "</select>" +
               "<label>Layer Type</label>" +
+            "</div>" +
+            "<div id='visEl' class='input-field col s2 push-s1' style='display: " + visEl + "'>" +
+              "<select>" +
+                "<option value='true' " + visTrueSel + ">True</option>" +
+                "<option value='false' " + visFalseSel + ">False</option>" +
+              "</select>" +
+              "<label>Initial Visibility</label>" +
             "</div>" +
           "</div>" +
 
@@ -1402,13 +1409,6 @@ function makeLayerBarAndModal(d, level, options) {
             "<div id='maxzEl' class='input-field col s2 push-s1' style='display: " + maxzEl + "'>" +
               "<input id='Maxz" + n + "' type='text' class='validate' value='" + d.maxZoom + "'>" +
               "<label for='Maxz" + n + "'>Maximum Zoom</label>" +
-            "</div>" +
-            "<div id='visEl' class='input-field col s2 push-s1' style='display: " + visEl + "'>" +
-              "<select>" +
-                "<option value='true' " + visTrueSel + ">True</option>" +
-                "<option value='false' " + visFalseSel + ">False</option>" +
-              "</select>" +
-              "<label>Initial Visibility</label>" +
             "</div>" +
             "<div id='initOpacEl' class='input-field col s2 push-s1' style='display: " + initOpacEl + "'>" +
               "<input id='InitialOpacity" + n + "' type='text' class='validate' value='" + ( d.initialOpacity == null ? 1 : d.initialOpacity ) + "'>" +

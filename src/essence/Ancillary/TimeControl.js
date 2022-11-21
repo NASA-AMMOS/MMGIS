@@ -182,6 +182,8 @@ var TimeControl = {
         if (typeof layer == 'string') {
             layer = L_.layersNamed[layer]
         }
+        if (L_.layersGroup[layer.name] === null) return
+
         var layerTimeFormat = d3.utcFormat(layer.time.format)
         layer.time.current = TimeControl.currentTime // keeps track of when layer was refreshed
 
