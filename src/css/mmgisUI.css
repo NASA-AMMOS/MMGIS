@@ -1548,3 +1548,33 @@ input::-webkit-inner-spin-button {
     border-top-color: #fff;
     animation: layerLoadingSpin 1s ease-in-out infinite;
 }
+#toast-container {
+    position: fixed !important;
+    bottom: 40px!important;
+    right: 40px !important;
+}
+.mmgisToast {
+    z-index: 1000;
+    border-radius: 2px;
+    top: 35px;
+    width: auto;
+    margin-top: 10px;
+    position: relative;
+    max-width:100%;
+    height: auto;
+    line-height: 1.5em;
+    background-color: var(--color-mmgis);
+    padding: 10px 25px;
+/*
+    font-size: 1.1rem;
+    font-weight: 300;
+*/
+    color: var(--color-f);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: default;
+}
+.mmgisToast.failure {
+    background-color: #a11717;
+}

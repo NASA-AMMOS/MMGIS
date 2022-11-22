@@ -19,6 +19,7 @@
 
 import $ from 'jquery'
 import WebSocket from 'isomorphic-ws'
+import M from 'materialize-css'
 import F_ from './Basics/Formulae_/Formulae_'
 import T_ from './Basics/Test_/Test_'
 import L_ from './Basics/Layers_/Layers_'
@@ -125,6 +126,118 @@ $(document.body).keydown(function (e) {
 var essence = {
     configData: null,
     hasSwapped: false,
+    ws: null,
+    websocketPingInterval: null,
+    connectWebSocket: function(path) {
+        essence.ws = new WebSocket(path)
+
+        essence.ws.onerror = function(e) {
+            console.log(`Unable to connect to WebSocket at ${path}`)
+
+            M.toast({
+                html: "Not connected to WebSocket. Will retry in 1 minute...",
+                displayLength: 10000,
+                classes: "mmgisToast failure",
+            });
+        }
+
+        essence.ws.onopen = function () {
+            console.log('Websocket connection opened...')
+
+            UserInterface_.removeLayerUpdateButton()
+            M.toast({
+                html: "Successfully connected to WebSocket",
+                displayLength: 1600,
+                classes: "mmgisToast",
+            });
+        }
+
+        essence.ws.onmessage = function (data) {
+            if (data.data) {
+                try {
+                    const parsed = JSON.parse(data.data)
+                    const mission = essence.configData.msv.mission
+
+                    if (
+                        !parsed.body.mission ||
+                        parsed.body.mission !== mission
+                    ) {
+                        return
+                    }
+
+                    if ('info' in parsed) {
+                        const { type, layerName } = parsed.info
+
+                        if (
+                            type === 'addLayer' ||
+                            type === 'updateLayer' ||
+                            type === 'removeLayer'
+                        ) {
+                            calls.api(
+                                'get',
+                                {
+                                    mission,
+                                },
+                                async function (data) {
+                                    if (parsed.forceClientUpdate) {
+                                        // Force update the client side
+                                        await L_.autoUpdateLayer(
+                                            data,
+                                            layerName,
+                                            type
+                                        )
+                                    } else {
+                                        L_.addLayerQueue.push({
+                                            newLayerName: layerName,
+                                            data,
+                                            type,
+                                        })
+
+                                        UserInterface_.updateLayerUpdateButton(
+                                            'ADD_LAYER'
+                                        )
+                                    }
+                                },
+                                function (e) {
+                                    console.warn(
+                                        "Warning: Couldn't load: " +
+                                            mission +
+                                            ' configuration.'
+                                    )
+                                }
+                            )
+                        }
+                    } else {
+                        if (parsed.body && parsed.body.config) {
+                            UserInterface_.updateLayerUpdateButton('RELOAD')
+                        }
+                    }
+
+                    // Dispatch `websocketChange` event
+                    let _event = new CustomEvent('websocketChange', {
+                        detail: {
+                            layer:
+                                typeof layerName !== 'undefined'
+                                    ? layerName
+                                    : null,
+                            type: typeof type !== 'undefined' ? type : null,
+                            data: parsed,
+                        },
+                    })
+                    document.dispatchEvent(_event)
+                } catch (e) {
+                    console.warn(
+                        `Error parsing data from MMGIS websocket: ${e}`
+                    )
+                }
+            }
+        }
+
+        essence.ws.onclose = function () {
+            console.log('Closed websocket connection...')
+            UserInterface_.updateLayerUpdateButton('DISCONNECTED')
+        }
+    },
     init: function (config, missionsList, swapping) {
         //Save the config data
         this.configData = config
@@ -217,93 +330,21 @@ var essence = {
                     ? `${protocol}://localhost:${port}/`
                     : `${protocol}://${window.location.host}/`
 
-            const ws = new WebSocket(path)
+            function connectWS(path) {
+                console.log("----- connectWS-----")
 
-            ws.onmessage = function (data) {
-                if (data.data) {
-                    try {
-                        const parsed = JSON.parse(data.data)
-                        const mission = essence.configData.msv.mission
+                console.log("\tessence.ws.readyState", essence.ws?.readyState)
+                // https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/readyState
+                if (essence.ws === undefined || essence.ws === null
+                        || (essence.ws && essence.ws.readyState === 3)) {
+                    console.log("\tWebSocket is undefined or closed")
 
-                        if (
-                            !parsed.body.mission ||
-                            parsed.body.mission !== mission
-                        ) {
-                            return
-                        }
-
-                        if ('info' in parsed) {
-                            const { type, layerName } = parsed.info
-
-                            if (
-                                type === 'addLayer' ||
-                                type === 'updateLayer' ||
-                                type === 'removeLayer'
-                            ) {
-                                calls.api(
-                                    'get',
-                                    {
-                                        mission,
-                                    },
-                                    async function (data) {
-                                        if (parsed.forceClientUpdate) {
-                                            // Force update the client side
-                                            await L_.autoUpdateLayer(
-                                                data,
-                                                layerName,
-                                                type
-                                            )
-                                        } else {
-                                            L_.addLayerQueue.push({
-                                                newLayerName: layerName,
-                                                data,
-                                                type,
-                                            })
-
-                                            UserInterface_.updateLayerUpdateButton(
-                                                'ADD_LAYER'
-                                            )
-                                        }
-                                    },
-                                    function (e) {
-                                        console.warn(
-                                            "Warning: Couldn't load: " +
-                                                mission +
-                                                ' configuration.'
-                                        )
-                                    }
-                                )
-                            }
-                        } else {
-                            if (parsed.body && parsed.body.config) {
-                                UserInterface_.updateLayerUpdateButton('RELOAD')
-                            }
-                        }
-
-                        // Dispatch `websocketChange` event
-                        let _event = new CustomEvent('websocketChange', {
-                            detail: {
-                                layer:
-                                    typeof layerName !== 'undefined'
-                                        ? layerName
-                                        : null,
-                                type: typeof type !== 'undefined' ? type : null,
-                                data: parsed,
-                            },
-                        })
-                        document.dispatchEvent(_event)
-                    } catch (e) {
-                        console.warn(
-                            `Error parsing data from MMGIS websocket: ${e}`
-                        )
-                    }
+                    essence.connectWebSocket(path)
                 }
             }
 
-            ws.onclose = function () {
-                console.log('Closed websocket connection...')
-                UserInterface_.updateLayerUpdateButton('DISCONNECTED')
-            }
+            connectWS(path)
+            essence.websocketPingInterval = setInterval(connectWS, 10000, path); // 10 seconds
         }
     },
     swapMission(to) {
