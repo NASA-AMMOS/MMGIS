@@ -1747,6 +1747,11 @@ var Formulae_ = {
             sec
         )
     },
+    isValidUrl(str) {
+        const a = document.createElement('a')
+        a.href = str
+        return a.host && a.host !== window.location.host
+    },
     /**
      * Returns an array of only the matching elements between two arrays
      * @param {[]} arr1

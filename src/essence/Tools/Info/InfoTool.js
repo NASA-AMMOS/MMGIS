@@ -444,7 +444,9 @@ var InfoTool = {
                                     `${keys[i]}:`,
                                 '</div>',
                                 '<div>',
-                                    node[keys[i]],
+                                    F_.isValidUrl(node[keys[i]]) ?
+                                        `<a href="${node[keys[i]]}" target="_blank">${node[keys[i]]}</a><i class='mdi mdi-open-in-new mdi-14px' style='margin-left: 2px;'></i>`
+                                        : node[keys[i]],
                                 '</div>',
                             '</li>'
                         ].join('\n'))
