@@ -2088,6 +2088,8 @@ var Formulae_ = {
 
         let xAxis = axes.x || 0
         let yAxis = axes.y || 0
+
+        if (xAxis === 0 || yAxis === 0) return null
         // Optional params
         options = options || {}
         let steps = options.steps || 32

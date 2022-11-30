@@ -802,15 +802,17 @@ const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {
                         angle: uncertaintyAngle,
                     }
                 )
-                for (
-                    let i = 0;
-                    i < feature.geometry.coordinates[0].length;
-                    i++
-                ) {
-                    feature.geometry.coordinates[0][i][2] =
-                        f.geometry.coordinates[2] + depth3d
+                if (feature) {
+                    for (
+                        let i = 0;
+                        i < feature.geometry.coordinates[0].length;
+                        i++
+                    ) {
+                        feature.geometry.coordinates[0][i][2] =
+                            f.geometry.coordinates[2] + depth3d
+                    }
+                    uncertaintyEllipseFeatures.push(feature)
                 }
-                uncertaintyEllipseFeatures.push(feature)
             }
         })
 
