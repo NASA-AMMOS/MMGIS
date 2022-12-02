@@ -861,6 +861,10 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
             reuseTiles: true,
             bounds: bb,
             time: typeof layerObj.time === 'undefined' ? '' : layerObj.time.end,
+            compositeTile:
+                typeof layerObj.time === 'undefined'
+                    ? false
+                    : layerObj.time.compositeTile || false,
             starttime:
                 typeof layerObj.time === 'undefined' ? '' : layerObj.time.start,
             endtime:

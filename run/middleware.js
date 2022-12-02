@@ -1,18 +1,84 @@
 const fs = require("fs");
 const path = require("path");
+const sharp = require("sharp");
+
 const rootDir = `${__dirname}/..`;
+const rootDirMissions = `${rootDir}/Missions`;
 
 const dirStore = {};
 const DIR_STORE_MAX_AGE = 3600000 / 2; // 1hours / 2
-function getTimePath(prepath, suffixPath, time) {
+
+async function compositeImageUrls(urls) {
+  try {
+    const output = await sharp({
+      create: {
+        width: 256,
+        height: 256,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
+    })
+      .composite(
+        urls.map((url) => {
+          return { input: `${rootDirMissions}${url}` };
+        })
+      )
+      .png()
+      .toBuffer();
+    return output;
+  } catch (err) {
+    return false;
+  }
+}
+
+async function onlyExistingFilepaths(paths) {
+  const filePromises = [];
+  paths.forEach((path) => {
+    filePromises.push(
+      new Promise(async (resolve, reject) => {
+        try {
+          await fs.promises.access(`${rootDirMissions}${path}`);
+          resolve(path);
+        } catch (err) {
+          resolve(false);
+        }
+      })
+    );
+  });
+  const filesExist = await Promise.all(filePromises).catch((err) => {});
+
+  return paths.filter((p) => filesExist.includes(p));
+}
+
+function getTimePath(prepath, suffixPath, time, starttime, returnUrls) {
   let dirs = dirStore[prepath];
   if (dirs) {
     dirs = dirs.dirs;
     time = time.replace(/:/g, "_").replace("Z", "");
 
+    if (starttime != null) {
+      starttime = starttime.replace(/:/g, "_").replace("Z", "");
+    }
+
     let closestTimeWithoutGoingOver = dirs.filter(function (v) {
-      return v.split("Z-")[0] <= time;
+      const s = v.split("Z-")[0];
+      if (s.indexOf("-to-") > -1) {
+        const t = s.split("-to-");
+
+        if (starttime != null) return !(time < t[0] || starttime > t[1]);
+        else return t[1] <= time;
+      } else {
+        if (starttime != null) return s >= starttime && s <= time;
+        else return s <= time;
+      }
     });
+    if (returnUrls) {
+      closestTimeWithoutGoingOver = closestTimeWithoutGoingOver.map((v) => {
+        return `${prepath}${v}${suffixPath}`;
+      });
+      return closestTimeWithoutGoingOver;
+    }
+
     if (closestTimeWithoutGoingOver.length > 0)
       closestTimeWithoutGoingOver =
         closestTimeWithoutGoingOver[closestTimeWithoutGoingOver.length - 1];
@@ -24,6 +90,48 @@ function getTimePath(prepath, suffixPath, time) {
     return false;
   }
   return false;
+}
+
+async function sendImage(req, res, next, relUrlSplit) {
+  if (req.query.composite === "true") {
+    let compositeUrls = getTimePath(
+      relUrlSplit[0],
+      relUrlSplit[1],
+      req.query.time,
+      req.query.starttime,
+      true
+    );
+
+    compositeUrls = await onlyExistingFilepaths(compositeUrls);
+    // Never composite more than 100 images
+    compositeUrls = compositeUrls.slice(-100);
+
+    if (compositeUrls.length > 1) {
+      const outputImage = await compositeImageUrls(compositeUrls);
+      if (outputImage === false) res.sendStatus(404);
+      else {
+        res.contentType("image/webp");
+        res.send(Buffer.from(outputImage, "binary"));
+      }
+    } else if (compositeUrls.length === 1 && compositeUrls[0] != null) {
+      req.url = compositeUrls[0];
+      next();
+    } else {
+      res.sendStatus(404);
+    }
+  } else {
+    const newUrl = getTimePath(
+      relUrlSplit[0],
+      relUrlSplit[1],
+      req.query.time,
+      req.query.starttime
+    );
+    if (!newUrl) res.sendStatus(404);
+    else {
+      req.url = newUrl;
+      next();
+    }
+  }
 }
 
 const middleware = {
@@ -42,6 +150,7 @@ const middleware = {
             dirs: [],
           };
         }
+
         if (
           Date.now() - dirStore[relUrlSplit[0]].lastUpdated >
           DIR_STORE_MAX_AGE
@@ -58,32 +167,14 @@ const middleware = {
                 dirStore[relUrlSplit[0]].lastUpdated = Date.now();
                 dirStore[relUrlSplit[0]].dirs = dirs.sort();
 
-                const newUrl = getTimePath(
-                  relUrlSplit[0],
-                  relUrlSplit[1],
-                  req.query.time
-                );
-                if (!newUrl) res.sendStatus(404);
-                else {
-                  req.url = newUrl;
-                  next();
-                }
+                sendImage(req, res, next, relUrlSplit);
               } else {
                 res.sendStatus(404);
               }
             }
           );
         } else {
-          const newUrl = getTimePath(
-            relUrlSplit[0],
-            relUrlSplit[1],
-            req.query.time
-          );
-          if (!newUrl) res.sendStatus(404);
-          else {
-            req.url = newUrl;
-            next();
-          }
+          sendImage(req, res, next, relUrlSplit);
         }
       } else next();
     };

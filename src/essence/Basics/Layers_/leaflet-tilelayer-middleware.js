@@ -22,8 +22,10 @@ var colorFilterExtension = {
             .replace(/{time}/g, this.options.time)
             .replace(/{starttime}/g, this.options.starttime)
             .replace(/{endtime}/g, this.options.endtime)
-
-        if (this.options.time) url += `?time=${this.options.endtime}`
+        if (this.options.time) {
+            url += `?starttime=${this.options.starttime}&time=${this.options.endtime}`
+            if (this.options.compositeTile === true) url += `&composite=true`
+        }
         return url
     },
     colorFilter: function () {
