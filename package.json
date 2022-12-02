@@ -130,6 +130,7 @@
     "sass-loader": "8.0.2",
     "semver": "6.3.0",
     "sequelize": "^5.21.2",
+    "sharp": "^0.31.2",
     "showdown": "^2.1.0",
     "sortablejs": "^1.15.0",
     "string-replace-loader": "^2.3.0",

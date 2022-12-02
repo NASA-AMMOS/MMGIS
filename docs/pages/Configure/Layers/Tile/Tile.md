@@ -87,3 +87,9 @@ Whether the layer should use global time values or function independently with i
 
 _type:_ string _optional_  
 The string format to be used in the URL for `{time}`. Defaults to `%Y-%m-%dT%H:%M:%SZ`.
+
+#### Composited Time Tile
+
+_type:_ boolean
+
+When using MMGIS-served time tiles (time enabled, `{t}` in the url, tiles served under /Missions in the format described in Time_Tiles), whether to composite/merge each tile with with the other tiles are the same location across the time query. This is useful when Time Tile data is sparse. It is a more expensive operation. If your Time Tiles are complete (no alpha in a tile), leave this False as merging tiles historically would have no effect.
