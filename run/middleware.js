@@ -61,7 +61,7 @@ function getTimePath(prepath, suffixPath, time, starttime, returnUrls) {
     }
 
     let closestTimeWithoutGoingOver = dirs.filter(function (v) {
-      const s = v.split("Z-")[0];
+      const s = v.split("--")[0].replace(/Z/g, "");
       if (s.indexOf("-to-") > -1) {
         const t = s.split("-to-");
 
