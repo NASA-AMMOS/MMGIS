@@ -25,12 +25,12 @@ require("dotenv").config();
 const attributes = {
   file_id: {
     type: Sequelize.INTEGER,
-    allowNull: false
+    allowNull: false,
   },
   level: {
     type: Sequelize.INTEGER,
     unique: false,
-    allowNull: false
+    allowNull: false,
   },
   intent: {
     type: Sequelize.ENUM,
@@ -44,24 +44,24 @@ const attributes = {
       "line",
       "point",
       "text",
-      "arrow"
+      "arrow",
     ],
     allowNull: true,
-    defaultValue: null
+    defaultValue: null,
   },
   properties: {
     type: Sequelize.JSON,
     allowNull: true,
-    defaultValue: {}
+    defaultValue: {},
   },
   geom: {
     type: Sequelize.GEOMETRY,
-    allowNull: true
-  }
+    allowNull: true,
+  },
 };
 
 const options = {
-  timestamps: false
+  timestamps: false,
 };
 
 var Userfeatures = sequelize.define("user_features", attributes, options);

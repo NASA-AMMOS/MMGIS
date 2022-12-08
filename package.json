@@ -36,8 +36,8 @@
     "cesium"
   ],
   "scripts": {
-    "start": "node run/server.js",
-    "start:prod": "cross-env NODE_ENV=production node run/server.js",
+    "start": "node run/init-db.js && node run/server.js",
+    "start:prod": "node run/init-db.js && cross-env NODE_ENV=production node run/server.js",
     "start:prod:with_examples": "cross-env NODE_ENV=production node run/server.js --with_examples",
     "start:docs": "cd ./docs && bundle exec jekyll serve",
     "start:analyzer": "node run/server.js --analyze",

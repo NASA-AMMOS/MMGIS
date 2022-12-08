@@ -25,28 +25,28 @@ require("dotenv").config();
 const attributes = {
   file_id: {
     type: Sequelize.INTEGER,
-    allowNull: false
+    allowNull: false,
   },
   history_id: {
     type: Sequelize.INTEGER,
-    allowNull: false
+    allowNull: false,
   },
   time: {
     type: Sequelize.BIGINT,
-    allowNull: false
+    allowNull: false,
   },
   action_index: {
     type: Sequelize.INTEGER,
-    allowNull: false
+    allowNull: false,
   },
   history: {
     type: Sequelize.DataTypes.ARRAY(Sequelize.DataTypes.INTEGER),
-    allowNull: true
-  }
+    allowNull: true,
+  },
 };
 
 const options = {
-  timestamps: false
+  timestamps: false,
 };
 
 // setup Filehistories model and its fields.
