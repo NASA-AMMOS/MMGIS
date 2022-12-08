@@ -11,22 +11,22 @@ var Config = sequelize.define(
     mission: {
       type: Sequelize.STRING,
       unique: false,
-      allowNull: false
+      allowNull: false,
     },
     config: {
       type: Sequelize.JSON,
       allowNull: true,
-      defaultValue: {}
+      defaultValue: {},
     },
     version: {
       type: Sequelize.DataTypes.INTEGER,
       unique: false,
-      allowNull: false
-    }
+      allowNull: false,
+    },
   },
   {
     timestamps: true,
-    updatedAt: false
+    updatedAt: false,
   }
 );
 
