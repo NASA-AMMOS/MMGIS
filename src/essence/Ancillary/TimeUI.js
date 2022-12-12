@@ -52,6 +52,8 @@ const TimeUI = {
         '10s',
         '20s',
     ],
+    _initialStart: null,
+    _initialEnd: null,
     init: function (timeChange) {
         TimeUI.timeChange = timeChange
         // prettier-ignore
@@ -226,65 +228,107 @@ const TimeUI = {
             TimeUI._refreshIntervals()
         })
 
-        setTimeout(() => {
-            let date
+        // Initial end
+        if (L_.FUTURES.endTime != null) {
+            L_.configData.time.initialend = L_.FUTURES.endTime
+        }
+        if (
+            L_.configData.time.initialend != null &&
+            L_.configData.time.initialend != 'now'
+        ) {
+            const dateStaged = new Date(L_.configData.time.initialend)
+            if (dateStaged == 'Invalid Date') {
+                TimeUI._initialEnd = new Date()
+                console.warn(
+                    "Invalid 'Initial End Time' provided. Defaulting to 'now'."
+                )
+            } else TimeUI._initialEnd = dateStaged
+        } else TimeUI._initialEnd = new Date()
 
-            // Initial end
-            if (
-                L_.configData.time.initialend != null &&
-                L_.configData.time.initialend != 'now'
-            ) {
-                const dateStaged = new Date(L_.configData.time.initialend)
-                if (dateStaged == 'Invalid Date') {
-                    date = new Date()
-                    console.warn(
-                        "Invalid 'Initial End Time' provided. Defaulting to 'now'."
-                    )
-                } else date = dateStaged
-            } else date = new Date()
-            const savedEndDate = new Date(date)
-
-            const offsetEndDate = new Date(
-                date.getTime() + date.getTimezoneOffset() * 60000
+        // Initial start
+        // Start 1 month ago
+        TimeUI._initialStart = new Date(TimeUI._initialEnd)
+        if (L_.FUTURES.startTime != null) {
+            L_.configData.time.initialstart = L_.FUTURES.startTime
+        }
+        if (L_.configData.time.initialstart == null)
+            TimeUI._initialStart.setUTCMonth(
+                TimeUI._initialStart.getUTCMonth() - 1
             )
-            const parsedEnd = TimeUI.endTempus.dates.parseInput(
-                new Date(offsetEndDate)
-            )
-            TimeUI.endTempus.dates.setValue(parsedEnd)
+        else {
+            const dateStaged = new Date(L_.configData.time.initialstart)
+            if (dateStaged === 'Invalid Date') {
+                TimeUI._initialStart.setUTCMonth(
+                    TimeUI._initialStart.getUTCMonth() - 1
+                )
+                console.warn(
+                    "Invalid 'Initial Start Time' provided. Defaulting to 1 month before the end time."
+                )
+            } else if (dateStaged.getTime() > TimeUI._initialEnd.getTime()) {
+                TimeUI._initialStart.setUTCMonth(
+                    TimeUI._initialStart.getUTCMonth() - 1
+                )
+                console.warn(
+                    "'Initial Start Time' cannot be later than the end time. Defaulting to 1 month before the end time."
+                )
+            } else TimeUI._initialStart = dateStaged
+        }
 
-            // Initial start
-            // Start 1 month ago
-            if (L_.configData.time.initialstart == null)
+        // Initialize the time control times, but don't trigger events
+        TimeUI.timeChange(
+            TimeUI._initialStart.toISOString(),
+            TimeUI._initialEnd.toISOString(),
+            null,
+            true
+        )
+    },
+    fina() {
+        let date
+        // Initial end
+        date = new Date(TimeUI._initialEnd)
+        const savedEndDate = new Date(date)
+
+        const offsetEndDate = new Date(
+            date.getTime() + date.getTimezoneOffset() * 60000
+        )
+        const parsedEnd = TimeUI.endTempus.dates.parseInput(
+            new Date(offsetEndDate)
+        )
+        TimeUI.endTempus.dates.setValue(parsedEnd)
+
+        // Initial start
+        // Start 1 month ago
+        if (L_.configData.time.initialstart == null)
+            date.setUTCMonth(date.getUTCMonth() - 1)
+        else {
+            const dateStaged = new Date(L_.configData.time.initialstart)
+            if (dateStaged === 'Invalid Date') {
                 date.setUTCMonth(date.getUTCMonth() - 1)
-            else {
-                const dateStaged = new Date(L_.configData.time.initialstart)
-                if (dateStaged == 'Invalid Date') {
-                    date.setUTCMonth(date.getUTCMonth() - 1)
-                    console.warn(
-                        "Invalid 'Initial Start Time' provided. Defaulting to 1 month before the end time."
-                    )
-                } else if (dateStaged.getTime() > savedEndDate.getTime()) {
-                    date.setUTCMonth(date.getUTCMonth() - 1)
-                    console.warn(
-                        "'Initial Start Time' cannot be later than the end time. Defaulting to 1 month before the end time."
-                    )
-                } else date = dateStaged
-            }
+                console.warn(
+                    "Invalid 'Initial Start Time' provided. Defaulting to 1 month before the end time."
+                )
+            } else if (dateStaged.getTime() > savedEndDate.getTime()) {
+                date.setUTCMonth(date.getUTCMonth() - 1)
+                console.warn(
+                    "'Initial Start Time' cannot be later than the end time. Defaulting to 1 month before the end time."
+                )
+            } else date = dateStaged
+        }
+        date = new Date(TimeUI._initialStart)
 
-            const offsetStartDate = new Date(
-                date.getTime() + date.getTimezoneOffset() * 60000
-            )
-            const parsedStart = TimeUI.startTempus.dates.parseInput(
-                new Date(offsetStartDate)
-            )
-            TimeUI.startTempus.dates.setValue(parsedStart)
+        const offsetStartDate = new Date(
+            date.getTime() + date.getTimezoneOffset() * 60000
+        )
+        const parsedStart = TimeUI.startTempus.dates.parseInput(
+            new Date(offsetStartDate)
+        )
+        TimeUI.startTempus.dates.setValue(parsedStart)
 
-            $('#mmgisTimeUIPlay').on('click', TimeUI.togglePlay)
-            $('#mmgisTimeUIPresent').on('click', TimeUI.toggleTimeNow)
+        $('#mmgisTimeUIPlay').on('click', TimeUI.togglePlay)
+        $('#mmgisTimeUIPresent').on('click', TimeUI.toggleTimeNow)
 
-            TimeUI._remakeTimeSlider()
-            TimeUI._setCurrentTime(true, savedEndDate)
-        }, 2000)
+        TimeUI._remakeTimeSlider()
+        TimeUI._setCurrentTime(true, savedEndDate)
     },
     togglePlay() {
         if (TimeUI.play) {

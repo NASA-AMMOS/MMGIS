@@ -12,7 +12,10 @@ export const captureVector = (layerObj, options, cb) => {
 
     // If there is no url to a JSON file but the "controlled" option is checked in the layer config,
     // create the geoJSON layer with empty GeoJSON data
-    if (options.useEmptyGeoJSON || layerData.controlled) {
+    if (
+        options.useEmptyGeoJSON ||
+        (layerData.controlled && layerUrl.length === 0)
+    ) {
         cb(F_.getBaseGeoJSON())
         return
     }

@@ -2529,7 +2529,7 @@ var L_ = {
 
         if (type === 'updateLayer' && layerName in L_.layersNamed) {
             // Update layer
-            await L_.TimeControl_.reloadLayer(layerName, true)
+            await L_.TimeControl_.reloadLayer(layerName, true, true)
         } else if (type === 'addLayer') {
             // Add layer
             await L_.Map_.makeLayer(L_.layersDataByName[layerName])

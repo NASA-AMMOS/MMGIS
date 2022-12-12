@@ -1121,12 +1121,12 @@ function makeLayerBarAndModal(d, level, options) {
     timeFalseSel = "selected";
   }
 
-  var timeGlobalSel = "",
+  var timeRequerySel = "",
     timeLocalSel = "";
   if (typeof d.time != "undefined") {
     switch (d.time.type) {
-      case "global":
-        timeGlobalSel = "selected";
+      case "requery":
+        timeRequerySel = "selected";
         break;
       case "local":
         timeLocalSel = "selected";
@@ -1134,7 +1134,7 @@ function makeLayerBarAndModal(d, level, options) {
       default:
     }
   } else {
-    timeGlobalSel = "selected";
+    timeRequerySel = "selected";
   }
 
   var timeCompositeTileTrueSel = "",
@@ -1458,10 +1458,10 @@ function makeLayerBarAndModal(d, level, options) {
             "</div>" +
             "<div id='timeTypeEl' class='input-field col s2 push-s1' style='display: " + timeTypeEl + "'>" +
               "<select>" +
-                "<option value='global' " + timeGlobalSel + ">Global</option>" +
+                "<option value='requery' " + timeRequerySel + ">Requery</option>" +
                 "<option value='local' " + timeLocalSel + ">Local</option>" +
               "</select>" +
-              "<label style='cursor: default;' title='Global: Will rerequest the entire layer with updated {time-like} parameters.\nLocal: Just filter the existing features based on the specified time properties.'>Tile Type <i class='mdi mdi-information mdi-14px'></i></label>" +
+              "<label style='cursor: default;' title='Requery: Will rerequest the entire layer with updated {time-like} parameters.\nLocal: Just filter the existing features based on the specified time properties.'>Time Type <i class='mdi mdi-information mdi-14px'></i></label>" +
             "</div>" +
             "<div id='timeStartPropEl' class='input-field col s2 push-s1' style='display: " + timeStartPropEl + "'>" +
               "<input id='TimeStartProp" + n + "' type='text' class='validate' value='" + ((typeof d.time != "undefined") ? d.time.startProp || "" : "") + "'>" +
@@ -2379,7 +2379,7 @@ function save() {
           // time properties
           layerObject.time = {};
           layerObject.time.enabled = modalTime; // static or timed
-          layerObject.time.type = modalTimeType; // 'global or local'
+          layerObject.time.type = modalTimeType; // 'requery or local'
           layerObject.time.isRelative = true; // absolute or relative
           layerObject.time.current =
             new Date().toISOString().split(".")[0] + "Z"; // initial time
