@@ -30,6 +30,8 @@ A file path that points to a geojson. If the path is relative, it will be relati
 _type:_ bool
 Whether the layer can be dynamically updated or not. If true, the layer can be dynamically updated and the URL is not required.
 
+If true and a URL is set and Time Enabled is true, the initial url query will be performed.
+
 #### Legend
 
 _type:_ string  
@@ -55,10 +57,12 @@ A value from 0 to 1 of the layer's initial opacity. 1 is fully opaque.
 _type:_ bool  
 True if the layer is time enabled. URLs that contain `{starttime}` or `{endtime}` will be dynamically replaced by their set values when the layer is fetched.
 
+If true and a URL is set and Controlled is true, only the initial url query will be performed.
+
 #### Time Type
 
-_type:_ enum [Global, Individual]  
-Whether the layer should use global time values or function independently with its own time values.
+_type:_ enum [Requery, Local]  
+When the time changes, whether the layer should Requery the source or filter the layer Locally (based on feature properties.
 
 #### Time Format
 
