@@ -178,42 +178,48 @@ router.post("/login", function (req, res) {
       } else {
         function pass(err, result, again) {
           if (result) {
-            // Save the user's info in the session
-            req.session.user = user.username;
-            req.session.uid = user.id;
-            req.session.token = crypto.randomBytes(128).toString("hex");
-            req.session.permission = user.permission;
+            req.session.regenerate((err) => {
+              // Save the user's info in the session
+              req.session.user = user.username;
+              req.session.uid = user.id;
+              req.session.token = crypto.randomBytes(128).toString("hex");
+              req.session.permission = user.permission;
 
-            User.update(
-              {
-                token: req.session.token,
-              },
-              {
-                where: {
-                  id: user.id,
-                  username: user.username,
-                },
-              }
-            )
-              .then(() => {
-                res.send({
-                  status: "success",
-                  username: user.username,
+              User.update(
+                {
                   token: req.session.token,
-                  groups: getUserGroups(user.username, req.leadGroupName),
-                  additional:
-                    process.env.THIRD_PARTY_COOKIES === "true"
-                      ? `; SameSite=None;${
-                          process.env.NODE_ENV === "production" ? " Secure" : ""
-                        }`
-                      : "",
+                },
+                {
+                  where: {
+                    id: user.id,
+                    username: user.username,
+                  },
+                }
+              )
+                .then(() => {
+                  req.session.save(() => {
+                    res.send({
+                      status: "success",
+                      username: user.username,
+                      token: req.session.token,
+                      groups: getUserGroups(user.username, req.leadGroupName),
+                      additional:
+                        process.env.THIRD_PARTY_COOKIES === "true"
+                          ? `; SameSite=None;${
+                              process.env.NODE_ENV === "production"
+                                ? " Secure"
+                                : ""
+                            }`
+                          : "",
+                    });
+                  });
+                  return null;
+                })
+                .catch((err) => {
+                  res.send({ status: "failure", message: "Login failed." });
+                  return null;
                 });
-                return null;
-              })
-              .catch((err) => {
-                res.send({ status: "failure", message: "Login failed." });
-                return null;
-              });
+            });
             return null;
           } else {
             res.send({
@@ -285,7 +291,11 @@ router.post("/logout", function (req, res) {
       }
     )
       .then(() => {
-        res.send({ status: "success" });
+        req.session.save(() => {
+          req.session.regenerate((err) => {
+            res.send({ status: "success" });
+          });
+        });
         return null;
       })
       .catch((err) => {

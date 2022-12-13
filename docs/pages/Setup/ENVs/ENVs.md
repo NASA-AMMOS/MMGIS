@@ -80,6 +80,10 @@ Sets the `Content-Security-Policy: frame-ancestors` header to allow the embeddin
 
 Sets the `Content-Security-Policy: frame-src` header to allow the embedding iframes from external origins into MMGIS | string[] | default `null` | ex. FRAME_SRC='["http://localhost:8888"]'
 
+#### `THIRD_PARTY_COOKIES=`
+
+Sets "SameSite=None; Secure" on the login cookie. Useful when using AUTH=local as an iframe within a cross-origin page. | boolean | default `false`
+
 #### `PUBLIC_URL=`
 
 Set MMGIS to be deployed under a subpath. Use full and absolute paths only to the project's build directory. For example if serving at the subpath 'mmgis/' is desired, set PUBLIC_URL to 'https://{domain}/mmgis/build'. Changing PUBLIC_URL required a rebuild. | string | default `null` (domain root build '/build')

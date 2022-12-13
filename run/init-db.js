@@ -75,7 +75,6 @@ async function initializeDatabase() {
             .query(`CREATE EXTENSION postgis;`)
             .then(() => {
               logger("info", `Created POSTGIS extension.`, "connection");
-              resolve();
             })
             .catch((err) => {
               logger(
@@ -83,9 +82,32 @@ async function initializeDatabase() {
                 `POSTGIS extension already exists. Nothing to do...`,
                 "connection"
               );
-
-              resolve();
             });
+          await sequelize
+            .query(
+              `
+            CREATE TABLE "session" (
+              "sid" varchar NOT NULL COLLATE "default",
+              "sess" json NOT NULL,
+              "expire" timestamp(6) NOT NULL
+            )
+            WITH (OIDS=FALSE);
+            
+            ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE;
+            
+            CREATE INDEX "IDX_session_expire" ON "session" ("expire");`
+            )
+            .then(() => {
+              logger("info", `Created "session" table.`, "connection");
+            })
+            .catch((err) => {
+              logger(
+                "info",
+                `"session" table already exists. Nothing to do...`,
+                "connection"
+              );
+            });
+          resolve();
         })
         .catch((err) => {
           logger(

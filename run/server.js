@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const fs = require("fs");
 const http = require("http");
+const { Pool } = require("pg");
 var path = require("path");
 const packagejson = require("../package.json");
 var bodyParser = require("body-parser");
@@ -18,7 +19,6 @@ const rateLimit = require("express-rate-limit");
 const compression = require("compression");
 
 const session = require("express-session");
-var MemoryStore = require("memorystore")(session);
 
 const apiRouter = require("../API/Backend/APIs/routes/apis");
 
@@ -88,6 +88,14 @@ if (process.env.THIRD_PARTY_COOKIES === "true") {
   cookieOptions.sameSite = "None";
   if (process.env.NODE_ENV === "production") cookieOptions.secure = true;
 }
+
+const pool = new Pool({
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASS,
+  port: process.env.DB_PORT,
+});
 app.use(
   session({
     secret: process.env.SECRET || "Shhhh, it is a secret!",
@@ -96,8 +104,8 @@ app.use(
     resave: false,
     cookie: cookieOptions,
     saveUninitialized: false,
-    store: new MemoryStore({
-      checkPeriod: 86400000, // prune expired entries every 24h
+    store: new (require("connect-pg-simple")(session))({
+      pool,
     }),
   })
 );
@@ -495,6 +503,8 @@ setups.getBackendSetups(function (setups) {
         "server"
       )
     );
+
+  // STATICS
 
   app.use("/build", ensureUser(), express.static(path.join(rootDir, "/build")));
   app.use(
