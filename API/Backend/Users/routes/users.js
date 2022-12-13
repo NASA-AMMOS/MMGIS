@@ -153,32 +153,34 @@ router.post("/signup", function (req, res, next) {
  * User login
  */
 router.post("/login", function (req, res) {
-  let MMGISUser = req.cookies.MMGISUser
-    ? JSON.parse(req.cookies.MMGISUser)
-    : false;
-  let username = req.body.username || (MMGISUser ? MMGISUser.username : null);
+  clearLoginSession(req);
 
-  if (username == null) {
-    res.send({ status: "failure", message: "No username provided." });
-    return;
-  }
+  req.session.regenerate((err) => {
+    let MMGISUser = req.cookies.MMGISUser
+      ? JSON.parse(req.cookies.MMGISUser)
+      : false;
+    let username = req.body.username || (MMGISUser ? MMGISUser.username : null);
 
-  User.findOne({
-    where: {
-      username: username,
-    },
-    attributes: ["id", "username", "email", "password", "permission"],
-  })
-    .then((user) => {
-      if (!user) {
-        res.send({
-          status: "failure",
-          message: "Invalid username or password.",
-        });
-      } else {
-        function pass(err, result, again) {
-          if (result) {
-            req.session.regenerate((err) => {
+    if (username == null) {
+      res.send({ status: "failure", message: "No username provided." });
+      return;
+    }
+
+    User.findOne({
+      where: {
+        username: username,
+      },
+      attributes: ["id", "username", "email", "password", "permission"],
+    })
+      .then((user) => {
+        if (!user) {
+          res.send({
+            status: "failure",
+            message: "Invalid username or password.",
+          });
+        } else {
+          function pass(err, result, again) {
+            if (result) {
               // Save the user's info in the session
               req.session.user = user.username;
               req.session.uid = user.id;
@@ -219,50 +221,50 @@ router.post("/login", function (req, res) {
                   res.send({ status: "failure", message: "Login failed." });
                   return null;
                 });
-            });
+              return null;
+            } else {
+              res.send({
+                status: "failure",
+                message: "Invalid username or password.",
+              });
+              return null;
+            }
+          }
+
+          if (req.body.useToken && MMGISUser) {
+            if (MMGISUser.token == null) {
+              res.send({ status: "failure", message: "Bad token." });
+              return null;
+            }
+            User.findOne({
+              where: {
+                username: MMGISUser.username,
+                token: MMGISUser.token,
+              },
+            })
+              .then((user) => {
+                if (!user) {
+                  res.send({ status: "failure", message: "Bad token." });
+                } else {
+                  pass(null, true, true);
+                }
+                return null;
+              })
+              .catch((err) => {
+                res.send({ status: "failure", message: "Bad token." });
+              });
             return null;
           } else {
-            res.send({
-              status: "failure",
-              message: "Invalid username or password.",
-            });
-            return null;
+            bcrypt.compare(req.body.password, user.password, pass);
           }
-        }
-
-        if (req.body.useToken && MMGISUser) {
-          if (MMGISUser.token == null) {
-            res.send({ status: "failure", message: "Bad token." });
-            return null;
-          }
-          User.findOne({
-            where: {
-              username: MMGISUser.username,
-              token: MMGISUser.token,
-            },
-          })
-            .then((user) => {
-              if (!user) {
-                res.send({ status: "failure", message: "Bad token." });
-              } else {
-                pass(null, true, true);
-              }
-              return null;
-            })
-            .catch((err) => {
-              res.send({ status: "failure", message: "Bad token." });
-            });
           return null;
-        } else {
-          bcrypt.compare(req.body.password, user.password, pass);
         }
         return null;
-      }
-      return null;
-    })
-    .catch((err) => {
-      res.send({ status: "failure", message: "Bad token." });
-    });
+      })
+      .catch((err) => {
+        res.send({ status: "failure", message: "Bad token." });
+      });
+  });
   return null;
 });
 
@@ -271,10 +273,7 @@ router.post("/logout", function (req, res) {
     ? JSON.parse(req.cookies.MMGISUser)
     : false;
 
-  req.session.user = "guest";
-  req.session.uid = null;
-  req.session.token = null;
-  req.session.permission = null;
+  clearLoginSession(req);
 
   if (MMGISUser == false) {
     res.send({ status: "failure", message: "No user." });
@@ -313,6 +312,13 @@ function getUserGroups(user, leadGroupName) {
     groups[leadGroupName] = true;
   }
   return Object.keys(groups);
+}
+
+function clearLoginSession(req) {
+  req.session.user = "guest";
+  req.session.uid = null;
+  req.session.token = null;
+  req.session.permission = null;
 }
 
 module.exports = router;
