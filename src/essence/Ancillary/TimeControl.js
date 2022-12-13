@@ -48,7 +48,8 @@ var TimeControl = {
         initLayerDataTimes()
     },
     fina: function () {
-        TimeControl.timeUI.fina()
+        if ((TimeControl.enabled = true && TimeControl.timeUI != null))
+            TimeControl.timeUI.fina()
     },
     toggleTimeUI: function (isOn) {
         d3.select('#timeUI').style('visibility', function () {
