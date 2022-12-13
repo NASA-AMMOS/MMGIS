@@ -83,13 +83,18 @@ permissions.users = process.env.CSSO_GROUPS
 const port = parseInt(process.env.PORT || "8888", 10);
 
 /** set the session for application */
+const cookieOptions = { maxAge: 86400000 };
+if (process.env.THIRD_PARTY_COOKIES === "true") {
+  cookieOptions.sameSite = "None";
+  if (process.env.NODE_ENV === "production") cookieOptions.secure = true;
+}
 app.use(
   session({
     secret: process.env.SECRET || "Shhhh, it is a secret!",
     name: "MMGISSession",
     proxy: true,
     resave: false,
-    cookie: { maxAge: 86400000 },
+    cookie: cookieOptions,
     saveUninitialized: false,
     store: new MemoryStore({
       checkPeriod: 86400000, // prune expired entries every 24h
@@ -690,6 +695,7 @@ setups.getBackendSetups(function (setups) {
           FORCE_CONFIG_PATH: process.env.FORCE_CONFIG_PATH,
           CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER,
           ENABLE_MMGIS_WEBSOCKETS: process.env.ENABLE_MMGIS_WEBSOCKETS,
+          THIRD_PARTY_COOKIES: process.env.THIRD_PARTY_COOKIES,
           PORT: process.env.PORT,
           HOSTS: JSON.stringify({
             scienceIntent: process.env.SCIENCE_INTENT_HOST,

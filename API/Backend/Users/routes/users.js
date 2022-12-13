@@ -201,6 +201,12 @@ router.post("/login", function (req, res) {
                   username: user.username,
                   token: req.session.token,
                   groups: getUserGroups(user.username, req.leadGroupName),
+                  additional:
+                    process.env.THIRD_PARTY_COOKIES === "true"
+                      ? `; SameSite=None;${
+                          process.env.NODE_ENV === "production" ? " Secure" : ""
+                        }`
+                      : "",
                 });
                 return null;
               })

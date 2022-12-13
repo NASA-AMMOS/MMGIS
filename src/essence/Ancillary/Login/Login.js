@@ -479,12 +479,17 @@ var Login = {
 
 function loginSuccess(data, ignoreError) {
     if (data.status == 'success') {
-        document.cookie =
-            'MMGISUser=' +
-            JSON.stringify({
-                username: data.username,
-                token: data.token,
-            })
+        document.cookie = 'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+        document.cookie = `MMGISUser=${JSON.stringify({
+            username: data.username,
+            token: data.token,
+        })}${
+            mmgisglobal.THIRD_PARTY_COOKIES === 'true'
+                ? `; SameSite=None;${
+                      mmgisglobal.NODE_ENV === 'production' ? ' Secure' : ''
+                  }`
+                : ''
+        }`
 
         Login.loggedIn = true
         $('#loginErrorMessage').animate({ opacity: '0' }, 500)
