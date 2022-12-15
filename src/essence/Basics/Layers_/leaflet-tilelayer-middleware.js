@@ -234,7 +234,7 @@ L.TileLayer.ColorFilter = L.TileLayer.extend(colorFilterExtension)
 
 // We can't extend an already extended so we'll merge by hand
 L.TileLayer.WMSColorFilter = L.TileLayer.extend(
-    Object.assign(wmsExtension, colorFilterExtension)
+    Object.assign(colorFilterExtension, wmsExtension)
 )
 
 L.tileLayer.colorFilter = function (url, options) {
