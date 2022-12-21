@@ -36,6 +36,8 @@ const TimeUI = {
     _startTimestamp: null,
     _endTimestamp: null,
     _timeSliderTimestamp: null,
+    _timelineStartTimestamp: null,
+    _timelineEndTimestamp: null,
     now: false,
     numFrames: 24,
     intervalIndex: 6,
@@ -107,6 +109,65 @@ const TimeUI = {
     },
     getElement: function () {},
     attachEvents: function (timeChange) {
+        // Timeline pan and zoom
+        // zoom
+        $('#mmgisTimeUITimelineInner').on('mousewheel', function (e) {
+            const x = e.originalEvent.offsetX
+            const width = document
+                .getElementById('mmgisTimeUITimelineInner')
+                .getBoundingClientRect().width
+            // As opposed to per-cent
+            const perun = x / width
+            const direction = e.originalEvent.deltaY > 0 ? 1 : -1
+            const AMOUNT = 0.2
+            const dif =
+                TimeUI._timelineEndTimestamp - TimeUI._timelineStartTimestamp
+            const maxChangeAmount = dif * AMOUNT
+
+            const nextStart =
+                TimeUI._timelineStartTimestamp -
+                0 -
+                perun * maxChangeAmount * direction
+            const nextEnd =
+                TimeUI._timelineEndTimestamp -
+                0 +
+                (1 - perun) * maxChangeAmount * direction
+
+            TimeUI._drawTimeLine(nextStart, nextEnd)
+        })
+
+        // pan
+        $('#mmgisTimeUITimelineInner').on('mousedown', function () {
+            TimeUI._timelineDragging = true
+            $('#mmgisTimeUITimelineSlider').css({ pointerEvents: 'none' })
+            $('#mmgisTimeUITimelineInner').on('mousemove', TimeUI._timelineDrag)
+        })
+        $('#mmgisTimeUITimelineInner').on('mouseout', function () {
+            if (TimeUI._timelineDragging === true) {
+                $('#mmgisTimeUITimelineSlider').css({
+                    pointerEvents: 'inherit',
+                })
+                $('#mmgisTimeUITimelineInner').off(
+                    'mousemove',
+                    TimeUI._timelineDrag
+                )
+                TimeUI._timelineDragging = false
+            }
+        })
+        $('#mmgisTimeUITimelineInner').on('mouseup', function () {
+            if (TimeUI._timelineDragging === true) {
+                $('#mmgisTimeUITimelineSlider').css({
+                    pointerEvents: 'inherit',
+                })
+                $('#mmgisTimeUITimelineInner').off(
+                    'mousemove',
+                    TimeUI._timelineDrag
+                )
+                TimeUI._timelineDragging = false
+            }
+        })
+
+        // Time
         const options = {
             display: {
                 viewMode: 'months',
@@ -655,19 +716,40 @@ const TimeUI = {
             )
         }
     },
-    _drawTimeLine() {
+    _timelineDrag: function (e) {
+        if (TimeUI._timelineDragging === true) {
+            const dx = e.originalEvent.movementX
+            const width = document
+                .getElementById('mmgisTimeUITimelineInner')
+                .getBoundingClientRect().width
+            const dif =
+                TimeUI._timelineEndTimestamp - TimeUI._timelineStartTimestamp
+
+            const nextStart =
+                TimeUI._timelineStartTimestamp - 0 - (dif / width) * dx
+            const nextEnd =
+                TimeUI._timelineEndTimestamp - 0 - (dif / width) * dx
+
+            TimeUI._drawTimeLine(nextStart, nextEnd)
+        }
+    },
+    _drawTimeLine(forceStart, forceEnd) {
         const timelineElm = $('#mmgisTimeUITimelineInner')
         timelineElm.empty()
 
-        const s = TimeUI.removeOffset(TimeUI._startTimestamp)
-        const e = TimeUI.removeOffset(TimeUI._endTimestamp)
+        const s = forceStart || TimeUI.removeOffset(TimeUI._startTimestamp)
+        const e = forceEnd || TimeUI.removeOffset(TimeUI._endTimestamp)
+
         if (e == null || s == null) return
+
+        TimeUI._timelineStartTimestamp = s
+        TimeUI._timelineEndTimestamp = e
 
         const dif = e - s
 
         let unit = null
 
-        if (dif / MS.year > 3) {
+        if (dif / MS.year > 2.5) {
             unit = 'year'
         } else if (dif / MS.month > 1) {
             unit = 'month'

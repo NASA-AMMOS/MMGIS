@@ -144,6 +144,11 @@
     margin: 0px 7px;
 }
 
+#mmgisTimeUITimelineInner {
+    height: 100%;
+    width: 100%;
+    position: absolute;
+}
 .mmgisTimeUITick {
     position: absolute;
     top: 0;
