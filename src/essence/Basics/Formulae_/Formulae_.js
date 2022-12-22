@@ -100,6 +100,23 @@ var Formulae_ = {
 
         let currentDate
         switch (unit) {
+            case 'decade':
+                currentDate = new Date(
+                    Date.UTC(Math.floor(startDate.getFullYear() / 10) * 10)
+                )
+                while (currentDate < endDate) {
+                    currentDate.setUTCFullYear(
+                        Math.floor(currentDate.getUTCFullYear() / 10) * 10 + 10
+                    )
+                    timeStarts.push({
+                        ts: Date.parse(currentDate),
+                        label:
+                            Math.floor(currentDate.getUTCFullYear() / 10) * 10 +
+                            's',
+                    })
+                }
+
+                break
             case 'year':
                 currentDate = new Date(Date.UTC(startDate.getFullYear()))
                 while (currentDate < endDate) {
@@ -121,7 +138,7 @@ var Formulae_ = {
                         ts: Date.parse(currentDate),
                         label: Formulae_.monthNumberToName(
                             currentDate.getUTCMonth()
-                        ),
+                        ).toUpperCase(),
                     })
                 }
                 break

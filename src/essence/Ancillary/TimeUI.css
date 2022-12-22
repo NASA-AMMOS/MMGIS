@@ -86,7 +86,7 @@
     font-size: 11px;
     text-transform: uppercase;
     pointer-events: none;
-    color: var(--color-a5);
+    color: var(--color-h);
 }
 
 #mmgisTimeUITimeline {
@@ -95,14 +95,6 @@
     position: relative;
     user-select: none;
 }
-#mmgisTimeUITimelineFixedStartSlider {
-    position: absolute;
-    left: 200px;
-    width: 4px;
-    height: 40px;
-    background: var(--color-h);
-    pointer-events: none;
-}
 #mmgisTimeUITimelineSlider {
     width: 100%;
 }
@@ -110,17 +102,12 @@
     background: var(--color-h);
     height: 2px;
     opacity: 0.75;
+    pointer-events: none;
 }
 #mmgisTimeUITimelineSlider .rangeSlider {
     height: 2px;
     margin: 20px 0px 20px 4px;
     background: var(--color-a2);
-}
-#mmgisTimeUITimelineSlider .rangeHandle:first-child {
-    display: none;
-    pointer-events: none;
-    width: 0px;
-    padding: 0px;
 }
 #mmgisTimeUITimelineSlider .rangeHandle {
     top: 0px;
@@ -153,6 +140,7 @@
     position: absolute;
     top: 0;
     display: flex;
+    pointer-events: none;
 }
 .mmgisTimeUITick .mmgisTimeUITickSmall {
     height: 30px;
@@ -168,7 +156,6 @@
     height: 40px;
     line-height: 20px;
     padding-left: 4px;
-    text-transform: uppercase;
     font-size: 13px;
     color: var(--color-a7);
 }
@@ -226,17 +213,35 @@
     transition: margin-top 0.2s ease-in-out;
 }
 
+#mmgisTimeUIModeDropdown {
+    background: var(--color-a-5);
+    width: 80px;
+}
+#mmgisTimeUIStepDropdown {
+    width: 80px;
+}
 #mmgisTimeUIRateDropdown {
     width: 60px;
 }
+#mmgisTimeUIModeDropdown .dropy__title i,
+#mmgisTimeUIStepDropdown .dropy__title i,
 #mmgisTimeUIRateDropdown .dropy__title i {
     color: var(--color-a5);
 }
+#mmgisTimeUIModeDropdown .dropy__title span,
+#mmgisTimeUIStepDropdown .dropy__title span,
 #mmgisTimeUIRateDropdown .dropy__title span {
     font-size: 12px;
     padding: 14px 0px 14px 12px;
     color: var(--color-a5);
 }
+#mmgisTimeUIModeDropdown .dropy__title span {
+    color: var(--color-c);
+    text-transform: uppercase;
+}
+
+#mmgisTimeUIModeDropdown li a,
+#mmgisTimeUIStepDropdown li a,
 #mmgisTimeUIRateDropdown li a {
     font-size: 13px;
     padding: 5px 8px;

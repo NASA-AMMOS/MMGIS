@@ -21,8 +21,10 @@ import './TimeUI.css'
 const FORMAT = 'MM/DD/yyyy, hh:mm:ss A'
 
 const MS = {
+    decade: 315576000000,
     year: 31557600000,
     month: 2629800000,
+    week: 604800000,
     day: 86400000,
     hour: 3600000,
     minute: 60000,
@@ -54,6 +56,9 @@ const TimeUI = {
         '10s',
         '20s',
     ],
+    stepIndex: 3,
+    modes: ['Range', 'Point'],
+    modeIndex: 0,
     _initialStart: null,
     _initialEnd: null,
     init: function (timeChange) {
@@ -62,8 +67,16 @@ const TimeUI = {
         const markup = [
             `<div id="mmgisTimeUI">`,
                 `<div id="mmgisTimeUIActionsLeft">`,
+                    `<div id='mmgisTimeUIMode'>`,
+                        `<div id='mmgisTimeUIModeDropdown' class='ui dropdown short'></div>`,
+                    `</div>`,
+                    `<div class="vertDiv"></div>`,
                     `<div id="mmgisTimeUIPlay" class="mmgisTimeUIButton">`,
                         `<i class='mdi mdi-play mdi-24px'></i>`,
+                    `</div>`,
+                    `<div class="vertDiv"></div>`,
+                    `<div id='mmgisTimeUIStep'>`,
+                        `<div id='mmgisTimeUIStepDropdown' class='ui dropdown short'></div>`,
                     `</div>`,
                     `<div class="vertDiv"></div>`,
                     `<div id='mmgisTimeUIRate'>`,
@@ -75,14 +88,13 @@ const TimeUI = {
                         `<span>Start Time</span>`,
                         `<input id="mmgisTimeUIStart"/>`,
                     `</div>`,
-                    `<div id="mmgisTimeUITimelineFixedStartSlider"></div>`,
                     `<div id="mmgisTimeUITimeline">`,
                         `<div id="mmgisTimeUITimelineHisto"></div>`,
                         `<div id="mmgisTimeUITimelineInner"></div>`,
                         `<div id='mmgisTimeUITimelineSlider' class='svelteSlider'></div>`,
                     `</div>`,
                     `<div class="mmgisTimeUIInput" id="mmgisTimeUIEndWrapper">`,
-                        `<span>End Time</span>`,
+                        `<span>Active Time</span>`,
                         `<input id="mmgisTimeUIEnd"/>`,
                     `</div>`,
                 `</div>`,
@@ -91,10 +103,12 @@ const TimeUI = {
                         `<i class='mdi mdi-clock-end mdi-24px'></i>`,
                     `</div>`,
                 `</div>`,
+                /*
                 `<div id="mmgisTimeUICurrentWrapper">`,
                     `<div>Active Time</div>`,
                     `<div id="mmgisTimeUICurrentTime"></div>`,
                 `</div>`,
+                */
             `</div>`
         ].join('\n')
 
@@ -112,6 +126,7 @@ const TimeUI = {
         // Timeline pan and zoom
         // zoom
         $('#mmgisTimeUITimelineInner').on('mousewheel', function (e) {
+            if (TimeUI.play) return
             const x = e.originalEvent.offsetX
             const width = document
                 .getElementById('mmgisTimeUITimelineInner')
@@ -138,6 +153,10 @@ const TimeUI = {
 
         // pan
         $('#mmgisTimeUITimelineInner').on('mousedown', function () {
+            if (TimeUI.play) {
+                TimeUI._timelineDragging = false
+                return
+            }
             TimeUI._timelineDragging = true
             $('#mmgisTimeUITimelineSlider').css({ pointerEvents: 'none' })
             $('#mmgisTimeUITimelineInner').on('mousemove', TimeUI._timelineDrag)
@@ -218,21 +237,27 @@ const TimeUI = {
 
         // Don't let end date be before start date
         TimeUI.startTempus.subscribe(Namespace.events.change, (e) => {
-            TimeUI.setStartTime(
-                moment.utc(e.date).toISOString(),
-                TimeUI.startTempus.dontChangeNext
-            )
-            TimeUI.endTempus.updateOptions({
-                restrictions: {
-                    minDate: e.date,
-                },
-            })
-            TimeUI._remakeTimeSlider()
-            TimeUI.startTempus.dontChangeNext = false
+            if (TimeUI.startTempus.dontChangeAnythingElse !== true) {
+                TimeUI.setStartTime(
+                    moment.utc(e.date).toISOString(),
+                    TimeUI.startTempus.dontChangeNext
+                )
+                TimeUI.endTempus.updateOptions({
+                    restrictions: {
+                        minDate: e.date,
+                    },
+                })
+                TimeUI._remakeTimeSlider()
+                TimeUI.startTempus.dontChangeNext = false
+            }
+            TimeUI.startTempus.dontChangeAnythingElse = false
         })
         // Don't let start date be after end date
         TimeUI.endTempus.subscribe(Namespace.events.change, (e) => {
-            if (TimeUI._startTimestamp != null) {
+            if (
+                TimeUI._startTimestamp != null &&
+                TimeUI.endTempus.dontChangeAnythingElse !== true
+            ) {
                 TimeUI.setEndTime(
                     moment.utc(e.date).toISOString(),
                     TimeUI.endTempus.dontChangeNext
@@ -242,9 +267,11 @@ const TimeUI = {
                         maxDate: e.date,
                     },
                 })
+
                 TimeUI._remakeTimeSlider()
                 TimeUI.endTempus.dontChangeNext = false
             }
+            TimeUI.endTempus.dontChangeAnythingElse = false
         })
 
         // Disable Now when picking so that date restrictions don't keep applying and hiding calendar
@@ -262,13 +289,23 @@ const TimeUI = {
         })
 
         // tippy
+        tippy('#mmgisTimeUIMode', {
+            content: 'Mode',
+            placement: 'top',
+            theme: 'blue',
+        })
         tippy('#mmgisTimeUIPlay', {
             content: 'Play',
             placement: 'top',
             theme: 'blue',
         })
+        tippy('#mmgisTimeUIStep', {
+            content: 'Step Size',
+            placement: 'top',
+            theme: 'blue',
+        })
         tippy('#mmgisTimeUIRate', {
-            content: 'Frame Duration',
+            content: 'Step Duration',
             placement: 'top',
             theme: 'blue',
         })
@@ -278,11 +315,47 @@ const TimeUI = {
             theme: 'blue',
         })
 
-        $('#mmgisTimeUIRateDropdown').html(
-            Dropy.construct(TimeUI.intervalNames, null, TimeUI.intervalIndex, {
+        // Mode dropdown
+        $('#mmgisTimeUIModeDropdown').html(
+            Dropy.construct(TimeUI.modes, 'Mode', TimeUI.modeIndex, {
                 openUp: true,
                 dark: true,
             })
+        )
+        Dropy.init($('#mmgisTimeUIModeDropdown'), function (idx) {
+            TimeUI.modeIndex = idx
+            if (TimeUI.modes[TimeUI.modeIndex] === 'Point')
+                $('#mmgisTimeUIStartWrapper').css({ display: 'none' })
+            else $('#mmgisTimeUIStartWrapper').css({ display: 'inherit' })
+            TimeUI._remakeTimeSlider(true)
+        })
+        // Step dropdown
+        $('#mmgisTimeUIStepDropdown').html(
+            Dropy.construct(
+                Object.keys(MS).map((k) => k.capitalizeFirstLetter()),
+                'Step',
+                TimeUI.stepIndex,
+                {
+                    openUp: true,
+                    dark: true,
+                }
+            )
+        )
+        Dropy.init($('#mmgisTimeUIStepDropdown'), function (idx) {
+            TimeUI.stepIndex = idx
+            TimeUI._refreshIntervals()
+        })
+        // Rate dropdown
+        $('#mmgisTimeUIRateDropdown').html(
+            Dropy.construct(
+                TimeUI.intervalNames,
+                'Rate',
+                TimeUI.intervalIndex,
+                {
+                    openUp: true,
+                    dark: true,
+                }
+            )
         )
         Dropy.init($('#mmgisTimeUIRateDropdown'), function (idx) {
             TimeUI.intervalIndex = idx
@@ -429,11 +502,19 @@ const TimeUI = {
         }
     },
     _loopTime() {
-        const start = TimeUI._startTimestamp
-        const end = TimeUI._endTimestamp
+        const mode = TimeUI.modes[TimeUI.modeIndex]
+        const start =
+            mode === 'Range'
+                ? TimeUI._startTimestamp
+                : TimeUI._timelineStartTimestamp
+
+        const end =
+            mode === 'Range'
+                ? TimeUI._endTimestamp
+                : TimeUI._timelineEndTimestamp
         const current = TimeUI.getCurrentTimestamp()
 
-        let next = (end - start) / TimeUI.numFrames + current
+        let next = current + MS[Object.keys(MS)[TimeUI.stepIndex]]
         if (next > end) next = end
         if (current === end) next = start
 
@@ -464,19 +545,25 @@ const TimeUI = {
         TimeUI._refreshIntervals()
     },
     _remakeTimeSlider(ignoreHistogram) {
+        const rangeMode =
+            TimeUI.modes[TimeUI.modeIndex] === 'Range' ? true : false
         if (TimeUI.timeSlider) {
             $('#mmgisTimeUITimelineSlider').empty()
             TimeUI.timeSlider = null
+            if (rangeMode) $('#mmgisTimeUITimelineSlider').addClass('rangeMode')
+            else $('#mmgisTimeUITimelineSlider').removeClass('rangeMode')
         }
 
         TimeUI.timeSlider = new RangeSliderPips({
             target: document.querySelector('#mmgisTimeUITimelineSlider'),
             props: {
-                values: [TimeUI._startTimestamp, TimeUI.getCurrentTimestamp()],
+                values: rangeMode
+                    ? [TimeUI._startTimestamp, TimeUI.getCurrentTimestamp()]
+                    : [TimeUI.getCurrentTimestamp()],
                 pips: false,
-                min: TimeUI._startTimestamp,
-                max: TimeUI._endTimestamp,
-                range: true,
+                min: TimeUI._timelineStartTimestamp,
+                max: TimeUI._timelineEndTimestamp,
+                range: rangeMode,
                 pushy: false,
                 float: false,
                 springValues: {
@@ -489,20 +576,44 @@ const TimeUI = {
             },
         })
 
-        $('#mmgisTimeUICurrentTime').text(
-            moment.utc(TimeUI.getCurrentTimestamp(true)).format(FORMAT)
-        )
-
         TimeUI.timeSlider.$on('start', (e) => {
             TimeUI.toggleTimeNow(false)
         })
         TimeUI.timeSlider.$on('change', (e) => {
-            $('#mmgisTimeUICurrentTime').text(
-                moment.utc(TimeUI.removeOffset(e.detail.value)).format(FORMAT)
+            let idx = 0
+            if (TimeUI.modes[TimeUI.modeIndex] === 'Point') idx -= 1
+
+            const date = new Date(e.detail.value)
+            const offsetNowDate = new Date(
+                date.getTime() + date.getTimezoneOffset() * 60000
             )
+            if (e.detail.activeHandle === idx) {
+                const parsedNow = TimeUI.startTempus.dates.parseInput(
+                    new Date(offsetNowDate)
+                )
+                TimeUI.startTempus.dontChangeAnythingElse = true
+                TimeUI.startTempus.dates.setValue(parsedNow)
+            }
+            if (e.detail.activeHandle === idx + 1) {
+                const parsedNow = TimeUI.endTempus.dates.parseInput(
+                    new Date(offsetNowDate)
+                )
+                TimeUI.endTempus.dontChangeAnythingElse = true
+                TimeUI.endTempus.dates.setValue(parsedNow)
+            }
         })
         TimeUI.timeSlider.$on('stop', (e) => {
-            TimeUI.setCurrentTime(new Date(e.detail.value).toISOString(), false)
+            let idx = 0
+            if (TimeUI.modes[TimeUI.modeIndex] === 'Point') idx -= 1
+            if (e.detail.activeHandle === idx) {
+                const date = new Date(e.detail.value)
+                const offsetNowDate = new Date(
+                    date.getTime() + date.getTimezoneOffset() * 60000
+                )
+                TimeUI.setStartTime(offsetNowDate.toISOString(), false, true)
+            }
+            if (e.detail.activeHandle === idx + 1)
+                TimeUI._setCurrentTime(true, new Date(e.detail.value))
         })
 
         if ($('#toggleTimeUI').hasClass('active') && ignoreHistogram !== true)
@@ -594,7 +705,7 @@ const TimeUI = {
             )
         })
     },
-    _setCurrentTime(force, forceDate) {
+    _setCurrentTime(force, forceDate, disableChange) {
         if (TimeUI.now === true || force === true) {
             let date = forceDate || new Date()
             const offsetNowDate = new Date(
@@ -603,8 +714,9 @@ const TimeUI = {
             const parsedNow = TimeUI.endTempus.dates.parseInput(
                 new Date(offsetNowDate)
             )
-            TimeUI.setCurrentTime(parsedNow)
-            TimeUI._remakeTimeSlider(true)
+
+            TimeUI.setCurrentTime(parsedNow, disableChange)
+            //TimeUI._remakeTimeSlider(true)
             TimeUI.endTempus.dates.setValue(parsedNow)
         }
     },
@@ -645,11 +757,13 @@ const TimeUI = {
 
         TimeUI.change()
     },
-    setStartTime(ISOString, disableChange) {
+    setStartTime(ISOString, disableChange, dontRedrawTimeline) {
         const timestamp = Date.parse(ISOString)
         TimeUI._startTimestamp = timestamp
+        if (TimeUI._timelineStartTimestamp == null)
+            TimeUI._timelineStartTimestamp = TimeUI._startTimestamp
 
-        TimeUI._drawTimeLine()
+        if (dontRedrawTimeline != true) TimeUI._drawTimeLine()
         if (disableChange != true) TimeUI.change()
     },
     removeOffset(timestamp) {
@@ -677,6 +791,10 @@ const TimeUI = {
             TimeUI._endTimestamp === TimeUI.getCurrentTimestamp()
         const timestamp = Date.parse(ISOString)
         TimeUI._endTimestamp = timestamp
+
+        if (TimeUI._timelineEndTimestamp == null)
+            TimeUI._timelineEndTimestamp = TimeUI._endTimestamp
+
         TimeUI._drawTimeLine()
 
         if (sliderFixedToEnd) {
@@ -688,15 +806,18 @@ const TimeUI = {
         const timestamp =
             typeof ISOString === 'string' ? Date.parse(ISOString) : ISOString
         TimeUI._timeSliderTimestamp = timestamp
-        $('#mmgisTimeUICurrentTime').text(
-            moment
-                .utc(
-                    TimeUI.getCurrentTimestamp(
-                        dontRemoveOffset === true ? false : true
-                    )
-                )
-                .format(FORMAT)
-        )
+        if (TimeUI.play) {
+            const date = new Date(TimeUI._timeSliderTimestamp)
+            const offsetNowDate = new Date(
+                date.getTime() + date.getTimezoneOffset() * 60000
+            )
+            const parsedNow = TimeUI.endTempus.dates.parseInput(
+                new Date(offsetNowDate)
+            )
+            TimeUI.endTempus.dontChangeAnythingElse = true
+            TimeUI.endTempus.dates.setValue(parsedNow)
+        }
+
         if (disableChange != true) TimeUI.change()
     },
     change() {
@@ -737,27 +858,32 @@ const TimeUI = {
         const timelineElm = $('#mmgisTimeUITimelineInner')
         timelineElm.empty()
 
-        const s = forceStart || TimeUI.removeOffset(TimeUI._startTimestamp)
-        const e = forceEnd || TimeUI.removeOffset(TimeUI._endTimestamp)
+        let s = forceStart || TimeUI._timelineStartTimestamp
+        let e = forceEnd || TimeUI._timelineEndTimestamp
 
         if (e == null || s == null) return
 
-        TimeUI._timelineStartTimestamp = s
-        TimeUI._timelineEndTimestamp = e
+        s = Math.max(s - 0, 0) // Year 1970
+        e = Math.min(e - 0, 3155788800000) // Year 2070
+
+        TimeUI._timelineStartTimestamp = parseInt(s)
+        TimeUI._timelineEndTimestamp = parseInt(e)
 
         const dif = e - s
 
         let unit = null
 
-        if (dif / MS.year > 2.5) {
+        if (dif / MS.decade > 2) {
+            unit = 'decade'
+        } else if (dif / MS.year > 2) {
             unit = 'year'
         } else if (dif / MS.month > 1) {
             unit = 'month'
-        } else if (dif / MS.day > 2) {
+        } else if (dif / MS.day > 1.5) {
             unit = 'day'
-        } else if (dif / MS.hour > 1) {
+        } else if (dif / MS.hour > 0.75) {
             unit = 'hour'
-        } else if (dif / MS.minute > 1) {
+        } else if (dif / MS.minute > 0.75) {
             unit = 'minute'
         } else unit = 'second'
 
@@ -772,13 +898,15 @@ const TimeUI = {
                         `<div class="mmgisTimeUITickBig"></div>`,
                         `<div class="mmgisTimeUITickLabel">${
                             bigTicks[i].label
-                        }${first ? `<br/><span>${unit}</span>` : ''}</div`,
+                        }${first ? `<br/><span>${unit}</span>` : ''}</div>`,
                         `</div>`,
                     ].join('\n')
                 )
                 first = false
             }
         }
+
+        TimeUI._remakeTimeSlider(true)
     },
 }
 
