@@ -254,7 +254,7 @@ Example:
     - `fillOpacity`: Opacity of marker fill. Default 1
     - `radius`: Integer for radius of marker.
 - `markerAttachments`: An object for attaching dynamic items to point features.
-  - `bearing`: Sets the bearing direction of this layer's point markers (or markerIcons if set). Overrides the layer's shape dropdown value.
+  - `bearing`: Sets the bearing direction (clockwise from north) of this layer's point markers (or markerIcons if set). Overrides the layer's shape dropdown value.
     - `angleProp`: The dot notated path to the feature properties that contains the desired rotation angle. Ex. `headings.yaw`.
     - `angleUnit`: Unit of the value of `angleProp`. Either `deg` or `rad`.
     - `color`: A css color for the directional arrow for non-markerIcon bearings.
