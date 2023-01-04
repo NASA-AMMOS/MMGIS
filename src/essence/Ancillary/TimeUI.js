@@ -569,7 +569,9 @@ const TimeUI = {
         if (next > end) next = end
         if (current === end) next = start
 
-        TimeUI.setCurrentTime(next, null, null, true)
+        if (mode === 'Range') TimeUI.setCurrentTime(next)
+        if (mode === 'Point') TimeUI.setCurrentTime(next, null, null, true)
+
         TimeUI._remakeTimeSlider(true)
     },
     toggleTimeNow(force) {
@@ -660,13 +662,22 @@ const TimeUI = {
         TimeUI.timeSlider.$on('stop', (e) => {
             let idx = 0
             if (TimeUI.modes[TimeUI.modeIndex] === 'Point') idx -= 1
+
+            const date = new Date(e.detail.value)
+            const offsetNowDate = new Date(
+                date.getTime() + date.getTimezoneOffset() * 60000
+            )
             if (e.detail.activeHandle === idx) {
-                const date = TimeUI.addOffset(new Date(e.detail.value))
-                TimeUI.setStartTime(date.toISOString(), false, true)
+                const parsedNow = TimeUI.startTempus.dates.parseInput(
+                    new Date(offsetNowDate)
+                )
+                TimeUI.startTempus.dates.setValue(parsedNow)
             }
             if (e.detail.activeHandle === idx + 1) {
-                const date = TimeUI.addOffset(new Date(e.detail.value))
-                TimeUI._setCurrentTime(true, new Date(e.detail.value))
+                const parsedNow = TimeUI.endTempus.dates.parseInput(
+                    new Date(offsetNowDate)
+                )
+                TimeUI.endTempus.dates.setValue(parsedNow)
             }
         })
 
