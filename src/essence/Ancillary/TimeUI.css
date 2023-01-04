@@ -1,5 +1,5 @@
 #timeUI {
-    background: rgba(29, 31, 32, 0.65);
+    background: rgba(15, 16, 16, 0.6);
     height: 40px;
     width: 100%;
     position: absolute;
@@ -140,7 +140,6 @@
     position: absolute;
     top: 0;
     display: flex;
-    pointer-events: none;
 }
 .mmgisTimeUITick .mmgisTimeUITickSmall {
     height: 30px;
@@ -149,7 +148,7 @@
 }
 .mmgisTimeUITick .mmgisTimeUITickBig {
     height: 40px;
-    background: var(--color-a4);
+    background: var(--color-a3);
     width: 1px;
 }
 .mmgisTimeUITick .mmgisTimeUITickLabel {
@@ -207,8 +206,7 @@
     pointer-events: none;
 }
 #mmgisTimeUITimelineHisto > div {
-    background: var(--color-c2);
-    opacity: 0.38;
+    background: #056e94;
     height: 100%;
     transition: margin-top 0.2s ease-in-out;
 }
@@ -236,7 +234,7 @@
     color: var(--color-a5);
 }
 #mmgisTimeUIModeDropdown .dropy__title span {
-    color: var(--color-c);
+    color: var(--color-a5);
     text-transform: uppercase;
 }
 

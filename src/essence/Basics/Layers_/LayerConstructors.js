@@ -219,6 +219,28 @@ export const constructVectorLayer = (
                     }
                     layerObj.shape = 'directional_circle'
                 }
+                /*
+                const markerXY = Map_.map.latLngToLayerPoint(latlong)
+                const markerLatLong = Map_.map.containerPointToLatLng([
+                    markerXY.x,
+                    markerXY.y,
+                ])
+                const pixelBelowMarkerLatLong = Map_.map.containerPointToLatLng(
+                    [markerXY.x, markerXY.y + 1]
+                )
+                console.log(
+                    latlong,
+                    markerXY,
+                    markerLatLong,
+                    pixelBelowMarkerLatLong,
+                    F_.bearingBetweenTwoLatLngs(
+                        pixelBelowMarkerLatLong.lat,
+                        pixelBelowMarkerLatLong.lng,
+                        markerLatLong.lat,
+                        markerLatLong.lng
+                    )
+                )
+                */
             }
 
             switch (layerObj.shape) {

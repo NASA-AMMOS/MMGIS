@@ -11,6 +11,8 @@
   https://github.com/xtk93x/Leaflet.TileLayer.ColorFilter
 */
 
+import F_ from '../../Basics/Formulae_/Formulae_'
+
 var colorFilterExtension = {
     intialize: function (url, options) {
         L.TileLayer.prototype.initialize.call(this, url, options)
@@ -91,6 +93,39 @@ var colorFilterExtension = {
         if (this._container) {
             this._container.style.filter = this.colorFilter()
             this._container.style['mix-blend-mode'] = this.colorBlend()
+        }
+    },
+    // Reduces tile flicker. This and refresh() from https://github.com/Leaflet/Leaflet/issues/6659#issuecomment-813328622
+    _refreshTileUrl: function (tile, url) {
+        //use a image in background, so that only replace the actual tile, once image is loaded in cache!
+        let img = new Image()
+        img.onload = function (e) {
+            L.Util.requestAnimFrame(function () {
+                tile.el.src = url
+                tile.el.style.opacity = 1
+            })
+        }
+        img.onerror = function (e) {
+            tile.el.src = F_.getBase64Transparent256Tile()
+            tile.el.style.opacity = 0
+        }
+        img.src = url
+    },
+    refresh: function () {
+        if (this._map == null) return
+        //prevent _tileOnLoad/_tileReady re-triggering a opacity animation
+        this._map._fadeAnimated = false
+
+        for (let key in this._tiles) {
+            const tile = this._tiles[key]
+            if (tile.current && tile.active) {
+                const oldsrc = tile.el.src
+                const newsrc = this.getTileUrl(tile.coords)
+                if (oldsrc != newsrc) {
+                    //L.DomEvent.off(tile, 'load', this._tileOnLoad); ... this doesnt work!
+                    this._refreshTileUrl(tile, newsrc)
+                }
+            }
         }
     },
 }
@@ -257,5 +292,7 @@ L.tileLayer.colorFilter = function (url, options) {
     }
 
     url = url.replace(/{t}/g, '_time_')
-    return new L.TileLayer.ColorFilter(url, options)
+    const tileLayer = new L.TileLayer.ColorFilter(url, options)
+
+    return tileLayer
 }
