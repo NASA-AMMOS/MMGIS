@@ -765,6 +765,8 @@ function toggleTimeUI() {
     const newBottom = active ? 0 : 40
     const timeBottom = active ? -40 : 0
 
+    Map_.map._fadeAnimated = active
+
     $('#CoordinatesDiv').css({
         bottom: newBottom + (UserInterface.pxIsTools || 0) + 'px',
     })

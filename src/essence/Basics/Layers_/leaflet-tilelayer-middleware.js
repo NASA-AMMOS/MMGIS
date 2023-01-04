@@ -113,8 +113,6 @@ var colorFilterExtension = {
     },
     refresh: function () {
         if (this._map == null) return
-        //prevent _tileOnLoad/_tileReady re-triggering a opacity animation
-        this._map._fadeAnimated = false
 
         for (let key in this._tiles) {
             const tile = this._tiles[key]

@@ -352,8 +352,6 @@ const TimeUI = {
                     },
                 })
                 if (TimeUI._startTimestamp >= TimeUI._endTimestamp) {
-                    const date = new Date(TimeUI._initialStart)
-
                     const offsetStartDate = new Date(TimeUI._endTimestamp)
                     const parsedStart = TimeUI.startTempus.dates.parseInput(
                         new Date(offsetStartDate)
@@ -905,12 +903,16 @@ const TimeUI = {
     change() {
         if (
             typeof TimeUI.timeChange === 'function' &&
-            TimeUI._startTimestamp &&
-            TimeUI._endTimestamp
+            TimeUI._startTimestamp != null &&
+            TimeUI._endTimestamp != null
         ) {
+            const mode = TimeUI.modes[TimeUI.modeIndex]
+
             TimeUI.timeChange(
                 new Date(
-                    TimeUI.removeOffset(TimeUI._startTimestamp)
+                    mode === 'Range'
+                        ? TimeUI.removeOffset(TimeUI._startTimestamp)
+                        : 0
                 ).toISOString(),
                 new Date(
                     TimeUI.removeOffset(TimeUI._endTimestamp)
