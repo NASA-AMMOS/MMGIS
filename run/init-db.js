@@ -39,6 +39,7 @@ async function initializeDatabase() {
           "connection"
         );
         keepGoing();
+        return null;
       })
       .catch((err) => {
         logger(
@@ -47,6 +48,7 @@ async function initializeDatabase() {
           "connection"
         );
         keepGoing();
+        return null;
       });
 
     async function keepGoing() {
@@ -76,6 +78,7 @@ async function initializeDatabase() {
             .then(() => {
               logger("info", `Created POSTGIS extension.`, "connection");
               resolve();
+              return null;
             })
             .catch((err) => {
               logger(
@@ -85,6 +88,7 @@ async function initializeDatabase() {
               );
 
               resolve();
+              return null;
             });
         })
         .catch((err) => {
@@ -96,7 +100,9 @@ async function initializeDatabase() {
             err
           );
           reject();
+          return null;
         });
     }
+    return null;
   });
 }
