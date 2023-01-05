@@ -205,7 +205,7 @@ function stopGuests(req, res, next) {
     return;
   }
 
-  if (req.user == guestUsername) {
+  if (req.user == guestUsername || process.env.AUTH === "off") {
     res.send({ status: "failure", message: "User is not logged in." });
     res.end();
     return;
