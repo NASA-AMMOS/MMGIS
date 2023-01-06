@@ -166,7 +166,7 @@ var QueryURL = {
         }
 
         if (endTime !== false) {
-            if (F_.isStringNumeric(endTime)) startTime = parseInt(endTime)
+            if (F_.isStringNumeric(endTime)) endTime = parseInt(endTime)
 
             const date = new moment(endTime)
             if (!isNaN(date) && date.isValid()) {
