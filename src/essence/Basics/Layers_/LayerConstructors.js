@@ -219,6 +219,22 @@ export const constructVectorLayer = (
                     }
                     layerObj.shape = 'directional_circle'
                 }
+
+                const markerXY = Map_.map.latLngToLayerPoint(latlong)
+                const markerLatLong = Map_.map.containerPointToLatLng([
+                    markerXY.x,
+                    markerXY.y,
+                ])
+                const pixelBelowMarkerLatLong = Map_.map.containerPointToLatLng(
+                    [markerXY.x, markerXY.y + 1]
+                )
+                yaw -= F_.bearingBetweenTwoLatLngs(
+                    pixelBelowMarkerLatLong.lat,
+                    pixelBelowMarkerLatLong.lng,
+                    markerLatLong.lat,
+                    markerLatLong.lng
+                )
+                yaw = -((360 - yaw) % 360)
             }
 
             switch (layerObj.shape) {

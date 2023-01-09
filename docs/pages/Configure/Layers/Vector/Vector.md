@@ -62,7 +62,17 @@ If true and a URL is set and Controlled is true, only the initial url query will
 #### Time Type
 
 _type:_ enum [Requery, Local]  
-When the time changes, whether the layer should Requery the source or filter the layer Locally (based on feature properties.
+When the time changes, whether the layer should Requery the source or filter the layer Locally (based on feature properties. Note that)
+
+#### Start Time Property Name
+
+_type:_ string _optional_  
+Optional and only in use if `Time Enabled = true` and `Time Type = Local`. The starting time property path. Setting this is addition to `Main Time Property Name` casts the feature's time over a range instead of as a single point in time. Can use dot-notation for nested path. Can be a unix timestamp or an ISO time (end the ISO with a `Z` to designate that it should be treated as a UTC time).
+
+#### Main Time Property Name
+
+_type:_ string  
+Required in `Time Enabled = true` and `Time Type = Local`. The main time property path. Can use dot-notation for nested path. Can be a unix timestamp or an ISO time (end the ISO with a `Z` to designate that it should be treated as a UTC time).
 
 #### Time Format
 
@@ -254,7 +264,7 @@ Example:
     - `fillOpacity`: Opacity of marker fill. Default 1
     - `radius`: Integer for radius of marker.
 - `markerAttachments`: An object for attaching dynamic items to point features.
-  - `bearing`: Sets the bearing direction of this layer's point markers (or markerIcons if set). Overrides the layer's shape dropdown value.
+  - `bearing`: Sets the bearing direction (clockwise from north) of this layer's point markers (or markerIcons if set). Overrides the layer's shape dropdown value.
     - `angleProp`: The dot notated path to the feature properties that contains the desired rotation angle. Ex. `headings.yaw`.
     - `angleUnit`: Unit of the value of `angleProp`. Either `deg` or `rad`.
     - `color`: A css color for the directional arrow for non-markerIcon bearings.

@@ -37,12 +37,9 @@ var TimeControl = {
             return
         }
 
-        TimeControl.timeUI = TimeUI.init(timeInputChange)
+        TimeControl.timeUI = TimeUI.init(timeInputChange, TimeControl.enabled)
 
         //updateTime()
-        if (L_.configData.time.visible == false) {
-            TimeControl.toggleTimeUI(false)
-        }
 
         initLayerTimes()
         initLayerDataTimes()
@@ -50,14 +47,6 @@ var TimeControl = {
     fina: function () {
         if ((TimeControl.enabled = true && TimeControl.timeUI != null))
             TimeControl.timeUI.fina()
-    },
-    toggleTimeUI: function (isOn) {
-        d3.select('#timeUI').style('visibility', function () {
-            if (!isOn) $('#toggleTimeUI').click()
-
-            return isOn === true ? 'visible' : 'hidden'
-        })
-        return isOn
     },
     setTime: function (
         startTime,
@@ -173,8 +162,7 @@ var TimeControl = {
             }
 
             if (L_.toggledArray[layer.name] || evenIfOff) {
-                L_.toggleLayer(layer)
-                L_.toggleLayer(layer)
+                L_.layersGroup[layer.name].refresh()
             }
         } else {
             var originalUrl = layer.url

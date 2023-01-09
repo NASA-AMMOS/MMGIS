@@ -77,6 +77,7 @@ async function initializeDatabase() {
             .query(`CREATE EXTENSION postgis;`)
             .then(() => {
               logger("info", `Created POSTGIS extension.`, "connection");
+              resolve();
               return null;
             })
             .catch((err) => {
@@ -85,6 +86,7 @@ async function initializeDatabase() {
                 `POSTGIS extension already exists. Nothing to do...`,
                 "connection"
               );
+
               return null;
             });
           await sequelize
@@ -111,6 +113,7 @@ async function initializeDatabase() {
                 `"session" table already exists. Nothing to do...`,
                 "connection"
               );
+              resolve();
               return null;
             });
           resolve();
@@ -127,5 +130,6 @@ async function initializeDatabase() {
           return null;
         });
     }
+    return null;
   });
 }

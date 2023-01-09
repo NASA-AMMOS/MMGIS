@@ -860,6 +860,8 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
             continuousWorld: true,
             reuseTiles: true,
             bounds: bb,
+            timeEnabled:
+                layerObj.time != null && layerObj.time.enabled === true,
             time: typeof layerObj.time === 'undefined' ? '' : layerObj.time.end,
             compositeTile:
                 typeof layerObj.time === 'undefined'
