@@ -21,12 +21,11 @@ function login() {
         (data.hasOwnProperty("status") && data.status === "success")
       ) {
         //success
-        document.cookie =
-          "MMGISUser=" +
-          JSON.stringify({
-            username: data.username,
-            token: data.token,
-          });
+        document.cookie = "MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+        document.cookie = `MMGISUser=${JSON.stringify({
+          username: data.username,
+          token: data.token,
+        })}${data.additional}`;
         window.location.reload();
       } else {
         //error
