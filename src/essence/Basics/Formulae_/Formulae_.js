@@ -59,6 +59,13 @@ var Formulae_ = {
             range[0]
         )
     },
+    isStringNumeric: function (str) {
+        if (typeof str != 'string') return false
+        return !isNaN(str) && !isNaN(parseFloat(str))
+    },
+    getBase64Transparent256Tile: function () {
+        return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAABFUlEQVR42u3BMQEAAADCoPVP7WsIoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAeAMBPAAB2ClDBAAAAABJRU5ErkJggg=='
+    },
     monthNumberToName: function (monthNumber) {
         switch (monthNumber) {
             case 0:
@@ -100,6 +107,23 @@ var Formulae_ = {
 
         let currentDate
         switch (unit) {
+            case 'decade':
+                currentDate = new Date(
+                    Date.UTC(Math.floor(startDate.getFullYear() / 10) * 10)
+                )
+                while (currentDate < endDate) {
+                    currentDate.setUTCFullYear(
+                        Math.floor(currentDate.getUTCFullYear() / 10) * 10 + 10
+                    )
+                    timeStarts.push({
+                        ts: Date.parse(currentDate),
+                        label:
+                            Math.floor(currentDate.getUTCFullYear() / 10) * 10 +
+                            's',
+                    })
+                }
+
+                break
             case 'year':
                 currentDate = new Date(Date.UTC(startDate.getFullYear()))
                 while (currentDate < endDate) {
@@ -121,7 +145,7 @@ var Formulae_ = {
                         ts: Date.parse(currentDate),
                         label: Formulae_.monthNumberToName(
                             currentDate.getUTCMonth()
-                        ),
+                        ).toUpperCase(),
                     })
                 }
                 break

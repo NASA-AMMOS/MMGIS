@@ -9,6 +9,52 @@ parent: APIs
 
 The `src/essence/mmgisAPI/mmgisAPI.js` file exposes functions that can be called using the global `window.mmgisAPI` object.
 
+#### _Contents_
+
+- [Layer Control](#layer-control)
+  - [clearVectorLayer(layerName)](#clearvectorlayerlayername)
+  - [updateVectorLayer(layerName, inputData)](#updatevectorlayerlayername-inputdata)
+  - [trimVectorLayerKeepBeforeTime(layerName, keepBeforeTime, timePropPath)](#trimvectorlayerkeepbeforetimelayername-keepbeforetime-timeproppath)
+  - [trimVectorLayerKeepAfterTime(layerName, keepBeforeTime, timePropPath)](#trimvectorlayerkeepaftertimelayername-keepbeforetime-timeproppath)
+  - [keepFirstN(layerName, keepLastN)](#keepfirstnlayername-keeplastn)
+  - [keepLastN(layerName, keepLastN)](#keeplastnlayername-keeplastn)
+  - [trimLineString(layerName, time, timeProp, trimN, startOrEnd)](#trimlinestringlayername-time-timeprop-trimn-startorend)
+  - [appendLineString(layerName, inputData, timeProp)](#appendlinestringlayername-inputdata-timeprop)
+  - [reloadLayer(layer, evenIfOff, evenIfControlled)](#reloadlayerlayer-evenifoff-evenifcontrolled)
+- [Time Control](#time-control)
+  - [toggleTimeUI(visibility)](#toggletimeuivisibility)
+  - [setTime(startTime, endTime, isRelative, timeOffset, currentTime)](#settimestarttime-endtime-isrelative-timeoffset-currenttime)
+  - [setLayerTime(layer, startTime, endTime)](#setlayertimelayer-starttime-endtime)
+  - [getTime()](#gettime)
+  - [getStartTime()](#getstarttime)
+  - [getEndTime()](#getendtime)
+  - [getLayerStartTime(layer)](#getlayerstarttimelayer)
+  - [getLayerEndTime(layer)](#getlayerendtimelayer)
+  - [reloadTimeLayers()](#reloadtimelayers)
+  - [setLayersTimeStatus(color)](#setlayerstimestatuscolor)
+  - [setLayerTimeStatus(layer, color)](#setlayertimestatuslayer-color)
+  - [updateLayersTime()](#updatelayerstime)
+- [Event Listeners](#event-listeners)
+  - [addEventListener(eventName, functionReference)](#addeventlistenereventname-functionreference)
+  - [removeEventListener(eventName, functionReference)](#removeeventlistenereventname-functionreference)
+- [Map Feature Information](#map-feature-information)
+  - [map](#map)
+  - [featuresContained()](#featurescontained)
+  - [getActiveFeature()](#getactivefeature)
+  - [selectFeature(layerName, options)](#selectfeaturelayername-options)
+  - [getVisibleLayers()](#getvisiblelayers)
+  - [getLayers()](#getlayers)
+  - [getLayerConfigs(match)](#getlayerconfigsmatch)
+  - [toggleLayer(layerName, on)](#toggleLayerlayername-on)
+- [Miscellaneous Features](#miscellaneous-features)
+  - [writeCoordinateURL()](#writecoordinateurl)
+  - [onLoaded(onLoadCallback)](#onloadedonloadcallback)
+  - [getActiveTool()](#getactivetool)
+  - [project(lnglat)](#projectlnglat)
+  - [unproject(xy)](#unprojectxy)
+
+---
+
 ## Layer Control
 
 ### clearVectorLayer(layerName)
@@ -205,13 +251,15 @@ window.mmgisAPI.appendLineString(
 );
 ```
 
-### reloadLayer(layer)
+### reloadLayer(layer, evenIfOff, evenIfControlled)
 
 This function will reload the given layer by re-fetching the data and re-drawing on the map.
 
 #### Function parameters
 
 - `layer` - The layer name string or a layer object
+- `evenIfOff` - _boolean_ | If true, reloads the layer even if the layer is not active
+- `evenIfControlled` - _boolean_ | If true, reloads the layer even if it's a "Controlled" layer
 
 The following is an example of how to call the `reloadLayer` function:
 
@@ -478,7 +526,7 @@ The following is an example of how to call the `map` object:
 window.mmgisAPI.map;
 ```
 
-### featuresContained
+### featuresContained()
 
 This function returns an array of all features in the current map view. The return value is an object containing layer names as keys and values as arrays with all features (as GeoJson Feature objects) contained in the current map view
 
@@ -488,7 +536,7 @@ The following is an example of how to call the `featuresContained` function:
 window.mmgisAPI.featuresContained();
 ```
 
-### getActiveFeature
+### getActiveFeature()
 
 This function returns the currently active feature (i.e. feature thats clicked and displayed in the InfoTool). The return value is the currently selected active feature as an object with the layer name as key and value as an array containing the GeoJson Feature object (MMGIS only allows the section of a single feature).
 
@@ -498,7 +546,7 @@ The following is an example of how to call the `getActiveFeature` function:
 window.mmgisAPI.getActiveFeature();
 ```
 
-### selectFeature
+### selectFeature(layerName, options)
 
 This function selects a vector layer feature. It supports selections either from:
 
@@ -533,7 +581,7 @@ window.mmgisAPI.selectFeature("Waypoints", {
 });
 ```
 
-### getVisibleLayers
+### getVisibleLayers()
 
 This function returns an object with the visibility state of all layers
 
@@ -543,7 +591,7 @@ The following is an example of how to call the `getVisibleLayers` function:
 window.mmgisAPI.getVisibleLayers();
 ```
 
-### getLayers
+### getLayers()
 
 This function returns all the configuration set Leaflet Map layers. If a layer has not yet been loaded, its value with be false.
 
@@ -553,7 +601,7 @@ The following is an example of how to call the `getLayers` function:
 window.mmgisAPI.getLayers();
 ```
 
-### getLayerConfigs
+### getLayerConfigs(match)
 
 This function returns all the layer configuration objects.
 
@@ -574,7 +622,7 @@ window.mmgisAPI.getLayerConfigs({ "style.color": "brown" });
 // => { Layer1: {..., style: {..., color: "brown"}}}
 ```
 
-### toggleLayer
+### toggleLayer(layerName, on)
 
 This function sets the visibility state for a named layer
 
@@ -595,7 +643,7 @@ window.mmgisAPI.toggleLayer('Layer 1')
 
 ## Miscellaneous Features
 
-### writeCoordinateURL
+### writeCoordinateURL()
 
 This function writes out the current view as a URL. This programmatically returns the long form of the 'Copy Link' feature and does not save a short URL to the database.
 
@@ -605,7 +653,7 @@ The following is an example of how to call the `writeCoordinateURL` function:
 window.mmgisAPI.writeCoordinateURL();
 ```
 
-### onLoaded
+### onLoaded(onLoadCallback)
 
 This function calls the callback function once MMGIS has finished loading.
 
@@ -628,7 +676,7 @@ window.mmgisAPI.onLoaded(() => {
 });
 ```
 
-### getActiveTool
+### getActiveTool()
 
 This function returns an object with the currently active tool and the name of the active tool.
 
@@ -638,7 +686,7 @@ The following is an example of how to call the `getActiveTool` function:
 window.mmgisAPI.getActiveTool();
 ```
 
-### project
+### project(lnglat)
 
 This function convert a Longitude, Latitude object into X, Y (i.e. Easting, Northing) coordinates. It uses the map's base projection and the proj4 library to perform the transformation.
 
@@ -651,7 +699,7 @@ window.mmgisAPI.project({ lng: 137, lat: -4 });
 // returns {x: 8120633.560692952, y: -237291.62355915268}
 ```
 
-### unproject
+### unproject(xy)
 
 This function is the inverse of the `project` function. It takes in a X, Y object and returns a Longitude, Latitude.
 

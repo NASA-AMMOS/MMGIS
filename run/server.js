@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const fs = require("fs");
 const http = require("http");
+const { Pool } = require("pg");
 var path = require("path");
 const packagejson = require("../package.json");
 var bodyParser = require("body-parser");
@@ -18,7 +19,6 @@ const rateLimit = require("express-rate-limit");
 const compression = require("compression");
 
 const session = require("express-session");
-var MemoryStore = require("memorystore")(session);
 
 const apiRouter = require("../API/Backend/APIs/routes/apis");
 
@@ -83,16 +83,29 @@ permissions.users = process.env.CSSO_GROUPS
 const port = parseInt(process.env.PORT || "8888", 10);
 
 /** set the session for application */
+const cookieOptions = { maxAge: 86400000 };
+if (process.env.THIRD_PARTY_COOKIES === "true") {
+  cookieOptions.sameSite = "None";
+  if (process.env.NODE_ENV === "production") cookieOptions.secure = true;
+}
+
+const pool = new Pool({
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASS,
+  port: process.env.DB_PORT || "5432",
+});
 app.use(
   session({
     secret: process.env.SECRET || "Shhhh, it is a secret!",
     name: "MMGISSession",
     proxy: true,
     resave: false,
-    cookie: { maxAge: 86400000 },
+    cookie: cookieOptions,
     saveUninitialized: false,
-    store: new MemoryStore({
-      checkPeriod: 86400000, // prune expired entries every 24h
+    store: new (require("connect-pg-simple")(session))({
+      pool,
     }),
   })
 );
@@ -205,7 +218,7 @@ function stopGuests(req, res, next) {
     return;
   }
 
-  if (req.user == guestUsername) {
+  if (req.user == guestUsername || process.env.AUTH === "off") {
     res.send({ status: "failure", message: "User is not logged in." });
     res.end();
     return;
@@ -491,6 +504,8 @@ setups.getBackendSetups(function (setups) {
       )
     );
 
+  // STATICS
+
   app.use("/build", ensureUser(), express.static(path.join(rootDir, "/build")));
   app.use(
     "/documentation",
@@ -690,6 +705,7 @@ setups.getBackendSetups(function (setups) {
           FORCE_CONFIG_PATH: process.env.FORCE_CONFIG_PATH,
           CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER,
           ENABLE_MMGIS_WEBSOCKETS: process.env.ENABLE_MMGIS_WEBSOCKETS,
+          THIRD_PARTY_COOKIES: process.env.THIRD_PARTY_COOKIES,
           PORT: process.env.PORT,
           HOSTS: JSON.stringify({
             scienceIntent: process.env.SCIENCE_INTENT_HOST,
