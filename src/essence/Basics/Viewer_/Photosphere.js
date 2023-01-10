@@ -170,37 +170,100 @@ export default function (domEl, lookupPath, options, Map_) {
         }
     }
 
-    function changeImage(imageObj, feature, callback) {
+    function changeImage(imageObj, feature, layer, callback) {
         if (!wasInitialized) {
-            if (typeof callback === 'function' && !calledBack)
+            if (typeof callback === 'function')
                 callback(
                     "<div style='letter-spacing: 0px; font-size: 18px; text-align: center; font-family: roboto; color: #CCC;'><div style='margin-bottom: 5px;'>Seems like <a target='_blank' href='https://www.khronos.org/webgl/wiki/Getting_a_WebGL_Implementation'>WebGL</a> isn't supported for you.</div><div>Find out how to get it <a target='_blank' href='https://get.webgl.org/'>here</a>.</div></div>"
                 )
         }
         geometry = feature.geometry
 
-        var url = imageObj.url
+        const url = imageObj.url
         //crop out directory path and extension from image name
-        var croppedName = url.substring(0, url.length - 4).split('/')
+        let croppedName = url.substring(0, url.length - 4).split('/')
         croppedName = croppedName[croppedName.length - 1]
-        var croppedNameSol = croppedName.split('_')[2]
+        const croppedNameSol = croppedName.split('_')[2]
         //assemble ranges
-        var azR = [parseFloat(imageObj.azmin), parseFloat(imageObj.azmax)]
-        var elR = [parseFloat(imageObj.elmin), parseFloat(imageObj.elmax)]
-        var xyR = [parseInt(imageObj.columns), parseInt(imageObj.rows)]
+        const azR = [parseFloat(imageObj.azmin), parseFloat(imageObj.azmax)]
+        const elR = [parseFloat(imageObj.elmin), parseFloat(imageObj.elmax)]
+        const xyR = [parseInt(imageObj.columns), parseInt(imageObj.rows)]
 
         clearLayers()
-        makeModifiedTexture(url, azR, elR, xyR, function () {
-            addPointLayer(
-                'ChemCam',
-                'Missions/' +
-                    L_.mission +
-                    '/Data/Mosaics/azel_mosaic_targets/azel_targets_' +
-                    croppedName +
-                    '_sol' +
-                    croppedNameSol +
-                    '.csv'
-            )
+        makeModifiedTexture(url, azR, elR, xyR, () => {
+            const layerName = layer.options.layerName
+
+            if (
+                feature.geometry.type === 'Point' &&
+                L_.toggledArray[layerName] &&
+                L_.layersGroupSublayers[layerName] &&
+                L_.layersGroupSublayers[layerName].pairings &&
+                L_.layersGroupSublayers[layerName].pairings.on
+            ) {
+                layers[layerName] = {}
+                const sourceCoords = feature.geometry.coordinates
+
+                const pairValue = F_.getIn(
+                    feature.properties,
+                    L_.layersGroupSublayers[layerName].pairings.pairProp,
+                    '___null'
+                )
+                L_.layersGroupSublayers[
+                    layerName
+                ].pairings.pairedLayers.forEach((pairedLayerName) => {
+                    if (
+                        L_.layersGroup[pairedLayerName] &&
+                        L_.layersGroup[pairedLayerName]._sourceGeoJSON &&
+                        L_.toggledArray[pairedLayerName] === true
+                    ) {
+                        L_.layersGroup[
+                            pairedLayerName
+                        ]._sourceGeoJSON.features.forEach((pairFeature) => {
+                            if (
+                                pairFeature.geometry.type === 'Point' &&
+                                F_.getIn(
+                                    pairFeature.properties,
+                                    L_.layersGroupSublayers[layerName].pairings
+                                        .pairProp,
+                                    null
+                                ) === pairValue
+                            ) {
+                                const pairCoords =
+                                    pairFeature.geometry.coordinates
+                                const azElDist = F_.azElDistBetween(
+                                    {
+                                        lat: sourceCoords[1],
+                                        lng: sourceCoords[0],
+                                        el: sourceCoords[2],
+                                    },
+                                    {
+                                        lat: pairCoords[1],
+                                        lng: pairCoords[0],
+                                        el: pairCoords[2],
+                                    }
+                                )
+                                console.log(sourceCoords, pairCoords, azElDist)
+                                const az = 0,
+                                    el = 0
+                                addPoint(
+                                    layerName,
+                                    az,
+                                    -el,
+                                    L_.layersGroup[pairedLayerName]
+                                        .useKeyAsName,
+                                    F_.getIn(
+                                        pairFeature,
+                                        L_.layersGroup[pairedLayerName]
+                                            .useKeyAsHoverName
+                                    )
+                                )
+                            }
+                        })
+                    }
+                })
+
+                render()
+            }
             if (typeof callback === 'function') {
                 callback()
             }
@@ -211,21 +274,6 @@ export default function (domEl, lookupPath, options, Map_) {
         isOrbitControls = !isOrbitControls
         if (isOrbitControls) controls = orbitControls
         else controls = orientationControls
-    }
-
-    //url is is to csv with header: az,el,target
-    function addPointLayer(layerName, url) {
-        d3.csv(url, function (d) {
-            if (d == null) {
-                console.log('Point Layer Not Found.')
-                return
-            }
-            layers[layerName] = {}
-            for (var i = 0; i < d.length; i++) {
-                addPoint(layerName, d[i].az, -d[i].el, 'TARGET', d[i].target)
-            }
-            render()
-        })
     }
 
     function addPoint(layerName, az, el, nameKey, name) {
@@ -762,7 +810,6 @@ export default function (domEl, lookupPath, options, Map_) {
 
     return {
         changeImage: changeImage,
-        addPointLayer: addPointLayer,
         toggleControls: toggleControls,
         highlight: highlight,
         resize: resize,

@@ -92,9 +92,22 @@ var L_ = {
     toggledOffFeatures: [],
     mapAndGlobeLinked: false,
     addLayerQueue: [],
+    _onLoadCallbacks: [],
+    _loaded: false,
     init: function (configData, missionsList, urlOnLayers) {
         parseConfig(configData, urlOnLayers)
         L_.missionsList = missionsList
+    },
+    onceLoaded(cb) {
+        if (L_._loaded === true) cb()
+        else L_._onLoadCallbacks.push(cb)
+    },
+    loaded: function () {
+        L_._loaded = true
+        L_._onLoadCallbacks.forEach((cb) => {
+            cb()
+        })
+        L_._onLoadCallbacks = []
     },
     clear: function () {
         L_.mission = null
@@ -247,6 +260,7 @@ var L_ = {
                                     )
                                     break
                                 case 'labels':
+                                case 'pairings':
                                     L_.layersGroupSublayers[s.name][
                                         sub
                                     ].layer.off()
@@ -303,9 +317,14 @@ var L_ = {
                                         )
                                         break
                                     case 'labels':
+                                    case 'pairings':
                                         L_.layersGroupSublayers[s.name][
                                             sub
-                                        ].layer.on()
+                                        ].layer.on(
+                                            false,
+                                            L_.layersGroupSublayers[s.name][sub]
+                                                .layer
+                                        )
                                         break
                                     default:
                                         L_.Map_.map.addLayer(
@@ -475,6 +494,8 @@ var L_ = {
             if (!on) L_.toggledArray[s.name] = true
         }
 
+        if (s.type === 'vector') L_._updatePairings(s.name, !on)
+
         if (!on && s.type === 'vector') {
             L_.Map_.orderedBringToFront()
         }
@@ -512,6 +533,7 @@ var L_ = {
                         L_.Map_.rmNotNull(sublayer.layer)
                         break
                     case 'labels':
+                    case 'pairings':
                         sublayer.layer.off()
                         break
                     default:
@@ -541,7 +563,8 @@ var L_ = {
                         )
                         break
                     case 'labels':
-                        sublayer.layer.on()
+                    case 'pairings':
+                        sublayer.layer.on(false, sublayer.layer)
                         break
                     default:
                         L_.Map_.map.addLayer(sublayer.layer)
@@ -639,7 +662,11 @@ var L_ = {
                                             map.addLayer(sublayer.layer)
                                             break
                                         case 'labels':
-                                            sublayer.layer.on()
+                                        case 'pairings':
+                                            sublayer.layer.on(
+                                                false,
+                                                sublayer.layer
+                                            )
                                             break
                                         default:
                                             map.addLayer(sublayer.layer)
@@ -2664,6 +2691,24 @@ var L_ = {
             L_.clearVectorLayer(layerName)
             L_.updateVectorLayer(layerName, filteredGeoJSON)
         }
+    },
+    _updatePairings: function (layerName, on) {
+        Object.keys(L_.layersGroup).forEach((name) => {
+            if (
+                L_.toggledArray[name] &&
+                L_.layersGroupSublayers[name] &&
+                L_.layersGroupSublayers[name].pairings &&
+                L_.layersGroupSublayers[name].pairings.on &&
+                L_.layersGroupSublayers[name].pairings.pairedLayers.includes(
+                    layerName
+                )
+            ) {
+                L_.layersGroupSublayers[name].pairings.layer.on(
+                    false,
+                    L_.layersGroupSublayers[name].pairings.layer
+                )
+            }
+        })
     },
 }
 

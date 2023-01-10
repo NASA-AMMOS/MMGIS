@@ -4,7 +4,8 @@ import { saveAs } from 'file-saver'
 import $ from 'jquery'
 import calls from '../../../pre/calls'
 
-// often referred to as F_
+import azElDistBetween from './subformulae/azElDistBetween'
+
 var temp = new Float32Array(1)
 
 // eslint-disable-next-line no-extend-native
@@ -17,6 +18,7 @@ Object.defineProperty(Object.prototype, 'getFirst', {
     enumerable: false,
 })
 
+// often referred to as F_
 var Formulae_ = {
     radiusOfPlanetMajor: 3396190, //(m) Defaults to Mars
     radiusOfPlanetMinor: 3396190,
@@ -2233,6 +2235,14 @@ var Formulae_ = {
     isNoDataElev(data) {
         if (data == 1010101 || data > 35000 || data < -35000) return true
         return false
+    },
+    azElDistBetween(latLngEl_A, latLngEl_B) {
+        return azElDistBetween(
+            latLngEl_A,
+            latLngEl_B,
+            Formulae_.radiusOfPlanetMajor,
+            Formulae_.radiusOfPlanetMinor
+        )
     },
     // Breaks an array in multiple arrays of some size
     chunkArray(arr, size) {
