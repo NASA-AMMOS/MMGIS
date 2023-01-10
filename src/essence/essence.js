@@ -168,13 +168,13 @@ var essence = {
 
             M.Toast.dismissAll()
 
-            M.toast({
-                html: "Successfully connected to WebSocket",
-                displayLength: 1600,
-                classes: "mmgisToast",
-            });
-
             if (essence.webSocketRetryInterval > essence.initialWebSocketRetryInterval) {
+                M.toast({
+                    html: "Successfully connected to WebSocket",
+                    displayLength: 160000000,
+                    classes: "mmgisToast",
+                });
+
                 essence.webSocketRetryInterval = essence.initialWebSocketRetryInterval
                 clearInterval(essence.webSocketPingInterval)
                 essence.webSocketPingInterval = setInterval(essence.connectWebSocket, essence.webSocketRetryInterval, path, false) // 1 minute
