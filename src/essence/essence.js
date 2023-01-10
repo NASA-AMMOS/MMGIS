@@ -171,7 +171,7 @@ var essence = {
             if (essence.webSocketRetryInterval > essence.initialWebSocketRetryInterval) {
                 M.toast({
                     html: "Successfully connected to WebSocket",
-                    displayLength: 160000000,
+                    displayLength: 1600,
                     classes: "mmgisToast",
                 });
 
