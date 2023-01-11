@@ -431,9 +431,18 @@ textarea {
   display: flex;
   justify-content: space-between;
 }
+.modal .layerHelp {
+  height: 35px;
+  padding: 0px 6px;
+  margin-right: 12px;
+  cursor: pointer;
+  color: #039be5;
+  transition: color 0.1s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
 .modal .clone {
   height: 35px;
   cursor: pointer;
+  margin-left: 12px;
   color: #777;
   transition: color 0.1s cubic-bezier(0.39, 0.575, 0.565, 1);
 }

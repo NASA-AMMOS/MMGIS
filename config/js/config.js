@@ -1259,7 +1259,10 @@ function makeLayerBarAndModal(d, level, options) {
       "<div class='modal-content' style='padding-bottom: 0; margin-bottom: " + ((d.type === 'header') ? '260px' : '0') + ";'>" +
         "<div class='modal-title'>" +
           "<h4 id='modal_name'>" + d.name + "</h4>" +
+          "<div style='display: flex;'>" +
+          "<div class='layerHelp'><a href='https://nasa-ammos.github.io/MMGIS/configure/layers' target='__blank' rel='noopener'><i class='mdi mdi-help mdi-24px' title='Layer Configuration Docs'></i></a></div>" +
           "<div class='clone'><i class='mdi mdi-content-duplicate mdi-24px' title='Clone Layer'></i></div>" +
+          "</div>" +
         "</div>" +
         "<p>" +
 
@@ -2677,6 +2680,15 @@ function layerPopulateVariable(modalId, layerType) {
           initialVisibility: false,
           theme: "default || solid",
           size: "default || large",
+        },
+        pairings: {
+          initialVisibility: false,
+          layers: ["Array of layer names to pair"],
+          pairProp:
+            "path.to.pair.prop.for.this.layer.and.all.paired.layers.to.link.on",
+          style: {
+            any_normal_style_field: "to_style_connective_lines",
+          },
         },
       };
       currentLayerVars.coordinateAttachments =

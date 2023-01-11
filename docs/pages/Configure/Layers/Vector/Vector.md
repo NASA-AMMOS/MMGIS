@@ -154,6 +154,15 @@ Example:
           "initialVisibility": false,
           "theme": "default || solid",
           "size": "default || large"
+        },
+        "pairings": {
+          "initialVisibility": false,
+          "layers": ["Array of layer names to pair"],
+          "pairProp":
+            "path.to.pair.prop.for.this.layer.and.all.paired.layers.to.link.on",
+          "style": {
+            "any_normal_style_field": "to_style_connective_lines",
+          }
         }
     },
     "coordinateAttachments": {
@@ -254,6 +263,11 @@ Example:
     - `initialVisibility`: Whether the label sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.
     - `theme`: Label theme. Either `default` or `solid`. Default is white text with a black border. Solid is white text with a dark-grey background box.
     - `size`: Label size. Either `default` or `large`. Default is 14px, large is 16px.
+  - `pairings`: Links cross-layer features together. Features paired to this layer will attempt to compute the azimuth-elevation relationship between the two to draw in the Viewer's PhotoSphere. Additionally, on the Map, a line will be drawn between the two features.
+    - `initialVisibility`: Whether the pairing line sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.
+    - `layers`: An array of names of other layers. Note: Do not use css shorthand color names ("blue", "maroon", ...) in the paired layers styles as they won't parse properly when drawing in the PhotoSphere.
+    - `pairProp`: The dot notated path to the feature properties that contains the property to pair on. This layer and all paired layers need this property to properly pair up. A feature in this layer is said to be paired with a feature of one of the other specified layers, if and only if the values of this property in both features matches.
+    - `style`: A style object to change the style of the connective lines on the Map between features. (Ex. { "color": "#00000", "weight": 5})
 - `coordinateAttachments`: Attachment layers for each coordinate of every feature.
   - `marker`: Place a marker at every coordinate of every feature.
     - `initialVisibility`: Whether the coordinate marker sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.

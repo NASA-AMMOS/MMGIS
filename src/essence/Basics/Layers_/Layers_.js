@@ -906,10 +906,12 @@ var L_ = {
             L_.clearVectorLayerInfo()
         }
     },
-    highlight(layer) {
+    highlight(layer, forceColor) {
         if (layer == null) return
         const color =
-            (L_.configData.look && L_.configData.look.highlightcolor) || 'red'
+            forceColor ||
+            (L_.configData.look && L_.configData.look.highlightcolor) ||
+            'red'
         try {
             if (
                 layer.feature?.properties?.annotation === true &&
@@ -1477,11 +1479,13 @@ var L_ = {
             L_.layersGroup[name].updateFilter(filterArray)
         }
     },
-    resetLayerFills: function () {
+    resetLayerFills: function (onlyThisLayerName) {
         // Regular Layers
         for (let key in this.layersGroup) {
             var s = key.split('_')
             var onId = s[1] != 'master' ? parseInt(s[1]) : s[1]
+
+            if (onlyThisLayerName != null && onlyThisLayerName !== key) continue
 
             if (
                 (this.layersGroup[key] &&

@@ -39,6 +39,8 @@ export default function (domEl, lookupPath, options, Map_) {
     var lastFov = null
 
     var geometry = null
+    var currentImageObj = null
+    var lastIntLayerName = null
 
     var webglSupport = (function () {
         try {
@@ -178,6 +180,7 @@ export default function (domEl, lookupPath, options, Map_) {
                 )
         }
         geometry = feature.geometry
+        currentImageObj = imageObj
 
         const url = imageObj.url
         //crop out directory path and extension from image name
@@ -200,8 +203,13 @@ export default function (domEl, lookupPath, options, Map_) {
                 L_.layersGroupSublayers[layerName].pairings &&
                 L_.layersGroupSublayers[layerName].pairings.on
             ) {
-                layers[layerName] = {}
                 const sourceCoords = feature.geometry.coordinates
+                if (imageObj.srclng != null)
+                    sourceCoords[0] = parseFloat(imageObj.srclng)
+                if (imageObj.srclat != null)
+                    sourceCoords[1] = parseFloat(imageObj.srclat)
+                if (imageObj.srcelv != null)
+                    sourceCoords[2] = parseFloat(imageObj.srcelv)
 
                 const pairValue = F_.getIn(
                     feature.properties,
@@ -216,6 +224,7 @@ export default function (domEl, lookupPath, options, Map_) {
                         L_.layersGroup[pairedLayerName]._sourceGeoJSON &&
                         L_.toggledArray[pairedLayerName] === true
                     ) {
+                        layers[pairedLayerName] = {}
                         L_.layersGroup[
                             pairedLayerName
                         ]._sourceGeoJSON.features.forEach((pairFeature) => {
@@ -242,20 +251,26 @@ export default function (domEl, lookupPath, options, Map_) {
                                         el: pairCoords[2],
                                     }
                                 )
-                                console.log(sourceCoords, pairCoords, azElDist)
-                                const az = 0,
-                                    el = 0
+                                console.log(
+                                    F_.getIn(
+                                        pairFeature.properties,
+                                        L_.layersNamed[pairedLayerName]
+                                            .useKeyAsName
+                                    ),
+                                    azElDist
+                                )
                                 addPoint(
-                                    layerName,
-                                    az,
-                                    -el,
-                                    L_.layersGroup[pairedLayerName]
+                                    pairedLayerName,
+                                    azElDist.az,
+                                    azElDist.el,
+                                    L_.layersNamed[pairedLayerName]
                                         .useKeyAsName,
                                     F_.getIn(
-                                        pairFeature,
-                                        L_.layersGroup[pairedLayerName]
-                                            .useKeyAsHoverName
-                                    )
+                                        pairFeature.properties,
+                                        L_.layersNamed[pairedLayerName]
+                                            .useKeyAsName
+                                    ),
+                                    L_.layersNamed[pairedLayerName].style
                                 )
                             }
                         })
@@ -276,19 +291,14 @@ export default function (domEl, lookupPath, options, Map_) {
         else controls = orientationControls
     }
 
-    function addPoint(layerName, az, el, nameKey, name) {
-        var mapped = F_.lonLatToVector3nr(
-            F_.mod(az - 90 - sphereRot - 180, 360),
-            el,
-            sphereRadius / 2
-        )
-        var mappedCloser = F_.lonLatToVector3nr(
-            F_.mod(az - 90 - sphereRot - 180, 360),
-            el,
-            sphereRadius / 1.5
-        )
+    function addPoint(layerName, az, el, nameKey, name, style) {
+        style = style || {}
 
-        var boundingSphere = new THREE.Mesh(
+        const rot = F_.mod(az - 90, 360)
+        const mapped = F_.lonLatToVector3nr(rot, -el, sphereRadius / 2)
+        const mappedCloser = F_.lonLatToVector3nr(rot, -el, sphereRadius / 1.5)
+
+        const boundingSphere = new THREE.Mesh(
             new THREE.SphereGeometry(1, 12, 12),
             new THREE.MeshBasicMaterial({
                 color: 0x000000,
@@ -303,11 +313,20 @@ export default function (domEl, lookupPath, options, Map_) {
         boundingSphere.name = name
         scene.add(boundingSphere)
 
-        var point = Sprites.makeMarkerSprite({
-            radius: 64,
-            fillColor: { r: 102, g: 204, b: 102, a: 0.7 },
-            strokeWeight: 12,
-            strokeColor: { r: 0, g: 0, b: 0, a: 1 },
+        const fillColor = F_.hexToRGB(F_.rgb2hex(style.fillColor)) || false
+        if (fillColor)
+            fillColor.a =
+                style.fillOpacity != null ? parseFloat(style.fillOpacity) : 1
+        const strokeColor = F_.hexToRGB(F_.rgb2hex(style.color)) || false
+        if (strokeColor)
+            strokeColor.a =
+                style.opacity != null ? parseFloat(style.opacity) : 1
+
+        const point = Sprites.makeMarkerSprite({
+            radius: style.radius ? style.radius * 8 : 64,
+            fillColor,
+            strokeWeight: style.weight ? style.weight * 6 : 12,
+            strokeColor,
         })
         point.position.set(mappedCloser.x, mappedCloser.y, mappedCloser.z)
         point.layerName = layerName
@@ -316,10 +335,10 @@ export default function (domEl, lookupPath, options, Map_) {
         point.name = name
         scene.add(point)
 
-        var text = Sprites.makeTextSprite(name, {
+        const text = Sprites.makeTextSprite(name, {
             fontsize: 36,
             fontColor: { r: 255, g: 255, b: 255, a: 1.0 },
-            strokeColor: { r: 0, g: 0, b: 0, a: 0.8 },
+            strokeColor: { r: 0, g: 0, b: 0, a: 1.0 },
         })
         text.position.set(mappedCloser.x, mappedCloser.y, mappedCloser.z)
         text.layerName = layerName
@@ -390,11 +409,14 @@ export default function (domEl, lookupPath, options, Map_) {
             lastEl = currentEl
             lastFov = currentFov
 
-            if (geometry) {
+            if (geometry && currentImageObj) {
                 Map_.rmNotNull(Map_.tempPhotosphereWedge)
 
-                //console.log( geometry )
                 let start = [geometry.coordinates[1], geometry.coordinates[0]]
+                if (currentImageObj.srclat != null)
+                    start[0] = parseFloat(currentImageObj.srclat)
+                if (currentImageObj.srclng != null)
+                    start[1] = parseFloat(currentImageObj.srclng)
                 let end
                 let rp
                 let line
@@ -521,21 +543,19 @@ export default function (domEl, lookupPath, options, Map_) {
             1
         raycaster.setFromCamera(mouse, camera)
 
-        var intersectArr = []
-        for (var l in layers) {
-            for (var p in layers[l])
+        const intersectArr = []
+        for (let l in layers) {
+            for (let p in layers[l])
                 intersectArr.push(layers[l][p].boundingSphere)
         }
-        var intersects = raycaster.intersectObjects(intersectArr)
+        const intersects = raycaster.intersectObjects(intersectArr)
 
         if (intersects.length > 0) {
             //reset all photosphere point materials
             resetLayerMaterials()
+            const intLayerName = intersects[0].object.layerName
             //change clicked point material
-            var point =
-                layers[intersects[0].object.layerName][
-                    intersects[0].object.name
-                ].point
+            const point = layers[intLayerName][intersects[0].object.name].point
             point.material = Sprites.makeMarkerMaterial({
                 radius: 64,
                 fillColor: { r: 102, g: 204, b: 102, a: 0 },
@@ -546,14 +566,18 @@ export default function (domEl, lookupPath, options, Map_) {
             render()
 
             //Select the point in the map
-            var markers = L_.layersGroup[intersects[0].object.layerName]
+            const markers = L_.layersGroup[intLayerName]
             if (markers != undefined) {
                 markers.eachLayer(function (layer) {
                     if (
                         intersects[0].object.name ==
                         layer.feature.properties[intersects[0].object.nameKey]
                     ) {
-                        layer.fireEvent('click')
+                        if (lastIntLayerName)
+                            L_.resetLayerFills(lastIntLayerName)
+                        L_.highlight(layer)
+                        lastIntLayerName = intLayerName
+                        //layer.fireEvent('click')
                         return
                     }
                 })

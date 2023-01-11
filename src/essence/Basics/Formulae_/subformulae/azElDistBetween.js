@@ -46,28 +46,29 @@ function geocentricLatitude(lat, majorRadius, minorRadius) {
     const b = minorRadius // polar radius in meters
     const f = (a - b) / a // flattening
     const e2 = 2 * f - Math.pow(f, 2) // eccentricity squared
-    console.log('e2=', a, b, f, e2)
+
     // Convert geodetic latitude 'lat' to a geocentric latitude 'clat'.
     // Geodetic latitude is the latitude as given by GPS.
     // Geocentric latitude is the angle measured from center of Earth between a point and the equator.
     // https://en.wikipedia.org/wiki/Latitude#Geocentric_latitude
     const clat = Math.atan((1.0 - e2) * Math.tan(lat))
+
     return clat
 }
 
 function locationToPoint(c, majorRadius, minorRadius) {
-    // Convert (lat, lon, elv) to (x, y, z).
+    // Convert (lat, lng, el) to (x, y, z).
     const lat = (c.lat * Math.PI) / 180.0
-    const lon = (c.lon * Math.PI) / 180.0
+    const lng = (c.lng * Math.PI) / 180.0
     const radius = earthRadiusInMeters(lat, majorRadius, minorRadius)
     const clat = geocentricLatitude(lat, majorRadius, minorRadius)
 
-    const cosLon = Math.cos(lon)
-    const sinLon = Math.sin(lon)
+    const cosLng = Math.cos(lng)
+    const sinLng = Math.sin(lng)
     const cosLat = Math.cos(clat)
     const sinLat = Math.sin(clat)
-    let x = radius * cosLon * cosLat
-    let y = radius * sinLon * cosLat
+    let x = radius * cosLng * cosLat
+    let y = radius * sinLng * cosLat
     let z = radius * sinLat
 
     // We used geocentric latitude to calculate (x,y,z) on the Earth's ellipsoid.
@@ -75,13 +76,13 @@ function locationToPoint(c, majorRadius, minorRadius) {
     const cosGlat = Math.cos(lat)
     const sinGlat = Math.sin(lat)
 
-    const nx = cosGlat * cosLon
-    const ny = cosGlat * sinLon
+    const nx = cosGlat * cosLng
+    const ny = cosGlat * sinLng
     const nz = sinGlat
 
-    x += c.elv * nx
-    y += c.elv * ny
-    z += c.elv * nz
+    x += c.el * nx
+    y += c.el * ny
+    z += c.el * nz
 
     return { x: x, y: y, z: z, radius: radius, nx: nx, ny: ny, nz: nz }
 }
@@ -94,11 +95,11 @@ function distance(ap, bp) {
 }
 
 function rotateGlobe(b, a, bradius, aradius, majorRadius, minorRadius) {
-    // Get modified coordinates of 'b' by rotating the globe so that 'a' is at lat=0, lon=0.
-    const br = { lat: b.lat, lon: b.lon - a.lon, elv: b.elv }
+    // Get modified coordinates of 'b' by rotating the globe so that 'a' is at lat=0, lng=0.
+    const br = { lat: b.lat, lng: b.lng - a.lng, el: b.el }
     const brp = locationToPoint(br, majorRadius, minorRadius)
 
-    // Rotate brp cartesian coordinates around the z-axis by a.lon degrees,
+    // Rotate brp cartesian coordinates around the z-axis by a.lng degrees,
     // then around the y-axis by a.lat degrees.
     // Though we are decreasing by a.lat degrees, as seen above the y-axis,
     // this is a positive (counterclockwise) rotation (if B's longitude is east of A's).
@@ -147,7 +148,6 @@ export default function azElDistBetween(
         if (b != null) {
             const ap = locationToPoint(a, majorRadius, minorRadius)
             const bp = locationToPoint(b, majorRadius, minorRadius)
-            console.log('apbp', ap, bp)
             result.dist = distance(ap, bp)
 
             // Let's use a trick to calculate azimuth:

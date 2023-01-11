@@ -518,7 +518,6 @@ var Formulae_ = {
      * @returns {String} - color in hex color code - '#ae6204'
      */
     stringToColor2: function (stringInput) {
-        console.log(stringInput)
         const h = [...stringInput].reduce((acc, char) => {
             return char.charCodeAt(0) + ((acc << 5) - acc)
         }, 0)
