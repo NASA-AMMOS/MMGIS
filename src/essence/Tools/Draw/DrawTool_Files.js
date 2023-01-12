@@ -1204,13 +1204,13 @@ var Files = {
                             file_description:
                                 description +
                                 existingTagFol['efolders']
-                                    .map((t) => ' ^' + t)
+                                    .map((t) => ' ~^' + t)
                                     .join('') +
                                 existingTagFol['folders']
-                                    .map((t) => ' @' + t)
+                                    .map((t) => ' ~@' + t)
                                     .join('') +
                                 existingTagFol['tags']
-                                    .map((t) => ' #' + t)
+                                    .map((t) => ' ~#' + t)
                                     .join(''),
                             public:
                                 elm
