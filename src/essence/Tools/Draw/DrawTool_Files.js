@@ -421,11 +421,11 @@ var Files = {
                         }
                         if (
                             $(
-                                `.drawToolDrawFilesGroupElem[group_name=${g}] .drawToolDrawFilesGroupListElem > .drawToolDrawFilesListElem[file_id=${file.id}]`
+                                `.drawToolDrawFilesGroupElem[group_name="${g}"] .drawToolDrawFilesGroupListElem > .drawToolDrawFilesListElem[file_id="${file.id}"]`
                             ).length === 0
                         ) {
                             d3.select(
-                                `.drawToolDrawFilesGroupElem[group_name=${g}] .drawToolDrawFilesGroupListElem`
+                                `.drawToolDrawFilesGroupElem[group_name="${g}"] .drawToolDrawFilesGroupListElem`
                             )
                                 .append('li')
                                 .attr(
@@ -1204,13 +1204,13 @@ var Files = {
                             file_description:
                                 description +
                                 existingTagFol['efolders']
-                                    .map((t) => ' ^' + t)
+                                    .map((t) => ' ~^' + t)
                                     .join('') +
                                 existingTagFol['folders']
-                                    .map((t) => ' @' + t)
+                                    .map((t) => ' ~@' + t)
                                     .join('') +
                                 existingTagFol['tags']
-                                    .map((t) => ' #' + t)
+                                    .map((t) => ' ~#' + t)
                                     .join(''),
                             public:
                                 elm
