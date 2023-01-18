@@ -68,7 +68,7 @@ var Drawing = {
         //Then modify the ones it overlapped
         var bb = turf.bbox(d.shape)
 
-        var lg = L_.layersGroup['DrawTool_' + DrawTool.currentFileId]
+        var lg = L_.layers.layer['DrawTool_' + DrawTool.currentFileId]
 
         throughLoop(0)
         function throughLoop(i) {
@@ -202,7 +202,7 @@ var Drawing = {
     drawUnder: function (d) {
         //Modify shape based on intersecting features
         var bb = turf.bbox(d.shape)
-        var lg = L_.layersGroup['DrawTool_' + DrawTool.currentFileId]
+        var lg = L_.layers.layer['DrawTool_' + DrawTool.currentFileId]
 
         for (var i = 0; i < lg.length; i++) {
             if (lg[i] == null) continue
@@ -1562,7 +1562,7 @@ var drawing = {
                                     "  blackTextBorder' layer='" +
                                     DrawTool.currentFileId +
                                     "' index='" +
-                                    L_.layersGroup[
+                                    L_.layers.layer[
                                         'DrawTool_' + DrawTool.currentFileId
                                     ].length +
                                     "'></div>" +
@@ -1577,7 +1577,7 @@ var drawing = {
                                 data.id
                         ).text(shape.properties.name)
 
-                        L_.layersGroup[
+                        L_.layers.layer[
                             'DrawTool_' + DrawTool.currentFileId
                         ].push(popup)
 
@@ -1611,7 +1611,7 @@ var drawing = {
                         $('.drawToolAnnotation').on('click', function () {
                             var layer = 'DrawTool_' + $(this).attr('layer')
                             var index = $(this).attr('index')
-                            var shape = L_.layersGroup[layer][index]
+                            var shape = L_.layers.layer[layer][index]
                             if (!mmgisglobal.shiftDown) {
                                 if (typeof shape.getBounds === 'function')
                                     Map_.map.fitBounds(shape.getBounds())
@@ -1622,10 +1622,10 @@ var drawing = {
                         })
 
                         var l =
-                            L_.layersGroup[
+                            L_.layers.layer[
                                 'DrawTool_' + DrawTool.currentFileId
                             ][
-                                L_.layersGroup[
+                                L_.layers.layer[
                                     'DrawTool_' + DrawTool.currentFileId
                                 ].length - 1
                             ]

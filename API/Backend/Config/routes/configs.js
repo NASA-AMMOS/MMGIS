@@ -12,10 +12,11 @@ const Config = require("../models/config");
 const config_template = require("../../../templates/config_template");
 
 const validate = require("../validate");
+const populateUUIDs = require("../uuids");
 const Utils = require("../../../utils.js");
 
 const websocket = require("../../../websocket.js");
-const WebSocket = require('isomorphic-ws');
+const WebSocket = require("isomorphic-ws");
 
 const fs = require("fs");
 const deepmerge = require("deepmerge");
@@ -294,6 +295,8 @@ function upsert(req, res, next, cb, info) {
           }
         } else configJSON = req.body.config;
       }
+
+      populateUUIDs(configJSON);
       const validation = validate(configJSON);
 
       if (!validation.valid) {
@@ -339,13 +342,16 @@ function upsert(req, res, next, cb, info) {
               mission: created.mission,
               version: created.version,
             });
-            openWebSocket(req.body, {
-                status: "success",
-                mission: created.mission,
-                version: created.version,
-              }, info,
-              forceClientUpdate
-            );
+          openWebSocket(
+            req.body,
+            {
+              status: "success",
+              mission: created.mission,
+              version: created.version,
+            },
+            info,
+            forceClientUpdate
+          );
           return null;
         })
         .catch((err) => {
@@ -577,12 +583,13 @@ if (fullAccess)
 function openWebSocket(body, response, info, forceClientUpdate) {
   if (
     !process.env.hasOwnProperty("ENABLE_MMGIS_WEBSOCKETS") ||
-    process.env.ENABLE_MMGIS_WEBSOCKETS != "true") {
-      return
+    process.env.ENABLE_MMGIS_WEBSOCKETS != "true"
+  ) {
+    return;
   }
 
   const port = parseInt(process.env.PORT || "8888", 10);
-  const path = `ws://localhost:${port}/`
+  const path = `ws://localhost:${port}/`;
   const ws = new WebSocket(path);
   ws.onopen = function () {
     const data = {
@@ -591,7 +598,7 @@ function openWebSocket(body, response, info, forceClientUpdate) {
       forceClientUpdate,
     };
     ws.send(JSON.stringify(data));
-  }
+  };
 }
 
 // === Quick API Functions ===
@@ -694,7 +701,11 @@ function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
           if (didSet) {
             upsert(
               {
-                body: { mission: req.body.mission, config: config, forceClientUpdate: req.body.forceClientUpdate },
+                body: {
+                  mission: req.body.mission,
+                  config: config,
+                  forceClientUpdate: req.body.forceClientUpdate,
+                },
               },
               null,
               null,
@@ -961,7 +972,7 @@ function removeLayer(req, res, next, cb) {
                 }
               },
               {
-                type: 'removeLayer',
+                type: "removeLayer",
                 layerName: req.body.layerName,
               }
             );

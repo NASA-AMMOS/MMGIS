@@ -5,7 +5,7 @@ import F_ from '../Basics/Formulae_/Formulae_'
 
 import tippy from 'tippy.js'
 
-var Description = {
+const Description = {
     inited: false,
     waitingOnUpdate: false,
     descCont: null,
@@ -78,15 +78,15 @@ var Description = {
 
         let infos = []
 
-        for (let layer in this.L_.layersNamed) {
-            let l = this.L_.layersNamed[layer]
+        for (let layer in this.L_.layers.data) {
+            let l = this.L_.layers.data[layer]
             if (
-                this.L_.layersGroup[layer] &&
+                this.L_.layers.layer[layer] &&
                 l.hasOwnProperty('variables') &&
                 l.variables.hasOwnProperty('info') &&
                 l.variables.info.hasOwnProperty('length')
             ) {
-                let layers = this.L_.layersGroup[layer]._layers
+                let layers = this.L_.layers.layer[layer]._layers
                 let newInfo = ''
                 for (let i = 0; i < l.variables.info.length; i++) {
                     let which =
@@ -170,11 +170,11 @@ var Description = {
             var links = "<span style='padding-left: 4px;'></span>"
 
             if (
-                this.L_.layersNamed[activeLayer.options.layerName] &&
-                this.L_.layersNamed[activeLayer.options.layerName].variables
+                this.L_.layers.data[activeLayer.options.layerName] &&
+                this.L_.layers.data[activeLayer.options.layerName].variables
             ) {
                 let v =
-                    this.L_.layersNamed[activeLayer.options.layerName].variables
+                    this.L_.layers.data[activeLayer.options.layerName].variables
                 if (v.links) {
                     links = ''
                     for (let i = 0; i < v.links.length; i++) {
@@ -228,7 +228,10 @@ var Description = {
                 ')</div>'
 
             Description.descPointInner.html(
-                activeLayer.options.layerName + ': ' + keyAsName
+                Description.L_.layers.data[activeLayer.options.layerName]
+                    .display_name +
+                    ': ' +
+                    keyAsName
             )
             Description.descPointLinks.html(links)
 

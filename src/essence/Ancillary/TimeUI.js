@@ -701,14 +701,14 @@ const TimeUI = {
 
         // Find all on, time-enabled, tile layers
         const sparklineLayers = []
-        Object.keys(L_.layersNamed).forEach((name) => {
-            const l = L_.layersNamed[name]
+        Object.keys(L_.layers.data).forEach((name) => {
+            const l = L_.layers.data[name]
             if (
                 l &&
                 l.type === 'tile' &&
                 l.time &&
                 l.time.enabled === true &&
-                L_.toggledArray[name] === true
+                L_.layers.on[name] === true
             ) {
                 let layerUrl = l.url
                 if (!F_.isUrlAbsolute(layerUrl)) {

@@ -88,19 +88,19 @@ var IdentifierTool = {
         IdentifierTool.activeLayerNames = []
         IdentifierTool.activeLayerURLs = []
         IdentifierTool.zoomLevels = []
-        for (let n in L_.toggledArray) {
-            if (L_.toggledArray[n] == true) {
+        for (let n in L_.layers.on) {
+            if (L_.layers.on[n] == true) {
                 //We only want the tile layers
-                if (L_.layersNamed[n].type == 'tile') {
+                if (L_.layers.data[n].type == 'tile') {
                     //Cut the {z}/{x}/{y}.png
-                    var croppedUrl = L_.layersNamed[n].url
+                    var croppedUrl = L_.layers.data[n].url
                     croppedUrl = croppedUrl.substr(0, croppedUrl.length - 15)
                     if (!F_.isUrlAbsolute(croppedUrl))
                         croppedUrl = L_.missionPath + croppedUrl
                     IdentifierTool.activeLayerURLs.push(croppedUrl)
                     IdentifierTool.activeLayerNames.push(n)
                     IdentifierTool.zoomLevels.push(
-                        L_.layersNamed[n].maxNativeZoom
+                        L_.layers.data[n].maxNativeZoom
                     )
                 }
             }
@@ -262,13 +262,13 @@ var IdentifierTool = {
                     )
                 } else {
                     if (
-                        L_.layersLegendsData[IdentifierTool.activeLayerNames[i]]
+                        L_.layers.data[IdentifierTool.activeLayerNames[i]]
+                            ?._legend
                     ) {
                         value = bestMatchInLegend(
                             pxRGBA,
-                            L_.layersLegendsData[
-                                IdentifierTool.activeLayerNames[i]
-                            ]
+                            L_.layers.data[IdentifierTool.activeLayerNames[i]]
+                                ._legend
                         )
                     }
                 }
@@ -287,7 +287,8 @@ var IdentifierTool = {
                 "<li><div style='width: 14px; height: 14px; float: left; margin-right: 5px; margin-top: 1px; background: " +
                 colorString +
                 ";'></div>" +
-                IdentifierTool.activeLayerNames[i] +
+                L_.layers.data[IdentifierTool.activeLayerNames[i]]
+                    .display_name +
                 "<div id='identifierToolIdPixelCursorInfo_" +
                 i +
                 "'  style='padding-left: 20px;'>" +

@@ -1561,6 +1561,7 @@ function makeLayerBarAndModal(d, level, options) {
           "</div>" +
 
         "</p>" +
+        "<div id='modal_uuid'>Layer UUID: " + d.uuid + "</div>" + 
       "</div>" +
 
       "<div class='modal-footer' style='background-color: " + barColor + "; display: flex; justify-content: space-between;'>" +

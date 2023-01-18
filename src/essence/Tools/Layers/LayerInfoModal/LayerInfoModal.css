@@ -114,6 +114,12 @@
     padding-bottom: 8px;
     background: var(--color-a1-5);
 }
+#LayerInfoModalInnerUUID {
+    padding: 4px 30px;
+    text-align: right;
+    font-size: 11px;
+    color: var(--color-a2);
+}
 
 .LayerInfoModalTag {
     color: black;

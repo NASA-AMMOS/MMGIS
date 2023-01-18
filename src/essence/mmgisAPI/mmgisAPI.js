@@ -32,49 +32,51 @@ var mmgisAPI_ = {
         let features = {}
 
         // For all MMGIS layers
-        for (let key in L_.layersGroup) {
-            if (L_.layersGroup[key].hasOwnProperty('_layers')) {
+        for (let key in L_.layers.layer) {
+            if (L_.layers.layer[key].hasOwnProperty('_layers')) {
                 // For normal layers
                 const foundFeatures = findFeaturesInLayer(
                     extent,
-                    L_.layersGroup[key]
+                    L_.layers.layer[key]
                 )
                 features[key] = foundFeatures
             } else if (
                 key.startsWith('DrawTool_') &&
-                Array.isArray(L_.layersGroup[key])
+                Array.isArray(L_.layers.layer[key])
             ) {
                 // If layer is a DrawTool array of layers
-                for (let layer in L_.layersGroup[key]) {
+                for (let layer in L_.layers.layer[key]) {
                     let foundFeatures
-                    if ('getLayers' in L_.layersGroup[key][layer]) {
+                    if ('getLayers' in L_.layers.layer[key][layer]) {
                         if (
-                            L_.layersGroup[key][layer]?.feature?.properties
+                            L_.layers.layer[key][layer]?.feature?.properties
                                 ?.arrow
                         ) {
                             // If the DrawTool sublayer is an arrow
                             foundFeatures = findFeaturesInLayer(
                                 extent,
-                                L_.layersGroup[key][layer]
+                                L_.layers.layer[key][layer]
                             )
 
                             // As long as one of the layers of the arrow layer is in the current Map bounds,
                             // return the parent arrow layer's feature
                             if (foundFeatures && foundFeatures.length > 0) {
                                 foundFeatures =
-                                    L_.layersGroup[key][layer].feature
+                                    L_.layers.layer[key][layer].feature
                             }
                         } else {
                             // If the DrawTool sublayer is Polygon or Line
                             foundFeatures = findFeaturesInLayer(
                                 extent,
-                                L_.layersGroup[key][layer]
+                                L_.layers.layer[key][layer]
                             )
                         }
-                    } else if ('getLatLng' in L_.layersGroup[key][layer]) {
+                    } else if ('getLatLng' in L_.layers.layer[key][layer]) {
                         // If the DrawTool sublayer is a Point
-                        if (isLayerInBounds(L_.layersGroup[key][layer])) {
-                            foundFeatures = [L_.layersGroup[key][layer].feature]
+                        if (isLayerInBounds(L_.layers.layer[key][layer])) {
+                            foundFeatures = [
+                                L_.layers.layer[key][layer].feature,
+                            ]
                         }
                     }
 
@@ -184,8 +186,8 @@ var mmgisAPI_ = {
     getLayerConfigs: function (match) {
         if (match) {
             const matchedLayers = {}
-            Object.keys(L_.layersNamed).forEach((name) => {
-                const layer = L_.layersNamed[name]
+            Object.keys(L_.layers.data).forEach((name) => {
+                const layer = L_.layers.data[name]
                 let matched = false
                 Object.keys(match).forEach((key) => {
                     const value = F_.getIn(layer, key)
@@ -199,17 +201,17 @@ var mmgisAPI_ = {
                     matchedLayers[name] = JSON.parse(JSON.stringify(layer))
             })
             return matchedLayers
-        } else return L_.layersNamed
+        } else return L_.layers.data
     },
     getLayers: function () {
-        return L_.layersGroup
+        return L_.layers.layer
     },
     // Returns an object with the visibility state of all layers
     getVisibleLayers: function () {
         // Also return the visibility of the DrawTool layers
         var drawToolVisibility = {}
-        for (let l in L_.layersGroup) {
-            if (!(l in L_.toggledArray)) {
+        for (let l in L_.layers.layer) {
+            if (!(l in L_.layers.on)) {
                 var s = l.split('_')
                 var onId = s[1] != 'master' ? parseInt(s[1]) : s[1]
                 if (s[0] == 'DrawTool') {
@@ -221,7 +223,7 @@ var mmgisAPI_ = {
             }
         }
 
-        return { ...L_.toggledArray, ...drawToolVisibility }
+        return { ...L_.layers.on, ...drawToolVisibility }
     },
     //customListeners: {},
     // Adds map event listener
@@ -295,22 +297,19 @@ var mmgisAPI_ = {
         return window.mmgisglobal.customCRS.unproject(xy)
     },
     toggleLayer: async function (layerName, on) {
-        if (layerName in L_.layersDataByName) {
+        if (layerName in L_.layers.data) {
             if (on === undefined || on === null) {
                 // If on is not defined, switch the visibility state of the layer
-                await L_.toggleLayer(L_.layersDataByName[layerName])
+                await L_.toggleLayer(L_.layers.data[layerName])
             } else {
-                let state = L_.toggledArray[layerName] && !on ? true : false
-                await L_.toggleLayerHelper(
-                    L_.layersDataByName[layerName],
-                    state
-                )
+                let state = L_.layers.on[layerName] && !on ? true : false
+                await L_.toggleLayerHelper(L_.layers.data[layerName], state)
             }
 
             if (ToolController_.activeToolName === 'LayersTool') {
                 const id = `#layerstart${F_.getSafeName(layerName)} .checkbox`
 
-                if (L_.toggledArray[layerName]) {
+                if (L_.layers.on[layerName]) {
                     $(id).addClass('on')
                 } else {
                     $(id).removeClass('on')

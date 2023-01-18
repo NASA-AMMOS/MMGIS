@@ -21,7 +21,7 @@ const Filtering = {
     current: {},
     mapSpatialLayer: null,
     make: async function (container, layerName) {
-        const layerObj = L_.layersNamed[layerName]
+        const layerObj = L_.layers.data[layerName]
 
         if (layerObj == null) return
 
@@ -43,7 +43,7 @@ const Filtering = {
             try {
                 Filtering.filters[layerName].geojson =
                     Filtering.filters[layerName].geojson ||
-                    L_.layersGroup[layerName].toGeoJSON(L_.GEOJSON_PRECISION)
+                    L_.layers.layer[layerName].toGeoJSON(L_.GEOJSON_PRECISION)
             } catch (err) {
                 console.warn(
                     `Filtering - Cannot find GeoJSON to filter on for layer: ${layerName}`

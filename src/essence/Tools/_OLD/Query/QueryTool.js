@@ -154,7 +154,7 @@ let QueryTool = {
                     thisDrawing.firstDrawing = false
 
                     if (thisDrawing.drawingType === 'point') {
-                        Map_.rmNotNull(L_.layersGroup['QueryToolPointBuffer'])
+                        Map_.rmNotNull(L_.layers.layer['QueryToolPointBuffer'])
 
                         if (radius == null) {
                             radius = F_.lngLatDistBetween(
@@ -168,7 +168,7 @@ let QueryTool = {
 
                         radius *= F_.getEarthToPlanetRatio()
 
-                        thisDrawing.drawingPoly = L_.layersGroup[
+                        thisDrawing.drawingPoly = L_.layers.layer[
                             'QueryToolPointBuffer'
                         ] = L.geoJson(
                             {
@@ -1512,18 +1512,19 @@ function interfaceWithMMGIS() {
                                                                                     1.55
 
                                                                                 // Max line data
-                                                                                let maxData = [
-                                                                                    {
-                                                                                        x: 0,
-                                                                                        y:
-                                                                                            max -
-                                                                                            0.05,
-                                                                                    },
-                                                                                    {
-                                                                                        x: max_X,
-                                                                                        y: -1,
-                                                                                    },
-                                                                                ]
+                                                                                let maxData =
+                                                                                    [
+                                                                                        {
+                                                                                            x: 0,
+                                                                                            y:
+                                                                                                max -
+                                                                                                0.05,
+                                                                                        },
+                                                                                        {
+                                                                                            x: max_X,
+                                                                                            y: -1,
+                                                                                        },
+                                                                                    ]
 
                                                                                 d3.select(
                                                                                     '#mat-graph-' +
@@ -1648,18 +1649,19 @@ function interfaceWithMMGIS() {
                                                                                     1.55
 
                                                                                 // Min line data
-                                                                                let minData = [
-                                                                                    {
-                                                                                        x: 0,
-                                                                                        y:
-                                                                                            max -
-                                                                                            0.05,
-                                                                                    },
-                                                                                    {
-                                                                                        x: min_X,
-                                                                                        y: -1,
-                                                                                    },
-                                                                                ]
+                                                                                let minData =
+                                                                                    [
+                                                                                        {
+                                                                                            x: 0,
+                                                                                            y:
+                                                                                                max -
+                                                                                                0.05,
+                                                                                        },
+                                                                                        {
+                                                                                            x: min_X,
+                                                                                            y: -1,
+                                                                                        },
+                                                                                    ]
 
                                                                                 d3.select(
                                                                                     '#mat-graph-' +
@@ -2103,7 +2105,8 @@ function interfaceWithMMGIS() {
 
                                                         // The following code block removes duplicate items from an array
                                                         $(function () {
-                                                            let availableInputs = []
+                                                            let availableInputs =
+                                                                []
 
                                                             // Remove duplicate elements in the array
                                                             $.each(
@@ -2310,7 +2313,7 @@ function interfaceWithMMGIS() {
                     // remove the drawn layer if exists
                     if (sec[sec.length - 1] === 'adjust') {
                         QueryTool.Draw._radiusPoints = []
-                        Map_.rmNotNull(L_.layersGroup['QueryToolPointBuffer'])
+                        Map_.rmNotNull(L_.layers.layer['QueryToolPointBuffer'])
                     }
 
                     if (
@@ -3614,7 +3617,7 @@ function interfaceWithMMGIS() {
 
                                     let pointCoords = function () {
                                         // console.log(QueryTool.Draw._radiusPoints);
-                                        // console.log(QueryTool.drawingPoly = L_.layersGroup['QueryToolPointBuffer']);
+                                        // console.log(QueryTool.drawingPoly = L_.layers.layer['QueryToolPointBuffer']);
                                         if (
                                             QueryTool.Draw._radiusPoints[0] !==
                                             undefined
@@ -3622,12 +3625,10 @@ function interfaceWithMMGIS() {
                                             // Set the query run flag to true
                                             runQuery = true
                                             return {
-                                                lng:
-                                                    QueryTool.Draw
-                                                        ._radiusPoints[0].lng,
-                                                lat:
-                                                    QueryTool.Draw
-                                                        ._radiusPoints[0].lat,
+                                                lng: QueryTool.Draw
+                                                    ._radiusPoints[0].lng,
+                                                lat: QueryTool.Draw
+                                                    ._radiusPoints[0].lat,
                                             }
                                         } else {
                                             // Set the query run flag to false

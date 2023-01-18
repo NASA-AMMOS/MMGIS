@@ -347,11 +347,9 @@ export const constructVectorLayer = (
             } else if (layer == null && svg != null) {
                 layer = L.marker(latlong, {
                     icon: L.divIcon({
-                        className: `leafletMarkerShape leafletMarkerShape_${layerObj.name
-                            .replace(/\s/g, '')
-                            .toLowerCase()} ${layerObj.name
-                            .replace(/\s/g, '')
-                            .toLowerCase()} leafletDivIcon`,
+                        className: `leafletMarkerShape leafletMarkerShape_${F_.getSafeName(
+                            layerObj.name
+                        )} ${F_.getSafeName(layerObj.name)} leafletDivIcon`,
                         iconSize: [
                             (featureStyle.radius + pixelBuffer) * 2,
                             (featureStyle.radius + pixelBuffer) * 2,
@@ -628,7 +626,7 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
         layer.dropdown = mainDropdownProps.dropdown
         layer.dropdownValue = mainDropdownProps.dropdownValue
         layer.dropdownFunc = (layerName, subName, Map_, prop) => {
-            const sublayer = L_.layersGroupSublayers[layerName][subName]
+            const sublayer = L_.layers.attachments[layerName][subName]
             layer.dropdownValue = prop
             if (sublayer.on) layer.on()
         }
@@ -752,12 +750,12 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
 
         layer.addDataEnhanced = function (geojson, layerName, subName) {
             this.addData(geojson)
-            if (L_.layersGroupSublayers[layerName][subName].on) this.on()
+            if (L_.layers.attachments[layerName][subName].on) this.on()
         }
 
         return {
-            on: L_.layersGroupSublayers[layerObj.name]?.labels
-                ? L_.layersGroupSublayers[layerObj.name]?.labels.on
+            on: L_.layers.attachments[layerObj.name]?.labels
+                ? L_.layers.attachments[layerObj.name]?.labels.on
                 : labelsVar.initialVisibility != null
                 ? labelsVar.initialVisibility
                 : true,
@@ -1415,22 +1413,20 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                 Map_,
                 overrideColorWithProp
             ) {
-                Map_.rmNotNull(
-                    L_.layersGroupSublayers[layerName][subName].layer
-                )
-                L_.layersGroupSublayers[layerName][subName].layer = getLayer(
+                Map_.rmNotNull(L_.layers.attachments[layerName][subName].layer)
+                L_.layers.attachments[layerName][subName].layer = getLayer(
                     geojson,
-                    L_.layersGroupSublayers[layerName][subName].layer.layerObj,
+                    L_.layers.attachments[layerName][subName].layer.layerObj,
                     overrideColorWithProp
                 )
                 Map_.map.addLayer(
-                    L_.layersGroupSublayers[layerName][subName].layer
+                    L_.layers.attachments[layerName][subName].layer
                 )
             }
             layer.dropdown = pathGradientSettings.dropdownColorWithProp
             layer.dropdownValue = pathGradientSettings.colorWithProp
             layer.dropdownFunc = function (layerName, subName, Map_, prop) {
-                const l = L_.layersGroupSublayers[layerName][subName]
+                const l = L_.layers.attachments[layerName][subName]
                 l.layer.addDataEnhanced(
                     l.geojson,
                     layerName,
