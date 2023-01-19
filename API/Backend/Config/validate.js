@@ -92,7 +92,6 @@ const validateLayers = (config) => {
     }
   });
 
-  errs = errs.concat(hasDuplicateLayerNames(config));
   errs = errs.concat(hasNonHeaderWithSublayers(config));
 
   return errs;
@@ -288,34 +287,6 @@ const hasNonHeaderWithSublayers = (config) => {
         ])
       );
   });
-  return errs;
-};
-
-const hasDuplicateLayerNames = (config) => {
-  let allNames = [];
-
-  depthTraversal(config.layers, 0);
-
-  function depthTraversal(node, depth) {
-    for (var i = 0; i < node.length; i++) {
-      allNames.push(node[i].name);
-      //Add other feature information while we're at it
-      if (node[i].sublayers != null && node[i].sublayers.length > 0) {
-        depthTraversal(node[i].sublayers, depth + 1);
-      }
-    }
-  }
-
-  let unique = [];
-  const errs = [];
-  allNames.forEach((name) => {
-    if (!unique.includes(name)) unique.push(name);
-    else
-      errs.push(
-        err(`Found duplicate layer name: '${name}'`, ["layers[layer].name"])
-      );
-  });
-
   return errs;
 };
 

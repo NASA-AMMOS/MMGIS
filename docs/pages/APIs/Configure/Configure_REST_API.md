@@ -132,7 +132,7 @@ Updates a single layer. Specified layer values are deep merged and overwrite exi
 |       Parameter       |   Type    | Required | Default |                                                    Description                                                     |
 | :-------------------: | :-------: | :------: | :-----: | :----------------------------------------------------------------------------------------------------------------: |
 |      **mission**      | _string_  |   true   |   N/A   |                                                    Mission name                                                    |
-|     **layerName**     | _string_  |   true   |   N/A   |                                                  Layer to update                                                   |
+|     **layerUUID**     | _string_  |   true   |   N/A   |                                                  Layer to update                                                   |
 |       **layer**       | _object_  |   true   |   N/A   |           A partial layer configuration object. See browser console-network tab responses for examples.            |
 |  **placement.path**   | _string_  |  false   |   ''    | A path to a header in 'layers' to place the new layer. A simple path ('sublayers' are added). Defaults to no group |
 |  **placement.index**  | _number_  |  false   |   end   |          Index in 'layers' (or path) to place the new layer. Out of range placement indices are best fit.          |
@@ -140,7 +140,7 @@ Updates a single layer. Specified layer values are deep merged and overwrite exi
 
 #### Example
 
-`curl -X POST -H "Authorization:Bearer <token>" -H "Content-Type: application/json" -d '{"mission":"Test", "layerName":"name", "layer":{}}' http://localhost:8889/api/configure/updateLayer`
+`curl -X POST -H "Authorization:Bearer <token>" -H "Content-Type: application/json" -d '{"mission":"Test", "layerUUID":"uuid", "layer":{}}' http://localhost:8889/api/configure/updateLayer`
 
 ---
 
@@ -151,12 +151,12 @@ Removes a single layer from the configuration object.
 |       Parameter       |   Type    | Required | Default |           Description           |
 | :-------------------: | :-------: | :------: | :-----: | :-----------------------------: |
 |      **mission**      | _string_  |   true   |   N/A   |          Mission name           |
-|     **layerName**     | _string_  |   true   |   N/A   |         Layer to update         |
+|     **layerUUID**     | _string_  |   true   |   N/A   |         Layer to update         |
 | **forceClientUpdate** | _boolean_ |  false   |  false  | Push the change out to clients. |
 
 #### Example
 
-`curl -X POST -H "Authorization:Bearer <token>" -H "Content-Type: application/json" -d '{"mission":"Test", "layerName":"name"}' http://localhost:8889/api/configure/removeLayer`
+`curl -X POST -H "Authorization:Bearer <token>" -H "Content-Type: application/json" -d '{"mission":"Test", "layerUUID":"name"}' http://localhost:8889/api/configure/removeLayer`
 
 ---
 
