@@ -498,7 +498,7 @@ export default function (domEl, lookupPath, options, Map_) {
             render()
 
             //Select the point in the map
-            var markers = L_.layersGroup[intersects[0].object.layerName]
+            var markers = L_.layers.layer[intersects[0].object.layerName]
             if (markers != undefined) {
                 markers.eachLayer(function (layer) {
                     if (

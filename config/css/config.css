@@ -440,6 +440,12 @@ textarea {
 .modal .clone:hover {
   color: #000;
 }
+#modal_uuid {
+  text-align: center;
+  margin: 20px 0px;
+  font-size: 14px;
+  color: #555;
+}
 
 #toast-container {
   pointer-events: none;

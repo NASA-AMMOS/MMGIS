@@ -40,6 +40,7 @@ var Search = {
     MMWebGISInterface: null,
     searchvars: {},
     searchFields: {},
+    adjustedFieldUUIDs: [],
     adjustedFieldNames: [],
     type: 'geojson',
     lastGeodatasetLayerName: null,
@@ -51,12 +52,12 @@ var Search = {
 
         //Get search variables
         this.searchvars = {}
-        for (let l in L_.layersNamed) {
+        for (let l in L_.layers.data) {
             if (
-                L_.layersNamed[l].variables &&
-                L_.layersNamed[l].variables.search
+                L_.layers.data[l].variables &&
+                L_.layers.data[l].variables.search
             )
-                this.searchvars[l] = L_.layersNamed[l].variables.search
+                this.searchvars[l] = L_.layers.data[l].variables.search
         }
 
         // Nothing configured so don't even render it
@@ -87,14 +88,16 @@ function interfaceWithMMWebGIS(classSel) {
     cont.selectAll('*').remove()
     cont.html(markup)
 
+    Search.adjustedFieldUUIDs = []
     Search.adjustedFieldNames = []
     for (let l in Search.searchFields) {
         if (
-            L_.layersNamed[l] &&
-            (L_.layersNamed[l].type == 'vector' ||
-                L_.layersNamed[l].type == 'vectortile')
+            L_.layers.data[l] &&
+            (L_.layers.data[l].type == 'vector' ||
+                L_.layers.data[l].type == 'vectortile')
         ) {
-            Search.adjustedFieldNames.push(l)
+            Search.adjustedFieldUUIDs.push(l)
+            Search.adjustedFieldNames.push(L_.layers.data[l].display_name)
         }
     }
 
@@ -102,9 +105,9 @@ function interfaceWithMMWebGIS(classSel) {
         Dropy.construct(Search.adjustedFieldNames, 'Search Layer...', 0)
     )
     Dropy.init($('#SearchType'), function (idx) {
-        changeSearchField(Search.adjustedFieldNames[idx])
+        changeSearchField(Search.adjustedFieldUUIDs[idx])
     })
-    changeSearchField(Search.adjustedFieldNames[0])
+    changeSearchField(Search.adjustedFieldUUIDs[0])
 
     d3.select('#SearchGo').on('click', searchGo)
     d3.select('#SearchSelect').on('click', searchSelect)
@@ -186,9 +189,9 @@ async function changeSearchField(val, selectedPlaceholder) {
     if (Map_ != null) {
         Search.lname = val
 
-        Search.layerType = L_.layersNamed[Search.lname].type
-        if (L_.toggledArray[Search.lname] !== true) {
-            await L_.toggleLayer(L_.layersNamed[Search.lname])
+        Search.layerType = L_.layers.data[Search.lname].type
+        if (L_.layers.on[Search.lname] !== true) {
+            await L_.toggleLayer(L_.layers.data[Search.lname])
 
             const layerCheck = $(
                 `#LayersTool${Search.lname.replace(
@@ -211,17 +214,19 @@ async function changeSearchField(val, selectedPlaceholder) {
         Search.arrayToSearch = []
         let data
         try {
-            data = L_.layersGroup[Search.lname].toGeoJSON(L_.GEOJSON_PRECISION)
+            data = L_.layers.layer[Search.lname].toGeoJSON(L_.GEOJSON_PRECISION)
         } catch (err) {
             data = { features: [] }
         }
-        var props
-        for (var i = 0; i < data.features.length; i++) {
+
+        let props
+        for (let i = 0; i < data.features.length; i++) {
             props = data.features[i].properties
             Search.arrayToSearch.push(
                 getSearchFieldStringForFeature(Search.lname, props)
             )
         }
+
         if (Search.arrayToSearch[0]) {
             if (!isNaN(Search.arrayToSearch[0]))
                 Search.arrayToSearch.sort(function (a, b) {
@@ -285,12 +290,12 @@ function searchGeodatasets() {
             var r = d.body[0]
 
             let selectTimeout = setTimeout(() => {
-                L_.layersGroup[Search.lname].off('load')
+                L_.layers.layer[Search.lname].off('load')
                 selectFeature()
             }, 1500)
 
-            L_.layersGroup[Search.lname].on('load', function (event) {
-                L_.layersGroup[Search.lname].off('load')
+            L_.layers.layer[Search.lname].on('load', function (event) {
+                L_.layers.layer[Search.lname].off('load')
                 clearTimeout(selectTimeout)
                 selectFeature()
             })
@@ -298,9 +303,9 @@ function searchGeodatasets() {
                 [r.coordinates[1], r.coordinates[0]],
                 Map_.mapScaleZoom || Map_.map.getZoom()
             )
-            if (!L_.toggledArray[Search.lname]) {
+            if (!L_.layers.on[Search.lname]) {
                 wasOff = true
-                L_.toggleLayer(L_.layersNamed[Search.lname])
+                L_.toggleLayer(L_.layers.data[Search.lname])
                 const layerCheck = $(
                     `#LayersTool${Search.lname.replace(
                         /\s/g,
@@ -314,14 +319,14 @@ function searchGeodatasets() {
             }
 
             function selectFeature() {
-                var vts = L_.layersGroup[Search.lname]._vectorTiles
+                var vts = L_.layers.layer[Search.lname]._vectorTiles
                 for (var i in vts) {
                     for (var j in vts[i]._features) {
                         var feature = vts[i]._features[j].feature
                         if (feature.properties[key] == value) {
                             feature._layerName = vts[i].options.layerName
                             feature._layer = feature
-                            L_.layersGroup[Search.lname]._events.click[0].fn({
+                            L_.layers.layer[Search.lname]._events.click[0].fn({
                                 layer: feature,
                                 sourceTarget: feature,
                             })
@@ -355,13 +360,13 @@ function doWithSearch(doX, forceX, forceSTS, isURLSearch, value) {
     if (forceSTS == 'false') sTS = Search.lname
     else sTS = forceSTS
 
-    var markers = L_.layersGroup[Search.lname]
+    var markers = L_.layers.layer[Search.lname]
     var selectLayers = []
     var gotoLayers = []
 
     // Turn the layer on if it's off
-    if (!L_.toggledArray[Search.lname]) {
-        L_.toggleLayer(L_.layersNamed[Search.lname])
+    if (!L_.layers.on[Search.lname]) {
+        L_.toggleLayer(L_.layers.data[Search.lname])
         const layerCheck = $(
             `#LayersTool${Search.lname.replace(
                 /\s/g,
@@ -453,10 +458,10 @@ function makeSearchFields(vars) {
 }
 
 function getSearchFieldStringForFeature(name, props) {
-    var str = ''
+    let str = ''
     if (Search.searchFields.hasOwnProperty(name)) {
-        var sf = Search.searchFields[name] //sf for search field
-        for (var i = 0; i < sf.length; i++) {
+        const sf = Search.searchFields[name] //sf for search field
+        for (let i = 0; i < sf.length; i++) {
             switch (sf[i][0].toLowerCase()) {
                 case '': //no function
                     str += F_.getIn(props, sf[i][1])

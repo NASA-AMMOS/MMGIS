@@ -12,15 +12,16 @@ The `src/essence/mmgisAPI/mmgisAPI.js` file exposes functions that can be called
 #### _Contents_
 
 - [Layer Control](#layer-control)
-  - [clearVectorLayer(layerName)](#clearvectorlayerlayername)
-  - [updateVectorLayer(layerName, inputData)](#updatevectorlayerlayername-inputdata)
-  - [trimVectorLayerKeepBeforeTime(layerName, keepBeforeTime, timePropPath)](#trimvectorlayerkeepbeforetimelayername-keepbeforetime-timeproppath)
-  - [trimVectorLayerKeepAfterTime(layerName, keepBeforeTime, timePropPath)](#trimvectorlayerkeepaftertimelayername-keepbeforetime-timeproppath)
-  - [keepFirstN(layerName, keepLastN)](#keepfirstnlayername-keeplastn)
-  - [keepLastN(layerName, keepLastN)](#keeplastnlayername-keeplastn)
-  - [trimLineString(layerName, time, timeProp, trimN, startOrEnd)](#trimlinestringlayername-time-timeprop-trimn-startorend)
-  - [appendLineString(layerName, inputData, timeProp)](#appendlinestringlayername-inputdata-timeprop)
+  - [clearVectorLayer(layerUUID)](#clearvectorlayerlayeruuid)
+  - [updateVectorLayer(layerUUID, inputData)](#updatevectorlayerlayeruuid-inputdata)
+  - [trimVectorLayerKeepBeforeTime(layerUUID, keepBeforeTime, timePropPath)](#trimvectorlayerkeepbeforetimelayeruuid-keepbeforetime-timeproppath)
+  - [trimVectorLayerKeepAfterTime(layerUUID, keepBeforeTime, timePropPath)](#trimvectorlayerkeepaftertimelayeruuid-keepbeforetime-timeproppath)
+  - [keepFirstN(layerUUID, keepLastN)](#keepfirstnlayeruuid-keeplastn)
+  - [keepLastN(layerUUID, keepLastN)](#keeplastnlayeruuid-keeplastn)
+  - [trimLineString(layerUUID, time, timeProp, trimN, startOrEnd)](#trimlinestringlayeruuid-time-timeprop-trimn-startorend)
+  - [appendLineString(layerUUID, inputData, timeProp)](#appendlinestringlayeruuid-inputdata-timeprop)
   - [reloadLayer(layer, evenIfOff, evenIfControlled)](#reloadlayerlayer-evenifoff-evenifcontrolled)
+  - [asLayerUUID(uuid)](#asLayerUUIDuuid)
 - [Time Control](#time-control)
   - [toggleTimeUI(visibility)](#toggletimeuivisibility)
   - [setTime(startTime, endTime, isRelative, timeOffset, currentTime)](#settimestarttime-endtime-isrelative-timeoffset-currenttime)
@@ -41,11 +42,11 @@ The `src/essence/mmgisAPI/mmgisAPI.js` file exposes functions that can be called
   - [map](#map)
   - [featuresContained()](#featurescontained)
   - [getActiveFeature()](#getactivefeature)
-  - [selectFeature(layerName, options)](#selectfeaturelayername-options)
+  - [selectFeature(layerUUID, options)](#selectfeaturelayeruuid-options)
   - [getVisibleLayers()](#getvisiblelayers)
   - [getLayers()](#getlayers)
   - [getLayerConfigs(match)](#getlayerconfigsmatch)
-  - [toggleLayer(layerName, on)](#toggleLayerlayername-on)
+  - [toggleLayer(layerUUID, on)](#toggleLayerlayeruuid-on)
 - [Miscellaneous Features](#miscellaneous-features)
   - [writeCoordinateURL()](#writecoordinateurl)
   - [onLoaded(onLoadCallback)](#onloadedonloadcallback)
@@ -57,13 +58,13 @@ The `src/essence/mmgisAPI/mmgisAPI.js` file exposes functions that can be called
 
 ## Layer Control
 
-### clearVectorLayer(layerName)
+### clearVectorLayer(layerUUID)
 
 This function clears an existing vector layer with a specified name
 
 #### Function parameters
 
-- `layerName` - name of layer to clear
+- `layerUUID` - name of layer to clear
 
 The following is an example of how to call the `clearVectorLayer` function:
 
@@ -71,13 +72,13 @@ The following is an example of how to call the `clearVectorLayer` function:
 window.mmgisAPI.clearVectorLayer("Waypoints");
 ```
 
-### updateVectorLayer(layerName, inputData)
+### updateVectorLayer(layerUUID, inputData)
 
 This function updates an existing vector layer with a specified name and valid GeoJSON data
 
 #### Function parameters
 
-- `layerName` - name of layer to update
+- `layerUUID` - name of layer to update
 - `inputData` - valid GeoJSON data
 - `keepN` - number of features to keep. A value less than or equal to 0 keeps all previous features
 
@@ -104,13 +105,13 @@ window.mmgisAPI.updateVectorLayer(
 );
 ```
 
-### trimVectorLayerKeepBeforeTime(layerName, keepBeforeTime, timePropPath)
+### trimVectorLayerKeepBeforeTime(layerUUID, keepBeforeTime, timePropPath)
 
 This function removes features on a specified layer after a specified time
 
 #### Function parameters
 
-- `layerName` - name of layer to update
+- `layerUUID` - name of layer to update
 - `keepBeforeTime` - absolute time in the format of YYYY-MM-DDThh:mm:ssZ; will keep all features before this time
 - `timePropPath` - name of time property to compare with the time specified by keepAfterTime
 
@@ -124,13 +125,13 @@ window.mmgisAPI.trimVectorLayerKeepBeforeTime(
 );
 ```
 
-### trimVectorLayerKeepAfterTime(layerName, keepAfterTime, timePropPath)
+### trimVectorLayerKeepAfterTime(layerUUID, keepAfterTime, timePropPath)
 
 This function removes features on a specified layer before a specified time
 
 #### Function parameters
 
-- `layerName` - name of layer to update
+- `layerUUID` - name of layer to update
 - `keepAfterTime` - absolute time in the format of YYYY-MM-DDThh:mm:ssZ; will keep all features after this time
 - `timePropPath` - name of time property to compare with the time specified by keepAfterTime
 
@@ -144,13 +145,13 @@ window.mmgisAPI.trimVectorLayerKeepAfterTime(
 );
 ```
 
-### keepFirstN(layerName, keepLastN)
+### keepFirstN(layerUUID, keepLastN)
 
 This function removes features on a specified layer starting from the tail of of the features list to keep the specified number of existing features. This function is not aware of time and will only keep the previous N number of features based on the order the features were added to the layer.
 
 #### Function parameters
 
-- `layerName` - name of layer to update
+- `layerUUID` - name of layer to update
 - `keepFirstN` - number of features to keep from the beginning of the features list. A value less than or equal to 0 keeps all previous features
 
 The following is an example of how to call the `keepFirstN` function:
@@ -159,13 +160,13 @@ The following is an example of how to call the `keepFirstN` function:
 window.mmgisAPI.keepFirstN("Waypoints", 2);
 ```
 
-### keepLastN(layerName, keepLastN)
+### keepLastN(layerUUID, keepLastN)
 
 This function removes features on a specified layer starting from the beginning of the features list to keep the specified number of existing features. This function is not aware of time and will only keep the previous N number of features based on the order the features were added to the layer.
 
 #### Function parameters
 
-- `layerName` - name of layer to update
+- `layerUUID` - name of layer to update
 - `keepLastN` - number of features to keep from the tail end of the features list. A value less than or equal to 0 keeps all previous features
 
 The following is an example of how to call the `keepLastN` function:
@@ -174,7 +175,7 @@ The following is an example of how to call the `keepLastN` function:
 window.mmgisAPI.keepLastN("Waypoints", 2);
 ```
 
-### trimLineString(layerName, time, timeProp, trimN, startOrEnd)
+### trimLineString(layerUUID, time, timeProp, trimN, startOrEnd)
 
 This function is used to trim a specified number of vertices on a specified layer containing GeoJson LineString features. This makes the following assumptions:
 
@@ -183,7 +184,7 @@ This function is used to trim a specified number of vertices on a specified laye
 
 #### Function parameters
 
-- `layerName` - name of layer to update
+- `layerUUID` - name of layer to update
 - `time` - absolute time in the format of YYYY-MM-DDThh:mm:ssZ; represents start time if trimming from the beginning, otherwise represents the end time
 - `timeProp` - key representing the time property to be updated in the layer
 - `trimN` - number of vertices to trim
@@ -211,13 +212,13 @@ window.mmgisAPI.trimLineString(
 );
 ```
 
-### appendLineString(layerName, inputData, timeProp)
+### appendLineString(layerUUID, inputData, timeProp)
 
 This function appends input data with a GeoJson Feature that contains a LineString. The LineString vertices from the input data is appended as vertices to the last Feature in the layer. The input data should also contain a property with `timeProp` as the key, representing the new end time for the updated data.
 
 #### Function parameters
 
-- `layerName` - name of layer to update
+- `layerUUID` - name of layer to update
 - `inputData` - GeoJson data containing a single Feature containing a LineString
 - `timeProp` - key representing the time property to be updated in the layer
 
@@ -265,6 +266,24 @@ The following is an example of how to call the `reloadLayer` function:
 
 ```javascript
 window.mmgisAPI.reloadLayer("Earthquakes");
+```
+
+### asLayerUUID(uuid)
+
+If `uuid` is a valid uuid, it is returned. If not but it's a valid layer Name, it will return the first corresponding uuid. If still not, returns null.
+
+#### Function parameters
+
+- `uuid` - A layer UUID or layer Name
+
+The following is an example of how to call the `asLayerUUID` function:
+
+```javascript
+window.mmgisAPI.asLayerUUID("4d04b08d-4d13-4ff5-ad3c-f78e9b6425e4");
+// returns 4d04b08d-4d13-4ff5-ad3c-f78e9b6425e4
+
+window.mmgisAPI.asLayerUUID("Earthquakes");
+// returns 4d04b08d-4d13-4ff5-ad3c-f78e9b6425e4
 ```
 
 ## Time Control
@@ -546,7 +565,7 @@ The following is an example of how to call the `getActiveFeature` function:
 window.mmgisAPI.getActiveFeature();
 ```
 
-### selectFeature(layerName, options)
+### selectFeature(layerUUID, options)
 
 This function selects a vector layer feature. It supports selections either from:
 
@@ -556,7 +575,7 @@ This function selects a vector layer feature. It supports selections either from
 
 #### Function Parameters
 
-- `layerName` - _string_ - Name of the vector layer to select a feature in.
+- `layerUUID` - _string_ - UUID or Name of the vector layer to select a feature in.
 - `options` - _{}_
   - `layerId` - (optional) - A leaflet layer id
   - `lon` - (optional) - Longitude - needs `lat` set
@@ -569,7 +588,9 @@ This function selects a vector layer feature. It supports selections either from
 The following is an example of how to call the `selectFeature` function:
 
 ```javascript
-window.mmgisAPI.selectFeature("Waypoints", { layerId: 600 });
+window.mmgisAPI.selectFeature("3343d4f5-12a6-4849-910c-3fa6f09aeef3", {
+  layerId: 600,
+});
 
 window.mmgisAPI.selectFeature("Waypoints", { lon: 137, lat: -4 });
 
@@ -622,13 +643,13 @@ window.mmgisAPI.getLayerConfigs({ "style.color": "brown" });
 // => { Layer1: {..., style: {..., color: "brown"}}}
 ```
 
-### toggleLayer(layerName, on)
+### toggleLayer(layerUUID, on)
 
 This function sets the visibility state for a named layer
 
 #### Function parameters
 
-- `layerName` - name of layer to toggle visibility
+- `layerUUID` - name of layer to toggle visibility
 - `on` - (optional) Set `true` if the visibility should be on or `false` if visibility should be off. If not set, the current visibility state will switch to the opposite state.
 
 The following is an example of how to call the `toggleLayer` function:

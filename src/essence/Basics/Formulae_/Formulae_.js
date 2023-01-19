@@ -628,7 +628,7 @@ var Formulae_ = {
         }
     },
     getSafeName: function (name) {
-        return (name || '').replace(/\s/g, '')
+        return ('UUID' + (name || '').replace(/\s/g, '')).toLowerCase()
     },
     /**
      * Traverses an object with an array of keys

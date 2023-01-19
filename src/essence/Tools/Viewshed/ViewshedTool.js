@@ -498,14 +498,14 @@ let ViewshedTool = {
                     ).hasClass('on')
                     const layerName = 'viewshed' + id
                     if (isOn) {
-                        if (L_.layersGroup[layerName])
-                            Map_.map.addLayer(L_.layersGroup[layerName])
+                        if (L_.layers.layer[layerName])
+                            Map_.map.addLayer(L_.layers.layer[layerName])
                         if (ViewshedTool.shedMarkers[id])
                             Map_.map.addLayer(ViewshedTool.shedMarkers[id])
                         if (ViewshedTool.shedWedges[id])
                             Map_.map.addLayer(ViewshedTool.shedWedges[id])
                     } else {
-                        Map_.rmNotNull(L_.layersGroup[layerName])
+                        Map_.rmNotNull(L_.layers.layer[layerName])
                         Map_.rmNotNull(ViewshedTool.shedMarkers[id])
                         Map_.rmNotNull(ViewshedTool.shedWedges[id])
                     }
@@ -1270,11 +1270,11 @@ let ViewshedTool = {
         function makeDataLayer(layerUrl, activeElmId, dlc) {
             let layerName = 'viewshed' + activeElmId
 
-            Map_.rmNotNull(L_.layersGroup[layerName])
+            Map_.rmNotNull(L_.layers.layer[layerName])
 
             let uniforms = {}
 
-            L_.layersGroup[layerName] = L.tileLayer.gl({
+            L_.layers.layer[layerName] = L.tileLayer.gl({
                 options: {
                     tms: false,
                     className: 'nofade',
@@ -1286,13 +1286,13 @@ let ViewshedTool = {
                 uniforms: uniforms,
                 tileUrlsAsDataUrls: true,
             })
-            L_.layersGroup[layerName].setZIndex(1000)
+            L_.layers.layer[layerName].setZIndex(1000)
             $(
                 '#vstViewsheds #vstId_' +
                     activeElmId +
                     ' .vstShedHeader .checkbox'
             ).addClass('on')
-            Map_.map.addLayer(L_.layersGroup[layerName])
+            Map_.map.addLayer(L_.layers.layer[layerName])
 
             Globe_.litho.removeLayer(layerName)
         }
@@ -1384,10 +1384,10 @@ let ViewshedTool = {
     },
     delete: function (activeElmId) {
         $('#vstId_' + activeElmId).remove()
-        Map_.rmNotNull(L_.layersGroup['viewshed' + activeElmId])
+        Map_.rmNotNull(L_.layers.layer['viewshed' + activeElmId])
         Map_.rmNotNull(ViewshedTool.shedMarkers[activeElmId])
         Map_.rmNotNull(ViewshedTool.shedWedges[activeElmId])
-        L_.layersGroup['viewshed' + activeElmId] = null
+        L_.layers.layer['viewshed' + activeElmId] = null
         ViewshedTool.shedMarkers[activeElmId] = null
         ViewshedTool.shedWedges[activeElmId] = null
         ViewshedTool.canvases[activeElmId] = null

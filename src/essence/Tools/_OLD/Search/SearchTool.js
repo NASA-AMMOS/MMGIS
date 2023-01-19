@@ -72,10 +72,10 @@ function interfaceWithMMWebGIS() {
     var first = true
     for (l in SearchTool.searchFields) {
         if (
-            L_.layersNamed[l] &&
-            (L_.layersNamed[l].type == 'vector' ||
-                L_.layersNamed[l].type == 'vectortile') &&
-            L_.toggledArray[l]
+            L_.layers.data[l] &&
+            (L_.layers.data[l].type == 'vector' ||
+                L_.layers.data[l].type == 'vectortile') &&
+            L_.layers.on[l]
         ) {
             d3.select('#searchToolType')
                 .append('option')
@@ -114,12 +114,12 @@ function initializeSearch() {
             source: function (request, response) {
                 var re = $.ui.autocomplete.escapeRegex(request.term)
                 var matcher = new RegExp('\\b' + re, 'i')
-                var a = $.grep(SearchTool.arrayToSearch, function (
-                    item,
-                    index
-                ) {
-                    return matcher.test(item)
-                })
+                var a = $.grep(
+                    SearchTool.arrayToSearch,
+                    function (item, index) {
+                        return matcher.test(item)
+                    }
+                )
                 response(a)
             },
             //drop up
@@ -145,7 +145,7 @@ function changeSearchField(val) {
     if (Map_ != null) {
         SearchTool.lname = val
 
-        let urlSplit = L_.layersNamed[SearchTool.lname].url.split(':')
+        let urlSplit = L_.layers.data[SearchTool.lname].url.split(':')
 
         if (urlSplit[0] == 'geodatasets' && urlSplit[1] != null) {
             SearchTool.type = 'geodatasets'
@@ -157,7 +157,7 @@ function changeSearchField(val) {
             $('#searchToolSelect').css({ display: 'inherit' })
             $('#searchToolBoth').css({ display: 'inherit' })
 
-            var searchFile = L_.layersNamed[SearchTool.lname].url
+            var searchFile = L_.layers.data[SearchTool.lname].url
 
             $.getJSON(L_.missionPath + searchFile, function (data) {
                 SearchTool.arrayToSearch = []
@@ -176,9 +176,8 @@ function changeSearchField(val) {
                     else SearchTool.arrayToSearch.sort()
                 }
                 if (document.getElementById('auto_search') != null) {
-                    document.getElementById(
-                        'auto_search'
-                    ).placeholder = getSearchFieldKeys(SearchTool.lname)
+                    document.getElementById('auto_search').placeholder =
+                        getSearchFieldKeys(SearchTool.lname)
                 }
             })
         }
@@ -225,12 +224,12 @@ function searchGeodatasets() {
                 Map_.map.getZoom()
             )
             setTimeout(function () {
-                var vts = L_.layersGroup[SearchTool.lname]._vectorTiles
+                var vts = L_.layers.layer[SearchTool.lname]._vectorTiles
                 for (var i in vts) {
                     for (var j in vts[i]._features) {
                         var feature = vts[i]._features[j].feature
                         if (feature.properties[key] == value) {
-                            L_.layersGroup[
+                            L_.layers.layer[
                                 SearchTool.lname
                             ]._events.click[0].fn({ layer: feature })
                             break
@@ -260,7 +259,7 @@ function doWithSearch(doX, forceX, forceSTS, isURLSearch) {
     if (forceSTS == 'false') sTS = SearchTool.lname
     else sTS = forceSTS
 
-    var markers = L_.layersGroup[SearchTool.lname]
+    var markers = L_.layers.layer[SearchTool.lname]
     var selectLayers = []
     var gotoLayers = []
     var targetsID
@@ -406,28 +405,8 @@ function searchWithURLParams() {
 function getMapZoomCoordinate(layers) {
     //The zoom levels are defined at http://wiki.openstreetmap.org/wiki/Zoom_levels
     var zoomLevels = [
-        360,
-        180,
-        90,
-        45,
-        22.5,
-        11.25,
-        5.625,
-        2.813,
-        1.406,
-        0.703,
-        0.352,
-        0.176,
-        0.088,
-        0.044,
-        0.022,
-        0.011,
-        0.005,
-        0.003,
-        0.001,
-        0.0005,
-        0.0003,
-        0.0001,
+        360, 180, 90, 45, 22.5, 11.25, 5.625, 2.813, 1.406, 0.703, 0.352, 0.176,
+        0.088, 0.044, 0.022, 0.011, 0.005, 0.003, 0.001, 0.0005, 0.0003, 0.0001,
     ]
     var boundingBoxNorth = 90
     var boundingBoxSouth = -90
