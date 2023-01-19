@@ -297,6 +297,7 @@ const L_ = {
                             }
                         }
                     }
+
                     L_.Map_.map.addLayer(L_.layers.layer[s.name])
                     L_.layers.layer[s.name].setZIndex(
                         L_._layersOrdered.length +
@@ -473,6 +474,8 @@ const L_ = {
         }
     },
     toggleSublayer: function (layerName, sublayerName) {
+        layerName = L_.asLayerUUID(layerName)
+
         const sublayers = L_.layers.attachments[layerName] || {}
         const sublayer = sublayers[sublayerName]
         if (sublayer) {
@@ -874,9 +877,11 @@ const L_ = {
                     color
                 )
             } else {
+                const savedOptions = JSON.parse(JSON.stringify(layer.options))
                 layer.setStyle({
                     color: color,
                 })
+                layer.options = savedOptions
             }
         } catch (err) {
             if (layer._icon)
@@ -938,10 +943,12 @@ const L_ = {
         const layerNames = forceLayerNames || Object.keys(L_.layers.layer)
 
         layerNames.forEach((layerName) => {
+            const layerDisplayName = layerName
+            layerName = L_.asLayerUUID(layerName)
             let layerObj = L_.layers.data[layerName]
             let layer = L_.layers.layer[layerName]
 
-            if (layerObj == null && layerName.includes('DrawTool'))
+            if (layerObj == null && layerDisplayName.includes('DrawTool'))
                 layerObj = {
                     type: 'vector',
                 }
@@ -1427,31 +1434,31 @@ const L_ = {
     },
     resetLayerFills: function () {
         // Regular Layers
-        for (let key in this.layersGroup) {
-            var s = key.split('_')
-            var onId = s[1] != 'master' ? parseInt(s[1]) : s[1]
+        for (let key in L_.layers.layer) {
+            const s = key.split('_')
+            const onId = s[1] != 'master' ? parseInt(s[1]) : s[1]
 
             if (
-                (this.layersGroup[key] &&
-                    this.layersNamed[key] &&
-                    (this.layersNamed[key].type == 'point' ||
-                        (key.toLowerCase().indexOf('draw') == -1 &&
-                            (this.layersNamed[key].type === 'vector' ||
-                                this.layersNamed[key].type === 'query')))) ||
-                (s[0] == 'DrawTool' && !Number.isNaN(onId))
+                (L_.layers.layer[key] &&
+                    L_.layers.data[key] &&
+                    (L_.layers.data[key].type === 'point' ||
+                        (key.toLowerCase().indexOf('draw') === -1 &&
+                            (L_.layers.data[key].type === 'vector' ||
+                                L_.layers.data[key].type === 'query')))) ||
+                (s[0] === 'DrawTool' && !Number.isNaN(onId))
             ) {
                 if (
-                    this.layersGroup.hasOwnProperty(key) &&
-                    this.layersGroup[key] != undefined &&
-                    this.layers.data.hasOwnProperty(key) &&
-                    this.layers.data[key] != undefined
+                    L_.layers.layer.hasOwnProperty(key) &&
+                    L_.layers.layer[key] != undefined &&
+                    L_.layers.data.hasOwnProperty(key) &&
+                    L_.layers.data[key].style != undefined
                 ) {
-                    this.layersGroup[key].eachLayer((layer) => {
+                    L_.layers.layer[key].eachLayer((layer) => {
                         const savedOptions = layer.options
                         const savedUseKeyAsName = layer.useKeyAsName
 
-                        let fillColor = this.layers.data[key].style.fillColor
-                        let color = this.layers.data[key].style.color
+                        let fillColor = L_.layers.data[key].style.fillColor
+                        let color = L_.layers.data[key].style.color
                         let opacity = layer.options.opacity
                         let fillOpacity = layer.options.fillOpacity
                         let weight = layer.options.weight
@@ -1477,6 +1484,7 @@ const L_ = {
                         } else {
                             L_.layers.layer[key].resetStyle(layer)
                         }
+
                         try {
                             layer.setStyle({
                                 opacity: opacity,
@@ -1491,11 +1499,11 @@ const L_ = {
                         layer.options = savedOptions
                         layer.useKeyAsName = savedUseKeyAsName
                     })
-                } else if (s[0] == 'DrawTool') {
-                    for (let k in this.layersGroup[key]) {
-                        if (!this.layersGroup[key][k]) continue
-                        if ('getLayers' in this.layersGroup[key][k]) {
-                            let layer = this.layersGroup[key][k]
+                } else if (s[0] === 'DrawTool') {
+                    for (let k in L_.layers.layer[key]) {
+                        if (!L_.layers.layer[key][k]) continue
+                        if ('getLayers' in L_.layers.layer[key][k]) {
+                            let layer = L_.layers.layer[key][k]
                             if (!layer?.feature?.properties?.arrow) {
                                 // Polygons and lines
                                 layer.eachLayer(function (l) {
@@ -1503,9 +1511,9 @@ const L_ = {
                                 })
                             } else {
                                 // Arrow
-                                let layers = this.layersGroup[key][k]._layers
+                                let layers = L_.layers.layer[key][k]._layers
                                 const style =
-                                    this.layersGroup[key][k].feature.properties
+                                    L_.layers.layer[key][k].feature.properties
                                         .style
                                 const color = style.color
                                 layers[Object.keys(layers)[0]].setStyle({
@@ -1516,11 +1524,11 @@ const L_ = {
                                 })
                             }
                         } else if (
-                            this.layersGroup[key][k].feature?.properties
+                            L_.layers.layer[key][k].feature?.properties
                                 ?.annotation
                         ) {
                             // Annotation
-                            let layer = this.layersGroup[key][k]
+                            let layer = L_.layers.layer[key][k]
                             let id =
                                 '#DrawToolAnnotation_' +
                                 layer.feature.properties._.file_id +
@@ -1530,9 +1538,9 @@ const L_ = {
                                 'color',
                                 layer.feature.properties.style.fillColor
                             )
-                        } else if ('feature' in this.layersGroup[key][k]) {
+                        } else if ('feature' in L_.layers.layer[key][k]) {
                             // Points (that are not annotations)
-                            let layer = this.layersGroup[key][k]
+                            let layer = L_.layers.layer[key][k]
                             setLayerStyle(layer)
                         }
                     }
@@ -1562,21 +1570,21 @@ const L_ = {
         // Currently only coordinate_markers
         // Expects feature._style to be set
         const highlightableSublayers = ['coordinate_markers']
-        for (let layerName in this.layersGroupSublayers) {
-            if (this.layersGroupSublayers[layerName]) {
-                for (let sublayerName in this.layersGroupSublayers[layerName]) {
+        for (let layerName in L_.layers.attachments) {
+            if (L_.layers.attachments[layerName]) {
+                for (let sublayerName in L_.layers.attachments[layerName]) {
                     if (
-                        this.layersGroupSublayers[layerName][sublayerName] &&
+                        L_.layers.attachments[layerName][sublayerName] &&
                         highlightableSublayers.includes(sublayerName)
                     ) {
-                        for (let sll in this.layersGroupSublayers[layerName][
+                        for (let sll in L_.layers.attachments[layerName][
                             sublayerName
                         ].layer._layers) {
                             try {
-                                this.layersGroupSublayers[layerName][
+                                L_.layers.attachments[layerName][
                                     sublayerName
                                 ].layer._layers[sll].setStyle(
-                                    this.layersGroupSublayers[layerName][
+                                    L_.layers.attachments[layerName][
                                         sublayerName
                                     ].layer._layers[sll].feature._style
                                 )
@@ -1645,6 +1653,8 @@ const L_ = {
         }
     },
     selectFeature(layerName, feature) {
+        layerName = L_.asLayerUUID(layerName)
+
         const layer = L_.layers.layer[layerName]
         if (layer) {
             const layers = layer._layers
@@ -1717,19 +1727,28 @@ const L_ = {
             return feature
         }
     },
+    asLayerUUID(uuid) {
+        if (L_.layers.data[uuid] != null) return uuid
+        if (L_.layers.nameToUUID[uuid]?.[0] != null)
+            return L_.layers.nameToUUID[uuid][0]
+        return null
+    },
     /**
-     * @param {object} - activePoint { layerName: , lat: lon: }
+     * @param {object} - activePoint { layerUUID: , lat: lon: }
      * @returns {bool} - true only if successful
      */
     selectPoint(activePoint) {
+        if (activePoint == null) return false
+        // Backward pre-uuid compatibility
+        activePoint.layerUUID = L_.asLayerUUID(activePoint.layerUUID)
+
         if (
-            activePoint &&
-            activePoint.layerName != null &&
+            activePoint.layerUUID != null &&
             activePoint.lat != null &&
             activePoint.lon != null
         ) {
-            if (L_.layers.layer.hasOwnProperty(activePoint.layerName)) {
-                let g = L_.layers.layer[activePoint.layerName]._layers
+            if (L_.layers.layer.hasOwnProperty(activePoint.layerUUID)) {
+                let g = L_.layers.layer[activePoint.layerUUID]._layers
                 for (let l in g) {
                     if (
                         g[l]._latlng.lat == activePoint.lat &&
@@ -1742,13 +1761,12 @@ const L_ = {
                 }
             }
         } else if (
-            activePoint &&
-            activePoint.layerName != null &&
+            activePoint.layerUUID != null &&
             activePoint.key != null &&
             activePoint.value != null
         ) {
-            if (L_.layers.layer.hasOwnProperty(activePoint.layerName)) {
-                let g = L_.layers.layer[activePoint.layerName]._layers
+            if (L_.layers.layer.hasOwnProperty(activePoint.layerUUID)) {
+                let g = L_.layers.layer[activePoint.layerUUID]._layers
                 for (let l in g) {
                     if (g[l] && g[l].feature && g[l].feature.properties) {
                         if (
@@ -1765,12 +1783,11 @@ const L_ = {
                 }
             }
         } else if (
-            activePoint &&
-            activePoint.layerName != null &&
+            activePoint.layerUUID != null &&
             activePoint.layerId != null
         ) {
-            if (L_.layers.layer.hasOwnProperty(activePoint.layerName)) {
-                let g = L_.layers.layer[activePoint.layerName]._layers
+            if (L_.layers.layer.hasOwnProperty(activePoint.layerUUID)) {
+                let g = L_.layers.layer[activePoint.layerUUID]._layers
                 const l = activePoint.layerId
                 if (g[l] != null) {
                     g[l].fireEvent('click')
@@ -1841,6 +1858,7 @@ const L_ = {
         if (L_.Globe_) L_.Globe_.litho.orderLayers(L_._layersOrdered)
     },
     clearVectorLayer: function (layerName) {
+        layerName = L_.asLayerUUID(layerName)
         try {
             L_.clearGeoJSONData(L_.layers.layer[layerName])
             L_.clearVectorLayerInfo()
@@ -1897,6 +1915,7 @@ const L_ = {
         timePropPath,
         trimType
     ) {
+        layerName = L_.asLayerUUID(layerName)
         // Validate input parameters
         if (!keepTime) {
             console.warn(
@@ -1985,6 +2004,7 @@ const L_ = {
         L_.keepNHelper(layerName, keepLastN, 'last')
     },
     keepNHelper: function (layerName, keepN, keepType) {
+        layerName = L_.asLayerUUID(layerName)
         // Validate input parameter
         const keepNum = parseInt(keepN)
         if (Number.isNaN(Number(keepNum))) {
@@ -2059,6 +2079,8 @@ const L_ = {
         }
     },
     trimLineString: function (layerName, time, timeProp, trimN, startOrEnd) {
+        layerName = L_.asLayerUUID(layerName)
+
         // Validate input parameters
         if (!time) {
             console.warn(
@@ -2126,7 +2148,6 @@ const L_ = {
         if (layerName in L_.layers.layer) {
             const updateLayer = L_.layers.layer[layerName]
 
-            var layers = updateLayer.getLayers()
             var layersGeoJSON = updateLayer.toGeoJSON(L_.GEOJSON_PRECISION)
             var features = layersGeoJSON.features
 
@@ -2274,6 +2295,8 @@ const L_ = {
         }
     },
     appendLineString: function (layerName, inputData, timeProp) {
+        layerName = L_.asLayerUUID(layerName)
+
         // Validate input parameter
         if (!inputData) {
             console.warn(
@@ -2380,6 +2403,8 @@ const L_ = {
         }
     },
     updateVectorLayer: function (layerName, inputData) {
+        layerName = L_.asLayerUUID(layerName)
+
         if (layerName in L_.layers.layer) {
             const updateLayer = L_.layers.layer[layerName]
 
@@ -2402,6 +2427,8 @@ const L_ = {
     },
     // Make a layer's sublayer match the layers data again
     syncSublayerData: function (layerName, onlyClear) {
+        layerName = L_.asLayerUUID(layerName)
+
         try {
             let geojson = L_.layers.layer[layerName].toGeoJSON(
                 L_.GEOJSON_PRECISION
@@ -2477,11 +2504,10 @@ const L_ = {
     parseConfig: parseConfig,
     // Dynamically add a new layer or update a layer (used by WebSocket)
     addNewLayer: async function (data, layerName, type) {
+        layerName = L_.asLayerUUID(layerName)
+
         // Save so we can make sure we reproduce the same layer settings after parsing the config
         const toggledArray = { ...L_.layers.on }
-
-        // Save the original layer ordering
-        const origLayersOrdered = [...L_._layersOrdered]
 
         // Reset for now
         L_.layers.on = {}
@@ -2555,6 +2581,8 @@ const L_ = {
     // Limits a Local, Time-Enabled, Prop-set, vector layer to a range of time
     // start and end are unix timestamps
     timeFilterVectorLayer: function (layerName, start, end) {
+        layerName = L_.asLayerUUID(layerName)
+
         let reset = false
         if (start === false) reset = true
 
@@ -2708,6 +2736,7 @@ function parseConfig(configData, urlOnLayers) {
         //Iterate over each layer
         for (let i = 0; i < d.length; i++) {
             // Quick hack to use uuid instead of name as main id
+            d[i].uuid = d[i].uuid || d[i].name
             if (L_.layers.nameToUUID[d[i].name] == null)
                 L_.layers.nameToUUID[d[i].name] = []
             L_.layers.nameToUUID[d[i].name].push(d[i].uuid)

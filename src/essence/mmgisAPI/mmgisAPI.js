@@ -166,10 +166,10 @@ var mmgisAPI_ = {
 
         return null
     },
-    selectFeature: function (layerName, options) {
+    selectFeature: function (layerUUID, options) {
         return L_.selectPoint({
             ...{
-                layerName: layerName,
+                layerUUID: layerUUID,
             },
             ...options,
         })
@@ -316,7 +316,7 @@ var mmgisAPI_ = {
                 }
             }
         } else {
-            console.warn(`'Warning: Unable to find layer named ${layereName}`)
+            console.warn(`'Warning: Unable to find layer named ${layerName}`)
             return
         }
     },
@@ -444,6 +444,12 @@ var mmgisAPI = {
      */
     reloadLayer: TimeControl.reloadLayer,
 
+    /** Sets layer UUIDs and layer Names to UUIDs
+     * @param {string} [uuid]
+     * @returns {string} - Best UUID, else null
+     */
+    asLayerUUID: L_.asLayerUUID,
+
     /** setLayersTimeStatus - will set the status color for all global time enabled layers
      * @param {string} [color]
      * @returns {array} - A list of layers that were set
@@ -556,8 +562,8 @@ var mmgisAPI = {
     unproject: mmgisAPI_.unproject,
 
     /** toggleLayer - set the visibility state for a named layer
-     * @param {string} - layerName - name of layer to set visiblity
-     * @param {boolean} - on - (optional) Set true if the visibility should be on or false if visibility should be off. If not set, the current visiblity state will switch to the opposite state.
+     * @param {string} - layerName - name of layer to set visibility
+     * @param {boolean} - on - (optional) Set true if the visibility should be on or false if visibility should be off. If not set, the current visibility state will switch to the opposite state.
      */
     toggleLayer: mmgisAPI_.toggleLayer,
 }

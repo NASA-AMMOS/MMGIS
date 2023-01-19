@@ -185,7 +185,6 @@ let Map_ = {
         d3.select('.leaflet-control-attribution').remove()
 
         //Make our layers
-        console.log(L_)
         makeLayers(L_.layers.dataFlat)
 
         //Just in case we have no layers
