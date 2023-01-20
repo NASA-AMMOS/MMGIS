@@ -2504,8 +2504,6 @@ const L_ = {
     parseConfig: parseConfig,
     // Dynamically add a new layer or update a layer (used by WebSocket)
     addNewLayer: async function (data, layerName, type) {
-        layerName = L_.asLayerUUID(layerName)
-
         // Save so we can make sure we reproduce the same layer settings after parsing the config
         const toggledArray = { ...L_.layers.on }
 
@@ -2521,6 +2519,8 @@ const L_ = {
 
         // Set back
         L_.layers.on = { ...L_.layers.on, ...toggledArray }
+
+        layerName = L_.asLayerUUID(layerName)
 
         const newLayersOrdered = [...L_._layersOrdered]
         const index = L_._layersOrdered.findIndex((name) => name === layerName)
