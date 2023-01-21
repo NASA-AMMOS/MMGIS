@@ -105,6 +105,7 @@ var TimeControl = {
     },
     setLayerTime: function (layer, startTime, endTime) {
         if (typeof layer == 'string') {
+            layer = L_.asLayerUUID(layer)
             layer = L_.layers.data[layer]
         }
         if (layer.time && layer.time.enabled == true) {
@@ -134,6 +135,7 @@ var TimeControl = {
     },
     getLayerStartTime: function (layer) {
         if (typeof layer == 'string') {
+            layer = L_.asLayerUUID(layer)
             layer = L_.layers.data[layer]
         }
         if (layer.time) return layer.time.start
@@ -141,6 +143,7 @@ var TimeControl = {
     },
     getLayerEndTime: function (layer) {
         if (typeof layer == 'string') {
+            layer = L_.asLayerUUID(layer)
             layer = L_.layers.data[layer]
         }
         if (layer.time) return layer.time.end
@@ -149,6 +152,7 @@ var TimeControl = {
     reloadLayer: async function (layer, evenIfOff, evenIfControlled) {
         // reload layer
         if (typeof layer == 'string') {
+            layer = L_.asLayerUUID(layer)
             layer = L_.layers.data[layer]
         }
 
@@ -161,9 +165,10 @@ var TimeControl = {
             if (layer.time && layer.time.enabled === true) {
                 TimeControl.setLayerWmsParams(layer)
             }
-
-            if (L_.layers.on[layer.name] || evenIfOff) {
-                L_.layers.layer[layer.name].refresh()
+            if (evenIfControlled === true || layer.controlled !== true) {
+                if (L_.layers.on[layer.name] || evenIfOff) {
+                    L_.layers.layer[layer.name].refresh()
+                }
             }
         } else {
             var originalUrl = layer.url
@@ -245,6 +250,7 @@ var TimeControl = {
     },
     setLayerTimeStatus: function (layer, color) {
         if (typeof layer == 'string') {
+            layer = L_.asLayerUUID(layer)
             layer = L_.layers.data[layer]
         }
         if (layer.time) {
