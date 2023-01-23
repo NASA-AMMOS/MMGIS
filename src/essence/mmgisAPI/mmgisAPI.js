@@ -302,7 +302,7 @@ var mmgisAPI_ = {
                 // If on is not defined, switch the visibility state of the layer
                 await L_.toggleLayer(L_.layers.data[layerName])
             } else {
-                let state = L_.layers.on[layerName] && !on ? true : false
+                let state = !on
                 await L_.toggleLayerHelper(L_.layers.data[layerName], state)
             }
 
