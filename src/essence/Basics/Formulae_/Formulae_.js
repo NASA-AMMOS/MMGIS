@@ -2236,12 +2236,37 @@ var Formulae_ = {
         return false
     },
     azElDistBetween(latLngEl_A, latLngEl_B) {
-        return azElDistBetween(
+        //Formulae_.azElBetween2(latLngEl_A, latLngEl_B)
+
+        const b = azElDistBetween(
             latLngEl_A,
             latLngEl_B,
             Formulae_.radiusOfPlanetMajor,
             Formulae_.radiusOfPlanetMinor
         )
+        return b
+    },
+    azElBetween2(latLngEl_A, latLngEl_B) {
+        const crs = window.mmgisglobal.customCRS
+        const a = crs.project(latLngEl_A)
+        const b = crs.project(latLngEl_B)
+
+        const dist = Math.sqrt(
+            Math.pow(b.x - a.x, 2) +
+                Math.pow(b.y - a.y, 2) +
+                Math.pow(latLngEl_B.el - latLngEl_A.el, 2)
+        )
+
+        const el =
+            Math.asin((latLngEl_B.el - latLngEl_A.el) / dist) * (180 / Math.PI)
+
+        let az = Math.atan2(b.x - a.x, b.y - a.y) * (180 / Math.PI)
+        if (az < 0) az += 360
+        console.log({
+            az: az,
+            el: el,
+            dist: dist,
+        })
     },
     // Breaks an array in multiple arrays of some size
     chunkArray(arr, size) {

@@ -203,13 +203,57 @@ export default function (domEl, lookupPath, options, Map_) {
                 L_.layersGroupSublayers[layerName].pairings &&
                 L_.layersGroupSublayers[layerName].pairings.on
             ) {
-                const sourceCoords = feature.geometry.coordinates
-                if (imageObj.srclng != null)
-                    sourceCoords[0] = parseFloat(imageObj.srclng)
-                if (imageObj.srclat != null)
-                    sourceCoords[1] = parseFloat(imageObj.srclat)
-                if (imageObj.srcelv != null)
-                    sourceCoords[2] = parseFloat(imageObj.srcelv)
+                let sourceCoords = feature.geometry.coordinates
+                let originOffsetOrder =
+                    L_.layersGroupSublayers[layerName].pairings
+                        .originOffsetOrder
+                if (originOffsetOrder)
+                    originOffsetOrder = originOffsetOrder.map((o) =>
+                        o.toLowerCase()
+                    )
+
+                console.log(imageObj.originOffset, originOffsetOrder)
+                // Allow sourceCoords offset with originOffset and support configurable axis order
+                // prettier-ignore
+                if( imageObj.originOffset != null ) {
+                    const crs = window.mmgisglobal.customCRS
+                    const scp = crs.project({lng: sourceCoords[0], lat: sourceCoords[1]})
+                    sourceCoords = [scp.x, scp.y, sourceCoords[2]]
+                    if(imageObj.originOffset[0] != null) {
+                        if( originOffsetOrder != null && originOffsetOrder[0] != null) {
+                            const pos = originOffsetOrder[0].includes('z') ? 2 : originOffsetOrder[0].includes('y') ? 1 : 0 
+                            const sign = originOffsetOrder[0].includes('-') ? -1 : 1
+                            console.log(pos, sign)
+                            sourceCoords[pos] += sign * imageObj.originOffset[0]
+                        }
+                        else
+                            sourceCoords[0] += imageObj.originOffset[0]
+                    }
+                    if(imageObj.originOffset[1] != null) {
+                        if( originOffsetOrder != null && originOffsetOrder[1] != null) {
+                            const pos = originOffsetOrder[1].includes('z') ? 2 : originOffsetOrder[1].includes('y') ? 1 : 0 
+                            const sign = originOffsetOrder[1].includes('-') ? -1 : 1
+                            sourceCoords[pos] += sign * imageObj.originOffset[1]
+                        }
+                        else
+                            sourceCoords[1] += imageObj.originOffset[1]
+                    }
+                    if(imageObj.originOffset[2] != null) {
+                        if( originOffsetOrder != null && originOffsetOrder[2] != null) {
+                            const pos = originOffsetOrder[2].includes('z') ? 2 : originOffsetOrder[2].includes('y') ? 1 : 0 
+                            const sign = originOffsetOrder[2].includes('-') ? -1 : 1
+                            sourceCoords[pos] += sign * imageObj.originOffset[2]
+                        }
+                        else
+                            sourceCoords[2] += imageObj.originOffset[2]
+                    }
+                    const scup = crs.unproject({x: sourceCoords[0], y: sourceCoords[1]})
+                    sourceCoords = [scup.lng, scup.lat, sourceCoords[2]]
+                }
+
+                console.log(sourceCoords, feature.geometry.coordinates)
+
+                currentImageObj._center = sourceCoords
 
                 const pairValue = F_.getIn(
                     feature.properties,
@@ -413,10 +457,11 @@ export default function (domEl, lookupPath, options, Map_) {
                 Map_.rmNotNull(Map_.tempPhotosphereWedge)
 
                 let start = [geometry.coordinates[1], geometry.coordinates[0]]
-                if (currentImageObj.srclat != null)
-                    start[0] = parseFloat(currentImageObj.srclat)
-                if (currentImageObj.srclng != null)
-                    start[1] = parseFloat(currentImageObj.srclng)
+                if (currentImageObj._center != null)
+                    start = [
+                        currentImageObj._center[1],
+                        currentImageObj._center[0],
+                    ]
                 let end
                 let rp
                 let line

@@ -141,6 +141,8 @@ export default function azElDistBetween(
     majorRadius,
     minorRadius
 ) {
+    majorRadius = 3396190 + 1000
+    minorRadius = majorRadius
     const result = { az: 0, el: 0, dist: 0 }
     const a = parseLocation(latLngEl_A)
     if (a != null) {

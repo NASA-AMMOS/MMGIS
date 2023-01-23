@@ -904,6 +904,7 @@ const pairings = (geojson, layerObj, leafletLayerObject) => {
                 : true,
             pairedLayers: layers,
             pairProp: pairProp,
+            originOffsetOrder: pairingsVar.originOffsetOrder,
             type: 'pairings',
             geojson: geojson,
             layer: layer,
