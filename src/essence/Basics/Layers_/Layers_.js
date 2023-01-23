@@ -2794,10 +2794,15 @@ function parseConfig(configData, urlOnLayers) {
             //Set visibility if we have all the on layers listed in the url
             if (urlOnLayers) {
                 //this is null if we've no url layers
-                if (urlOnLayers.onLayers.hasOwnProperty(d[i].name)) {
+                let standardId = null
+                if (urlOnLayers.onLayers.hasOwnProperty(d[i].name))
+                    standardId = d[i].name
+                else if (urlOnLayers.onLayers.hasOwnProperty(d[i].display_name))
+                    standardId = d[i].display_name
+                if (standardId != null) {
                     L_.layers.on[d[i].name] = true
                     L_.layers.opacity[d[i].name] =
-                        urlOnLayers.onLayers[d[i].name].opacity || 1
+                        urlOnLayers.onLayers[standardId].opacity || 1
                 } else if (urlOnLayers.method == 'replace') {
                     L_.layers.on[d[i].name] = false
                 }
