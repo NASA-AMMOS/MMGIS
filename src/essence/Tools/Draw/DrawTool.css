@@ -921,7 +921,7 @@
         padding 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
 }
 #drawToolDrawSettings.active {
-    height: 133px;
+    height: 206px;
     opacity: 1;
     padding: 0px 7px 3px 7px;
 }
@@ -1857,7 +1857,6 @@
     border: none;
     padding: 2px;
     white-space: nowrap;
-    user-select: none;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95),
         transform 0s ease-in-out;
@@ -2375,11 +2374,13 @@
     margin: 0;
 }
 #drawToolDrawSettingsBody ul li {
-    margin: 5px 0px;
+    margin: 6px 0px 12px 0px;
 }
 
 #drawToolDrawSettingsBody ul li > div:first-child {
-    padding-bottom: 2px;
+    padding-bottom: 4px;
+    text-transform: uppercase;
+    font-size: 12px;
 }
 
 /*.drawToolRadio*/
@@ -2387,13 +2388,15 @@
     display: flex;
     justify-content: space-between;
     width: 100%;
-    background: var(--color-g);
+    height: 21px;
+    line-height: 21px;
+    background: var(--color-a1);
 }
 .drawToolRadio > div {
     flex: 1;
     text-align: center;
     cursor: pointer;
-    color: #9a9a9a;
+    color: var(--color-a6);
     transition: background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
         color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
 }
@@ -2401,8 +2404,9 @@
     color: white;
 }
 .drawToolRadio > div.active {
-    background: var(--color-m1);
+    background: var(--color-c2);
     color: white;
+    border-radius: 3px;
 }
 
 .drawToolConextMenuHeaderMerge {
@@ -2421,23 +2425,26 @@
     background: #0068ff;
 }
 
-#drawToolDrawSettingsMode > div:first-child {
+#drawToolDrawSettingsMode > div:first-child,
+#drawToolDrawSettingsCircle > div:first-child {
     display: flex;
     justify-content: space-between;
 }
-#drawToolDrawSettingsMode > div:first-child span {
+#drawToolDrawSettingsMode > div:first-child span,
+#drawToolDrawSettingsCircle > div:first-child span {
     padding: 0px 16px;
 }
-#drawToolDrawSettingsMode > div:first-child input {
-    background: #000;
-    color: var(--color-f);
+#drawToolDrawSettingsMode > div:first-child input,
+#drawToolDrawSettingsCircle > div:first-child input {
+    background: var(--color-a);
+    color: var(--color-a6);
     width: 50%;
     border: none;
     padding: 0px 4px;
     font-size: 12px;
-    line-height: 18px;
-    height: 12px;
-    margin: 3px;
+    line-height: 12px;
+    height: 13px;
+    margin: 4px;
 }
 
 #drawToolDrawFilesListElemContextMenu {

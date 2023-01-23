@@ -1,0 +1,246 @@
+#timeUI {
+    background: rgba(15, 16, 16, 0.6);
+    height: 40px;
+    width: 100%;
+    position: absolute;
+    bottom: -40px;
+    left: 0px;
+    margin: 0;
+    z-index: 77777;
+    font-size: 14px;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s ease-in;
+}
+#timeUI.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+#mmgisTimeUI {
+    display: flex;
+}
+#mmgisTimeUI .vertDiv {
+    height: 40px;
+    width: 1px;
+    background: var(--color-a1-5);
+}
+#mmgisTimeUICurrentWrapper {
+    text-align: center;
+    background: var(--color-a-5);
+    padding: 4px 8px;
+    font-size: 14px;
+    width: 200px;
+}
+#mmgisTimeUICurrentWrapper > div:first-child {
+    line-height: 15px;
+    font-size: 11px;
+    text-transform: uppercase;
+    pointer-events: none;
+    color: var(--color-a6);
+}
+#mmgisTimeUICurrentTime {
+    white-space: nowrap;
+    font-family: 'Arial';
+    font-size: 14px;
+    color: var(--color-h);
+    font-weight: bold;
+}
+
+#mmgisTimeUIMain {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+}
+
+#mmgisTimeUI input {
+    background: var(--color-a-5);
+    color: var(--color-f);
+    padding: 13px 10px 0px 10px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 40px;
+    height: 40px;
+    width: 200px;
+    border: none;
+    border-top: 2px solid rgba(0, 0, 0, 0);
+    border-bottom: 2px solid rgba(0, 0, 0, 0);
+    transition: border 0.2s ease-in;
+}
+#mmgisTimeUI input:focus {
+    border-bottom: 2px solid var(--color-c);
+}
+.mmgisTimeUIInput {
+    position: relative;
+}
+.mmgisTimeUIInput > span {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    top: 0;
+    left: 0;
+    height: 20px;
+    line-height: 22px;
+    font-size: 11px;
+    text-transform: uppercase;
+    pointer-events: none;
+    color: var(--color-h);
+}
+
+#mmgisTimeUITimeline {
+    display: flex;
+    flex: 1;
+    position: relative;
+    user-select: none;
+}
+#mmgisTimeUITimelineSlider {
+    width: 100%;
+}
+#mmgisTimeUITimelineSlider .rangeBar {
+    background: var(--color-h);
+    height: 2px;
+    opacity: 0.75;
+    pointer-events: none;
+}
+#mmgisTimeUITimelineSlider .rangeSlider {
+    height: 2px;
+    margin: 20px 0px 20px 4px;
+    background: var(--color-a2);
+}
+#mmgisTimeUITimelineSlider .rangeHandle {
+    top: 0px;
+    width: 20px;
+    padding: 0px 8px;
+    height: 40px;
+    cursor: ew-resize;
+    --handle: var(--color-h);
+    --handle-focus: var(--color-h);
+    --handle-inactive: var(--color-h);
+    --handle-border: var(--color-h);
+}
+#mmgisTimeUITimelineSlider .rangeNub {
+    border-radius: 0px;
+    transform: none;
+    width: 4px;
+    margin: 0px 8px;
+}
+#mmgisTimeUITimelineSlider .rangeSlider .rangeHandle:before {
+    width: 4px;
+    margin: 0px 7px;
+}
+
+#mmgisTimeUITimelineInner {
+    height: 100%;
+    width: 100%;
+    position: absolute;
+}
+.mmgisTimeUITick {
+    position: absolute;
+    top: 0;
+    display: flex;
+}
+.mmgisTimeUITick .mmgisTimeUITickSmall {
+    height: 30px;
+    background: var(--color-a4);
+    width: 1px;
+}
+.mmgisTimeUITick .mmgisTimeUITickBig {
+    height: 40px;
+    background: var(--color-a3);
+    width: 1px;
+}
+.mmgisTimeUITick .mmgisTimeUITickLabel {
+    height: 40px;
+    line-height: 20px;
+    padding-left: 4px;
+    font-size: 13px;
+    color: var(--color-a7);
+}
+
+.mmgisTimeUITick .mmgisTimeUITickLabel span {
+    font-size: 12px;
+    line-height: 22px;
+    text-transform: capitalize;
+    color: var(--color-a5);
+}
+#mmgisTimeUIStartWrapper {
+}
+#mmgisTimeUIEndWrapper {
+}
+#mmgisTimeUIActionsLeft,
+#mmgisTimeUIActionsRight {
+    background: var(--color-a);
+    display: flex;
+    justify-content: space-between;
+}
+.mmgisTimeUIButton {
+    margin: 5px;
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.2s ease-in-out;
+}
+.mmgisTimeUIButton:hover {
+    background: var(--color-a1);
+}
+
+#mmgisTimeUIIntervalCycler {
+    font-size: 12px;
+    color: var(--color-a5);
+    user-select: none;
+    transition: color 0.2s ease-in-out;
+}
+#mmgisTimeUIIntervalCycler:hover {
+    color: var(--color-a6);
+}
+
+#mmgisTimeUITimelineHisto {
+    display: flex;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+#mmgisTimeUITimelineHisto > div {
+    background: #056e94;
+    height: 100%;
+    transition: margin-top 0.2s ease-in-out;
+}
+
+#mmgisTimeUIModeDropdown {
+    background: var(--color-a-5);
+    width: 80px;
+}
+#mmgisTimeUIStepDropdown {
+    width: 80px;
+}
+#mmgisTimeUIRateDropdown {
+    width: 60px;
+}
+#mmgisTimeUIModeDropdown .dropy__title i,
+#mmgisTimeUIStepDropdown .dropy__title i,
+#mmgisTimeUIRateDropdown .dropy__title i {
+    color: var(--color-a5);
+}
+#mmgisTimeUIModeDropdown .dropy__title span,
+#mmgisTimeUIStepDropdown .dropy__title span,
+#mmgisTimeUIRateDropdown .dropy__title span {
+    font-size: 12px;
+    padding: 14px 0px 14px 12px;
+    color: var(--color-a5);
+}
+#mmgisTimeUIModeDropdown .dropy__title span {
+    color: var(--color-a5);
+    text-transform: uppercase;
+}
+
+#mmgisTimeUIModeDropdown li a,
+#mmgisTimeUIStepDropdown li a,
+#mmgisTimeUIRateDropdown li a {
+    font-size: 13px;
+    padding: 5px 8px;
+}

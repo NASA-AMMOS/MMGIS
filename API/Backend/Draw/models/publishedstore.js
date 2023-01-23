@@ -11,21 +11,21 @@ var PublishedStore = sequelize.define(
     name: {
       type: Sequelize.STRING,
       unique: false,
-      allowNull: false
+      allowNull: false,
     },
     value: {
       type: Sequelize.TEXT,
       allowNull: true,
-      defaultValue: ""
+      defaultValue: "",
     },
     time: {
       type: Sequelize.BIGINT,
-      allowNull: false
-    }
+      allowNull: false,
+    },
   },
   {
     timestamps: false,
-    updatedAt: false
+    updatedAt: false,
   }
 );
 

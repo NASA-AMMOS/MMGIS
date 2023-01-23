@@ -1,4 +1,7 @@
-@import url("https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400");
+@font-face {
+  font-family: "Source Sans Pro";
+  src: url(/public/fonts/sourcesanspro/SourceSansPro-Regular.ttf);
+}
 
 body,
 html {

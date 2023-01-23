@@ -57,10 +57,10 @@ function interfaceWithMMWebGIS() {
     //Add event functions and whatnot
     //Draw legends
     var first = true
-    for (let l in L_.toggledArray) {
-        if (L_.toggledArray[l] == true) {
-            if (L_.layersNamed[l].type != 'header') {
-                if (L_.layersLegends[l] != undefined) {
+    for (let l in L_.layers.on) {
+        if (L_.layers.on[l] == true) {
+            if (L_.layers.data[l].type != 'header') {
+                if (L_.layers.data[l]?._legend != undefined) {
                     var c = tools
                         .append('div')
                         .attr('class', 'mmgisScrollbar')
@@ -76,12 +76,12 @@ function interfaceWithMMWebGIS() {
                         .style('color', 'var(--color-f)')
                         .style('margin-bottom', '5px')
                         .style('padding-left', '10px')
-                        .html(l)
+                        .html(L_.layers.data[l].display_name)
 
                     let lastContinues = []
                     let lastShape = ''
-                    for (let d in L_.layersLegendsData[l]) {
-                        var shape = L_.layersLegendsData[l][d].shape
+                    for (let d in L_.layers.data[l]._legend) {
+                        var shape = L_.layers.data[l]._legend[d].shape
                         if (
                             shape == 'circle' ||
                             shape == 'square' ||
@@ -113,12 +113,12 @@ function interfaceWithMMWebGIS() {
                                         .attr('cy', 10)
                                         .attr(
                                             'fill',
-                                            L_.layersLegendsData[l][d].color
+                                            L_.layers.data[l]._legend[d].color
                                         )
-                                        .attr('opacity', L_.opacityArray[l])
+                                        .attr('opacity', L_.layers.opacity[l])
                                         .attr(
                                             'stroke',
-                                            L_.layersLegendsData[l][d]
+                                            L_.layers.data[l]._legend[d]
                                                 .strokecolor
                                         )
                                     break
@@ -129,12 +129,12 @@ function interfaceWithMMWebGIS() {
                                         .attr('height', 20)
                                         .attr(
                                             'fill',
-                                            L_.layersLegendsData[l][d].color
+                                            L_.layers.data[l]._legend[d].color
                                         )
-                                        .attr('opacity', L_.opacityArray[l])
+                                        .attr('opacity', L_.layers.opacity[l])
                                         .attr(
                                             'stroke',
-                                            L_.layersLegendsData[l][d]
+                                            L_.layers.data[l]._legend[d]
                                                 .strokecolor
                                         )
                                     break
@@ -146,12 +146,12 @@ function interfaceWithMMWebGIS() {
                                         .attr('y', 5)
                                         .attr(
                                             'fill',
-                                            L_.layersLegendsData[l][d].color
+                                            L_.layers.data[l]._legend[d].color
                                         )
-                                        .attr('opacity', L_.opacityArray[l])
+                                        .attr('opacity', L_.layers.opacity[l])
                                         .attr(
                                             'stroke',
-                                            L_.layersLegendsData[l][d]
+                                            L_.layers.data[l]._legend[d]
                                                 .strokecolor
                                         )
                                     break
@@ -164,19 +164,19 @@ function interfaceWithMMWebGIS() {
                                         .attr('points', trianglePoints)
                                         .attr(
                                             'fill',
-                                            L_.layersLegendsData[l][d].color
+                                            L_.layers.data[l]._legend[d].color
                                         )
-                                        .attr('opacity', L_.opacityArray[l])
+                                        .attr('opacity', L_.layers.opacity[l])
                                         .attr(
                                             'stroke',
-                                            L_.layersLegendsData[l][d]
+                                            L_.layers.data[l]._legend[d]
                                                 .strokecolor
                                         )
                                     break
                             }
                             svg.append(shape).attr(
                                 'fill',
-                                L_.layersLegendsData[l][d].color
+                                L_.layers.data[l]._legend[d].color
                             )
                             r.append('div')
                                 .style('margin-left', '5px')
@@ -184,7 +184,7 @@ function interfaceWithMMWebGIS() {
                                 .style('line-height', '21px')
                                 .style('font-size', '14px')
                                 .style('overflow', 'auto')
-                                .html(L_.layersLegendsData[l][d].value)
+                                .html(L_.layers.data[l]._legend[d].value)
                         } else if (
                             shape == 'continuous' ||
                             shape == 'discreet'
@@ -196,9 +196,9 @@ function interfaceWithMMWebGIS() {
                                 }
                             }
                             lastContinues.push({
-                                color: L_.layersLegendsData[l][d].color,
+                                color: L_.layers.data[l]._legend[d].color,
                                 shape: shape,
-                                value: L_.layersLegendsData[l][d].value,
+                                value: L_.layers.data[l]._legend[d].value,
                             })
                             lastShape = shape
                         }

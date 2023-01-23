@@ -1,5 +1,6 @@
 import * as moment from 'moment'
 
+import F_ from '../Basics/Formulae_/Formulae_'
 import L_ from '../Basics/Layers_/Layers_'
 import T_ from '../Basics/ToolController_/ToolController_'
 import calls from '../../pre/calls'
@@ -153,6 +154,9 @@ var QueryURL = {
         }
 
         if (startTime !== false) {
+            // Parse to an int if a unix timestamp
+            if (F_.isStringNumeric(startTime)) startTime = parseInt(startTime)
+
             const date = new moment(startTime)
             if (!isNaN(date) && date.isValid()) {
                 L_.FUTURES.startTime = date
@@ -162,6 +166,8 @@ var QueryURL = {
         }
 
         if (endTime !== false) {
+            if (F_.isStringNumeric(endTime)) endTime = parseInt(endTime)
+
             const date = new moment(endTime)
             if (!isNaN(date) && date.isValid()) {
                 L_.FUTURES.endTime = date
@@ -342,17 +348,17 @@ var QueryURL = {
 
         //on
         var layersOnString = ''
-        for (var l in L_.toggledArray) {
-            if (L_.toggledArray[l] && L_.layersDataByName[l].type !== 'header')
+        for (var l in L_.layers.on) {
+            if (L_.layers.on[l] && L_.layers.data[l].type !== 'header')
                 layersOnString +=
-                    l + '$' + parseFloat(L_.opacityArray[l]).toFixed(2) + ','
+                    l + '$' + parseFloat(L_.layers.opacity[l]).toFixed(2) + ','
         }
         layersOnString = layersOnString.substring(0, layersOnString.length - 1)
         if (layersOnString.length > 0) urlAppendage += '&on=' + layersOnString
 
         //selected
         if (L_.lastActivePoint.layerName != null) {
-            if (L_.toggledArray[L_.lastActivePoint.layerName])
+            if (L_.layers.on[L_.lastActivePoint.layerName])
                 urlAppendage +=
                     '&selected=' +
                     L_.lastActivePoint.layerName +

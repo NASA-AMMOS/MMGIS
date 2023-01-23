@@ -4,6 +4,10 @@ import L_ from '../Basics/Layers_/Layers_'
 import Map_ from '../Basics/Map_/Map_'
 import F_ from '../Basics/Formulae_/Formulae_'
 
+// Because 0 is a valid value in many datasets yet still special in images being fully transparent,
+// we're going to encode zero's as 2^31  (2147483648) (79, 0, 0, 0) and have the reader parse it back to 0
+const VALUE_ENCODED_AS_ZERO = 2147483648
+
 // rgbaToGFloat from: https://github.com/ihmeuw/glsl-rgba-to-float
 // License: BSD-3 Clause https://github.com/ihmeuw/glsl-rgba-to-float/blob/master/LICENSE.md
 // prettier-ignore
@@ -161,16 +165,16 @@ let DataShaders = {
 
             // Get minmax
             const getMinMax = (e) => {
-                if (!L_.layersGroup[name]) return
+                if (!L_.layers.layer[name]) return
                 if (
-                    L_.layersGroup[name].minValue != null &&
-                    L_.layersGroup[name].maxValue != null &&
-                    L_.layersGroup[name].isDynamic === false
+                    L_.layers.layer[name].minValue != null &&
+                    L_.layers.layer[name].maxValue != null &&
+                    L_.layers.layer[name].isDynamic === false
                 ) {
                     return
                 }
 
-                if (e.type === 'load') {
+                if (e.type === 'tileload') {
                     DataShaders.colorize.sourceTargets[name] = e.sourceTarget
                 }
                 if (DataShaders.colorize.sourceTargets[name] == null) return
@@ -195,28 +199,58 @@ let DataShaders = {
                         const data =
                             DataShaders.colorize.sourceTargets[name]
                                 ._fetchedTextures[c][0].pixelPerfect.imgData
+                        let oldValue
 
                         for (let i = 0; i < data.length; i += 4) {
-                            const value = F_.RGBAto32({
+                            let value = F_.RGBAto32({
                                 r: data[i + 0],
                                 g: data[i + 1],
                                 b: data[i + 2],
                                 a: data[i + 3],
                             })
+                            if (noDataValues.includes(value)) continue
+
+                            // Because 0 is a valid value in many datasets yet still special in images being fully transparent,
+                            // we're going to encode zero's as 2^31  (2147483648) (79, 0, 0, 0) and have the reader parse it back to 0
+                            if (value === VALUE_ENCODED_AS_ZERO) {
+                                value = 0
+                                oldValue = VALUE_ENCODED_AS_ZERO
+                            } else {
+                                oldValue = null
+                            }
+
                             const valR = Math.round(value)
                             if (!histo[valR]) histo[valR] = 1
                             else histo[valR]++
-                            //if (i < 20) console.log(value)
-                            if (value < min && !noDataValues.includes(value)) {
+
+                            if (value < min) {
                                 min = value
                             }
-                            if (value > max && !noDataValues.includes(value)) {
+                            if (value > max) {
                                 max = value
                             }
                         }
                     }
                 })
-                L_.layersGroup[name].histogram = histo
+                L_.layers.layer[name].histogram = histo
+
+                if (noDataValues) {
+                    if (noDataValues[0] != null)
+                        L_.layers.layer[name].setUniform(
+                            'nodatavalue0',
+                            noDataValues[0]
+                        )
+                    if (noDataValues[1] != null)
+                        L_.layers.layer[name].setUniform(
+                            'nodatavalue1',
+                            noDataValues[1]
+                        )
+                    if (noDataValues[2] != null)
+                        L_.layers.layer[name].setUniform(
+                            'nodatavalue2',
+                            noDataValues[2]
+                        )
+                }
 
                 DataShaders.colorize.setMinMaxAnimated(
                     name,
@@ -228,7 +262,7 @@ let DataShaders = {
 
             Map_.map.on('moveend', getMinMax)
             Map_.map.on('zoomend', getMinMax)
-            L_.layersGroup[name].on('load', getMinMax)
+            L_.layers.layer[name].on('tileload', getMinMax)
         },
         lastMinMax: { min: null, max: null },
         intervalMinMax: null,
@@ -238,13 +272,13 @@ let DataShaders = {
             if (
                 DataShaders.colorize.lastMinMax.min == null ||
                 DataShaders.colorize.lastMinMax.max == null ||
-                L_.layersGroup[name].isAnimated === false
+                L_.layers.layer[name].isAnimated === false
             ) {
                 DataShaders.colorize.lastMinMax.min = min
                 DataShaders.colorize.lastMinMax.max = max
-                L_.layersGroup[name].setUniform('minvalue', min)
-                L_.layersGroup[name].setUniform('maxvalue', max)
-                L_.layersGroup[name].reRender()
+                L_.layers.layer[name].setUniform('minvalue', min)
+                L_.layers.layer[name].setUniform('maxvalue', max)
+                L_.layers.layer[name].reRender()
                 return
             }
             if (DataShaders.colorize.intervalMinMax)
@@ -255,9 +289,9 @@ let DataShaders = {
                     Math.abs(max - DataShaders.colorize.lastMinMax.max) < 1
                 ) {
                     clearInterval(DataShaders.colorize.intervalMinMax)
-                    L_.layersGroup[name].setUniform('minvalue', min)
-                    L_.layersGroup[name].setUniform('maxvalue', max)
-                    L_.layersGroup[name].reRender()
+                    L_.layers.layer[name].setUniform('minvalue', min)
+                    L_.layers.layer[name].setUniform('maxvalue', max)
+                    L_.layers.layer[name].reRender()
 
                     DataShaders.colorize.updateLegendMinMax(
                         name,
@@ -279,15 +313,15 @@ let DataShaders = {
                 else if (DataShaders.colorize.lastMinMax.min < max)
                     DataShaders.colorize.lastMinMax.max += maxRate
 
-                L_.layersGroup[name].setUniform(
+                L_.layers.layer[name].setUniform(
                     'minvalue',
                     DataShaders.colorize.lastMinMax.min
                 )
-                L_.layersGroup[name].setUniform(
+                L_.layers.layer[name].setUniform(
                     'maxvalue',
                     DataShaders.colorize.lastMinMax.max
                 )
-                L_.layersGroup[name].reRender()
+                L_.layers.layer[name].reRender()
             }, 50)
         },
         // Like attach immediate events but on layer tool open
@@ -298,7 +332,7 @@ let DataShaders = {
                 function () {
                     const layerName = $(this).attr('layername')
                     const val = $(this).val()
-                    L_.layersGroup[layerName].isDynamic = val === 'true'
+                    L_.layers.layer[layerName].isDynamic = val === 'true'
                 }
             )
             //MODE
@@ -308,7 +342,7 @@ let DataShaders = {
                     const layerName = $(this).attr('layername')
                     const parameter = $(this).attr('parameter')
                     const val = $(this).val()
-                    L_.layersGroup[layerName].isDiscrete = val === 'discrete'
+                    L_.layers.layer[layerName].isDiscrete = val === 'discrete'
                     DataShaders.colorize.setLegend(
                         name,
                         shaderObj,
@@ -316,11 +350,11 @@ let DataShaders = {
                             'rampIdx'
                         )
                     )
-                    L_.layersGroup[layerName].setUniform(
+                    L_.layers.layer[layerName].setUniform(
                         parameter,
-                        L_.layersGroup[layerName].isDiscrete ? 1 : 0
+                        L_.layers.layer[layerName].isDiscrete ? 1 : 0
                     )
-                    L_.layersGroup[layerName].reRender()
+                    L_.layers.layer[layerName].reRender()
                 }
             )
             //Animated
@@ -329,7 +363,7 @@ let DataShaders = {
                 function () {
                     const layerName = $(this).attr('layername')
                     const val = $(this).val()
-                    L_.layersGroup[layerName].isAnimated = val === 'true'
+                    L_.layers.layer[layerName].isAnimated = val === 'true'
                 }
             )
 
@@ -342,7 +376,7 @@ let DataShaders = {
                         name,
                         shaderObj,
                         min,
-                        L_.layersGroup[name].maxValue
+                        L_.layers.layer[name].maxValue
                     )
                 }
             )
@@ -353,7 +387,7 @@ let DataShaders = {
                     DataShaders.colorize.setMinMaxAnimated(
                         name,
                         shaderObj,
-                        L_.layersGroup[name].minValue,
+                        L_.layers.layer[name].minValue,
                         max
                     )
                 }
@@ -422,7 +456,7 @@ let DataShaders = {
             DataShaders.colorize.setLegend(name, shaderObj, rampIdx)
             if (shaderObj.ramps) {
                 const ramp = shaderObj.ramps[rampIdx != null ? rampIdx : 0]
-                L_.layersGroup[name].ramp = ramp
+                L_.layers.layer[name].ramp = ramp
                 ramp.forEach((color, idx) => {
                     let rgb
                     // Hacky easy transparency support
@@ -433,7 +467,7 @@ let DataShaders = {
                             rgb = { r: 0, g: 0, b: 0 }
                     }
 
-                    L_.layersGroup[name].setUniform(
+                    L_.layers.layer[name].setUniform(
                         `ramp${idx}`,
                         new Float32Array([
                             rgb.r / 255,
@@ -443,7 +477,7 @@ let DataShaders = {
                         ])
                     )
                 })
-                L_.layersGroup[name].reRender()
+                L_.layers.layer[name].reRender()
             }
         },
         setLegend: function (name, shaderObj, rampIdx) {
@@ -451,7 +485,7 @@ let DataShaders = {
 
             let legend = []
 
-            const isDiscrete = L_.layersGroup[name].isDiscrete
+            const isDiscrete = L_.layers.layer[name].isDiscrete
             if (shaderObj.ramps) {
                 const ramp = shaderObj.ramps[rampIdx != null ? rampIdx : 0]
                 ramp.forEach((color, idx) => {
@@ -501,8 +535,8 @@ let DataShaders = {
             dontUpdateMinMix
         ) {
             const cname = name.replace(/ /g, '_')
-            if (min == null) min = L_.layersGroup[name].minValue
-            if (max == null) max = L_.layersGroup[name].maxValue
+            if (min == null) min = L_.layers.layer[name].minValue
+            if (max == null) max = L_.layers.layer[name].maxValue
             const isDiscrete =
                 $(`#dataShader_${cname}_colorize_legend`).attr('isdiscrete') ==
                 'true'
@@ -551,12 +585,12 @@ let DataShaders = {
                 })
 
                 // Histogram
-                if (L_.layersGroup[name].histogram) {
+                if (L_.layers.layer[name].histogram) {
                     const histogram = []
                     const binSize =
                         (Math.max(min, max) - Math.min(min, max)) / ramp.length
                     const histoKeys = Object.keys(
-                        L_.layersGroup[name].histogram
+                        L_.layers.layer[name].histogram
                     )
                     for (
                         let v = Math.min(min, max);
@@ -572,7 +606,7 @@ let DataShaders = {
                             )
                             .forEach((value) => {
                                 binValue +=
-                                    L_.layersGroup[name].histogram[value]
+                                    L_.layers.layer[name].histogram[value]
                             })
                         histogram.push(binValue)
                     }
@@ -607,8 +641,8 @@ let DataShaders = {
                 }
 
                 if (!dontUpdateMinMix) {
-                    L_.layersGroup[name].minValue = min
-                    L_.layersGroup[name].maxValue = max
+                    L_.layers.layer[name].minValue = min
+                    L_.layers.layer[name].maxValue = max
 
                     $(
                         `.dataShader_${cname}_colorize_minValue input[parameter=min]`
@@ -628,6 +662,8 @@ let DataShaders = {
                 'highp vec4 texelColour = texture2D(uTexture0, vec2(vTextureCoords.s, vTextureCoords.t));',
             
                 'highp float pxValue = rgbaToFloat(texelColour, false);',
+                'highp float pxValueOrig = pxValue;',
+                `if (pxValue == ${VALUE_ENCODED_AS_ZERO}.0) { pxValue = 0.0; }`,
             
                 'vec4 colour = vec4(0.0, 0.0, 0.0, 0.0);',
 
@@ -663,7 +699,10 @@ let DataShaders = {
                 }).join('\n'),
 
                 // And compose the labels on top of everything
-                'gl_FragColor = colour;',
+                `if (pxValueOrig == nodatavalue0) { colour = vec4(0.0, 0.0, 0.0, 0.0); }`,
+                `else if (pxValueOrig == nodatavalue1) { colour = vec4(0.0, 0.0, 0.0, 0.0); }`,
+                `else if (pxValueOrig == nodatavalue2) { colour = vec4(0.0, 0.0, 0.0, 0.0); }`,
+                `gl_FragColor = colour;`,
             '}'
         ].join('\n'),
         settings: [
@@ -678,6 +717,18 @@ let DataShaders = {
             {
                 parameter: 'maxvalue',
                 value: 1,
+            },
+            {
+                parameter: 'nodatavalue0',
+                value: -4294967296,
+            },
+            {
+                parameter: 'nodatavalue1',
+                value: -4294967296,
+            },
+            {
+                parameter: 'nodatavalue2',
+                value: -4294967296,
             },
             {
                 parameter: 'ramp0',

@@ -6,21 +6,20 @@ var Webhooks = {
   init: function () {
     // prettier-ignore
     var markup = [
-            "<div class='webhooks'>",
-                "<div class='title'>Webhooks</div>",
-                "<div class='row' id='webhooksParent'/>",
-                "<div class='row' id='addNewWebhook'>",
-                "<a class='btn waves-effect col s3 push-s9' style='color: black; background: white;'>Add Webhook<i class='mdi mdi-plus mdi-24px' style='float: right; margin-top: 1px;'></i></a>",
-                "</div>",
-                "<div class='row'>",
-                    "<a class='btn waves-effect waves-light light-green darken-3 col s1 push-s9' id='saveWebhookChanges' style='text-align: left; padding: 0; padding-left: 10px; line-height: 37px; width: 220px; border-radius: 0px; position: fixed; bottom: 10px; right: 10px; z-index: 21; background: #1565C0 !important;'>",
-                        "Save Changes",
-                        "<i class='mdi mdi-content-save mdi-24px' style='position: absolute; right: 7px; margin-top: -2px;'/>",
-                    "</a>",
-                "</div>",
-
-            "</div>"
-        ].join('\n');
+        "<div class='webhooks'>",
+            "<div class='title'>Webhooks</div>",
+            "<div class='row' id='webhooksParent'/>",
+            "<div class='row' id='addNewWebhook'>",
+              "<a class='btn waves-effect col s3 push-s9' style='color: black; background: white;'>Add Webhook<i class='mdi mdi-plus mdi-24px' style='float: right; margin-top: 1px;'></i></a>",
+            "</div>",
+            "<div class='row'>",
+                "<a class='btn waves-effect waves-light light-green darken-3 col s1 push-s9' id='saveWebhookChanges' style='text-align: left; padding: 0; padding-left: 10px; line-height: 37px; width: 220px; border-radius: 0px; position: fixed; bottom: 10px; right: 10px; z-index: 21; background: #1565C0 !important;'>",
+                    "Save Changes",
+                    "<i class='mdi mdi-content-save mdi-24px' style='position: absolute; right: 7px; margin-top: -2px;'></i>",
+                "</a>",
+            "</div>",
+        "</div>"
+    ].join('\n');
 
     $(".container_webhooks").html(markup);
 

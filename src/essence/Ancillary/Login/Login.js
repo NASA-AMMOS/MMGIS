@@ -191,15 +191,11 @@ var Login = {
                                 MMGISUser.username = ''
                                 MMGISUser.token = ''
 
-                                if (window.mmgisglobal.AUTH === 'local') {
-                                    if (
-                                        window.mmgisglobal.NODE_ENV ===
-                                        'development'
-                                    )
-                                        window.location.href =
-                                            'http://localhost:8888'
-                                    else window.location.reload()
-                                }
+                                document.cookie =
+                                    'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+
+                                if (window.mmgisglobal.AUTH === 'local')
+                                    reloadToLogin()
                             },
                             function (d) {}
                         )
@@ -483,12 +479,17 @@ var Login = {
 
 function loginSuccess(data, ignoreError) {
     if (data.status == 'success') {
-        document.cookie =
-            'MMGISUser=' +
-            JSON.stringify({
-                username: data.username,
-                token: data.token,
-            })
+        document.cookie = 'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+        document.cookie = `MMGISUser=${JSON.stringify({
+            username: data.username,
+            token: data.token,
+        })}${
+            mmgisglobal.THIRD_PARTY_COOKIES === 'true'
+                ? `; SameSite=None;${
+                      mmgisglobal.NODE_ENV === 'production' ? ' Secure' : ''
+                  }`
+                : ''
+        }`
 
         Login.loggedIn = true
         $('#loginErrorMessage').animate({ opacity: '0' }, 500)
@@ -538,22 +539,24 @@ function loginSuccess(data, ignoreError) {
             })
             .html(Login.username[0])
     } else {
-        document.cookie =
-            'MMGISUser=' +
-            JSON.stringify({
-                username: '',
-                token: '',
-            })
+        document.cookie = 'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'
 
-        if (window.mmgisglobal.AUTH === 'local') {
-            if (window.mmgisglobal.NODE_ENV === 'development')
-                window.location.href = 'http://localhost:8888'
-            else window.location.reload()
-        }
+        if (window.mmgisglobal.AUTH === 'local') reloadToLogin()
+
         if (ignoreError) return
 
         $('#loginErrorMessage').html(data.message).animate({ opacity: '1' }, 80)
     }
+}
+
+function reloadToLogin() {
+    let href
+    if (window.mmgisglobal.NODE_ENV === 'development')
+        href = 'http://localhost:8888'
+    else href = window.location.href
+    let url = new URL(href)
+    //url.searchParams.set('login', 'true')
+    window.location.href = url.href
 }
 
 export default Login

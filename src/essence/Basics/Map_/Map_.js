@@ -185,7 +185,7 @@ let Map_ = {
         d3.select('.leaflet-control-attribution').remove()
 
         //Make our layers
-        makeLayers(L_.layersData)
+        makeLayers(L_.layers.dataFlat)
 
         //Just in case we have no layers
         allLayersLoaded()
@@ -280,8 +280,8 @@ let Map_ = {
     },
     //returns true if the map has the layer
     hasLayer: function (layername) {
-        if (L_.layersGroup[layername]) {
-            return Map_.map.hasLayer(L_.layersGroup[layername])
+        if (L_.layers.layer[layername]) {
+            return Map_.map.hasLayer(L_.layers.layer[layername])
         }
         return false
     },
@@ -315,28 +315,30 @@ let Map_ = {
         let hasIndex = []
         let hasIndexRaster = []
 
-        for (let i = L_.layersOrdered.length - 1; i >= 0; i--) {
-            if (Map_.hasLayer(L_.layersOrdered[i])) {
-                if (L_.layersNamed[L_.layersOrdered[i]]) {
-                    if (L_.layersNamed[L_.layersOrdered[i]].type === 'vector') {
-                        if (L_.layersGroupSublayers[L_.layersOrdered[i]]) {
-                            for (let s in L_.layersGroupSublayers[
-                                L_.layersOrdered[i]
+        for (let i = L_._layersOrdered.length - 1; i >= 0; i--) {
+            if (Map_.hasLayer(L_._layersOrdered[i])) {
+                if (L_.layers.data[L_._layersOrdered[i]]) {
+                    if (
+                        L_.layers.data[L_._layersOrdered[i]].type === 'vector'
+                    ) {
+                        if (L_.layers.attachments[L_._layersOrdered[i]]) {
+                            for (let s in L_.layers.attachments[
+                                L_._layersOrdered[i]
                             ]) {
                                 Map_.rmNotNull(
-                                    L_.layersGroupSublayers[
-                                        L_.layersOrdered[i]
-                                    ][s].layer
+                                    L_.layers.attachments[L_._layersOrdered[i]][
+                                        s
+                                    ].layer
                                 )
                             }
                         }
                         Map_.map.removeLayer(
-                            L_.layersGroup[L_.layersOrdered[i]]
+                            L_.layers.layer[L_._layersOrdered[i]]
                         )
                         hasIndex.push(i)
                     } else if (
-                        L_.layersNamed[L_.layersOrdered[i]].type === 'tile' ||
-                        L_.layersNamed[L_.layersOrdered[i]].type === 'data'
+                        L_.layers.data[L_._layersOrdered[i]].type === 'tile' ||
+                        L_.layers.data[L_._layersOrdered[i]].type === 'data'
                     ) {
                         hasIndexRaster.push(i)
                     }
@@ -346,29 +348,28 @@ let Map_ = {
 
         // First only vectors
         for (let i = 0; i < hasIndex.length; i++) {
-            if (L_.layersGroupSublayers[L_.layersOrdered[hasIndex[i]]]) {
-                for (let s in L_.layersGroupSublayers[
-                    L_.layersOrdered[hasIndex[i]]
+            if (L_.layers.attachments[L_._layersOrdered[hasIndex[i]]]) {
+                for (let s in L_.layers.attachments[
+                    L_._layersOrdered[hasIndex[i]]
                 ]) {
                     if (
-                        L_.layersGroupSublayers[L_.layersOrdered[hasIndex[i]]][
-                            s
-                        ].on
+                        L_.layers.attachments[L_._layersOrdered[hasIndex[i]]][s]
+                            .on
                     ) {
                         if (
-                            L_.layersGroupSublayers[
-                                L_.layersOrdered[hasIndex[i]]
+                            L_.layers.attachments[
+                                L_._layersOrdered[hasIndex[i]]
                             ][s].type !== 'model'
                         )
                             Map_.map.addLayer(
-                                L_.layersGroupSublayers[
-                                    L_.layersOrdered[hasIndex[i]]
+                                L_.layers.attachments[
+                                    L_._layersOrdered[hasIndex[i]]
                                 ][s].layer
                             )
                     }
                 }
             }
-            Map_.map.addLayer(L_.layersGroup[L_.layersOrdered[hasIndex[i]]])
+            Map_.map.addLayer(L_.layers.layer[L_._layersOrdered[hasIndex[i]]])
         }
 
         L_.enforceVisibilityCutoffs()
@@ -376,11 +377,11 @@ let Map_ = {
         // Now only rasters
         // They're separate because its better to only change the raster z-index
         for (let i = 0; i < hasIndexRaster.length; i++) {
-            L_.layersGroup[L_.layersOrdered[hasIndexRaster[i]]].setZIndex(
-                L_.layersOrdered.length +
+            L_.layers.layer[L_._layersOrdered[hasIndexRaster[i]]].setZIndex(
+                L_._layersOrdered.length +
                     1 -
-                    L_.layersOrdered.indexOf(
-                        L_.layersOrdered[hasIndexRaster[i]]
+                    L_._layersOrdered.indexOf(
+                        L_._layersOrdered[hasIndexRaster[i]]
                     )
             )
         }
@@ -388,22 +389,22 @@ let Map_ = {
     refreshLayer: async function (layerObj) {
         // We need to find and remove all points on the map that belong to the layer
         // Not sure if there is a cleaner way of doing this
-        for (var i = L_.layersOrdered.length - 1; i >= 0; i--) {
+        for (var i = L_._layersOrdered.length - 1; i >= 0; i--) {
             if (
-                L_.layersNamed[L_.layersOrdered[i]] &&
-                L_.layersNamed[L_.layersOrdered[i]].type == 'vector' &&
-                L_.layersNamed[L_.layersOrdered[i]].name == layerObj.name
+                L_.layers.data[L_._layersOrdered[i]] &&
+                L_.layers.data[L_._layersOrdered[i]].type == 'vector' &&
+                L_.layers.data[L_._layersOrdered[i]].name == layerObj.name
             ) {
-                const wasOn = L_.toggledArray[layerObj.name]
-                if (wasOn) L_.toggleLayer(L_.layersNamed[layerObj.name]) // turn off if on
+                const wasOn = L_.layers.on[layerObj.name]
+                if (wasOn) L_.toggleLayer(L_.layers.data[layerObj.name]) // turn off if on
                 // fake on
-                L_.toggledArray[layerObj.name] = true
+                L_.layers.on[layerObj.name] = true
                 await makeLayer(layerObj, true)
                 L_.addVisible(Map_, [layerObj.name])
 
                 // turn off if was off
-                if (wasOn) L_.toggledArray[layerObj.name] = false
-                L_.toggleLayer(L_.layersNamed[layerObj.name]) // turn back on/off
+                if (wasOn) L_.layers.on[layerObj.name] = false
+                L_.toggleLayer(L_.layers.data[layerObj.name]) // turn back on/off
 
                 L_.enforceVisibilityCutoffs()
                 return
@@ -517,7 +518,7 @@ function getLayersChosenNamePropVal(feature, layer) {
         layer.hasOwnProperty('options') &&
         layer.options.hasOwnProperty('layerName')
     ) {
-        var l = L_.layersNamed[layer.options.layerName]
+        var l = L_.layers.data[layer.options.layerName]
         if (
             l.hasOwnProperty('variables') &&
             l.variables.hasOwnProperty('useKeyAsName')
@@ -594,7 +595,7 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
             layer.hasOwnProperty('options') &&
             layer.options.hasOwnProperty('layerName')
         ) {
-            L_.layersNamed[layer.options.layerName].useKeyAsName = pv.name
+            L_.layers.data[layer.options.layerName].useKeyAsName = pv.name
         }
 
         if (
@@ -646,12 +647,12 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
         //Query dataset links if possible and add that data to the feature's properties
         if (
             layer.options.layerName &&
-            L_.layersNamed[layer.options.layerName] &&
-            L_.layersNamed[layer.options.layerName].variables &&
-            L_.layersNamed[layer.options.layerName].variables.datasetLinks
+            L_.layers.data[layer.options.layerName] &&
+            L_.layers.data[layer.options.layerName].variables &&
+            L_.layers.data[layer.options.layerName].variables.datasetLinks
         ) {
             const dl =
-                L_.layersNamed[layer.options.layerName].variables.datasetLinks
+                L_.layers.data[layer.options.layerName].variables.datasetLinks
             let dlFilled = dl
             for (let i = 0; i < dlFilled.length; i++) {
                 dlFilled[i].search = F_.getIn(
@@ -705,7 +706,7 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
             )
 
             Kinds.use(
-                L_.layersNamed[layerObj.name].kind,
+                L_.layers.data[layerObj.name].kind,
                 Map_,
                 feature,
                 layer,
@@ -796,10 +797,10 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
 
             function add(data) {
                 if (data == null || data === 'off') {
-                    L_.layersLoaded[
-                        L_.layersOrdered.indexOf(layerObj.name)
+                    L_._layersLoaded[
+                        L_._layersOrdered.indexOf(layerObj.name)
                     ] = true
-                    L_.layersGroup[layerObj.name] = data == null ? null : false
+                    L_.layers.layer[layerObj.name] = data == null ? null : false
                     allLayersLoaded()
                     resolve()
                     return
@@ -808,8 +809,8 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
                 layerObj.style = layerObj.style || {}
                 layerObj.style.layerName = layerObj.name
 
-                layerObj.style.opacity = L_.opacityArray[layerObj.name]
-                //layerObj.style.fillOpacity = L_.opacityArray[layerObj.name]
+                layerObj.style.opacity = L_.layers.opacity[layerObj.name]
+                //layerObj.style.fillOpacity = L_.layers.opacity[layerObj.name]
 
                 const vl = constructVectorLayer(
                     data,
@@ -817,13 +818,15 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
                     onEachFeatureDefault,
                     Map_
                 )
-                L_.layersGroupSublayers[layerObj.name] = vl.sublayers
-                L_.layersGroup[layerObj.name] = vl.layer
+                L_.layers.attachments[layerObj.name] = vl.sublayers
+                L_.layers.layer[layerObj.name] = vl.layer
 
-                d3.selectAll(
-                    '.' + layerObj.name.replace(/\s/g, '').toLowerCase()
-                ).data(data.features)
-                L_.layersLoaded[L_.layersOrdered.indexOf(layerObj.name)] = true
+                d3.selectAll('.' + F_.getSafeName(layerObj.name)).data(
+                    data.features
+                )
+                L_._layersLoaded[
+                    L_._layersOrdered.indexOf(layerObj.name)
+                ] = true
                 allLayersLoaded()
 
                 resolve()
@@ -850,7 +853,7 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
             tileFormat = tileFormat ? 'tms' : 'wmts'
         } else tileFormat = layerObj.tileformat
 
-        L_.layersGroup[layerObj.name] = L.tileLayer.colorFilter(layerUrl, {
+        L_.layers.layer[layerObj.name] = L.tileLayer.colorFilter(layerUrl, {
             minZoom: layerObj.minZoom,
             maxZoom: layerObj.maxZoom,
             maxNativeZoom: layerObj.maxNativeZoom,
@@ -860,16 +863,22 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
             continuousWorld: true,
             reuseTiles: true,
             bounds: bb,
+            timeEnabled:
+                layerObj.time != null && layerObj.time.enabled === true,
             time: typeof layerObj.time === 'undefined' ? '' : layerObj.time.end,
+            compositeTile:
+                typeof layerObj.time === 'undefined'
+                    ? false
+                    : layerObj.time.compositeTile || false,
             starttime:
                 typeof layerObj.time === 'undefined' ? '' : layerObj.time.start,
             endtime:
                 typeof layerObj.time === 'undefined' ? '' : layerObj.time.end,
         })
 
-        L_.setLayerOpacity(layerObj.name, L_.opacityArray[layerObj.name])
+        L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
 
-        L_.layersLoaded[L_.layersOrdered.indexOf(layerObj.name)] = true
+        L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
         allLayersLoaded()
     }
 
@@ -898,13 +907,13 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
         }
 
         var clearHighlight = function () {
-            for (let l of Object.keys(L_.layersNamed)) {
-                if (L_.layersGroup[l]) {
-                    var highlight = L_.layersGroup[l].highlight
+            for (let l of Object.keys(L_.layers.data)) {
+                if (L_.layers.layer[l]) {
+                    var highlight = L_.layers.layer[l].highlight
                     if (highlight) {
-                        L_.layersGroup[l].resetFeatureStyle(highlight)
+                        L_.layers.layer[l].resetFeatureStyle(highlight)
                     }
-                    L_.layersGroup[l].highlight = null
+                    L_.layers.layer[l].highlight = null
                 }
             }
         }
@@ -919,9 +928,9 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
                             ell.latlng = JSON.parse(JSON.stringify(e.latlng))
 
                         Kinds.use(
-                            L_.layersNamed[layerName].kind,
+                            L_.layers.data[layerName].kind,
                             Map_,
-                            L_.layersGroup[layerName].activeFeatures[0],
+                            L_.layers.layer[layerName].activeFeatures[0],
                             layer,
                             layerName,
                             null,
@@ -931,13 +940,13 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
                         ToolController_.getTool('InfoTool').use(
                             layer,
                             layerName,
-                            L_.layersGroup[layerName].activeFeatures,
+                            L_.layers.layer[layerName].activeFeatures,
                             null,
                             null,
                             null,
                             ell
                         )
-                        L_.layersGroup[layerName].activeFeatures = []
+                        L_.layers.layer[layerName].activeFeatures = []
                     }
                 })(layer, layerName, e),
                 100
@@ -965,16 +974,16 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
             })(layerObj.style.vtId),
         }
 
-        L_.layersGroup[layerObj.name] = L.vectorGrid
+        L_.layers.layer[layerObj.name] = L.vectorGrid
             .protobuf(layerUrl, vectorTileOptions)
             .on('click', function (e) {
                 let layerName = e.sourceTarget._layerName
-                let vtId = L_.layersGroup[layerName].vtId
+                let vtId = L_.layers.layer[layerName].vtId
                 clearHighlight()
-                L_.layersGroup[layerName].highlight = e.layer.properties[vtId]
+                L_.layers.layer[layerName].highlight = e.layer.properties[vtId]
 
-                L_.layersGroup[layerName].setFeatureStyle(
-                    L_.layersGroup[layerName].highlight,
+                L_.layers.layer[layerName].setFeatureStyle(
+                    L_.layers.layer[layerName].highlight,
                     {
                         weight: 2,
                         color: 'red',
@@ -985,9 +994,9 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
                         fillOpacity: 1,
                     }
                 )
-                L_.layersGroup[layerName].activeFeatures =
-                    L_.layersGroup[layerName].activeFeatures || []
-                L_.layersGroup[layerName].activeFeatures.push({
+                L_.layers.layer[layerName].activeFeatures =
+                    L_.layers.layer[layerName].activeFeatures || []
+                L_.layers.layer[layerName].activeFeatures.push({
                     type: 'Feature',
                     properties: e.layer.properties,
                     geometry: {},
@@ -1012,7 +1021,7 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
                             vtId
                         ] != e.layer.properties[vtId]
                     ) {
-                        L_.layersGroup[layerName].activeFeatures.push({
+                        L_.layers.layer[layerName].activeFeatures.push({
                             type: 'Feature',
                             properties:
                                 e.layer._renderer._features[i].feature
@@ -1043,17 +1052,17 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
                 CursorInfo.hide()
             })
 
-        L_.layersGroup[layerObj.name].vtId = layerObj.style.vtId
-        L_.layersGroup[layerObj.name].vtKey = layerObj.style.vtKey
+        L_.layers.layer[layerObj.name].vtId = layerObj.style.vtId
+        L_.layers.layer[layerObj.name].vtKey = layerObj.style.vtKey
 
-        L_.setLayerOpacity(layerObj.name, L_.opacityArray[layerObj.name])
+        L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
 
-        L_.layersLoaded[L_.layersOrdered.indexOf(layerObj.name)] = true
+        L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
         allLayersLoaded()
     }
 
     function makeModelLayer() {
-        L_.layersLoaded[L_.layersOrdered.indexOf(layerObj.name)] = true
+        L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
         allLayersLoaded()
     }
 
@@ -1078,7 +1087,7 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
                 DataShaders[shaderType].settings[i].value
         }
 
-        L_.layersGroup[layerObj.name] = L.tileLayer.gl({
+        L_.layers.layer[layerObj.name] = L.tileLayer.gl({
             options: {
                 tms: true,
                 bounds: bb,
@@ -1093,9 +1102,9 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
             DataShaders[shaderType].attachImmediateEvents(layerObj.name, shader)
         }
 
-        L_.setLayerOpacity(layerObj.name, L_.opacityArray[layerObj.name])
+        L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
 
-        L_.layersLoaded[L_.layersOrdered.indexOf(layerObj.name)] = true
+        L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
         allLayersLoaded()
     }
 }
@@ -1105,8 +1114,8 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
 function allLayersLoaded() {
     if (!Map_.allLayersLoadedPassed) {
         //Only continues if all layers have been loaded
-        for (var i = 0; i < L_.layersLoaded.length; i++) {
-            if (L_.layersLoaded[i] == false) {
+        for (var i = 0; i < L_._layersLoaded.length; i++) {
+            if (L_._layersLoaded[i] == false) {
                 return
             }
         }
@@ -1249,18 +1258,18 @@ function clearOnMapClick(event) {
 
         let found = false
         // For all MMGIS layers
-        for (let key in L_.layersGroup) {
-            if (L_.layersGroup[key] === false || L_.layersGroup[key] == null)
+        for (let key in L_.layers.layer) {
+            if (L_.layers.layer[key] === false || L_.layers.layer[key] == null)
                 continue
             let layers
 
             // Layers can be a LayerGroup or an array of LayerGroup
-            if ('getLayers' in L_.layersGroup[key]) {
-                layers = L_.layersGroup[key].getLayers()
+            if ('getLayers' in L_.layers.layer[key]) {
+                layers = L_.layers.layer[key].getLayers()
             }
 
-            if (Array.isArray(L_.layersGroup[key])) {
-                layers = L_.layersGroup[key]
+            if (Array.isArray(L_.layers.layer[key])) {
+                layers = L_.layers.layer[key]
             }
 
             for (let k in layers) {

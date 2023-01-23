@@ -59,6 +59,172 @@ var Formulae_ = {
             range[0]
         )
     },
+    isStringNumeric: function (str) {
+        if (typeof str != 'string') return false
+        return !isNaN(str) && !isNaN(parseFloat(str))
+    },
+    getBase64Transparent256Tile: function () {
+        return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAABFUlEQVR42u3BMQEAAADCoPVP7WsIoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAeAMBPAAB2ClDBAAAAABJRU5ErkJggg=='
+    },
+    monthNumberToName: function (monthNumber) {
+        switch (monthNumber) {
+            case 0:
+                return 'Jan'
+            case 1:
+                return 'Feb'
+            case 2:
+                return 'Mar'
+            case 3:
+                return 'Apr'
+            case 4:
+                return 'May'
+            case 5:
+                return 'Jun'
+            case 6:
+                return 'Jul'
+            case 7:
+                return 'Aug'
+            case 8:
+                return 'Sep'
+            case 9:
+                return 'Oct'
+            case 10:
+                return 'Nov'
+            case 11:
+                return 'Dec'
+            default:
+                return ''
+        }
+    },
+    // Returns an array of timestamps between startTime and endTime timestamps that fall along the unit
+    getTimeStartsBetweenTimestamps: function (startTime, endTime, unit) {
+        const timeStarts = []
+
+        const startDate = new Date(startTime)
+        const endDate = new Date(endTime)
+        startDate.setUTCMilliseconds(0)
+        endDate.setUTCMilliseconds(0)
+
+        let currentDate
+        switch (unit) {
+            case 'decade':
+                currentDate = new Date(
+                    Date.UTC(Math.floor(startDate.getFullYear() / 10) * 10)
+                )
+                while (currentDate < endDate) {
+                    currentDate.setUTCFullYear(
+                        Math.floor(currentDate.getUTCFullYear() / 10) * 10 + 10
+                    )
+                    timeStarts.push({
+                        ts: Date.parse(currentDate),
+                        label:
+                            Math.floor(currentDate.getUTCFullYear() / 10) * 10 +
+                            's',
+                    })
+                }
+
+                break
+            case 'year':
+                currentDate = new Date(Date.UTC(startDate.getFullYear()))
+                while (currentDate < endDate) {
+                    currentDate.setUTCFullYear(currentDate.getUTCFullYear() + 1)
+                    timeStarts.push({
+                        ts: Date.parse(currentDate),
+                        label: currentDate.getUTCFullYear(),
+                    })
+                }
+
+                break
+            case 'month':
+                currentDate = new Date(
+                    Date.UTC(startDate.getFullYear(), startDate.getMonth())
+                )
+                while (currentDate < endDate) {
+                    currentDate.setUTCMonth(currentDate.getUTCMonth() + 1)
+                    timeStarts.push({
+                        ts: Date.parse(currentDate),
+                        label: Formulae_.monthNumberToName(
+                            currentDate.getUTCMonth()
+                        ).toUpperCase(),
+                    })
+                }
+                break
+            case 'day':
+                currentDate = new Date(
+                    Date.UTC(
+                        startDate.getFullYear(),
+                        startDate.getMonth(),
+                        startDate.getDate()
+                    )
+                )
+                while (currentDate < endDate) {
+                    currentDate.setUTCDate(currentDate.getUTCDate() + 1)
+                    timeStarts.push({
+                        ts: Date.parse(currentDate),
+                        label: currentDate.getUTCDate(),
+                    })
+                }
+                break
+            case 'hour':
+                currentDate = new Date(
+                    Date.UTC(
+                        startDate.getFullYear(),
+                        startDate.getMonth(),
+                        startDate.getDate(),
+                        startDate.getHours()
+                    )
+                )
+                while (currentDate < endDate) {
+                    currentDate.setUTCHours(currentDate.getUTCHours() + 1)
+                    timeStarts.push({
+                        ts: Date.parse(currentDate),
+                        label: currentDate.getUTCHours(),
+                    })
+                }
+                break
+            case 'minute':
+                currentDate = new Date(
+                    Date.UTC(
+                        startDate.getFullYear(),
+                        startDate.getMonth(),
+                        startDate.getDate(),
+                        startDate.getHours(),
+                        startDate.getMinutes()
+                    )
+                )
+                while (currentDate < endDate) {
+                    currentDate.setUTCMinutes(currentDate.getUTCMinutes() + 1)
+                    timeStarts.push({
+                        ts: Date.parse(currentDate),
+                        label: currentDate.getUTCMinutes(),
+                    })
+                }
+                break
+            case 'second':
+                currentDate = new Date(
+                    Date.UTC(
+                        startDate.getFullYear(),
+                        startDate.getMonth(),
+                        startDate.getDate(),
+                        startDate.getHours(),
+                        startDate.getMinutes(),
+                        startDate.getSeconds()
+                    )
+                )
+                while (currentDate < endDate) {
+                    currentDate.setUTCSeconds(currentDate.getUTCSeconds() + 1)
+                    timeStarts.push({
+                        ts: Date.parse(currentDate),
+                        label: currentDate.getUTCSeconds(),
+                    })
+                }
+                break
+            default:
+                break
+        }
+
+        return timeStarts
+    },
     //Uses haversine to calculate distances over arcs
     lngLatDistBetween: function (lon1, lat1, lon2, lat2) {
         var R = this.radiusOfPlanetMajor
@@ -276,6 +442,50 @@ var Formulae_ = {
         }
         return nearestPoint
     },
+    // If crs is passed, circle will be map-projection-based and not screen based
+    circleFeatureFromTwoLngLats: function (
+        lnglatCenter,
+        lnglatRadius,
+        steps,
+        crs
+    ) {
+        const coordinates = []
+        let radialLngLat = lnglatRadius
+        let centerLngLat = lnglatCenter
+
+        if (crs) {
+            radialLngLat = crs.project(radialLngLat)
+            radialLngLat = { lng: radialLngLat.x, lat: radialLngLat.y }
+            centerLngLat = crs.project(centerLngLat)
+            centerLngLat = { lng: centerLngLat.x, lat: centerLngLat.y }
+        }
+
+        const radialPt = { x: radialLngLat.lng, y: radialLngLat.lat }
+        const centerPt = [centerLngLat.lng, centerLngLat.lat]
+
+        for (let i = 0; i < steps; i++) {
+            let pt = Formulae_.rotatePoint(
+                radialPt,
+                centerPt,
+                i * (360 / steps) * (Math.PI / 180)
+            )
+            if (crs) {
+                pt = crs.unproject(pt)
+                pt = { x: pt.lng, y: pt.lat }
+            }
+            coordinates.push([pt.x, pt.y])
+        }
+        coordinates.push(coordinates[0])
+
+        return {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+                type: 'Polygon',
+                coordinates: [coordinates],
+            },
+        }
+    },
     parseColor: function (color) {
         if (Formulae_.isColor(color) || color == null) return color
         return Formulae_.stringToColor(color)
@@ -418,7 +628,7 @@ var Formulae_ = {
         }
     },
     getSafeName: function (name) {
-        return (name || '').replace(/\s/g, '')
+        return ('UUID' + (name || '').replace(/\s/g, '')).toLowerCase()
     },
     /**
      * Traverses an object with an array of keys
@@ -616,7 +826,7 @@ var Formulae_ = {
         return 'zero'
     },
     isUrlAbsolute: function (url) {
-        var r = new RegExp('^(?:[a-z]+:)?//', 'i')
+        const r = new RegExp('^(?:[a-z]+:)?//', 'i')
         return r.test(url)
     },
     populateUrl: function (url, xyz, invertY) {
@@ -1443,6 +1653,12 @@ var Formulae_ = {
             if (typeof callback === 'function') callback()
         })
     },
+    getMinMaxOfArray(arrayOfNumbers) {
+        return {
+            min: Math.min(...arrayOfNumbers),
+            max: Math.max(...arrayOfNumbers),
+        }
+    },
     uniqueArray(arr) {
         var uniqueArray = []
         for (var i in arr) {
@@ -1554,6 +1770,11 @@ var Formulae_ = {
             ':' +
             sec
         )
+    },
+    isValidUrl(str) {
+        const a = document.createElement('a')
+        a.href = str
+        return a.host && a.host !== window.location.host
     },
     /**
      * Returns an array of only the matching elements between two arrays
@@ -1891,6 +2112,8 @@ var Formulae_ = {
 
         let xAxis = axes.x || 0
         let yAxis = axes.y || 0
+
+        if (xAxis === 0 || yAxis === 0) return null
         // Optional params
         options = options || {}
         let steps = options.steps || 32

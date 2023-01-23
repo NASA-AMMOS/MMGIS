@@ -68,7 +68,7 @@ var Drawing = {
         //Then modify the ones it overlapped
         var bb = turf.bbox(d.shape)
 
-        var lg = L_.layersGroup['DrawTool_' + DrawTool.currentFileId]
+        var lg = L_.layers.layer['DrawTool_' + DrawTool.currentFileId]
 
         throughLoop(0)
         function throughLoop(i) {
@@ -202,7 +202,7 @@ var Drawing = {
     drawUnder: function (d) {
         //Modify shape based on intersecting features
         var bb = turf.bbox(d.shape)
-        var lg = L_.layersGroup['DrawTool_' + DrawTool.currentFileId]
+        var lg = L_.layers.layer['DrawTool_' + DrawTool.currentFileId]
 
         for (var i = 0; i < lg.length; i++) {
             if (lg[i] == null) continue
@@ -574,54 +574,129 @@ var drawing = {
                 d.style = overrideStyle
             }
 
-            d.drawing = new L.Draw.Circle(Map_.map, {
-                shapeOptions: d.style,
+            Map_.map.on('click', d.start)
+            Map_.map.on('draw:drawstop', d.stop)
+            $('body').on('keydown', d.keydown)
+            $('body').on('keyup', d.keyup)
+        },
+        start: function (e) {
+            let d = drawing.circle
+            d.shape = e.latlng
+
+            //Store this at start to avoid mixed modes
+            if (
+                $('#drawToolDrawSettingsCircle > div.active').attr('value') ==
+                'on'
+            ) {
+                const forcedRadius = parseFloat(
+                    $('#drawToolDrawSettingsCircleR').val()
+                )
+                d.shapeEnd = F_.destinationFromBearing(
+                    d.shape.lat,
+                    d.shape.lng,
+                    0,
+                    forcedRadius * 0.001 // km
+                )
+                d.shapeEnd = { lat: d.shapeEnd[0], lng: d.shapeEnd[1] }
+
+                d.circleFeature = F_.circleFeatureFromTwoLngLats(
+                    d.shape,
+                    d.shapeEnd,
+                    64,
+                    window.mmgisglobal.customCRS
+                )
+                d.circleFeature.properties.style = d.style
+                d.circleFeature.properties._radius = forcedRadius
+                d.stop()
+            } else {
+                Map_.map.on('mousemove', d.move)
+                Map_.map.on('click', d.stop)
+                Map_.map.off('click', d.start)
+            }
+        },
+        move: function (e) {
+            let d = drawing.circle
+            d.shapeEnd = e.latlng
+
+            d.mRadius = F_.lngLatDistBetween(
+                d.shape.lng,
+                d.shape.lat,
+                d.shapeEnd.lng,
+                d.shapeEnd.lat
+            )
+
+            d.circleFeature = F_.circleFeatureFromTwoLngLats(
+                d.shape,
+                d.shapeEnd,
+                64,
+                window.mmgisglobal.customCRS
+            )
+            d.circleFeature.properties.style = d.style
+            d.circleFeature.properties._radius = d.mRadius
+            Map_.rmNotNull(d.tempCircle)
+            d.tempCircle = L.geoJSON(F_.getBaseGeoJSON([d.circleFeature]), {
+                style: d.style,
+            }).addTo(Map_.map)
+
+            Map_.rmNotNull(d.tempLine)
+            d.tempLine = L.polyline(
+                [
+                    [d.shape.lat, d.shape.lng],
+                    [d.shapeEnd.lat, d.shapeEnd.lng],
+                ],
+                {
+                    color: 'black',
+                    dashArray: '8 8',
+                    weight: 2,
+                    lineCap: 'square',
+                }
+            ).addTo(Map_.map)
+
+            CursorInfo.update(`Radius: ${d.mRadius.toFixed(3)}m`, null, false, {
+                x: e.originalEvent.clientX + 30,
+                y: e.originalEvent.clientY - 15,
             })
-            d.drawing.enable()
-
-            d.shape = d.drawing
-
-            Map_.map.on('draw:created', d.stop)
         },
         end: function () {
-            var d = drawing.circle
+            let d = drawing.circle
 
             d.stopclick = false
 
-            Map_.map.off('draw:created', d.stop)
+            CursorInfo.hide()
+            Map_.rmNotNull(d.tempLine)
+            Map_.rmNotNull(d.tempCircle)
+
+            Map_.map.off('click', d.start)
+            Map_.map.off('click', d.stop)
+            Map_.map.off('mousemove', d.move)
+            Map_.map.off('draw:drawstop', d.stop)
+            $('body').off('keydown', d.keydown)
+            $('body').off('keyup', d.keyup)
             if (typeof d.drawing.disable === 'function') d.drawing.disable()
         },
         stop: function () {
-            var d = drawing.circle
+            let d = drawing.circle
 
             if (d.shiftDisabled) return
 
-            d.shape = d.drawing._shape
-            d.shape = turfCircle(
-                [d.shape._latlng.lng, d.shape._latlng.lat],
-                d.shape._mRadius,
-                { steps: 64, units: 'meters' }
-            )
-
-            d.shape.properties.style = d.style
             var n = $('#drawToolDrawFeaturesNewName')
-            d.shape.properties.name =
+            d.circleFeature.properties.name =
                 n.val() || n.attr('placeholder') || 'Circle'
+
+            CursorInfo.hide()
 
             DrawTool.addDrawing(
                 {
                     file_id: DrawTool.currentFileId,
                     intent: d.intent,
-                    properties: JSON.stringify(d.shape.properties),
-                    geometry: JSON.stringify(d.shape.geometry),
+                    properties: JSON.stringify(d.circleFeature.properties),
+                    geometry: JSON.stringify(d.circleFeature.geometry),
                 },
-                (function (shape) {
-                    return function (data) {
-                        DrawTool.refreshFile(DrawTool.currentFileId, null, true)
-
-                        d.begin()
-                    }
-                })(JSON.parse(JSON.stringify(d.shape))),
+                function (data) {
+                    d.end()
+                    DrawTool.refreshFile(DrawTool.currentFileId, null, true)
+                    d.begin()
+                },
                 function () {
                     if (d.end && d.begin) {
                         d.end()
@@ -635,7 +710,12 @@ var drawing = {
         intent: null,
         style: {},
         drawing: {},
+        mRadius: 0,
+        tempLine: null,
+        tempCircle: null,
         shape: {},
+        shapeEnd: {},
+        circleShape: {},
     },
     rectangle: {
         begin: function (intent, overrideStyle) {
@@ -1482,7 +1562,7 @@ var drawing = {
                                     "  blackTextBorder' layer='" +
                                     DrawTool.currentFileId +
                                     "' index='" +
-                                    L_.layersGroup[
+                                    L_.layers.layer[
                                         'DrawTool_' + DrawTool.currentFileId
                                     ].length +
                                     "'></div>" +
@@ -1497,7 +1577,7 @@ var drawing = {
                                 data.id
                         ).text(shape.properties.name)
 
-                        L_.layersGroup[
+                        L_.layers.layer[
                             'DrawTool_' + DrawTool.currentFileId
                         ].push(popup)
 
@@ -1531,7 +1611,7 @@ var drawing = {
                         $('.drawToolAnnotation').on('click', function () {
                             var layer = 'DrawTool_' + $(this).attr('layer')
                             var index = $(this).attr('index')
-                            var shape = L_.layersGroup[layer][index]
+                            var shape = L_.layers.layer[layer][index]
                             if (!mmgisglobal.shiftDown) {
                                 if (typeof shape.getBounds === 'function')
                                     Map_.map.fitBounds(shape.getBounds())
@@ -1542,10 +1622,10 @@ var drawing = {
                         })
 
                         var l =
-                            L_.layersGroup[
+                            L_.layers.layer[
                                 'DrawTool_' + DrawTool.currentFileId
                             ][
-                                L_.layersGroup[
+                                L_.layers.layer[
                                     'DrawTool_' + DrawTool.currentFileId
                                 ].length - 1
                             ]

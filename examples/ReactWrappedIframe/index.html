@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>React Wrapped iframe</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,user-scalable=no,minimum-scale=1,maximum-scale=1"
+    />
+    <meta name="theme-color" content="#1d1f20" />
+    <meta
+      name="description"
+      content="A web-based mapping and localization solution for science operation on planetary missions."
+    />
+    <script src="../lib/react.development.js"></script>
+    <script src="../lib/react-dom.development.js"></script>
+    <script src="../lib/babel.min.js"></script>
+    <style>
+      body,
+      html {
+        background: #1d1f20;
+        overflow: hidden;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        font-family: sans-serif;
+      }
+      iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+      }
+      ul {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+      }
+      ul li {
+        width: 40px;
+        text-align: center;
+        padding: 10px 0px;
+      }
+      p {
+        font-size: 14px;
+      }
+      #root {
+        width: 100%;
+        height: 100%;
+      }
+      .App {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-flow: column;
+      }
+      .TopBar {
+        width: 100%;
+        height: 40px;
+        background: white;
+        font-weight: bold;
+        padding: 10px;
+        box-sizing: border-box;
+        border-bottom: 1px solid #ddd;
+      }
+      .main {
+        display: flex;
+        height: calc(100vh - 40px);
+        width: 100%;
+      }
+      .Toolbar {
+        height: 100%;
+        width: 40px;
+        background: white;
+        box-sizing: border-box;
+        border-right: 1px solid #ddd;
+      }
+      .Panel {
+        height: 100%;
+        background: #f5f5f5;
+        padding: 10px;
+        box-sizing: border-box;
+        overflow-y: auto;
+      }
+      .MMGIS {
+        flex: 1;
+      }
+      .layer {
+        height: 10px;
+        margin: 2px 0px;
+        padding-left: 6px;
+        line-height: 12px;
+        cursor: pointer;
+        width: 220px;
+        text-align: left;
+      }
+      .layer.on {
+        border-left: 12px solid green;
+      }
+      .layer.off {
+        border-left: 12px solid red;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <!-- 
+    <div id="main">
+      <div id="top"></div>
+      <div id="middle">
+        <div id="left"></div>
+        <div id="center">
+          <iframe src="http://localhost:8888" title="MMGIS"></iframe>
+        </div>
+        <div id="right"></div>
+      </div>
+      <div id="bottom"></div>
+    </div>
+    -->
+  </body>
+  <footer>
+    <script type="text/babel">
+      function TopBar() {
+        return <div className="TopBar">React Wrapped Iframe</div>;
+      }
+
+      function Toolbar() {
+        return (
+          <div className="Toolbar">
+            <ul>
+              <li>A</li>
+              <li>B</li>
+              <li>C</li>
+              <li>D</li>
+            </ul>
+          </div>
+        );
+      }
+      function Panel(props) {
+        const { width } = props;
+        return (
+          <div className="Panel" style={{ width: `${width || 250}px` }}>
+            {props.children}
+          </div>
+        );
+      }
+      function MMGIS() {
+        React.useEffect(() => {
+          const MMGISIframe = document.getElementById("MMGISIframe");
+          MMGISIframe.addEventListener("load", function () {
+            window.mmgisAPI = this.contentWindow.mmgisAPI;
+          });
+          MMGISIframe.src = "http://localhost:8888?mission=MSL";
+        }, []);
+        return (
+          <div className="MMGIS">
+            <iframe id="MMGISIframe"></iframe>
+          </div>
+        );
+      }
+
+      function App() {
+        const [availableLayers, setAvailableLayers] = React.useState(null);
+        return (
+          <div className="App">
+            <TopBar />
+            <div className="main">
+              <Toolbar />
+              <Panel width={300}>
+                {availableLayers == null && (
+                  <button
+                    onClick={() => {
+                      setAvailableLayers(mmgisAPI.getVisibleLayers());
+                    }}
+                  >
+                    Show Layers
+                  </button>
+                )}
+                <ul>
+                  {availableLayers &&
+                    Object.keys(availableLayers).map((layerName, i) => (
+                      <li
+                        key={i}
+                        className={`layer ${
+                          availableLayers[layerName] ? "on" : "off"
+                        }`}
+                        onClick={async () => {
+                          await mmgisAPI.toggleLayer(layerName);
+                          setAvailableLayers(mmgisAPI.getVisibleLayers());
+                        }}
+                      >
+                        {layerName}
+                      </li>
+                    ))}
+                </ul>
+              </Panel>
+              <MMGIS />
+              <Panel width={400}>
+                <h3>How to run this example:</h3>
+                <p>Add .env: FRAME_ANCESTORS='["http://localhost:8888"]'</p>
+                <p>Add .env: FRAME_SRC='["http://localhost:8888"]'</p>
+                <p>`npm run build`</p>
+                <p>`npm run start:prod:with_examples`</p>
+                <p>
+                  Go to: localhost:8888/examples/ReactWrappedIframe/index.html
+                </p>
+              </Panel>
+            </div>
+          </div>
+        );
+      }
+      ReactDOM.render(<App />, document.getElementById("root"));
+    </script>
+  </footer>
+</html>

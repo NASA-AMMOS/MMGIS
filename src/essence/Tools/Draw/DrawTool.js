@@ -93,7 +93,7 @@ var markup = [
                 "<div id='drawToolDrawSettingsBody'>",
                     "<ul>",
                         "<li>",
-                            "<div title='Clip drawing or existing shapes'>Draw Clipping</div>",
+                            "<div title='Clip drawing of existing shapes'>Draw Clipping</div>",
                             "<div id='drawToolDrawSettingsTier' class='drawToolRadio'>",
                                 "<div value='over'>Over</div>",
                                 "<div class='active' value='under'>Under</div>",
@@ -111,6 +111,13 @@ var markup = [
                             "<div title='Enable snapping in edit mode'>Edit Snapping</div>",
                             "<div id='drawToolDrawSnapMode' class='drawToolRadio'>",
                                 "<div value='on'>On</div>",
+                                "<div class='active' value='off'>Off</div>",
+                            "</div>",
+                        "</li>",
+                        "<li>",
+                            "<div title='Force radius in meters when drawing circles'>Circle Radius</div>",
+                            "<div id='drawToolDrawSettingsCircle' class='drawToolRadio'>",
+                                "<div value='on'><span>On</span><input id='drawToolDrawSettingsCircleR' type='number' value='100'/></div>",
                                 "<div class='active' value='off'>Off</div>",
                             "</div>",
                         "</li>",
@@ -707,13 +714,13 @@ var DrawTool = {
     destroy: function () {
         this.MMGISInterface.separateFromMMGIS()
 
-        for (var l in L_.layersGroup) {
+        for (var l in L_.layers.layer) {
             var s = l.split('_')
             var onId = s[1] != 'master' ? parseInt(s[1]) : s[1]
 
             if (s[0] == 'DrawTool' && DrawTool.filesOn.indexOf(onId) != -1) {
-                for (var i = 0; i < L_.layersGroup[l].length; i++) {
-                    var f = L_.layersGroup[l][i]
+                for (var i = 0; i < L_.layers.layer[l].length; i++) {
+                    var f = L_.layers.layer[l][i]
 
                     if (!f) continue
 
@@ -748,13 +755,13 @@ var DrawTool = {
                                     let layer = d.target
                                     let found = false
                                     if (!d.target.hasOwnProperty('feature')) {
-                                        for (var _l in L_.layersGroup) {
+                                        for (var _l in L_.layers.layer) {
                                             if (!_l.startsWith('DrawTool_'))
                                                 continue
 
-                                            for (var x in L_.layersGroup[l]) {
+                                            for (var x in L_.layers.layer[l]) {
                                                 var childLayer =
-                                                    L_.layersGroup[l][x]
+                                                    L_.layers.layer[l][x]
                                                 if ('hasLayer' in childLayer) {
                                                     if (
                                                         childLayer.hasOwnProperty(
@@ -816,13 +823,14 @@ var DrawTool = {
                                     let name
                                     // If the DrawTool layer that is hovered is an arrow, the parent arrow layer knows the name
                                     if (!d.target.hasOwnProperty('feature')) {
-                                        for (var _l in L_.layersGroup) {
+                                        for (var _l in L_.layers.layer) {
                                             if (!_l.startsWith('DrawTool_')) {
                                                 continue
                                             }
 
-                                            for (var x in L_.layersGroup[l]) {
-                                                var layer = L_.layersGroup[l][x]
+                                            for (var x in L_.layers.layer[l]) {
+                                                var layer =
+                                                    L_.layers.layer[l][x]
                                                 if ('hasLayer' in layer) {
                                                     if (
                                                         layer.hasOwnProperty(
@@ -990,20 +998,20 @@ var DrawTool = {
         }
         if (typeof file_description !== 'string') return []
 
-        const tags = file_description.match(/#\w*/g) || []
+        const tags = file_description.match(/~#\w+/g) || []
         const uniqueTags = [...tags]
         // remove '#'s
-        tagFolders.tags = uniqueTags.map((t) => t.substring(1)) || []
+        tagFolders.tags = uniqueTags.map((t) => t.substring(2)) || []
 
-        const folders = file_description.match(/@\w*/g) || []
+        const folders = file_description.match(/~@\w+/g) || []
         const uniqueFolders = [...folders]
         // remove '@'s
-        tagFolders.folders = uniqueFolders.map((t) => t.substring(1)) || []
+        tagFolders.folders = uniqueFolders.map((t) => t.substring(2)) || []
 
-        const efolders = file_description.match(/\^\w*/g) || []
+        const efolders = file_description.match(/~\^\w+/g) || []
         const uniqueEFolders = [...efolders]
         // remove '^'s
-        tagFolders.efolders = uniqueEFolders.map((t) => t.substring(1)) || []
+        tagFolders.efolders = uniqueEFolders.map((t) => t.substring(2)) || []
 
         // At least one folder
         if (noDefaults !== true) {
@@ -1046,9 +1054,9 @@ var DrawTool = {
     stripTagsFromDescription(file_description) {
         if (typeof file_description !== 'string') return ''
         return file_description
-            .replaceAll(/#\w*/g, '')
-            .replaceAll(/@\w*/g, '')
-            .replaceAll(/\^\w*/g, '')
+            .replaceAll(/~#\w+/g, '')
+            .replaceAll(/~@\w+/g, '')
+            .replaceAll(/~\^\w+/g, '')
             .trimStart()
             .trimEnd()
     },
@@ -1350,6 +1358,11 @@ function interfaceWithMMGIS() {
         $(this).addClass('active')
     })
 
+    $('#drawToolDrawSettingsCircle > div').on('click', function () {
+        $(this).parent().find('div').removeClass('active')
+        $(this).addClass('active')
+    })
+
     //Set master checkbox on if all the master files are on
     if (
         DrawTool.filesOn.indexOf(1) != -1 &&
@@ -1494,7 +1507,7 @@ function interfaceWithMMGIS() {
                 if ($(elm).hasClass('active')) {
                     var layer = $(elm).attr('layer')
                     var index = $(elm).attr('index')
-                    var shape = L_.layersGroup[layer][index]
+                    var shape = L_.layers.layer[layer][index]
 
                     let fromFileId = $(elm).attr('file_id')
                     let fromFile = DrawTool.getFileObjectWithId(fromFileId)

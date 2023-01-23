@@ -3,12 +3,15 @@ import $ from 'jquery'
 import * as d3 from 'd3'
 import F_ from '../Basics/Formulae_/Formulae_'
 
-var Description = {
+import tippy from 'tippy.js'
+
+const Description = {
     inited: false,
     waitingOnUpdate: false,
     descCont: null,
     descMission: null,
     descPoint: null,
+    tippyDesc: null,
     L_: null,
     init: function (mission, site, Map_, L_) {
         this.L_ = L_
@@ -75,15 +78,15 @@ var Description = {
 
         let infos = []
 
-        for (let layer in this.L_.layersNamed) {
-            let l = this.L_.layersNamed[layer]
+        for (let layer in this.L_.layers.data) {
+            let l = this.L_.layers.data[layer]
             if (
-                this.L_.layersGroup[layer] &&
+                this.L_.layers.layer[layer] &&
                 l.hasOwnProperty('variables') &&
                 l.variables.hasOwnProperty('info') &&
                 l.variables.info.hasOwnProperty('length')
             ) {
-                let layers = this.L_.layersGroup[layer]._layers
+                let layers = this.L_.layers.layer[layer]._layers
                 let newInfo = ''
                 for (let i = 0; i < l.variables.info.length; i++) {
                     let which =
@@ -167,11 +170,11 @@ var Description = {
             var links = "<span style='padding-left: 4px;'></span>"
 
             if (
-                this.L_.layersNamed[activeLayer.options.layerName] &&
-                this.L_.layersNamed[activeLayer.options.layerName].variables
+                this.L_.layers.data[activeLayer.options.layerName] &&
+                this.L_.layers.data[activeLayer.options.layerName].variables
             ) {
                 let v =
-                    this.L_.layersNamed[activeLayer.options.layerName].variables
+                    this.L_.layers.data[activeLayer.options.layerName].variables
                 if (v.links) {
                     links = ''
                     for (let i = 0; i < v.links.length; i++) {
@@ -198,11 +201,6 @@ var Description = {
 
             let key = activeLayer.useKeyAsName || 'name'
 
-            !(
-                typeof activeLayer.feature.properties[key] === 'string' ||
-                typeof activeLayer.feature.properties[key] === 'number'
-            )
-
             if (
                 !(
                     typeof activeLayer.feature.properties[key] === 'string' ||
@@ -224,15 +222,29 @@ var Description = {
             }
 
             keyAsName =
-                activeLayer.feature.properties[key] +
+                ` <div style="max-width: 180px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">${activeLayer.feature.properties[key]}</div>` +
                 ' <div class="mainDescPointInnerType" style="font-size: 11px; padding: 0px 3px; opacity: 0.8;">(' +
                 key +
                 ')</div>'
 
             Description.descPointInner.html(
-                activeLayer.options.layerName + ': ' + keyAsName
+                Description.L_.layers.data[activeLayer.options.layerName]
+                    .display_name +
+                    ': ' +
+                    keyAsName
             )
             Description.descPointLinks.html(links)
+
+            if (Description.tippyDesc && Description.tippyDesc[0])
+                Description.tippyDesc[0].setContent(
+                    activeLayer.feature.properties[key]
+                )
+            else
+                Description.tippyDesc = tippy('#mainDescPointInner', {
+                    content: activeLayer.feature.properties[key],
+                    placement: 'bottom',
+                    theme: 'blue',
+                })
         }
     },
     clearDescription: function () {

@@ -77,10 +77,13 @@ export default function (domEl, lookupPath, options, Map_) {
             domEl.appendChild(renderer.domElement)
 
             orbitControls = new THREE.OrbitControls(camera, renderer.domElement)
-            orbitControls.enablePan = true
+            orbitControls.enablePan = false
             orbitControls.enableZoom = true
             orbitControls.autoRotate = false
             orbitControls.autoRotateSpeed = options.speed || 0.5
+            orbitControls.enableDamping = true
+            orbitControls.dampingFactor = 0.27
+            orbitControls.rotateSpeed = -0.07
 
             orientationControls = new THREE.DeviceOrientationControls(camera)
 
@@ -495,7 +498,7 @@ export default function (domEl, lookupPath, options, Map_) {
             render()
 
             //Select the point in the map
-            var markers = L_.layersGroup[intersects[0].object.layerName]
+            var markers = L_.layers.layer[intersects[0].object.layerName]
             if (markers != undefined) {
                 markers.eachLayer(function (layer) {
                     if (

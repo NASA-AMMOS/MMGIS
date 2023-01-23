@@ -678,7 +678,7 @@ let MeasureTool = {
             dems.push({ name: 'Main', path: MeasureTool.vars.dem })
         if (MeasureTool.vars.layerDems)
             for (let name in MeasureTool.vars.layerDems) {
-                if (!onlyShowDemIfLayerOn || L_.toggledArray[name])
+                if (!onlyShowDemIfLayerOn || L_.layers.on[name])
                     dems.push({
                         name: name,
                         path: MeasureTool.vars.layerDems[name],

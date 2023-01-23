@@ -10,21 +10,39 @@ grand_parent: Configure
 
 Configure the look of MMGIS's UI for the mission
 
+### Rebranding
+
 #### Page Name
 
 Sets the browser tab title and, if the UI is not minimalist, sets the title in the top bar. Defaults to `MMGIS`
 
-#### Minimalist UI
+### User Interface
+
+Toggles user interface elements on or off.
+
+#### Minimalist UI (DISABLED)
 
 If checked, hides the top bar. The top bar contains descriptive elements and interactions as well as a search bar. Checking this may cause other setups to be irrelevant.
 
-#### Zoom Control
+#### Tob Bar
+
+#### Tool Bar
+
+#### Scale Bar
+
+#### Coordinates
+
+#### Map Zoom Control
 
 If checked, adds `+` and `-` zoom buttons to the top right of the Map.
 
-#### Graticule
+#### Map Graticule
 
 Displays a grid of longitudinal and latitudinal lines over the Map.
+
+#### Miscellaneous
+
+### Colors
 
 #### Body Color
 
@@ -46,7 +64,9 @@ Sets the background of the Map to a [CSS color](https://developer.mozilla.org/en
 
 Sets the highlight of active vector features to a [CSS color](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value).
 
-#### Swap
+### Secondary Tools
+
+#### Swap (DISABLED)
 
 If checked, adds a button in the tool bar that enables users to switch seamlessly between missions. This functionality may be buggy and break things depending on the missions switched to and from. It's recommended to return to the landing page to switch between missions or to extensively test swapping between your missions before enabling Swap.
 
@@ -61,6 +81,8 @@ If checked, adds a button in the tool bar that enables users to screenshot the c
 #### Fullscreen
 
 If checked, adds a button in the tool bar that enables users to quickly enter and exit fullscreen mode.
+
+### User Help
 
 #### Help
 

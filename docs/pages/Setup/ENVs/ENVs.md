@@ -74,7 +74,15 @@ Potentially logs a bunch of extra stuff for development purposes | bool | defaul
 
 #### `FRAME_ANCESTORS=`
 
-Sets the `Content-Security-Policy: frame-ancestors` header to allow the embedding of MMGIS in the specified external sites | string[] | default `null`
+Sets the `Content-Security-Policy: frame-ancestors` header to allow the embedding of MMGIS in the specified external sites | string[] | default `null` | ex. FRAME_ANCESTORS='["http://localhost:8888"]'
+
+#### `FRAME_SRC=`
+
+Sets the `Content-Security-Policy: frame-src` header to allow the embedding iframes from external origins into MMGIS | string[] | default `null` | ex. FRAME_SRC='["http://localhost:8888"]'
+
+#### `THIRD_PARTY_COOKIES=`
+
+Sets "SameSite=None; Secure" on the login cookie. Useful when using AUTH=local as an iframe within a cross-origin page. | boolean | default `false`
 
 #### `PUBLIC_URL=`
 
@@ -103,3 +111,7 @@ When not using AUTH=csso, this is a list of usernames to be treated as leads (us
 #### `CSSO_LEAD_GROUP=`
 
 LDAP group of leads (users with elevated permissions) | string | default `''`
+
+#### `ENABLE_MMGIS_WEBSOCKETS=`
+
+If true, enables the backend MMGIS websockets to tell clients to update layers | boolean | default `false`

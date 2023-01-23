@@ -12,7 +12,7 @@ var User = sequelize.define(
     username: {
       type: Sequelize.STRING,
       unique: true,
-      allowNull: false
+      allowNull: false,
     },
     email: {
       type: Sequelize.STRING,
@@ -20,52 +20,52 @@ var User = sequelize.define(
       allowNull: true,
       validate: {
         isEmail: true,
-        isUnique: function(value, next) {
+        isUnique: function (value, next) {
           var self = this;
           User.findOne({ where: { email: value } })
-            .then(function(user) {
+            .then(function (user) {
               // reject if a different user wants to use the same email
               if (user && self.id !== user.id) {
                 return next("User exists!");
               }
               return next();
             })
-            .catch(function(err) {
+            .catch(function (err) {
               return next(err);
             });
-        }
-      }
+        },
+      },
     },
     password: {
       type: Sequelize.STRING,
-      allowNull: false
+      allowNull: false,
     },
     permission: {
       type: Sequelize.ENUM,
       values: ["000", "001", "010", "011", "100", "101", "110", "111"],
       allowNull: false,
-      defaultValue: "000"
+      defaultValue: "000",
     },
     token: {
       type: Sequelize.DataTypes.STRING(2048),
-      allowNull: true
-    }
+      allowNull: true,
+    },
   },
   {
     hooks: {
-      beforeCreate: user => {
+      beforeCreate: (user) => {
         const salt = bcrypt.genSaltSync();
         user.password = bcrypt.hashSync(user.password, salt);
-      }
-    }
+      },
+    },
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 
 // Instance Method for validating user's password
-User.prototype.validPassword = function(password, user) {
+User.prototype.validPassword = function (password, user) {
   return bcrypt.compareSync(password, user.password);
 };
 

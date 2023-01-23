@@ -219,6 +219,22 @@ export const constructVectorLayer = (
                     }
                     layerObj.shape = 'directional_circle'
                 }
+
+                const markerXY = Map_.map.latLngToLayerPoint(latlong)
+                const markerLatLong = Map_.map.containerPointToLatLng([
+                    markerXY.x,
+                    markerXY.y,
+                ])
+                const pixelBelowMarkerLatLong = Map_.map.containerPointToLatLng(
+                    [markerXY.x, markerXY.y + 1]
+                )
+                yaw -= F_.bearingBetweenTwoLatLngs(
+                    pixelBelowMarkerLatLong.lat,
+                    pixelBelowMarkerLatLong.lng,
+                    markerLatLong.lat,
+                    markerLatLong.lng
+                )
+                yaw = -((360 - yaw) % 360)
             }
 
             switch (layerObj.shape) {
@@ -331,11 +347,9 @@ export const constructVectorLayer = (
             } else if (layer == null && svg != null) {
                 layer = L.marker(latlong, {
                     icon: L.divIcon({
-                        className: `leafletMarkerShape leafletMarkerShape_${layerObj.name
-                            .replace(/\s/g, '')
-                            .toLowerCase()} ${layerObj.name
-                            .replace(/\s/g, '')
-                            .toLowerCase()} leafletDivIcon`,
+                        className: `leafletMarkerShape leafletMarkerShape_${F_.getSafeName(
+                            layerObj.name
+                        )} ${F_.getSafeName(layerObj.name)} leafletDivIcon`,
                         iconSize: [
                             (featureStyle.radius + pixelBuffer) * 2,
                             (featureStyle.radius + pixelBuffer) * 2,
@@ -612,26 +626,34 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
         layer.dropdown = mainDropdownProps.dropdown
         layer.dropdownValue = mainDropdownProps.dropdownValue
         layer.dropdownFunc = (layerName, subName, Map_, prop) => {
-            const sublayer = L_.layersGroupSublayers[layerName][subName]
+            const sublayer = L_.layers.attachments[layerName][subName]
             layer.dropdownValue = prop
             if (sublayer.on) layer.on()
         }
 
         layer.off = () => {
-            const tooltipLayersOff = (leafletLayer) => {
+            const tooltipLayersOff = (leafletLayer, subname) => {
                 leafletLayer.eachLayer((l) => {
                     if (l._tooltip) {
                         l.closeTooltip()
                         l.unbindTooltip()
                     }
                 })
+
+                const name = `labels_${layer._layerName}_${
+                    subname || 'main'
+                }`.replace(/ /g, '_')
+                L_.Globe_.litho.removeLayer(name)
             }
             tooltipLayersOff(layer)
             if (sublayers?.coordinate_markers?.layer)
-                tooltipLayersOff(sublayers?.coordinate_markers?.layer)
+                tooltipLayersOff(
+                    sublayers?.coordinate_markers?.layer,
+                    'coordinate_markers'
+                )
         }
-        layer.on = () => {
-            const tooltipLayersOn = (leafletLayer) => {
+        layer.on = (firstTime) => {
+            const tooltipLayersOn = (leafletLayer, subname) => {
                 leafletLayer.eachLayer((l) => {
                     if (
                         !l.feature.properties.arrow === true &&
@@ -653,22 +675,96 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
                         l.openTooltip()
                     }
                 })
+                const setForGlobe = () => {
+                    const globeLabels = []
+                    leafletLayer.eachLayer((l) => {
+                        if (
+                            !l.feature.properties.arrow === true &&
+                            !l.feature.properties.annotation === true &&
+                            l._tooltip?._latlng?.lng != null
+                        ) {
+                            const value =
+                                l.feature.properties[layer.dropdownValue]
+                            const globeLabel = {
+                                type: 'Feature',
+                            }
+                            globeLabel.properties = {
+                                annotation: true,
+                                name: value,
+                            }
+                            globeLabel.geometry = {
+                                type: 'Point',
+                                coordinates: [
+                                    l._tooltip._latlng.lng,
+                                    l._tooltip._latlng.lat,
+                                    l._tooltip._latlng.alt,
+                                ],
+                            }
+                            globeLabels.push(globeLabel)
+                        }
+                    })
+
+                    const name = `labels_${layer._layerName}_${
+                        subname || 'main'
+                    }`.replace(/ /g, '_')
+                    L_.Globe_.litho.removeLayer(name)
+                    L_.Globe_.litho.addLayer('vector', {
+                        name: name,
+                        on: true,
+                        // GeoJSON or path to geojson
+                        // [lng, lat, elev?]
+                        geojson: {
+                            type: 'FeatureCollection',
+                            features: globeLabels,
+                        },
+                        style: {
+                            letPropertiesStyleOverride: true,
+                            default: {
+                                color: 'rgb(0, 0, 0)',
+                                fillColor: 'rgb(255, 255, 255)',
+                                fillOpacity: 1,
+                                weight: 2,
+                                fontSize: size === 'large' ? '18px' : '16px',
+                                elevOffset: 4,
+                            },
+                        },
+                        opacity: 1,
+                    })
+                }
+
+                // Short timeout since initial tooltip placement computation can take a bit
+                setTimeout(() => {
+                    setForGlobe()
+                }, 1500)
             }
 
             tooltipLayersOn(layer)
             if (sublayers?.coordinate_markers?.layer)
-                tooltipLayersOn(sublayers?.coordinate_markers?.layer)
+                tooltipLayersOn(
+                    sublayers?.coordinate_markers?.layer,
+                    'coordinate_markers'
+                )
+        }
+
+        if (labelsVar.initialVisibility === true) layer.on(true)
+
+        layer.addDataEnhanced = function (geojson, layerName, subName) {
+            this.addData(geojson)
+            if (L_.layers.attachments[layerName][subName].on) this.on()
         }
 
         return {
-            on:
-                labelsVar.initialVisibility != null
-                    ? labelsVar.initialVisibility
-                    : true,
+            on: L_.layers.attachments[layerObj.name]?.labels
+                ? L_.layers.attachments[layerObj.name]?.labels.on
+                : labelsVar.initialVisibility != null
+                ? labelsVar.initialVisibility
+                : true,
             type: 'labels',
             geojson: geojson,
             layer: layer,
             title: 'Feature Labels',
+            minZoom: 0,
+            maxZoom: 100,
         }
     } else return false
 }
@@ -720,15 +816,17 @@ const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {
                         angle: uncertaintyAngle,
                     }
                 )
-                for (
-                    let i = 0;
-                    i < feature.geometry.coordinates[0].length;
-                    i++
-                ) {
-                    feature.geometry.coordinates[0][i][2] =
-                        f.geometry.coordinates[2] + depth3d
+                if (feature) {
+                    for (
+                        let i = 0;
+                        i < feature.geometry.coordinates[0].length;
+                        i++
+                    ) {
+                        feature.geometry.coordinates[0][i][2] =
+                            f.geometry.coordinates[2] + depth3d
+                    }
+                    uncertaintyEllipseFeatures.push(feature)
                 }
-                uncertaintyEllipseFeatures.push(feature)
             }
         })
 
@@ -1315,22 +1413,20 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                 Map_,
                 overrideColorWithProp
             ) {
-                Map_.rmNotNull(
-                    L_.layersGroupSublayers[layerName][subName].layer
-                )
-                L_.layersGroupSublayers[layerName][subName].layer = getLayer(
+                Map_.rmNotNull(L_.layers.attachments[layerName][subName].layer)
+                L_.layers.attachments[layerName][subName].layer = getLayer(
                     geojson,
-                    L_.layersGroupSublayers[layerName][subName].layer.layerObj,
+                    L_.layers.attachments[layerName][subName].layer.layerObj,
                     overrideColorWithProp
                 )
                 Map_.map.addLayer(
-                    L_.layersGroupSublayers[layerName][subName].layer
+                    L_.layers.attachments[layerName][subName].layer
                 )
             }
             layer.dropdown = pathGradientSettings.dropdownColorWithProp
             layer.dropdownValue = pathGradientSettings.colorWithProp
             layer.dropdownFunc = function (layerName, subName, Map_, prop) {
-                const l = L_.layersGroupSublayers[layerName][subName]
+                const l = L_.layers.attachments[layerName][subName]
                 l.layer.addDataEnhanced(
                     l.geojson,
                     layerName,

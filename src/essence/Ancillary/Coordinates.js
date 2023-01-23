@@ -120,6 +120,11 @@ const Coordinates = {
             offset: [0, 20],
         })
 
+        if (!(L_.configData.time && L_.configData.time.enabled === true)) {
+            $('#toggleTimeUI').css({ display: 'none' })
+            $('#CoordinatesDiv').css({ marginRight: '0px' })
+        }
+
         if (L_.configData.coordinates) {
             // ll
             if (L_.configData.coordinates.coordll == false)
@@ -759,6 +764,8 @@ function toggleTimeUI() {
     $('#timeUI').toggleClass('active')
     const newBottom = active ? 0 : 40
     const timeBottom = active ? -40 : 0
+
+    Map_.map._fadeAnimated = active
 
     $('#CoordinatesDiv').css({
         bottom: newBottom + (UserInterface.pxIsTools || 0) + 'px',

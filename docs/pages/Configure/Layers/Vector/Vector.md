@@ -30,6 +30,8 @@ A file path that points to a geojson. If the path is relative, it will be relati
 _type:_ bool
 Whether the layer can be dynamically updated or not. If true, the layer can be dynamically updated and the URL is not required.
 
+If true and a URL is set and Time Enabled is true, the initial url query will be performed.
+
 #### Legend
 
 _type:_ string  
@@ -55,10 +57,22 @@ A value from 0 to 1 of the layer's initial opacity. 1 is fully opaque.
 _type:_ bool  
 True if the layer is time enabled. URLs that contain `{starttime}` or `{endtime}` will be dynamically replaced by their set values when the layer is fetched.
 
+If true and a URL is set and Controlled is true, only the initial url query will be performed.
+
 #### Time Type
 
-_type:_ enum [Global, Individual]  
-Whether the layer should use global time values or function independently with its own time values.
+_type:_ enum [Requery, Local]  
+When the time changes, whether the layer should Requery the source or filter the layer Locally (based on feature properties. Note that)
+
+#### Start Time Property Name
+
+_type:_ string _optional_  
+Optional and only in use if `Time Enabled = true` and `Time Type = Local`. The starting time property path. Setting this is addition to `Main Time Property Name` casts the feature's time over a range instead of as a single point in time. Can use dot-notation for nested path. Can be a unix timestamp or an ISO time (end the ISO with a `Z` to designate that it should be treated as a UTC time).
+
+#### Main Time Property Name
+
+_type:_ string  
+Required in `Time Enabled = true` and `Time Type = Local`. The main time property path. Can use dot-notation for nested path. Can be a unix timestamp or an ISO time (end the ISO with a `Z` to designate that it should be treated as a UTC time).
 
 #### Time Format
 
@@ -250,7 +264,7 @@ Example:
     - `fillOpacity`: Opacity of marker fill. Default 1
     - `radius`: Integer for radius of marker.
 - `markerAttachments`: An object for attaching dynamic items to point features.
-  - `bearing`: Sets the bearing direction of this layer's point markers (or markerIcons if set). Overrides the layer's shape dropdown value.
+  - `bearing`: Sets the bearing direction (clockwise from north) of this layer's point markers (or markerIcons if set). Overrides the layer's shape dropdown value.
     - `angleProp`: The dot notated path to the feature properties that contains the desired rotation angle. Ex. `headings.yaw`.
     - `angleUnit`: Unit of the value of `angleProp`. Either `deg` or `rad`.
     - `color`: A css color for the directional arrow for non-markerIcon bearings.

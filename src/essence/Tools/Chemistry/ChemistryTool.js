@@ -117,11 +117,11 @@ function interfaceWithMMWebGIS() {
 
     //Add chemOnClick to all layers with a chemistry variable
     /* //Moved to .use in onEachFeatureDefault
-    for( var l in L_.layersNamed) {
-      if( L_.layersNamed[l].hasOwnProperty( 'variables' ) &&
-          L_.layersNamed[l].variables.hasOwnProperty( 'chemistry' ) ) {
-        if( L_.layersGroup[l] ) {
-          L_.layersGroup[l].eachLayer( function( layer ) {
+    for( var l in L_.layers.data) {
+      if( L_.layers.data[l].hasOwnProperty( 'variables' ) &&
+          L_.layers.data[l].variables.hasOwnProperty( 'chemistry' ) ) {
+        if( L_.layers.layer[l] ) {
+          L_.layers.layer[l].eachLayer( function( layer ) {
             layer.on( 'click', chemOnClick );
           } );
         }
@@ -133,13 +133,13 @@ function interfaceWithMMWebGIS() {
         $('#chemistryToolOptions #chemistryToolSingleMode').off('click', _ct0)
         $('#chemistryToolOptions #chemistryToolMultiMode').off('click', _ct1)
 
-        for (var l in L_.layersNamed) {
+        for (var l in L_.layers.data) {
             if (
-                L_.layersNamed[l].hasOwnProperty('variables') &&
-                L_.layersNamed[l].variables.hasOwnProperty('chemistry')
+                L_.layers.data[l].hasOwnProperty('variables') &&
+                L_.layers.data[l].variables.hasOwnProperty('chemistry')
             ) {
-                if (L_.layersGroup[l]) {
-                    L_.layersGroup[l].eachLayer(function (layer) {
+                if (L_.layers.layer[l]) {
+                    L_.layers.layer[l].eachLayer(function (layer) {
                         layer.off('click', chemOnClick)
                     })
                 }
@@ -160,8 +160,8 @@ function chemOnClick(d) {
 
     //If point has no chemistry at all
     if (
-        !L_.layersNamed[layerName].variables ||
-        !L_.layersNamed[layerName].variables.chemistry
+        !L_.layers.data[layerName].variables ||
+        !L_.layers.data[layerName].variables.chemistry
     ) {
         d3.select('#chemistry_panel').selectAll('*').remove()
         return
@@ -207,7 +207,7 @@ function chemOnClick(d) {
             */ else
             chemistrychart.make(
                 chems,
-                L_.layersNamed[layerName].variables.chemistry,
+                L_.layers.data[layerName].variables.chemistry,
                 'chemistry_panel'
             )
     }
