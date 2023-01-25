@@ -2010,17 +2010,6 @@ var Formulae_ = {
         //prettier-ignore
         return 'hsl(' + colorScaleA[i % colorScaleA.length] + ', ' + s + ', ' + l + ')'
     },
-    ASCIIProduct(str) {
-        if (str == null) return 0
-        let product = 1
-        for (let i = 0; i < str.length; i++) product += str.charCodeAt(i)
-        return product
-    },
-    everyOtherChar(str) {
-        let newStr = ''
-        for (let i = 0; i < str.length; i += 2) newStr += str[i]
-        return newStr
-    },
     cloneCanvas(oldCanvas) {
         //create a new canvas
         var newCanvas = document.createElement('canvas')

@@ -1681,7 +1681,7 @@ const L_ = {
      * Converts lnglat geojsons into the primary coordinate type.
      * @param {object} geojson - geojson object or geojson feature
      */
-    convertGeoJSONLngLatsToPrimaryCoordinates(geojson) {
+    convertGeoJSONLngLatsToPrimaryCoordinates(geojson, forceType) {
         if (geojson.features) {
             const nextGeoJSON = JSON.parse(JSON.stringify(geojson))
             const convertedFeatures = []
@@ -1694,7 +1694,8 @@ const L_ = {
                         const elev = coords[2]
                         converted = L_.Coordinates.convertLngLat(
                             coords[0],
-                            coords[1]
+                            coords[1],
+                            forceType
                         )
                         if (elev != null) converted[2] = elev
                         return converted
@@ -1718,7 +1719,8 @@ const L_ = {
                     const elev = coords[2]
                     converted = L_.Coordinates.convertLngLat(
                         coords[0],
-                        coords[1]
+                        coords[1],
+                        forceType
                     )
                     if (elev != null) converted[2] = elev
                     return converted
@@ -2479,7 +2481,7 @@ const L_ = {
     clearVectorLayerInfo: function () {
         // Clear the InfoTools data
         const infoTool = ToolController_.getTool('InfoTool')
-        if (infoTool.hasOwnProperty('clearInfo')) {
+        if (infoTool && infoTool.hasOwnProperty('clearInfo')) {
             infoTool.clearInfo()
         }
 

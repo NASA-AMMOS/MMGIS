@@ -566,6 +566,9 @@ var mmgisAPI = {
      * @param {boolean} - on - (optional) Set true if the visibility should be on or false if visibility should be off. If not set, the current visibility state will switch to the opposite state.
      */
     toggleLayer: mmgisAPI_.toggleLayer,
+
+    // Formulae_
+    utils: { ...F_ },
 }
 
 window.mmgisAPI = mmgisAPI
