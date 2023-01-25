@@ -917,7 +917,7 @@ function makeLayerBarAndModal(d, level, options) {
         queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "tile":
-        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "none";
+        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "block";
         descriptionEl = "block"; tagsEl = "block"; legendEl = "block";
         visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "block"; layer3dEl = "none";
         tileformatEl = "block";
@@ -1264,18 +1264,18 @@ function makeLayerBarAndModal(d, level, options) {
         "<p>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='nameEl' class='input-field col s" + (kindEl == 'none' ? 6 : 4) + " push-s1' style='display: " + nameEl + "'>" +
+            "<div id='nameEl' class='input-field col s" + (kindEl == 'none' ? 8 : 6) + " push-s0' style='display: " + nameEl + "'>" +
               "<input id='Name" + n + "' type='text' class='validate' value='" + unescape(d.name) + "'>" +
               "<label for='Name" + n + "'>Layer Name</label>" +
             "</div>" +
-            "<div id='kindEl' class='input-field col s2 push-s1' style='display: " + kindEl + "'>" +
+            "<div id='kindEl' class='input-field col s2 push-s0' style='display: " + kindEl + "'>" +
               "<select>" +
                 "<option value='none' " + (d.kind == 'none' || d.kind == null ? 'selected' : '') + ">None</option>" +
                 kindsOptions.join('') +
               "</select>" +
               "<label>Kind of Layer</label>" +
             "</div>" +
-            "<div id='typeEl' class='input-field col s2 push-s1' style='display: " + typeEl + "'>" +
+            "<div id='typeEl' class='input-field col s2 push-s0' style='display: " + typeEl + "'>" +
               "<select>" +
                 "<optgroup label='Pseudo Layers'>" +
                   "<option value='header' " + headerSel + ">Header</option>" +
@@ -1291,7 +1291,7 @@ function makeLayerBarAndModal(d, level, options) {
               "</select>" +
               "<label>Layer Type</label>" +
             "</div>" +
-            "<div id='visEl' class='input-field col s2 push-s1' style='display: " + visEl + "'>" +
+            "<div id='visEl' class='input-field col s2 push-s0' style='display: " + visEl + "'>" +
               "<select>" +
                 "<option value='true' " + visTrueSel + ">True</option>" +
                 "<option value='false' " + visFalseSel + ">False</option>" +
@@ -1301,11 +1301,11 @@ function makeLayerBarAndModal(d, level, options) {
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='urlEl' class='input-field col s8 push-s1' style='display: " + urlEl + "'>" +
+          `<div id='urlEl' class='input-field col s${tileformatEl != 'none' ? 8 : 10} push-s0' style='display: ` + urlEl + "'>" +
               "<input id='Url" + n + "' type='text' class='validate' value='" + d.url + "'>" +
               "<label for='Url" + n + "'>URL</label>" +
             "</div>" +
-            "<div id='tileformatEl' class='input-field col s2 push-s1' style='display: " + tileformatEl + "'>" +
+            "<div id='tileformatEl' class='input-field col s2 push-s0' style='display: " + tileformatEl + "'>" +
               "<select>" +
                 "<option value='tms' " + tileformatTMSSel + ">TMS</option>" +
                 "<option value='wmts' " + tileformatWMTSSel + ">WMTS</option>" +
@@ -1313,7 +1313,7 @@ function makeLayerBarAndModal(d, level, options) {
               "</select>" +
               "<label style='cursor: default;' title='TMS and WMTS: Append \"/{z}/{x}/{y}.png\" to URL\n\nWMS: After service, append \"?layer=<your_layer_name><,another_if_you _want>\" to the URL\nTo override WMS parameters append \"&<wms_param>=<value>\" again to the URL after the layers list.\n\nAll brackets included, quotes are not and <> require custom input.'>Tile Format <i class='mdi mdi-information mdi-14px'></i></label>" +
             "</div>" +
-            "<div id='controlledEl' class='input-field col s3 push-s1' style='display: " + controlledEl + "'>" +
+            "<div id='controlledEl' class='input-field col s2 push-s0' style='display: " + controlledEl + "'>" +
               "<input id='Controlled" + n + "' type='checkbox' class='filled-in checkbox-color'" +  (d.controlled ? 'checked' : '') + "/>" +
               "<label for='Controlled" + n + "' style='color: black;'>" + "Controlled" + "</label>" +
             "</div>" +
@@ -1321,11 +1321,11 @@ function makeLayerBarAndModal(d, level, options) {
 
           // Query Core
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='queryEndpointEl' class='input-field col s8 push-s1' style='display: " + queryEndpointEl + "'>" +
+            "<div id='queryEndpointEl' class='input-field col s10 push-s0' style='display: " + queryEndpointEl + "'>" +
               "<input id='QueryEndpoint" + n + "' type='text' class='validate' value='" + (d.query != null ? unescape(d.query.endpoint) : '') + "'>" +
               "<label for='QueryEndpoint" + n + "'>Endpoint</label>" +
             "</div>" +
-            "<div id='queryTypeEl' class='input-field col s2 push-s1' style='display: " + queryTypeEl + "'>" +
+            "<div id='queryTypeEl' class='input-field col s2 push-s0' style='display: " + queryTypeEl + "'>" +
               "<select>" +
                 "<option value='elasticsearch' " + queryTypeESSel + ">ElasticSearch</option>" +
               "</select>" +
@@ -1335,48 +1335,48 @@ function makeLayerBarAndModal(d, level, options) {
 
           //Model Position
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='modelLonEl' class='input-field col s3 push-s1' style='display: " + modelLonEl + "'>" +
+            "<div id='modelLonEl' class='input-field col s4 push-s0' style='display: " + modelLonEl + "'>" +
               "<input id='Longitude" + n + "' type='text' class='validate' value='" + d.position.longitude + "'>" +
               "<label for='Longitude" + n + "'>Longitude</label>" +
             "</div>" +
-            "<div id='modelLatEl' class='input-field col s3 push-s1' style='display: " + modelLatEl + "'>" +
+            "<div id='modelLatEl' class='input-field col s4 push-s0' style='display: " + modelLatEl + "'>" +
               "<input id='Latitude" + n + "' type='text' class='validate' value='" + d.position.latitude + "'>" +
               "<label for='Latitude" + n + "'>Latitude</label>" +
             "</div>" +
-            "<div id='modelElevEl' class='input-field col s4 push-s1' style='display: " + modelElevEl + "'>" +
+            "<div id='modelElevEl' class='input-field col s4 push-s0' style='display: " + modelElevEl + "'>" +
               "<input id='Elevation" + n + "' type='text' class='validate' value='" + d.position.elevation + "'>" +
               "<label for='Elevation" + n + "'>Elevation (meters)</label>" +
             "</div>" +
           "</div>" +
           //Model Rotation
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='modelRotXEl' class='input-field col s4 push-s1' style='display: " + modelRotXEl + "'>" +
+            "<div id='modelRotXEl' class='input-field col s4 push-s0' style='display: " + modelRotXEl + "'>" +
               "<input id='RotationX" + n + "' type='text' class='validate' value='" + d.rotation.x + "'>" +
               "<label for='RotationX" + n + "'>Rotation X (radians)</label>" +
             "</div>" +
-            "<div id='modelRotYEl' class='input-field col s3 push-s1' style='display: " + modelRotYEl + "'>" +
+            "<div id='modelRotYEl' class='input-field col s4 push-s0' style='display: " + modelRotYEl + "'>" +
               "<input id='RotationY" + n + "' type='text' class='validate' value='" + d.rotation.y + "'>" +
               "<label for='RotationY" + n + "'>Rotation Y</label>" +
             "</div>" +
-            "<div id='modelRotZEl' class='input-field col s3 push-s1' style='display: " + modelRotZEl + "'>" +
+            "<div id='modelRotZEl' class='input-field col s4 push-s0' style='display: " + modelRotZEl + "'>" +
               "<input id='RotationZ" + n + "' type='text' class='validate' value='" + d.rotation.z + "'>" +
               "<label for='RotationZ" + n + "'>Rotation Z</label>" +
             "</div>" +
           "</div>" +
           //Model Scale
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='modelScaleEl' class='input-field col s3 push-s1' style='display: " + modelScaleEl + "'>" +
+            "<div id='modelScaleEl' class='input-field col s4 push-s0' style='display: " + modelScaleEl + "'>" +
               "<input id='Scale" + n + "' type='text' class='validate' value='" + d.scale + "'>" +
               "<label for='Scale" + n + "'>Scale</label>" +
             "</div>" +
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='demtileurlEl' class='input-field col s8 push-s1' style='display: " + demtileurlEl + "'>" +
+            "<div id='demtileurlEl' class='input-field col s10 push-s0' style='display: " + demtileurlEl + "'>" +
               "<input id='DemTileUrl" + n + "' type='text' class='validate' value='" + d.demtileurl + "'>" +
               "<label for='DemTileUrl" + n + "'>DEM Tile URL</label>" +
             "</div>" +
-            "<div id='demparserEl' class='input-field col s2 push-s1' style='display: " + demparserEl + "'>" +
+            "<div id='demparserEl' class='input-field col s2 push-s0' style='display: " + demparserEl + "'>" +
               "<select>" +
                 "<option value='' " + demparserRGBASel + ">RGBA</option>" +
                 "<option value='tif' " + demparserTifSel + ">Tif</option>" +
@@ -1386,52 +1386,52 @@ function makeLayerBarAndModal(d, level, options) {
           "</div>" +
 
           "<div class='row' style='margin-bottom: 12px;'>" +
-            "<div id='descriptionEl' class='input-field col s10 push-s1' style='display: " + descriptionEl + "'>" +
+            "<div id='descriptionEl' class='input-field col s12 push-s0' style='display: " + descriptionEl + "'>" +
               "<span>Description: (markdown)</span>" + 
               "<textarea id='LayerDescription" + n + "'></textarea>" +
             "</div>" +
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='tagsEl' class='input-field col s9 push-s1' style='display: " + tagsEl + "'>" +
+            "<div id='tagsEl' class='input-field col s11 push-s0' style='display: " + tagsEl + "'>" +
               "<input id='LayerTags" + n + "' type='text' class='validate' value='" + (d.tags ? d.tags.join(',') : '') + "'>" +
               "<label for='LayerTags" + n + "'>Tags (comma-separated, &lt;cat&gt;:&lt;tag&gt; for category)</label>" +
             "</div>" +
-            `<div class='col s1 push-s1' style='display: ${tagsEl}; text-align: center; margin-top: 39px; color: #333; background: #ddd; cursor: pointer;' onclick='alert("Existing Tags:\\n\\n${options?.tagList ? Object.keys(options.tagList).map((t) => `${t} (${options.tagList[t]})`).join('\\n') : ''}");'>Existing Tags<i class='mdi mdi-tags mdi-18px'></i></div>` +
+            `<div class='col s1 push-s0' style='display: ${tagsEl}; text-align: center; margin-top: 39px; color: #333; background: #ddd; cursor: pointer;' onclick='alert("Existing Tags:\\n\\n${options?.tagList ? Object.keys(options.tagList).map((t) => `${t} (${options.tagList[t]})`).join('\\n') : ''}");'>Existing Tags<i class='mdi mdi-tags mdi-18px'></i></div>` +
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='legendEl' class='input-field col s10 push-s1' style='display: " + legendEl + "'>" +
+            "<div id='legendEl' class='input-field col s12 push-s0' style='display: " + legendEl + "'>" +
               "<input id='Legend" + n + "' type='text' class='validate' value='" + d.legend + "'>" +
               "<label for='Legend" + n + "'>Legend URL</label>" +
             "</div>" +
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='togwheadEl' class='input-field col s2 push-s1' style='display: " + /*togwheadEl*/ 'none' + "'>" +
+            "<div id='togwheadEl' class='input-field col s2 push-s0' style='display: " + /*togwheadEl*/ 'none' + "'>" +
               "<select>" +
                 "<option value='true' " + togwheadTrueSel + ">True</option>" +
                 "<option value='false' " + togwheadFalseSel + ">False</option>" +
               "</select>" +
               "<label>Toggles with Header</label>" +
             "</div>" +
-            "<div id='minzEl' class='input-field col s2 push-s1' style='display: " + minzEl + "'>" +
+            "<div id='minzEl' class='input-field col s2 push-s0' style='display: " + minzEl + "'>" +
               "<input id='Minz" + n + "' type='text' class='validate' value='" + d.minZoom + "'>" +
               "<label for='Minz" + n + "'>Minimum Zoom</label>" +
             "</div>" +
-            "<div id='maxnzEl' class='input-field col s2 push-s1' style='display: " + maxnzEl + "'>" +
+            "<div id='maxnzEl' class='input-field col s2 push-s0' style='display: " + maxnzEl + "'>" +
               "<input id='Maxnz" + n + "' type='text' class='validate' value='" + d.maxNativeZoom + "'>" +
               "<label for='Maxnz" + n + "'>Maximum Native Zoom</label>" +
             "</div>" +
-            "<div id='maxzEl' class='input-field col s2 push-s1' style='display: " + maxzEl + "'>" +
+            "<div id='maxzEl' class='input-field col s2 push-s0' style='display: " + maxzEl + "'>" +
               "<input id='Maxz" + n + "' type='text' class='validate' value='" + d.maxZoom + "'>" +
               "<label for='Maxz" + n + "'>Maximum Zoom</label>" +
             "</div>" +
-            "<div id='initOpacEl' class='input-field col s2 push-s1' style='display: " + initOpacEl + "'>" +
+            "<div id='initOpacEl' class='input-field col s2 push-s0' style='display: " + initOpacEl + "'>" +
               "<input id='InitialOpacity" + n + "' type='text' class='validate' value='" + ( d.initialOpacity == null ? 1 : d.initialOpacity ) + "'>" +
               "<label for='InitialOpacity" + n + "'>Initial Opacity [0 - 1]</label>" +
             "</div>" +
-            "<div id='layer3dEl' class='input-field col s2 push-s1' style='display: " + layer3dEl + "'>" +
+            "<div id='layer3dEl' class='input-field col s2 push-s0' style='display: " + layer3dEl + "'>" +
               "<select>" +
                   "<option value='clamped' " + layer3dClampedSel + ">Clamped</option>" +
                   "<option value='vector' " + layer3dVectorSel + ">Vector</option>" +
@@ -1441,7 +1441,7 @@ function makeLayerBarAndModal(d, level, options) {
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='bbEl' class='input-field col s10 push-s1' style='display: " + bbEl + "'>" +
+            "<div id='bbEl' class='input-field col s12 push-s0' style='display: " + bbEl + "'>" +
               "<input id='bb" + n + "' type='text' class='validate' value='" + d.boundingBox + "'>" +
               "<label for='bb" + n + "'>Bounding Box [minx, miny, maxx, maxy]</label>" +
             "</div>" +
@@ -1449,44 +1449,44 @@ function makeLayerBarAndModal(d, level, options) {
 
           // Time options
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='timeEl' class='input-field col s2 push-s1' style='display: " + timeEl + "'>" +
+            "<div id='timeEl' class='input-field col s2 push-s0' style='display: " + timeEl + "'>" +
               "<select>" +
                 "<option value='true' " + timeTrueSel + ">True</option>" +
                 "<option value='false' " + timeFalseSel + ">False</option>" +
               "</select>" +
               "<label>Time Enabled</label>" +
             "</div>" +
-            "<div id='timeTypeEl' class='input-field col s2 push-s1' style='display: " + timeTypeEl + "'>" +
+            "<div id='timeTypeEl' class='input-field col s2 push-s0' style='display: " + timeTypeEl + "'>" +
               "<select>" +
                 "<option value='requery' " + timeRequerySel + ">Requery</option>" +
                 "<option value='local' " + timeLocalSel + ">Local</option>" +
               "</select>" +
               "<label style='cursor: default;' title='Requery: Will rerequest the entire layer with updated {time-like} parameters.\nLocal: Just filter the existing features based on the specified time properties.'>Time Type <i class='mdi mdi-information mdi-14px'></i></label>" +
             "</div>" +
-            "<div id='timeStartPropEl' class='input-field col s2 push-s1' style='display: " + timeStartPropEl + "'>" +
+            "<div id='timeStartPropEl' class='input-field col s3 push-s0' style='display: " + timeStartPropEl + "'>" +
               "<input id='TimeStartProp" + n + "' type='text' class='validate' value='" + ((typeof d.time != "undefined") ? d.time.startProp || "" : "") + "'>" +
               "<label for='TimeStartProp" + n + "'>Start Time Property Name</label>" +
             "</div>" +
-            "<div id='timeEndPropEl' class='input-field col s2 push-s1' style='display: " + timeEndPropEl + "'>" +
+            "<div id='timeEndPropEl' class='input-field col s3 push-s0' style='display: " + timeEndPropEl + "'>" +
               "<input id='TimeEndProp" + n + "' type='text' class='validate' value='" + ((typeof d.time != "undefined") ? d.time.endProp || "" : "") + "'>" +
               "<label for='TimeEndProp" + n + "'>Main Time Property Name (End)</label>" +
             "</div>" +
-            "<div id='timeFormatEl' class='input-field col s2 push-s1' style='display: " + timeFormatEl + "'>" +
+            "<div id='timeFormatEl' class='input-field col s2 push-s0' style='display: " + timeFormatEl + "'>" +
               "<input id='TimeFormat" + n + "' type='text' class='validate' value='" + ((typeof d.time != "undefined") ? d.time.format : "%Y-%m-%dT%H:%M:%SZ") + "'>" +
               "<label for='TimeFormat" + n + "'>Time Format</label>" +
             "</div>" +
-            "<div id='timeCompositeTileEl' class='input-field col s2 push-s1' style='display: " + timeCompositeTileEl + "'>" +
+            "<div id='timeCompositeTileEl' class='input-field col s2 push-s0' style='display: " + timeCompositeTileEl + "'>" +
               "<select>" +
                 "<option value='true' " + timeCompositeTileTrueSel + ">True</option>" +
                 "<option value='false' " + timeCompositeTileFalseSel + ">False</option>" +
               "</select>" +
               "<label style='cursor: default;' title='True: MMGIS-served Time Tiles will be merged/collapsed together historically before being served.\nFalse: MMGIS-served Time Tiles just pull the single, latest, best-matched tile.'>Composited Time Tile <i class='mdi mdi-information mdi-14px'></i></label>" +
             "</div>" +
-            "<div id='timeRefreshEl' class='input-field col s2 push-s1' style='display: " + timeRefreshEl + "'>" +
+            "<div id='timeRefreshEl' class='input-field col s2 push-s0' style='display: " + timeRefreshEl + "'>" +
               "<input id='TimeRefresh" + n + "' type='text' class='validate' value='" + ((typeof d.time != "undefined") ? d.time.refresh : "") + "'>" +
               "<label for='TimeRefresh" + n + "'>Time Refresh</label>" +
             "</div>" +
-            "<div id='timeIncrementEl' class='input-field col s2 push-s1' style='display: " + timeIncrementEl + "'>" +
+            "<div id='timeIncrementEl' class='input-field col s2 push-s0' style='display: " + timeIncrementEl + "'>" +
               "<input id='TimeIncrement" + n + "' type='text' class='validate' value='" + ((typeof d.time != "undefined") ? d.time.increment : "") + "'>" +
               "<label for='TimeIncrement" + n + "'>Time Increment</label>" +
             "</div>" +
@@ -1494,18 +1494,18 @@ function makeLayerBarAndModal(d, level, options) {
 
           //Vector tile options
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='vtIdEl' class='input-field col s5 push-s1' style='display: " + vtIdEl + "'>" +
+            "<div id='vtIdEl' class='input-field col s6 push-s0' style='display: " + vtIdEl + "'>" +
               "<input id='vtId" + n + "' type='text' class='validate' value='" + dStyle.vtId + "'>" +
               "<label for='vtId" + n + "'>Vector Tile Feature Unique Id Key</label>" +
             "</div>" +
-            "<div id='vtKeyEl' class='input-field col s5 push-s1' style='display: " + vtKeyEl + "'>" +
+            "<div id='vtKeyEl' class='input-field col s6 push-s0' style='display: " + vtKeyEl + "'>" +
               "<input id='vtKey" + n + "' type='text' class='validate' value='" + dStyle.vtKey + "'>" +
               "<label for='vtKey" + n + "'>Use Key as Name</label>" +
             "</div>" +
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='vtLayerEl' class='input-field col s10 push-s1' style='display: " + vtLayerEl + "'>" +
+            "<div id='vtLayerEl' class='input-field col s12 push-s0' style='display: " + vtLayerEl + "'>" +
               "<span>Vector Tile Stylings:</span>" +
               "<textarea id='t" + n + "_var'></textarea>" +
             "</div>" +
@@ -1513,30 +1513,30 @@ function makeLayerBarAndModal(d, level, options) {
 
           //Style
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='strcolEl' class='input-field col s2 push-s1' style='display: " + strcolEl + "'>" +
+            "<div id='strcolEl' class='input-field col s3 push-s0' style='display: " + strcolEl + "'>" +
               "<input id='Strcol" + n + "' type='text' class='validate' value='" + dStyle.color + "'>" +
               "<label for='Strcol" + n + "'>Stroke Color</label>" +
             "</div>" +
-            "<div id='filcolEl' class='input-field col s2 push-s1' style='display: " + filcolEl + "'>" +
+            "<div id='filcolEl' class='input-field col s3 push-s0' style='display: " + filcolEl + "'>" +
               "<input id='Filcol" + n + "' type='text' class='validate' value='" + dStyle.fillColor + "'>" +
               "<label for='Filcol" + n + "'>Fill Color</label>" +
             "</div>" +
-            "<div id='weightEl' class='input-field col s2 push-s1' style='display: " + weightEl + "'>" +
+            "<div id='weightEl' class='input-field col s2 push-s0' style='display: " + weightEl + "'>" +
               "<input id='Weight" + n + "' type='text' class='validate' value='" + dStyle.weight + "'>" +
               "<label for='Weight" + n + "'>Stroke Weight</label>" +
             "</div>" +
-            "<div id='opacityEl' class='input-field col s2 push-s1' style='display: " + opacityEl + "'>" +
+            "<div id='opacityEl' class='input-field col s2 push-s0' style='display: " + opacityEl + "'>" +
               "<input id='Opacity" + n + "' type='text' class='validate' value='" + dStyle.fillOpacity + "'>" +
               "<label for='Opacity" + n + "'>Fill Opacity</label>" +
             "</div>" +
-            "<div id='radiusEl' class='input-field col s2 push-s1' style='display: " + radiusEl + "'>" +
+            "<div id='radiusEl' class='input-field col s2 push-s0' style='display: " + radiusEl + "'>" +
               "<input id='Radius" + n + "' type='text' class='validate' value='" + ( d.radius || "" ) + "'>" +
               "<label for='Radius" + n + "'>Radius</label>" +
             "</div>" +
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='shapeEl' class='input-field col s2 push-s1' style='display: " + shapeEl + "'>" +
+            "<div id='shapeEl' class='input-field col s3 push-s0' style='display: " + shapeEl + "'>" +
               "<select>" +
                 "<option value='none' " + shapNoneSel + ">Default</option>" +
                 "<option value='circle' " + shapCircleSel + ">Circle</option>" +
@@ -1554,7 +1554,7 @@ function makeLayerBarAndModal(d, level, options) {
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='variableEl' class='input-field col s10 push-s1' style='display: " + variableEl + "'>" +
+            "<div id='variableEl' class='input-field col s12 push-s0' style='display: " + variableEl + "'>" +
               "<span>Raw Variables:</span>" + 
               "<textarea id='Variable" + n + "'></textarea>" +
             "</div>" +
@@ -1719,7 +1719,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         shapeEl = 'none'; queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "tile": barColor = "rgb(119, 15, 189)";
-        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "none";
+        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "block";
         descriptionEl = "block"; tagsEl = "block"; legendEl = "block";
         tileformatEl = "block"; visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "block"; maxnzEl = "block"; layer3dEl = "none";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";

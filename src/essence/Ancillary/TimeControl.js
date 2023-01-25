@@ -160,9 +160,10 @@ var TimeControl = {
             if (layer.time && layer.time.enabled === true) {
                 TimeControl.setLayerWmsParams(layer)
             }
-
-            if (L_.toggledArray[layer.name] || evenIfOff) {
-                L_.layersGroup[layer.name].refresh()
+            if (evenIfControlled === true || layer.controlled !== true) {
+                if (L_.toggledArray[layer.name] || evenIfOff) {
+                    L_.layersGroup[layer.name].refresh()
+                }
             }
         } else {
             var originalUrl = layer.url
