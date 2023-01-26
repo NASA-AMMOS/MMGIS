@@ -680,8 +680,8 @@ var Formulae_ = {
         return uniqueArr
     },
     removeDuplicatesInArray(arr) {
-        arr.filter((c, index) => {
-            return arr.indexOf(c) !== index
+        arr = arr.filter((c, index) => {
+            return arr.indexOf(c) === index
         })
 
         return arr

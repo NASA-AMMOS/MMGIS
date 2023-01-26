@@ -1,8 +1,9 @@
 ---
 layout: page
-title: JavaScript API OFF
+title: Main
 permalink: /apis/javascript
-parent: APIsh
+parent: JavaScript API
+grand_parent: APIs
 ---
 
 # JavaScript API
