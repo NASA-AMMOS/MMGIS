@@ -1,0 +1,104 @@
+name: Docker build and push
+
+# limit concurrency
+# https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#examples-using-concurrency-and-the-default-behavior
+concurrency: docker_mmgis_main
+
+on:
+  push:
+    # Only activate for `master` branch
+    branches:
+      - master
+    # Plus for all tags
+    tags:
+      - '*'
+
+  # Plus for any pull-requests
+  pull_request:
+
+env:
+  # Will be "NASA-AMMOS/MMGIS" for the main repo, for forks "user-name-of-fork/MMGIS"
+  # For generating the tag, all will be converted to lowercase
+  IMAGE_SLUG: ${{ github.repository }}
+
+jobs:
+  # Push image to GitHub Container Registry.
+  # The image tag pattern is:
+  # for pull-requests: <PATCH_VERSION>-<DATE>-<PR_NUMBER>, eg: 1.35.2-20210125-25
+  # for tags: <TAG>
+  # for `master` branch: latest,<PATCH_VERSION>-latest,<MINOR_VERSION>-latest,<MAJOR_VERSION>-latest,<PATCH_VERSION>-<DATE>-<SHA>
+  # Version is parsed from package.json
+  push:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      -
+        name: Generate tags
+        id: generate
+        run: |
+
+          # Image ID
+          IMAGE_ID=ghcr.io/$IMAGE_SLUG
+
+          # Date
+          BDATE=$(date +%Y%m%d)
+
+          # PATCH_VERSION from package.json is like "1.2.3"
+          # MINOR_VERSION like "1.2", MAJOR_VERSION like "1"
+          PATCH_VERSION=$(jq .version -r ./package.json)
+          MINOR_VERSION=${PATCH_VERSION%.*}
+          MAJOR_VERSION=${MINOR_VERSION%.*}
+
+          # Change all uppercase to lowercase, just in case
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+
+          # Strip git ref prefix from version and use it as suffix for version
+          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+
+          # For pull requests just extract the PR number
+          PR_NUMBER=""
+          [ "${{ github.event_name }}" == "pull_request" ] && VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\)/merge,\1,')
+          [ "${{ github.event_name }}" == "pull_request" ] && PR_NUMBER=$VERSION
+
+          # Append version
+          [ "${{ github.event_name }}" == "pull_request" ] && VERSION=$PATCH_VERSION-$BDATE-$VERSION
+
+          # Strip "v" prefix from tag name if it's a tag
+          # [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+
+          # Use Docker `latest` tag convention if it's a master branch build
+          [ "$VERSION" == "master" ] && VERSION=latest
+
+          # Compose REGISTRY_TAGS variable
+          REGISTRY_TAGS="-t $IMAGE_ID:$VERSION"
+
+          # For master branch also supply an extra tag: <PATCH_VERSION>-latest,<MINOR_VERSION>-latest,<MAJOR_VERSION>-latest,<PATCH_VERSION>-<DATE>-<SHA>
+          [ "$VERSION" == "latest" ] && REGISTRY_TAGS="$REGISTRY_TAGS -t $IMAGE_ID:$PATCH_VERSION-latest -t $IMAGE_ID:$MINOR_VERSION-latest -t $IMAGE_ID:$MAJOR_VERSION-latest -t $IMAGE_ID:$PATCH_VERSION-$BDATE-$(git rev-parse --short HEAD)"
+
+          echo IMAGE_ID=$IMAGE_ID
+          echo VERSION=$VERSION
+          echo REGISTRY_TAGS=$REGISTRY_TAGS
+          echo headref=${{ github.head_ref }}
+
+          SHA_SHORT=${{ github.sha }}
+          [ "${{ github.event_name }}" == "pull_request" ] && SHA_SHORT=$(echo ${{ github.event.pull_request.head.sha }} | cut -c1-8)
+
+          echo "Final image tag to be pushed:"
+          echo $REGISTRY_TAGS
+          echo "REGISTRY_TAGS=$REGISTRY_TAGS" >> $GITHUB_OUTPUT
+          echo "IMAGE_ID=$IMAGE_ID" >> $GITHUB_OUTPUT
+          echo "REGISTRY_TAGS_VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "REGISTRY_TAGS_PR_NUMBER=$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "SHA_SHORT=$SHA_SHORT" >> $GITHUB_OUTPUT
+
+      - name: Login to GHCR
+        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login -u ${{ github.actor }} --password-stdin ghcr.io
+
+      - name: Docker build
+        run: docker build ${{ steps.generate.outputs.REGISTRY_TAGS }} .
+
+      - name: Docker push
+        run: docker push ${{ steps.generate.outputs.IMAGE_ID }} --all-tags
