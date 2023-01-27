@@ -2600,11 +2600,11 @@ const L_ = {
         ) {
             const filteredGeoJSON = JSON.parse(
                 JSON.stringify(
-                    L_._localTimeFilterCache[layer.name] || layer._sourceGeoJSON
+                    L_._localTimeFilterCache[layerName] || layer._sourceGeoJSON
                 )
             )
-            if (L_._localTimeFilterCache[layer.name] == null)
-                L_._localTimeFilterCache[layer.name] = JSON.parse(
+            if (L_._localTimeFilterCache[layerName] == null)
+                L_._localTimeFilterCache[layerName] = JSON.parse(
                     JSON.stringify(filteredGeoJSON)
                 )
 
@@ -2660,7 +2660,6 @@ const L_ = {
                     }
                 )
             }
-
             // Update layer
             L_.clearVectorLayer(layerName)
             L_.updateVectorLayer(layerName, filteredGeoJSON)
