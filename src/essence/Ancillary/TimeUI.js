@@ -423,7 +423,7 @@ const TimeUI = {
             )
         else {
             const dateStaged = new Date(L_.configData.time.initialstart)
-            if (dateStaged === 'Invalid Date') {
+            if (dateStaged == 'Invalid Date') {
                 TimeUI._initialStart.setUTCMonth(
                     TimeUI._initialStart.getUTCMonth() - 1
                 )
