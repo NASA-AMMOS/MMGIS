@@ -161,6 +161,8 @@ var L_ = {
         this.UserInterface_ = userinterface_
         this.Coordinates = coordinates
         this.TimeControl_ = timecontrol_
+
+        this._refreshAnnotationEvents()
     },
     fullyLoaded: function () {
         this.selectPoint(this.FUTURES.activePoint)
@@ -477,6 +479,16 @@ var L_ = {
             L_.Map_.orderedBringToFront()
         }
 
+        L_._refreshAnnotationEvents()
+
+        // Toggling rereveals hidden features, so make sure they stay hidden
+        if (L_.toggledOffFeatures && L_.toggledOffFeatures.length > 0) {
+            L_.toggledOffFeatures.forEach((f) => {
+                L_.toggleFeature(f, false)
+            })
+        }
+    },
+    _refreshAnnotationEvents() {
         // Add annotation click events since onEachFeatureDefault doesn't apply to popups
         $('.mmgisAnnotation').off('click')
         $('.mmgisAnnotation').on('click', function () {
@@ -487,13 +499,6 @@ var L_ = {
                 latlng: layer._latlng,
             })
         })
-
-        // Toggling rereveals hidden features, so make sure they stay hidden
-        if (L_.toggledOffFeatures && L_.toggledOffFeatures.length > 0) {
-            L_.toggledOffFeatures.forEach((f) => {
-                L_.toggleFeature(f, false)
-            })
-        }
     },
     toggleSublayer: function (layerName, sublayerName) {
         const sublayers = L_.layersGroupSublayers[layerName] || {}
