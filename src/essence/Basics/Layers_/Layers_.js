@@ -957,6 +957,7 @@ var L_ = {
         }
         L_.Map_.orderedBringToFront()
         L_.setActiveFeature(L_.activeFeature?.layer)
+        L_._refreshAnnotationEvents()
     },
     /**
      *
