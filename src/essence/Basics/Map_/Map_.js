@@ -1115,6 +1115,7 @@ function allLayersLoaded() {
         //Then do these
         essenceFina()
         L_.addVisible(Map_)
+
         L_.enforceVisibilityCutoffs()
 
         ToolController_.finalizeTools()

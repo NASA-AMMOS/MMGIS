@@ -161,8 +161,6 @@ var L_ = {
         this.UserInterface_ = userinterface_
         this.Coordinates = coordinates
         this.TimeControl_ = timecontrol_
-
-        this._refreshAnnotationEvents()
     },
     fullyLoaded: function () {
         this.selectPoint(this.FUTURES.activePoint)
@@ -779,6 +777,8 @@ var L_ = {
                 }
             }
         }
+
+        L_._refreshAnnotationEvents()
     },
     addGeoJSONData: async function (layer, geojson) {
         if (layer._sourceGeoJSON) {
