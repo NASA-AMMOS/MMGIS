@@ -57,6 +57,20 @@ function interfaceWithMMWebGIS() {
 // layers data under the `_legend` key (i.e. `L_.layers.data[layerName]._legend`).
 // layerUUID and display_name should be strings and opacity should be a number between 0 and 1.
 function overwriteLegends(legends) {
+    if (!Array.isArray(legends)) {
+        console.warn(
+            "legends parameter must be an array.", legends
+        )
+        return
+    }
+
+    if (legends.length < 1) {
+        console.warn(
+            "legends array is empty.", legends
+        )
+        return
+    }
+
     var tools = drawLegendHeader()
 
     for (let l in legends) {
