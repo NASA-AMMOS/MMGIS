@@ -27,7 +27,9 @@ function initialize() {
       url: calls.logout.url,
       data: {},
       success: function (data) {
-        window.location = "/";
+        // Remove last directory from pathname
+        const path = window.location.pathname.split("/");
+        window.location.href = path.slice(0, path.length - 1).join("/") || "/";
       },
     });
   });
