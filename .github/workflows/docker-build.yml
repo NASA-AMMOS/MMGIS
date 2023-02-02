@@ -9,12 +9,20 @@ on:
     # Only activate for `master` branch
     branches:
       - master
+      - development
     # Plus for all tags
     tags:
-      - '*'
+      - "*"
 
   # Plus for any pull-requests
   pull_request:
+    branches:
+      - master
+      - development
+
+  # And for any final releases
+  release:
+    types: [published]
 
 env:
   # Will be "NASA-AMMOS/MMGIS" for the main repo, for forks "user-name-of-fork/MMGIS"
@@ -27,16 +35,17 @@ jobs:
   # for pull-requests: <PATCH_VERSION>-<DATE>-<PR_NUMBER>, eg: 1.35.2-20210125-25
   # for tags: <TAG>
   # for `master` branch: latest,<PATCH_VERSION>-latest,<MINOR_VERSION>-latest,<MAJOR_VERSION>-latest,<PATCH_VERSION>-<DATE>-<SHA>
+  # for `development` branch: development,<MAJOR_VERSION>-development,<PATCH_VERSION>-<DATE>-<SHA>
+  # for releases: release,<PATCH_VERSION>-release,<MINOR_VERSION>-release,<MAJOR_VERSION>-release,<PATCH_VERSION>-<DATE>-<SHA>
   # Version is parsed from package.json
   push:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    if: github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'release'
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
-      -
-        name: Generate tags
+      - name: Generate tags
         id: generate
         run: |
 
@@ -71,12 +80,16 @@ jobs:
 
           # Use Docker `latest` tag convention if it's a master branch build
           [ "$VERSION" == "master" ] && VERSION=latest
+          [ "$VERSION" == "development" ] && VERSION=development
+          [ "${{ github.event_name }}" == "release" ] && VERSION=release
 
           # Compose REGISTRY_TAGS variable
           REGISTRY_TAGS="-t $IMAGE_ID:$VERSION"
 
           # For master branch also supply an extra tag: <PATCH_VERSION>-latest,<MINOR_VERSION>-latest,<MAJOR_VERSION>-latest,<PATCH_VERSION>-<DATE>-<SHA>
           [ "$VERSION" == "latest" ] && REGISTRY_TAGS="$REGISTRY_TAGS -t $IMAGE_ID:$PATCH_VERSION-latest -t $IMAGE_ID:$MINOR_VERSION-latest -t $IMAGE_ID:$MAJOR_VERSION-latest -t $IMAGE_ID:$PATCH_VERSION-$BDATE-$(git rev-parse --short HEAD)"
+          [ "$VERSION" == "development" ] && REGISTRY_TAGS="$REGISTRY_TAGS -t $IMAGE_ID:$MAJOR_VERSION-development -t $IMAGE_ID:$PATCH_VERSION-$BDATE-$(git rev-parse --short HEAD)"
+          [ "$VERSION" == "release" ] && REGISTRY_TAGS="$REGISTRY_TAGS -t $IMAGE_ID:$PATCH_VERSION-release -t $IMAGE_ID:$MINOR_VERSION-release -t $IMAGE_ID:$MAJOR_VERSION-release -t $IMAGE_ID:$PATCH_VERSION-$BDATE-$(git rev-parse --short HEAD)"
 
           echo IMAGE_ID=$IMAGE_ID
           echo VERSION=$VERSION
