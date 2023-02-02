@@ -59,6 +59,12 @@ const guestUsername = "guest";
 
 const ROOT_PATH = isDevEnv ? "" : process.env.ROOT_PATH || "";
 
+if (!(process.env.PUBLIC_URL == null || process.env.PUBLIC_URL == ""))
+  logger(
+    "warn",
+    `The 'PUBLIC_URL' env is deprecated. Please using 'ROOT_PATH' instead.`
+  );
+
 const rootDir = `${__dirname}/..`;
 
 ///////////////////////////
@@ -442,7 +448,7 @@ app.disable("x-powered-by");
 app.disable("Origin");
 
 app.use(
-  "/api/docs/main",
+  `${ROOT_PATH}/api/docs/main`,
   swaggerUi.serve,
   useSwaggerSchema(swaggerDocumentMain)
 );
@@ -583,18 +589,28 @@ setups.getBackendSetups(function (setups) {
   // PAGES
 
   //docs
-  app.get("/docs", ensureUser(), ensureGroup(permissions.users), (req, res) => {
-    res.render("docs", {});
-  });
+  app.get(
+    `${ROOT_PATH}/docs`,
+    ensureUser(),
+    ensureGroup(permissions.users),
+    (req, res) => {
+      res.render("docs", {});
+    }
+  );
 
   //help
-  app.get("/help", ensureUser(), ensureGroup(permissions.users), (req, res) => {
-    res.render("help", {});
-  });
+  app.get(
+    `${ROOT_PATH}/help`,
+    ensureUser(),
+    ensureGroup(permissions.users),
+    (req, res) => {
+      res.render("help", {});
+    }
+  );
 
   // API
   //TEST
-  app.post("/api/test", function (req, res) {
+  app.post(`${ROOT_PATH}/api/test`, function (req, res) {
     res.send("Hello World!");
   });
 
@@ -602,7 +618,7 @@ setups.getBackendSetups(function (setups) {
 
   //utils getprofile
   app.post(
-    "/api/utils/getprofile",
+    `${ROOT_PATH}/api/utils/getprofile`,
     ensureUser(),
     ensureGroup(permissions.users),
     function (req, res) {
@@ -636,7 +652,7 @@ setups.getBackendSetups(function (setups) {
 
   //utils getbands
   app.post(
-    "/api/utils/getbands",
+    `${ROOT_PATH}/api/utils/getbands`,
     ensureUser(),
     ensureGroup(permissions.users),
     function (req, res) {

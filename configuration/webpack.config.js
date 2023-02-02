@@ -94,11 +94,11 @@ module.exports = function (webpackEnv) {
           : { publicPath: paths.publicUrlOrPath },
       },
       isEnvProduction &&
-        process.env.PUBLIC_URL && {
+         {
           loader: "string-replace-loader",
           options: {
             search: /url\(\/public\//g,
-            replace: `url(${process.env.ROOT_PATH}/public/`,
+            replace: `url(../../../public/`,
           },
         },
       {
