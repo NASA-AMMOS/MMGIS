@@ -57,6 +57,14 @@ const isDevEnv = process.env.NODE_ENV === "development";
 //Username to use when not logged in
 const guestUsername = "guest";
 
+const ROOT_PATH = isDevEnv ? "" : process.env.ROOT_PATH || "";
+
+if (!(process.env.PUBLIC_URL == null || process.env.PUBLIC_URL == ""))
+  logger(
+    "warn",
+    `The 'PUBLIC_URL' env is deprecated. Please using 'ROOT_PATH' instead.`
+  );
+
 const rootDir = `${__dirname}/..`;
 
 ///////////////////////////
@@ -386,6 +394,7 @@ let s = {
   swaggerUi,
   useSwaggerSchema,
   permissions,
+  ROOT_PATH,
 };
 
 // Trust first proxy
@@ -439,7 +448,7 @@ app.disable("x-powered-by");
 app.disable("Origin");
 
 app.use(
-  "/api/docs/main",
+  `${ROOT_PATH}/api/docs/main`,
   swaggerUi.serve,
   useSwaggerSchema(swaggerDocumentMain)
 );
@@ -506,48 +515,72 @@ setups.getBackendSetups(function (setups) {
 
   // STATICS
 
-  app.use("/build", ensureUser(), express.static(path.join(rootDir, "/build")));
   app.use(
-    "/documentation",
+    `${ROOT_PATH}/build`,
+    ensureUser(),
+    express.static(path.join(rootDir, "/build"))
+  );
+  app.use(
+    `${ROOT_PATH}/documentation`,
     express.static(path.join(rootDir, "/documentation"))
   );
-  app.use("/docs/helps", express.static(path.join(rootDir, "/docs/helps")));
-  app.use("/README.md", express.static(path.join(rootDir, "/README.md")));
-  app.use("/config/login", express.static(path.join(rootDir, "/config/login")));
   app.use(
-    "/config/css",
+    `${ROOT_PATH}/docs/helps`,
+    express.static(path.join(rootDir, "/docs/helps"))
+  );
+  app.use(
+    `${ROOT_PATH}/README.md`,
+    express.static(path.join(rootDir, "/README.md"))
+  );
+  app.use(
+    `${ROOT_PATH}/config/login`,
+    express.static(path.join(rootDir, "/config/login"))
+  );
+  app.use(
+    `${ROOT_PATH}/config/css`,
     ensureUser(),
     express.static(path.join(rootDir, "/config/css"))
   );
   app.use(
-    "/config/js",
+    `${ROOT_PATH}/config/js`,
     ensureUser(),
     express.static(path.join(rootDir, "/config/js"))
   );
   app.use(
-    "/config/pre",
+    `${ROOT_PATH}/config/pre`,
     ensureUser(),
     express.static(path.join(rootDir, "/config/pre"))
   );
   app.use(
-    "/config/fonts",
+    `${ROOT_PATH}/config/fonts`,
     ensureUser(),
     express.static(path.join(rootDir, "/config/fonts"))
   );
 
   if (process.argv.includes("--with_examples"))
-    app.use("/examples", express.static(path.join(rootDir, "/examples")));
-  app.use("/public", express.static(path.join(rootDir, "/public")));
+    app.use(
+      `${ROOT_PATH}/examples`,
+      express.static(path.join(rootDir, "/examples"))
+    );
+  app.use(`${ROOT_PATH}/public`, express.static(path.join(rootDir, "/public")));
   app.use(
-    "/Missions",
+    `${ROOT_PATH}/Missions`,
     ensureUser(),
     middleware.missions(),
     express.static(path.join(rootDir, "/Missions"))
   );
 
   if (isDevEnv) {
-    app.use("/css", ensureUser(), express.static(path.join(rootDir, "/css")));
-    app.use("/src", ensureUser(), express.static(path.join(rootDir, "/src")));
+    app.use(
+      `${ROOT_PATH}/css`,
+      ensureUser(),
+      express.static(path.join(rootDir, "/css"))
+    );
+    app.use(
+      `${ROOT_PATH}/src`,
+      ensureUser(),
+      express.static(path.join(rootDir, "/src"))
+    );
   }
 
   // Disable for now
@@ -556,18 +589,28 @@ setups.getBackendSetups(function (setups) {
   // PAGES
 
   //docs
-  app.get("/docs", ensureUser(), ensureGroup(permissions.users), (req, res) => {
-    res.render("docs", {});
-  });
+  app.get(
+    `${ROOT_PATH}/docs`,
+    ensureUser(),
+    ensureGroup(permissions.users),
+    (req, res) => {
+      res.render("docs", {});
+    }
+  );
 
   //help
-  app.get("/help", ensureUser(), ensureGroup(permissions.users), (req, res) => {
-    res.render("help", {});
-  });
+  app.get(
+    `${ROOT_PATH}/help`,
+    ensureUser(),
+    ensureGroup(permissions.users),
+    (req, res) => {
+      res.render("help", {});
+    }
+  );
 
   // API
   //TEST
-  app.post("/api/test", function (req, res) {
+  app.post(`${ROOT_PATH}/api/test`, function (req, res) {
     res.send("Hello World!");
   });
 
@@ -575,7 +618,7 @@ setups.getBackendSetups(function (setups) {
 
   //utils getprofile
   app.post(
-    "/api/utils/getprofile",
+    `${ROOT_PATH}/api/utils/getprofile`,
     ensureUser(),
     ensureGroup(permissions.users),
     function (req, res) {
@@ -609,7 +652,7 @@ setups.getBackendSetups(function (setups) {
 
   //utils getbands
   app.post(
-    "/api/utils/getbands",
+    `${ROOT_PATH}/api/utils/getbands`,
     ensureUser(),
     ensureGroup(permissions.users),
     function (req, res) {
@@ -686,32 +729,38 @@ setups.getBackendSetups(function (setups) {
       // passing to it an array of LDAP group names (which were loaded
       // from the permissions.json file at the top of the file).
 
-      app.get("/", ensureUser(), ensureGroup(permissions.users), (req, res) => {
-        let user = guestUsername;
-        if (process.env.AUTH === "csso" || req.user != null) user = req.user;
+      app.get(
+        `${ROOT_PATH}/`,
+        ensureUser(),
+        ensureGroup(permissions.users),
+        (req, res) => {
+          let user = guestUsername;
+          if (process.env.AUTH === "csso" || req.user != null) user = req.user;
 
-        let permission = "000";
-        if (process.env.AUTH === "csso") permission = "001";
-        if (req.session.permission) permission = req.session.permission;
+          let permission = "000";
+          if (process.env.AUTH === "csso") permission = "001";
+          if (req.session.permission) permission = req.session.permission;
 
-        const groups = req.groups ? Object.keys(req.groups) : [];
-        res.render("../build/index.pug", {
-          user: user,
-          permission: permission,
-          groups: JSON.stringify(groups),
-          AUTH: process.env.AUTH,
-          NODE_ENV: process.env.NODE_ENV,
-          VERSION: packagejson.version,
-          FORCE_CONFIG_PATH: process.env.FORCE_CONFIG_PATH,
-          CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER,
-          ENABLE_MMGIS_WEBSOCKETS: process.env.ENABLE_MMGIS_WEBSOCKETS,
-          THIRD_PARTY_COOKIES: process.env.THIRD_PARTY_COOKIES,
-          PORT: process.env.PORT,
-          HOSTS: JSON.stringify({
-            scienceIntent: process.env.SCIENCE_INTENT_HOST,
-          }),
-        });
-      });
+          const groups = req.groups ? Object.keys(req.groups) : [];
+          res.render("../build/index.pug", {
+            user: user,
+            permission: permission,
+            groups: JSON.stringify(groups),
+            AUTH: process.env.AUTH,
+            NODE_ENV: process.env.NODE_ENV,
+            VERSION: packagejson.version,
+            FORCE_CONFIG_PATH: process.env.FORCE_CONFIG_PATH,
+            CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER,
+            ENABLE_MMGIS_WEBSOCKETS: process.env.ENABLE_MMGIS_WEBSOCKETS,
+            THIRD_PARTY_COOKIES: process.env.THIRD_PARTY_COOKIES,
+            PORT: process.env.PORT,
+            ROOT_PATH: ROOT_PATH,
+            HOSTS: JSON.stringify({
+              scienceIntent: process.env.SCIENCE_INTENT_HOST,
+            }),
+          });
+        }
+      );
     }
     if (err) {
       logger("infrastructure_error", "MMGIS did not start!", "server");

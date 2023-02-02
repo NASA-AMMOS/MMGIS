@@ -20,7 +20,7 @@ const publicUrlOrPath = getPublicUrlOrPath(
   process.env.NODE_ENV === "development"
     ? null
     : require(resolveApp("package.json")).homepage,
-  process.env.PUBLIC_URL
+  "./build" // Force process.env.PUBLIC_URL
 );
 
 const moduleFileExtensions = [

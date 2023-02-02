@@ -9,7 +9,7 @@ let setup = {
       process.env.HIDE_CONFIG != "true"
     ) {
       s.app.get(
-        "/configure",
+        s.ROOT_PATH + "/configure",
         s.ensureGroup(s.permissions.users),
         s.ensureAdmin(true),
         (req, res) => {
@@ -24,7 +24,7 @@ let setup = {
     }
 
     s.app.use(
-      "/API/configure",
+      s.ROOT_PATH + "/API/configure",
       s.ensureAdmin(),
       s.checkHeadersCodeInjection,
       s.setContentType,

@@ -893,8 +893,9 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
             urlSplit[1] != null
         ) {
             layerUrl =
-                '/API/geodatasets/get?layer=' +
-                urlSplit[1] +
+                `${
+                    window.mmgisglobal.ROOT_PATH || ''
+                }/api/geodatasets/get?layer=${urlSplit[1]}` +
                 '&type=mvt&x={x}&y={y}&z={z}'
         }
 

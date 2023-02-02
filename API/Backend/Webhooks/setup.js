@@ -6,10 +6,14 @@ const routerTestWebhooks = require("./routes/testwebhooks");
 let setup = {
   //Once the app initializes
   onceInit: (s) => {
-    s.app.use("/API/webhooks", s.checkHeadersCodeInjection, routerWebhooks);
+    s.app.use(
+      s.ROOT_PATH + "/API/webhooks",
+      s.checkHeadersCodeInjection,
+      routerWebhooks
+    );
     if (process.env.NODE_ENV === "development") {
       s.app.use(
-        "/API/testwebhooks",
+        s.ROOT_PATH + "/API/testwebhooks",
         s.checkHeadersCodeInjection,
         routerTestWebhooks
       );
