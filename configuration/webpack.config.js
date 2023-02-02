@@ -98,7 +98,7 @@ module.exports = function (webpackEnv) {
           loader: "string-replace-loader",
           options: {
             search: /url\(\/public\//g,
-            replace: `url(${process.env.PUBLIC_URL}/`,
+            replace: `url(${process.env.ROOT_PATH}/public/`,
           },
         },
       {

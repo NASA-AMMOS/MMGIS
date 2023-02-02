@@ -6,7 +6,7 @@ let setup = {
   //Once the app initializes
   onceInit: (s) => {
     s.app.use(
-      "/API/files",
+      s.ROOT_PATH + "/API/files",
       s.ensureUser(),
       s.checkHeadersCodeInjection,
       s.setContentType,
@@ -15,7 +15,7 @@ let setup = {
     );
 
     s.app.use(
-      "/API/draw",
+      s.ROOT_PATH + "/API/draw",
       s.ensureUser(),
       s.checkHeadersCodeInjection,
       s.setContentType,

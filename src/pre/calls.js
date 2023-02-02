@@ -148,7 +148,11 @@ function api(call, data, success, error) {
 
     $.ajax({
         type: c[call].type,
-        url: c[call].url,
+        url: `${
+            window.mmgisglobal.ROOT_PATH
+                ? window.mmgisglobal.ROOT_PATH + '/'
+                : ''
+        }${c[call].url}`,
         data: data,
         xhrFields: {
             withCredentials: true,
