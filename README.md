@@ -23,7 +23,7 @@
 - Elevation profiler
 - Custom projections
 - Tiling scripts
-- And so much more...
+- And much more...
 
 ---
 
