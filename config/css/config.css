@@ -301,6 +301,9 @@ textarea {
   margin: 0px 161px 0px 173px;
   border-bottom: 2px solid #1565c0 !important;
 }
+.col > .CodeMirror {
+  margin: 0px;
+}
 
 #missions {
   margin: 5px 0px;

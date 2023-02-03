@@ -325,6 +325,15 @@ script(type='text/javascript' src='config/pre/RefreshAuth.js')
             #coordinates_coordelevurlEl.input-field.col.s7.push-s1
               input#coordinates_coordelevurl.validate(type='text' value='')
               label(for='coordinates_coordelevurl') DEM URL
+          li.row.title(style='margin-top: 45px;')
+            .col.s2.push-s1 Raw Variables
+            .col.s6.push-s3(style='text-align: center; background-color: rgba(0,0,0,0.06); position: relative; padding: 0;')
+              a.waves-effect.waves-light.modal-trigger(href='#coordinatesVariables_modal' style='color: #111; width: 100%;') Click for configuration documentation 
+              i.mdi.mdi-information.mdi-18px(style='position: absolute; right: 2px; top: -2px; color: #444;')
+
+          li.row(style='padding-bottom: 0px;') 
+            #coordinates_variablseEl.input-field.col.s10.push-s1
+              textarea#coordinatesVariables
 
       #tab_look.col.s12
         a.helpFromDocs(href='docs/?page=Look_Tab' target='__blank' rel='noopener')
@@ -521,6 +530,17 @@ script(type='text/javascript' src='config/pre/RefreshAuth.js')
         a#delete_mission_delete.modal-action.modal-close.btn-flat.waves-effect.waves-light.col.s12(style='border-radius: 0px; color: white;')
           | Delete Mission
           i.mdi.mdi-delete.mdi-24px(style='float: right; margin-top: 1px; padding-left: 5px;')
+    #coordinatesVariables_modal.modal
+      .modal-content(style='padding-bottom: 0;')
+        h4 Coordinates Raw Variables
+        #coordinatesVariables_info(style='margin-bottom: 0;')
+          #coordinatesVariables_title
+          hr
+          #coordinatesVariables_content
+            pre#coordinatesVariables_example
+      .modal-footer
+        a.modal-action.modal-close.waves-effect.waves-green.btn-flat(href='#!') Done
+    .row
     #info_modal.modal
       .modal-content(style='padding-bottom: 0;')
         h4 Modal Header
