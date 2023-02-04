@@ -220,7 +220,7 @@ function initialize() {
               rightClickMenuActions: [
                 {
                   name: "The text for this menu entry when users right-click",
-                  link: "https://www.domain.com?I={ll[0]}&will={ll[1]}&replace={ll[2]}&these={en[0]}&brackets={en[1]}&for={cproj[0]}&you={sproj[0]}&with={rxy[0]}&coordinates={site[2]}",
+                  link: "https://domain?I={ll[0]}&will={ll[1]}&replace={ll[2]}&these={en[0]}&brackets={en[1]}&for={cproj[0]}&you={sproj[0]}&with={rxy[0]}&coordinates={site[2]}",
                 },
               ],
             },
