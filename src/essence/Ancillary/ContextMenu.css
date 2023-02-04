@@ -3,7 +3,8 @@
     background: var(--color-a);
     box-shadow: 0px 0px 5px 0px rgba(0, 0, 0, 0.3);
     border: 1px solid var(--color-i);
-    border-radius: 3px;
+    border-radius: 1px;
+    font-size: 15px;
     z-index: 1;
     transition: opacity 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
 }
@@ -36,11 +37,20 @@
     padding: 0;
 }
 .ContextMenuMap li {
-    padding: 4px 16px;
+    padding: 5px 8px 5px 16px;
     cursor: pointer;
     color: #aaa;
+    border-top: 1px solid var(--color-a1);
+    display: flex;
     transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+.ContextMenuMap li:first-child {
+    border-top: none;
+}
+.ContextMenuMap li i {
+    padding: 0px 6px;
 }
 .ContextMenuMap li:hover {
     color: white;
+    background: var(--color-a1);
 }

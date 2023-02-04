@@ -319,7 +319,9 @@ const Coordinates = {
     },
     getAllCoordinates: function () {
         return {
-            description: d3.select('#mouseDesc').html(),
+            description: d3
+                .select('#changeCoordTypeDropdown .dropy__title > span')
+                .html(),
             coordinates: [
                 ...d3.select('#mouseLngLat').html().split(','),
                 d3.select('#mouseElev').html(),
