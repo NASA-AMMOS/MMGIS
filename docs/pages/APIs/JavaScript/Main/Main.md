@@ -13,6 +13,8 @@ The `src/essence/mmgisAPI/mmgisAPI.js` file exposes functions that can be called
 #### _Contents_
 
 - [Layer Control](#layer-control)
+  - [addLayer(layerObj, placement)](#addlayerlayerobj-placement)
+  - [removeLayer(layerUUID)](#removelayerlayeruuid)
   - [clearVectorLayer(layerUUID)](#clearvectorlayerlayeruuid)
   - [updateVectorLayer(layerUUID, inputData)](#updatevectorlayerlayeruuid-inputdata)
   - [trimVectorLayerKeepBeforeTime(layerUUID, keepBeforeTime, timePropPath)](#trimvectorlayerkeepbeforetimelayeruuid-keepbeforetime-timeproppath)
@@ -58,6 +60,117 @@ The `src/essence/mmgisAPI/mmgisAPI.js` file exposes functions that can be called
 ---
 
 ## Layer Control
+
+### addLayer(layerObj, placement)
+
+Adds a layer to the map. This adds a layer to client as if it were coming from the configuration. This layer becomes accessible via the LayersTool and well as on the globe. This does not add the layer to the mission's configuration.
+
+For a more "temporary" layer, use Leaflet directly through `L.{leafletLayer}.addTo(mmgisAPI.map)`. See [here](https://leafletjs.com/reference.html) for reference on how to construct Leafletjs layers.
+
+#### Function parameters
+
+- `layerObj` - the full mmgis layer object configuration (`GET http://localhost:8889/api/configure/get?mission={mission}` to get sample layer objects from the existing configuration). At minimum `layerObj.name` and `layerObj.type` are required.
+  - `layerObj.name` - A unique name/uuid for the layer
+  - `layerObj.type` - One of the support MMGIS layer types: `data, header, model, query, tile, or vector`
+- `placement` - _optionaL_ - Where in the list/tree to add this layer relative to other layers.
+  - `placement.path` - A path to a header in 'layers' to place the new layer. A simple path ('sublayers' are added). Defaults to no group. Use a dot-notated string for nestings.
+  - `placement.index` - Index in 'layers' (or path) to place the new layer. Out of range placement indices are best fit.
+
+Returns a `Promise` when the layer is added and loaded.
+
+The following is an example of how to call the `addLayer` function:
+
+```javascript
+window.mmgisAPI.addLayer({ name: "Sample Header", type: "header" }).then(() => {
+  console.log("added and loaded");
+});
+
+window.mmgisAPI
+  .addLayer(
+    {
+      name: "New Waypoints",
+      kind: "waypoint",
+      shape: "none",
+      type: "vector",
+      url: "Layers/Waypoints/waypoints.json",
+      demparser: "",
+      controlled: false,
+      layer3dType: "clamped",
+      description:
+        "### Overview\n\nIure iure quas doloremque sequi pariatur repudiandae. Provident similique in illum deleniti qui consequuntur iste aut. Quia accusamus dolorem beatae et aut.\n\nVero cum ullam cumque optio laborum. Qui corporis incidunt accusamus voluptatem. Quam eos et expedita. Quidem et velit fuga et delectus veniam.\n\n- Vel ex voluptatem dicta\n- Dolor et itaque quidem\n- Vero cum ullam cumque [optio laborum](www.duckduckgo.com)\n\nDolor et itaque quidem. Dolorem ut nemo porro rerum. Rerum voluptas quo sit velit voluptatibus perspiciatis ipsum. Vel ex voluptatem dicta. Et porro harum maiores. Quae consequatur exercitationem numquam.\n",
+      tags: ["rover", "science", "telem:45B", "location"],
+      legend: "Layers/Waypoints/legend.csv",
+      visibility: true,
+      initialOpacity: 1,
+      togglesWithHeader: true,
+      style: {
+        className: "waypoints",
+        color: "#FFF",
+        fillColor: "#000",
+        weight: 2,
+        fillOpacity: 1,
+        opacity: 1,
+      },
+      variables: {
+        useKeyAsName: "sol_site_p",
+        layerAttachments: {
+          labels: {
+            initialVisibility: false,
+            theme: "default",
+            size: "large",
+          },
+        },
+        markerAttachments: {
+          bearing: {
+            angleProp: "yaw_rad",
+            angleUnit: "rad",
+            color: "#FFFFFF",
+          },
+        },
+        search: "(sol_site_p)",
+      },
+      radius: 8,
+      time: {
+        enabled: false,
+        type: "requery",
+        isRelative: true,
+        current: "2023-02-07T17:58:53Z",
+        start: "",
+        end: "",
+        startProp: "",
+        endProp: "",
+        format: "%Y-%m-%dT%H:%M:%SZ",
+        compositeTile: false,
+        refresh: "1 hours",
+        increment: "5 minutes",
+      },
+      uuid: "7f6396c3-eef1-401a-9e99-790ed102efff",
+    },
+    { path: "Features", index: 0 }
+  )
+  .then(() => {
+    console.log("loaded");
+  })
+  .catch((errMsg) => {
+    console.log(errMsg);
+  });
+```
+
+### removeLayer(layerUUID)
+
+Removes a layer from the map.
+
+#### Function parameters
+
+- `layerUUID` - The name/uuid of the layer to remove.
+
+Returns `true` if found and removed, otherwise `false`
+
+The following is an example of how to call the `removeLayer` function:
+
+```javascript
+window.mmgisAPI.removeLayer("Sample Header"); // => true
+```
 
 ### clearVectorLayer(layerUUID)
 

@@ -130,35 +130,45 @@ var essence = {
     initialWebSocketRetryInterval: 60000, // 1 minute
     webSocketRetryInterval: 60000, // Start with this time and double if disconnected
     webSocketPingInterval: null,
-    connectWebSocket: function(path, initial) {
+    connectWebSocket: function (path, initial) {
         // https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/readyState
-        if (essence.ws === undefined || essence.ws === null
-                || (essence.ws && essence.ws.readyState === 3)) {
-
+        if (
+            essence.ws === undefined ||
+            essence.ws === null ||
+            (essence.ws && essence.ws.readyState === 3)
+        ) {
             essence.initWebSocket(path)
 
             // If we're trying to start the WebSocket for the first time, we know we're not connected already
             // so  we don't need to retry to connect yet
             if (!initial) {
                 clearInterval(essence.webSocketPingInterval)
-                essence.webSocketRetryInterval = essence.webSocketRetryInterval * 2
-                essence.webSocketPingInterval = setInterval(essence.connectWebSocket, essence.webSocketRetryInterval, path, false) // 10 seconds
+                essence.webSocketRetryInterval =
+                    essence.webSocketRetryInterval * 2
+                essence.webSocketPingInterval = setInterval(
+                    essence.connectWebSocket,
+                    essence.webSocketRetryInterval,
+                    path,
+                    false
+                ) // 10 seconds
             }
         }
     },
-    initWebSocket: function(path) {
+    initWebSocket: function (path) {
         essence.ws = new WebSocket(path)
 
-        essence.ws.onerror = function(e) {
+        essence.ws.onerror = function (e) {
             console.log(`Unable to connect to WebSocket at ${path}`)
 
             M.Toast.dismissAll()
 
             M.toast({
-                html: `Not connected to WebSocket. Will retry in ${(essence.webSocketRetryInterval / 60000).toFixed(2)} minutes...`,
+                html: `Not connected to WebSocket. Will retry in ${(
+                    essence.webSocketRetryInterval / 60000
+                ).toFixed(2)} minutes...`,
                 displayLength: 10000,
-                classes: "mmgisToast failure",
-            });
+                classes: 'mmgisToast failure',
+            })
         }
 
         essence.ws.onopen = function () {
@@ -168,16 +178,25 @@ var essence = {
 
             M.Toast.dismissAll()
 
-            if (essence.webSocketRetryInterval > essence.initialWebSocketRetryInterval) {
+            if (
+                essence.webSocketRetryInterval >
+                essence.initialWebSocketRetryInterval
+            ) {
                 M.toast({
-                    html: "Successfully connected to WebSocket",
+                    html: 'Successfully connected to WebSocket',
                     displayLength: 1600,
-                    classes: "mmgisToast",
-                });
+                    classes: 'mmgisToast',
+                })
 
-                essence.webSocketRetryInterval = essence.initialWebSocketRetryInterval
+                essence.webSocketRetryInterval =
+                    essence.initialWebSocketRetryInterval
                 clearInterval(essence.webSocketPingInterval)
-                essence.webSocketPingInterval = setInterval(essence.connectWebSocket, essence.webSocketRetryInterval, path, false) // 1 minute
+                essence.webSocketPingInterval = setInterval(
+                    essence.connectWebSocket,
+                    essence.webSocketRetryInterval,
+                    path,
+                    false
+                ) // 1 minute
             }
         }
 
@@ -360,7 +379,12 @@ var essence = {
                     : `${protocol}://${window.location.host}/`
 
             essence.connectWebSocket(path, true)
-            essence.webSocketPingInterval = setInterval(essence.connectWebSocket, essence.webSocketRetryInterval, path, false) // 10 seconds
+            essence.webSocketPingInterval = setInterval(
+                essence.connectWebSocket,
+                essence.webSocketRetryInterval,
+                path,
+                false
+            ) // 10 seconds
         }
     },
     swapMission(to) {

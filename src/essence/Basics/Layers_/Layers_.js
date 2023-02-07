@@ -2505,7 +2505,7 @@ const L_ = {
     },
     parseConfig: parseConfig,
     // Dynamically add a new layer or update a layer (used by WebSocket)
-    addNewLayer: async function (data, layerName, type) {
+    modifyLayer: async function (data, layerName, type) {
         // Save so we can make sure we reproduce the same layer settings after parsing the config
         const toggledArray = { ...L_.layers.on }
 
@@ -2544,6 +2544,14 @@ const L_ = {
             }
             delete L_.layers.on[layerName]
         }
+
+        if (ToolController_.activeToolName === 'LayersTool') {
+            const layersTool = ToolController_.getTool('LayersTool')
+            if (layersTool.destroy && layersTool.make) {
+                layersTool.destroy()
+                layersTool.make()
+            }
+        }
     },
     updateLayersHelper: async function (layerQueueList) {
         if (layerQueueList.length > 0) {
@@ -2551,7 +2559,7 @@ const L_ = {
                 const firstLayer = layerQueueList.shift()
                 const { data, newLayerName, type } = firstLayer
 
-                await L_.addNewLayer(data, newLayerName, type)
+                await L_.modifyLayer(data, newLayerName, type)
             }
 
             if (L_.Map_) L_.Map_.orderedBringToFront(true)
