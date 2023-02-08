@@ -564,6 +564,9 @@ function initialize() {
                 if (cData.look && cData.look.miscellaneous != false) {
                   $("#tab_look #look_miscellaneous").prop("checked", true);
                 }
+                if (cData.look && cData.look.settings != false) {
+                  $("#tab_look #look_settings").prop("checked", true);
+                }
 
                 //look colors
                 $("#tab_look #look_primarycolor").val(
@@ -2099,6 +2102,7 @@ function save() {
     json.look["miscellaneous"] = $("#tab_look #look_miscellaneous").prop(
       "checked"
     );
+    json.look["settings"] = $("#tab_look #look_settings").prop("checked");
     //look colors
     json.look["primarycolor"] = $("#tab_look #look_primarycolor").val();
     json.look["secondarycolor"] = $("#tab_look #look_secondarycolor").val();
@@ -2679,7 +2683,8 @@ function layerPopulateVariable(modalId, layerType) {
             },
           };
     } else if (layerType == "query") {
-      currentLayerVars.useKeyAsName = currentLayerVars.useKeyAsName || "prop";
+      currentLayerVars.useKeyAsName =
+        currentLayerVars.useKeyAsName || "prop || [prop1, prop2, ...]";
       currentLayerVars.links = currentLayerVars.links || [
         {
           name: "example",
@@ -2713,7 +2718,8 @@ function layerPopulateVariable(modalId, layerType) {
         size: 1000,
       };
     } else {
-      currentLayerVars.useKeyAsName = currentLayerVars.useKeyAsName || "prop";
+      currentLayerVars.useKeyAsName =
+        currentLayerVars.useKeyAsName || "prop || [prop1, prop2, ...]";
       currentLayerVars.hideMainFeature =
         currentLayerVars.hideMainFeature || false;
 
