@@ -128,7 +128,10 @@ let Globe_ = {
                 hideElement: true,
                 onChange: (lng, lat, elev) => {
                     if (lng == null || lat == null) {
-                        $('#mouseLngLat').text(`Outer Space`)
+                        L_.Coordinates.setCoords(
+                            [null, null, null],
+                            'Outer Space'
+                        )
                     } else {
                         const converted = L_.Coordinates.convertLngLat(
                             lng,
@@ -136,7 +139,8 @@ let Globe_ = {
                             L_.Coordinates.currentType,
                             true
                         )
-                        $('#mouseLngLat').text(
+                        L_.Coordinates.setCoords(
+                            [lng, lat, elev],
                             `${converted[0]}, ${converted[1]}`
                         )
                     }

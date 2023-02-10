@@ -3,6 +3,7 @@ import F_ from '../Basics/Formulae_/Formulae_'
 import ToolController_ from '../Basics/ToolController_/ToolController_'
 import QueryURL from '../Ancillary/QueryURL'
 import TimeControl from '../Ancillary/TimeControl'
+import LegendTool from '../Tools/Legend/LegendTool.js'
 
 import $ from 'jquery'
 
@@ -689,6 +690,11 @@ var mmgisAPI = {
      * @param {boolean} - on - (optional) Set true if the visibility should be on or false if visibility should be off. If not set, the current visibility state will switch to the opposite state.
      */
     toggleLayer: mmgisAPI_.toggleLayer,
+
+    /** overwriteLegends - overwrite the contents displayed in the LegendTool; useful when used with `toolChange` event listener in mmgisAPI
+     * @param {array} - legends - an array of objects, where each object must contain the following keys: legend, layerUUID, display_name, opacity. The value for the legend key should be in the same format as what is stored in the layers data under the `_legend` key (i.e. `L_.layers.data[layerName]._legend`). layerUUID and display_name should be strings and opacity should be a number between 0 and 1.
+     */
+    overwriteLegends: LegendTool.overwriteLegends,
 
     // Formulae_
     utils: { ...F_ },

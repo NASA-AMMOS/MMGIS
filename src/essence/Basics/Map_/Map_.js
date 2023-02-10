@@ -512,39 +512,47 @@ let Map_ = {
 //Specific internal functions likely only to be used once
 function getLayersChosenNamePropVal(feature, layer) {
     //These are what you'd think they'd be (Name could be thought of as key)
-    var propertyName, propertyValue
-    var foundThroughVariables = false
+    let propertyNames, propertyValues
+    let foundThroughVariables = false
     if (
         layer.hasOwnProperty('options') &&
         layer.options.hasOwnProperty('layerName')
     ) {
-        var l = L_.layers.data[layer.options.layerName]
+        const l = L_.layers.data[layer.options.layerName]
         if (
             l.hasOwnProperty('variables') &&
             l.variables.hasOwnProperty('useKeyAsName')
         ) {
-            propertyName = l.variables['useKeyAsName']
-            if (feature.properties.hasOwnProperty(propertyName)) {
-                propertyValue = F_.getIn(feature.properties, propertyName)
-                if (propertyValue != null) foundThroughVariables = true
-            }
+            propertyNames = l.variables['useKeyAsName']
+            if (typeof propertyNames === 'string') propertyNames = []
+            propertyValues = Array(propertyNames.length).fill(null)
+            propertyNames.forEach((propertyName, idx) => {
+                if (feature.properties.hasOwnProperty(propertyName)) {
+                    propertyValues[idx] = F_.getIn(
+                        feature.properties,
+                        propertyName
+                    )
+                    if (propertyValues[idx] != null)
+                        foundThroughVariables = true
+                }
+            })
         }
     }
     // Use first key
     if (!foundThroughVariables) {
-        for (var key in feature.properties) {
+        for (let key in feature.properties) {
             //Store the current feature's key
-            propertyName = key
+            propertyNames = [key]
             //Be certain we have that key in the feature
             if (feature.properties.hasOwnProperty(key)) {
                 //Store the current feature's value
-                propertyValue = feature.properties[key]
+                propertyValues = [feature.properties[key]]
                 //Break out of for loop since we're done
                 break
             }
         }
     }
-    return { name: propertyName, value: propertyValue }
+    return F_.stitchArrays(propertyNames, propertyValues)
 }
 
 //Takes an array of layer objects and makes them map layers
@@ -588,32 +596,22 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
     //Default is onclick show full properties and onhover show 1st property
     Map_.onEachFeatureDefault = onEachFeatureDefault
     function onEachFeatureDefault(feature, layer) {
-        var pv = getLayersChosenNamePropVal(feature, layer)
+        const pv = getLayersChosenNamePropVal(feature, layer)
 
-        layer['useKeyAsName'] = pv.name
+        layer['useKeyAsName'] = Object.keys(pv)[0]
         if (
             layer.hasOwnProperty('options') &&
             layer.options.hasOwnProperty('layerName')
         ) {
-            L_.layers.data[layer.options.layerName].useKeyAsName = pv.name
+            L_.layers.data[layer.options.layerName].useKeyAsName =
+                layer['useKeyAsName']
         }
 
-        if (
-            pv.hasOwnProperty('name') &&
-            pv.name != null &&
-            typeof pv.name === 'string'
-        ) {
-            var propertyName = pv.name.capitalizeFirstLetter()
-            var propertyValue = pv.value
-
+        if (typeof layer['useKeyAsName'] === 'string') {
             //Add a mouseover event to the layer
             layer.on('mouseover', function () {
                 //Make it turn on CursorInfo and show name and value
-                CursorInfo.update(
-                    propertyName + ': ' + propertyValue,
-                    null,
-                    false
-                )
+                CursorInfo.update(pv, null, false)
             })
             //Add a mouseout event
             layer.on('mouseout', function () {
@@ -893,8 +891,9 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
             urlSplit[1] != null
         ) {
             layerUrl =
-                '/API/geodatasets/get?layer=' +
-                urlSplit[1] +
+                `${
+                    window.mmgisglobal.ROOT_PATH || ''
+                }/api/geodatasets/get?layer=${urlSplit[1]}` +
                 '&type=mvt&x={x}&y={y}&z={z}'
         }
 

@@ -844,3 +844,55 @@ The following is an example of how to call the `unproject` function:
 window.mmgisAPI.unproject({ x: 8120633.560692952, y: -237291.62355915268 });
 // returns {lat: -4.000000000000019, lng: 137}
 ```
+
+### overwriteLegends(legends)
+
+This function can be used to overwrite the contents displayed in the LegendTool. This can be useful when used with the `toolChange` event listener in the mmgisAPI.
+
+#### Function parameters
+
+- `legends` -  An array of objects, where each object must contain the following keys: legend, layerUUID, display_name, opacity. The value for the legend key should be in the same format as what is stored in the layers data under the `_legend` key (i.e. `L_.layers.data[layerName]._legend`). layerUUID and display_name should be strings and opacity should be a number between 0 and 1.
+
+The following is an example of how to call the `overwriteLegends` function:
+```javascript
+const legends = [
+    {
+        color: '#00e400',
+        strokecolor: '#000000',
+        shape: 'continuous',
+        value: '0 - 54',
+    },
+    {
+        color: '#ffff00',
+        strokecolor: '#000000',
+        shape: 'continuous',
+        value: '54 - 154',
+    },
+    {
+        color: '#ff7e00',
+        strokecolor: '#000000',
+        shape: 'continuous',
+        value: '154 - 254',
+    },
+    {
+        color: '#8f3f97',
+        strokecolor: '#000000',
+        shape: 'continuous',
+        value: '254 - 354',
+    },
+    {
+        color: '#8f3f97',
+        strokecolor: '#000000',
+        shape: 'continuous',
+        value: '354 - 424',
+    },
+    {
+        color: '#7e0023',
+        strokecolor: '#000000',
+        shape: 'continuous',
+        value: '> 424',
+    },
+];
+
+window.mmgisAPI.overwriteLegends(legends);
+```

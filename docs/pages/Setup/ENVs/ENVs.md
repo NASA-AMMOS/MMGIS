@@ -84,9 +84,9 @@ Sets the `Content-Security-Policy: frame-src` header to allow the embedding ifra
 
 Sets "SameSite=None; Secure" on the login cookie. Useful when using AUTH=local as an iframe within a cross-origin page. | boolean | default `false`
 
-#### `PUBLIC_URL=`
+#### `ROOT_PATH=`
 
-Set MMGIS to be deployed under a subpath. Use full and absolute paths only to the project's build directory. For example if serving at the subpath 'mmgis/' is desired, set PUBLIC_URL to 'https://{domain}/mmgis/build'. Changing PUBLIC_URL required a rebuild. | string | default `null` (domain root build '/build')
+Set MMGIS to be deployed under a subpath. For example if serving at the subpath 'https://{domain}/path/where/I/serve/mmgis' is desired, set `ROOT_PATH=/path/where/I/serve/mmgis`. If no subpath, leave blank. | string | default `""`
 
 #### `CLEARANCE_NUMBER=`
 

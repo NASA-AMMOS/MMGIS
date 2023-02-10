@@ -6,6 +6,7 @@ var missionPath = "";
 var tData;
 var editors;
 var layerEditors;
+var tabEditors;
 var usingCustomProjection;
 var availableKinds = [];
 
@@ -27,7 +28,9 @@ function initialize() {
       url: calls.logout.url,
       data: {},
       success: function (data) {
-        window.location = "/";
+        // Remove last directory from pathname
+        const path = window.location.pathname.split("/");
+        window.location.href = path.slice(0, path.length - 1).join("/") || "/";
       },
     });
   });
@@ -130,6 +133,7 @@ function initialize() {
 
         editors = {};
         layerEditors = {};
+        tabEditors = {};
 
         for (var i = 0; i < tData.length; i++) {
           // prettier-ignore
@@ -197,6 +201,34 @@ function initialize() {
           }
         }
 
+        // Setup tabEditors
+        tabEditors["coordinatesVariables"] = CodeMirror.fromTextArea(
+          document.getElementById("coordinatesVariables"),
+          {
+            path: "js/codemirror/codemirror-5.19.0/",
+            mode: "javascript",
+            theme: "elegant",
+            viewportMargin: Infinity,
+            lineNumbers: true,
+            autoRefresh: true,
+            matchBrackets: true,
+          }
+        );
+        $("#coordinatesVariables_example").html(
+          JSON.stringify(
+            {
+              rightClickMenuActions: [
+                {
+                  name: "The text for this menu entry when users right-click",
+                  link: "https://domain?I={ll[0]}&will={ll[1]}&replace={ll[2]}&these={en[0]}&brackets={en[1]}&for={cproj[0]}&you={sproj[0]}&with={rxy[0]}&coordinates={site[2]}",
+                },
+              ],
+            },
+            null,
+            4
+          ) || ""
+        );
+
         //Make materialize initialize tabs
         $("ul.tabs#missions").tabs();
 
@@ -239,6 +271,10 @@ function initialize() {
             success: function (data) {
               if (data.status == "success") {
                 var cData = data.config;
+
+                for (var e in tabEditors) {
+                  tabEditors[e].setValue("");
+                }
 
                 //overall
                 $("#overall_mission_name").text(mission);
@@ -492,6 +528,11 @@ function initialize() {
                   $(
                     `.coordinates_coordMain[value="${cData.coordinates?.coordmain}"]`
                   ).prop("checked", true);
+                tabEditors["coordinatesVariables"].setValue(
+                  cData.coordinates?.variables
+                    ? JSON.stringify(cData.coordinates?.variables, null, 4)
+                    : ""
+                );
 
                 //look
                 $("#tab_look #look_pagename").val("MMGIS");
@@ -522,6 +563,9 @@ function initialize() {
                 }
                 if (cData.look && cData.look.miscellaneous != false) {
                   $("#tab_look #look_miscellaneous").prop("checked", true);
+                }
+                if (cData.look && cData.look.settings != false) {
+                  $("#tab_look #look_settings").prop("checked", true);
                 }
 
                 //look colors
@@ -2042,6 +2086,9 @@ function save() {
     ).val();
     json.coordinates["coordmain"] =
       $(`.coordinates_coordMain:checked`).val() || "ll";
+    json.coordinates["variables"] = JSON.parse(
+      tabEditors["coordinatesVariables"].getValue() || "{}"
+    );
 
     //Look
     json.look["pagename"] = $("#tab_look #look_pagename").val();
@@ -2055,6 +2102,7 @@ function save() {
     json.look["miscellaneous"] = $("#tab_look #look_miscellaneous").prop(
       "checked"
     );
+    json.look["settings"] = $("#tab_look #look_settings").prop("checked");
     //look colors
     json.look["primarycolor"] = $("#tab_look #look_primarycolor").val();
     json.look["secondarycolor"] = $("#tab_look #look_secondarycolor").val();
@@ -2635,7 +2683,8 @@ function layerPopulateVariable(modalId, layerType) {
             },
           };
     } else if (layerType == "query") {
-      currentLayerVars.useKeyAsName = currentLayerVars.useKeyAsName || "prop";
+      currentLayerVars.useKeyAsName =
+        currentLayerVars.useKeyAsName || "prop || [prop1, prop2, ...]";
       currentLayerVars.links = currentLayerVars.links || [
         {
           name: "example",
@@ -2669,7 +2718,8 @@ function layerPopulateVariable(modalId, layerType) {
         size: 1000,
       };
     } else {
-      currentLayerVars.useKeyAsName = currentLayerVars.useKeyAsName || "prop";
+      currentLayerVars.useKeyAsName =
+        currentLayerVars.useKeyAsName || "prop || [prop1, prop2, ...]";
       currentLayerVars.hideMainFeature =
         currentLayerVars.hideMainFeature || false;
 

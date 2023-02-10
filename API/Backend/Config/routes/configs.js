@@ -693,6 +693,14 @@ function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
             );
           }
 
+          // This adds the proposed_uuid key to all of the new layers/sublayers to be added that have
+          // user defined UUIDs. We remove the proposed_uuid key after using it to check for unique UUIDs.
+          Utils.traverseLayers([req.body.layer], (layer) => {
+            if (layer.uuid != null) {
+                layer.proposed_uuid = layer.uuid;
+            }
+          });
+
           const didSet = Utils.setIn(
             config.layers,
             `${placementPath}${placementIndex}`,
