@@ -50,6 +50,28 @@ var IdentifierTool = {
     destroy: function () {
         this.MMWebGISInterface.separateFromMMWebGIS()
     },
+    //From: https://github.com/mrdoob/three.js/issues/758 mrdoob
+    getImageData: function (image) {
+        if (image.width == 0) return
+        var canvas = document.createElement('canvas')
+        canvas.width = image.width
+        canvas.height = image.height
+
+        var context = canvas.getContext('2d')
+        context.drawImage(image, 0, 0)
+
+        return context.getImageData(0, 0, image.width, image.height)
+    },
+    getPixel: function (imagedata, x, y) {
+        var position = (x + imagedata.width * y) * 4,
+            data = imagedata.data
+        return {
+            r: data[position],
+            g: data[position + 1],
+            b: data[position + 2],
+            a: data[position + 3],
+        }
+    },
     idPixelMap: function (e) {
         IdentifierTool.idPixel(e, [
             e.latlng.lng,
@@ -153,9 +175,10 @@ var IdentifierTool = {
                 IdentifierTool.images[i] = new Image()
                 IdentifierTool.images[i].onload = (function (i) {
                     return function () {
-                        IdentifierTool.imageData[i] = F_.getImageData(
-                            IdentifierTool.images[i]
-                        )
+                        IdentifierTool.imageData[i] =
+                            IdentifierTool.getImageData(
+                                IdentifierTool.images[i]
+                            )
                     }
                 })(i)
                 IdentifierTool.images[i].onerror = (function (i) {
@@ -189,7 +212,7 @@ var IdentifierTool = {
 
             var pxRGBA = { r: 0, g: 0, b: 0, a: 0 }
             if (IdentifierTool.imageData[i]) {
-                pxRGBA = F_.getPixel(
+                pxRGBA = IdentifierTool.getPixel(
                     IdentifierTool.imageData[i],
                     IdentifierTool.pxXYs[i].x,
                     IdentifierTool.pxXYs[i].y
@@ -430,7 +453,7 @@ function queryDataValue(url, lng, lat, numBands, callback) {
             }
         },
         function () {
-            console.warn('IdentiferTool: Failed to query bands.')
+            console.warn('IdentifierTool: Failed to query bands.')
         }
     )
 }

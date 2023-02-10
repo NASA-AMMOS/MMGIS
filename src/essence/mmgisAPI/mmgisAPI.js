@@ -21,6 +21,116 @@ var mmgisAPI_ = {
             mmgisAPI_.onLoadCallback = null
         }
     },
+    // Adds a layer to the map. For a more "temporary" layer, use Leaflet directly through `mmgisAPI.map`
+    addLayer: function (layerObj, placement) {
+        return new Promise(async (resolve, reject) => {
+            if (layerObj == null) {
+                reject('Missing parameter: layerObj')
+                return
+            }
+            if (layerObj.name == null) {
+                reject('Missing parameter: layerObj.name')
+                return
+            }
+            if (layerObj.type == null) {
+                reject('Missing parameter: layerObj.type')
+                return
+            }
+
+            if (
+                (layerObj.uuid || layerObj.name) &&
+                L_.layers.data[layerObj.uuid || layerObj.name] != null
+            ) {
+                reject(
+                    `Layer uuid/name already in use: '${
+                        layerObj.uuid || layerObj.name
+                    }'`
+                )
+            }
+
+            // Inject new layer into configData
+            let placementPath = placement?.path
+            let placementIndex = placement?.index
+
+            const configData = JSON.parse(JSON.stringify(L_.configData))
+
+            if (placementPath && typeof placementPath === 'string') {
+                placementPath = placementPath
+                    .split('.')
+                    .map((p) => {
+                        return L_.asLayerUUID(p)
+                    })
+                    .join('.')
+                placementPath = placementPath
+                    .replace(/\./g, '.sublayers.')
+                    .split('.')
+                    .concat('sublayers')
+                    .join('.')
+
+                const level = F_.getIn4Layers(
+                    configData.layers,
+                    placementPath,
+                    null,
+                    true
+                )
+                if (level == null) {
+                    reject(
+                        `Path specified in 'placement.path' not found in 'layers': ${placementPath}.`
+                    )
+                    return
+                }
+                if (placementIndex == null) placementIndex = level.length
+                placementIndex = Math.max(
+                    0,
+                    Math.min(placementIndex, level.length)
+                )
+
+                placementPath += '.'
+            } else {
+                placementPath = ''
+                if (placementIndex == null)
+                    placementIndex = configData.layers.length
+                placementIndex = Math.max(
+                    0,
+                    Math.min(placementIndex, configData.layers.length)
+                )
+            }
+
+            const didSet = F_.setIn4Layers(
+                configData.layers,
+                `${placementPath}${placementIndex}`,
+                layerObj,
+                true,
+                true
+            )
+
+            // Then add
+            if (didSet)
+                await L_.modifyLayer(configData, layerObj.name, 'addLayer')
+            else {
+                reject('Failed to add layer.')
+                return
+            }
+            resolve()
+        })
+    },
+    removeLayer: function (layerUUID) {
+        const configData = JSON.parse(JSON.stringify(L_.configData))
+
+        layerUUID = L_.asLayerUUID(layerUUID)
+        let didRemove = false
+        F_.traverseLayers(configData.layers, (layer, path, index) => {
+            if (layer.uuid === layerUUID) {
+                didRemove = true
+                return 'remove'
+            }
+        })
+        if (didRemove) {
+            L_.modifyLayer(configData, layerUUID, 'removeLayer')
+            return true
+        }
+        return false
+    },
     // Returns an array of all features in a given extent
     featuresContained: function () {
         if (!mmgisAPI_.map) {
@@ -325,6 +435,19 @@ var mmgisAPI_ = {
 
 var mmgisAPI = {
     /**
+     * Adds a layer to the map. For a more "temporary" layer, use Leaflet directly through `mmgisAPI.map`
+     * @param {object} layerObj - See schema in configData
+     * @param {object} placement - Position to place layer relative to other layers - {path: , index: }
+     * @returns {Promise}
+     */
+    addLayer: mmgisAPI_.addLayer,
+    /**
+     * Removes a layer from the map.
+     * @params {string} layerUUID - layer name/uuid to remove
+     * @returns {boolean} - true if found and removed, otherwise false
+     */
+    removeLayer: mmgisAPI_.removeLayer,
+    /**
      * Clears a layer with a specified name
      * @param {string} - layerName - name of layer to clear
      */
@@ -567,11 +690,14 @@ var mmgisAPI = {
      * @param {boolean} - on - (optional) Set true if the visibility should be on or false if visibility should be off. If not set, the current visibility state will switch to the opposite state.
      */
     toggleLayer: mmgisAPI_.toggleLayer,
+
     /** overwriteLegends - overwrite the contents displayed in the LegendTool; useful when used with `toolChange` event listener in mmgisAPI
      * @param {array} - legends - an array of objects, where each object must contain the following keys: legend, layerUUID, display_name, opacity. The value for the legend key should be in the same format as what is stored in the layers data under the `_legend` key (i.e. `L_.layers.data[layerName]._legend`). layerUUID and display_name should be strings and opacity should be a number between 0 and 1.
      */
     overwriteLegends: LegendTool.overwriteLegends,
 
+    // Formulae_
+    utils: { ...F_ },
 }
 
 window.mmgisAPI = mmgisAPI
