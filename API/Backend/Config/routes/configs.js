@@ -250,7 +250,7 @@ if (fullAccess)
 function upsert(req, res, next, cb, info) {
   let hasVersion = false;
   req.body = req.body || {};
-  console.log(info);
+
   info = info || {
     type: "upsert",
   };
