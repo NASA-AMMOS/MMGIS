@@ -36,6 +36,9 @@ const Utils = {
     return index;
   },
   setIn: function (obj, keyArray, value, splice, assumeLayerHierarchy) {
+    console.log("----- API/utils.js setIn start -----")
+    console.log("keyArray", keyArray)
+
     if (keyArray == null || keyArray === []) return false;
     if (typeof keyArray === "string") keyArray = keyArray.split(".");
     let object = obj;
@@ -59,13 +62,21 @@ const Utils = {
     return true;
   },
   traverseLayers: function (layers, onLayer) {
+    console.log("----- traverseLayers-----")
+    const removedUUIDs = [];
+    const removedNodes = [];
     depthTraversal(layers, 0, []);
     function depthTraversal(node, depth, path) {
       for (var i = 0; i < node.length; i++) {
         const ret = onLayer(node[i], path, i);
-
+        // FIXME todo need walk through children of removed node to find their UUIDs
+        // still need to use the returned values to make sure we dont add sub layers into the unable to remove list 
         if (ret === "remove") {
-          node.splice(i, 1);
+          const removed = node.splice(i, 1);
+          if (removed.length > 0) {
+              removedUUIDs.push(removed[0].uuid);
+              removedNodes.push(removed);
+          }
           i--;
         }
         //Add other feature information while we're at it
@@ -82,6 +93,38 @@ const Utils = {
         }
       }
     }
+
+/*
+            Utils.traverseLayers(config.layers, (layer, path, index) => {
+              if (layer.uuid === req.body.layerUUID) {
+                existingLayer = JSON.parse(JSON.stringify(layer));
+                if (placementPath == null) placementPath = path;
+                if (placementIndex == null) placementIndex = index;
+                return "remove";
+              }
+            });
+*/
+
+    // Find the UUIDs of the sublayers of each removed layer
+    let removedSubLayerUUIDs = [];
+    for (var i = 0; i < removedNodes.length; i++) {
+       const sublayerUUIDs = Utils.findSubLayerUUIDs(removedNodes[i]);
+       removedSubLayerUUIDs.concat(sublayerUUIDs);
+    }
+
+    // Remove the sublayer UUIDs of the removed layers from the removedUUIDs list
+
+    return removedUUIDs;
+  },
+  findSubLayerUUIDs: function (layers) {
+    console.log("----- findSubLayerUUIDs -----")
+    const UUIDs = [];
+    Utils.traverseLayers(layers, (layer) => {
+      UUIDs.push(layer.uuid)
+      return;
+    });
+    console.log("UUIDs", UUIDs)
+    return UUIDs;
   },
 };
 

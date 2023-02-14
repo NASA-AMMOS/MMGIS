@@ -201,9 +201,11 @@ var essence = {
         }
 
         essence.ws.onmessage = function (data) {
+            console.log("data", data)
             if (data.data) {
                 try {
                     const parsed = JSON.parse(data.data)
+                    console.log("parsed", parsed)
                     const mission = essence.configData.msv.mission
 
                     if (
@@ -227,20 +229,28 @@ var essence = {
                                     mission,
                                 },
                                 async function (data) {
-                                    if (parsed.forceClientUpdate) {
-                                        // Force update the client side
-                                        await L_.autoUpdateLayer(
-                                            data,
-                                            layerName,
-                                            type
-                                        )
+                                    if (Array.isArray(layerName)) {
+                                        // If we're adding an array of new layers, add each layer to the queue individually
+                                        for (let layer in layerName) {
+                                            L_.addLayerQueue.push({
+                                                newLayerName: layerName[layer],
+                                                data,
+                                                type,
+                                            })
+                                        }
                                     } else {
+                                        // Otherwise only a single new layer was added
                                         L_.addLayerQueue.push({
                                             newLayerName: layerName,
                                             data,
                                             type,
                                         })
+                                    }
 
+                                    if (parsed.forceClientUpdate) {
+                                        // Force update the client side
+                                        await L_.updateQueueLayers()
+                                    } else {
                                         UserInterface_.updateLayerUpdateButton(
                                             'ADD_LAYER'
                                         )
@@ -484,6 +494,12 @@ var essence = {
             mmgisAPI_.fina(Map_)
 
             stylize()
+
+            window.print_remove = function(uuid) {
+                const output = `curl -X POST -H \"Authorization:Bearer testtoken-41ed68d0a04765f131447dee81f7844b\"  -H \"Content-Type: application/json\" -d '{\"mission\":\"Test\", \"layerUUID\":\"${uuid}", \"forceClientUpdate\": false}' http://localhost:8889/api/configure/removeLayer`
+                console.log(output)
+                copy(output)
+            }
         }
     },
 }

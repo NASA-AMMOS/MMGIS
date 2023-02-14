@@ -606,6 +606,7 @@ function openWebSocket(body, response, info, forceClientUpdate) {
 
 // === Quick API Functions ===
 function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
+    console.log("----- addLayer -----")
   const exampleBody = {
     mission: "{mission_name}",
     layer: {
@@ -693,23 +694,60 @@ function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
             );
           }
 
-          // This adds the proposed_uuid key to all of the new layers/sublayers to be added that have
-          // user defined UUIDs. We remove the proposed_uuid key after using it to check for unique UUIDs.
-          Utils.traverseLayers([req.body.layer], (layer) => {
-            if (layer.uuid != null) {
-                layer.proposed_uuid = layer.uuid;
-            }
-          });
+          console.log("-----  config.layers-----\n")
+          //console.log(config.layers)
+          console.log("placementPath", placementPath)
+          console.log("placementIndex", placementIndex)
 
-          const didSet = Utils.setIn(
-            config.layers,
-            `${placementPath}${placementIndex}`,
-            req.body.layer,
-            true,
-            true
-          );
+          let didSet = false
+
+          // Input can be object or array
+          if (Array.isArray(req.body.layer)) {
+            console.log("Array.isArray(req.body.layer) == TRUE")
+
+            for (let i in req.body.layer) {
+              // This adds the proposed_uuid key to all of the new layers/sublayers to be added that have
+              // user defined UUIDs. We remove the proposed_uuid key after using it to check for unique UUIDs.
+              Utils.traverseLayers([req.body.layer[i]], (layer) => {
+                if (layer.uuid != null) {
+                  layer.proposed_uuid = layer.uuid;
+                }
+              });
+
+              didSet = Utils.setIn(
+                config.layers,
+                `${placementPath}${placementIndex}`,
+                req.body.layer[i],
+                true,
+                true
+              );
+              placementIndex += 1
+            }
+          } else {
+            console.log("Array.isArray(req.body.layer) == FALSE")
+            console.log("req.body.layer", req.body.layer)
+
+            // This adds the proposed_uuid key to all of the new layers/sublayers to be added that have
+            // user defined UUIDs. We remove the proposed_uuid key after using it to check for unique UUIDs.
+            Utils.traverseLayers([req.body.layer], (layer) => {
+              if (layer.uuid != null) {
+                  layer.proposed_uuid = layer.uuid;
+              }
+            });
+
+            didSet = Utils.setIn(
+              config.layers,
+              `${placementPath}${placementIndex}`,
+              req.body.layer,
+              true,
+              true
+            );
+          }
 
           if (didSet) {
+            console.log("----- before upsert -----")
+            console.log("config.layers", config.layers)
+            console.log("req.body.layer", req.body.layer)
             upsert(
               {
                 body: {
@@ -745,7 +783,9 @@ function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
               },
               {
                 type: caller,
-                layerName: req.body.layer.name,
+                layerName: Array.isArray(req.body.layer)
+                    ? req.body.layer.map(i => i.name)
+                    : req.body.layer.name,
               }
             );
           } else if (cb)
@@ -916,6 +956,7 @@ if (fullAccess)
   });
 
 function removeLayer(req, res, next, cb) {
+console.log("----- removeLayer -----")
   const exampleBody = {
     mission: "{mission_name}",
     layerUUID: "{existing_layer_uuid}",
@@ -952,14 +993,27 @@ function removeLayer(req, res, next, cb) {
         res.send(config);
       } else {
         try {
+          let layerUUIDs = [];
+
+          // Input can be object or array
+          if (!Array.isArray(req.body.layerUUID)) {
+            console.log("Array.isArray(req.body.layerUUID) == TRUE")
+            layerUUIDs.push(req.body.layerUUID);
+          } else {
+            layerUUIDs = [...req.body.layerUUID];
+          }
+
           let didRemove = false;
-          Utils.traverseLayers(config.layers, (layer, path, index) => {
-            if (layer.uuid === req.body.layerUUID) {
+          const removedUUIDs = Utils.traverseLayers(config.layers, (layer, path, index) => {
+            if (layerUUIDs.includes(layer.uuid)) {
               didRemove = true;
               return "remove";
             }
           });
 
+
+          console.log("removedUUIDs", removedUUIDs)
+          const unableToRemoveUUIDs = layerUUIDs.filter(i => !removedUUIDs.includes(i));
           if (didRemove) {
             upsert(
               {
@@ -975,12 +1029,16 @@ function removeLayer(req, res, next, cb) {
                 if (resp.status === "success") {
                   res.send({
                     status: "success",
-                    message: `Successfully removed layer '${req.body.layerUUID}'.`,
+                    message: `Successfully removed layer${removedUUIDs.length >= 1 ? 's' : ''}. Configuration versioned ${resp.version}.`,
+                    removedUUIDs: removedUUIDs,
+                    unableToRemoveUUIDs: unableToRemoveUUIDs,
                   });
                 } else {
+                  console.log("")
                   res.send({
                     status: "failure",
-                    message: `Failed to remove layer '${req.body.layerUUID}': ${resp.message}`,
+                    message: `Failed to remove layer${layerUUIDs.length >= 1 ? 's' : ''}: ${resp.message}.`,
+                    unableToRemoveUUIDs: layerUUIDs,
                   });
                 }
               },
@@ -992,7 +1050,8 @@ function removeLayer(req, res, next, cb) {
           } else {
             res.send({
               status: "failure",
-              message: `Failed to remove layer '${req.body.layerUUID}'. Layer not found.`,
+              message: `Failed to remove layer${layerUUIDs.length >= 1 ? 's' : ''}. Layer${layerUUIDs.length >= 1 ? 's' : ''} not found.`,
+              unableToRemoveUUIDs: layerUUIDs,
             });
           }
         } catch (err) {}
