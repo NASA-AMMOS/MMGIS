@@ -250,6 +250,13 @@ if (fullAccess)
 function upsert(req, res, next, cb, info) {
   let hasVersion = false;
   req.body = req.body || {};
+  console.log(info);
+  info = info || {
+    type: "upsert",
+  };
+  info.route = "config";
+  info.id = req.body.id;
+  info.mission = req.body.mission;
 
   if (req.body.version != null) hasVersion = true;
   let versionConfig = null;
@@ -697,7 +704,7 @@ function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
           // user defined UUIDs. We remove the proposed_uuid key after using it to check for unique UUIDs.
           Utils.traverseLayers([req.body.layer], (layer) => {
             if (layer.uuid != null) {
-                layer.proposed_uuid = layer.uuid;
+              layer.proposed_uuid = layer.uuid;
             }
           });
 

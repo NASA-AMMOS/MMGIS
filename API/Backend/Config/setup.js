@@ -18,6 +18,12 @@ let setup = {
             user: user,
             AUTH: process.env.AUTH,
             NODE_ENV: process.env.NODE_ENV,
+            PORT: process.env.PORT || "8888",
+            ENABLE_CONFIG_WEBSOCKETS: process.env.ENABLE_CONFIG_WEBSOCKETS,
+            ROOT_PATH:
+              process.env.NODE_ENV === "development"
+                ? ""
+                : process.env.ROOT_PATH || "",
           });
         }
       );

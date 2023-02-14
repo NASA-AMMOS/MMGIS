@@ -115,3 +115,7 @@ LDAP group of leads (users with elevated permissions) | string | default `''`
 #### `ENABLE_MMGIS_WEBSOCKETS=`
 
 If true, enables the backend MMGIS websockets to tell clients to update layers | boolean | default `false`
+
+#### `ENABLE_CONFIG_WEBSOCKETS=`
+
+If true, notifications are sent to /configure users whenever the current mission's configuration object changes out from under them and thne puts (overridable) limits on saving | boolean | default `false`
