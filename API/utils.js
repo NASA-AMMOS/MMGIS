@@ -59,13 +59,18 @@ const Utils = {
     return true;
   },
   traverseLayers: function (layers, onLayer) {
+    let removedUUIDs = [];
     depthTraversal(layers, 0, []);
     function depthTraversal(node, depth, path) {
       for (var i = 0; i < node.length; i++) {
         const ret = onLayer(node[i], path, i);
-
         if (ret === "remove") {
-          node.splice(i, 1);
+          const removed = node.splice(i, 1);
+          if (removed.length > 0) {
+            // Find and store the UUIDs of the sublayers of the removed layer
+            const removedSubLayerUUIDs = Utils.findSubLayerUUIDs(removed);
+            removedUUIDs = removedUUIDs.concat(removedSubLayerUUIDs);
+          }
           i--;
         }
         //Add other feature information while we're at it
@@ -82,6 +87,17 @@ const Utils = {
         }
       }
     }
+
+    // Returns array of removed layer UUIDs, including all removed sublayer UUIDs
+    return removedUUIDs;
+  },
+  findSubLayerUUIDs: function (layers) {
+    const UUIDs = [];
+    Utils.traverseLayers(layers, (layer) => {
+      UUIDs.push({ name: layer.name, uuid: layer.uuid });
+      return;
+    });
+    return UUIDs;
   },
 };
 

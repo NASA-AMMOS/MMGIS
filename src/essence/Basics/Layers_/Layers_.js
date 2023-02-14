@@ -2509,8 +2509,8 @@ const L_ = {
         }
     },
     parseConfig: parseConfig,
-    // Dynamically add a new layer or update a layer (used by WebSocket)
-    modifyLayer: async function (data, layerName, type) {
+
+    resetConfig: function (data) {
         // Save so we can make sure we reproduce the same layer settings after parsing the config
         const toggledArray = { ...L_.layers.on }
 
@@ -2526,7 +2526,9 @@ const L_ = {
 
         // Set back
         L_.layers.on = { ...L_.layers.on, ...toggledArray }
-
+    },
+    // Dynamically add a new layer or update a layer (used by WebSocket)
+    modifyLayer: async function (data, layerName, type) {
         layerName = L_.asLayerUUID(layerName)
 
         const newLayersOrdered = [...L_._layersOrdered]
@@ -2537,17 +2539,9 @@ const L_ = {
             // Update layer
             await L_.TimeControl_.reloadLayer(layerName, true, true)
         } else if (type === 'addLayer') {
-            // Add layer
-            await L_.Map_.makeLayer(L_.layers.data[layerName])
-            L_.addVisible(L_.Map_, [layerName])
+            await L_.addLayerToLayersData(layerName)
         } else if (type === 'removeLayer') {
-            // If the layer is visible, we need to remove it,
-            // otherwise do nothing since its already removed from the map
-            if (layerName in L_.layers.on && L_.layers.on[layerName]) {
-                // Toggle it to remove it
-                await L_.toggleLayer(L_.layers.data[layerName])
-            }
-            delete L_.layers.on[layerName]
+            await L_.removeLayerFromLayersData(layerName)
         }
 
         if (ToolController_.activeToolName === 'LayersTool') {
@@ -2558,8 +2552,104 @@ const L_ = {
             }
         }
     },
+    addLayerToLayersData: async function(layerName) {
+        if (L_.layers.data[layerName]) {
+            // Recursively going through the new layer to get all of its sub layers
+            const layersOrdered = L_.expandLayersToArray([L_.layers.data[layerName]])
+
+            if (!layersOrdered.includes(layerName)) {
+                // If the new layer is a header, we need to add it to the list of layers
+                layersOrdered.push(layerName)
+            }
+            layersOrdered.reverse()
+
+            for (let i = 0; i < layersOrdered.length; i++) {
+                // Add layer
+                await L_.Map_.makeLayer(L_.layers.data[layersOrdered[i]])
+                L_.addVisible(L_.Map_, [layersOrdered[i]])
+            }
+        }
+    },
+    removeLayerFromLayersData: async function(layerName) {
+        if (L_.layers.data[layerName]) {
+            // Recursively going through the removed layer to get all of its sub layers
+            const layersOrdered = L_.expandLayersToArray([L_.layers.data[layerName]])
+
+            if (!layersOrdered.includes(layerName)) {
+                // If the new layer is a header, we need to add it to the list of layers
+                layersOrdered.push(layerName)
+            }
+
+            for (let i = 0; i < layersOrdered.length; i++) {
+                const layerUUID = layersOrdered[i];
+
+                // If the layer is visible, we need to remove it,
+                // otherwise do nothing since its already removed from the map
+                if (layerUUID in L_.layers.on && L_.layers.on[layerUUID]) {
+                    // Toggle it to remove it
+                    await L_.toggleLayer(L_.layers.data[layerUUID])
+                }
+
+                const display_name = L_.layers.data[layerUUID].display_name
+                if (L_.layers.nameToUUID[display_name]) {
+                    const index = L_.layers.nameToUUID[display_name].indexOf(layerUUID)
+                    if (index > -1) {
+                        L_.layers.nameToUUID[display_name].splice(index, 1)
+                    }
+                    if (L_.layers.nameToUUID[display_name].length < 1) {
+                        delete L_.layers.nameToUUID[display_name]
+                    }
+                }
+
+                delete L_.layers.layer[layerUUID]
+                delete L_.layers.data[layerUUID]
+                delete L_.layers.on[layerUUID]
+                delete L_.layers.attachments[layerUUID]
+                delete L_.layers.opacity[layerUUID]
+            }
+        }
+    },
+    expandLayersToArray: function(layer) {
+        // Recursively going through the removed layer to get all of its sub layers
+        const layersOrdered = []
+        expandLayers(layer, 0, null)
+
+        function expandLayers(d, level, prevName) {
+            //Iterate over each layer
+            for (let i = 0; i < d.length; i++) {
+                //Check if it's not a header and thus an actual layer with data
+                if (d[i].type != 'header') {
+                    //Create parsed layers ordered
+                    layersOrdered.push(d[i].name)
+                }
+
+                //Get the current layers sublayers (returns 0 if none)
+                var dNext = getSublayers(d[i])
+                //If they are sublayers, call this function again and move up a level
+                if (dNext != 0) {
+                    expandLayers(dNext, level + 1, d[i].name)
+                }
+            }
+        }
+        //Get the current layers sublayers (returns 0 if none)
+        function getSublayers(d) {
+            //If object d has a sublayers property, return it
+            if (d.hasOwnProperty('sublayers')) {
+                return d.sublayers
+            }
+            //Otherwise return 0
+            return 0
+        }
+
+        return layersOrdered
+    },
     updateLayersHelper: async function (layerQueueList) {
         if (layerQueueList.length > 0) {
+            // If we have a few changes waiting in the queue, we only need to parse the config once
+            // as the last item in the queue should have the latest data
+            const lastLayer  = layerQueueList[layerQueueList.length - 1]
+            L_.resetConfig(lastLayer.data)
+
             while (layerQueueList.length > 0) {
                 const firstLayer = layerQueueList.shift()
                 const { data, newLayerName, type } = firstLayer
@@ -2753,7 +2843,10 @@ function parseConfig(configData, urlOnLayers) {
             d[i].uuid = d[i].uuid || d[i].name
             if (L_.layers.nameToUUID[d[i].name] == null)
                 L_.layers.nameToUUID[d[i].name] = []
-            L_.layers.nameToUUID[d[i].name].push(d[i].uuid)
+
+            if (!L_.layers.nameToUUID[d[i].name].includes(d[i].uuid)) {
+                L_.layers.nameToUUID[d[i].name].push(d[i].uuid)
+            }
             d[i] = { display_name: d[i].name, ...d[i] }
             d[i].name = d[i].uuid || d[i].name
 
@@ -2840,4 +2933,5 @@ function parseConfig(configData, urlOnLayers) {
     }
 }
 
+window.L_ = L_
 export default L_
