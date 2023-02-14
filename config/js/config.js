@@ -1,6 +1,9 @@
 //So that each layer bar will always have a unique id
 var grandLayerCounter = 0;
 var mission = "";
+var configId = -1;
+var lockConfig = false;
+var lockConfigCount;
 //The active mission filepath
 var missionPath = "";
 var tData;
@@ -260,6 +263,7 @@ function initialize() {
 
           mission = $(this).find("a").html();
           missionPath = calls.missionPath + mission + "/config.json";
+          configId = parseInt(Math.random() * 100000);
 
           $.ajax({
             type: calls.get.type,
@@ -271,6 +275,8 @@ function initialize() {
             success: function (data) {
               if (data.status == "success") {
                 var cData = data.config;
+
+                clearLockConfig();
 
                 for (var e in tabEditors) {
                   tabEditors[e].setValue("");
@@ -2519,12 +2525,27 @@ function addMission() {
 }
 
 function saveConfig(json) {
+  if (lockConfig === true) {
+    toast(
+      "error",
+      `This configuartion changed while you were working on it. Cannot save without refresh or ${lockConfigCount} more attempt${
+        lockConfigCount != 1 ? "s" : ""
+      } at saving to force it.`,
+      5000
+    );
+    lockConfigCount--;
+    if (lockConfigCount <= 0) {
+      clearLockConfig();
+    }
+    return;
+  }
   $.ajax({
     type: calls.upsert.type,
     url: calls.upsert.url,
     data: {
       mission: mission,
       config: JSON.stringify(json),
+      id: configId,
     },
     success: function (data) {
       if (data.status == "success") {
@@ -2928,6 +2949,7 @@ function populateVersions(versions) {
       data: {
         mission: $(this).attr("mission"),
         version: $(this).attr("version"),
+        id: configId,
       },
       success: function (data) {
         if (data.status == "success") {
@@ -3046,7 +3068,7 @@ function getDuplicatedNames(json) {
 }
 
 let toastId = 0;
-function toast(type, message, duration) {
+function toast(type, message, duration, className) {
   let color = "#000000";
   switch (type) {
     case "success":
@@ -3062,8 +3084,47 @@ function toast(type, message, duration) {
       return;
   }
   const id = `toast_${type}_${toastId}`;
-  Materialize.toast(`<span id='${id}'>${message}</span>`, duration || 4000);
+  Materialize.toast(
+    `<span id='${id}'${
+      className != null ? ` class='${className}'` : ""
+    }>${message}</span>`,
+    duration || 4000
+  );
   $(`#${id}`).parent().css("background-color", color);
 
   toastId++;
+}
+
+const lockConfigTypes = {
+  main: null,
+  disconnect: null,
+};
+function setLockConfig(type) {
+  clearLockConfig(type);
+  lockConfig = true;
+  lockConfigTypes[type || "main"] = false;
+  lockConfigCount = 4;
+
+  toast(
+    "warning",
+    type === "disconnect"
+      ? "Websocket disconnected. You will not be able to save until it reconnects."
+      : "This configuration changed while you were working on it. You must refresh.",
+    100000000000,
+    "lockConfigToast"
+  );
+}
+function clearLockConfig(type) {
+  lockConfigTypes[type || "main"] = false;
+
+  let canUnlock = true;
+  Object.keys(lockConfigTypes).forEach((k) => {
+    if (lockConfigTypes[k] === true) canUnlock = false;
+  });
+  if (canUnlock) {
+    lockConfig = false;
+    document
+      .querySelectorAll(".lockConfigToast")
+      .forEach((el) => el.parentNode.remove());
+  }
 }

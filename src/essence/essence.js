@@ -254,6 +254,10 @@ var essence = {
                                     )
                                 }
                             )
+                        } else {
+                            if (parsed.body && parsed.body.config) {
+                                UserInterface_.updateLayerUpdateButton('RELOAD')
+                            }
                         }
                     } else {
                         if (parsed.body && parsed.body.config) {
@@ -370,13 +374,17 @@ var essence = {
             window.mmgisglobal.PORT &&
             window.mmgisglobal.ENABLE_MMGIS_WEBSOCKETS === 'true'
         ) {
-            const port = parseInt(process.env.PORT || '8888', 10)
+            const port = parseInt(window.mmgisglobal.PORT || '8888', 10)
             const protocol =
                 window.location.protocol.indexOf('https') !== -1 ? 'wss' : 'ws'
             const path =
                 window.mmgisglobal.NODE_ENV === 'development'
-                    ? `${protocol}://localhost:${port}/`
-                    : `${protocol}://${window.location.host}/`
+                    ? `${protocol}://localhost:${port}${
+                          window.mmgisglobal.ROOT_PATH || ''
+                      }/`
+                    : `${protocol}://${window.location.host}${
+                          window.mmgisglobal.ROOT_PATH || ''
+                      }/`
 
             essence.connectWebSocket(path, true)
             essence.webSocketPingInterval = setInterval(

@@ -452,7 +452,7 @@ textarea {
 
 #toast-container {
   pointer-events: none;
-  top: 110px !important;
+  top: 48px !important;
   right: 6px !important;
 }
 

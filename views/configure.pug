@@ -32,12 +32,16 @@ script.
     mmgisglobal.SHOW_AUTH_TIMEOUT = true;
     mmgisglobal.user = '#{user}';
     mmgisglobal.NODE_ENV = '#{NODE_ENV}';
+    mmgisglobal.ROOT_PATH = '#{ROOT_PATH}';
+    mmgisglobal.PORT = '#{PORT}'
+    mmgisglobal.ENABLE_CONFIG_WEBSOCKETS = '#{ENABLE_CONFIG_WEBSOCKETS}'
 script(type='text/javascript' src='config/js/calls.js')
 script(type='text/javascript' src='config/js/keys.js')
 script(type='text/javascript' src='config/js/datasets.js')
 script(type='text/javascript' src='config/js/geodatasets.js')
 script(type='text/javascript' src='config/js/webhooks.js')
 script(type='text/javascript' src='config/js/config.js')
+script(type='text/javascript' src='config/js/websocket.js')
 script(type='text/javascript' src='config/pre/RefreshAuth.js')
 
 #leftPanel
