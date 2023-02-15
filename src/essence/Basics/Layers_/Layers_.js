@@ -2615,6 +2615,9 @@ const L_ = {
 
                 delete L_.layers.layer[layerUUID]
                 delete L_.layers.data[layerUUID]
+                delete L_.layers.on[layerUUID]
+                delete L_.layers.attachments[layerUUID]
+                delete L_.layers.opacity[layerUUID]
             }
 
             console.log("-----  type === 'removeLayer' ------")

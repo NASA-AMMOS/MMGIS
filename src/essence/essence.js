@@ -496,7 +496,7 @@ var essence = {
             stylize()
 
             window.print_remove = function(uuid) {
-                const output = `curl -X POST -H \"Authorization:Bearer testtoken-41ed68d0a04765f131447dee81f7844b\"  -H \"Content-Type: application/json\" -d '{\"mission\":\"Test\", \"layerUUID\":\"${uuid}", \"forceClientUpdate\": false}' http://localhost:8889/api/configure/removeLayer`
+                const output = `curl -X POST -H \"Authorization:Bearer testtoken-41ed68d0a04765f131447dee81f7844b\"  -H \"Content-Type: application/json\" -d '{\"mission\":\"Test\", \"layerUUID\":[\"${uuid.join("\",\"")}\"], \"forceClientUpdate\": false}' http://localhost:8889/api/configure/removeLayer`
                 console.log(output)
                 copy(output)
             }

@@ -296,7 +296,7 @@ function upsert(req, res, next, cb, info) {
         } else configJSON = req.body.config;
       }
 
-      const newlyAddedUUIDs = populateUUIDs(configJSON);
+      const { newlyAddedUUIDs, allUUIDs } = populateUUIDs(configJSON);
       const validation = validate(configJSON);
 
       if (!validation.valid) {
@@ -344,6 +344,29 @@ function upsert(req, res, next, cb, info) {
               version: created.version,
               newlyAddedUUIDs: newlyAddedUUIDs,
             });
+
+          if (info && info.layerName) {
+            // Find the layer UUID instead of passing back the layer's display name
+            let isArray = true;
+            let infoLayerNames = info.layerName;
+            if (!Array.isArray(info.layerName)) {
+              infoLayerNames = [];
+              infoLayerNames.push(info.layerName);
+              isArray = false;
+            }
+
+            for (let i in infoLayerNames) {
+              const result = allUUIDs.find(x => x.name == infoLayerNames[i])
+              if (result) {
+                infoLayerNames[i] = result.uuid;
+              }
+            }
+
+            if (!isArray) {
+              info.layerName = infoLayerNames[0]
+            }
+          }
+
           openWebSocket(
             req.body,
             {
@@ -606,7 +629,6 @@ function openWebSocket(body, response, info, forceClientUpdate) {
 
 // === Quick API Functions ===
 function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
-    console.log("----- addLayer -----")
   const exampleBody = {
     mission: "{mission_name}",
     layer: {
@@ -944,7 +966,6 @@ if (fullAccess)
   });
 
 function removeLayer(req, res, next, cb) {
-console.log("----- removeLayer -----")
   const exampleBody = {
     mission: "{mission_name}",
     layerUUID: "{existing_layer_uuid}",
