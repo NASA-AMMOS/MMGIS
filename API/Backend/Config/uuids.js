@@ -14,13 +14,6 @@ const populateUUIDs = (config) => {
   });
 
   Utils.traverseLayers(config.layers, (layer) => {
-    if (layer.uuid != null  && !layer.proposed_uuid) {
-      definedUUIDs.push(layer.uuid)
-    }
-  });
-
-  Utils.traverseLayers(config.layers, (layer) => {
-    console.log("layer", layer.name, definedUUIDs.includes(layer.proposed_uuid), layer.proposed_uuid)
     if (layer.uuid == null) {
       layer.uuid = uuidv4();
       newlyAddedUUIDs.push({

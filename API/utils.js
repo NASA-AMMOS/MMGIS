@@ -63,8 +63,7 @@ const Utils = {
   },
   traverseLayers: function (layers, onLayer) {
     console.log("----- traverseLayers-----")
-    const removedUUIDs = [];
-    const removedNodes = [];
+    let removedUUIDs = [];
     depthTraversal(layers, 0, []);
     function depthTraversal(node, depth, path) {
       for (var i = 0; i < node.length; i++) {
@@ -74,8 +73,11 @@ const Utils = {
         if (ret === "remove") {
           const removed = node.splice(i, 1);
           if (removed.length > 0) {
-              removedUUIDs.push(removed[0].uuid);
-              removedNodes.push(removed);
+            removedUUIDs.push({ name: removed[0].name, uuid: removed[0].uuid });
+
+            // Find and store the UUIDs of the sublayers of the removed layer
+            const removedSubLayerUUIDs = Utils.findSubLayerUUIDs(removed);
+            removedUUIDs = removedUUIDs.concat(removedSubLayerUUIDs);
           }
           i--;
         }
@@ -94,33 +96,14 @@ const Utils = {
       }
     }
 
-/*
-            Utils.traverseLayers(config.layers, (layer, path, index) => {
-              if (layer.uuid === req.body.layerUUID) {
-                existingLayer = JSON.parse(JSON.stringify(layer));
-                if (placementPath == null) placementPath = path;
-                if (placementIndex == null) placementIndex = index;
-                return "remove";
-              }
-            });
-*/
-
-    // Find the UUIDs of the sublayers of each removed layer
-    let removedSubLayerUUIDs = [];
-    for (var i = 0; i < removedNodes.length; i++) {
-       const sublayerUUIDs = Utils.findSubLayerUUIDs(removedNodes[i]);
-       removedSubLayerUUIDs.concat(sublayerUUIDs);
-    }
-
-    // Remove the sublayer UUIDs of the removed layers from the removedUUIDs list
-
+    // Returns array of removed layer UUIDs, including all removed sublayer UUIDs
     return removedUUIDs;
   },
   findSubLayerUUIDs: function (layers) {
     console.log("----- findSubLayerUUIDs -----")
     const UUIDs = [];
     Utils.traverseLayers(layers, (layer) => {
-      UUIDs.push(layer.uuid)
+      UUIDs.push({ name: layer.name, uuid: layer.uuid });
       return;
     });
     console.log("UUIDs", UUIDs)

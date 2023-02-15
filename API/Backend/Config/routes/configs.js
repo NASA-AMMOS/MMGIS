@@ -694,17 +694,10 @@ function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
             );
           }
 
-          console.log("-----  config.layers-----\n")
-          //console.log(config.layers)
-          console.log("placementPath", placementPath)
-          console.log("placementIndex", placementIndex)
-
-          let didSet = false
+          let didSet = false;
 
           // Input can be object or array
           if (Array.isArray(req.body.layer)) {
-            console.log("Array.isArray(req.body.layer) == TRUE")
-
             for (let i in req.body.layer) {
               // This adds the proposed_uuid key to all of the new layers/sublayers to be added that have
               // user defined UUIDs. We remove the proposed_uuid key after using it to check for unique UUIDs.
@@ -721,12 +714,10 @@ function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
                 true,
                 true
               );
-              placementIndex += 1
+
+              placementIndex += 1;
             }
           } else {
-            console.log("Array.isArray(req.body.layer) == FALSE")
-            console.log("req.body.layer", req.body.layer)
-
             // This adds the proposed_uuid key to all of the new layers/sublayers to be added that have
             // user defined UUIDs. We remove the proposed_uuid key after using it to check for unique UUIDs.
             Utils.traverseLayers([req.body.layer], (layer) => {
@@ -745,9 +736,6 @@ function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
           }
 
           if (didSet) {
-            console.log("----- before upsert -----")
-            console.log("config.layers", config.layers)
-            console.log("req.body.layer", req.body.layer)
             upsert(
               {
                 body: {
@@ -997,7 +985,6 @@ console.log("----- removeLayer -----")
 
           // Input can be object or array
           if (!Array.isArray(req.body.layerUUID)) {
-            console.log("Array.isArray(req.body.layerUUID) == TRUE")
             layerUUIDs.push(req.body.layerUUID);
           } else {
             layerUUIDs = [...req.body.layerUUID];
@@ -1011,9 +998,7 @@ console.log("----- removeLayer -----")
             }
           });
 
-
-          console.log("removedUUIDs", removedUUIDs)
-          const unableToRemoveUUIDs = layerUUIDs.filter(i => !removedUUIDs.includes(i));
+          const unableToRemoveUUIDs = layerUUIDs.filter(i => !removedUUIDs.map(x => x.uuid).includes(i));
           if (didRemove) {
             upsert(
               {
@@ -1034,7 +1019,6 @@ console.log("----- removeLayer -----")
                     unableToRemoveUUIDs: unableToRemoveUUIDs,
                   });
                 } else {
-                  console.log("")
                   res.send({
                     status: "failure",
                     message: `Failed to remove layer${layerUUIDs.length >= 1 ? 's' : ''}: ${resp.message}.`,

@@ -2581,6 +2581,7 @@ const L_ = {
                 layersOrdered.push(layerName)
             }
 
+/*
             for (let i = 0; i < layersOrdered.length; i++) {
                 // Add layer
                 await L_.Map_.makeLayer(L_.layers.data[layersOrdered[i]])
@@ -2591,7 +2592,35 @@ const L_ = {
                 // Toggle it to remove it
                 await L_.toggleLayer(L_.layers.data[layerName])
             }
+*/
+
+            for (let i = 0; i < layersOrdered.length; i++) {
+                const layerUUID = layersOrdered[i];
+                if (layerUUID in L_.layers.on && L_.layers.on[layerUUID]) {
+                    // Toggle it to remove it
+                    await L_.toggleLayer(L_.layers.data[layerUUID])
+                }
+
+                const layerName = L_.layers.data[layerUUID].display_name
+                if (L_.layers.nameToUUID[layerName]) {
+                    const index = L_.layers.nameToUUID[layerName].indexOf(layerUUID)
+                    if (index > -1) {
+                        console.log()
+                        L_.layers.nameToUUID[layerName].splice(index, 1)
+                    }
+                    if (L_.layers.nameToUUID[layerName].length < 1) {
+                        delete L_.layers.nameToUUID[layerName]
+                    }
+                }
+
+                delete L_.layers.layer[layerUUID]
+                delete L_.layers.data[layerUUID]
+            }
+
+            console.log("-----  type === 'removeLayer' ------")
+            console.log("layersOrdered", layersOrdered)
             delete L_.layers.on[layerName]
+
         }
 
         if (ToolController_.activeToolName === 'LayersTool') {
@@ -2832,7 +2861,9 @@ function parseConfig(configData, urlOnLayers) {
             d[i].uuid = d[i].uuid || d[i].name
             if (L_.layers.nameToUUID[d[i].name] == null)
                 L_.layers.nameToUUID[d[i].name] = []
-            L_.layers.nameToUUID[d[i].name].push(d[i].uuid)
+
+            if (!L_.layers.nameToUUID[d[i].name].includes(d[i].uuid))
+                L_.layers.nameToUUID[d[i].name].push(d[i].uuid)
             d[i] = { display_name: d[i].name, ...d[i] }
             d[i].name = d[i].uuid || d[i].name
 
