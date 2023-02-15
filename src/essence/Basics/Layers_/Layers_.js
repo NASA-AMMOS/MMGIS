@@ -2541,9 +2541,6 @@ const L_ = {
             // Update layer
             await L_.TimeControl_.reloadLayer(layerName, true, true)
         } else if (type === 'addLayer') {
-
-            console.log("\taddLayer", L_.layers.data, layerName,  L_.layers.data[layerName])
-
             // Recursively going through the new layer to get all of its sub layers
             const layersOrdered = L_.expandLayersToArray([L_.layers.data[layerName]])
 
@@ -2572,8 +2569,6 @@ const L_ = {
         }
 
         function expandLayers(d, level, prevName, layersOrdered) {
-            console.log("-------  expandLayers -----")
-            console.log("layersOrdered", layersOrdered)
             //Iterate over each layer
             for (let i = 0; i < d.length; i++) {
                 //Check if it's not a header and thus an actual layer with data
@@ -2673,7 +2668,6 @@ const L_ = {
         return layersOrdered
     },
     updateLayersHelper: async function (layerQueueList) {
-        console.log("----- updateLayersHelper -----")
         if (layerQueueList.length > 0) {
             while (layerQueueList.length > 0) {
                 const firstLayer = layerQueueList.shift()
@@ -2815,8 +2809,6 @@ const L_ = {
 //Takes in a configData object and does a depth-first search through its
 // layers and sets L_ variables
 function parseConfig(configData, urlOnLayers) {
-    console.log("-----  parseConfig -----")
-    console.log("ConfigData", configData)
     //Create parsed configData
     L_.configData = configData
 

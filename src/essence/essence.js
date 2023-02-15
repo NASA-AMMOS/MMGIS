@@ -201,11 +201,9 @@ var essence = {
         }
 
         essence.ws.onmessage = function (data) {
-            console.log("data", data)
             if (data.data) {
                 try {
                     const parsed = JSON.parse(data.data)
-                    console.log("parsed", parsed)
                     const mission = essence.configData.msv.mission
 
                     if (
@@ -494,12 +492,6 @@ var essence = {
             mmgisAPI_.fina(Map_)
 
             stylize()
-
-            window.print_remove = function(uuid) {
-                const output = `curl -X POST -H \"Authorization:Bearer testtoken-41ed68d0a04765f131447dee81f7844b\"  -H \"Content-Type: application/json\" -d '{\"mission\":\"Test\", \"layerUUID\":[\"${uuid.join("\",\"")}\"], \"forceClientUpdate\": false}' http://localhost:8889/api/configure/removeLayer`
-                console.log(output)
-                copy(output)
-            }
         }
     },
 }

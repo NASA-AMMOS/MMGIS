@@ -296,7 +296,7 @@ function upsert(req, res, next, cb, info) {
         } else configJSON = req.body.config;
       }
 
-      const { newlyAddedUUIDs, allUUIDs } = populateUUIDs(configJSON);
+      const { newlyAddedUUIDs, allNewUUIDs } = populateUUIDs(configJSON);
       const validation = validate(configJSON);
 
       if (!validation.valid) {
@@ -357,11 +357,11 @@ function upsert(req, res, next, cb, info) {
             }
 
             for (let i in infoLayerNames) {
-              const found = allUUIDs.findIndex(x => x.name == infoLayerNames[i]);
+              const found = allNewUUIDs.findIndex(x => x.name == infoLayerNames[i]);
               if (found > -1) {
-                const result = allUUIDs[found];
+                const result = allNewUUIDs[found];
                 infoLayerNames[i] = result.uuid;
-                allUUIDs.splice(found, 1);
+                allNewUUIDs.splice(found, 1);
               }
             }
 

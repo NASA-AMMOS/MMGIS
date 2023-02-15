@@ -5,7 +5,7 @@ const { v4: uuidv4, validate: uuidValidate } = require("uuid");
 const populateUUIDs = (config) => {
   const newlyAddedUUIDs = [];
   const definedUUIDs = [];
-  const allUUIDs = [];
+  const allNewUUIDs = [];
 
   // Track of all of the previously defined UUIDs (i.e. ignore the UUIDs of the newly added layers)
   Utils.traverseLayers(config.layers, (layer) => {
@@ -21,7 +21,7 @@ const populateUUIDs = (config) => {
         name: layer.name,
         uuid: layer.uuid,
       });
-      allUUIDs.push({
+      allNewUUIDs.push({
         name: layer.name,
         uuid: layer.uuid,
       });
@@ -33,14 +33,14 @@ const populateUUIDs = (config) => {
         uuid: layer.uuid,
         replacesBadUUID: badUUID,
       });
-      allUUIDs.push({
+      allNewUUIDs.push({
         name: layer.name,
         uuid: layer.uuid,
       });
     } else {
       if (!definedUUIDs.includes(layer.uuid)) {
         definedUUIDs.push(layer.uuid);
-        allUUIDs.push({
+        allNewUUIDs.push({
           name: layer.name,
           uuid: layer.uuid,
         });
@@ -52,7 +52,7 @@ const populateUUIDs = (config) => {
     }
   });
 
-  return { newlyAddedUUIDs, allUUIDs };
+  return { newlyAddedUUIDs, allNewUUIDs };
 };
 
 module.exports = populateUUIDs;
