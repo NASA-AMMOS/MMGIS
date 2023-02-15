@@ -345,6 +345,7 @@ function upsert(req, res, next, cb, info) {
               newlyAddedUUIDs: newlyAddedUUIDs,
             });
 
+
           if (info && info.layerName) {
             // Find the layer UUID instead of passing back the layer's display name
             let isArray = true;
@@ -356,9 +357,11 @@ function upsert(req, res, next, cb, info) {
             }
 
             for (let i in infoLayerNames) {
-              const result = allUUIDs.find(x => x.name == infoLayerNames[i])
-              if (result) {
+              const found = allUUIDs.findIndex(x => x.name == infoLayerNames[i]);
+              if (found > -1) {
+                const result = allUUIDs[found];
                 infoLayerNames[i] = result.uuid;
+                allUUIDs.splice(found, 1);
               }
             }
 
