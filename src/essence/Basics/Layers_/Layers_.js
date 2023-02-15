@@ -2858,15 +2858,19 @@ function parseConfig(configData, urlOnLayers) {
 
     // FIXME 20230123 need to use expandLayers logic when adding new layers with sublayers
     function expandLayers(d, level, prevName) {
+        console.log("d", d)
         //Iterate over each layer
         for (let i = 0; i < d.length; i++) {
             // Quick hack to use uuid instead of name as main id
+            console.log("d[i].name, uuid", d[i].name, d[i].uuid)
             d[i].uuid = d[i].uuid || d[i].name
             if (L_.layers.nameToUUID[d[i].name] == null)
                 L_.layers.nameToUUID[d[i].name] = []
 
-            if (!L_.layers.nameToUUID[d[i].name].includes(d[i].uuid))
+            if (!L_.layers.nameToUUID[d[i].name].includes(d[i].uuid)) {
+                console.log("not already in nameToUUID")
                 L_.layers.nameToUUID[d[i].name].push(d[i].uuid)
+            }
             d[i] = { display_name: d[i].name, ...d[i] }
             d[i].name = d[i].uuid || d[i].name
 
