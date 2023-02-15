@@ -36,9 +36,6 @@ const Utils = {
     return index;
   },
   setIn: function (obj, keyArray, value, splice, assumeLayerHierarchy) {
-    console.log("----- API/utils.js setIn start -----")
-    console.log("keyArray", keyArray)
-
     if (keyArray == null || keyArray === []) return false;
     if (typeof keyArray === "string") keyArray = keyArray.split(".");
     let object = obj;
@@ -62,7 +59,6 @@ const Utils = {
     return true;
   },
   traverseLayers: function (layers, onLayer) {
-    console.log("----- traverseLayers-----")
     let removedUUIDs = [];
     depthTraversal(layers, 0, []);
     function depthTraversal(node, depth, path) {
@@ -73,8 +69,6 @@ const Utils = {
         if (ret === "remove") {
           const removed = node.splice(i, 1);
           if (removed.length > 0) {
-            removedUUIDs.push({ name: removed[0].name, uuid: removed[0].uuid });
-
             // Find and store the UUIDs of the sublayers of the removed layer
             const removedSubLayerUUIDs = Utils.findSubLayerUUIDs(removed);
             removedUUIDs = removedUUIDs.concat(removedSubLayerUUIDs);
@@ -100,13 +94,11 @@ const Utils = {
     return removedUUIDs;
   },
   findSubLayerUUIDs: function (layers) {
-    console.log("----- findSubLayerUUIDs -----")
     const UUIDs = [];
     Utils.traverseLayers(layers, (layer) => {
       UUIDs.push({ name: layer.name, uuid: layer.uuid });
       return;
     });
-    console.log("UUIDs", UUIDs)
     return UUIDs;
   },
 };

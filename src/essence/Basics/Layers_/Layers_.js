@@ -187,9 +187,6 @@ const L_ = {
         await L_.toggleLayerHelper(s, on)
     },
     toggleLayerHelper: async function (s, on, ignoreToggleStateChange) {
-        console.log("-----  toggleLayerHelper------")
-        console.log("s", s)
-        console.log("on", on)
         if (s.type !== 'header') {
             if (on) {
                 if (L_.Map_.map.hasLayer(L_.layers.layer[s.name])) {
@@ -197,7 +194,6 @@ const L_ = {
                         $('.drawToolContextMenuHeaderClose').click()
                     } catch (err) {}
 
-                    console.log("L_.layers.layer[s.name]", L_.layers.layer[s.name])
                     L_.Map_.map.removeLayer(L_.layers.layer[s.name])
                     if (L_.layers.attachments[s.name]) {
                         for (let sub in L_.layers.attachments[s.name]) {
@@ -370,8 +366,6 @@ const L_ = {
                 } else {
                     let hadToMake = false
                     if (L_.layers.layer[s.name] === false) {
-                        console.log("----- Layers_  before MakeLayer ------")
-                        console.log("s", s)
                         await L_.Map_.makeLayer(s, true)
                         Description.updateInfo()
                         hadToMake = true
@@ -2551,8 +2545,7 @@ const L_ = {
             console.log("\taddLayer", L_.layers.data, layerName,  L_.layers.data[layerName])
 
             // Recursively going through the new layer to get all of its sub layers
-            const layersOrdered = []
-            expandLayers([L_.layers.data[layerName]], 0, null, layersOrdered)
+            const layersOrdered = L_.expandLayersToArray([L_.layers.data[layerName]])
 
             if (!layersOrdered.includes(layerName)) {
                 // If the new layer is a header, we need to add it to the list of layers
@@ -2567,63 +2560,7 @@ const L_ = {
             }
 
         } else if (type === 'removeLayer') {
-            console.log("----- removeLayer -----")
-            // If the layer is visible, we need to remove it,
-            // otherwise do nothing since its already removed from the map
-            console.log("layerName", layerName)
-
-            // Recursively going through the new layer to get all of its sub layers
-            const layersOrdered = []
-            expandLayers([L_.layers.data[layerName]], 0, null, layersOrdered)
-
-            if (!layersOrdered.includes(layerName)) {
-                // If the new layer is a header, we need to add it to the list of layers
-                layersOrdered.push(layerName)
-            }
-
-/*
-            for (let i = 0; i < layersOrdered.length; i++) {
-                // Add layer
-                await L_.Map_.makeLayer(L_.layers.data[layersOrdered[i]])
-                L_.addVisible(L_.Map_, [layersOrdered[i]])
-            }
-
-            if (layerName in L_.layers.on && L_.layers.on[layerName]) {
-                // Toggle it to remove it
-                await L_.toggleLayer(L_.layers.data[layerName])
-            }
-*/
-
-            for (let i = 0; i < layersOrdered.length; i++) {
-                const layerUUID = layersOrdered[i];
-                if (layerUUID in L_.layers.on && L_.layers.on[layerUUID]) {
-                    // Toggle it to remove it
-                    await L_.toggleLayer(L_.layers.data[layerUUID])
-                }
-
-                const layerName = L_.layers.data[layerUUID].display_name
-                if (L_.layers.nameToUUID[layerName]) {
-                    const index = L_.layers.nameToUUID[layerName].indexOf(layerUUID)
-                    if (index > -1) {
-                        console.log()
-                        L_.layers.nameToUUID[layerName].splice(index, 1)
-                    }
-                    if (L_.layers.nameToUUID[layerName].length < 1) {
-                        delete L_.layers.nameToUUID[layerName]
-                    }
-                }
-
-                delete L_.layers.layer[layerUUID]
-                delete L_.layers.data[layerUUID]
-                delete L_.layers.on[layerUUID]
-                delete L_.layers.attachments[layerUUID]
-                delete L_.layers.opacity[layerUUID]
-            }
-
-            console.log("-----  type === 'removeLayer' ------")
-            console.log("layersOrdered", layersOrdered)
-            delete L_.layers.on[layerName]
-
+            await L_.removeLayerFromLayersData(layerName)
         }
 
         if (ToolController_.activeToolName === 'LayersTool') {
@@ -2664,14 +2601,99 @@ const L_ = {
         }
 
     },
+    removeLayerFromLayersData: async function(layerName) {
+        // Recursively going through the removed layer to get all of its sub layers
+        const layersOrdered = L_.expandLayersToArray([L_.layers.data[layerName]])
+
+        if (!layersOrdered.includes(layerName)) {
+            // If the new layer is a header, we need to add it to the list of layers
+            layersOrdered.push(layerName)
+        }
+
+        for (let i = 0; i < layersOrdered.length; i++) {
+            const layerUUID = layersOrdered[i];
+
+            // If the layer is visible, we need to remove it,
+            // otherwise do nothing since its already removed from the map
+            if (layerUUID in L_.layers.on && L_.layers.on[layerUUID]) {
+                // Toggle it to remove it
+                await L_.toggleLayer(L_.layers.data[layerUUID])
+            }
+
+            const display_name = L_.layers.data[layerUUID].display_name
+            if (L_.layers.nameToUUID[display_name]) {
+                const index = L_.layers.nameToUUID[display_name].indexOf(layerUUID)
+                if (index > -1) {
+                    L_.layers.nameToUUID[display_name].splice(index, 1)
+                }
+                if (L_.layers.nameToUUID[display_name].length < 1) {
+                    delete L_.layers.nameToUUID[display_name]
+                }
+            }
+
+            delete L_.layers.layer[layerUUID]
+            delete L_.layers.data[layerUUID]
+            delete L_.layers.on[layerUUID]
+            delete L_.layers.attachments[layerUUID]
+            delete L_.layers.opacity[layerUUID]
+        }
+    },
+    expandLayersToArray: function(layer) {
+        // Recursively going through the removed layer to get all of its sub layers
+        const layersOrdered = []
+        expandLayers(layer, 0, null)
+
+        function expandLayers(d, level, prevName) {
+            //Iterate over each layer
+            for (let i = 0; i < d.length; i++) {
+                //Check if it's not a header and thus an actual layer with data
+                if (d[i].type != 'header') {
+                    //Create parsed layers ordered
+                    layersOrdered.push(d[i].name)
+                }
+
+                //Get the current layers sublayers (returns 0 if none)
+                var dNext = getSublayers(d[i])
+                //If they are sublayers, call this function again and move up a level
+                if (dNext != 0) {
+                    expandLayers(dNext, level + 1, d[i].name)
+                }
+            }
+        }
+        //Get the current layers sublayers (returns 0 if none)
+        function getSublayers(d) {
+            //If object d has a sublayers property, return it
+            if (d.hasOwnProperty('sublayers')) {
+                return d.sublayers
+            }
+            //Otherwise return 0
+            return 0
+        }
+
+        return layersOrdered
+    },
     updateLayersHelper: async function (layerQueueList) {
         console.log("----- updateLayersHelper -----")
         if (layerQueueList.length > 0) {
             while (layerQueueList.length > 0) {
                 const firstLayer = layerQueueList.shift()
                 const { data, newLayerName, type } = firstLayer
+                if (firstLayer.type === 'removeLayer') {
+                    if (layerQueueList.length > 0) {
+                        const nextLayer = layerQueueList[0]
+                        if (nextLayer.type === 'removeLayer') {
+                            // If we have a bunch of removeLayer updates waiting that are next to each other
+                            // We only need to update the UI by parsing the config for the latest removeLayer data,
+                            // as it should contain the updates of all of the previous removals
 
-                console.log("data", data, newLayerName, type)
+                            // We still need to remove the layer information from the UI
+                            await L_.removeLayerFromLayersData(newLayerName)
+
+                            continue
+                        }
+                    }
+                }
+
                 await L_.modifyLayer(data, newLayerName, type)
             }
 
@@ -2858,17 +2880,14 @@ function parseConfig(configData, urlOnLayers) {
 
     // FIXME 20230123 need to use expandLayers logic when adding new layers with sublayers
     function expandLayers(d, level, prevName) {
-        console.log("d", d)
         //Iterate over each layer
         for (let i = 0; i < d.length; i++) {
             // Quick hack to use uuid instead of name as main id
-            console.log("d[i].name, uuid", d[i].name, d[i].uuid)
             d[i].uuid = d[i].uuid || d[i].name
             if (L_.layers.nameToUUID[d[i].name] == null)
                 L_.layers.nameToUUID[d[i].name] = []
 
             if (!L_.layers.nameToUUID[d[i].name].includes(d[i].uuid)) {
-                console.log("not already in nameToUUID")
                 L_.layers.nameToUUID[d[i].name].push(d[i].uuid)
             }
             d[i] = { display_name: d[i].name, ...d[i] }
@@ -2955,8 +2974,6 @@ function parseConfig(configData, urlOnLayers) {
         //Otherwise return 0
         return 0
     }
-
-    console.log("L_.configData.layers", L_.configData.layers)
 }
 
 window.L_ = L_

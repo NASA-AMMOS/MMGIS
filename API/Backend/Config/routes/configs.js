@@ -1049,7 +1049,7 @@ function removeLayer(req, res, next, cb) {
               },
               {
                 type: "removeLayer",
-                layerName: req.body.layerUUID,
+                layerName: layerUUIDs.filter(i => removedUUIDs.map(x => x.uuid).includes(i)),
               }
             );
           } else {
