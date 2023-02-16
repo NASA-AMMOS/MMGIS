@@ -150,7 +150,8 @@
     "webpack-manifest-plugin": "2.2.0",
     "winston": "^3.3.4",
     "workbox-webpack-plugin": "4.3.1",
-    "ws": "^8.8.1"
+    "ws": "^8.8.1",
+    "xml2js": "^0.4.23"
   },
   "eslintConfig": {
     "extends": "react-app"
