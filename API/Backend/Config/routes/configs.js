@@ -297,6 +297,28 @@ function upsert(req, res, next, cb, info) {
       }
 
       const { newlyAddedUUIDs, allNewUUIDs } = populateUUIDs(configJSON);
+
+      // Do not update the config if there are duplicate or bad UUIDs
+      const badUUIDs = newlyAddedUUIDs.filter(i => {
+        return 'replacesBadUUID' in i
+      }).map(i => i.replacesBadUUID);
+
+      if (badUUIDs.length > 0) {
+        if (cb)
+          cb({
+            status: "failure",
+            message: "There are duplicate or bad UUIDs.",
+            badUUIDs,
+          });
+        else
+          res.send({
+            status: "failure",
+            message: "There are duplicate or bad UUIDs.",
+            badUUIDs,
+          });
+        return;
+      }
+
       const validation = validate(configJSON);
 
       if (!validation.valid) {
