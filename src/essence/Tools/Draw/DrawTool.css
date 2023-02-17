@@ -253,11 +253,11 @@
     background: var(--color-mmgis);
 }
 #drawToolDrawFilesNewLoading {
-    width: calc(100% - 14px);
+    width: 100%;
     height: 2px;
     position: absolute;
-    top: 36px;
-    left: 7px;
+    top: 28px;
+    left: 0px;
     overflow: hidden;
     opacity: 0;
     transition: opacity 0.1s cubic-bezier(0.445, 0.05, 0.55, 0.95);
@@ -265,7 +265,7 @@
 #drawToolDrawFilesNewLoading > div {
     width: 30%;
     height: 100%;
-    background: #1169d3;
+    background: var(--color-c);
     animation: drawToolLoading1 1s ease-in-out infinite;
 }
 @keyframes drawToolLoading1 {
