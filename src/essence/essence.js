@@ -227,20 +227,28 @@ var essence = {
                                     mission,
                                 },
                                 async function (data) {
-                                    if (parsed.forceClientUpdate) {
-                                        // Force update the client side
-                                        await L_.autoUpdateLayer(
-                                            data,
-                                            layerName,
-                                            type
-                                        )
+                                    if (Array.isArray(layerName)) {
+                                        // If we're adding an array of new layers, add each layer to the queue individually
+                                        for (let layer in layerName) {
+                                            L_.addLayerQueue.push({
+                                                newLayerName: layerName[layer],
+                                                data,
+                                                type,
+                                            })
+                                        }
                                     } else {
+                                        // Otherwise only a single new layer was added
                                         L_.addLayerQueue.push({
                                             newLayerName: layerName,
                                             data,
                                             type,
                                         })
+                                    }
 
+                                    if (parsed.forceClientUpdate) {
+                                        // Force update the client side
+                                        await L_.updateQueueLayers()
+                                    } else {
                                         UserInterface_.updateLayerUpdateButton(
                                             'ADD_LAYER'
                                         )
