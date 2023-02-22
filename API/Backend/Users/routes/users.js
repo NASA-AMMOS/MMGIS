@@ -85,51 +85,56 @@ router.post("/signup", function (req, res, next) {
       if (!user) {
         User.create(newUser)
           .then((created) => {
-            // Save the user's info in the session
-            req.session.user = created.username;
-            req.session.uid = created.id;
-            req.session.token = crypto.randomBytes(128).toString("hex");
+            clearLoginSession(req);
+            req.session.regenerate((err) => {
+              // Save the user's info in the session
+              req.session.user = created.username;
+              req.session.uid = created.id;
+              req.session.token = crypto.randomBytes(128).toString("hex");
+              req.session.permission = created.permission;
 
-            User.update(
-              {
-                token: req.session.token,
-              },
-              {
-                where: {
-                  id: created.id,
-                  username: created.username,
-                },
-              }
-            )
-              .then(() => {
-                logger(
-                  "info",
-                  req.body.username + " signed up.",
-                  req.originalUrl,
-                  req
-                );
-                res.send({
-                  status: "success",
-                  username: created.username,
+              User.update(
+                {
                   token: req.session.token,
-                  groups: getUserGroups(created.username, req.leadGroupName),
+                },
+                {
+                  where: {
+                    id: created.id,
+                    username: created.username,
+                  },
+                }
+              )
+                .then(() => {
+                  logger(
+                    "info",
+                    req.body.username + " signed up.",
+                    req.originalUrl,
+                    req
+                  );
+                  res.send({
+                    status: "success",
+                    username: created.username,
+                    token: req.session.token,
+                    groups: getUserGroups(created.username, req.leadGroupName),
+                  });
+                  return null;
+                })
+                .catch((err) => {
+                  logger(
+                    "error",
+                    "Only partially signed up.",
+                    req.originalUrl,
+                    req,
+                    err
+                  );
+                  res.send({
+                    status: "failure",
+                    message: "Only partially signed up. Try logging in.",
+                  });
+                  return null;
                 });
-                return null;
-              })
-              .catch((err) => {
-                logger(
-                  "error",
-                  "Only partially signed up.",
-                  req.originalUrl,
-                  req,
-                  err
-                );
-                res.send({
-                  status: "failure",
-                  message: "Only partially signed up. Try logging in.",
-                });
-                return null;
-              });
+              return null;
+            });
             return null;
           })
           .catch((err) => {
@@ -303,6 +308,30 @@ router.post("/logout", function (req, res) {
         return null;
       });
   }
+});
+
+router.get("/logged_in", function (req, res) {
+  if (
+    typeof req.session.permission === "string" &&
+    req.session.permission[req.session.permission.length - 1] === "1"
+  )
+    res.send({
+      status: "success",
+      message: `'${req.session.user}' is logged in to this session.`,
+      body: {
+        loggedIn: true,
+        user: req.session.user,
+      },
+    });
+  else
+    res.send({
+      status: "failure",
+      message: `No user is logged in to this session.`,
+      body: {
+        loggedIn: false,
+        user: null,
+      },
+    });
 });
 
 function getUserGroups(user, leadGroupName) {

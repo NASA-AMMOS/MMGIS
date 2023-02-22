@@ -7,7 +7,7 @@ import LayerGeologic from './LayerGeologic/LayerGeologic'
 import $ from 'jquery'
 import * as d3 from 'd3'
 
-var L_ = {
+const L_ = {
     url: window.location.href,
     mission: null,
     missionPath: null,
@@ -25,46 +25,24 @@ var L_ = {
     tools: null,
     //The full, unchanged data
     configData: null,
-    //The full layer object
-    layers: null, //was fullData
-    //Name -> layer objects
-    layersNamed: {}, //was namedLayersData
-    //Name -> leaflet layer
-    layersGroup: {}, //was mainLayerGroup
-    //Name -> sublayer group
-    layersGroupSublayers: {},
+    layers: {
+        data: {}, // layersNamed but by uuid
+        dataFlat: [], //layersData
+        layer: {}, // layersGroup
+        attachments: {}, // layersGroupSubLayers
+        on: {}, // toggledArray
+        opacity: {}, // opacityArray
+        filters: {}, // layerFilters
+        nameToUUID: {},
+    },
+    // ===== Private ======
     //Index -> layer name
-    layersOrdered: [], //was mainLayerOrder
-    //Index -> layerName (an unchanging layersOrdered)
-    layersOrderedFixed: [], //was fixedLayerOrder
-    //Name -> original index
-    layersIndex: {},
+    _layersOrdered: [], // 78 uses
     //Index -> had loaded (T/F) (same index as orderedLayers)
-    layersLoaded: [], //was layersloaded
-    //Name -> style
-    layersStyles: {}, //was layerStyles
-    //Name -> legendurl
-    layersLegends: {}, //was layerLegends
-    //Name -> legendData
-    layersLegendsData: {},
-    //Name -> layer expanded in layers tab (T/F)
-    expandArray: {},
-    //Index -> layer object
-    layersData: [],
-    //Name => layer object
-    layersDataByName: {},
-    //Index -> level (0, 1, 2 ... )
-    indentArray: [],
-    //Name -> is toggled (T/F)
-    toggledArray: {},
-    //Name -> layer visible because header expanded (T/F)
-    expanded: {},
-    //Name -> layer opacity ( 0 to 1 )
-    opacityArray: {},
-    //Name -> filter value array
-    layerFilters: {},
+    _layersLoaded: [], // 27 uses
     //Name -> parent
-    layersParent: {},
+    _layersParent: {}, // 5 uses
+    //
     _localTimeFilterCache: {},
     //FUTURES
     FUTURES: {
@@ -123,25 +101,18 @@ var L_ = {
         L_.UserInterface_ = null
         L_.tools = null
         L_.configData = null
-        L_.layers = null
-        L_.layersNamed = {}
-        L_.layersGroup = {}
-        L_.layersOrdered = []
-        L_.layersOrderedFixed = []
-        L_.layersIndex = {}
-        L_.layersLoaded = []
-        L_.layersStyles = {}
-        L_.layersLegends = {}
-        L_.layersLegendsData = {}
-        L_.expandArray = {}
-        L_.layersData = []
-        L_.layersDataByName = {}
-        L_.indentArray = []
-        L_.toggledArray = {}
-        L_.expanded = {}
-        L_.opacityArray = {}
-        L_.layerFilters = {}
-        L_.layersParent = {}
+        L_.layers = {
+            data: {},
+            dataFlat: [],
+            leafletLayer: {},
+            attachments: {},
+            toggled: {},
+            opacity: {},
+            filters: {},
+        }
+        L_._layersOrdered = []
+        L_._layersLoaded = []
+        L_._layersParent = {}
         L_._localTimeFilterCache = {}
         L_.FUTURES = {
             site: null,
@@ -223,7 +194,7 @@ var L_ = {
     toggleLayer: async function (s) {
         if (s == null) return
         let on //if on -> turn off //if off -> turn on
-        if (L_.toggledArray[s.name] === true) on = true
+        if (L_.layers.on[s.name] === true) on = true
         else on = false
 
         await L_.toggleLayerHelper(s, on)
@@ -231,44 +202,42 @@ var L_ = {
     toggleLayerHelper: async function (s, on, ignoreToggleStateChange) {
         if (s.type !== 'header') {
             if (on) {
-                if (L_.Map_.map.hasLayer(L_.layersGroup[s.name])) {
+                if (L_.Map_.map.hasLayer(L_.layers.layer[s.name])) {
                     try {
                         $('.drawToolContextMenuHeaderClose').click()
                     } catch (err) {}
-                    L_.Map_.map.removeLayer(L_.layersGroup[s.name])
-                    if (L_.layersGroupSublayers[s.name]) {
-                        for (let sub in L_.layersGroupSublayers[s.name]) {
-                            switch (L_.layersGroupSublayers[s.name][sub].type) {
+                    L_.Map_.map.removeLayer(L_.layers.layer[s.name])
+                    if (L_.layers.attachments[s.name]) {
+                        for (let sub in L_.layers.attachments[s.name]) {
+                            switch (L_.layers.attachments[s.name][sub].type) {
                                 case 'model':
                                     L_.Globe_.litho.removeLayer(
-                                        L_.layersGroupSublayers[s.name][sub]
+                                        L_.layers.attachments[s.name][sub]
                                             .layerId
                                     )
                                     break
                                 case 'uncertainty_ellipses':
                                     L_.Globe_.litho.removeLayer(
-                                        L_.layersGroupSublayers[s.name][sub]
+                                        L_.layers.attachments[s.name][sub]
                                             .curtainLayerId
                                     )
                                     L_.Globe_.litho.removeLayer(
-                                        L_.layersGroupSublayers[s.name][sub]
+                                        L_.layers.attachments[s.name][sub]
                                             .clampedLayerId
                                     )
                                     L_.Map_.rmNotNull(
-                                        L_.layersGroupSublayers[s.name][sub]
-                                            .layer
+                                        L_.layers.attachments[s.name][sub].layer
                                     )
                                     break
                                 case 'labels':
                                 case 'pairings':
-                                    L_.layersGroupSublayers[s.name][
+                                    L_.layers.attachments[s.name][
                                         sub
                                     ].layer.off()
                                     break
                                 default:
                                     L_.Map_.rmNotNull(
-                                        L_.layersGroupSublayers[s.name][sub]
-                                            .layer
+                                        L_.layers.attachments[s.name][sub].layer
                                     )
                                     break
                             }
@@ -279,46 +248,48 @@ var L_ = {
                     L_.Globe_.litho.toggleLayer(s.name, false)
                 } else L_.Globe_.litho.removeLayer(s.name)
             } else {
-                if (L_.layersGroup[s.name]) {
-                    if (L_.layersGroupSublayers[s.name]) {
-                        for (let sub in L_.layersGroupSublayers[s.name]) {
-                            if (L_.layersGroupSublayers[s.name][sub].on) {
+                if (L_.layers.layer[s.name]) {
+                    if (L_.layers.attachments[s.name]) {
+                        for (let sub in L_.layers.attachments[s.name]) {
+                            if (L_.layers.attachments[s.name][sub].on) {
                                 switch (
-                                    L_.layersGroupSublayers[s.name][sub].type
+                                    L_.layers.attachments[s.name][sub].type
                                 ) {
                                     case 'model':
                                         L_.Globe_.litho.addLayer(
                                             'model',
-                                            L_.layersGroupSublayers[s.name][sub]
+                                            L_.layers.attachments[s.name][sub]
                                                 .modelOptions
                                         )
                                         break
                                     case 'uncertainty_ellipses':
                                         L_.Globe_.litho.addLayer(
                                             'curtain',
-                                            L_.layersGroupSublayers[s.name][sub]
+                                            L_.layers.attachments[s.name][sub]
                                                 .curtainOptions
                                         )
                                         L_.Globe_.litho.addLayer(
                                             'clamped',
-                                            L_.layersGroupSublayers[s.name][sub]
+                                            L_.layers.attachments[s.name][sub]
                                                 .clampedOptions
                                         )
                                         L_.Map_.map.addLayer(
-                                            L_.layersGroupSublayers[s.name][sub]
+                                            L_.layers.attachments[s.name][sub]
                                                 .layer
                                         )
-                                        L_.layersGroupSublayers[s.name][
+                                        L_.layers.attachments[s.name][
                                             sub
                                         ].layer.setZIndex(
-                                            L_.layersOrdered.length +
+                                            L_._layersOrdered.length +
                                                 1 -
-                                                L_.layersOrdered.indexOf(s.name)
+                                                L_._layersOrdered.indexOf(
+                                                    s.name
+                                                )
                                         )
                                         break
                                     case 'labels':
                                     case 'pairings':
-                                        L_.layersGroupSublayers[s.name][
+                                        L_.layers.attachments[s.name][
                                             sub
                                         ].layer.on(
                                             false,
@@ -328,26 +299,29 @@ var L_ = {
                                         break
                                     default:
                                         L_.Map_.map.addLayer(
-                                            L_.layersGroupSublayers[s.name][sub]
+                                            L_.layers.attachments[s.name][sub]
                                                 .layer
                                         )
-                                        L_.layersGroupSublayers[s.name][
+                                        L_.layers.attachments[s.name][
                                             sub
                                         ].layer.setZIndex(
-                                            L_.layersOrdered.length +
+                                            L_._layersOrdered.length +
                                                 1 -
-                                                L_.layersOrdered.indexOf(s.name)
+                                                L_._layersOrdered.indexOf(
+                                                    s.name
+                                                )
                                         )
                                         break
                                 }
                             }
                         }
                     }
-                    L_.Map_.map.addLayer(L_.layersGroup[s.name])
-                    L_.layersGroup[s.name].setZIndex(
-                        L_.layersOrdered.length +
+
+                    L_.Map_.map.addLayer(L_.layers.layer[s.name])
+                    L_.layers.layer[s.name].setZIndex(
+                        L_._layersOrdered.length +
                             1 -
-                            L_.layersOrdered.indexOf(s.name)
+                            L_._layersOrdered.indexOf(s.name)
                     )
                 }
                 if (s.type === 'tile') {
@@ -361,8 +335,8 @@ var L_ = {
                         demUrl = undefined
                     L_.Globe_.litho.addLayer('tile', {
                         name: s.name,
-                        order: L_.layersOrdered,
-                        on: L_.opacityArray[s.name],
+                        order: L_._layersOrdered,
+                        on: L_.layers.opacity[s.name],
                         format: s.tileformat || 'tms',
                         formatOptions: {},
                         demFormat: s.tileformat || 'tms',
@@ -373,7 +347,7 @@ var L_ = {
                         parser: s.demparser || null,
                         path: layerUrl,
                         demPath: demUrl,
-                        opacity: L_.opacityArray[s.name],
+                        opacity: L_.layers.opacity[s.name],
                         minZoom: s.minZoom,
                         maxZoom: s.maxNativeZoom,
                         //boundingBox: s.boundingBox,
@@ -409,22 +383,22 @@ var L_ = {
                     }
                 } else {
                     let hadToMake = false
-                    if (L_.layersGroup[s.name] === false) {
+                    if (L_.layers.layer[s.name] === false) {
                         await L_.Map_.makeLayer(s, true)
                         Description.updateInfo()
                         hadToMake = true
                     }
-                    if (L_.layersGroup[s.name]) {
+                    if (L_.layers.layer[s.name]) {
                         if (!hadToMake) {
                             // Refresh annotation popups
-                            if (L_.layersGroup[s.name]._layers)
+                            if (L_.layers.layer[s.name]._layers)
                                 Object.keys(
-                                    L_.layersGroup[s.name]._layers
+                                    L_.layers.layer[s.name]._layers
                                 ).forEach((key) => {
                                     const l =
-                                        L_.layersGroup[s.name]._layers[key]
+                                        L_.layers.layer[s.name]._layers[key]
                                     if (l._isAnnotation) {
-                                        L_.layersGroup[s.name]._layers[key] =
+                                        L_.layers.layer[s.name]._layers[key] =
                                             L_.createAnnotation(
                                                 l._annotationParams.feature,
                                                 l._annotationParams.className,
@@ -434,20 +408,22 @@ var L_ = {
                                     }
                                 })
                         }
-                        L_.Map_.map.addLayer(L_.layersGroup[s.name])
-                        L_.layersGroup[s.name].setZIndex(
-                            L_.layersOrdered.length +
+                        L_.Map_.map.addLayer(L_.layers.layer[s.name])
+                        L_.layers.layer[s.name].setZIndex(
+                            L_._layersOrdered.length +
                                 1 -
-                                L_.layersOrdered.indexOf(s.name)
+                                L_._layersOrdered.indexOf(s.name)
                         )
                         if (s.type === 'vector') {
                             L_.Globe_.litho.addLayer(
                                 s.layer3dType || 'clamped',
                                 {
                                     name: s.name,
-                                    order: L_.layersOrdered, // Since higher order in litho is on top
-                                    on: L_.opacityArray[s.name] ? true : false,
-                                    geojson: L_.layersGroup[s.name].toGeoJSON(
+                                    order: L_._layersOrdered, // Since higher order in litho is on top
+                                    on: L_.layers.opacity[s.name]
+                                        ? true
+                                        : false,
+                                    geojson: L_.layers.layer[s.name].toGeoJSON(
                                         L_.GEOJSON_PRECISION
                                     ),
                                     onClick: (feature, lnglat, layer) => {
@@ -472,7 +448,7 @@ var L_ = {
                                                   .bearing
                                             : null,
                                     },
-                                    opacity: L_.opacityArray[s.name],
+                                    opacity: L_.layers.opacity[s.name],
                                     minZoom:
                                         s.visibilitycutoff > 0
                                             ? s.visibilitycutoff
@@ -490,8 +466,8 @@ var L_ = {
         }
 
         if (!ignoreToggleStateChange) {
-            if (on) L_.toggledArray[s.name] = false
-            if (!on) L_.toggledArray[s.name] = true
+            if (on) L_.layers.on[s.name] = false
+            if (!on) L_.layers.on[s.name] = true
         }
 
         if (s.type === 'vector') L_._updatePairings(s.name, !on)
@@ -499,17 +475,7 @@ var L_ = {
         if (!on && s.type === 'vector') {
             L_.Map_.orderedBringToFront()
         }
-
-        // Add annotation click events since onEachFeatureDefault doesn't apply to popups
-        $('.mmgisAnnotation').off('click')
-        $('.mmgisAnnotation').on('click', function () {
-            const layerName = $(this).attr('layerId')
-            const layerCode = $(this).attr('layer')
-            const layer = L_.layersGroup[layerName]._layers[layerCode]
-            L_.Map_.featureDefaultClick(layer.feature, layer, {
-                latlng: layer._latlng,
-            })
-        })
+        L_._refreshAnnotationEvents()
 
         // Toggling rereveals hidden features, so make sure they stay hidden
         if (L_.toggledOffFeatures && L_.toggledOffFeatures.length > 0) {
@@ -518,8 +484,22 @@ var L_ = {
             })
         }
     },
+    _refreshAnnotationEvents() {
+        // Add annotation click events since onEachFeatureDefault doesn't apply to popups
+        $('.mmgisAnnotation').off('click')
+        $('.mmgisAnnotation').on('click', function () {
+            const layerName = $(this).attr('layerId')
+            const layerCode = $(this).attr('layer')
+            const layer = L_.layers.layer[layerName]._layers[layerCode]
+            L_.Map_.featureDefaultClick(layer.feature, layer, {
+                latlng: layer._latlng,
+            })
+        })
+    },
     toggleSublayer: function (layerName, sublayerName) {
-        const sublayers = L_.layersGroupSublayers[layerName] || {}
+        layerName = L_.asLayerUUID(layerName)
+
+        const sublayers = L_.layers.attachments[layerName] || {}
         const sublayer = sublayers[sublayerName]
         if (sublayer) {
             if (sublayer.on === true) {
@@ -557,9 +537,9 @@ var L_ = {
                         )
                         L_.Map_.map.addLayer(sublayer.layer)
                         sublayer.layer.setZIndex(
-                            L_.layersOrdered.length +
+                            L_._layersOrdered.length +
                                 1 -
-                                L_.layersOrdered.indexOf(layerName)
+                                L_._layersOrdered.indexOf(layerName)
                         )
                         break
                     case 'labels':
@@ -569,9 +549,9 @@ var L_ = {
                     default:
                         L_.Map_.map.addLayer(sublayer.layer)
                         sublayer.layer.setZIndex(
-                            L_.layersOrdered.length +
+                            L_._layersOrdered.length +
                                 1 -
-                                L_.layersOrdered.indexOf(layerName)
+                                L_._layersOrdered.indexOf(layerName)
                         )
                         break
                 }
@@ -580,26 +560,26 @@ var L_ = {
         }
     },
     disableAllBut: function (siteName, skipDisabling) {
-        if (L_.layersNamed.hasOwnProperty(siteName)) {
+        if (L_.layers.data.hasOwnProperty(siteName)) {
             let l
             if (skipDisabling !== true) {
-                for (let i = 0; i < L_.layersData.length; i++) {
-                    l = L_.layersData[i]
-                    if (L_.toggledArray[l.name] == true) {
+                for (let i = 0; i < L_.layers.dataFlat.length; i++) {
+                    l = L_.layers.dataFlat[i]
+                    if (L_.layers.on[l.name] == true) {
                         if (l.name != 'Mars Overview') L_.toggleLayer(l)
                     }
-                    if (L_.toggledArray['Mars Overview'] === false) {
+                    if (L_.layers.on['Mars Overview'] === false) {
                         if (l.name === 'Mars Overview') L_.toggleLayer(l)
                     }
                 }
             }
 
-            for (let n in L_.layersParent) {
-                if (L_.layersParent[n] === siteName && L_.layersDataByName[n]) {
-                    l = L_.layersDataByName[n]
+            for (let n in L_._layersParent) {
+                if (L_._layersParent[n] === siteName && L_.layers.data[n]) {
+                    l = L_.layers.data[n]
                     if (
                         l.visibility === true && // initial visibility
-                        L_.toggledArray[l.name] === false
+                        L_.layers.on[l.name] === false
                     ) {
                         L_.toggleLayer(l)
                     }
@@ -623,24 +603,24 @@ var L_ = {
         } else {
             map = map.map
         }
-        for (var i = L_.layersData.length - 1; i >= 0; i--) {
+        for (var i = L_.layers.dataFlat.length - 1; i >= 0; i--) {
             if (
                 (onlyTheseLayers == null ||
-                    onlyTheseLayers.includes(L_.layersData[i].name)) &&
-                L_.toggledArray[L_.layersData[i].name] === true &&
-                (L_.layersData[i].type === 'model' ||
-                    L_.layersGroup[L_.layersData[i].name] != null)
+                    onlyTheseLayers.includes(L_.layers.dataFlat[i].name)) &&
+                L_.layers.on[L_.layers.dataFlat[i].name] === true &&
+                (L_.layers.dataFlat[i].type === 'model' ||
+                    L_.layers.layer[L_.layers.dataFlat[i].name] != null)
             ) {
                 // Add Map layers
-                if (L_.layersGroup[L_.layersData[i].name]) {
+                if (L_.layers.layer[L_.layers.dataFlat[i].name]) {
                     try {
-                        if (L_.layersGroupSublayers[L_.layersData[i].name]) {
-                            for (let s in L_.layersGroupSublayers[
-                                L_.layersData[i].name
+                        if (L_.layers.attachments[L_.layers.dataFlat[i].name]) {
+                            for (let s in L_.layers.attachments[
+                                L_.layers.dataFlat[i].name
                             ]) {
                                 const sublayer =
-                                    L_.layersGroupSublayers[
-                                        L_.layersData[i].name
+                                    L_.layers.attachments[
+                                        L_.layers.dataFlat[i].name
                                     ][s]
                                 if (sublayer.on) {
                                     switch (sublayer.type) {
@@ -675,50 +655,50 @@ var L_ = {
                                 }
                             }
                         }
-                        map.addLayer(L_.layersGroup[L_.layersData[i].name])
+                        map.addLayer(
+                            L_.layers.layer[L_.layers.dataFlat[i].name]
+                        )
                         // Set markerDiv based opacities if any
                         $(
-                            `.leafletMarkerShape_${L_.layersData[i].name
-                                .replace(/\s/g, '')
-                                .toLowerCase()}`
+                            `.leafletMarkerShape_${F_.getSafeName(
+                                L_.layers.dataFlat[i].name
+                            )}`
                         ).css({
                             opacity:
-                                L_.opacityArray[L_.layersData[i].name] || 0,
+                                L_.layers.opacity[L_.layers.dataFlat[i].name] ||
+                                0,
                         })
                     } catch (e) {
                         console.log(e)
                         console.warn(
                             'Warning: Failed to add layer to map: ' +
-                                L_.layersData[i].name
+                                L_.layers.dataFlat[i].name
                         )
                     }
                 }
 
                 // Add Globe layers
-                const s = L_.layersData[i]
+                const s = L_.layers.dataFlat[i]
                 let layerUrl = s.url
                 if (!F_.isUrlAbsolute(layerUrl))
                     layerUrl = L_.missionPath + layerUrl
-                if (
-                    L_.layersData[i].type === 'tile' ||
-                    L_.layersData[i].type === 'data'
-                ) {
+                if (s.type === 'tile' || s.type === 'data') {
                     // Make sure all tile layers follow z-index order at start instead of element order
-                    L_.layersGroup[L_.layersData[i].name].setZIndex(
-                        L_.layersOrdered.length +
+                    L_.layers.layer[s.name].setZIndex(
+                        L_._layersOrdered.length +
                             1 -
-                            L_.layersOrdered.indexOf(L_.layersData[i].name)
+                            L_._layersOrdered.indexOf(s.name)
                     )
 
                     let demUrl = s.demtileurl
                     if (!F_.isUrlAbsolute(demUrl))
                         demUrl = L_.missionPath + demUrl
                     if (s.demtileurl == undefined) demUrl = undefined
-                    if (L_.layersData[i].type === 'tile')
+                    if (s.type === 'tile')
                         L_.Globe_.litho.addLayer('tile', {
                             name: s.name,
-                            order: L_.layersOrdered,
-                            on: L_.opacityArray[s.name],
+                            order: L_._layersOrdered,
+                            on: L_.layers.opacity[s.name],
                             format: s.tileformat || 'tms',
                             formatOptions: {},
                             demFormat: s.tileformat || 'tms',
@@ -729,19 +709,19 @@ var L_ = {
                             parser: s.demparser || null,
                             path: layerUrl,
                             demPath: demUrl,
-                            opacity: L_.opacityArray[s.name],
+                            opacity: L_.layers.opacity[s.name],
                             minZoom: s.minZoom,
                             maxZoom: s.maxNativeZoom,
                             //boundingBox: s.boundingBox,
                             //time: s.time == null ? '' : s.time.end,
                         })
-                } else if (L_.layersData[i].type === 'model') {
+                } else if (s.type === 'model') {
                     L_.Globe_.litho.addLayer('model', {
                         name: s.name,
-                        order: L_.layersOrdered,
+                        order: L_._layersOrdered,
                         on: true,
                         path: layerUrl,
-                        opacity: L_.opacityArray[s.name],
+                        opacity: L_.layers.opacity[s.name],
                         position: {
                             longitude: s.position?.longitude || 0,
                             latitude: s.position?.latitude || 0,
@@ -755,17 +735,17 @@ var L_ = {
                             z: s.rotation?.z || 0,
                         },
                     })
-                } else if (L_.layersData[i].type != 'header') {
-                    if (typeof L_.layersGroup[s.name].toGeoJSON === 'function')
+                } else if (s.type != 'header') {
+                    if (typeof L_.layers.layer[s.name].toGeoJSON === 'function')
                         L_.Globe_.litho.addLayer(
-                            L_.layersData[i].type == 'vector'
-                                ? L_.layersData[i].layer3dType || 'clamped'
-                                : L_.layersData[i].type,
+                            s.type == 'vector'
+                                ? s.layer3dType || 'clamped'
+                                : s.type,
                             {
                                 name: s.name,
-                                order: L_.layersOrdered, // Since higher order in litho is on top
-                                on: L_.opacityArray[s.name] ? true : false,
-                                geojson: L_.layersGroup[s.name].toGeoJSON(
+                                order: L_._layersOrdered, // Since higher order in litho is on top
+                                on: L_.layers.opacity[s.name] ? true : false,
+                                geojson: L_.layers.layer[s.name].toGeoJSON(
                                     L_.GEOJSON_PRECISION
                                 ),
                                 onClick: (feature, lnglat, layer) => {
@@ -789,7 +769,7 @@ var L_ = {
                                         ? s.variables.markerAttachments.bearing
                                         : null,
                                 },
-                                opacity: L_.opacityArray[s.name],
+                                opacity: L_.layers.opacity[s.name],
                                 minZoom:
                                     s.visibilitycutoff > 0
                                         ? s.visibilitycutoff
@@ -803,6 +783,8 @@ var L_ = {
                 }
             }
         }
+
+        L_._refreshAnnotationEvents()
     },
     addGeoJSONData: async function (layer, geojson) {
         if (layer._sourceGeoJSON) {
@@ -823,29 +805,29 @@ var L_ = {
 
         // Don't add data if hidden
         if (
-            L_.layersNamed[layer._layerName] &&
+            L_.layers.data[layer._layerName] &&
             F_.getIn(
-                L_.layersNamed[layer._layerName],
+                L_.layers.data[layer._layerName],
                 'variables.hideMainFeature'
             ) === true
         )
             return
-        const initialOn = L_.toggledArray[layer._layerName]
+        const initialOn = L_.layers.on[layer._layerName]
         // Remove layer
-        L_.Map_.rmNotNull(L_.layersGroup[layer._layerName])
+        L_.Map_.rmNotNull(L_.layers.layer[layer._layerName])
         // Remove sublayers
         L_.syncSublayerData(layer._layerName, true)
 
         // Remake Layer
         await L_.Map_.makeLayer(
-            L_.layersNamed[layer._layerName],
+            L_.layers.data[layer._layerName],
             true,
             layer._sourceGeoJSON
         )
 
         if (initialOn) {
-            L_.toggleLayerHelper(L_.layersNamed[layer._layerName], false)
-            L_.toggledArray[layer._layerName] = true
+            L_.toggleLayerHelper(L_.layers.data[layer._layerName], false)
+            L_.layers.on[layer._layerName] = true
         }
         L_.syncSublayerData(layer._layerName)
     },
@@ -928,9 +910,11 @@ var L_ = {
                     color
                 )
             } else {
+                const savedOptions = JSON.parse(JSON.stringify(layer.options))
                 layer.setStyle({
                     color: color,
                 })
+                layer.options = savedOptions
             }
         } catch (err) {
             if (layer._icon)
@@ -983,19 +967,22 @@ var L_ = {
         }
         L_.Map_.orderedBringToFront()
         L_.setActiveFeature(L_.activeFeature?.layer)
+        L_._refreshAnnotationEvents()
     },
     /**
      *
      * @param {string[]} forceLayerNames - Enforce visibilities per layer
      */
     enforceVisibilityCutoffs: function (forceLayerNames) {
-        const layerNames = forceLayerNames || Object.keys(L_.layersGroup)
+        const layerNames = forceLayerNames || Object.keys(L_.layers.layer)
 
         layerNames.forEach((layerName) => {
-            let layerObj = L_.layersNamed[layerName]
-            let layer = L_.layersGroup[layerName]
+            const layerDisplayName = layerName
+            layerName = L_.asLayerUUID(layerName)
+            let layerObj = L_.layers.data[layerName]
+            let layer = L_.layers.layer[layerName]
 
-            if (layerObj == null && layerName.includes('DrawTool'))
+            if (layerObj == null && layerDisplayName.includes('DrawTool'))
                 layerObj = {
                     type: 'vector',
                 }
@@ -1007,8 +994,8 @@ var L_ = {
                 layerObj != null &&
                 layerObj.type === 'vector' &&
                 layer &&
-                (L_.layersNamed[layerName]
-                    ? L_.Map_.map.hasLayer(L_.layersGroup[layerName])
+                (L_.layers.data[layerName]
+                    ? L_.Map_.map.hasLayer(L_.layers.layer[layerName])
                     : true)
             ) {
                 let minZoom = null
@@ -1242,19 +1229,19 @@ var L_ = {
             }
             return arrowLayer
         } else {
-            if (index == null) index = L_.layersGroup[layerId].length
-            L_.Map_.rmNotNull(L_.layersGroup[layerId][index])
-            L_.layersGroup[layerId][index] = L.layerGroup([
+            if (index == null) index = L_.layers.layer[layerId].length
+            L_.Map_.rmNotNull(L_.layers.layer[layerId][index])
+            L_.layers.layer[layerId][index] = L.layerGroup([
                 arrowBodyOutline,
                 arrowHeadOutline,
                 arrowBody,
                 arrowHead,
             ]).addTo(L_.Map_.map)
-            L_.layersGroup[layerId][index]._isArrow = true
-            L_.layersGroup[layerId][index]._idx = index
-            L_.layersGroup[layerId][index].start = start
-            L_.layersGroup[layerId][index].end = end
-            L_.layersGroup[layerId][index].feature = feature
+            L_.layers.layer[layerId][index]._isArrow = true
+            L_.layers.layer[layerId][index]._idx = index
+            L_.layers.layer[layerId][index].start = start
+            L_.layers.layer[layerId][index].end = end
+            L_.layers.layer[layerId][index].feature = feature
             if (typeof indexedCallback === 'function') indexedCallback()
         }
     },
@@ -1315,7 +1302,7 @@ var L_ = {
                     ` class='${className === 'DrawToolAnnotation' ? 'drawToolAnnotation' : 'mmgisAnnotation'} ${className}_${id1} blackTextBorder'` +
                     " layer='" + id1 +
                     "' layerId='" + layerId + 
-                    (L_.layersGroup[layerId] != null ? "' index='" + L_.layersGroup[layerId].length : '') +
+                    (L_.layers.layer[layerId] != null ? "' index='" + L_.layers.layer[layerId].length : '') +
                     "' style='" + styleString + "'>" +
                     `${feature.properties.name.replace(/[<>;{}]/g, '')}`,
                     '</div>' +
@@ -1339,7 +1326,7 @@ var L_ = {
         }
         if (andAddToMap) {
             popup.addTo(L_.Map_.map)
-            L_.layersGroup[layerId].push(popup)
+            L_.layers.layer[layerId].push(popup)
         }
 
         return popup
@@ -1347,11 +1334,11 @@ var L_ = {
     setLayerOpacity: function (name, newOpacity) {
         newOpacity = parseFloat(newOpacity)
         if (L_.Globe_) L_.Globe_.litho.setLayerOpacity(name, newOpacity)
-        let l = L_.layersGroup[name]
+        let l = L_.layers.layer[name]
         if (l.options.initialFillOpacity == null)
             l.options.initialFillOpacity =
-                L_.layersStyles[name]?.fillOpacity != null
-                    ? parseFloat(L_.layersStyles[name]?.fillOpacity)
+                L_.layers.data[name]?.style?.fillOpacity != null
+                    ? parseFloat(L_.layers.data[name].style.fillOpacity)
                     : 1
 
         if (l) {
@@ -1362,14 +1349,12 @@ var L_ = {
                     opacity: newOpacity,
                     fillOpacity: newOpacity * l.options.initialFillOpacity,
                 })
-                $(
-                    `.leafletMarkerShape_${name
-                        .replace(/\s/g, '')
-                        .toLowerCase()}`
-                ).css({ opacity: newOpacity })
+                $(`.leafletMarkerShape_${F_.getSafeName(name)}`).css({
+                    opacity: newOpacity,
+                })
             }
 
-            const sublayers = L_.layersGroupSublayers[name]
+            const sublayers = L_.layers.attachments[name]
             if (sublayers) {
                 for (let sub in sublayers) {
                     if (
@@ -1413,10 +1398,10 @@ var L_ = {
                 l.options.opacity = newOpacity
             }
         }
-        L_.opacityArray[name] = newOpacity
+        L_.layers.opacity[name] = newOpacity
     },
     getLayerOpacity: function (name) {
-        var l = L_.layersGroup[name]
+        var l = L_.layers.layer[name]
 
         if (l == null) return 0
 
@@ -1431,7 +1416,7 @@ var L_ = {
     setLayerFilter: function (name, filter, value) {
         // Clear
         if (filter === 'clear') {
-            L_.layerFilters[name] = {}
+            L_.layers.filters[name] = {}
             if (L_.Globe_) {
                 L_.Globe_.litho.setLayerFilterEffect(name, 'brightness', 1)
                 L_.Globe_.litho.setLayerFilterEffect(name, 'contrast', 1)
@@ -1440,10 +1425,10 @@ var L_ = {
             }
         }
         // Create a filters object for the layer if one doesn't exist
-        L_.layerFilters[name] = L_.layerFilters[name] || {}
+        L_.layers.filters[name] = L_.layers.filters[name] || {}
 
         // Set the new filter (if it's not 'clear')
-        if (filter !== 'clear') L_.layerFilters[name][filter] = value
+        if (filter !== 'clear') L_.layers.filters[name][filter] = value
 
         // Mappings because litho names things differently
         const lithoBlendMappings = ['none', 'overlay', 'color']
@@ -1453,61 +1438,63 @@ var L_ = {
             saturate: 'saturation',
         }
 
-        if (typeof L_.layersGroup[name].updateFilter === 'function') {
+        if (typeof L_.layers.layer[name].updateFilter === 'function') {
             let filterArray = []
             // Apply filter effects
-            for (let f in L_.layerFilters[name]) {
-                filterArray.push(f + ':' + L_.layerFilters[name][f])
+            for (let f in L_.layers.filters[name]) {
+                filterArray.push(f + ':' + L_.layers.filters[name][f])
                 // For Globe/litho
                 if (L_.Globe_) {
                     if (f === 'mix-blend-mode') {
                         L_.Globe_.litho.setLayerFilterEffect(
                             name,
                             'blendCode',
-                            lithoBlendMappings.indexOf(L_.layerFilters[name][f])
+                            lithoBlendMappings.indexOf(
+                                L_.layers.filters[name][f]
+                            )
                         )
                     } else {
                         L_.Globe_.litho.setLayerFilterEffect(
                             name,
                             lithoFilterMappings[f],
-                            parseFloat(L_.layerFilters[name][f])
+                            parseFloat(L_.layers.filters[name][f])
                         )
                     }
                 }
             }
             // For Map
-            L_.layersGroup[name].updateFilter(filterArray)
+            L_.layers.layer[name].updateFilter(filterArray)
         }
     },
     resetLayerFills: function (onlyThisLayerName) {
         // Regular Layers
-        for (let key in this.layersGroup) {
-            var s = key.split('_')
-            var onId = s[1] != 'master' ? parseInt(s[1]) : s[1]
+        for (let key in L_.layers.layer) {
+            const s = key.split('_')
+            const onId = s[1] != 'master' ? parseInt(s[1]) : s[1]
 
             if (onlyThisLayerName != null && onlyThisLayerName !== key) continue
 
             if (
-                (this.layersGroup[key] &&
-                    this.layersNamed[key] &&
-                    (this.layersNamed[key].type == 'point' ||
-                        (key.toLowerCase().indexOf('draw') == -1 &&
-                            (this.layersNamed[key].type === 'vector' ||
-                                this.layersNamed[key].type === 'query')))) ||
-                (s[0] == 'DrawTool' && !Number.isNaN(onId))
+                (L_.layers.layer[key] &&
+                    L_.layers.data[key] &&
+                    (L_.layers.data[key].type === 'point' ||
+                        (key.toLowerCase().indexOf('draw') === -1 &&
+                            (L_.layers.data[key].type === 'vector' ||
+                                L_.layers.data[key].type === 'query')))) ||
+                (s[0] === 'DrawTool' && !Number.isNaN(onId))
             ) {
                 if (
-                    this.layersGroup.hasOwnProperty(key) &&
-                    this.layersGroup[key] != undefined &&
-                    this.layersStyles.hasOwnProperty(key) &&
-                    this.layersStyles[key] != undefined
+                    L_.layers.layer.hasOwnProperty(key) &&
+                    L_.layers.layer[key] != undefined &&
+                    L_.layers.data.hasOwnProperty(key) &&
+                    L_.layers.data[key].style != undefined
                 ) {
-                    this.layersGroup[key].eachLayer((layer) => {
+                    L_.layers.layer[key].eachLayer((layer) => {
                         const savedOptions = layer.options
                         const savedUseKeyAsName = layer.useKeyAsName
 
-                        let fillColor = this.layersStyles[key].fillColor
-                        let color = this.layersStyles[key].color
+                        let fillColor = L_.layers.data[key].style.fillColor
+                        let color = L_.layers.data[key].style.color
                         let opacity = layer.options.opacity
                         let fillOpacity = layer.options.fillOpacity
                         let weight = layer.options.weight
@@ -1531,8 +1518,9 @@ var L_ = {
                                 `.LayerArrow_${layer._idx}.mmgisArrowOutline`
                             ).css('stroke', '')
                         } else {
-                            L_.layersGroup[key].resetStyle(layer)
+                            L_.layers.layer[key].resetStyle(layer)
                         }
+
                         try {
                             layer.setStyle({
                                 opacity: opacity,
@@ -1547,11 +1535,11 @@ var L_ = {
                         layer.options = savedOptions
                         layer.useKeyAsName = savedUseKeyAsName
                     })
-                } else if (s[0] == 'DrawTool') {
-                    for (let k in this.layersGroup[key]) {
-                        if (!this.layersGroup[key][k]) continue
-                        if ('getLayers' in this.layersGroup[key][k]) {
-                            let layer = this.layersGroup[key][k]
+                } else if (s[0] === 'DrawTool') {
+                    for (let k in L_.layers.layer[key]) {
+                        if (!L_.layers.layer[key][k]) continue
+                        if ('getLayers' in L_.layers.layer[key][k]) {
+                            let layer = L_.layers.layer[key][k]
                             if (!layer?.feature?.properties?.arrow) {
                                 // Polygons and lines
                                 layer.eachLayer(function (l) {
@@ -1559,9 +1547,9 @@ var L_ = {
                                 })
                             } else {
                                 // Arrow
-                                let layers = this.layersGroup[key][k]._layers
+                                let layers = L_.layers.layer[key][k]._layers
                                 const style =
-                                    this.layersGroup[key][k].feature.properties
+                                    L_.layers.layer[key][k].feature.properties
                                         .style
                                 const color = style.color
                                 layers[Object.keys(layers)[0]].setStyle({
@@ -1572,11 +1560,11 @@ var L_ = {
                                 })
                             }
                         } else if (
-                            this.layersGroup[key][k].feature?.properties
+                            L_.layers.layer[key][k].feature?.properties
                                 ?.annotation
                         ) {
                             // Annotation
-                            let layer = this.layersGroup[key][k]
+                            let layer = L_.layers.layer[key][k]
                             let id =
                                 '#DrawToolAnnotation_' +
                                 layer.feature.properties._.file_id +
@@ -1586,9 +1574,9 @@ var L_ = {
                                 'color',
                                 layer.feature.properties.style.fillColor
                             )
-                        } else if ('feature' in this.layersGroup[key][k]) {
+                        } else if ('feature' in L_.layers.layer[key][k]) {
                             // Points (that are not annotations)
-                            let layer = this.layersGroup[key][k]
+                            let layer = L_.layers.layer[key][k]
                             setLayerStyle(layer)
                         }
                     }
@@ -1618,21 +1606,21 @@ var L_ = {
         // Currently only coordinate_markers
         // Expects feature._style to be set
         const highlightableSublayers = ['coordinate_markers']
-        for (let layerName in this.layersGroupSublayers) {
-            if (this.layersGroupSublayers[layerName]) {
-                for (let sublayerName in this.layersGroupSublayers[layerName]) {
+        for (let layerName in L_.layers.attachments) {
+            if (L_.layers.attachments[layerName]) {
+                for (let sublayerName in L_.layers.attachments[layerName]) {
                     if (
-                        this.layersGroupSublayers[layerName][sublayerName] &&
+                        L_.layers.attachments[layerName][sublayerName] &&
                         highlightableSublayers.includes(sublayerName)
                     ) {
-                        for (let sll in this.layersGroupSublayers[layerName][
+                        for (let sll in L_.layers.attachments[layerName][
                             sublayerName
                         ].layer._layers) {
                             try {
-                                this.layersGroupSublayers[layerName][
+                                L_.layers.attachments[layerName][
                                     sublayerName
                                 ].layer._layers[sll].setStyle(
-                                    this.layersGroupSublayers[layerName][
+                                    L_.layers.attachments[layerName][
                                         sublayerName
                                     ].layer._layers[sll].feature._style
                                 )
@@ -1701,7 +1689,9 @@ var L_ = {
         }
     },
     selectFeature(layerName, feature) {
-        const layer = L_.layersGroup[layerName]
+        layerName = L_.asLayerUUID(layerName)
+
+        const layer = L_.layers.layer[layerName]
         if (layer) {
             const layers = layer._layers
             for (let l in layers) {
@@ -1727,7 +1717,7 @@ var L_ = {
      * Converts lnglat geojsons into the primary coordinate type.
      * @param {object} geojson - geojson object or geojson feature
      */
-    convertGeoJSONLngLatsToPrimaryCoordinates(geojson) {
+    convertGeoJSONLngLatsToPrimaryCoordinates(geojson, forceType) {
         if (geojson.features) {
             const nextGeoJSON = JSON.parse(JSON.stringify(geojson))
             const convertedFeatures = []
@@ -1740,7 +1730,8 @@ var L_ = {
                         const elev = coords[2]
                         converted = L_.Coordinates.convertLngLat(
                             coords[0],
-                            coords[1]
+                            coords[1],
+                            forceType
                         )
                         if (elev != null) converted[2] = elev
                         return converted
@@ -1764,7 +1755,8 @@ var L_ = {
                     const elev = coords[2]
                     converted = L_.Coordinates.convertLngLat(
                         coords[0],
-                        coords[1]
+                        coords[1],
+                        forceType
                     )
                     if (elev != null) converted[2] = elev
                     return converted
@@ -1773,19 +1765,28 @@ var L_ = {
             return feature
         }
     },
+    asLayerUUID(uuid) {
+        if (L_.layers.data[uuid] != null) return uuid
+        if (L_.layers.nameToUUID[uuid]?.[0] != null)
+            return L_.layers.nameToUUID[uuid][0]
+        return null
+    },
     /**
-     * @param {object} - activePoint { layerName: , lat: lon: }
+     * @param {object} - activePoint { layerUUID: , lat: lon: }
      * @returns {bool} - true only if successful
      */
     selectPoint(activePoint) {
+        if (activePoint == null) return false
+        // Backward pre-uuid compatibility
+        activePoint.layerUUID = L_.asLayerUUID(activePoint.layerUUID)
+
         if (
-            activePoint &&
-            activePoint.layerName != null &&
+            activePoint.layerUUID != null &&
             activePoint.lat != null &&
             activePoint.lon != null
         ) {
-            if (L_.layersGroup.hasOwnProperty(activePoint.layerName)) {
-                let g = L_.layersGroup[activePoint.layerName]._layers
+            if (L_.layers.layer.hasOwnProperty(activePoint.layerUUID)) {
+                let g = L_.layers.layer[activePoint.layerUUID]._layers
                 for (let l in g) {
                     if (
                         g[l]._latlng.lat == activePoint.lat &&
@@ -1798,13 +1799,12 @@ var L_ = {
                 }
             }
         } else if (
-            activePoint &&
-            activePoint.layerName != null &&
+            activePoint.layerUUID != null &&
             activePoint.key != null &&
             activePoint.value != null
         ) {
-            if (L_.layersGroup.hasOwnProperty(activePoint.layerName)) {
-                let g = L_.layersGroup[activePoint.layerName]._layers
+            if (L_.layers.layer.hasOwnProperty(activePoint.layerUUID)) {
+                let g = L_.layers.layer[activePoint.layerUUID]._layers
                 for (let l in g) {
                     if (g[l] && g[l].feature && g[l].feature.properties) {
                         if (
@@ -1821,12 +1821,11 @@ var L_ = {
                 }
             }
         } else if (
-            activePoint &&
-            activePoint.layerName != null &&
+            activePoint.layerUUID != null &&
             activePoint.layerId != null
         ) {
-            if (L_.layersGroup.hasOwnProperty(activePoint.layerName)) {
-                let g = L_.layersGroup[activePoint.layerName]._layers
+            if (L_.layers.layer.hasOwnProperty(activePoint.layerUUID)) {
+                let g = L_.layers.layer[activePoint.layerUUID]._layers
                 const l = activePoint.layerId
                 if (g[l] != null) {
                     g[l].fireEvent('click')
@@ -1877,8 +1876,8 @@ var L_ = {
     reorderLayers: function (newLayersOrdered) {
         // Check that newLayersOrdered is valid
         let isValid = true
-        if (newLayersOrdered.length === L_.layersOrdered.length) {
-            L_.layersOrdered.forEach((l) => {
+        if (newLayersOrdered.length === L_._layersOrdered.length) {
+            L_._layersOrdered.forEach((l) => {
                 if (!newLayersOrdered.includes(l)) isValid = false
             })
         } else isValid = false
@@ -1890,15 +1889,16 @@ var L_ = {
             return
         }
 
-        L_.layersOrdered = newLayersOrdered
+        L_._layersOrdered = newLayersOrdered
 
         if (L_.Map_) L_.Map_.orderedBringToFront(true)
 
-        if (L_.Globe_) L_.Globe_.litho.orderLayers(L_.layersOrdered)
+        if (L_.Globe_) L_.Globe_.litho.orderLayers(L_._layersOrdered)
     },
     clearVectorLayer: function (layerName) {
+        layerName = L_.asLayerUUID(layerName)
         try {
-            L_.clearGeoJSONData(L_.layersGroup[layerName])
+            L_.clearGeoJSONData(L_.layers.layer[layerName])
             L_.clearVectorLayerInfo()
             L_.syncSublayerData(layerName)
         } catch (e) {
@@ -1953,6 +1953,7 @@ var L_ = {
         timePropPath,
         trimType
     ) {
+        layerName = L_.asLayerUUID(layerName)
         // Validate input parameters
         if (!keepTime) {
             console.warn(
@@ -1985,8 +1986,8 @@ var L_ = {
             }
         }
 
-        if (layerName in L_.layersGroup) {
-            const updateLayer = L_.layersGroup[layerName]
+        if (layerName in L_.layers.layer) {
+            const updateLayer = L_.layers.layer[layerName]
 
             if (keepTime) {
                 const layersGeoJSON = updateLayer.toGeoJSON(
@@ -2041,6 +2042,7 @@ var L_ = {
         L_.keepNHelper(layerName, keepLastN, 'last')
     },
     keepNHelper: function (layerName, keepN, keepType) {
+        layerName = L_.asLayerUUID(layerName)
         // Validate input parameter
         const keepNum = parseInt(keepN)
         if (Number.isNaN(Number(keepNum))) {
@@ -2056,10 +2058,10 @@ var L_ = {
             return
         }
 
-        if (layerName in L_.layersGroup) {
+        if (layerName in L_.layers.layer) {
             // Keep N elements if greater than 0 else keep all elements
             if (keepN && keepN > 0) {
-                const updateLayer = L_.layersGroup[layerName]
+                const updateLayer = L_.layers.layer[layerName]
                 var layers = updateLayer.getLayers()
 
                 const layersGeoJSON = updateLayer.toGeoJSON(
@@ -2115,6 +2117,8 @@ var L_ = {
         }
     },
     trimLineString: function (layerName, time, timeProp, trimN, startOrEnd) {
+        layerName = L_.asLayerUUID(layerName)
+
         // Validate input parameters
         if (!time) {
             console.warn(
@@ -2179,10 +2183,9 @@ var L_ = {
             return
         }
 
-        if (layerName in L_.layersGroup) {
-            const updateLayer = L_.layersGroup[layerName]
+        if (layerName in L_.layers.layer) {
+            const updateLayer = L_.layers.layer[layerName]
 
-            var layers = updateLayer.getLayers()
             var layersGeoJSON = updateLayer.toGeoJSON(L_.GEOJSON_PRECISION)
             var features = layersGeoJSON.features
 
@@ -2330,6 +2333,8 @@ var L_ = {
         }
     },
     appendLineString: function (layerName, inputData, timeProp) {
+        layerName = L_.asLayerUUID(layerName)
+
         // Validate input parameter
         if (!inputData) {
             console.warn(
@@ -2354,8 +2359,8 @@ var L_ = {
             return
         }
 
-        if (layerName in L_.layersGroup) {
-            const updateLayer = L_.layersGroup[layerName]
+        if (layerName in L_.layers.layer) {
+            const updateLayer = L_.layers.layer[layerName]
 
             var layers = updateLayer.getLayers()
             var layersGeoJSON = updateLayer.toGeoJSON(L_.GEOJSON_PRECISION)
@@ -2436,8 +2441,10 @@ var L_ = {
         }
     },
     updateVectorLayer: function (layerName, inputData) {
-        if (layerName in L_.layersGroup) {
-            const updateLayer = L_.layersGroup[layerName]
+        layerName = L_.asLayerUUID(layerName)
+
+        if (layerName in L_.layers.layer) {
+            const updateLayer = L_.layers.layer[layerName]
 
             try {
                 L_.addGeoJSONData(updateLayer, inputData)
@@ -2458,15 +2465,17 @@ var L_ = {
     },
     // Make a layer's sublayer match the layers data again
     syncSublayerData: function (layerName, onlyClear) {
+        layerName = L_.asLayerUUID(layerName)
+
         try {
-            let geojson = L_.layersGroup[layerName].toGeoJSON(
+            let geojson = L_.layers.layer[layerName].toGeoJSON(
                 L_.GEOJSON_PRECISION
             )
-            if (L_.layersGroup[layerName]._sourceGeoJSON)
-                geojson = L_.layersGroup[layerName]._sourceGeoJSON
+            if (L_.layers.layer[layerName]._sourceGeoJSON)
+                geojson = L_.layers.layer[layerName]._sourceGeoJSON
 
             // Now try the sublayers (if any)
-            const subUpdateLayers = L_.layersGroupSublayers[layerName]
+            const subUpdateLayers = L_.layers.attachments[layerName]
 
             if (subUpdateLayers) {
                 for (let sub in subUpdateLayers) {
@@ -2503,12 +2512,12 @@ var L_ = {
             )
         }
 
-        L_.globeLithoLayerHelper(L_.layersNamed[layerName], onlyClear)
+        L_.globeLithoLayerHelper(L_.layers.data[layerName], onlyClear)
     },
     clearVectorLayerInfo: function () {
         // Clear the InfoTools data
         const infoTool = ToolController_.getTool('InfoTool')
-        if (infoTool.hasOwnProperty('clearInfo')) {
+        if (infoTool && infoTool.hasOwnProperty('clearInfo')) {
             infoTool.clearInfo()
         }
 
@@ -2521,7 +2530,7 @@ var L_ = {
         if (L_.Globe_) {
             // Only toggle the layer to reset if the layer is toggled on,
             // because if the layer is toggled off, it is not on the globe
-            if (L_.toggledArray[s.name]) {
+            if (L_.layers.on[s.name]) {
                 // turn off
                 await L_.toggleLayerHelper(s, true, true)
                 // Toggle the layer so its drawn in the globe
@@ -2531,57 +2540,157 @@ var L_ = {
         }
     },
     parseConfig: parseConfig,
-    // Dynamically add a new layer or update a layer (used by WebSocket)
-    addNewLayer: async function (data, layerName, type) {
-        // Save so we can make sure we reproduce the same layer settings after parsing the config
-        const toggledArray = { ...L_.toggledArray }
 
-        // Save the original layer ordering
-        const origLayersOrdered = [...L_.layersOrdered]
+    resetConfig: function (data) {
+        // Save so we can make sure we reproduce the same layer settings after parsing the config
+        const toggledArray = { ...L_.layers.on }
 
         // Reset for now
-        L_.toggledArray = {}
+        L_.layers.on = {}
 
         // Reset as these are appended to by parseConfig
-        L_.indentArray = []
-        L_.layersOrdered = []
-        L_.layersOrderedFixed = []
-        L_.layersData = []
-        L_.layersLoaded = []
+        L_._layersOrdered = []
+        L_.layers.dataFlat = []
+        L_._layersLoaded = []
 
         L_.parseConfig(data)
 
         // Set back
-        L_.toggledArray = { ...L_.toggledArray, ...toggledArray }
+        L_.layers.on = { ...L_.layers.on, ...toggledArray }
+    },
+    // Dynamically add a new layer or update a layer (used by WebSocket)
+    modifyLayer: async function (data, layerName, type) {
+        layerName = L_.asLayerUUID(layerName)
 
-        const newLayersOrdered = [...L_.layersOrdered]
-        const index = L_.layersOrdered.findIndex((name) => name === layerName)
+        const newLayersOrdered = [...L_._layersOrdered]
+        const index = L_._layersOrdered.findIndex((name) => name === layerName)
         newLayersOrdered.splice(index, 1)
 
-        if (type === 'updateLayer' && layerName in L_.layersNamed) {
+        if (type === 'updateLayer' && layerName in L_.layers.data) {
             // Update layer
             await L_.TimeControl_.reloadLayer(layerName, true, true)
         } else if (type === 'addLayer') {
-            // Add layer
-            await L_.Map_.makeLayer(L_.layersDataByName[layerName])
-            L_.addVisible(L_.Map_, [layerName])
+            await L_.addLayerToLayersData(layerName)
         } else if (type === 'removeLayer') {
-            // If the layer is visible, we need to remove it,
-            // otherwise do nothing since its already removed from the map
-            if (layerName in L_.toggledArray && L_.toggledArray[layerName]) {
-                // Toggle it to remove it
-                await L_.toggleLayer(L_.layersNamed[layerName])
-            }
-            delete L_.toggledArray[layerName]
+            await L_.removeLayerFromLayersData(layerName)
         }
+
+        if (ToolController_.activeToolName === 'LayersTool') {
+            const layersTool = ToolController_.getTool('LayersTool')
+            if (layersTool.destroy && layersTool.make) {
+                layersTool.destroy()
+                layersTool.make()
+            }
+        }
+    },
+    addLayerToLayersData: async function (layerName) {
+        if (L_.layers.data[layerName]) {
+            // Recursively going through the new layer to get all of its sub layers
+            const layersOrdered = L_.expandLayersToArray([
+                L_.layers.data[layerName],
+            ])
+
+            if (!layersOrdered.includes(layerName)) {
+                // If the new layer is a header, we need to add it to the list of layers
+                layersOrdered.push(layerName)
+            }
+            layersOrdered.reverse()
+
+            for (let i = 0; i < layersOrdered.length; i++) {
+                // Add layer
+                await L_.Map_.makeLayer(L_.layers.data[layersOrdered[i]])
+                L_.addVisible(L_.Map_, [layersOrdered[i]])
+            }
+        }
+    },
+    removeLayerFromLayersData: async function (layerName) {
+        if (L_.layers.data[layerName]) {
+            // Recursively going through the removed layer to get all of its sub layers
+            const layersOrdered = L_.expandLayersToArray([
+                L_.layers.data[layerName],
+            ])
+
+            if (!layersOrdered.includes(layerName)) {
+                // If the new layer is a header, we need to add it to the list of layers
+                layersOrdered.push(layerName)
+            }
+
+            for (let i = 0; i < layersOrdered.length; i++) {
+                const layerUUID = layersOrdered[i]
+
+                // If the layer is visible, we need to remove it,
+                // otherwise do nothing since its already removed from the map
+                if (layerUUID in L_.layers.on && L_.layers.on[layerUUID]) {
+                    // Toggle it to remove it
+                    await L_.toggleLayer(L_.layers.data[layerUUID])
+                }
+
+                const display_name = L_.layers.data[layerUUID].display_name
+                if (L_.layers.nameToUUID[display_name]) {
+                    const index =
+                        L_.layers.nameToUUID[display_name].indexOf(layerUUID)
+                    if (index > -1) {
+                        L_.layers.nameToUUID[display_name].splice(index, 1)
+                    }
+                    if (L_.layers.nameToUUID[display_name].length < 1) {
+                        delete L_.layers.nameToUUID[display_name]
+                    }
+                }
+
+                delete L_.layers.layer[layerUUID]
+                delete L_.layers.data[layerUUID]
+                delete L_.layers.on[layerUUID]
+                delete L_.layers.attachments[layerUUID]
+                delete L_.layers.opacity[layerUUID]
+            }
+        }
+    },
+    expandLayersToArray: function (layer) {
+        // Recursively going through the removed layer to get all of its sub layers
+        const layersOrdered = []
+        expandLayers(layer, 0, null)
+
+        function expandLayers(d, level, prevName) {
+            //Iterate over each layer
+            for (let i = 0; i < d.length; i++) {
+                //Check if it's not a header and thus an actual layer with data
+                if (d[i].type != 'header') {
+                    //Create parsed layers ordered
+                    layersOrdered.push(d[i].name)
+                }
+
+                //Get the current layers sublayers (returns 0 if none)
+                var dNext = getSublayers(d[i])
+                //If they are sublayers, call this function again and move up a level
+                if (dNext != 0) {
+                    expandLayers(dNext, level + 1, d[i].name)
+                }
+            }
+        }
+        //Get the current layers sublayers (returns 0 if none)
+        function getSublayers(d) {
+            //If object d has a sublayers property, return it
+            if (d.hasOwnProperty('sublayers')) {
+                return d.sublayers
+            }
+            //Otherwise return 0
+            return 0
+        }
+
+        return layersOrdered
     },
     updateLayersHelper: async function (layerQueueList) {
         if (layerQueueList.length > 0) {
+            // If we have a few changes waiting in the queue, we only need to parse the config once
+            // as the last item in the queue should have the latest data
+            const lastLayer = layerQueueList[layerQueueList.length - 1]
+            L_.resetConfig(lastLayer.data)
+
             while (layerQueueList.length > 0) {
                 const firstLayer = layerQueueList.shift()
                 const { data, newLayerName, type } = firstLayer
 
-                await L_.addNewLayer(data, newLayerName, type)
+                await L_.modifyLayer(data, newLayerName, type)
             }
 
             if (L_.Map_) L_.Map_.orderedBringToFront(true)
@@ -2613,13 +2722,15 @@ var L_ = {
     // Limits a Local, Time-Enabled, Prop-set, vector layer to a range of time
     // start and end are unix timestamps
     timeFilterVectorLayer: function (layerName, start, end) {
+        layerName = L_.asLayerUUID(layerName)
+
         let reset = false
         if (start === false) reset = true
 
         start = start || 0
 
-        const layerConfig = L_.layersNamed[layerName]
-        const layer = L_.layersGroup[layerName]
+        const layerConfig = L_.layers.data[layerName]
+        const layer = L_.layers.layer[layerName]
 
         if (
             layerConfig.type === 'vector' &&
@@ -2630,11 +2741,11 @@ var L_ = {
         ) {
             const filteredGeoJSON = JSON.parse(
                 JSON.stringify(
-                    L_._localTimeFilterCache[layer.name] || layer._sourceGeoJSON
+                    L_._localTimeFilterCache[layerName] || layer._sourceGeoJSON
                 )
             )
-            if (L_._localTimeFilterCache[layer.name] == null)
-                L_._localTimeFilterCache[layer.name] = JSON.parse(
+            if (L_._localTimeFilterCache[layerName] == null)
+                L_._localTimeFilterCache[layerName] = JSON.parse(
                     JSON.stringify(filteredGeoJSON)
                 )
 
@@ -2690,7 +2801,6 @@ var L_ = {
                     }
                 )
             }
-
             // Update layer
             L_.clearVectorLayer(layerName)
             L_.updateVectorLayer(layerName, filteredGeoJSON)
@@ -2775,44 +2885,42 @@ function parseConfig(configData, urlOnLayers) {
     L_.hasViewer = L_.configData.panels.indexOf('viewer') > -1
     L_.hasGlobe = L_.configData.panels.indexOf('globe') > -1
     //We only care about the layers now
-    var layers = L_.configData.layers
-    //Create parsed layers
-    L_.layers = layers
-
-    //Because we want overall indecies and not local
-    let layerIndex = 0
+    const layers = L_.configData.layers
 
     //Begin recursively going through those layers
     expandLayers(layers, 0, null)
 
     function expandLayers(d, level, prevName) {
         //Iterate over each layer
-        for (var i = 0; i < d.length; i++) {
-            //Create parsed layers named
-            L_.layersNamed[d[i].name] = d[i]
-            //Save the prevName for easy tracing back
-            L_.layersParent[d[i].name] = prevName
-            //Save the i
-            L_.layersIndex[d[i].name] = layerIndex
+        for (let i = 0; i < d.length; i++) {
+            // Quick hack to use uuid instead of name as main id
+            d[i].uuid = d[i].uuid || d[i].name
+            if (L_.layers.nameToUUID[d[i].name] == null)
+                L_.layers.nameToUUID[d[i].name] = []
 
-            layerIndex++
+            if (!L_.layers.nameToUUID[d[i].name].includes(d[i].uuid)) {
+                L_.layers.nameToUUID[d[i].name].push(d[i].uuid)
+            }
+            d[i] = { display_name: d[i].name, ...d[i] }
+            d[i].name = d[i].uuid || d[i].name
+
+            //Create parsed layers named
+            L_.layers.data[d[i].name] = d[i]
+            //Save the prevName for easy tracing back
+            L_._layersParent[d[i].name] = prevName
 
             //Check if it's not a header and thus an actual layer with data
             if (d[i].type != 'header') {
                 //Create parsed layers ordered
-                L_.layersOrdered.push(d[i].name)
+                L_._layersOrdered.push(d[i].name)
                 //Create parsed layers loaded
                 if (d[i].type != 'data' && d[i].type != 'model')
                     //No load checking for model since it's globe only
-                    L_.layersLoaded.push(false)
-                else L_.layersLoaded.push(true)
-                //Create parsed layers styles
-                L_.layersStyles[d[i].name] = d[i].style
-                //Create parsed layers legends
-                L_.layersLegends[d[i].name] = d[i].legend
+                    L_._layersLoaded.push(false)
+                else L_._layersLoaded.push(true)
 
                 //relative or full path?
-                var legendPath = L_.layersLegends[d[i].name]
+                let legendPath = d[i].legend
                 if (legendPath != undefined) {
                     if (!F_.isUrlAbsolute(legendPath))
                         legendPath = L_.missionPath + legendPath
@@ -2821,50 +2929,43 @@ function parseConfig(configData, urlOnLayers) {
                         (function (name) {
                             return function (data) {
                                 data = F_.csvToJSON(data)
-                                L_.layersLegendsData[name] = data
+                                L_.layers.data[name]._legend = data
                             }
                         })(d[i].name)
                     )
                 }
-                //Create parsed expand array
-                L_.expandArray[d[i].name] = true
-                //Create parsed expanded
-                L_.expanded[d[i].name] = false
-            } else {
-                //If it is a header, keep it closed
-                //Create parsed expand array
-                L_.expandArray[d[i].name] = false
-                //Create parsed expanded
-                L_.expanded[d[i].name] = true
             }
 
             //Create parsed layers data
-            L_.layersData.push(d[i])
-            //And by name
-            L_.layersDataByName[d[i].name] = d[i]
-            //Create parsed indent array
-            L_.indentArray.push(level)
+            L_.layers.dataFlat.push(d[i])
+
             //Create parsed toggled array based on config layer visibility
-            L_.toggledArray[d[i].name] =
+            L_.layers.on[d[i].name] =
                 d[i].visibility == undefined ? true : d[i].visibility
 
             // Headers always start as true
             // Toggling header visibility toggles between all-off and previous-on states
-            if (d[i].type === 'header') L_.toggledArray[d[i].name] = true
+            if (d[i].type === 'header') L_.layers.on[d[i].name] = true
 
             //Create parsed opacity array
             let io = d[i].initialOpacity
-            L_.opacityArray[d[i].name] = io == null || io < 0 || io > 1 ? 1 : io
+            L_.layers.opacity[d[i].name] =
+                io == null || io < 0 || io > 1 ? 1 : io
 
             //Set visibility if we have all the on layers listed in the url
             if (urlOnLayers) {
                 //this is null if we've no url layers
-                if (urlOnLayers.onLayers.hasOwnProperty(d[i].name)) {
-                    L_.toggledArray[d[i].name] = true
-                    L_.opacityArray[d[i].name] =
-                        urlOnLayers.onLayers[d[i].name].opacity || 1
+                let standardId = null
+                if (urlOnLayers.onLayers.hasOwnProperty(d[i].name))
+                    standardId = d[i].name
+                else if (urlOnLayers.onLayers.hasOwnProperty(d[i].display_name))
+                    standardId = d[i].display_name
+                if (standardId != null) {
+                    L_.layers.on[d[i].name] = true
+                    L_.layers.opacity[d[i].name] =
+                        urlOnLayers.onLayers[standardId].opacity || 1
                 } else if (urlOnLayers.method == 'replace') {
-                    L_.toggledArray[d[i].name] = false
+                    L_.layers.on[d[i].name] = false
                 }
             }
             //Get the current layers sublayers (returns 0 if none)
@@ -2874,9 +2975,6 @@ function parseConfig(configData, urlOnLayers) {
                 expandLayers(dNext, level + 1, d[i].name)
             }
         }
-
-        //Save the order of the layers
-        L_.layersOrderedFixed = L_.layersOrdered
     }
     //Get the current layers sublayers (returns 0 if none)
     function getSublayers(d) {
@@ -2889,4 +2987,5 @@ function parseConfig(configData, urlOnLayers) {
     }
 }
 
+window.L_ = L_
 export default L_

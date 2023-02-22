@@ -348,17 +348,17 @@ var QueryURL = {
 
         //on
         var layersOnString = ''
-        for (var l in L_.toggledArray) {
-            if (L_.toggledArray[l] && L_.layersDataByName[l].type !== 'header')
+        for (var l in L_.layers.on) {
+            if (L_.layers.on[l] && L_.layers.data[l].type !== 'header')
                 layersOnString +=
-                    l + '$' + parseFloat(L_.opacityArray[l]).toFixed(2) + ','
+                    l + '$' + parseFloat(L_.layers.opacity[l]).toFixed(2) + ','
         }
         layersOnString = layersOnString.substring(0, layersOnString.length - 1)
         if (layersOnString.length > 0) urlAppendage += '&on=' + layersOnString
 
         //selected
         if (L_.lastActivePoint.layerName != null) {
-            if (L_.toggledArray[L_.lastActivePoint.layerName])
+            if (L_.layers.on[L_.lastActivePoint.layerName])
                 urlAppendage +=
                     '&selected=' +
                     L_.lastActivePoint.layerName +

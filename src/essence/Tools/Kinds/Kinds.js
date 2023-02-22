@@ -20,8 +20,8 @@ var Kinds = {
         if (typeof kind !== 'string') return
 
         let layerVar = {}
-        if (L_.layersNamed[layer.options.layerName])
-            layerVar = L_.layersNamed[layer.options.layerName].variables || {}
+        if (L_.layers.data[layer.options.layerName])
+            layerVar = L_.layers.data[layer.options.layerName].variables || {}
 
         // Remove temp layers
         Map_.rmNotNull(Map_.tempOverlayImage)
@@ -369,10 +369,10 @@ var Kinds = {
 
                 if (e.latlng && e.latlng.lng != null && e.latlng.lat != null) {
                     if (
-                        typeof L_.layersGroup[layerName].eachLayer !==
+                        typeof L_.layers.layer[layerName].eachLayer !==
                         'function'
                     ) {
-                        L_.layersGroup[layerName].eachLayer = function (cb) {
+                        L_.layers.layer[layerName].eachLayer = function (cb) {
                             for (var v in this._vectorTiles) {
                                 for (var l in this._vectorTiles[v]._layers) {
                                     cb(this._vectorTiles[v]._layers[l])
@@ -383,12 +383,12 @@ var Kinds = {
                     features = L.leafletPip
                         .pointInLayer(
                             [e.latlng.lng, e.latlng.lat],
-                            L_.layersGroup[layerName]
+                            L_.layers.layer[layerName]
                         )
                         .concat(
                             F_.pointsInPoint(
                                 [e.latlng.lng, e.latlng.lat],
-                                L_.layersGroup[layerName]
+                                L_.layers.layer[layerName]
                             )
                         )
                         .reverse()

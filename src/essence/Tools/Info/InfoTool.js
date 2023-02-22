@@ -223,7 +223,7 @@ var InfoTool = {
         Dropy.init($('#infoToolSelectedDropdown'), function (idx) {
             let e = JSON.parse(JSON.stringify(InfoTool.initialEvent))
             Kinds.use(
-                L_.layersNamed[InfoTool.currentLayerName].kind,
+                L_.layers.data[InfoTool.currentLayerName].kind,
                 Map_,
                 InfoTool.info[idx],
                 InfoTool.featureLayers[idx] || InfoTool.currentLayer,

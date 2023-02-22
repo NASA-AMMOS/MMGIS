@@ -12,10 +12,11 @@ const Config = require("../models/config");
 const config_template = require("../../../templates/config_template");
 
 const validate = require("../validate");
+const populateUUIDs = require("../uuids");
 const Utils = require("../../../utils.js");
 
 const websocket = require("../../../websocket.js");
-const WebSocket = require('isomorphic-ws');
+const WebSocket = require("isomorphic-ws");
 
 const fs = require("fs");
 const deepmerge = require("deepmerge");
@@ -250,6 +251,13 @@ function upsert(req, res, next, cb, info) {
   let hasVersion = false;
   req.body = req.body || {};
 
+  info = info || {
+    type: "upsert",
+  };
+  info.route = "config";
+  info.id = req.body.id;
+  info.mission = req.body.mission;
+
   if (req.body.version != null) hasVersion = true;
   let versionConfig = null;
 
@@ -294,6 +302,30 @@ function upsert(req, res, next, cb, info) {
           }
         } else configJSON = req.body.config;
       }
+
+      const { newlyAddedUUIDs, allNewUUIDs } = populateUUIDs(configJSON);
+
+      // Do not update the config if there are duplicate or bad UUIDs
+      const badUUIDs = newlyAddedUUIDs.filter(i => {
+        return 'replacesBadUUID' in i
+      }).map(i => i.replacesBadUUID);
+
+      if (badUUIDs.length > 0) {
+        if (cb)
+          cb({
+            status: "failure",
+            message: "There are duplicate or bad UUIDs.",
+            badUUIDs,
+          });
+        else
+          res.send({
+            status: "failure",
+            message: "There are duplicate or bad UUIDs.",
+            badUUIDs,
+          });
+        return;
+      }
+
       const validation = validate(configJSON);
 
       if (!validation.valid) {
@@ -332,20 +364,52 @@ function upsert(req, res, next, cb, info) {
               status: "success",
               mission: created.mission,
               version: created.version,
+              newlyAddedUUIDs: newlyAddedUUIDs,
             });
           else
             res.send({
               status: "success",
               mission: created.mission,
               version: created.version,
+              newlyAddedUUIDs: newlyAddedUUIDs,
             });
-            openWebSocket(req.body, {
-                status: "success",
-                mission: created.mission,
-                version: created.version,
-              }, info,
-              forceClientUpdate
-            );
+
+
+          if (info && info.layerName) {
+            // Find the layer UUID instead of passing back the layer's display name
+            let isArray = true;
+            let infoLayerNames = info.layerName;
+            if (!Array.isArray(info.layerName)) {
+              infoLayerNames = [];
+              infoLayerNames.push(info.layerName);
+              isArray = false;
+            }
+
+            for (let i in infoLayerNames) {
+              const found = allNewUUIDs.findIndex(x => x.name == infoLayerNames[i]);
+              if (found > -1) {
+                const result = allNewUUIDs[found];
+                infoLayerNames[i] = result.uuid;
+                allNewUUIDs.splice(found, 1);
+              }
+            }
+
+            if (!isArray) {
+              info.layerName = infoLayerNames[0]
+            }
+          }
+
+          openWebSocket(
+            req.body,
+            {
+              status: "success",
+              mission: created.mission,
+              version: created.version,
+              newlyAddedUUIDs: newlyAddedUUIDs,
+            },
+            info,
+            forceClientUpdate
+          );
           return null;
         })
         .catch((err) => {
@@ -577,12 +641,13 @@ if (fullAccess)
 function openWebSocket(body, response, info, forceClientUpdate) {
   if (
     !process.env.hasOwnProperty("ENABLE_MMGIS_WEBSOCKETS") ||
-    process.env.ENABLE_MMGIS_WEBSOCKETS != "true") {
-      return
+    process.env.ENABLE_MMGIS_WEBSOCKETS != "true"
+  ) {
+    return;
   }
 
   const port = parseInt(process.env.PORT || "8888", 10);
-  const path = `ws://localhost:${port}/`
+  const path = `ws://localhost:${port}/`;
   const ws = new WebSocket(path);
   ws.onopen = function () {
     const data = {
@@ -591,7 +656,7 @@ function openWebSocket(body, response, info, forceClientUpdate) {
       forceClientUpdate,
     };
     ws.send(JSON.stringify(data));
-  }
+  };
 }
 
 // === Quick API Functions ===
@@ -599,7 +664,7 @@ function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
   const exampleBody = {
     mission: "{mission_name}",
     layer: {
-      name: "{new_unique_layer_name}",
+      name: "{new_layer_name}",
       type: "header || vector || vectortile || query || model || tile || data",
       "more...": "...",
     },
@@ -683,18 +748,55 @@ function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
             );
           }
 
-          const didSet = Utils.setIn(
-            config.layers,
-            `${placementPath}${placementIndex}`,
-            req.body.layer,
-            true,
-            true
-          );
+          let didSet = false;
+
+          // Input can be object or array
+          if (Array.isArray(req.body.layer)) {
+            for (let i in req.body.layer) {
+              // This adds the proposed_uuid key to all of the new layers/sublayers to be added that have
+              // user defined UUIDs. We remove the proposed_uuid key after using it to check for unique UUIDs.
+              Utils.traverseLayers([req.body.layer[i]], (layer) => {
+                if (layer.uuid != null) {
+                  layer.proposed_uuid = layer.uuid;
+                }
+              });
+
+              didSet = Utils.setIn(
+                config.layers,
+                `${placementPath}${placementIndex}`,
+                req.body.layer[i],
+                true,
+                true
+              );
+
+              placementIndex += 1;
+            }
+          } else {
+            // This adds the proposed_uuid key to all of the new layers/sublayers to be added that have
+            // user defined UUIDs. We remove the proposed_uuid key after using it to check for unique UUIDs.
+            Utils.traverseLayers([req.body.layer], (layer) => {
+              if (layer.uuid != null) {
+                  layer.proposed_uuid = layer.uuid;
+              }
+            });
+
+            didSet = Utils.setIn(
+              config.layers,
+              `${placementPath}${placementIndex}`,
+              req.body.layer,
+              true,
+              true
+            );
+          }
 
           if (didSet) {
             upsert(
               {
-                body: { mission: req.body.mission, config: config, forceClientUpdate: req.body.forceClientUpdate },
+                body: {
+                  mission: req.body.mission,
+                  config: config,
+                  forceClientUpdate: req.body.forceClientUpdate,
+                },
               },
               null,
               null,
@@ -706,6 +808,7 @@ function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
                       message: `Added layer to the ${response.mission} mission. Configuration versioned ${response.version}.`,
                       mission: response.mission,
                       version: response.version,
+                      newlyAddedUUIDs: response.newlyAddedUUIDs,
                     });
                   } else {
                     res.send({
@@ -713,6 +816,7 @@ function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
                       message: `Added layer to the ${response.mission} mission. Configuration versioned ${response.version}.`,
                       mission: response.mission,
                       version: response.version,
+                      newlyAddedUUIDs: response.newlyAddedUUIDs,
                     });
                   }
                 } else {
@@ -721,7 +825,9 @@ function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
               },
               {
                 type: caller,
-                layerName: req.body.layer.name,
+                layerName: Array.isArray(req.body.layer)
+                    ? req.body.layer.map(i => i.name)
+                    : req.body.layer.name,
               }
             );
           } else if (cb)
@@ -764,7 +870,7 @@ if (fullAccess)
   router.post("/updateLayer", function (req, res, next) {
     const exampleBody = {
       mission: "{mission_name}",
-      layerName: "{existing_layer_name}",
+      layerUUID: "{existing_layer_uuid}",
       layer: {
         "...": "...",
       },
@@ -785,10 +891,10 @@ if (fullAccess)
       });
       return;
     }
-    if (req.body.layerName == null) {
+    if (req.body.layerUUID == null) {
       res.send({
         status: "failure",
-        message: `Required parameter 'layerName' is unset. (a layer.name is not sufficient)`,
+        message: `Required parameter 'layerUUID' is unset. (a layer.uuid is not sufficient)`,
         example: exampleBody,
       });
       return;
@@ -821,7 +927,7 @@ if (fullAccess)
             let placementIndex = req.body.placement?.index;
 
             Utils.traverseLayers(config.layers, (layer, path, index) => {
-              if (layer.name === req.body.layerName) {
+              if (layer.uuid === req.body.layerUUID) {
                 existingLayer = JSON.parse(JSON.stringify(layer));
                 if (placementPath == null) placementPath = path;
                 if (placementIndex == null) placementIndex = index;
@@ -832,7 +938,7 @@ if (fullAccess)
             if (existingLayer == null) {
               res.send({
                 status: "failure",
-                message: `Layer ${req.body.layerName} not found. Cannot update.`,
+                message: `Layer ${req.body.layerUUID} not found. Cannot update.`,
               });
               return;
             }
@@ -862,7 +968,7 @@ if (fullAccess)
                 if (resp.status === "success") {
                   res.send({
                     status: "success",
-                    message: `Updated layer '${req.body.layerName}' in the ${resp.mission} mission. Configuration versioned ${resp.version}.`,
+                    message: `Updated layer '${req.body.layerUUID}' in the ${resp.mission} mission. Configuration versioned ${resp.version}.`,
                   });
                 } else {
                   resp.message = `Update layer failed with: ${resp.message}`;
@@ -876,14 +982,14 @@ if (fullAccess)
           } catch (err) {
             logger(
               "error",
-              `Failed to update layer: ${req.body.layerName}.`,
+              `Failed to update layer: ${req.body.layerUUID}.`,
               req.originalUrl,
               req,
               err
             );
             res.send({
               status: "failure",
-              message: `Failed to update layer: ${req.body.layerName}. Uncaught reason.`,
+              message: `Failed to update layer: ${req.body.layerUUID}. Uncaught reason.`,
             });
           }
         }
@@ -894,7 +1000,7 @@ if (fullAccess)
 function removeLayer(req, res, next, cb) {
   const exampleBody = {
     mission: "{mission_name}",
-    layerName: "{existing_layer_name}",
+    layerUUID: "{existing_layer_uuid}",
     "forceClientUpdate?": "{true}; default false",
   };
 
@@ -906,10 +1012,10 @@ function removeLayer(req, res, next, cb) {
     });
     return;
   }
-  if (req.body.layerName == null) {
+  if (req.body.layerUUID == null) {
     res.send({
       status: "failure",
-      message: `Required parameter 'layerName' is unset.`,
+      message: `Required parameter 'layerUUID' is unset.`,
       example: exampleBody,
     });
     return;
@@ -928,14 +1034,24 @@ function removeLayer(req, res, next, cb) {
         res.send(config);
       } else {
         try {
+          let layerUUIDs = [];
+
+          // Input can be object or array
+          if (!Array.isArray(req.body.layerUUID)) {
+            layerUUIDs.push(req.body.layerUUID);
+          } else {
+            layerUUIDs = [...req.body.layerUUID];
+          }
+
           let didRemove = false;
-          Utils.traverseLayers(config.layers, (layer, path, index) => {
-            if (layer.name === req.body.layerName) {
+          const removedUUIDs = Utils.traverseLayers(config.layers, (layer, path, index) => {
+            if (layerUUIDs.includes(layer.uuid)) {
               didRemove = true;
               return "remove";
             }
           });
 
+          const unableToRemoveUUIDs = layerUUIDs.filter(i => !removedUUIDs.map(x => x.uuid).includes(i));
           if (didRemove) {
             upsert(
               {
@@ -951,24 +1067,28 @@ function removeLayer(req, res, next, cb) {
                 if (resp.status === "success") {
                   res.send({
                     status: "success",
-                    message: `Successfully removed layer '${req.body.layerName}'.`,
+                    message: `Successfully removed layer${removedUUIDs.length >= 1 ? 's' : ''}. Configuration versioned ${resp.version}.`,
+                    removedUUIDs: removedUUIDs,
+                    unableToRemoveUUIDs: unableToRemoveUUIDs,
                   });
                 } else {
                   res.send({
                     status: "failure",
-                    message: `Failed to remove layer '${req.body.layerName}': ${resp.message}`,
+                    message: `Failed to remove layer${layerUUIDs.length >= 1 ? 's' : ''}: ${resp.message}.`,
+                    unableToRemoveUUIDs: layerUUIDs,
                   });
                 }
               },
               {
-                type: 'removeLayer',
-                layerName: req.body.layerName,
+                type: "removeLayer",
+                layerName: layerUUIDs.filter(i => removedUUIDs.map(x => x.uuid).includes(i)),
               }
             );
           } else {
             res.send({
               status: "failure",
-              message: `Failed to remove layer '${req.body.layerName}'. Layer not found.`,
+              message: `Failed to remove layer${layerUUIDs.length >= 1 ? 's' : ''}. Layer${layerUUIDs.length >= 1 ? 's' : ''} not found.`,
+              unableToRemoveUUIDs: layerUUIDs,
             });
           }
         } catch (err) {}
@@ -981,7 +1101,7 @@ if (fullAccess)
  * /removeLayer
  * body: {
     "mission": "",
-    "layerName": ""
+    "layerUUID": ""
     "forceClientUpdate?": true
   }
  */

@@ -301,6 +301,9 @@ textarea {
   margin: 0px 161px 0px 173px;
   border-bottom: 2px solid #1565c0 !important;
 }
+.col > .CodeMirror {
+  margin: 0px;
+}
 
 #missions {
   margin: 5px 0px;
@@ -449,10 +452,16 @@ textarea {
 .modal .clone:hover {
   color: #000;
 }
+#modal_uuid {
+  text-align: center;
+  margin: 20px 0px;
+  font-size: 14px;
+  color: #555;
+}
 
 #toast-container {
   pointer-events: none;
-  top: 110px !important;
+  top: 48px !important;
   right: 6px !important;
 }
 

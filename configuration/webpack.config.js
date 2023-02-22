@@ -31,6 +31,14 @@ const postcssNormalize = require("postcss-normalize");
 
 const appPackageJson = require(paths.appPackageJson);
 
+// This is a hack so that node v18+ can run.
+// "md4" hashes are no longer supported so before everything runs, we override them to be "sha256"
+const crypto = require("crypto");
+const crypto_orig_createHash = crypto.createHash;
+crypto.createHash = (algorithm) =>
+  crypto_orig_createHash(algorithm === "md4" ? "sha256" : algorithm);
+// end hack
+
 // Source maps are resource heavy and can cause out of memory issue for large source files.
 const shouldUseSourceMap = process.env.GENERATE_SOURCEMAP !== "false";
 // Some apps do not need the benefits of saving a web request, so not inlining the chunk
@@ -86,11 +94,11 @@ module.exports = function (webpackEnv) {
           : { publicPath: paths.publicUrlOrPath },
       },
       isEnvProduction &&
-        process.env.PUBLIC_URL && {
+         {
           loader: "string-replace-loader",
           options: {
             search: /url\(\/public\//g,
-            replace: `url(${process.env.PUBLIC_URL}/`,
+            replace: `url(../../../public/`,
           },
         },
       {

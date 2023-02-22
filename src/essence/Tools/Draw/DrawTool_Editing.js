@@ -135,7 +135,7 @@ var Editing = {
         }
 
         var shape = layer
-        if (index != null) shape = L_.layersGroup[shape][index]
+        if (index != null) shape = L_.layers.layer[shape][index]
         //Disable editing the previous drawing layer if it was being
         if (!displayOnly) {
             if (DrawTool.contextMenuLayer) {
@@ -296,8 +296,8 @@ var Editing = {
             properties.style = properties.style || {}
             style = properties.style || {}
             let fallbackStyle = {}
-            if (kindLayerName && L_.layersStyles[kindLayerName])
-                fallbackStyle = L_.layersStyles[kindLayerName]
+            if (kindLayerName && L_.layers.data[kindLayerName]?.style)
+                fallbackStyle = L_.layers.data[kindLayerName].style
 
             //Set blank styles to
             style.color = style.color || fallbackStyle.color || 'black'
@@ -410,8 +410,8 @@ var Editing = {
                 properties.style = properties.style || {}
                 style = properties.style || {}
                 let fallbackStyle = {}
-                if (kindLayerName && L_.layersStyles[kindLayerName])
-                    fallbackStyle = L_.layersStyles[kindLayerName]
+                if (kindLayerName && L_.layers.data[kindLayerName].style)
+                    fallbackStyle = L_.layers.data[kindLayerName].style
                 //Set blank styles to
                 style.color = style.color || fallbackStyle.color || 'black'
                 style.opacity =
@@ -920,7 +920,7 @@ var Editing = {
                     !displayOnly &&
                     l != null &&
                     l.hasOwnProperty('l_i_f') &&
-                    L_.layersGroup[l.l_i_f.layer][l.l_i_f.index] != null
+                    L_.layers.layer[l.l_i_f.layer][l.l_i_f.index] != null
                 ) {
                     //Properties
                     //Style
@@ -965,7 +965,7 @@ var Editing = {
                 !displayOnly &&
                 l != null &&
                 l.hasOwnProperty('l_i_f') &&
-                L_.layersGroup[l.l_i_f.layer][l.l_i_f.index] != null &&
+                L_.layers.layer[l.l_i_f.layer][l.l_i_f.index] != null &&
                 l.properties.arrow == true
             ) {
                 L_.addArrowToMap(
@@ -1063,7 +1063,7 @@ var Editing = {
             }
             DrawTool.removeDrawing(body, function () {
                 Map_.rmNotNull(DrawTool.contextMenuLayer)
-                L_.layersGroup[DrawTool.lastContextLayerIndexFileId.layer][
+                L_.layers.layer[DrawTool.lastContextLayerIndexFileId.layer][
                     DrawTool.lastContextLayerIndexFileId.index
                 ] = null
 
@@ -2640,7 +2640,7 @@ var Editing = {
     getSnapGuides: function (layer) {
         var guides = []
         for (var j = 0; j < DrawTool.filesOn.length; j++) {
-            for (var e of L_.layersGroup['DrawTool_' + DrawTool.filesOn[j]])
+            for (var e of L_.layers.layer['DrawTool_' + DrawTool.filesOn[j]])
                 if (e != null) {
                     var l = e
                     if (l.hasOwnProperty('_layers'))

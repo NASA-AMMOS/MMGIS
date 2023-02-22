@@ -2,6 +2,7 @@
 import * as d3 from 'd3'
 import * as moment from 'moment'
 import $ from 'jquery'
+import F_ from '../Basics/Formulae_/Formulae_'
 import L_ from '../Basics/Layers_/Layers_'
 import Map_ from '../Basics/Map_/Map_'
 import TimeUI from './TimeUI'
@@ -104,15 +105,16 @@ var TimeControl = {
     },
     setLayerTime: function (layer, startTime, endTime) {
         if (typeof layer == 'string') {
-            layer = L_.layersNamed[layer]
+            layer = L_.asLayerUUID(layer)
+            layer = L_.layers.data[layer]
         }
         if (layer.time && layer.time.enabled == true) {
             layer.time.start = startTime
             layer.time.end = endTime
-            d3.select('.starttime.' + layer.name.replace(/\s/g, '')).text(
+            d3.select('.starttime.' + F_.getSafeName(layer.name)).text(
                 layer.time.start
             )
-            d3.select('.endtime.' + layer.name.replace(/\s/g, '')).text(
+            d3.select('.endtime.' + F_.getSafeName(layer.name)).text(
                 layer.time.end
             )
 
@@ -133,14 +135,16 @@ var TimeControl = {
     },
     getLayerStartTime: function (layer) {
         if (typeof layer == 'string') {
-            layer = L_.layersNamed[layer]
+            layer = L_.asLayerUUID(layer)
+            layer = L_.layers.data[layer]
         }
         if (layer.time) return layer.time.start
         return false
     },
     getLayerEndTime: function (layer) {
         if (typeof layer == 'string') {
-            layer = L_.layersNamed[layer]
+            layer = L_.asLayerUUID(layer)
+            layer = L_.layers.data[layer]
         }
         if (layer.time) return layer.time.end
         return false
@@ -148,10 +152,11 @@ var TimeControl = {
     reloadLayer: async function (layer, evenIfOff, evenIfControlled) {
         // reload layer
         if (typeof layer == 'string') {
-            layer = L_.layersNamed[layer]
+            layer = L_.asLayerUUID(layer)
+            layer = L_.layers.data[layer]
         }
 
-        if (L_.layersGroup[layer.name] === null) return
+        if (L_.layers.layer[layer.name] === null) return
 
         var layerTimeFormat = d3.utcFormat(layer.time.format)
         layer.time.current = TimeControl.currentTime // keeps track of when layer was refreshed
@@ -160,9 +165,10 @@ var TimeControl = {
             if (layer.time && layer.time.enabled === true) {
                 TimeControl.setLayerWmsParams(layer)
             }
-
-            if (L_.toggledArray[layer.name] || evenIfOff) {
-                L_.layersGroup[layer.name].refresh()
+            if (evenIfControlled === true || layer.controlled !== true) {
+                if (L_.layers.on[layer.name] || evenIfOff) {
+                    L_.layers.layer[layer.name].refresh()
+                }
             }
         } else {
             var originalUrl = layer.url
@@ -198,7 +204,7 @@ var TimeControl = {
             } else {
                 // refresh map
                 if (evenIfControlled === true || layer.controlled !== true)
-                    if (L_.toggledArray[layer.name] || evenIfOff) {
+                    if (L_.layers.on[layer.name] || evenIfOff) {
                         await Map_.refreshLayer(layer)
                     }
                 // put start/endtime keywords back
@@ -212,8 +218,8 @@ var TimeControl = {
     reloadTimeLayers: function () {
         // refresh time enabled layers
         var reloadedLayers = []
-        for (let layerName in L_.layersNamed) {
-            const layer = L_.layersNamed[layerName]
+        for (let layerName in L_.layers.data) {
+            const layer = L_.layers.data[layerName]
             if (layer.time && layer.time.enabled === true) {
                 TimeControl.reloadLayer(layer)
                 reloadedLayers.push(layer.name)
@@ -223,15 +229,15 @@ var TimeControl = {
     },
     updateLayersTime: function () {
         var updatedLayers = []
-        for (let layerName in L_.layersNamed) {
-            const layer = L_.layersNamed[layerName]
+        for (let layerName in L_.layers.data) {
+            const layer = L_.layers.data[layerName]
             if (layer.time && layer.time.enabled === true) {
                 layer.time.start = TimeControl.startTime
                 layer.time.end = TimeControl.currentTime
-                d3.select('.starttime.' + layer.name.replace(/\s/g, '')).text(
+                d3.select('.starttime.' + F_.getSafeName(layer.name)).text(
                     layer.time.start
                 )
-                d3.select('.endtime.' + layer.name.replace(/\s/g, '')).text(
+                d3.select('.endtime.' + F_.getSafeName(layer.name)).text(
                     layer.time.end
                 )
                 updatedLayers.push(layer.name)
@@ -244,11 +250,12 @@ var TimeControl = {
     },
     setLayerTimeStatus: function (layer, color) {
         if (typeof layer == 'string') {
-            layer = L_.layersNamed[layer]
+            layer = L_.asLayerUUID(layer)
+            layer = L_.layers.data[layer]
         }
         if (layer.time) {
             layer.time.status = color
-            d3.select('#timesettings' + layer.name.replace(/\s/g, '')).style(
+            d3.select('#timesettings' + F_.getSafeName(layer.name)).style(
                 'color',
                 layer.time.status
             )
@@ -257,8 +264,8 @@ var TimeControl = {
     },
     setLayersTimeStatus: function (color) {
         var updatedLayers = []
-        for (let layerName in L_.layersNamed) {
-            const layer = L_.layersNamed[layerName]
+        for (let layerName in L_.layers.data) {
+            const layer = L_.layers.data[layerName]
             if (
                 layer.time &&
                 layer.time.enabled === true &&
@@ -272,7 +279,7 @@ var TimeControl = {
     },
     setLayerWmsParams: function (layer) {
         var layerTimeFormat = d3.utcFormat(layer.time.format)
-        const l = L_.layersGroup[layer.name]
+        const l = L_.layers.layer[layer.name]
 
         if (l != null && layer.type === 'tile') {
             l.options.time = layerTimeFormat(Date.parse(layer.time.end))
@@ -297,8 +304,8 @@ function initLayerDataTimes() {
 }
 
 function initLayerTimes() {
-    for (let layerName in L_.layersNamed) {
-        const layer = L_.layersNamed[layerName]
+    for (let layerName in L_.layers.data) {
+        const layer = L_.layers.data[layerName]
         if (layer.time && layer.time.enabled === true) {
             layer.time.start = L_.FUTURES.startTime
                 ? L_.FUTURES.startTime.toISOString().split('.')[0] + 'Z'
@@ -306,10 +313,10 @@ function initLayerTimes() {
             layer.time.end = L_.FUTURES.endTime
                 ? L_.FUTURES.endTime.toISOString().split('.')[0] + 'Z'
                 : TimeControl.endTime
-            d3.select('.starttime.' + layer.name.replace(/\s/g, '')).text(
+            d3.select('.starttime.' + F_.getSafeName(layer.name)).text(
                 layer.time.start
             )
-            d3.select('.endtime.' + layer.name.replace(/\s/g, '')).text(
+            d3.select('.endtime.' + F_.getSafeName(layer.name)).text(
                 layer.time.end
             )
 

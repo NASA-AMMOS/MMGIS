@@ -925,6 +925,11 @@ var UserInterface = {
                 display: l_.configData.look.fullscreen ? 'inherit' : 'none',
             })
 
+        if (l_.configData.look && l_.configData.look.settings != null)
+            $('#bottomBarSettings').css({
+                display: l_.configData.look.settings ? 'inherit' : 'none',
+            })
+
         if (l_.configData.look && l_.configData.look.help != null)
             $('#topBarHelp').css({
                 display: l_.configData.look.help ? 'inherit' : 'none',

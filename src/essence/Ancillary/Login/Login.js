@@ -364,7 +364,6 @@ var Login = {
             })
 
             values['mission'] = L_.mission
-            values['master'] = L_.masterdb
 
             if (!Login.signUp) {
                 if (validate.username && validate.password) {

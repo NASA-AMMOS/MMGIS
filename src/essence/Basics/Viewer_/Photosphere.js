@@ -611,7 +611,7 @@ export default function (domEl, lookupPath, options, Map_) {
             render()
 
             //Select the point in the map
-            const markers = L_.layersGroup[intLayerName]
+            const markers = L_.layers.layer[intLayerName]
             if (markers != undefined) {
                 markers.eachLayer(function (layer) {
                     if (

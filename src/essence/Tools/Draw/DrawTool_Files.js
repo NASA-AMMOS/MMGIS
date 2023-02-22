@@ -421,11 +421,11 @@ var Files = {
                         }
                         if (
                             $(
-                                `.drawToolDrawFilesGroupElem[group_name=${g}] .drawToolDrawFilesGroupListElem > .drawToolDrawFilesListElem[file_id=${file.id}]`
+                                `.drawToolDrawFilesGroupElem[group_name="${g}"] .drawToolDrawFilesGroupListElem > .drawToolDrawFilesListElem[file_id="${file.id}"]`
                             ).length === 0
                         ) {
                             d3.select(
-                                `.drawToolDrawFilesGroupElem[group_name=${g}] .drawToolDrawFilesGroupListElem`
+                                `.drawToolDrawFilesGroupElem[group_name="${g}"] .drawToolDrawFilesGroupListElem`
                             )
                                 .append('li')
                                 .attr(
@@ -1204,13 +1204,13 @@ var Files = {
                             file_description:
                                 description +
                                 existingTagFol['efolders']
-                                    .map((t) => ' ^' + t)
+                                    .map((t) => ' ~^' + t)
                                     .join('') +
                                 existingTagFol['folders']
-                                    .map((t) => ' @' + t)
+                                    .map((t) => ' ~@' + t)
                                     .join('') +
                                 existingTagFol['tags']
-                                    .map((t) => ' #' + t)
+                                    .map((t) => ' ~#' + t)
                                     .join(''),
                             public:
                                 elm
@@ -1311,15 +1311,15 @@ var Files = {
                                 return function (d) {
                                     //Remove each feature in its group
                                     if (
-                                        L_.layersGroup.hasOwnProperty(layerId)
+                                        L_.layers.layer.hasOwnProperty(layerId)
                                     ) {
                                         for (
                                             var i = 0;
-                                            i < L_.layersGroup[layerId].length;
+                                            i < L_.layers.layer[layerId].length;
                                             i++
                                         ) {
                                             Map_.rmNotNull(
-                                                L_.layersGroup[layerId][i]
+                                                L_.layers.layer[layerId][i]
                                             )
                                         }
                                         //And from the Globe
@@ -1355,7 +1355,7 @@ var Files = {
         $('.drawToolDrawFilesListElem').on('mouseenter', function () {
             $(this).find('.drawToolFileEdit').addClass('shown')
             var fileId = parseInt($(this).attr('file_id'))
-            var l = L_.layersGroup['DrawTool_' + fileId]
+            var l = L_.layers.layer['DrawTool_' + fileId]
             if (!l) return
             for (var i = 0; i < l.length; i++) {
                 if (l[i] != null) {
@@ -1379,7 +1379,7 @@ var Files = {
         $('.drawToolDrawFilesListElem').on('mouseleave', function () {
             $(this).find('.drawToolFileEdit').removeClass('shown')
             var fileId = parseInt($(this).attr('file_id'))
-            var l = L_.layersGroup['DrawTool_' + fileId]
+            var l = L_.layers.layer['DrawTool_' + fileId]
             if (!l) return
             for (var i = 0; i < l.length; i++) {
                 var style
@@ -1525,7 +1525,7 @@ var Files = {
         //Can't refresh what isn't there
         if (
             parsedId != 'master' &&
-            L_.layersGroup.hasOwnProperty('DrawTool_' + parsedId) == false
+            L_.layers.layer.hasOwnProperty('DrawTool_' + parsedId) == false
         )
             return
 
@@ -1541,18 +1541,18 @@ var Files = {
                 return function (data) {
                     var layerId = 'DrawTool_' + index
                     //Remove it first
-                    if (L_.layersGroup.hasOwnProperty(layerId)) {
+                    if (L_.layers.layer.hasOwnProperty(layerId)) {
                         for (
                             var i = 0;
-                            i < L_.layersGroup[layerId].length;
+                            i < L_.layers.layer[layerId].length;
                             i++
                         ) {
                             //Close any popups/labels
-                            var popupLayer = L_.layersGroup[layerId][i]
+                            var popupLayer = L_.layers.layer[layerId][i]
                             DrawTool.removePopupsFromLayer(popupLayer)
 
-                            Map_.rmNotNull(L_.layersGroup[layerId][i])
-                            L_.layersGroup[layerId][i] = null
+                            Map_.rmNotNull(L_.layers.layer[layerId][i])
+                            L_.layers.layer[layerId][i] = null
                         }
                         //And from the Globe
                         Globe_.litho.removeLayer('camptool_' + layerId)
@@ -1599,25 +1599,25 @@ var Files = {
 
                             DrawTool.refreshNoteEvents()
                         } else if (features[i].geometry.type === 'Point') {
-                            L_.layersGroup[layerId].push(
+                            L_.layers.layer[layerId].push(
                                 LayerGeologic.createSymbolMarker(
                                     features[i].geometry.coordinates[1],
                                     features[i].geometry.coordinates[0],
                                     features[i].properties.style
                                 ).addTo(Map_.map)
                             )
-                            L_.layersGroup[layerId][
-                                L_.layersGroup[layerId].length - 1
+                            L_.layers.layer[layerId][
+                                L_.layers.layer[layerId].length - 1
                             ].feature = features[i]
                         } else if (features[i].geometry.type === 'LineString') {
-                            L_.layersGroup[layerId].push(
+                            L_.layers.layer[layerId].push(
                                 LayerGeologic.createLinework(
                                     features[i],
                                     style
                                 ).addTo(Map_.map)
                             )
                         } else {
-                            L_.layersGroup[layerId].push(
+                            L_.layers.layer[layerId].push(
                                 L.geoJson(
                                     {
                                         type: 'FeatureCollection',
@@ -1675,8 +1675,8 @@ var Files = {
                         }
 
                         if (features[i].properties.arrow !== true) {
-                            var last = L_.layersGroup[layerId].length - 1
-                            var llast = L_.layersGroup[layerId][last]
+                            var last = L_.layers.layer[layerId].length - 1
+                            var llast = L_.layers.layer[layerId][last]
                             var layer
 
                             if (llast.hasOwnProperty('_layers'))
@@ -1779,9 +1779,9 @@ var Files = {
                     .removeClass('on')
             }
             //Remove each feature in its group
-            if (L_.layersGroup.hasOwnProperty(layerId)) {
-                for (var i = 0; i < L_.layersGroup[layerId].length; i++) {
-                    Map_.rmNotNull(L_.layersGroup[layerId][i])
+            if (L_.layers.layer.hasOwnProperty(layerId)) {
+                for (var i = 0; i < L_.layers.layer[layerId].length; i++) {
+                    Map_.rmNotNull(L_.layers.layer[layerId][i])
                 }
                 //And from the Globe
                 Globe_.litho.removeLayer('camptool_' + layerId)
@@ -1802,7 +1802,7 @@ var Files = {
                     .addClass('on')
             }
             //Get the file if we don't already have it
-            L_.layersGroup[layerId] = []
+            L_.layers.layer[layerId] = []
             DrawTool.refreshFile(
                 id == 'master' ? DrawTool.masterFileIds : id,
                 null,
@@ -1813,7 +1813,7 @@ var Files = {
         }
     },
     toggleLabels: function (file_id) {
-        var l = L_.layersGroup['DrawTool_' + file_id]
+        var l = L_.layers.layer['DrawTool_' + file_id]
         let indexOf = DrawTool.labelsOn.indexOf(file_id)
         var isOn = indexOf != -1
         if (isOn) DrawTool.labelsOn.splice(indexOf, 1)
@@ -1840,7 +1840,7 @@ var Files = {
             for (var j = 0; j < DrawTool.filesOn.length; j++) {
                 var file = DrawTool.getFileObjectWithId(DrawTool.filesOn[j])
                 if (file && file.intent === DrawTool.intentOrder[i]) {
-                    for (var e of L_.layersGroup[
+                    for (var e of L_.layers.layer[
                         'DrawTool_' + DrawTool.filesOn[j]
                     ])
                         if (e != null && typeof e.bringToFront === 'function')
@@ -1897,7 +1897,7 @@ var Files = {
         $('.drawToolAnnotation').on('click', function () {
             var layer = 'DrawTool_' + $(this).attr('layer')
             var index = $(this).attr('index')
-            var shape = L_.layersGroup[layer][index]
+            var shape = L_.layers.layer[layer][index]
             if (!mmgisglobal.shiftDown) {
                 if (typeof shape.getBounds === 'function')
                     Map_.map.fitBounds(shape.getBounds())
