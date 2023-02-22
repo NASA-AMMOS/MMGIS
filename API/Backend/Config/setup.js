@@ -20,6 +20,7 @@ let setup = {
             NODE_ENV: process.env.NODE_ENV,
             PORT: process.env.PORT || "8888",
             ENABLE_CONFIG_WEBSOCKETS: process.env.ENABLE_CONFIG_WEBSOCKETS,
+            ENABLE_CONFIG_OVERRIDE: process.env.ENABLE_CONFIG_OVERRIDE,
             ROOT_PATH:
               process.env.NODE_ENV === "development"
                 ? ""

@@ -119,3 +119,7 @@ If true, enables the backend MMGIS websockets to tell clients to update layers |
 #### `ENABLE_CONFIG_WEBSOCKETS=`
 
 If true, notifications are sent to /configure users whenever the current mission's configuration object changes out from under them and thne puts (overridable) limits on saving | boolean | default `false`
+
+#### `ENABLE_CONFIG_OVERRIDE=`
+
+For use when `ENABLE_CONFIG_WEBSOCKETS=true` (if `ENABLE_CONFIG_WEBSOCKETS=false`, all saves will freely overwrite already). If true, gives /configure users the ability to override changes made to the configuration while they were working on it with their own. | boolean | default `false`

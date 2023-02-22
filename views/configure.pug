@@ -35,6 +35,7 @@ script.
     mmgisglobal.ROOT_PATH = '#{ROOT_PATH}';
     mmgisglobal.PORT = '#{PORT}'
     mmgisglobal.ENABLE_CONFIG_WEBSOCKETS = '#{ENABLE_CONFIG_WEBSOCKETS}'
+    mmgisglobal.ENABLE_CONFIG_OVERRIDE = '#{ENABLE_CONFIG_OVERRIDE}'
 script(type='text/javascript' src='config/js/calls.js')
 script(type='text/javascript' src='config/js/keys.js')
 script(type='text/javascript' src='config/js/datasets.js')
@@ -140,6 +141,10 @@ script(type='text/javascript' src='config/pre/RefreshAuth.js')
           a#delete_mission.modal-trigger.btn.waves-effect.waves-light.red.darken-3.col.s2.push-s2(href='#delete_modal' style='border-radius: 0px; padding: 1px 0.5rem 0 0.5rem; font-size: 12px; line-height: 35px;')
             | Delete Mission
             i.mdi.mdi-delete.mdi-18px(style='float: right; margin-top: -1px;')
+          li.row(style='margin-top: 64px;')
+            a#download_working_config.btn.waves-effect.waves-light.brown.darken-3.col.s2.push-s5(style='border-radius: 0px; padding: 1px 0.5rem 0 0.5rem; font-size: 12px; line-height: 35px;')
+              | Export unsaved config.json
+              i.mdi.mdi-download.mdi-18px(style='float: right; margin-top: -1px;')
       #tab_initial.col.s12
         a.helpFromDocs(href='https://nasa-ammos.github.io/MMGIS/configure/tabs/initial' target='__blank' rel='noopener')
           i.mdi.mdi-help.mdi-14px
