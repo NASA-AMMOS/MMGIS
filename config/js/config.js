@@ -3,7 +3,7 @@ var grandLayerCounter = 0;
 var mission = "";
 var configId = -1;
 var lockConfig = false;
-var lockConfigCount;
+var lockConfigCount = false;
 //The active mission filepath
 var missionPath = "";
 var tData;
@@ -855,6 +855,17 @@ function initialize() {
     });
 
     $("#deleteMissionName").val("");
+  });
+
+  //Download working config button
+  $("#download_working_config").on("click", function () {
+    downloadObject(
+      save("returnJSON"),
+      mission + "_config_WORKING",
+      ".json",
+      true
+    );
+    toast("success", "Download Successful.");
   });
 
   //Save changes button
@@ -1964,7 +1975,7 @@ function materializeDraggableMouseUp(e) {
 
 //Save Changes
 //Reconstructs JSON from html (doesn't modify the initial json directly)
-function save() {
+function save(returnJSON) {
   if (missionPath.length > 0) {
     var json = {
       msv: {},
@@ -2484,7 +2495,8 @@ function save() {
       });
 
     //SAVE HERE
-    saveConfig(json);
+    if (returnJSON === "returnJSON") return json;
+    else saveConfig(json);
   } else {
     toast("warning", "No Mission selected.", 5000);
   }
@@ -2529,16 +2541,24 @@ function addMission() {
 
 function saveConfig(json) {
   if (lockConfig === true) {
-    toast(
-      "error",
-      `This configuartion changed while you were working on it. Cannot save without refresh or ${lockConfigCount} more attempt${
-        lockConfigCount != 1 ? "s" : ""
-      } at saving to force it.`,
-      5000
-    );
-    lockConfigCount--;
-    if (lockConfigCount <= 0) {
-      clearLockConfig();
+    if (lockConfigCount != false) {
+      toast(
+        "error",
+        `This configuartion changed while you were working on it. Cannot save without refresh or ${lockConfigCount} more attempt${
+          lockConfigCount != 1 ? "s" : ""
+        } at saving to force it.`,
+        5000
+      );
+      lockConfigCount--;
+      if (lockConfigCount <= 0) {
+        clearLockConfig();
+      }
+    } else {
+      toast(
+        "error",
+        `This configuartion changed while you were working on it. Cannot save without refresh.`,
+        5000
+      );
     }
     return;
   }
@@ -3115,7 +3135,7 @@ function setLockConfig(type) {
   clearLockConfig(type);
   lockConfig = true;
   lockConfigTypes[type || "main"] = false;
-  lockConfigCount = 4;
+  lockConfigCount = mmgisglobal.ENABLE_CONFIG_OVERRIDE === "true" ? 4 : false;
 
   toast(
     "warning",
