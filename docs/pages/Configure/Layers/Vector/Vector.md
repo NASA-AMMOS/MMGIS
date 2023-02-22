@@ -158,6 +158,11 @@ Example:
         "pairings": {
           "initialVisibility": false,
           "layers": ["Array of layer names to pair"],
+          "originOffsetOrder": [
+            "X",
+            "Y",
+            "Z"
+          ],
           "pairProp":
             "path.to.pair.prop.for.this.layer.and.all.paired.layers.to.link.on",
           "style": {
@@ -266,6 +271,7 @@ Example:
   - `pairings`: Links cross-layer features together. Features paired to this layer will attempt to compute the azimuth-elevation relationship between the two to draw in the Viewer's PhotoSphere. Additionally, on the Map, a line will be drawn between the two features.
     - `initialVisibility`: Whether the pairing line sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.
     - `layers`: An array of names of other layers. Note: Do not use css shorthand color names ("blue", "maroon", ...) in the paired layers styles as they won't parse properly when drawing in the PhotoSphere.
+    - `originOffsetOrder`: In many cases, a marker's center is not the camera's center. Within a feature's `properties.images` objects, `originOffset` can be defined. `originOffsetOrder` describes the XYZ order and signage that `originOffset` should be read in. Possible values are `X, -X, Y, -Y, Z, -Z`.
     - `pairProp`: The dot notated path to the feature properties that contains the property to pair on. This layer and all paired layers need this property to properly pair up. A feature in this layer is said to be paired with a feature of one of the other specified layers, if and only if the values of this property in both features matches.
     - `style`: A style object to change the style of the connective lines on the Map between features. (Ex. { "color": "#00000", "weight": 5})
 - `coordinateAttachments`: Attachment layers for each coordinate of every feature.

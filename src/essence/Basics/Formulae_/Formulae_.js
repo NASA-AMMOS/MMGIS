@@ -2088,7 +2088,6 @@ var Formulae_ = {
         return stitched
     },
     bracketReplace(str, obj, replace) {
-        console.log(str, obj, replace)
         if (str === null) return ''
         let matches = str.match(/\{.*?\}/gi)
 

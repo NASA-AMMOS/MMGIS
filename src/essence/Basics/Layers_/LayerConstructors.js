@@ -781,7 +781,8 @@ const pairings = (geojson, layerObj, leafletLayerObject) => {
     )
 
     if (pairingsVar) {
-        const layers = pairingsVar.layers || []
+        const layers = (pairingsVar.layers || []).map((l) => L_.asLayerUUID(l))
+
         const pairProp = pairingsVar.pairProp
         const style = pairingsVar.style || {}
         const styleObject = {
@@ -816,11 +817,11 @@ const pairings = (geojson, layerObj, leafletLayerObject) => {
 
                     layers.forEach((layerName) => {
                         if (
-                            L_.layersGroup[layerName] &&
-                            L_.layersGroup[layerName]._sourceGeoJSON &&
-                            L_.toggledArray[layerName] === true
+                            L_.layers.layer[layerName] &&
+                            L_.layers.layer[layerName]._sourceGeoJSON &&
+                            L_.layers.on[layerName] === true
                         ) {
-                            L_.layersGroup[
+                            L_.layers.layer[
                                 layerName
                             ]._sourceGeoJSON.features.forEach((pairFeature) => {
                                 if (
@@ -859,9 +860,9 @@ const pairings = (geojson, layerObj, leafletLayerObject) => {
                 const constructedFromLayers = []
                 layers.forEach((layerName) => {
                     if (
-                        L_.layersGroup[layerName] &&
-                        L_.layersGroup[layerName]._sourceGeoJSON &&
-                        L_.toggledArray[layerName] === true
+                        L_.layers.layer[layerName] &&
+                        L_.layers.layer[layerName]._sourceGeoJSON &&
+                        L_.layers.on[layerName] === true
                     ) {
                         constructedFromLayers.push(layerName)
                     }
@@ -880,9 +881,9 @@ const pairings = (geojson, layerObj, leafletLayerObject) => {
                     }
                     L_.Map_.map.addLayer(layer)
                     layer.setZIndex(
-                        L_.layersOrdered.length +
+                        L_._layersOrdered.length +
                             1 -
-                            L_.layersOrdered.indexOf(layerObj.name)
+                            L_._layersOrdered.indexOf(layerObj.name)
                     )
                 }
             }
@@ -895,8 +896,8 @@ const pairings = (geojson, layerObj, leafletLayerObject) => {
         const layer = getPairingLayer(true)
 
         return {
-            on: L_.layersGroupSublayers[layerObj.name]?.pairings
-                ? L_.layersGroupSublayers[layerObj.name]?.pairings.on
+            on: L_.layers.attachments[layerObj.name]?.pairings
+                ? L_.layers.attachments[layerObj.name]?.pairings.on
                 : pairingsVar.initialVisibility != null
                 ? pairingsVar.initialVisibility
                 : true,

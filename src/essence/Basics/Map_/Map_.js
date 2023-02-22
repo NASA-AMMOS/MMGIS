@@ -524,7 +524,8 @@ function getLayersChosenNamePropVal(feature, layer) {
             l.variables.hasOwnProperty('useKeyAsName')
         ) {
             propertyNames = l.variables['useKeyAsName']
-            if (typeof propertyNames === 'string') propertyNames = []
+            if (typeof propertyNames === 'string')
+                propertyNames = [propertyNames]
             propertyValues = Array(propertyNames.length).fill(null)
             propertyNames.forEach((propertyName, idx) => {
                 if (feature.properties.hasOwnProperty(propertyName)) {

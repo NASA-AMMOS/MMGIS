@@ -198,21 +198,19 @@ export default function (domEl, lookupPath, options, Map_) {
 
             if (
                 feature.geometry.type === 'Point' &&
-                L_.toggledArray[layerName] &&
-                L_.layersGroupSublayers[layerName] &&
-                L_.layersGroupSublayers[layerName].pairings &&
-                L_.layersGroupSublayers[layerName].pairings.on
+                L_.layers.on[layerName] &&
+                L_.layers.attachments[layerName] &&
+                L_.layers.attachments[layerName].pairings &&
+                L_.layers.attachments[layerName].pairings.on
             ) {
                 let sourceCoords = feature.geometry.coordinates
                 let originOffsetOrder =
-                    L_.layersGroupSublayers[layerName].pairings
-                        .originOffsetOrder
+                    L_.layers.attachments[layerName].pairings.originOffsetOrder
                 if (originOffsetOrder)
                     originOffsetOrder = originOffsetOrder.map((o) =>
                         o.toLowerCase()
                     )
 
-                console.log(imageObj.originOffset, originOffsetOrder)
                 // Allow sourceCoords offset with originOffset and support configurable axis order
                 // prettier-ignore
                 if( imageObj.originOffset != null ) {
@@ -223,7 +221,6 @@ export default function (domEl, lookupPath, options, Map_) {
                         if( originOffsetOrder != null && originOffsetOrder[0] != null) {
                             const pos = originOffsetOrder[0].includes('z') ? 2 : originOffsetOrder[0].includes('y') ? 1 : 0 
                             const sign = originOffsetOrder[0].includes('-') ? -1 : 1
-                            console.log(pos, sign)
                             sourceCoords[pos] += sign * imageObj.originOffset[0]
                         }
                         else
@@ -251,75 +248,65 @@ export default function (domEl, lookupPath, options, Map_) {
                     sourceCoords = [scup.lng, scup.lat, sourceCoords[2]]
                 }
 
-                console.log(sourceCoords, feature.geometry.coordinates)
-
                 currentImageObj._center = sourceCoords
 
                 const pairValue = F_.getIn(
                     feature.properties,
-                    L_.layersGroupSublayers[layerName].pairings.pairProp,
+                    L_.layers.attachments[layerName].pairings.pairProp,
                     '___null'
                 )
-                L_.layersGroupSublayers[
-                    layerName
-                ].pairings.pairedLayers.forEach((pairedLayerName) => {
-                    if (
-                        L_.layersGroup[pairedLayerName] &&
-                        L_.layersGroup[pairedLayerName]._sourceGeoJSON &&
-                        L_.toggledArray[pairedLayerName] === true
-                    ) {
-                        layers[pairedLayerName] = {}
-                        L_.layersGroup[
-                            pairedLayerName
-                        ]._sourceGeoJSON.features.forEach((pairFeature) => {
-                            if (
-                                pairFeature.geometry.type === 'Point' &&
-                                F_.getIn(
-                                    pairFeature.properties,
-                                    L_.layersGroupSublayers[layerName].pairings
-                                        .pairProp,
-                                    null
-                                ) === pairValue
-                            ) {
-                                const pairCoords =
-                                    pairFeature.geometry.coordinates
-                                const azElDist = F_.azElDistBetween(
-                                    {
-                                        lat: sourceCoords[1],
-                                        lng: sourceCoords[0],
-                                        el: sourceCoords[2],
-                                    },
-                                    {
-                                        lat: pairCoords[1],
-                                        lng: pairCoords[0],
-                                        el: pairCoords[2],
-                                    }
-                                )
-                                console.log(
+                L_.layers.attachments[layerName].pairings.pairedLayers.forEach(
+                    (pairedLayerName) => {
+                        if (
+                            L_.layers.layer[pairedLayerName] &&
+                            L_.layers.layer[pairedLayerName]._sourceGeoJSON &&
+                            L_.layers.on[pairedLayerName] === true
+                        ) {
+                            layers[pairedLayerName] = {}
+                            L_.layers.layer[
+                                pairedLayerName
+                            ]._sourceGeoJSON.features.forEach((pairFeature) => {
+                                if (
+                                    pairFeature.geometry.type === 'Point' &&
                                     F_.getIn(
                                         pairFeature.properties,
-                                        L_.layersNamed[pairedLayerName]
-                                            .useKeyAsName
-                                    ),
-                                    azElDist
-                                )
-                                addPoint(
-                                    pairedLayerName,
-                                    azElDist.az,
-                                    azElDist.el,
-                                    L_.layersNamed[pairedLayerName]
-                                        .useKeyAsName,
-                                    F_.getIn(
-                                        pairFeature.properties,
-                                        L_.layersNamed[pairedLayerName]
-                                            .useKeyAsName
-                                    ),
-                                    L_.layersNamed[pairedLayerName].style
-                                )
-                            }
-                        })
+                                        L_.layers.attachments[layerName]
+                                            .pairings.pairProp,
+                                        null
+                                    ) === pairValue
+                                ) {
+                                    const pairCoords =
+                                        pairFeature.geometry.coordinates
+                                    const azElDist = F_.azElDistBetween(
+                                        {
+                                            lat: sourceCoords[1],
+                                            lng: sourceCoords[0],
+                                            el: sourceCoords[2],
+                                        },
+                                        {
+                                            lat: pairCoords[1],
+                                            lng: pairCoords[0],
+                                            el: pairCoords[2],
+                                        }
+                                    )
+                                    addPoint(
+                                        pairedLayerName,
+                                        azElDist.az,
+                                        azElDist.el,
+                                        L_.layers.data[pairedLayerName]
+                                            .useKeyAsName,
+                                        F_.getIn(
+                                            pairFeature.properties,
+                                            L_.layers.data[pairedLayerName]
+                                                .useKeyAsName
+                                        ),
+                                        L_.layers.data[pairedLayerName].style
+                                    )
+                                }
+                            })
+                        }
                     }
-                })
+                )
 
                 render()
             }

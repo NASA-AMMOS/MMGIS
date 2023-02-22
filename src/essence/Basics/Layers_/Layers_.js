@@ -293,7 +293,7 @@ const L_ = {
                                             sub
                                         ].layer.on(
                                             false,
-                                            L_.layersGroupSublayers[s.name][sub]
+                                            L_.layers.attachments[s.name][sub]
                                                 .layer
                                         )
                                         break
@@ -2807,19 +2807,19 @@ const L_ = {
         }
     },
     _updatePairings: function (layerName, on) {
-        Object.keys(L_.layersGroup).forEach((name) => {
+        Object.keys(L_.layers.layer).forEach((name) => {
             if (
-                L_.toggledArray[name] &&
-                L_.layersGroupSublayers[name] &&
-                L_.layersGroupSublayers[name].pairings &&
-                L_.layersGroupSublayers[name].pairings.on &&
-                L_.layersGroupSublayers[name].pairings.pairedLayers.includes(
+                L_.layers.on[name] &&
+                L_.layers.attachments[name] &&
+                L_.layers.attachments[name].pairings &&
+                L_.layers.attachments[name].pairings.on &&
+                L_.layers.attachments[name].pairings.pairedLayers.includes(
                     layerName
                 )
             ) {
-                L_.layersGroupSublayers[name].pairings.layer.on(
+                L_.layers.attachments[name].pairings.layer.on(
                     false,
-                    L_.layersGroupSublayers[name].pairings.layer
+                    L_.layers.attachments[name].pairings.layer
                 )
             }
         })
