@@ -2544,3 +2544,15 @@
 .drawToolContextMenuTab.active {
     display: inherit;
 }
+
+.drawToolContextMenuPropertiesExtended {
+    margin: 16px 0px;
+    padding: 8px 0px;
+    border-top: 1px solid var(--color-a1);
+    border-bottom: 1px solid var(--color-a1);
+}
+.drawToolContextMenuPropertiesExtended > li {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 0px;
+}
