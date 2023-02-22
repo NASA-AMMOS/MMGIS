@@ -70,9 +70,22 @@ const L_ = {
     toggledOffFeatures: [],
     mapAndGlobeLinked: false,
     addLayerQueue: [],
+    _onLoadCallbacks: [],
+    _loaded: false,
     init: function (configData, missionsList, urlOnLayers) {
         parseConfig(configData, urlOnLayers)
         L_.missionsList = missionsList
+    },
+    onceLoaded(cb) {
+        if (L_._loaded === true) cb()
+        else L_._onLoadCallbacks.push(cb)
+    },
+    loaded: function () {
+        L_._loaded = true
+        L_._onLoadCallbacks.forEach((cb) => {
+            cb()
+        })
+        L_._onLoadCallbacks = []
     },
     clear: function () {
         L_.mission = null
@@ -217,6 +230,7 @@ const L_ = {
                                     )
                                     break
                                 case 'labels':
+                                case 'pairings':
                                     L_.layers.attachments[s.name][
                                         sub
                                     ].layer.off()
@@ -274,9 +288,14 @@ const L_ = {
                                         )
                                         break
                                     case 'labels':
+                                    case 'pairings':
                                         L_.layers.attachments[s.name][
                                             sub
-                                        ].layer.on()
+                                        ].layer.on(
+                                            false,
+                                            L_.layers.attachments[s.name][sub]
+                                                .layer
+                                        )
                                         break
                                     default:
                                         L_.Map_.map.addLayer(
@@ -451,6 +470,8 @@ const L_ = {
             if (!on) L_.layers.on[s.name] = true
         }
 
+        if (s.type === 'vector') L_._updatePairings(s.name, !on)
+
         if (!on && s.type === 'vector') {
             L_.Map_.orderedBringToFront()
         }
@@ -492,6 +513,7 @@ const L_ = {
                         L_.Map_.rmNotNull(sublayer.layer)
                         break
                     case 'labels':
+                    case 'pairings':
                         sublayer.layer.off()
                         break
                     default:
@@ -521,7 +543,8 @@ const L_ = {
                         )
                         break
                     case 'labels':
-                        sublayer.layer.on()
+                    case 'pairings':
+                        sublayer.layer.on(false, sublayer.layer)
                         break
                     default:
                         L_.Map_.map.addLayer(sublayer.layer)
@@ -619,7 +642,11 @@ const L_ = {
                                             map.addLayer(sublayer.layer)
                                             break
                                         case 'labels':
-                                            sublayer.layer.on()
+                                        case 'pairings':
+                                            sublayer.layer.on(
+                                                false,
+                                                sublayer.layer
+                                            )
                                             break
                                         default:
                                             map.addLayer(sublayer.layer)
@@ -861,10 +888,12 @@ const L_ = {
             L_.clearVectorLayerInfo()
         }
     },
-    highlight(layer) {
+    highlight(layer, forceColor) {
         if (layer == null) return
         const color =
-            (L_.configData.look && L_.configData.look.highlightcolor) || 'red'
+            forceColor ||
+            (L_.configData.look && L_.configData.look.highlightcolor) ||
+            'red'
         try {
             if (
                 layer.feature?.properties?.annotation === true &&
@@ -1437,11 +1466,13 @@ const L_ = {
             L_.layers.layer[name].updateFilter(filterArray)
         }
     },
-    resetLayerFills: function () {
+    resetLayerFills: function (onlyThisLayerName) {
         // Regular Layers
         for (let key in L_.layers.layer) {
             const s = key.split('_')
             const onId = s[1] != 'master' ? parseInt(s[1]) : s[1]
+
+            if (onlyThisLayerName != null && onlyThisLayerName !== key) continue
 
             if (
                 (L_.layers.layer[key] &&
@@ -2552,10 +2583,12 @@ const L_ = {
             }
         }
     },
-    addLayerToLayersData: async function(layerName) {
+    addLayerToLayersData: async function (layerName) {
         if (L_.layers.data[layerName]) {
             // Recursively going through the new layer to get all of its sub layers
-            const layersOrdered = L_.expandLayersToArray([L_.layers.data[layerName]])
+            const layersOrdered = L_.expandLayersToArray([
+                L_.layers.data[layerName],
+            ])
 
             if (!layersOrdered.includes(layerName)) {
                 // If the new layer is a header, we need to add it to the list of layers
@@ -2570,10 +2603,12 @@ const L_ = {
             }
         }
     },
-    removeLayerFromLayersData: async function(layerName) {
+    removeLayerFromLayersData: async function (layerName) {
         if (L_.layers.data[layerName]) {
             // Recursively going through the removed layer to get all of its sub layers
-            const layersOrdered = L_.expandLayersToArray([L_.layers.data[layerName]])
+            const layersOrdered = L_.expandLayersToArray([
+                L_.layers.data[layerName],
+            ])
 
             if (!layersOrdered.includes(layerName)) {
                 // If the new layer is a header, we need to add it to the list of layers
@@ -2581,7 +2616,7 @@ const L_ = {
             }
 
             for (let i = 0; i < layersOrdered.length; i++) {
-                const layerUUID = layersOrdered[i];
+                const layerUUID = layersOrdered[i]
 
                 // If the layer is visible, we need to remove it,
                 // otherwise do nothing since its already removed from the map
@@ -2592,7 +2627,8 @@ const L_ = {
 
                 const display_name = L_.layers.data[layerUUID].display_name
                 if (L_.layers.nameToUUID[display_name]) {
-                    const index = L_.layers.nameToUUID[display_name].indexOf(layerUUID)
+                    const index =
+                        L_.layers.nameToUUID[display_name].indexOf(layerUUID)
                     if (index > -1) {
                         L_.layers.nameToUUID[display_name].splice(index, 1)
                     }
@@ -2609,7 +2645,7 @@ const L_ = {
             }
         }
     },
-    expandLayersToArray: function(layer) {
+    expandLayersToArray: function (layer) {
         // Recursively going through the removed layer to get all of its sub layers
         const layersOrdered = []
         expandLayers(layer, 0, null)
@@ -2647,7 +2683,7 @@ const L_ = {
         if (layerQueueList.length > 0) {
             // If we have a few changes waiting in the queue, we only need to parse the config once
             // as the last item in the queue should have the latest data
-            const lastLayer  = layerQueueList[layerQueueList.length - 1]
+            const lastLayer = layerQueueList[layerQueueList.length - 1]
             L_.resetConfig(lastLayer.data)
 
             while (layerQueueList.length > 0) {
@@ -2769,6 +2805,24 @@ const L_ = {
             L_.clearVectorLayer(layerName)
             L_.updateVectorLayer(layerName, filteredGeoJSON)
         }
+    },
+    _updatePairings: function (layerName, on) {
+        Object.keys(L_.layers.layer).forEach((name) => {
+            if (
+                L_.layers.on[name] &&
+                L_.layers.attachments[name] &&
+                L_.layers.attachments[name].pairings &&
+                L_.layers.attachments[name].pairings.on &&
+                L_.layers.attachments[name].pairings.pairedLayers.includes(
+                    layerName
+                )
+            ) {
+                L_.layers.attachments[name].pairings.layer.on(
+                    false,
+                    L_.layers.attachments[name].pairings.layer
+                )
+            }
+        })
     },
 }
 

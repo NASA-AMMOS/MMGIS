@@ -9,6 +9,8 @@ import L_ from '../Layers_/Layers_'
 import LayerGeologic from './LayerGeologic/LayerGeologic'
 import { parseExtendedGeoJSON, getCoordProperties } from './ExtendedGeoJSON'
 
+import { centroid } from '@turf/turf'
+
 let L = window.L
 
 const tooltipProto = L.Tooltip.prototype
@@ -505,6 +507,7 @@ export const constructSublayers = (
     // note: sublayer ordering here does denote render order (bottom on top).
     const sublayers = {
         labels: false,
+        pairings: pairings(geojson, layerObj, leafletLayerObject),
         uncertainty_ellipses: uncertaintyEllipses(
             geojson,
             layerObj,
@@ -767,6 +770,150 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
             maxZoom: 100,
         }
     } else return false
+}
+
+// Draws a thin faint line to the center of features from other layers that are connected to this layer
+const pairings = (geojson, layerObj, leafletLayerObject) => {
+    //PAIRINGS
+    const pairingsVar = F_.getIn(
+        layerObj,
+        'variables.layerAttachments.pairings'
+    )
+
+    if (pairingsVar) {
+        const layers = (pairingsVar.layers || []).map((l) => L_.asLayerUUID(l))
+
+        const pairProp = pairingsVar.pairProp
+        const style = pairingsVar.style || {}
+        const styleObject = {
+            style: {
+                ...{
+                    weight: 2,
+                    color: 'yellow',
+                    opacity: 0.35,
+                },
+                ...style,
+            },
+        }
+
+        if (layers.length === 0 || pairProp == null) {
+            console.warn(
+                `Layer '${layerObj.name}' has badly formed 'pairings' attachments object. Missing 'layers' or 'pairProp'.`
+            )
+            return
+        }
+
+        const getPairingLayer = (dontCalculate) => {
+            const pairingLineFeatures = []
+
+            if (!dontCalculate)
+                geojson.features.forEach((f) => {
+                    const featureCenter = centroid(f).geometry.coordinates
+                    const pairValue = F_.getIn(
+                        f.properties,
+                        pairProp,
+                        '___null'
+                    )
+
+                    layers.forEach((layerName) => {
+                        if (
+                            L_.layers.layer[layerName] &&
+                            L_.layers.layer[layerName]._sourceGeoJSON &&
+                            L_.layers.on[layerName] === true
+                        ) {
+                            L_.layers.layer[
+                                layerName
+                            ]._sourceGeoJSON.features.forEach((pairFeature) => {
+                                if (
+                                    F_.getIn(
+                                        pairFeature.properties,
+                                        pairProp,
+                                        null
+                                    ) === pairValue
+                                ) {
+                                    const pairFeatureCenter =
+                                        centroid(pairFeature).geometry
+                                            .coordinates
+
+                                    pairingLineFeatures.push({
+                                        type: 'Feature',
+                                        properties: {},
+                                        geometry: {
+                                            type: 'LineString',
+                                            coordinates: [
+                                                featureCenter,
+                                                pairFeatureCenter,
+                                            ],
+                                        },
+                                    })
+                                }
+                            })
+                        }
+                    })
+                })
+
+            let layer = L.geoJson(pairingLineFeatures, styleObject)
+
+            layer.on = (firstTime, sublayerLayer) => {
+                layer.off()
+                // For checking whether we can use the previous layer instead of recreating
+                const constructedFromLayers = []
+                layers.forEach((layerName) => {
+                    if (
+                        L_.layers.layer[layerName] &&
+                        L_.layers.layer[layerName]._sourceGeoJSON &&
+                        L_.layers.on[layerName] === true
+                    ) {
+                        constructedFromLayers.push(layerName)
+                    }
+                })
+                const constructedTag = constructedFromLayers.join('__')
+
+                // Check if "", since if it is, no need to add anything
+                if (constructedTag.length > 0) {
+                    if (
+                        sublayerLayer == null ||
+                        constructedTag !== layer.constructedTag
+                    ) {
+                        layer = getPairingLayer()
+                        layer.constructedTag = constructedTag
+                        if (sublayerLayer) sublayerLayer = layer
+                    }
+                    L_.Map_.map.addLayer(layer)
+                    layer.setZIndex(
+                        L_._layersOrdered.length +
+                            1 -
+                            L_._layersOrdered.indexOf(layerObj.name)
+                    )
+                }
+            }
+            layer.off = () => {
+                L_.Map_.rmNotNull(layer)
+            }
+            return layer
+        }
+
+        const layer = getPairingLayer(true)
+
+        return {
+            on: L_.layers.attachments[layerObj.name]?.pairings
+                ? L_.layers.attachments[layerObj.name]?.pairings.on
+                : pairingsVar.initialVisibility != null
+                ? pairingsVar.initialVisibility
+                : true,
+            pairedLayers: layers,
+            pairProp: pairProp,
+            originOffsetOrder: pairingsVar.originOffsetOrder,
+            type: 'pairings',
+            geojson: geojson,
+            layer: layer,
+            title: 'Feature Pairings',
+            minZoom: 0,
+            maxZoom: 100,
+        }
+    } else {
+        return false
+    }
 }
 
 const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {

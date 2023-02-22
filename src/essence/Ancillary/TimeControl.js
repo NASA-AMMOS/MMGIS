@@ -290,8 +290,8 @@ var TimeControl = {
 }
 
 function initLayerDataTimes() {
-    for (let i in L_.layersData) {
-        const layer = L_.layersData[i]
+    for (let i in L_.layers.dataFlat) {
+        const layer = L_.layers.dataFlat[i]
         if (layer.time && layer.time.enabled === true) {
             layer.time.start = L_.FUTURES.startTime
                 ? L_.FUTURES.startTime.toISOString().split('.')[0] + 'Z'

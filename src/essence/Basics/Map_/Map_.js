@@ -524,7 +524,8 @@ function getLayersChosenNamePropVal(feature, layer) {
             l.variables.hasOwnProperty('useKeyAsName')
         ) {
             propertyNames = l.variables['useKeyAsName']
-            if (typeof propertyNames === 'string') propertyNames = []
+            if (typeof propertyNames === 'string')
+                propertyNames = [propertyNames]
             propertyValues = Array(propertyNames.length).fill(null)
             propertyNames.forEach((propertyName, idx) => {
                 if (feature.properties.hasOwnProperty(propertyName)) {
@@ -723,7 +724,7 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
                 }
             }
 
-            Viewer_.changeImages(propImages, feature)
+            Viewer_.changeImages(propImages, feature, layer)
             for (var i in propImages) {
                 if (propImages[i].type == 'radargram') {
                     //Globe_.radargram( layer.options.layerName, feature.geometry, propImages[i].url, propImages[i].length, propImages[i].depth );
@@ -1126,6 +1127,8 @@ function allLayersLoaded() {
         L_.enforceVisibilityCutoffs()
 
         ToolController_.finalizeTools()
+
+        L_.loaded()
         //OTHER TEMPORARY TEST STUFF THINGS
     }
 }

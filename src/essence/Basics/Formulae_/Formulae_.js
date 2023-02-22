@@ -4,7 +4,8 @@ import { saveAs } from 'file-saver'
 import $ from 'jquery'
 import calls from '../../../pre/calls'
 
-// often referred to as F_
+import azElDistBetween from './subformulae/azElDistBetween'
+
 var temp = new Float32Array(1)
 
 // eslint-disable-next-line no-extend-native
@@ -17,6 +18,7 @@ Object.defineProperty(Object.prototype, 'getFirst', {
     enumerable: false,
 })
 
+// often referred to as F_
 var Formulae_ = {
     radiusOfPlanetMajor: 3396190, //(m) Defaults to Mars
     radiusOfPlanetMinor: 3396190,
@@ -506,7 +508,6 @@ var Formulae_ = {
      * @returns {String} - color in hex color code - '#ae6204'
      */
     stringToColor2: function (stringInput) {
-        console.log(stringInput)
         const h = [...stringInput].reduce((acc, char) => {
             return char.charCodeAt(0) + ((acc << 5) - acc)
         }, 0)
@@ -2087,7 +2088,6 @@ var Formulae_ = {
         return stitched
     },
     bracketReplace(str, obj, replace) {
-        console.log(str, obj, replace)
         if (str === null) return ''
         let matches = str.match(/\{.*?\}/gi)
 
@@ -2248,6 +2248,39 @@ var Formulae_ = {
     isNoDataElev(data) {
         if (data == 1010101 || data > 35000 || data < -35000) return true
         return false
+    },
+    azElDistBetween(latLngEl_A, latLngEl_B) {
+        //Formulae_.azElBetween2(latLngEl_A, latLngEl_B)
+
+        const b = azElDistBetween(
+            latLngEl_A,
+            latLngEl_B,
+            Formulae_.radiusOfPlanetMajor,
+            Formulae_.radiusOfPlanetMinor
+        )
+        return b
+    },
+    azElBetween2(latLngEl_A, latLngEl_B) {
+        const crs = window.mmgisglobal.customCRS
+        const a = crs.project(latLngEl_A)
+        const b = crs.project(latLngEl_B)
+
+        const dist = Math.sqrt(
+            Math.pow(b.x - a.x, 2) +
+                Math.pow(b.y - a.y, 2) +
+                Math.pow(latLngEl_B.el - latLngEl_A.el, 2)
+        )
+
+        const el =
+            Math.asin((latLngEl_B.el - latLngEl_A.el) / dist) * (180 / Math.PI)
+
+        let az = Math.atan2(b.x - a.x, b.y - a.y) * (180 / Math.PI)
+        if (az < 0) az += 360
+        console.log({
+            az: az,
+            el: el,
+            dist: dist,
+        })
     },
     // Breaks an array in multiple arrays of some size
     chunkArray(arr, size) {

@@ -39,6 +39,8 @@ export default function (domEl, lookupPath, options, Map_) {
     var lastFov = null
 
     var geometry = null
+    var currentImageObj = null
+    var lastIntLayerName = null
 
     var webglSupport = (function () {
         try {
@@ -170,37 +172,144 @@ export default function (domEl, lookupPath, options, Map_) {
         }
     }
 
-    function changeImage(imageObj, feature, callback) {
+    function changeImage(imageObj, feature, layer, callback) {
         if (!wasInitialized) {
-            if (typeof callback === 'function' && !calledBack)
+            if (typeof callback === 'function')
                 callback(
                     "<div style='letter-spacing: 0px; font-size: 18px; text-align: center; font-family: roboto; color: #CCC;'><div style='margin-bottom: 5px;'>Seems like <a target='_blank' href='https://www.khronos.org/webgl/wiki/Getting_a_WebGL_Implementation'>WebGL</a> isn't supported for you.</div><div>Find out how to get it <a target='_blank' href='https://get.webgl.org/'>here</a>.</div></div>"
                 )
         }
         geometry = feature.geometry
+        currentImageObj = imageObj
 
-        var url = imageObj.url
+        const url = imageObj.url
         //crop out directory path and extension from image name
-        var croppedName = url.substring(0, url.length - 4).split('/')
+        let croppedName = url.substring(0, url.length - 4).split('/')
         croppedName = croppedName[croppedName.length - 1]
-        var croppedNameSol = croppedName.split('_')[2]
+        const croppedNameSol = croppedName.split('_')[2]
         //assemble ranges
-        var azR = [parseFloat(imageObj.azmin), parseFloat(imageObj.azmax)]
-        var elR = [parseFloat(imageObj.elmin), parseFloat(imageObj.elmax)]
-        var xyR = [parseInt(imageObj.columns), parseInt(imageObj.rows)]
+        const azR = [parseFloat(imageObj.azmin), parseFloat(imageObj.azmax)]
+        const elR = [parseFloat(imageObj.elmin), parseFloat(imageObj.elmax)]
+        const xyR = [parseInt(imageObj.columns), parseInt(imageObj.rows)]
 
         clearLayers()
-        makeModifiedTexture(url, azR, elR, xyR, function () {
-            addPointLayer(
-                'ChemCam',
-                'Missions/' +
-                    L_.mission +
-                    '/Data/Mosaics/azel_mosaic_targets/azel_targets_' +
-                    croppedName +
-                    '_sol' +
-                    croppedNameSol +
-                    '.csv'
-            )
+        makeModifiedTexture(url, azR, elR, xyR, () => {
+            const layerName = layer.options.layerName
+
+            if (
+                feature.geometry.type === 'Point' &&
+                L_.layers.on[layerName] &&
+                L_.layers.attachments[layerName] &&
+                L_.layers.attachments[layerName].pairings &&
+                L_.layers.attachments[layerName].pairings.on
+            ) {
+                let sourceCoords = feature.geometry.coordinates
+                let originOffsetOrder =
+                    L_.layers.attachments[layerName].pairings.originOffsetOrder
+                if (originOffsetOrder)
+                    originOffsetOrder = originOffsetOrder.map((o) =>
+                        o.toLowerCase()
+                    )
+
+                // Allow sourceCoords offset with originOffset and support configurable axis order
+                // prettier-ignore
+                if( imageObj.originOffset != null ) {
+                    const crs = window.mmgisglobal.customCRS
+                    const scp = crs.project({lng: sourceCoords[0], lat: sourceCoords[1]})
+                    sourceCoords = [scp.x, scp.y, sourceCoords[2]]
+                    if(imageObj.originOffset[0] != null) {
+                        if( originOffsetOrder != null && originOffsetOrder[0] != null) {
+                            const pos = originOffsetOrder[0].includes('z') ? 2 : originOffsetOrder[0].includes('y') ? 1 : 0 
+                            const sign = originOffsetOrder[0].includes('-') ? -1 : 1
+                            sourceCoords[pos] += sign * imageObj.originOffset[0]
+                        }
+                        else
+                            sourceCoords[0] += imageObj.originOffset[0]
+                    }
+                    if(imageObj.originOffset[1] != null) {
+                        if( originOffsetOrder != null && originOffsetOrder[1] != null) {
+                            const pos = originOffsetOrder[1].includes('z') ? 2 : originOffsetOrder[1].includes('y') ? 1 : 0 
+                            const sign = originOffsetOrder[1].includes('-') ? -1 : 1
+                            sourceCoords[pos] += sign * imageObj.originOffset[1]
+                        }
+                        else
+                            sourceCoords[1] += imageObj.originOffset[1]
+                    }
+                    if(imageObj.originOffset[2] != null) {
+                        if( originOffsetOrder != null && originOffsetOrder[2] != null) {
+                            const pos = originOffsetOrder[2].includes('z') ? 2 : originOffsetOrder[2].includes('y') ? 1 : 0 
+                            const sign = originOffsetOrder[2].includes('-') ? -1 : 1
+                            sourceCoords[pos] += sign * imageObj.originOffset[2]
+                        }
+                        else
+                            sourceCoords[2] += imageObj.originOffset[2]
+                    }
+                    const scup = crs.unproject({x: sourceCoords[0], y: sourceCoords[1]})
+                    sourceCoords = [scup.lng, scup.lat, sourceCoords[2]]
+                }
+
+                currentImageObj._center = sourceCoords
+
+                const pairValue = F_.getIn(
+                    feature.properties,
+                    L_.layers.attachments[layerName].pairings.pairProp,
+                    '___null'
+                )
+                L_.layers.attachments[layerName].pairings.pairedLayers.forEach(
+                    (pairedLayerName) => {
+                        if (
+                            L_.layers.layer[pairedLayerName] &&
+                            L_.layers.layer[pairedLayerName]._sourceGeoJSON &&
+                            L_.layers.on[pairedLayerName] === true
+                        ) {
+                            layers[pairedLayerName] = {}
+                            L_.layers.layer[
+                                pairedLayerName
+                            ]._sourceGeoJSON.features.forEach((pairFeature) => {
+                                if (
+                                    pairFeature.geometry.type === 'Point' &&
+                                    F_.getIn(
+                                        pairFeature.properties,
+                                        L_.layers.attachments[layerName]
+                                            .pairings.pairProp,
+                                        null
+                                    ) === pairValue
+                                ) {
+                                    const pairCoords =
+                                        pairFeature.geometry.coordinates
+                                    const azElDist = F_.azElDistBetween(
+                                        {
+                                            lat: sourceCoords[1],
+                                            lng: sourceCoords[0],
+                                            el: sourceCoords[2],
+                                        },
+                                        {
+                                            lat: pairCoords[1],
+                                            lng: pairCoords[0],
+                                            el: pairCoords[2],
+                                        }
+                                    )
+                                    addPoint(
+                                        pairedLayerName,
+                                        azElDist.az,
+                                        azElDist.el,
+                                        L_.layers.data[pairedLayerName]
+                                            .useKeyAsName,
+                                        F_.getIn(
+                                            pairFeature.properties,
+                                            L_.layers.data[pairedLayerName]
+                                                .useKeyAsName
+                                        ),
+                                        L_.layers.data[pairedLayerName].style
+                                    )
+                                }
+                            })
+                        }
+                    }
+                )
+
+                render()
+            }
             if (typeof callback === 'function') {
                 callback()
             }
@@ -213,34 +322,14 @@ export default function (domEl, lookupPath, options, Map_) {
         else controls = orientationControls
     }
 
-    //url is is to csv with header: az,el,target
-    function addPointLayer(layerName, url) {
-        d3.csv(url, function (d) {
-            if (d == null) {
-                console.log('Point Layer Not Found.')
-                return
-            }
-            layers[layerName] = {}
-            for (var i = 0; i < d.length; i++) {
-                addPoint(layerName, d[i].az, -d[i].el, 'TARGET', d[i].target)
-            }
-            render()
-        })
-    }
+    function addPoint(layerName, az, el, nameKey, name, style) {
+        style = style || {}
 
-    function addPoint(layerName, az, el, nameKey, name) {
-        var mapped = F_.lonLatToVector3nr(
-            F_.mod(az - 90 - sphereRot - 180, 360),
-            el,
-            sphereRadius / 2
-        )
-        var mappedCloser = F_.lonLatToVector3nr(
-            F_.mod(az - 90 - sphereRot - 180, 360),
-            el,
-            sphereRadius / 1.5
-        )
+        const rot = F_.mod(az - 90, 360)
+        const mapped = F_.lonLatToVector3nr(rot, -el, sphereRadius / 2)
+        const mappedCloser = F_.lonLatToVector3nr(rot, -el, sphereRadius / 1.5)
 
-        var boundingSphere = new THREE.Mesh(
+        const boundingSphere = new THREE.Mesh(
             new THREE.SphereGeometry(1, 12, 12),
             new THREE.MeshBasicMaterial({
                 color: 0x000000,
@@ -255,11 +344,20 @@ export default function (domEl, lookupPath, options, Map_) {
         boundingSphere.name = name
         scene.add(boundingSphere)
 
-        var point = Sprites.makeMarkerSprite({
-            radius: 64,
-            fillColor: { r: 102, g: 204, b: 102, a: 0.7 },
-            strokeWeight: 12,
-            strokeColor: { r: 0, g: 0, b: 0, a: 1 },
+        const fillColor = F_.hexToRGB(F_.rgb2hex(style.fillColor)) || false
+        if (fillColor)
+            fillColor.a =
+                style.fillOpacity != null ? parseFloat(style.fillOpacity) : 1
+        const strokeColor = F_.hexToRGB(F_.rgb2hex(style.color)) || false
+        if (strokeColor)
+            strokeColor.a =
+                style.opacity != null ? parseFloat(style.opacity) : 1
+
+        const point = Sprites.makeMarkerSprite({
+            radius: style.radius ? style.radius * 8 : 64,
+            fillColor,
+            strokeWeight: style.weight ? style.weight * 6 : 12,
+            strokeColor,
         })
         point.position.set(mappedCloser.x, mappedCloser.y, mappedCloser.z)
         point.layerName = layerName
@@ -268,10 +366,10 @@ export default function (domEl, lookupPath, options, Map_) {
         point.name = name
         scene.add(point)
 
-        var text = Sprites.makeTextSprite(name, {
+        const text = Sprites.makeTextSprite(name, {
             fontsize: 36,
             fontColor: { r: 255, g: 255, b: 255, a: 1.0 },
-            strokeColor: { r: 0, g: 0, b: 0, a: 0.8 },
+            strokeColor: { r: 0, g: 0, b: 0, a: 1.0 },
         })
         text.position.set(mappedCloser.x, mappedCloser.y, mappedCloser.z)
         text.layerName = layerName
@@ -342,11 +440,15 @@ export default function (domEl, lookupPath, options, Map_) {
             lastEl = currentEl
             lastFov = currentFov
 
-            if (geometry) {
+            if (geometry && currentImageObj) {
                 Map_.rmNotNull(Map_.tempPhotosphereWedge)
 
-                //console.log( geometry )
                 let start = [geometry.coordinates[1], geometry.coordinates[0]]
+                if (currentImageObj._center != null)
+                    start = [
+                        currentImageObj._center[1],
+                        currentImageObj._center[0],
+                    ]
                 let end
                 let rp
                 let line
@@ -473,21 +575,19 @@ export default function (domEl, lookupPath, options, Map_) {
             1
         raycaster.setFromCamera(mouse, camera)
 
-        var intersectArr = []
-        for (var l in layers) {
-            for (var p in layers[l])
+        const intersectArr = []
+        for (let l in layers) {
+            for (let p in layers[l])
                 intersectArr.push(layers[l][p].boundingSphere)
         }
-        var intersects = raycaster.intersectObjects(intersectArr)
+        const intersects = raycaster.intersectObjects(intersectArr)
 
         if (intersects.length > 0) {
             //reset all photosphere point materials
             resetLayerMaterials()
+            const intLayerName = intersects[0].object.layerName
             //change clicked point material
-            var point =
-                layers[intersects[0].object.layerName][
-                    intersects[0].object.name
-                ].point
+            const point = layers[intLayerName][intersects[0].object.name].point
             point.material = Sprites.makeMarkerMaterial({
                 radius: 64,
                 fillColor: { r: 102, g: 204, b: 102, a: 0 },
@@ -498,14 +598,18 @@ export default function (domEl, lookupPath, options, Map_) {
             render()
 
             //Select the point in the map
-            var markers = L_.layers.layer[intersects[0].object.layerName]
+            const markers = L_.layers.layer[intLayerName]
             if (markers != undefined) {
                 markers.eachLayer(function (layer) {
                     if (
                         intersects[0].object.name ==
                         layer.feature.properties[intersects[0].object.nameKey]
                     ) {
-                        layer.fireEvent('click')
+                        if (lastIntLayerName)
+                            L_.resetLayerFills(lastIntLayerName)
+                        L_.highlight(layer)
+                        lastIntLayerName = intLayerName
+                        //layer.fireEvent('click')
                         return
                     }
                 })
@@ -762,7 +866,6 @@ export default function (domEl, lookupPath, options, Map_) {
 
     return {
         changeImage: changeImage,
-        addPointLayer: addPointLayer,
         toggleControls: toggleControls,
         highlight: highlight,
         resize: resize,

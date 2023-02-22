@@ -1,51 +1,8 @@
 //Form nav
-let pages = [
-  "README",
-  "JavaScript_API",
-  "AR_and_VR",
-  "Deep_Linking",
-  "Development",
-  "ENVs",
-];
-let configure = [
-  "Configure",
-  "Overall_Tab",
-  "Initial_Tab",
-  "Layers_Tab",
-  "Tools_Tab",
-  "Projection_Tab",
-  "Look_Tab",
-  "Panels_Tab",
-  "Time_Tab",
-  "Kinds",
-  "Vector_Styling",
-  "Layer_URLs",
-  "Keys",
-  "Manage_Datasets",
-  "Manage_Geodatasets",
-  "Remote_Virtual_Layer",
-];
-let layers = [
-  "Data",
-  "Header",
-  "Model",
-  "Query",
-  "Tile",
-  "Vector_Tile",
-  "Vector",
-];
-let tools = [
-  "Chemistry",
-  "Draw",
-  "Identifier",
-  "Info",
-  "Isochrone",
-  "Layers",
-  "Legend",
-  "Measure",
-  "Sites",
-  "Viewshed",
-];
+let pages = ["README"];
+let configure = [];
+let layers = [];
+let tools = [];
 let apis = [
   { name: "Main", path: "../api/docs/main" },
   { name: "Spatial", path: "../api/docs/spatial/" },
