@@ -57,7 +57,7 @@ Gets a list of all configured missions. _Auth token not needed._
 => {status: "success", missions: ["Mission1", "Mission2"]}
 ```
 
-`curl -X GET http://localhost:8889/api/configure/missions?full`
+`curl -X GET http://localhost:8889/api/configure/missions?full=true`
 
 ```javascript
 => {
