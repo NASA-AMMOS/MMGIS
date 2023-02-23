@@ -622,6 +622,14 @@ var Editing = {
                             `<div>${DrawTool.contextMenuLayer.feature.properties._radius.toFixed(3)}m</div>`,
                         "</div>",
                     ].join('\n') : "",
+                    "<div class='drawToolContextMenuPropertiesExtended'>",
+                    Object.keys(DrawTool.contextMenuLayer.feature.properties).map((p) => {
+                        const pv = DrawTool.contextMenuLayer.feature.properties[p]
+                        if( typeof pv === 'number' || typeof pv === 'string')
+                            return `<li><div>${p}</div><div>${pv}</div></li>`
+                        else return ''
+                    }).join('\n'),
+                    "</div>",
                     (!displayOnly) ? ["<div class='drawToolContextMenuPropertiesReassignUUID flexbetween'>",
                         "<div id='drawToolContextMenuPropertiesReassignUUIDValue'>" + uuid + "</div>",
                         "<div id='drawToolContextMenuPropertiesReassignUUID' class='drawToolButton1'>Reassign</div>",
