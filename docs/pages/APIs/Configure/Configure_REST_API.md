@@ -45,9 +45,15 @@ To use the Configure API through HTTP requests, an API Token must be used for au
 
 Gets a list of all configured missions. _Auth token not needed._
 
+| Parameter |   Type    | Required | Default |                                 Description                                 |
+| :-------: | :-------: | :------: | :-----: | :-------------------------------------------------------------------------: |
+| **full**  | _boolean_ |  false   |   N/A   | If true, returns versions and configuration objects alongside mission names |
+
 #### Example
 
-`curl -X GET http://localhost:8889/api/configure/missions`
+`curl -X GET http://localhost:8889/api/configure/missions` => `{status: "success", missions: ["Earth", "MSL", "Time"]}`
+
+`curl -X GET http://localhost:8889/api/configure/missions?full` => `{status: "success", missions: [{mission: "name", version: 1, config: {}}, ...]}`
 
 ---
 
@@ -111,12 +117,12 @@ Sets a mission's configuration object. Only complete configuration objects are a
 
 Adds a single layer to a mission's configuration object. A wrapping helper to `upsert`.
 
-|       Parameter       |         Type        | Required | Default |                                                                  Description                                                                  |
+|       Parameter       |        Type         | Required | Default |                                                                  Description                                                                  |
 | :-------------------: | :-----------------: | :------: | :-----: | :-------------------------------------------------------------------------------------------------------------------------------------------: |
-|      **mission**      |       _string_      |   true   |   N/A   |                                                                  Mission name                                                                 |
+|      **mission**      |      _string_       |   true   |   N/A   |                                                                 Mission name                                                                  |
 |       **layer**       | _object_ or _array_ |   true   |   N/A   | Full new layer configuration object or array of full new layer configuration objects. See browser console-network tab responses for examples. |
-|  **placement.path**   |       _string_      |  false   |   ''    |               A path to a header in 'layers' to place the new layer. A simple path ('sublayers' are added). Defaults to no group              |
-|  **placement.index**  |      _number_       |  false   |   end   |                        Index in 'layers' (or path) to place the new layer. Out of range placement indices are best fit.                       |
+|  **placement.path**   |      _string_       |  false   |   ''    |              A path to a header in 'layers' to place the new layer. A simple path ('sublayers' are added). Defaults to no group               |
+|  **placement.index**  |      _number_       |  false   |   end   |                       Index in 'layers' (or path) to place the new layer. Out of range placement indices are best fit.                        |
 | **forceClientUpdate** |      _boolean_      |  false   |  false  |                                                        Push the change out to clients.                                                        |
 
 #### Example
@@ -148,11 +154,11 @@ Updates a single layer. Specified layer values are deep merged and overwrite exi
 
 Removes a single layer from the configuration object.
 
-|       Parameter       |         Type         | Required | Default |                           Description                            |
-| :-------------------: | :------------------: | :------: | :-----: | :--------------------------------------------------------------: |
-|      **mission**      |       _string_       |   true   |   N/A   |                           Mission name                           |
-|     **layerUUID**     | _string_  or _array_ |   true   |   N/A   | Layer to remove as string or array of layers as string to remove |
-| **forceClientUpdate** |       _boolean_      |  false   |  false  |                  Push the change out to clients.                   |
+|       Parameter       |        Type         | Required | Default |                           Description                            |
+| :-------------------: | :-----------------: | :------: | :-----: | :--------------------------------------------------------------: |
+|      **mission**      |      _string_       |   true   |   N/A   |                           Mission name                           |
+|     **layerUUID**     | _string_ or _array_ |   true   |   N/A   | Layer to remove as string or array of layers as string to remove |
+| **forceClientUpdate** |      _boolean_      |  false   |  false  |                 Push the change out to clients.                  |
 
 #### Example
 

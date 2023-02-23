@@ -6,6 +6,8 @@ require("dotenv").config();
 const express = require("express");
 const router = express.Router();
 const execFile = require("child_process").execFile;
+const Sequelize = require("sequelize");
+const { sequelize } = require("../../../connection");
 
 const logger = require("../../../logger");
 const Config = require("../models/config");
@@ -306,9 +308,11 @@ function upsert(req, res, next, cb, info) {
       const { newlyAddedUUIDs, allNewUUIDs } = populateUUIDs(configJSON);
 
       // Do not update the config if there are duplicate or bad UUIDs
-      const badUUIDs = newlyAddedUUIDs.filter(i => {
-        return 'replacesBadUUID' in i
-      }).map(i => i.replacesBadUUID);
+      const badUUIDs = newlyAddedUUIDs
+        .filter((i) => {
+          return "replacesBadUUID" in i;
+        })
+        .map((i) => i.replacesBadUUID);
 
       if (badUUIDs.length > 0) {
         if (cb)
@@ -374,7 +378,6 @@ function upsert(req, res, next, cb, info) {
               newlyAddedUUIDs: newlyAddedUUIDs,
             });
 
-
           if (info && info.layerName) {
             // Find the layer UUID instead of passing back the layer's display name
             let isArray = true;
@@ -386,7 +389,9 @@ function upsert(req, res, next, cb, info) {
             }
 
             for (let i in infoLayerNames) {
-              const found = allNewUUIDs.findIndex(x => x.name == infoLayerNames[i]);
+              const found = allNewUUIDs.findIndex(
+                (x) => x.name == infoLayerNames[i]
+              );
               if (found > -1) {
                 const result = allNewUUIDs[found];
                 infoLayerNames[i] = result.uuid;
@@ -395,7 +400,7 @@ function upsert(req, res, next, cb, info) {
             }
 
             if (!isArray) {
-              info.layerName = infoLayerNames[0]
+              info.layerName = infoLayerNames[0];
             }
           }
 
@@ -446,20 +451,36 @@ if (fullAccess)
   });
 
 router.get("/missions", function (req, res, next) {
-  Config.aggregate("mission", "DISTINCT", { plain: false })
-    .then((missions) => {
-      let allMissions = [];
-      for (let i = 0; i < missions.length; i++)
-        allMissions.push(missions[i].DISTINCT);
-      allMissions.sort();
-      res.send({ status: "success", missions: allMissions });
-      return null;
-    })
-    .catch((err) => {
-      logger("error", "Failed to find missions.", req.originalUrl, req, err);
-      res.send({ status: "failure", message: "Failed to find missions." });
-      return null;
-    });
+  if (req.query.full === "true") {
+    sequelize
+      .query(
+        "SELECT DISTINCT ON (mission) mission, version, config FROM configs ORDER BY mission ASC"
+      )
+      .spread((results) => {
+        res.send({ status: "success", missions: results });
+        return null;
+      })
+      .catch((err) => {
+        logger("error", "Failed to find missions.", req.originalUrl, req, err);
+        res.send({ status: "failure", message: "Failed to find missions." });
+        return null;
+      });
+  } else {
+    Config.aggregate("mission", "DISTINCT", { plain: false })
+      .then((missions) => {
+        let allMissions = [];
+        for (let i = 0; i < missions.length; i++)
+          allMissions.push(missions[i].DISTINCT);
+        allMissions.sort();
+        res.send({ status: "success", missions: allMissions });
+        return null;
+      })
+      .catch((err) => {
+        logger("error", "Failed to find missions.", req.originalUrl, req, err);
+        res.send({ status: "failure", message: "Failed to find missions." });
+        return null;
+      });
+  }
   return null;
 });
 
@@ -776,7 +797,7 @@ function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
             // user defined UUIDs. We remove the proposed_uuid key after using it to check for unique UUIDs.
             Utils.traverseLayers([req.body.layer], (layer) => {
               if (layer.uuid != null) {
-                  layer.proposed_uuid = layer.uuid;
+                layer.proposed_uuid = layer.uuid;
               }
             });
 
@@ -826,8 +847,8 @@ function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
               {
                 type: caller,
                 layerName: Array.isArray(req.body.layer)
-                    ? req.body.layer.map(i => i.name)
-                    : req.body.layer.name,
+                  ? req.body.layer.map((i) => i.name)
+                  : req.body.layer.name,
               }
             );
           } else if (cb)
@@ -1044,14 +1065,19 @@ function removeLayer(req, res, next, cb) {
           }
 
           let didRemove = false;
-          const removedUUIDs = Utils.traverseLayers(config.layers, (layer, path, index) => {
-            if (layerUUIDs.includes(layer.uuid)) {
-              didRemove = true;
-              return "remove";
+          const removedUUIDs = Utils.traverseLayers(
+            config.layers,
+            (layer, path, index) => {
+              if (layerUUIDs.includes(layer.uuid)) {
+                didRemove = true;
+                return "remove";
+              }
             }
-          });
+          );
 
-          const unableToRemoveUUIDs = layerUUIDs.filter(i => !removedUUIDs.map(x => x.uuid).includes(i));
+          const unableToRemoveUUIDs = layerUUIDs.filter(
+            (i) => !removedUUIDs.map((x) => x.uuid).includes(i)
+          );
           if (didRemove) {
             upsert(
               {
@@ -1067,27 +1093,35 @@ function removeLayer(req, res, next, cb) {
                 if (resp.status === "success") {
                   res.send({
                     status: "success",
-                    message: `Successfully removed layer${removedUUIDs.length >= 1 ? 's' : ''}. Configuration versioned ${resp.version}.`,
+                    message: `Successfully removed layer${
+                      removedUUIDs.length >= 1 ? "s" : ""
+                    }. Configuration versioned ${resp.version}.`,
                     removedUUIDs: removedUUIDs,
                     unableToRemoveUUIDs: unableToRemoveUUIDs,
                   });
                 } else {
                   res.send({
                     status: "failure",
-                    message: `Failed to remove layer${layerUUIDs.length >= 1 ? 's' : ''}: ${resp.message}.`,
+                    message: `Failed to remove layer${
+                      layerUUIDs.length >= 1 ? "s" : ""
+                    }: ${resp.message}.`,
                     unableToRemoveUUIDs: layerUUIDs,
                   });
                 }
               },
               {
                 type: "removeLayer",
-                layerName: layerUUIDs.filter(i => removedUUIDs.map(x => x.uuid).includes(i)),
+                layerName: layerUUIDs.filter((i) =>
+                  removedUUIDs.map((x) => x.uuid).includes(i)
+                ),
               }
             );
           } else {
             res.send({
               status: "failure",
-              message: `Failed to remove layer${layerUUIDs.length >= 1 ? 's' : ''}. Layer${layerUUIDs.length >= 1 ? 's' : ''} not found.`,
+              message: `Failed to remove layer${
+                layerUUIDs.length >= 1 ? "s" : ""
+              }. Layer${layerUUIDs.length >= 1 ? "s" : ""} not found.`,
               unableToRemoveUUIDs: layerUUIDs,
             });
           }
