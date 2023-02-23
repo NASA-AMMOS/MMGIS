@@ -51,9 +51,25 @@ Gets a list of all configured missions. _Auth token not needed._
 
 #### Example
 
-`curl -X GET http://localhost:8889/api/configure/missions` => `{status: "success", missions: ["Earth", "MSL", "Time"]}`
+`curl -X GET http://localhost:8889/api/configure/missions`
 
-`curl -X GET http://localhost:8889/api/configure/missions?full` => `{status: "success", missions: [{mission: "name", version: 1, config: {}}, ...]}`
+```javascript
+=> {status: "success", missions: ["Mission1", "Mission2"]}
+```
+
+`curl -X GET http://localhost:8889/api/configure/missions?full`
+
+```javascript
+=> {
+  status: "success",
+  missions: [
+    {
+      mission: "name", version: 99, config: {}
+    },
+    ...
+  ]
+}
+```
 
 ---
 
