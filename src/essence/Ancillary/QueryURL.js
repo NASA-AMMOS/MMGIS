@@ -381,7 +381,7 @@ var QueryURL = {
         if (L_.FUTURES.startTime) urlAppendage += '&startTime=' + startTime
         if (L_.FUTURES.endTime) urlAppendage += '&endTime=' + endTime
 
-        var url = urlAppendage
+        var url = encodeURI(urlAppendage)
 
         if (shortenURL) {
             calls.api(
