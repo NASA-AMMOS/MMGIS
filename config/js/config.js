@@ -1625,7 +1625,7 @@ function makeLayerBarAndModal(d, level, options) {
           "</div>" +
 
         "</p>" +
-        "<div id='modal_uuid'>Layer UUID: " + d.uuid + "</div>" + 
+        `<div id='modal_uuid' value='${d.uuid}'>Layer UUID: ` + d.uuid + "</div>" + 
       "</div>" +
 
       "<div class='modal-footer' style='background-color: " + barColor + "; display: flex; justify-content: space-between;'>" +
@@ -2314,6 +2314,8 @@ function save(returnJSON) {
           .val();
 
         layerObject.name = modalName;
+        layerObject.uuid = modal.find("#modal_uuid").attr("value");
+
         if (
           modalType == "vectortile" ||
           modalType == "vector" ||

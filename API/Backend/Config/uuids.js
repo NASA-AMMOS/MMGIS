@@ -25,7 +25,10 @@ const populateUUIDs = (config) => {
         name: layer.name,
         uuid: layer.uuid,
       });
-    } else if (!uuidValidate(layer.uuid) || definedUUIDs.includes(layer.proposed_uuid)) {
+    } else if (
+      !uuidValidate(layer.uuid) ||
+      definedUUIDs.includes(layer.proposed_uuid)
+    ) {
       const badUUID = layer.uuid;
       layer.uuid = uuidv4();
       newlyAddedUUIDs.push({
