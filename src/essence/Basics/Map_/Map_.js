@@ -1281,10 +1281,27 @@ function clearOnMapClick(event) {
                     const _layer = layer.getLayers()
                     for (let x in _layer) {
                         found = checkBounds(_layer[x])
-                        if (found) break
+                        // We should bubble down further for layers that have no fill, as it is possible
+                        // for there to be layers with features under the transparent fill
+                        if (found) {
+                            if (layer.options.fill) {
+                                break
+                            } else {
+                                found = false
+                            }
+                        }
                     }
                 } else {
                     found = checkBounds(layer)
+                    if (found) {
+                        // We should bubble down further for layers that have no fill, as it is possible
+                        // for there to be layers with features under the transparent fill
+                        if (layer.options.fill) {
+                            break
+                        } else {
+                            found = false
+                        }
+                    }
                 }
 
                 if (found) break
