@@ -278,9 +278,15 @@ L.tileLayer.colorFilter = function (url, options) {
         const wmsOptions = {}
         const urlParams = new URLSearchParams(urlParamString)
         const entries = urlParams.entries()
+
         for (const entry of entries) {
             wmsOptions[entry[0].toUpperCase()] = entry[1]
         }
+        if (wmsOptions.TILESIZE != null) {
+            wmsOptions.tileSize = parseInt(wmsOptions.TILESIZE)
+            delete wmsOptions.TILESIZE
+        }
+
         if (wmsOptions.LAYERS == null)
             console.warn(
                 `WARNING: WMS layer has no "layers" parameter in the url - ${url}`

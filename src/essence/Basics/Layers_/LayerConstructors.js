@@ -1016,20 +1016,23 @@ const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {
                 if (uncertaintyVar.angleUnit === 'rad')
                     uncertaintyAngle = uncertaintyAngle * (180 / Math.PI)
 
+                const xy = {
+                    x: F_.getIn(
+                        feature.properties,
+                        uncertaintyVar.xAxisProp,
+                        false
+                    ),
+                    y: F_.getIn(
+                        feature.properties,
+                        uncertaintyVar.yAxisProp,
+                        false
+                    ),
+                }
+                if (xy.x === false && xy.y === false) return null
+
                 uncertaintyEllipse = F_.toEllipse(
                     latlong,
-                    {
-                        x: F_.getIn(
-                            feature.properties,
-                            uncertaintyVar.xAxisProp,
-                            1
-                        ),
-                        y: F_.getIn(
-                            feature.properties,
-                            uncertaintyVar.yAxisProp,
-                            1
-                        ),
-                    },
+                    xy,
                     window.mmgisglobal.customCRS,
                     {
                         units: uncertaintyVar.axisUnits || 'meters',
@@ -1044,6 +1047,7 @@ const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {
                 return uncertaintyEllipse
             },
         }
+
         return curtainUncertaintyOptions
             ? {
                   on:

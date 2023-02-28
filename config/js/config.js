@@ -2315,6 +2315,8 @@ function save(returnJSON) {
 
         layerObject.name = modalName;
         layerObject.uuid = modal.find("#modal_uuid").attr("value");
+        if (layerObject.uuid === "" || layerObject.uuid === "undefined")
+          layerObject.uuid = null;
 
         if (
           modalType == "vectortile" ||

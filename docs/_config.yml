@@ -32,6 +32,10 @@ remote_theme: pmarsceill/just-the-docs
 color_scheme: dark
 plugins:
   - jekyll-feed
+# Aux links for the upper right navigation
+aux_links:
+  "MMGIS on GitHub":
+    - "https://github.com/NASA-AMMOS/MMGIS"
 # Exclude from processing.
 # The following items will not be processed, by default.
 # Any item listed under the `exclude:` key here will be automatically added to
