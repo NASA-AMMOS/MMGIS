@@ -1139,7 +1139,7 @@ const imageOverlays = (geojson, layerObj, leafletLayerObject) => {
                         imageSettings.angleProp,
                         0
                     )
-                    if (imageSettings.angleProp === 'deg')
+                    if (imageSettings.angleUnit === 'deg')
                         angle = angle * (Math.PI / 180)
 
                     const crs = window.mmgisglobal.customCRS
