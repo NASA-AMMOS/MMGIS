@@ -930,6 +930,11 @@ var UserInterface = {
                 display: l_.configData.look.settings ? 'inherit' : 'none',
             })
 
+            if (l_.configData.look && l_.configData.look.info != null)
+            $('#topBarInfo').css({
+                display: l_.configData.look.info ? 'inherit' : 'none',
+            })
+
         if (l_.configData.look && l_.configData.look.help != null)
             $('#topBarHelp').css({
                 display: l_.configData.look.help ? 'inherit' : 'none',

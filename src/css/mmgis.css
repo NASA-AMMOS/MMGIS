@@ -146,6 +146,11 @@ body {
 #topBar {
 }
 
+#topBarInfo {
+    width: 24px;
+    height: 24px;
+}
+
 #topBarHelp {
     width: 24px;
     height: 24px;

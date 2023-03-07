@@ -625,6 +625,15 @@ function initialize() {
                 }
                 if (
                   cData.look &&
+                  (cData.look.info == true || cData.look.info == null)
+                ) {
+                  $("#tab_look #look_info").prop("checked", true);
+                }
+                $("#tab_look #look_infourl").val(
+                  cData.look ? cData.look.infourl : ""
+                );
+                if (
+                  cData.look &&
                   (cData.look.help == true || cData.look.help == null)
                 ) {
                   $("#tab_look #look_help").prop("checked", true);
@@ -2137,6 +2146,8 @@ function save(returnJSON) {
     json.look["copylink"] = $("#tab_look #look_copylink").prop("checked");
     json.look["screenshot"] = $("#tab_look #look_screenshot").prop("checked");
     json.look["fullscreen"] = $("#tab_look #look_fullscreen").prop("checked");
+    json.look["info"] = $("#tab_look #look_info").prop("checked");
+    json.look["infourl"] = $("#tab_look #look_infourl").val();
     json.look["help"] = $("#tab_look #look_help").prop("checked");
     json.look["logourl"] = $("#tab_look #look_logourl").val();
     json.look["helpurl"] = $("#tab_look #look_helpurl").val();

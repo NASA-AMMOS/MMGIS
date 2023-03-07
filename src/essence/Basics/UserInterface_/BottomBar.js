@@ -245,12 +245,39 @@ let BottomBar = {
             theme: 'blue',
         })
 
+        // Info
+        bottomBar
+            .append('i')
+            .attr('id', 'topBarInfo')
+            .attr('title', 'Info')
+            .attr('tabindex', 105)
+            .attr('class', 'mmgisHoverBlue mdi mdi-information-variant mdi-18px')
+            .style('padding', '5px 10px')
+            .style('width', '40px')
+            .style('height', '36px')
+            .style('line-height', '26px')
+            .style('cursor', 'pointer')
+            .on('click', function () {
+                this.infoOn = !this.infoOn
+                if (this.infoOn) {
+                    d3.select('#viewer_Info').style('display', 'inherit')
+                } else {
+                    d3.select('#viewer_Info').style('display', 'none')
+                }
+            })
+
+        tippy(`#topBarInfo`, {
+            content: `Info`,
+            placement: 'right',
+            theme: 'blue',
+        })
+
         // Help
         bottomBar
             .append('i')
             .attr('id', 'topBarHelp')
             .attr('title', 'Help')
-            .attr('tabindex', 105)
+            .attr('tabindex', 106)
             .attr('class', 'mmgisHoverBlue mdi mdi-help mdi-18px')
             .style('padding', '5px 10px')
             .style('width', '40px')
@@ -462,6 +489,7 @@ let BottomBar = {
             }
         }
     },
+    toggleInfo: function () {},
     toggleHelp: function () {},
     fullscreen: function () {
         var isInFullScreen =
