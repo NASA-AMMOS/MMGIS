@@ -165,6 +165,8 @@ Example:
           ],
           "pairProp":
             "path.to.pair.prop.for.this.layer.and.all.paired.layers.to.link.on",
+          "layersAzProp": "optional.prop.path.to.azimuth.value.in.all.paired.layers",
+          "layersElProp": "optional.prop.path.to.elevation.value.in.all.paired.layers",
           "style": {
             "any_normal_style_field": "to_style_connective_lines",
           }
@@ -273,6 +275,8 @@ Example:
     - `layers`: An array of names of other layers. Note: Do not use css shorthand color names ("blue", "maroon", ...) in the paired layers styles as they won't parse properly when drawing in the PhotoSphere.
     - `originOffsetOrder`: In many cases, a marker's center is not the camera's center. Within a feature's `properties.images` objects, `originOffset` can be defined. `originOffsetOrder` describes the XYZ order and signage that `originOffset` should be read in. Possible values are `X, -X, Y, -Y, Z, -Z`.
     - `pairProp`: The dot notated path to the feature properties that contains the property to pair on. This layer and all paired layers need this property to properly pair up. A feature in this layer is said to be paired with a feature of one of the other specified layers, if and only if the values of this property in both features matches.
+    - `layersAzProp`: The dot notated path to the feature properties that contains the features' azimuth. If unset, the azimuth will be calculated through the feature's longitude, latitude, elevation coordinates.
+    - `layersElProp`:The dot notated path to the feature properties that contains the features' elevation. If unset, the elevation will be calculated through the feature's longitude, latitude, elevation coordinates.
     - `style`: A style object to change the style of the connective lines on the Map between features. (Ex. { "color": "#00000", "weight": 5})
 - `coordinateAttachments`: Attachment layers for each coordinate of every feature.
   - `marker`: Place a marker at every coordinate of every feature.

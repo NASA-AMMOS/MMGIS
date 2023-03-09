@@ -289,6 +289,33 @@ export default function (domEl, lookupPath, options, Map_) {
                                             el: pairCoords[2],
                                         }
                                     )
+
+                                    // Prefer az/els already provided with the feature (if any and set up)
+                                    if (
+                                        L_.layers.attachments[layerName]
+                                            .pairings.layersAzProp != null
+                                    ) {
+                                        const az = F_.getIn(
+                                            pairFeature.properties,
+                                            L_.layers.attachments[layerName]
+                                                .pairings.layersAzProp,
+                                            null
+                                        )
+                                        if (az != null) azElDist.az = az
+                                    }
+                                    if (
+                                        L_.layers.attachments[layerName]
+                                            .pairings.layersElProp != null
+                                    ) {
+                                        const el = F_.getIn(
+                                            pairFeature.properties,
+                                            L_.layers.attachments[layerName]
+                                                .pairings.layersElProp,
+                                            null
+                                        )
+                                        if (el != null) azElDist.el = el
+                                    }
+
                                     addPoint(
                                         pairedLayerName,
                                         azElDist.az,

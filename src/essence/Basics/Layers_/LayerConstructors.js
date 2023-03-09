@@ -784,6 +784,8 @@ const pairings = (geojson, layerObj, leafletLayerObject) => {
         const layers = (pairingsVar.layers || []).map((l) => L_.asLayerUUID(l))
 
         const pairProp = pairingsVar.pairProp
+        const layersAzProp = pairingsVar.layersAzProp
+        const layersElProp = pairingsVar.layersElProp
         const style = pairingsVar.style || {}
         const styleObject = {
             style: {
@@ -903,6 +905,8 @@ const pairings = (geojson, layerObj, leafletLayerObject) => {
                 : true,
             pairedLayers: layers,
             pairProp: pairProp,
+            layersAzProp: layersAzProp,
+            layersElProp: layersElProp,
             originOffsetOrder: pairingsVar.originOffsetOrder,
             type: 'pairings',
             geojson: geojson,
