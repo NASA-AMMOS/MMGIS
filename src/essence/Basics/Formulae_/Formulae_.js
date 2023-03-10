@@ -281,8 +281,9 @@ var Formulae_ = {
         return [closestI, closestJ]
     },
     //a mod that works with negatives. a true modulo and not remainder
-    mod: function (n, m) {
-        var remain = n % m
+    mod: function (n, m, dontFloor) {
+        const remain = n % m
+        if (dontFloor) return remain >= 0 ? remain : remain + m
         return Math.floor(remain >= 0 ? remain : remain + m)
     },
     //2D rotate a point about another point a certain angle

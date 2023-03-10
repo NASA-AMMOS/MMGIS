@@ -348,13 +348,15 @@ export default function (domEl, lookupPath, options, Map_) {
         if (isOrbitControls) controls = orbitControls
         else controls = orientationControls
     }
+
     let pointId = 0
     function addPoint(layerName, az, el, nameKey, name, style) {
         pointId++
 
         style = style || {}
 
-        const rot = F_.mod(az - 90, 360)
+        const rot = F_.mod(az - 90, 360, true)
+
         const mapped = F_.lonLatToVector3nr(rot, -el, sphereRadius / 2)
         const mappedCloser = F_.lonLatToVector3nr(rot, -el, sphereRadius / 1.5)
 
@@ -784,10 +786,10 @@ export default function (domEl, lookupPath, options, Map_) {
                 var zero = [0, 0]
                 if (az[0] < az[1]) {
                     zero[0] = linearScale(az, [0, dim[0]], 0)
-                    sphereRot = F_.mod((az[0] + az[1]) / 2, 360)
+                    sphereRot = F_.mod((az[0] + az[1]) / 2, 360, true)
                 } else {
                     zero[0] = linearScale([az[0] - 360, az[1]], [0, dim[0]], 0)
-                    sphereRot = F_.mod((az[0] - 360 + az[1]) / 2, 360)
+                    sphereRot = F_.mod((az[0] - 360 + az[1]) / 2, 360, true)
                 }
                 zero[1] = linearScale(el, [dim[1], 0], 0)
 
