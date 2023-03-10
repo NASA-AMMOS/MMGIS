@@ -348,8 +348,10 @@ export default function (domEl, lookupPath, options, Map_) {
         if (isOrbitControls) controls = orbitControls
         else controls = orientationControls
     }
-
+    let pointId = 0
     function addPoint(layerName, az, el, nameKey, name, style) {
+        pointId++
+
         style = style || {}
 
         const rot = F_.mod(az - 90, 360)
@@ -369,6 +371,7 @@ export default function (domEl, lookupPath, options, Map_) {
         boundingSphere.layerName = layerName
         boundingSphere.nameKey = nameKey
         boundingSphere.name = name
+        boundingSphere.pid = pointId
         scene.add(boundingSphere)
 
         const fillColor = F_.hexToRGB(F_.rgb2hex(style.fillColor)) || false
@@ -391,6 +394,7 @@ export default function (domEl, lookupPath, options, Map_) {
         point.savedMaterial = point.material
         point.nameKey = nameKey
         point.name = name
+        point.pid = pointId
         scene.add(point)
 
         const text = Sprites.makeTextSprite(name, {
@@ -402,9 +406,11 @@ export default function (domEl, lookupPath, options, Map_) {
         text.layerName = layerName
         text.nameKey = nameKey
         text.name = name
+        text.pid = pointId
         scene.add(text)
 
-        layers[layerName][name] = {
+        layers[layerName][name] = layers[layerName][name] || {}
+        layers[layerName][name][pointId] = {
             boundingSphere: boundingSphere,
             point: point,
             text: text,
@@ -412,14 +418,16 @@ export default function (domEl, lookupPath, options, Map_) {
     }
 
     function clearLayers() {
-        for (var l in layers) {
-            for (var p in layers[l]) {
-                layers[l][p].boundingSphere.geometry.dispose()
-                layers[l][p].boundingSphere.material.dispose()
-                layers[l][p].point.material.dispose()
-                layers[l][p].text.material.dispose()
-                scene.remove(layers[l][p].point)
-                scene.remove(layers[l][p].text)
+        for (let l in layers) {
+            for (let p in layers[l]) {
+                for (let i in layers[l][p]) {
+                    layers[l][p][i].boundingSphere.geometry.dispose()
+                    layers[l][p][i].boundingSphere.material.dispose()
+                    layers[l][p][i].point.material.dispose()
+                    layers[l][p][i].text.material.dispose()
+                    scene.remove(layers[l][p][i].point)
+                    scene.remove(layers[l][p][i].text)
+                }
             }
         }
         layers = {}
@@ -605,7 +613,8 @@ export default function (domEl, lookupPath, options, Map_) {
         const intersectArr = []
         for (let l in layers) {
             for (let p in layers[l])
-                intersectArr.push(layers[l][p].boundingSphere)
+                for (let i in layers[l][p])
+                    intersectArr.push(layers[l][p][i].boundingSphere)
         }
         const intersects = raycaster.intersectObjects(intersectArr)
 
@@ -614,7 +623,10 @@ export default function (domEl, lookupPath, options, Map_) {
             resetLayerMaterials()
             const intLayerName = intersects[0].object.layerName
             //change clicked point material
-            const point = layers[intLayerName][intersects[0].object.name].point
+            const point =
+                layers[intLayerName][intersects[0].object.name][
+                    intersects[0].object.pid
+                ].point
             point.material = Sprites.makeMarkerMaterial({
                 radius: 64,
                 fillColor: { r: 102, g: 204, b: 102, a: 0 },
@@ -646,32 +658,37 @@ export default function (domEl, lookupPath, options, Map_) {
 
     function highlight(layer) {
         if (layers.hasOwnProperty(layer.options.layerName)) {
-            var l = layers[layer.options.layerName]
+            let l = layers[layer.options.layerName]
 
-            for (var p in l) {
-                if (
-                    l[p].point.name ==
-                    layer.feature.properties[l[p].point.nameKey]
-                ) {
-                    resetLayerMaterials()
-                    l[p].point.material = Sprites.makeMarkerMaterial({
-                        radius: 64,
-                        fillColor: { r: 102, g: 204, b: 102, a: 0 },
-                        strokeWeight: 20,
-                        strokeColor: { r: 255, g: 0, b: 0, a: 0.9 },
-                    })
-                    render()
+            for (let p in l) {
+                for (let i in l[p]) {
+                    if (
+                        l[p][i].point.name ==
+                        layer.feature.properties[l[p][i].point.nameKey]
+                    ) {
+                        resetLayerMaterials()
+                        l[p][i].point.material = Sprites.makeMarkerMaterial({
+                            radius: 64,
+                            fillColor: { r: 102, g: 204, b: 102, a: 0 },
+                            strokeWeight: 20,
+                            strokeColor: { r: 255, g: 0, b: 0, a: 0.9 },
+                        })
+                        render()
+                    }
                 }
             }
         }
     }
 
     function resetLayerMaterials() {
-        for (var l in layers) {
-            for (var p in layers[l]) {
-                layers[l][p].point.material.dispose()
-                layers[l][p].point.material = layers[l][p].point.savedMaterial
-                layers[l][p].point.material.needsUpdate = true
+        for (let l in layers) {
+            for (let p in layers[l]) {
+                for (let i in layers[l][p]) {
+                    layers[l][p][i].point.material.dispose()
+                    layers[l][p][i].point.material =
+                        layers[l][p][i].point.savedMaterial
+                    layers[l][p][i].point.material.needsUpdate = true
+                }
             }
         }
     }
