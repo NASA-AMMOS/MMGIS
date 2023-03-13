@@ -73,6 +73,12 @@ export function stylize() {
             )
             $('#favicon').attr('href', L_.configData.look.logourl)
         }
+        if (L_.configData.look.infourl && L_.configData.look.infourl != '') {
+            $('#topBarInfo').on('click', function () {
+                let win = window.open(L_.configData.look.infourl, '_mmgisinfo')
+                win.focus()
+            })
+        }
         if (L_.configData.look.helpurl && L_.configData.look.helpurl != '') {
             $('#topBarHelp').on('click', function () {
                 let win = window.open(L_.configData.look.helpurl, '_mmgishelp')

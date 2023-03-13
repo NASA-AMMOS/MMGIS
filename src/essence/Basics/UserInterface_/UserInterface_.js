@@ -930,10 +930,27 @@ var UserInterface = {
                 display: l_.configData.look.settings ? 'inherit' : 'none',
             })
 
-        if (l_.configData.look && l_.configData.look.help != null)
+        if (l_.configData.look && l_.configData.look.info != null && l_.configData.look.infourl != '') {
+            $('#topBarInfo').css({
+                display: l_.configData.look.info ? 'inherit' : 'none',
+            })
+        }
+        else {
+            $('#topBarInfo').css({
+                display: 'none'
+            })
+        }
+
+        if (l_.configData.look && l_.configData.look.help != null && l_.configData.look.helpurl != '') {
             $('#topBarHelp').css({
                 display: l_.configData.look.help ? 'inherit' : 'none',
             })
+        }
+        else {
+            $('#topBarHelp').css({
+                display: 'none'
+            })
+        }
 
         if (l_.configData.look && l_.configData.look.topbar === false)
             BottomBar.changeUIVisibility('topbar', false)

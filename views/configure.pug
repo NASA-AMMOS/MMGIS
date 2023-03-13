@@ -435,6 +435,15 @@ script(type='text/javascript' src='config/pre/RefreshAuth.js')
               input#look_fullscreen.filled-in.checkbox-color(type='checkbox')
               label(for='look_fullscreen' style='color: black;') Fullscreen
           li.row.title
+            .col.s2.push-s2 User Info
+          li.row.checkboxRow
+            #look_helpEl.input-field.col.s2.push-s2
+              input#look_info.filled-in.checkbox-color(type='checkbox')
+              label(for='look_info' style='color: black;') Info
+            #look_helpurlEl.input-field.col.s6.push-s2
+              input#look_infourl.validate(type='text' value='')
+              label(for='look_infourl') Info URL
+          li.row.title
             .col.s2.push-s2 User Help
           li.row.checkboxRow
             #look_helpEl.input-field.col.s2.push-s2
