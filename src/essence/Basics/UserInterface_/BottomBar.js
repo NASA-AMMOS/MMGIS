@@ -251,7 +251,7 @@ let BottomBar = {
             .attr('id', 'topBarInfo')
             .attr('title', 'Info')
             .attr('tabindex', 105)
-            .attr('class', 'mmgisHoverBlue mdi mdi-information-variant mdi-18px')
+            .attr('class', 'mmgisHoverBlue mdi mdi-information-outline mdi-18px')
             .style('padding', '5px 10px')
             .style('width', '40px')
             .style('height', '36px')

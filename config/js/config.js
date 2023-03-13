@@ -625,7 +625,7 @@ function initialize() {
                 }
                 if (
                   cData.look &&
-                  (cData.look.info == true || cData.look.info == null)
+                  (cData.look.info == true)
                 ) {
                   $("#tab_look #look_info").prop("checked", true);
                 }
