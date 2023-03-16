@@ -79,6 +79,11 @@ const attributes = {
     defaultValue: "0",
     unique: false,
   },
+  template: {
+    type: Sequelize.JSON,
+    allowNull: true,
+    defaultValue: null,
+  },
 };
 
 const options = {
@@ -128,5 +133,23 @@ const makeMasterFiles = (intents) => {
   }
 };
 
+// Adds to the table, never removes
+const up = async () => {
+  // template column
+  await sequelize
+    .query(
+      `ALTER TABLE user_files ADD COLUMN IF NOT EXISTS template json NULL;`
+    )
+    .then(() => {
+      logger("info", `Added template col`, "user_files");
+      return null;
+    })
+    .catch((err) => {
+      logger("info", `template. Nothing to do...`, "user_files");
+
+      return null;
+    });
+};
+
 // export User model for use in other files.
-module.exports = { Userfiles, UserfilesTEST, makeMasterFiles };
+module.exports = { Userfiles, UserfilesTEST, makeMasterFiles, up };
