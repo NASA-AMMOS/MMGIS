@@ -623,10 +623,7 @@ function initialize() {
                 ) {
                   $("#tab_look #look_fullscreen").prop("checked", true);
                 }
-                if (
-                  cData.look &&
-                  (cData.look.info == true)
-                ) {
+                if (cData.look && cData.look.info == true) {
                   $("#tab_look #look_info").prop("checked", true);
                 }
                 $("#tab_look #look_infourl").val(
@@ -2204,9 +2201,18 @@ function save(returnJSON) {
               );
               return;
             }
-            toolsjson["variables"] = JSON.parse(
-              editors[tData[i].name].getValue()
-            );
+            try {
+              toolsjson["variables"] = JSON.parse(
+                editors[tData[i].name].getValue()
+              );
+            } catch (err) {
+              toast(
+                "error",
+                `Error: ${tData[i].name} tool json is badly formed.`,
+                5000
+              );
+              return;
+            }
           }
         }
         json.tools.push(toolsjson);
