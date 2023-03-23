@@ -8,6 +8,8 @@ import Map_ from '../../Basics/Map_/Map_'
 import CursorInfo from '../../Ancillary/CursorInfo'
 import Modal from '../../Ancillary/Modal'
 
+import DrawTool_Templater from './DrawTool_Templater'
+
 import '../../../external/JQuery/jquery.autocomplete'
 import calls from '../../../pre/calls'
 
@@ -533,23 +535,23 @@ var Files = {
 
             // prettier-ignore
             let markup = [
-                    "<div id='drawToolDrawFilesListElemContextMenu' style='top: " +
-                        (rect.y + rect.height - 1) +
-                        'px; left: ' +
-                        40 +
-                        'px; width: ' +
-                        rect.width +
-                        "px; z-index: 2000; font-size: 14px;'>",
-                        '<ul>',
-                        (!isHead && L_.Coordinates.mainType != 'll') ? `<li id='cmExportGeoJSON' convert='true'><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON (${L_.Coordinates.getMainTypeName()})</li>` : "",
-                        !isHead ? `<li id='cmExportSourceGeoJSON' convert='true'><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON ${L_.Coordinates.mainType != 'll' ? '(lonlat)' : '' }</li>` : "",
-                            //"<li id='cmExportShp'>Export as .shp</li>",
-                            (!isHead && !isPub) ? `<li id='cmToggleLabels'><i class='mdi mdi-label-outline mdi-14px'></i>Toggle Labels</li>` : "",
-                            isHead ? `<li id='drawToolcmRenameTagFol'><i class='mdi mdi-rename-box mdi-14px'></i>Rename ${activeTagFolType === 'tags' ? "Tag" : "Folder"}</li>` : "",
-                            isHead ? `<li id='drawToolcmRemoveTagFol'><i class='mdi mdi-delete-forever mdi-14px'></i>Remove ${activeTagFolType === 'tags' ? "Tag" : "Folder"}</li>` : "",
-                        '</ul>',
-                    '</div>',
-                ].join('\n')
+                "<div id='drawToolDrawFilesListElemContextMenu' style='top: " +
+                    (rect.y + rect.height - 1) +
+                    'px; left: ' +
+                    40 +
+                    'px; width: ' +
+                    rect.width +
+                    "px; z-index: 2000; font-size: 14px;'>",
+                    '<ul>',
+                    (!isHead && L_.Coordinates.mainType != 'll') ? `<li id='cmExportGeoJSON' convert='true'><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON (${L_.Coordinates.getMainTypeName()})</li>` : "",
+                    !isHead ? `<li id='cmExportSourceGeoJSON' convert='true'><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON ${L_.Coordinates.mainType != 'll' ? '(lonlat)' : '' }</li>` : "",
+                        //"<li id='cmExportShp'>Export as .shp</li>",
+                        (!isHead && !isPub) ? `<li id='cmToggleLabels'><i class='mdi mdi-label-outline mdi-14px'></i>Toggle Labels</li>` : "",
+                        isHead ? `<li id='drawToolcmRenameTagFol'><i class='mdi mdi-rename-box mdi-14px'></i>Rename ${activeTagFolType === 'tags' ? "Tag" : "Folder"}</li>` : "",
+                        isHead ? `<li id='drawToolcmRemoveTagFol'><i class='mdi mdi-delete-forever mdi-14px'></i>Remove ${activeTagFolType === 'tags' ? "Tag" : "Folder"}</li>` : "",
+                    '</ul>',
+                '</div>',
+            ].join('\n')
 
             $('body').append(markup)
 
@@ -615,6 +617,10 @@ var Files = {
                                     L_.convertGeoJSONLngLatsToPrimaryCoordinates(
                                         geojson
                                     )
+                            geojson = DrawTool.enforceTemplate(
+                                geojson,
+                                d?.file?.[0]?.template
+                            )
                             F_.downloadObject(geojson, filename, '.geojson')
                         })
                     }
@@ -933,8 +939,12 @@ var Files = {
                             `<div>${file.created_on.split('T')[0]}</div>`,
                         "</div>",
                         "<div>",
-                            "<div>Last Modified:</div>",
+                            "<div>Modified:</div>",
                             `<div>${file.updated_on.split('T')[0]}</div>`,
+                        "</div>",
+                        "<div class='drawToolFileTemplate' id='drawToolFileTemplateEdit'>",
+                            "<div>Template:</div>",
+                            `<div><div>${file.template?.name || 'NONE'}</div><i class='mdi mdi-pencil mdi-14px'></i></div>`,
                         "</div>",
                     "</div>",
                     "<div class='drawToolFileEditOnDescription'>",
@@ -973,6 +983,8 @@ var Files = {
                 "</div>"
                 ].join('\n')
 
+            let template = file.template || null
+
             // prettier-ignore
             const modalContent = [
                 "<div class='drawToolFileEditOn' file_id='" + fileId + "' file_owner='" + file.file_owner + "' file_name='" + file.file_name + "'>",
@@ -993,8 +1005,12 @@ var Files = {
                             `<div>${file.created_on.split('T')[0]}</div>`,
                         "</div>",
                         "<div>",
-                            "<div>Last Modified:</div>",
+                            "<div>Modified:</div>",
                             `<div>${file.updated_on.split('T')[0]}</div>`,
+                        "</div>",
+                        "<div class='drawToolFileTemplate'>",
+                            "<div>Template:</div>",
+                            `<div><div>${template?.name || 'NONE'}</div></div>`,
                         "</div>",
                     "</div>",
                     "<div class='drawToolFileEditOnDescription'>",
@@ -1028,6 +1044,106 @@ var Files = {
                     ? modalContentEditable
                     : modalContent,
                 function () {
+                    //
+                    $('#drawToolFileTemplateEdit').on('click', () => {
+                        // prettier-ignore
+                        const templateEditMarkup = [
+                            `<div id='drawToolFileTemplateEditModal'>`,
+                                `<div id='drawToolFileTemplateEditModalTitle'>`,
+                                    `<div><i class='mdi mdi-form-select mdi-18px'></i><div>Template</div></div>`,
+                                    `<div id='drawToolFileTemplateEditModalClose'><i class='mmgisHoverBlue mdi mdi-close mdi-18px'></i></div>`,
+                                `</div>`,
+                                `<div id='drawToolFileTemplateContainer'>`,
+                                `</div>`,
+                                `<div id='drawToolFileTemplateEditModalActions'>`,
+                                    `<div id='drawToolFileTemplateEditModalActionsCancel' class='drawToolButton1'>Cancel</div>`,
+                                    `<div id='drawToolFileTemplateEditModalActionsDone' class='drawToolButton1'>Done</div>`,
+                                `</div>`,
+                            `</div>`
+                        ].join('\n')
+                        Modal.set(
+                            templateEditMarkup,
+                            function () {
+                                $(`#drawToolFileTemplateEditModalClose`).on(
+                                    'click',
+                                    function () {
+                                        Modal.remove(false, 1)
+                                    }
+                                )
+                                $(
+                                    `#drawToolFileTemplateEditModalActionsCancel`
+                                ).on('click', function () {
+                                    Modal.remove(false, 1)
+                                })
+                                DrawTool_Templater.renderDesignTemplate(
+                                    'drawToolFileTemplateContainer',
+                                    {
+                                        name: template?.name,
+                                        template: template?.template,
+                                    },
+                                    template?.name == null
+                                )
+                                $(
+                                    `#drawToolFileTemplateEditModalActionsDone`
+                                ).on('click', function () {
+                                    let allTemplates = {}
+                                    if (DrawTool.files) {
+                                        DrawTool.files.forEach((f) => {
+                                            if (
+                                                f.template != null &&
+                                                f.template.name != null &&
+                                                f.template.template != null
+                                            ) {
+                                                allTemplates[f.template.name] =
+                                                    f.template.template
+                                            }
+                                        })
+                                    }
+                                    allTemplates = {
+                                        ...allTemplates,
+                                        ...JSON.parse(
+                                            JSON.stringify(
+                                                DrawTool.vars.templates || {}
+                                            )
+                                        ),
+                                    }
+                                    const designedTemplate =
+                                        DrawTool_Templater.getDesignedTemplate(
+                                            'drawToolFileTemplateContainer',
+                                            allTemplates
+                                        )
+                                    if (designedTemplate === true) {
+                                        template = null
+                                        $(
+                                            `#drawToolFileTemplateEdit > div > div`
+                                        )
+                                            .text('NONE')
+                                            .css({
+                                                color: 'var(--color-green)',
+                                            })
+                                        // Do nothing and continue; user was not designing a new template
+                                    } else if (designedTemplate === false) {
+                                        // User was designing, but it had errors
+                                        return
+                                    } else {
+                                        template = JSON.parse(
+                                            JSON.stringify(designedTemplate)
+                                        )
+                                        $(
+                                            `#drawToolFileTemplateEdit > div > div`
+                                        )
+                                            .text(template.name)
+                                            .css({
+                                                color: 'var(--color-green)',
+                                            })
+                                    }
+                                    Modal.remove(false, 1)
+                                })
+                            },
+                            function () {},
+                            1
+                        )
+                    })
                     // Set up events
                     $('#drawToolFileEditOnTagsNew').autocomplete({
                         lookup: DrawTool.tags,
@@ -1220,6 +1336,7 @@ var Files = {
                                     .val() == 'public'
                                     ? 1
                                     : 0,
+                            template: JSON.stringify(template),
                         }
 
                         DrawTool.changeFile(

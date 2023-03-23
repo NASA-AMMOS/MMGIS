@@ -852,20 +852,20 @@ var Test = {
                     ).click()
                     c(
                         'Can open file popup',
-                        $('#mmgisModal .drawToolFileEditOn').css('display') !=
+                        $('.mmgisModal .drawToolFileEditOn').css('display') !=
                             'none'
                     )
 
-                    $('#mmgisModal .drawToolFileNameInput').val(
+                    $('.mmgisModal .drawToolFileNameInput').val(
                         'Test Trail Altered'
                     )
-                    $('#mmgisModal .drawToolFileDesc').text(
+                    $('.mmgisModal .drawToolFileDesc').text(
                         'Description Altered'
                     )
-                    $('#mmgisModal #drawToolFileEditOnPublicityDropdown').val(
+                    $('.mmgisModal #drawToolFileEditOnPublicityDropdown').val(
                         'private'
                     )
-                    $('#mmgisModal .drawToolFileSave').click()
+                    $('.mmgisModal .drawToolFileSave').click()
 
                     setTimeout(function () {
                         $(
@@ -880,22 +880,22 @@ var Test = {
                         )
                         c(
                             'File name input updates',
-                            $('#mmgisModal .drawToolFileNameInput').val() ===
+                            $('.mmgisModal .drawToolFileNameInput').val() ===
                                 'Test Trail Altered'
                         )
                         c(
                             'File description updates',
-                            $('#mmgisModal .drawToolFileDesc').text() ===
+                            $('.mmgisModal .drawToolFileDesc').text() ===
                                 'Description Altered'
                         )
                         c(
                             'File publicity updates',
                             $(
-                                '#mmgisModal #drawToolFileEditOnPublicityDropdown'
+                                '.mmgisModal #drawToolFileEditOnPublicityDropdown'
                             ).val() == 'private'
                         )
 
-                        $('#mmgisModal .drawToolFileCancel').click()
+                        $('.mmgisModal .drawToolFileCancel').click()
                     }, Test.timeout * 3)
                 }, Test.timeout)
             },

@@ -4,6 +4,7 @@ import DrawTool_Files from './DrawTool_Files'
 import DrawTool_History from './DrawTool_History'
 import DrawTool_Publish from './DrawTool_Publish'
 import DrawTool_Shapes from './DrawTool_Shapes'
+import DrawTool_FileModal from './DrawTool_FileModal'
 
 import $ from 'jquery'
 import * as d3 from 'd3'
@@ -17,12 +18,12 @@ import CursorInfo from '../../Ancillary/CursorInfo'
 import Description from '../../Ancillary/Description'
 import { Kinds } from '../../../pre/tools'
 import turf from 'turf'
-import shp from '../../../external/shpjs/shapefile'
-import shpwrite from '../../../external/SHPWrite/shpwrite'
 
 import calls from '../../../pre/calls'
 
 import './DrawTool.css'
+
+import tippy from 'tippy.js'
 
 // Plugins
 import DrawTool_Geologic from './Plugins/Geologic/DrawTool_Geologic'
@@ -58,24 +59,6 @@ var markup = [
         
         "<div id='drawToolDraw'>",
           "<div id='drawToolDrawShapes'>",
-            "<div id='drawToolDrawFilesNewDiv'>",
-                "<div id='drawToolFileUpload'>",
-                    "<i class='mdi mdi-upload mdi-18px'></i>",
-                    "<input title='Upload' type=file accept='.json, .geojson, .shp, .dbf' multiple>",
-                "</div>",
-                "<input id='drawToolDrawFilesNewName' type='text' placeholder='New File' />",
-                "<select>",
-                    "<option id='drawToolNewFileAll' value='all'>Map</option>",
-                    "<option id='drawToolNewFileROI' value='roi'>ROI</option>",
-                    "<option id='drawToolNewFileCampaign' value='campaign'>Campaign</option>",
-                    "<option id='drawToolNewFileCampsite' value='campsite'>Campsite</option>",
-                    "<option id='drawToolNewFileTrail' value='trail'>Trail</option>",
-                    "<option id='drawToolNewFileSignpost' value='signpost'>Signpost</option>",
-                    //"<option value='note'>Note</option>",
-                "</select>",
-                "<i id='drawToolDrawFilesNew' title='Make new file' class='mdi mdi-plus mdi-18px'></i>",
-                "<div id='drawToolDrawFilesNewLoading'><div></div></div>",
-            "</div>",
             //"<div id='drawToolDrawingInIndicator'>Choose a file to draw in</div>",
             "<div id='drawToolDrawingCont'>",
                 "<div id='drawToolDrawingTypeDiv'>",
@@ -203,14 +186,36 @@ var markup = [
               "</div>",
               "<ul id='drawToolDrawFilesList' class='mmgisScrollbar2'>",
               "</ul>",
+              "<div id='drawToolFilesLoadingSpinner'>",
+                "<svg class='mmgis-spinner1' viewbox='0 0 50 50'>",
+                    "<circle class='path' cx='25' cy='25' r='20' fill='none' stroke-width='5' />",
+                "</svg>",
+            "</div>",
             "</div>",
           "</div>",
+          
+          "<div id='drawToolDrawFilesNewDiv'>",
+                //"<input id='drawToolDrawFilesNewName' type='text' placeholder='New File' />",
+                /*
+                "<select>",
+                    "<option id='drawToolNewFileAll' value='all'>Map</option>",
+                    "<option id='drawToolNewFileROI' value='roi'>ROI</option>",
+                    "<option id='drawToolNewFileCampaign' value='campaign'>Campaign</option>",
+                    "<option id='drawToolNewFileCampsite' value='campsite'>Campsite</option>",
+                    "<option id='drawToolNewFileTrail' value='trail'>Trail</option>",
+                    "<option id='drawToolNewFileSignpost' value='signpost'>Signpost</option>",
+                    //"<option value='note'>Note</option>",
+                "</select>",
+                */
+                "<div id='drawToolDrawFilesNewUpload'><div>UPLOAD</div><div><i class='mdi mdi-upload mdi-18px'></i></div></div>",
+                "<div id='drawToolDrawFilesNew'><div>CREATE</div><div><i class='mdi mdi-plus mdi-18px'></i></div></div>",
+            "</div>",
         "</div>",
 
         "<div id='drawToolShapes'>",
           "<div id='drawToolShapesFilterDiv'>",
             "<input id='drawToolShapesFilter' type='text' placeholder='Filter Shapes' />",
-            "<div id='drawToolShapesFilterClear'><i id='drawToolDrawFilesNew' class='mdi mdi-close mdi-18px'></i></div>",
+            "<div id='drawToolShapesFilterClear'><i class='mdi mdi-close mdi-18px'></i></div>",
             "<div id='drawToolShapesFilterCount'></div>",
           "</div>",
           "<div id='drawToolDrawShapesList' class='mmgisScrollbar2'>",
@@ -269,6 +274,7 @@ var DrawTool = {
     activeContent: 'draw',
     intentType: null,
     currentFileId: null,
+    _firstGetFiles: null,
     filesOn: [],
     allTags: {}, //<tag>: count, ...
     tags: [],
@@ -501,6 +507,7 @@ var DrawTool = {
         DrawTool.activeContent = 'draw'
         DrawTool.intentType = null
         DrawTool.currentFileId = null
+        DrawTool._firstGetFiles = null
         //DrawTool.filesOn = [];
         DrawTool.isEditing = false
 
@@ -568,147 +575,6 @@ var DrawTool = {
 
             $(this).parent().find('div').removeClass('active')
             $(this).addClass('active')
-        })
-        //Upload
-        $('#drawToolFileUpload > input').on('change', function (evt) {
-            $('#drawToolDrawFilesNewLoading').css('opacity', '1')
-            $('#drawToolFileUpload > i').css('color', '#1169d3')
-
-            var files = evt.target.files // FileList object
-
-            // use the 1st file from the list
-            var f = files[0]
-            var ext = F_.getExtension(f.name).toLowerCase()
-            switch (ext) {
-                case 'shp':
-                case 'dbf':
-                    var shpFile
-                    var dbfFile
-                    for (var i = 0; i < files.length; i++) {
-                        if (
-                            F_.getExtension(files[i].name).toLowerCase() ==
-                            'shp'
-                        )
-                            shpFile = files[i]
-                        if (
-                            F_.getExtension(files[i].name).toLowerCase() ==
-                            'dbf'
-                        )
-                            dbfFile = files[i]
-                    }
-                    if (shpFile && dbfFile) {
-                        var shpBuffer
-                        var dbfBuffer
-
-                        var readerSHP = new FileReader()
-                        readerSHP.onload = function (e) {
-                            shpBuffer = e.target.result
-                            var readerDBF = new FileReader()
-                            readerDBF.onload = function (e) {
-                                dbfBuffer = e.target.result
-                                bothLoaded()
-                            }
-                            readerDBF.readAsArrayBuffer(dbfFile)
-                        }
-                        readerSHP.readAsArrayBuffer(shpFile)
-
-                        function bothLoaded() {
-                            var featureArray = []
-                            shp.open(shpBuffer, dbfBuffer)
-                                .then((source) =>
-                                    source.read().then(function log(result) {
-                                        if (result.done) {
-                                            var geojsonResult =
-                                                F_.getBaseGeoJSON()
-                                            geojsonResult.features =
-                                                featureArray
-                                            var body = {
-                                                file_name: f.name,
-                                                intent: 'all',
-                                                geojson:
-                                                    JSON.stringify(
-                                                        geojsonResult
-                                                    ),
-                                            }
-                                            DrawTool.makeFile(
-                                                body,
-                                                function () {
-                                                    DrawTool.populateFiles()
-                                                    endLoad()
-                                                }
-                                            )
-                                            return
-                                        }
-
-                                        featureArray.push(
-                                            F_.geoJSONFeatureMetersToDegrees(
-                                                result.value
-                                            )
-                                        )
-                                        return source.read().then(log)
-                                    })
-                                )
-                                .catch((error) => {
-                                    endLoad()
-                                })
-                        }
-                    } else {
-                        CIU('Warning! FileManager - missing .shp or .dbf')
-                    }
-                    break
-                case 'json':
-                case 'geojson':
-                    var reader = new FileReader()
-                    // Closure to capture the file information.
-
-                    reader.onload = (function (file) {
-                        return function (e) {
-                            var body = {
-                                file_name: file.name,
-                                intent: 'all',
-                                geojson: e.target.result,
-                            }
-                            if (
-                                body.geojson &&
-                                JSON.parse(body.geojson).type !==
-                                    'FeatureCollection'
-                            ) {
-                                CIU(
-                                    'Uploaded object has no type: "FeatureCollection". Are you sure this is geojson?'
-                                )
-                                return
-                            }
-                            DrawTool.makeFile(body, function () {
-                                DrawTool.populateFiles()
-                                endLoad()
-                            })
-                        }
-                    })(f)
-
-                    // Read in the image file as a data URL.
-                    reader.readAsText(f)
-                    break
-                default:
-                    CIU(
-                        'Only .json, .geojson and .shp (with .dbf) files may be uploaded'
-                    )
-            }
-
-            function endLoad() {
-                $('#drawToolDrawFilesNewLoading').css('opacity', '0')
-                $('#drawToolFileUpload > i').css('color', 'unset')
-            }
-            function CIU(message) {
-                CursorInfo.update(
-                    message,
-                    6000,
-                    true,
-                    { x: 305, y: 6 },
-                    '#e9ff26',
-                    'black'
-                )
-                endLoad()
-            }
         })
     },
     destroy: function () {
@@ -1061,6 +927,11 @@ var DrawTool = {
             .trimEnd()
     },
     getFiles: function (callback) {
+        // setLoading
+        if (DrawTool._firstGetFiles !== true) {
+            $(`#drawToolFilesLoadingSpinner`).addClass('on')
+            DrawTool._firstGetFiles = true
+        }
         calls.api(
             'files_getfiles',
             {},
@@ -1088,29 +959,44 @@ var DrawTool = {
                                 DrawTool.files[i]
                             )
                     }
-
                     DrawTool.allTags = DrawTool.getAllTags(true)
                     DrawTool.tags = Object.keys(DrawTool.allTags)
                 }
                 if (typeof callback === 'function') callback()
+
+                // endLoading
+                $(`#drawToolFilesLoadingSpinner`).removeClass('on')
             },
             function (data) {
                 if (data && data.message == 'User is not logged in.') {
                     $('#drawToolNotLoggedIn').css('display', 'inherit')
                 }
+                // endLoading
+                $(`#drawToolFilesLoadingSpinner`).removeClass('on')
             }
         )
     },
     makeFile: function (body, callback) {
+        const filename = body.file_name
         calls.api(
             'files_make',
             body,
             function (data) {
-                if (data.status === 'success')
+                if (data.status === 'success') {
                     DrawTool.getFiles(() => {
                         callback(data.body.file_id)
+                        CursorInfo.update(
+                            `Successfully made new file: ${filename}`,
+                            4000,
+                            false,
+                            { x: 305, y: 6 },
+                            '#009eff',
+                            'white',
+                            null,
+                            true
+                        )
                     })
-                else
+                } else
                     CursorInfo.update(
                         'Failed to add file.',
                         6000,
@@ -1301,6 +1187,21 @@ var DrawTool = {
             }
         }
     },
+    enforceTemplate(geojson, templateObj) {
+        if (templateObj == null || templateObj.template == null) return geojson
+        const templateEnforcedFeatures = []
+        geojson.features.forEach((f) => {
+            const newF = JSON.parse(JSON.stringify(f))
+            newF.properties = newF.properties || {}
+            templateObj.template.forEach((t) => {
+                if (!newF.properties.hasOwnProperty([t.field]))
+                    newF.properties[t.field] = t.default
+            })
+            templateEnforcedFeatures.push(newF)
+        })
+        geojson.features = templateEnforcedFeatures
+        return geojson
+    },
 }
 
 //
@@ -1318,6 +1219,12 @@ function interfaceWithMMGIS() {
     tools = tools.append('div').style('height', '100%')
     //Add the markup to tools or do it manually
     tools.html(markup)
+
+    tippy('#drawToolDrawFilesNew', {
+        content: 'New File',
+        placement: 'right',
+        theme: 'blue',
+    })
     //Force intent mappings
     $('#drawToolNewFileAll').html(DrawTool.intentNameMapping.all)
     $('#drawToolNewFileROI').html(DrawTool.intentNameMapping.roi)
@@ -1421,41 +1328,14 @@ function interfaceWithMMGIS() {
         } else return true
     })
 
+    $('#drawToolDrawFilesNewUpload').on('click', function () {
+        DrawTool_FileModal.newFileModal(DrawTool, function () {
+            $('#drawToolFileUpload > input').click()
+        })
+    })
     //Adding a new file
     $('#drawToolDrawFilesNew').on('click', function () {
-        var val = $('#drawToolDrawFilesNewName').val()
-        var intent = $('#drawToolDrawFilesNewDiv > select').val()
-        if (val == null || val == '') {
-            CursorInfo.update(
-                'Please enter a file name.',
-                6000,
-                true,
-                { x: 305, y: 6 },
-                '#e9ff26',
-                'black'
-            )
-            return
-        }
-        if (/[&\'\"<>]/g.test(val)) {
-            CursorInfo.update(
-                'Invalid file name.',
-                6000,
-                true,
-                { x: 305, y: 6 },
-                '#e9ff26',
-                'black'
-            )
-            return
-        }
-        var body = {
-            file_name: val || 'New File',
-            intent: intent,
-        }
-        DrawTool.makeFile(body, function (file_id) {
-            DrawTool.populateFiles(file_id)
-
-            $('#drawToolDrawFilesNewName').val('')
-        })
+        DrawTool_FileModal.newFileModal(DrawTool)
     })
 
     //Copy shapes

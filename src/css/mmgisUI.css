@@ -1581,3 +1581,45 @@ input::-webkit-inner-spin-button {
 .mmgisToast.failure {
     background-color: #a11717;
 }
+
+/*spinner1*/
+.mmgis-spinner1 {
+    -webkit-animation: spinner1_rotate 2s linear infinite;
+    animation: spinner1_rotate 2s linear infinite;
+    z-index: 2;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin: 0;
+    width: 20px;
+    height: 20px;
+    top: calc(50% - 10px);
+    left: calc(50% - 10px);
+}
+.mmgis-spinner1 .path {
+    stroke: var(--color-c);
+    stroke-linecap: round;
+    -webkit-animation: spinner1_dash 1.5s ease-in-out infinite;
+    animation: spinner1_dash 1.5s ease-in-out infinite;
+}
+
+@keyframes spinner1_rotate {
+    100% {
+        -webkit-transform: rotate(360deg);
+        transform: rotate(360deg);
+    }
+}
+@keyframes spinner1_dash {
+    0% {
+        stroke-dasharray: 1, 150;
+        stroke-dashoffset: 0;
+    }
+    50% {
+        stroke-dasharray: 90, 150;
+        stroke-dashoffset: -35;
+    }
+    100% {
+        stroke-dasharray: 90, 150;
+        stroke-dashoffset: -124;
+    }
+}

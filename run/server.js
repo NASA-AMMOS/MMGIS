@@ -598,16 +598,6 @@ setups.getBackendSetups(function (setups) {
     }
   );
 
-  //help
-  app.get(
-    `${ROOT_PATH}/help`,
-    ensureUser(),
-    ensureGroup(permissions.users),
-    (req, res) => {
-      res.render("help", {});
-    }
-  );
-
   // API
   //TEST
   app.post(`${ROOT_PATH}/api/test`, function (req, res) {
