@@ -425,6 +425,11 @@ router.post("/change", function (req, res, next) {
   ) {
     toUpdateTo.public = req.body.public;
   }
+  if (req.body.hasOwnProperty("template") && req.body.template != null) {
+    try {
+      toUpdateTo.template = JSON.parse(req.body.template);
+    } catch (err) {}
+  }
 
   let updateObj = {
     where: {

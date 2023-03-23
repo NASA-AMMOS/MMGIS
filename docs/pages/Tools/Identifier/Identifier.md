@@ -7,7 +7,7 @@ parent: Tools
 
 # Identifier
 
-Mouse over to query underlying datasets. This will read the raw values from a georeferenced dataset, which can be any bitdepth (8,16,32). You can set up multiple file to return values from.
+Mouse over to query underlying datasets. This will read the raw values from a geo-referenced dataset, which can be any bit-depth (8,16,32). You can set up multiple file to return values from.
 
 ### Raw Variables
 
