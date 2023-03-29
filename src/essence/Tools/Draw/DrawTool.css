@@ -2577,10 +2577,20 @@
     background: var(--color-c);
 }
 
+#cmExportGeoJSON, 
+#cmExportSourceGeoJSON {
+    display: block;
+}
+#cmExportGeoJSON > div:last-child, 
+#cmExportSourceGeoJSON > div:last-child {
+    font-size: 12px;
+    text-align: right;
+}
+
 /*FILE INFO TEMPLATE MODAL*/
 #drawToolFileTemplateEditModal {
     background: var(--color-a-5);
-    min-width: 600px;
+    min-width: 624px;
 }
 #drawToolFileTemplateEditModalTitle {
     padding: 0px 0px 0px 10px;

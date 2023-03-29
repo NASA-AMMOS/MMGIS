@@ -16,7 +16,11 @@ This enables the user interface for Time. If disabled, global time will not be u
 
 ### Visible
 
-Whether or not the Time user interface should be visible.
+Whether or not the Time user interface should be visible. This allows time to be enabled while restricting users from using its UI.
+
+### Initially Open
+
+If enabled and visible, the Time UI will be initially open on the bottom of the screen.
 
 ## Time Format
 

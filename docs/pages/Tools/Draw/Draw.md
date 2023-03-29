@@ -88,8 +88,8 @@ There are five files that are group editable with the correct permission. The gr
             {
                 "type": "date",
                 "field": "g",
-                "format": "HH:mm:ss",
-                "default": "now"
+                "format": "YYYY-MM-DDTHH:mm:ss",
+                "default": "2000-01-01T00:00:00" // Can be "NOW", "STARTTIME" or "ENDTIME" too for dynamic defaults
             }
         ],
         "example_2": [

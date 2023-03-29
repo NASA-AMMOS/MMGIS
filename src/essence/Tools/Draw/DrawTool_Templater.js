@@ -2,6 +2,7 @@ import $ from 'jquery'
 
 import CursorInfo from '../../Ancillary/CursorInfo'
 import Dropy from '../../../external/Dropy/dropy'
+import TimeControl from '../../Ancillary/TimeControl'
 
 import * as moment from 'moment'
 import { TempusDominus, Namespace } from '@eonasdan/tempus-dominus'
@@ -37,7 +38,7 @@ const DrawTool_Templater = {
                         return [
                             `<li id='drawToolTemplater_${idx}' class='drawToolTemplater${t.type}'>`,
                                 `<div title='${t.field}'>${t.field}:</div>`,
-                                `<input type='number' placeholder="Enter Number"
+                                `<input type='number' placeholder="Enter Number" autocomplete="off"
                                     ${t.default != null && typeof t.default === 'number' ? ` value='${t.default}'` : ''}
                                     ${t.min != null && typeof t.min === 'number' ? ` min='${t.min}'` : ''}
                                     ${t.max != null && typeof t.max === 'number' ? ` max='${t.max}'` : ''}
@@ -49,7 +50,7 @@ const DrawTool_Templater = {
                         return [
                             `<li id='drawToolTemplater_${idx}' class='drawToolTemplater${t.type}'>`,
                                 `<div title='${t.field}'>${t.field}:</div>`,
-                                `<input type='text' placeholder="Enter Text"
+                                `<input type='text' placeholder="Enter Text" autocomplete="off"
                                     ${t.default != null ? ` value='${t.default}'` : ''}
                                     ${t.minLength != null && typeof t.min === 'number' ? ` minLength='${t.minLength}'` : ''}
                                     ${t.maxLength != null && typeof t.max === 'number' ? ` maxLength='${t.maxLength}'` : ''}
@@ -88,7 +89,7 @@ const DrawTool_Templater = {
                         return [
                             `<li id='drawToolTemplater_${idx}' class='drawToolTemplater${t.type}'>`,
                                 `<div title='${t.field}'>${t.field}:</div>`,
-                                `<input id='drawToolFileModalTemplateDate_${idx}'></input>`,
+                                `<input id='drawToolFileModalTemplateDate_${idx}' placeholder='${t.format || 'YYYY-MM-DDTHH:mm:ss'}' autocomplete='off'></input>`,
                             `</li>`
                         ].join('\n')
                     default:
@@ -113,7 +114,10 @@ const DrawTool_Templater = {
                     })
                     break
                 case 'dropdown':
-                    helperStates[idx] = 0
+                    helperStates[idx] = Math.max(
+                        (t.items || []).indexOf(t.default),
+                        0
+                    )
                     $(`#drawToolFileModalTemplateDropdown_${idx}`).html(
                         Dropy.construct(
                             t.items || [],
@@ -180,14 +184,22 @@ const DrawTool_Templater = {
                     if (t.default != null && t.default != '') {
                         let def = t.default
                         let d
-                        if (def === 'now') d = new Date().getTime()
-                        else {
-                            d = moment
-                                .utc(t.default)
-                                .format(t.format || 'YYYY-MM-DDTHH:mm:ss')
+                        if (def === 'NOW') d = new Date().getTime()
+                        else if (def === 'STARTTIME')
                             d = DrawTool_Templater.addOffset(
-                                moment.utc(d).valueOf()
+                                new Date(TimeControl.getStartTime()).getTime()
                             )
+                        else if (def === 'ENDTIME')
+                            d = DrawTool_Templater.addOffset(
+                                new Date(TimeControl.getEndTime()).getTime()
+                            )
+                        else {
+                            d = new moment(
+                                def,
+                                t.format || 'YYYY-MM-DDTHH:mm:ss'
+                            )
+                                .utc()
+                                .valueOf()
                         }
                         const parsed = dateTempus.dates.parseInput(new Date(d))
                         dateTempus.dates.setValue(parsed)
@@ -326,6 +338,8 @@ const DrawTool_Templater = {
                             values[t.field] = $(
                                 `#${containerId} #drawToolFileModalTemplateDate_${idx}`
                             ).val()
+                            if (values[t.field] === 'Invalid Date')
+                                values[t.field] = null
                             break
                         default:
                             break
@@ -409,6 +423,14 @@ const DrawTool_Templater = {
         'slider',
         'text',
         'textarea',
+    ],
+    _DATE_FORMATS: [
+        'YYYY-MM-DDTHH:mm:ss',
+        'MMMM Do YYYY',
+        'YYYY-MM-DD',
+        'MMMM Do YYYY, h:mm:ss a',
+        'HH:mm:ss',
+        'h:mm:ss a',
     ],
     renderDesignTemplate: function (
         containerId,
@@ -519,8 +541,9 @@ const DrawTool_Templater = {
 
             $(`#drawToolTemplaterDesignHeadingRemove_${idx}`).on(
                 'click',
-                () => {
+                (e) => {
                     $(`#drawToolTemplaterLi_${idx}`).remove()
+                    e.stopPropagation()
                 }
             )
 
@@ -592,7 +615,7 @@ const DrawTool_Templater = {
                             `<div class='drawToolTemplaterLiBody_${type}'>`,
                                 `<div class='drawToolTemplaterLiBody_${type}_default'>`,
                                     `<div>Default: </div>`,
-                                    `<input id='drawToolTemplaterLiFieldInput_${idx}_default' type='number' value='${opts.default != null ? opts.default : '50'}'></input>`,
+                                    `<input id='drawToolTemplaterLiFieldInput_${idx}_default' type='number' value='${opts.default != null ? opts.default : '0'}'></input>`,
                                 "</div>",
                                 `<div class='drawToolTemplaterLiBody_${type}_min'>`,
                                     `<div>Min: </div>`,
@@ -660,12 +683,12 @@ const DrawTool_Templater = {
                         typeMarkup = [
                             `<div class='drawToolTemplaterLiBody_${type}'>`,
                                 `<div class='drawToolTemplaterLiBody_${type}_default'>`,
-                                    `<div>Default: </div>`,
+                                    `<div title='Use "NOW", "STARTTIME" and "ENDTIME" for dynamic defaults.'>Default: </div>`,
                                     `<input id='drawToolTemplaterLiFieldInput_${idx}_default' placeholder='Default' type='text' value='${opts.default != null ? opts.default : ''}'></input>`,
                                 "</div>",
                                 `<div class='drawToolTemplaterLiBody_${type}_format'>`,
                                     `<div>Format: </div>`,
-                                    `<input id='drawToolTemplaterLiFieldInput_${idx}_format' type='text' value='${opts.format != null ? opts.format : 'YYYY-MM-DDTHH:mm:ss'}'></input>`,
+                                    `<div id='drawToolTemplaterLiBody_${idx}_format' class='drawToolTemplaterLiBodyDropdown_format ui dropdown short' value='${opts.format != null ? opts.format : DrawTool_Templater._DATE_FORMATS[0]}'></div>`,
                                 "</div>",
                                 `<div class='drawToolTemplaterLiBody_${type}_required'>`,
                                     `<div title='Required'>Req: </div>`,
@@ -678,7 +701,38 @@ const DrawTool_Templater = {
                         break
                 }
 
+                // Add html
                 $(`#drawToolTemplaterLiBody_${idx}`).html(typeMarkup.join('\n'))
+
+                // Init dropdowns
+                const f =
+                    opts.format != null
+                        ? opts.format
+                        : DrawTool_Templater._DATE_FORMATS[0]
+                const initialFormatIndex = Math.max(
+                    DrawTool_Templater._DATE_FORMATS.indexOf(f),
+                    0
+                )
+                $(`#drawToolTemplaterLiBody_${idx}_format`).html(
+                    Dropy.construct(
+                        DrawTool_Templater._DATE_FORMATS,
+                        'Formats',
+                        initialFormatIndex,
+                        {
+                            openUp: false,
+                            dark: true,
+                        }
+                    )
+                )
+                Dropy.init(
+                    $(`#drawToolTemplaterLiBody_${idx}_format`),
+                    (idx2) => {
+                        $(`#drawToolTemplaterLiBody_${idx}_format`).attr(
+                            'value',
+                            DrawTool_Templater._DATE_FORMATS[idx2]
+                        )
+                    }
+                )
             }
 
             let initialType = options.type || 'checkbox'
@@ -857,8 +911,8 @@ const DrawTool_Templater = {
                             .find('.drawToolTemplaterLiBody_date_default input')
                             .val()
                         item.format = $(this)
-                            .find('.drawToolTemplaterLiBody_date_format input')
-                            .val()
+                            .find('.drawToolTemplaterLiBodyDropdown_format')
+                            .attr('value')
                         item.required = $(this)
                             .find(
                                 '.drawToolTemplaterLiBody_date_required input'
@@ -914,6 +968,17 @@ const DrawTool_Templater = {
             if (t.field == null || t.field == '') {
                 CursorInfo.update(
                     `Template cannot contain empty 'Field Names'`,
+                    6000,
+                    true,
+                    { x: 305, y: 6 },
+                    '#e9ff26',
+                    'black'
+                )
+                return false
+            }
+            if (t.field == 'uuid') {
+                CursorInfo.update(
+                    `Template cannot contain the field name 'uuid'`,
                     6000,
                     true,
                     { x: 305, y: 6 },

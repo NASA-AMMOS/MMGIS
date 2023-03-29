@@ -74,12 +74,12 @@ const DrawTool_FileModal = {
         }
 
         const templateItems = ['NONE']
-            .concat(Object.keys(DrawTool.vars.templates))
+            .concat(Object.keys(templates))
             .concat(Object.keys(allTemplates).sort())
 
         allTemplates = {
             ...allTemplates,
-            ...JSON.parse(JSON.stringify(DrawTool.vars.templates || {})),
+            ...JSON.parse(JSON.stringify(templates || {})),
         }
 
         let body = false

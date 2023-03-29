@@ -531,8 +531,15 @@ var Files = {
 
             hideContextMenu(true)
 
+            const fileId = elm.attr('file_id')
+            const file = DrawTool.getFileObjectWithId(fileId)
+
+            const hasTemplate = file?.template?.template != null
+
             let rect = $(this).get(0).getBoundingClientRect()
 
+            // Export GeoJSON
+            // Export GeoJSON [Forced Template]
             // prettier-ignore
             let markup = [
                 "<div id='drawToolDrawFilesListElemContextMenu' style='top: " +
@@ -543,8 +550,10 @@ var Files = {
                     rect.width +
                     "px; z-index: 2000; font-size: 14px;'>",
                     '<ul>',
-                    (!isHead && L_.Coordinates.mainType != 'll') ? `<li id='cmExportGeoJSON' convert='true'><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON (${L_.Coordinates.getMainTypeName()})</li>` : "",
-                    !isHead ? `<li id='cmExportSourceGeoJSON' convert='true'><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON ${L_.Coordinates.mainType != 'll' ? '(lonlat)' : '' }</li>` : "",
+                        (!isHead && L_.Coordinates.mainType != 'll') ? `<li id='cmExportGeoJSON' convert='true'><div><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON</div><div>Coords: (${L_.Coordinates.getMainTypeName()})</div></li>` : "",
+                        !isHead ? `<li id='cmExportSourceGeoJSON' convert='true'><div><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON</div><div>${L_.Coordinates.mainType != 'll' ? 'Coords: lonlat' : '' }</div></li>` : "",
+                        (!isHead && hasTemplate && L_.Coordinates.mainType != 'll') ? `<li id='cmExportGeoJSON' convert='true' templateforced='true' title='All feature properties foreign to the template will be removed.'><div><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON</div><div>Restrict to Template</div></li>` : "",
+                        (!isHead && hasTemplate) ? `<li id='cmExportSourceGeoJSON' convert='true' templateforced='true' title='All feature properties foreign to the template will be removed.'><div><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON</div><div>Restrict to Template</div></li>` : "",
                         //"<li id='cmExportShp'>Export as .shp</li>",
                         (!isHead && !isPub) ? `<li id='cmToggleLabels'><i class='mdi mdi-label-outline mdi-14px'></i>Toggle Labels</li>` : "",
                         isHead ? `<li id='drawToolcmRenameTagFol'><i class='mdi mdi-rename-box mdi-14px'></i>Rename ${activeTagFolType === 'tags' ? "Tag" : "Folder"}</li>` : "",
@@ -569,6 +578,7 @@ var Files = {
                 (function (body, isPub) {
                     return function () {
                         const convert = $(this).attr('convert')
+                        const templateForced = $(this).attr('templateforced')
                         DrawTool.getFile(body, function (d) {
                             let geojson = d.geojson
                             let filename = ''
@@ -619,7 +629,8 @@ var Files = {
                                     )
                             geojson = DrawTool.enforceTemplate(
                                 geojson,
-                                d?.file?.[0]?.template
+                                d?.file?.[0]?.template,
+                                templateForced
                             )
                             F_.downloadObject(geojson, filename, '.geojson')
                         })

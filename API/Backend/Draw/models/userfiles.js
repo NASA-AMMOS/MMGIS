@@ -141,12 +141,16 @@ const up = async () => {
       `ALTER TABLE user_files ADD COLUMN IF NOT EXISTS template json NULL;`
     )
     .then(() => {
-      logger("info", `Added template col`, "user_files");
       return null;
     })
     .catch((err) => {
-      logger("info", `template. Nothing to do...`, "user_files");
-
+      logger(
+        "error",
+        `Failed to adding user_files.template column. DB tables may be out of sync!`,
+        "user_files",
+        null,
+        err
+      );
       return null;
     });
 };

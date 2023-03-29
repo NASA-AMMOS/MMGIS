@@ -120,11 +120,16 @@ const Coordinates = {
             offset: [0, 20],
         })
 
-        if (!(L_.configData.time && L_.configData.time.enabled === true)) {
+        if (
+            !(
+                L_.configData.time &&
+                L_.configData.time.enabled === true &&
+                L_.configData.time.visible === true
+            )
+        ) {
             $('#toggleTimeUI').css({ display: 'none' })
             $('#CoordinatesDiv').css({ marginRight: '0px' })
         }
-
         if (L_.configData.coordinates) {
             // ll
             if (L_.configData.coordinates.coordll == false)
@@ -266,6 +271,15 @@ const Coordinates = {
         $('#toggleTimeUI').on('click', toggleTimeUI)
         Map_.map.on('mousemove', mouseLngLatMove)
         Map_.map.on('click', urlClick)
+
+        if (
+            L_.configData.time &&
+            L_.configData.time.enabled === true &&
+            L_.configData.time.visible === true &&
+            L_.configData.time.initiallyOpen === true
+        ) {
+            toggleTimeUI()
+        }
     },
     refreshDropdown: function () {
         const names = []

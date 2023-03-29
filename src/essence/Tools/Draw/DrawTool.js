@@ -1187,16 +1187,29 @@ var DrawTool = {
             }
         }
     },
-    enforceTemplate(geojson, templateObj) {
+    enforceTemplate(geojson, templateObj, force) {
         if (templateObj == null || templateObj.template == null) return geojson
         const templateEnforcedFeatures = []
         geojson.features.forEach((f) => {
             const newF = JSON.parse(JSON.stringify(f))
-            newF.properties = newF.properties || {}
-            templateObj.template.forEach((t) => {
-                if (!newF.properties.hasOwnProperty([t.field]))
-                    newF.properties[t.field] = t.default
-            })
+            if (force) {
+                newF.properties = newF.properties || {}
+                const forcedTemplateProperties = {}
+                templateObj.template.forEach((t) => {
+                    if (!newF.properties.hasOwnProperty([t.field]))
+                        forcedTemplateProperties[t.field] = t.default
+                    else
+                        forcedTemplateProperties[t.field] =
+                            newF.properties[t.field]
+                })
+                newF.properties = forcedTemplateProperties
+            } else {
+                newF.properties = newF.properties || {}
+                templateObj.template.forEach((t) => {
+                    if (!newF.properties.hasOwnProperty([t.field]))
+                        newF.properties[t.field] = t.default
+                })
+            }
             templateEnforcedFeatures.push(newF)
         })
         geojson.features = templateEnforcedFeatures

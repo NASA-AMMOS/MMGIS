@@ -672,6 +672,10 @@ function initialize() {
                     "checked",
                     cData.time.visible ? true : false
                   );
+                  $("#tab_time #time_initiallyOpen").prop(
+                    "checked",
+                    cData.time.initiallyOpen ? true : false
+                  );
                 }
                 $("#tab_time #time_format").val(
                   cData.time ? cData.time.format : "%Y-%m-%dT%H:%M:%SZ"
@@ -2177,6 +2181,11 @@ function save(returnJSON) {
       json.time.visible = true;
     } else {
       json.time.visible = false;
+    }
+    if ($("#tab_time #time_initiallyOpen").prop("checked")) {
+      json.time.initiallyOpen = true;
+    } else {
+      json.time.initiallyOpen = false;
     }
     json.time.format = $("#tab_time #time_format").val();
     json.time.initialstart = $("#tab_time #time_initialstart").val();
