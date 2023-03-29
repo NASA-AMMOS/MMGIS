@@ -13,7 +13,61 @@
                 "All_Alias"
             ],
             "leadsCanEditFileInfo": false,
-            "hoverLengthOnLines": false
+            "hoverLengthOnLines": false,
+            "templates": {
+                "myTemplate": [
+                    {
+                        "type": "slider",
+                        "field": "a",
+                        "min": 0,
+                        "max": 100,
+                        "step": 1,
+                        "default": 0
+                    },
+                    {
+                        "type": "number",
+                        "field": "b",
+                        "min": 0,
+                        "max": 100,
+                        "step": 1,
+                        "required": true,
+                        "default": 3
+                    },
+                    {
+                        "type": "text",
+                        "field": "c",
+                        "minLength": 2,
+                        "maxLength": 4,
+                        "required": true,
+                        "regex": null,
+                        "default": null
+                    },
+                    {
+                        "type": "textarea",
+                        "field": "d",
+                        "maxLength": 10,
+                        "required": true,
+                        "default": "hi"
+                    },
+                    {
+                        "type": "checkbox",
+                        "field": "e",
+                        "default": true
+                    },
+                    {
+                        "type": "dropdown",
+                        "field": "f",
+                        "items": ["Yes", "No", "Maybe"],
+                        "default": "No"
+                    },
+                    {
+                        "type": "date",
+                        "field": "g",
+                        "format": "HH:mm:ss",
+                        "default": "now"
+                    }
+                ]
+            }
         }
     },
     "hasVars": true,

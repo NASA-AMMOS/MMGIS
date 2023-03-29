@@ -132,6 +132,7 @@ router.post("/make", function (req, res, next) {
     intent: req.body.intent,
     public: "1",
     hidden: "0",
+    template: req.body.template ? JSON.parse(req.body.template) : null,
   };
 
   // Insert new userfile into the user_files table
@@ -423,6 +424,11 @@ router.post("/change", function (req, res, next) {
     (req.body.public == 0 || req.body.public == 1)
   ) {
     toUpdateTo.public = req.body.public;
+  }
+  if (req.body.hasOwnProperty("template") && req.body.template != null) {
+    try {
+      toUpdateTo.template = JSON.parse(req.body.template);
+    } catch (err) {}
   }
 
   let updateObj = {

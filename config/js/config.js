@@ -623,10 +623,7 @@ function initialize() {
                 ) {
                   $("#tab_look #look_fullscreen").prop("checked", true);
                 }
-                if (
-                  cData.look &&
-                  (cData.look.info == true)
-                ) {
+                if (cData.look && cData.look.info == true) {
                   $("#tab_look #look_info").prop("checked", true);
                 }
                 $("#tab_look #look_infourl").val(
@@ -674,6 +671,10 @@ function initialize() {
                   $("#tab_time #time_visible").prop(
                     "checked",
                     cData.time.visible ? true : false
+                  );
+                  $("#tab_time #time_initiallyOpen").prop(
+                    "checked",
+                    cData.time.initiallyOpen ? true : false
                   );
                 }
                 $("#tab_time #time_format").val(
@@ -2181,6 +2182,11 @@ function save(returnJSON) {
     } else {
       json.time.visible = false;
     }
+    if ($("#tab_time #time_initiallyOpen").prop("checked")) {
+      json.time.initiallyOpen = true;
+    } else {
+      json.time.initiallyOpen = false;
+    }
     json.time.format = $("#tab_time #time_format").val();
     json.time.initialstart = $("#tab_time #time_initialstart").val();
     json.time.initialend = $("#tab_time #time_initialend").val();
@@ -2204,9 +2210,18 @@ function save(returnJSON) {
               );
               return;
             }
-            toolsjson["variables"] = JSON.parse(
-              editors[tData[i].name].getValue()
-            );
+            try {
+              toolsjson["variables"] = JSON.parse(
+                editors[tData[i].name].getValue()
+              );
+            } catch (err) {
+              toast(
+                "error",
+                `Error: ${tData[i].name} tool json is badly formed.`,
+                5000
+              );
+              return;
+            }
           }
         }
         json.tools.push(toolsjson);
