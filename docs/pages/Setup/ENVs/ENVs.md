@@ -123,3 +123,7 @@ If true, notifications are sent to /configure users whenever the current mission
 #### `ENABLE_CONFIG_OVERRIDE=`
 
 For use when `ENABLE_CONFIG_WEBSOCKETS=true` (if `ENABLE_CONFIG_WEBSOCKETS=false`, all saves will freely overwrite already). If true, gives /configure users the ability to override changes made to the configuration while they were working on it with their own. | boolean | default `false`
+
+#### `MAIN_MISSION=`
+
+If the new MAIN_MISSION ENV is set to a valid mission, skip the landing page and go straight to that mission. Other missions will still be accessible by either forcing the landing page (clicking the top-left M logo) or by going to a link directly. | string | default `''`

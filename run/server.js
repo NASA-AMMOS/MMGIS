@@ -742,6 +742,7 @@ setups.getBackendSetups(function (setups) {
             FORCE_CONFIG_PATH: process.env.FORCE_CONFIG_PATH,
             CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER,
             ENABLE_MMGIS_WEBSOCKETS: process.env.ENABLE_MMGIS_WEBSOCKETS,
+            MAIN_MISSION: process.env.MAIN_MISSION,
             THIRD_PARTY_COOKIES: process.env.THIRD_PARTY_COOKIES,
             PORT: process.env.PORT,
             ROOT_PATH: ROOT_PATH,
