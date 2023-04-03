@@ -1554,7 +1554,7 @@ function makeLayerBarAndModal(d, level, options) {
                 "<option value='true' " + timeCompositeTileTrueSel + ">True</option>" +
                 "<option value='false' " + timeCompositeTileFalseSel + ">False</option>" +
               "</select>" +
-              "<label style='cursor: default;' title='True: MMGIS-served Time Tiles will be merged/collapsed together historically before being served.\nFalse: MMGIS-served Time Tiles just pull the single, latest, best-matched tile.'>Composited Time Tile <i class='mdi mdi-information mdi-14px'></i></label>" +
+              "<label style='cursor: default;' title='True: MMGIS-served TMS Time Tiles will be merged/collapsed together historically before being served.\nFalse: MMGIS-served Time Tiles just pull the single, latest, best-matched tile.'>Composited Time Tile <i class='mdi mdi-information mdi-14px'></i></label>" +
             "</div>" +
             "<div id='timeRefreshEl' class='input-field col s2 push-s0' style='display: " + timeRefreshEl + "'>" +
               "<input id='TimeRefresh" + n + "' type='text' class='validate' value='" + ((typeof d.time != "undefined") ? d.time.refresh : "") + "'>" +

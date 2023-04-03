@@ -19,12 +19,12 @@ var colorFilterExtension = {
     },
     getTileUrl: function (coords) {
         let url = L.TileLayer.prototype.getTileUrl.call(this, coords)
-
+        console.log(this.options)
         url = url
             .replace(/{time}/g, this.options.time)
             .replace(/{starttime}/g, this.options.starttime)
             .replace(/{endtime}/g, this.options.endtime)
-        if (this.options.time) {
+        if (this.options.time && this.options.tileFormat === 'tms') {
             url += `?starttime=${this.options.starttime}&time=${this.options.endtime}`
             if (this.options.compositeTile === true) url += `&composite=true`
         }
