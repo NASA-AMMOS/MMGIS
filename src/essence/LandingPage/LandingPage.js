@@ -28,6 +28,7 @@ export default {
             missionUrl == false &&
             !forceLanding &&
             mmgisglobal.MAIN_MISSION != null &&
+            mmgisglobal.MAIN_MISSION != '' &&
             typeof mmgisglobal.MAIN_MISSION === 'string' &&
             mmgisglobal.MAIN_MISSION.length > 0
         ) {
