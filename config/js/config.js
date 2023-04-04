@@ -1951,7 +1951,7 @@ function mmgisLinkModalsToLayersDeleteClick(e) {
 }
 
 function mmgisLinkModalsToLayersCloneClick(e) {
-  var mainThis = $(this).parent().parent().parent();
+  var mainThis = $(this).parent().parent().parent().parent();
   var mainId = mainThis.attr("id");
   mainId = mainId.substring(mainId.indexOf("_") + 1);
   makeLayerBarAndModal(
