@@ -1260,9 +1260,6 @@ function interfaceWithMMGIS() {
         DrawTool.intentNameMapping.signpost + 's'
     )
 
-    if (F_.getBrowser() == 'firefox')
-        $('#drawToolDrawFiles').css('max-height', 'calc(100vh - 313px)')
-
     $('#drawToolDrawingSettingsToggle').on('click', function () {
         $('#drawToolDrawingSettingsToggle').toggleClass('active')
         $('#drawToolDrawSettings').toggleClass('active')

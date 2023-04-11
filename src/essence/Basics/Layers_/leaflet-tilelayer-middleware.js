@@ -19,7 +19,7 @@ var colorFilterExtension = {
     },
     getTileUrl: function (coords) {
         let url = L.TileLayer.prototype.getTileUrl.call(this, coords)
-        console.log(this.options)
+
         url = url
             .replace(/{time}/g, this.options.time)
             .replace(/{starttime}/g, this.options.starttime)
