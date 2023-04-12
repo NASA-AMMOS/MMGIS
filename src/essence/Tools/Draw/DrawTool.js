@@ -5,6 +5,7 @@ import DrawTool_History from './DrawTool_History'
 import DrawTool_Publish from './DrawTool_Publish'
 import DrawTool_Shapes from './DrawTool_Shapes'
 import DrawTool_FileModal from './DrawTool_FileModal'
+import DrawTool_Templater from './DrawTool_Templater'
 
 import $ from 'jquery'
 import * as d3 from 'd3'
@@ -1077,6 +1078,19 @@ var DrawTool = {
         )
     },
     addDrawing: function (body, callback, failure) {
+        // Add template property defaults
+        const file = DrawTool.getFileObjectWithId(body.file_id)
+        if (file?.template?.template && body?.properties) {
+            let newProps = JSON.parse(body.properties)
+            const templateDefaults = DrawTool_Templater.getTemplateDefaults(
+                file?.template?.template,
+                L_.layers.layer[`DrawTool_${body.file_id}`]
+            )
+
+            newProps = { ...newProps, ...templateDefaults }
+            body.properties = JSON.stringify(newProps)
+        }
+
         if (body.file_id == null) {
             CursorInfo.update(
                 'No file chosen. Please select or make a file for drawings.',

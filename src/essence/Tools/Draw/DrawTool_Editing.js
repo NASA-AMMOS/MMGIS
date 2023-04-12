@@ -2350,7 +2350,10 @@ var Editing = {
             if (DrawTool.plugins?.Geologic?.custom?.resetGeologic)
                 DrawTool.plugins.Geologic.custom.resetGeologic()
 
-            const templaterProperties = templater.getValues()
+            const templaterProperties = templater.getValues(
+                L_.layers.layer[DrawTool.lastContextLayerIndexFileId.layer],
+                properties
+            )
             if (templaterProperties === false) return
 
             if (!grouping) {

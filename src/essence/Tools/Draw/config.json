@@ -61,8 +61,13 @@
                         "default": "No"
                     },
                     {
-                        "type": "date",
+                        "type": "incrementer",
                         "field": "g",
+                        "default": "ID-#"
+                    },
+                    {
+                        "type": "date",
+                        "field": "h",
                         "format": "HH:mm:ss",
                         "default": "now"
                     }

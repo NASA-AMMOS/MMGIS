@@ -775,9 +775,10 @@ function urlClick(e) {
 }
 
 function toggleTimeUI() {
-    const active = $(this).hasClass('active')
-    $(this).toggleClass('active')
+    const active = $('#toggleTimeUI').hasClass('active')
+    $('#toggleTimeUI').toggleClass('active')
     $('#timeUI').toggleClass('active')
+
     const newBottom = active ? 0 : 40
     const timeBottom = active ? -40 : 0
 
