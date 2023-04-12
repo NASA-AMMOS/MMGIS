@@ -276,3 +276,6 @@
 .drawToolTemplaterLiBody_dropdown_default input[type='number'] {
     width: 90px !important;
 }
+.drawToolTemplaterLiBody_incrementer_default {
+    width: 100%;
+}

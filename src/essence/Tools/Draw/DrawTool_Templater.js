@@ -23,6 +23,7 @@ const DrawTool_Templater = {
             template.map((t, idx) => {
 
                 if( properties[t.field] != null)  {
+                    t._default = t.default
                     t.default = properties[t.field]
                 }
                 // prettier-ignore
@@ -90,6 +91,15 @@ const DrawTool_Templater = {
                             `<li id='drawToolTemplater_${idx}' class='drawToolTemplater${t.type}'>`,
                                 `<div title='${t.field}'>${t.field}:</div>`,
                                 `<input id='drawToolFileModalTemplateDate_${idx}' placeholder='${t.format || 'YYYY-MM-DDTHH:mm:ss'}' autocomplete='off'></input>`,
+                            `</li>`
+                        ].join('\n')
+                    case 'incrementer':
+                        return [
+                            `<li id='drawToolTemplater_${idx}' class='drawToolTemplater${t.type}'>`,
+                                `<div title='${t.field}'>${t.field}:</div>`,
+                                `<input type='text' placeholder="${t.default != null ? ` value='${t.default}'` : ''}" autocomplete="off"
+                                    ${t.default != null ? ` value='${t.default}'` : ''}
+                                    />`,
                             `</li>`
                         ].join('\n')
                     default:
@@ -211,9 +221,10 @@ const DrawTool_Templater = {
         })
 
         return {
-            getValues: () => {
+            getValues: (layer, existingProperties) => {
                 const values = {}
                 const invalids = {}
+
                 template.forEach((t, idx) => {
                     switch (t.type) {
                         case 'checkbox':
@@ -341,6 +352,24 @@ const DrawTool_Templater = {
                             if (values[t.field] === 'Invalid Date')
                                 values[t.field] = null
                             break
+                        case 'incrementer':
+                            values[t.field] = $(
+                                `#${containerId} #drawToolTemplater_${idx} input`
+                            ).val()
+
+                            const nextIncrement =
+                                DrawTool_Templater._getNextIncrement(
+                                    values[t.field],
+                                    t,
+                                    layer,
+                                    existingProperties
+                                )
+
+                            if (nextIncrement.error != null)
+                                invalids[t.field] = nextIncrement.error
+                            else values[t.field] = nextIncrement.newValue
+
+                            break
                         default:
                             break
                     }
@@ -413,12 +442,85 @@ const DrawTool_Templater = {
         )
         return removedOffset
     },
+
+    /**
+     *
+     * @param {*} value
+     * @param {*} t
+     * @param {*} layer
+     * @returns {newValue: Number, error: String}
+     */
+    _getNextIncrement(value, t, layer, existingProperties) {
+        const response = {
+            newValue: value,
+            error: null,
+        }
+
+        let usedValues = []
+        const split = (t._default || t.default).split('#')
+        const start = split[0]
+        const end = split[1]
+        for (var i = 0; i < layer.length; i++) {
+            if (layer[i] == null) continue
+            let geojson =
+                layer[i].feature ||
+                layer[i]._layers[Object.keys(layer[i]._layers)[0]].feature
+            if (geojson?.properties?.[t.field] != null) {
+                let featuresVal = geojson?.properties?.[t.field]
+
+                featuresVal = featuresVal.replace(start, '').replace(end, '')
+
+                if (featuresVal !== '#') {
+                    featuresVal = parseInt(featuresVal)
+                    usedValues.push(featuresVal)
+                }
+            }
+        }
+        if ((response.newValue || '').indexOf('#') !== -1) {
+            // Actually increment the incrementer for the first time
+            let bestVal = 0
+            usedValues.sort(function (a, b) {
+                return a - b
+            })
+            usedValues = [...new Set(usedValues)] // makes it unique
+            usedValues.forEach((v) => {
+                if (bestVal === v) bestVal++
+            })
+            response.newValue = response.newValue.replace('#', bestVal)
+        } else if (existingProperties) {
+            let numVal = response.newValue.replace(start, '').replace(end, '')
+            if (numVal != '#') {
+                numVal = parseInt(numVal)
+                if (existingProperties[t.field] === response.newValue) {
+                    // In case of a resave, make sure the id exists only once
+                    let count = 0
+                    usedValues.forEach((v) => {
+                        if (numVal === v) count++
+                    })
+                    if (count > 1)
+                        response.error = `Incrementing field: '${t.field}' is not unique`
+                } else {
+                    // In case a manual change, make sure the id is unique
+                    if (usedValues.indexOf(numVal) !== -1)
+                        response.error = `Incrementing field: '${t.field}' is not unique`
+                }
+            }
+        }
+
+        // Check that the field still matches the surrounding string
+        const incRegex = new RegExp(`^${start}\\d+${end}$`)
+        if (incRegex.test(response.newValue) == false) {
+            response.error = `Incrementing field: '${t.field}' must follow syntax: '${start}{#}${end}'`
+        }
+        return response
+    },
     _templateInDesignIdx: 0,
     _templateInDesign: {},
     _TEMPLATE_TYPES: [
         'checkbox',
         'date',
         'dropdown',
+        'incrementer',
         'number',
         'slider',
         'text',
@@ -697,6 +799,17 @@ const DrawTool_Templater = {
                             "</div>"
                         ]
                         break
+                    case 'incrementer':
+                        // prettier-ignore
+                        typeMarkup = [
+                            `<div class='drawToolTemplaterLiBody_${type}'>`,
+                                `<div class='drawToolTemplaterLiBody_${type}_default'>`,
+                                    `<div>Value with a single '#' to place an incrementing number: </div>`,
+                                    `<input id='drawToolTemplaterLiFieldInput_${idx}_default' placeholder='ID-#' type='text' value='${opts.default != null ? opts.default : ''}'></input>`,
+                                "</div>",
+                            "</div>"
+                        ]
+                        break
                     default:
                         break
                 }
@@ -788,6 +901,7 @@ const DrawTool_Templater = {
         ).val()
 
         const items = []
+        const invalids = {}
         $(`#${containerId} #drawToolTemplaterDesignContent > li`).each(
             function () {
                 const item = {}
@@ -919,6 +1033,21 @@ const DrawTool_Templater = {
                             )
                             .prop('checked')
                         break
+                    case 'incrementer':
+                        item.default = $(this)
+                            .find(
+                                '.drawToolTemplaterLiBody_incrementer_default input'
+                            )
+                            .val()
+
+                        if (
+                            ((item.default || '').match(/#/g) || []).length != 1
+                        ) {
+                            invalids[
+                                item.field
+                            ] = `'${item.field}' must contain exactly one '#' symbol`
+                        }
+                        break
                     default:
                         break
                 }
@@ -963,6 +1092,7 @@ const DrawTool_Templater = {
                 return false
             }
         }
+
         for (let i = 0; i < template.template.length; i++) {
             const t = template.template[i]
             if (t.field == null || t.field == '') {
@@ -993,7 +1123,7 @@ const DrawTool_Templater = {
                 } catch (error) {
                     // no good
                     CursorInfo.update(
-                        `Template cannot contain invalid reges: ${t.regex}`,
+                        `Template cannot contain invalid regex: ${t.regex}`,
                         6000,
                         true,
                         { x: 305, y: 6 },
@@ -1002,6 +1132,17 @@ const DrawTool_Templater = {
                     )
                     return false
                 }
+            }
+            if (invalids[t.field] != null) {
+                CursorInfo.update(
+                    `Template field: ${invalids[t.field]}`,
+                    6000,
+                    true,
+                    { x: 305, y: 6 },
+                    '#e9ff26',
+                    'black'
+                )
+                return false
             }
         }
         return template
@@ -1071,6 +1212,45 @@ const DrawTool_Templater = {
             }
         }
         return true
+    },
+    getTemplateDefaults: function (template, layer) {
+        const defaultProps = {}
+
+        template.forEach((t, idx) => {
+            if (t.field != null && t.default != null && t.default != '') {
+                let f = t.field
+                let v = t.default
+                switch (t.type) {
+                    case 'incrementer':
+                        const nextIncrement =
+                            DrawTool_Templater._getNextIncrement(
+                                t.default,
+                                t,
+                                layer
+                            )
+                        v = nextIncrement.newValue
+                        break
+                    case 'date':
+                        if (v === 'NOW')
+                            v = moment
+                                .utc(new Date().getTime())
+                                .format(t.format || 'YYYY-MM-DDTHH:mm:ss')
+                        else if (v === 'STARTTIME')
+                            v = moment
+                                .utc(TimeControl.getStartTime())
+                                .format(t.format || 'YYYY-MM-DDTHH:mm:ss')
+                        else if (v === 'ENDTIME')
+                            v = moment
+                                .utc(TimeControl.getEndTime())
+                                .format(t.format || 'YYYY-MM-DDTHH:mm:ss')
+                        break
+                    default:
+                }
+                defaultProps[f] = v
+            }
+        })
+
+        return defaultProps
     },
 }
 

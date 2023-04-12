@@ -86,8 +86,13 @@ There are five files that are group editable with the correct permission. The gr
                 "default": "No"
             },
             {
-                "type": "date",
+                "type": "incrementer",
                 "field": "g",
+                "default": "ID-#"
+            },
+            {
+                "type": "date",
+                "field": "h",
                 "format": "YYYY-MM-DDTHH:mm:ss",
                 "default": "2000-01-01T00:00:00" // Can be "NOW", "STARTTIME" or "ENDTIME" too for dynamic defaults
             }
@@ -95,7 +100,7 @@ There are five files that are group editable with the correct permission. The gr
         "example_2": [
             {
                 "type": "checkbox",
-                "field": "h",
+                "field": "i",
                 "default": false
             }
         ]
