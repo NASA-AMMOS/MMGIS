@@ -1555,6 +1555,7 @@ input::-webkit-inner-spin-button {
     position: fixed !important;
     bottom: 40px !important;
     right: 5px !important;
+    z-index: 1001 !important;
 }
 .mmgisToast {
     z-index: 1000;

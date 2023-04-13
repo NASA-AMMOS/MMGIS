@@ -488,7 +488,6 @@ var Editing = {
                         )
                     )
                 }
-                //console.log( JSON.parse(JSON.stringify(DrawTool.contextMenuLayer.feature)) );
 
                 if (
                     reenableEdit &&
@@ -2259,7 +2258,6 @@ var Editing = {
                                 {}
                             DrawTool.contextMenuLayer.snapediting.enable()
                         } catch (e) {
-                            console.log(e)
                             DrawTool.contextMenuLayer.enableEdit()
                         }
                     } else {
@@ -2352,7 +2350,8 @@ var Editing = {
 
             const templaterProperties = templater.getValues(
                 L_.layers.layer[DrawTool.lastContextLayerIndexFileId.layer],
-                properties
+                properties,
+                grouping ? true : false
             )
             if (templaterProperties === false) return
 
