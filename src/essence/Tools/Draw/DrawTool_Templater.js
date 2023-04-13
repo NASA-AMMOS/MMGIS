@@ -221,7 +221,7 @@ const DrawTool_Templater = {
         })
 
         return {
-            getValues: (layer, existingProperties) => {
+            getValues: (layer, existingProperties, onlyIfChanged) => {
                 const values = {}
                 const invalids = {}
 
@@ -424,7 +424,19 @@ const DrawTool_Templater = {
                         'black'
                     )
                     return false
-                } else return values
+                } else {
+                    if (onlyIfChanged === true) {
+                        const changedValues = {}
+                        Object.keys(values).forEach((k) => {
+                            if (
+                                !existingProperties.hasOwnProperty(k) ||
+                                values[k] !== existingProperties[k]
+                            )
+                                changedValues[k] = values[k]
+                        })
+                        return changedValues
+                    } else return values
+                }
             },
         }
     },
@@ -460,6 +472,7 @@ const DrawTool_Templater = {
         const split = (t._default || t.default).split('#')
         const start = split[0]
         const end = split[1]
+
         for (var i = 0; i < layer.length; i++) {
             if (layer[i] == null) continue
             let geojson =
@@ -476,6 +489,7 @@ const DrawTool_Templater = {
                 }
             }
         }
+
         if ((response.newValue || '').indexOf('#') !== -1) {
             // Actually increment the incrementer for the first time
             let bestVal = 0
@@ -512,6 +526,7 @@ const DrawTool_Templater = {
         if (incRegex.test(response.newValue) == false) {
             response.error = `Incrementing field: '${t.field}' must follow syntax: '${start}{#}${end}'`
         }
+
         return response
     },
     _templateInDesignIdx: 0,
