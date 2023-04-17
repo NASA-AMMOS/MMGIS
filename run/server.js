@@ -363,10 +363,31 @@ function ensureUser() {
     ) {
       next();
     } else {
-      res.render("login", {
-        user: req.user,
-        CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER || "CL##-####",
-      });
+      if (req.headers.authorization) {
+        const remoteAddress =
+          req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+        validateLongTermToken(
+          req.headers.authorization,
+          () => {
+            req.isLongTermToken = true;
+            next();
+          },
+          () => {
+            res.send({ status: "failure", message: "Unauthorized Token!" });
+            logger(
+              "warn",
+              `Unauthorized token call made and rejected (from ${remoteAddress}, with token ${req.headers.authorization})`,
+              req.originalUrl,
+              req
+            );
+          }
+        );
+      } else {
+        res.render("login", {
+          user: req.user,
+          CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER || "CL##-####",
+        });
+      }
     }
     return;
   };
