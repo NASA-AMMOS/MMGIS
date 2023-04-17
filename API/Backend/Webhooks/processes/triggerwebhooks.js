@@ -80,16 +80,18 @@ function drawFileUpdate(webhook, payload) {
     },
   };
 
-  var response = {};
+  const response = {};
   response.send = function (res) {
-    var webhookHeader = JSON.parse(webhook.header);
-    var webhookBody = JSON.parse(webhook.body);
-    var file_name = res.body?.file[0]?.file_name || null;
-    var geojson = res.body.geojson;
+    const webhookHeader = JSON.parse(webhook.header);
+    const webhookBody = JSON.parse(webhook.body);
+    const file_name = res.body?.file[0]?.file_name || null;
+    const file_owner = res.body?.file[0]?.file_owner || null;
+    const geojson = res.body.geojson;
 
     const injectableVariables = {
       file_id,
       file_name,
+      file_owner,
       geojson,
     };
 
@@ -97,7 +99,7 @@ function drawFileUpdate(webhook, payload) {
     buildBody(webhookBody, injectableVariables);
 
     // Build the url
-    var url = buildUrl(webhook.url, injectableVariables);
+    const url = buildUrl(webhook.url, injectableVariables);
 
     // Push to the remote webhook
     pushToRemote(url, webhook.type, webhookHeader, webhookBody);
@@ -128,8 +130,8 @@ function buildBody(webhookBody, injectableVariables) {
 }
 
 function drawFileDelete(webhook, payload) {
-  var file_id = payload.id;
-  var data = {
+  const file_id = payload.id;
+  const data = {
     body: {
       id: payload.id,
       quick_published: false,
@@ -141,23 +143,29 @@ function drawFileDelete(webhook, payload) {
     },
   };
 
-  var response = {};
+  const response = {};
   response.send = function (res) {
-    var webhookHeader = JSON.parse(webhook.header);
-    var geojson = res.body.geojson;
-    var file_name = res.body?.file[0]?.file_name || null;
+    const webhookHeader = JSON.parse(webhook.header);
+    const webhookBody = JSON.parse(webhook.body);
+    const geojson = res.body.geojson;
+    const file_name = res.body?.file[0]?.file_name || null;
+    const file_owner = res.body?.file[0]?.file_owner || null;
 
     const injectableVariables = {
       file_id,
       file_name,
+      file_owner,
       geojson,
     };
 
+    // Build the body
+    buildBody(webhookBody, injectableVariables);
+
     // Build the url
-    var url = buildUrl(webhook.url, injectableVariables);
+    const url = buildUrl(webhook.url, injectableVariables);
 
     // Push to the remote webhook
-    pushToRemote(url, webhook.type, webhookHeader, {});
+    pushToRemote(url, webhook.type, webhookHeader, webhookBody);
   };
 
   getfile(data, response);
