@@ -443,7 +443,8 @@ const Coordinates = {
                     if (withDropdownChanges) {
                         currentState.title =
                             'Relative to ' +
-                            Map_.activeLayer.options.layerName +
+                            L_.layers.data[Map_.activeLayer.options.layerName]
+                                .display_name +
                             ': ' +
                             keyAsName
                         Coordinates.refreshDropdown()
@@ -489,7 +490,8 @@ const Coordinates = {
                     if (withDropdownChanges) {
                         currentState.title =
                             'Local Level - ' +
-                            Map_.activeLayer.options.layerName +
+                            L_.layers.data[Map_.activeLayer.options.layerName]
+                                .display_name +
                             ': ' +
                             keyAsName
                         Coordinates.refreshDropdown()
