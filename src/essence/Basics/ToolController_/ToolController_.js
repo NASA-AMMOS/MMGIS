@@ -270,4 +270,5 @@ let ToolController_ = {
     },
 }
 
+window.ToolController_ = ToolController_
 export default ToolController_

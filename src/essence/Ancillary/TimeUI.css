@@ -186,6 +186,7 @@
     background: var(--color-a);
     display: flex;
     justify-content: space-between;
+    height: 40px;
 }
 .mmgisTimeUIButton {
     margin: 5px;
