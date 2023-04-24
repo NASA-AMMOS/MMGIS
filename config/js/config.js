@@ -1954,10 +1954,9 @@ function mmgisLinkModalsToLayersCloneClick(e) {
   var mainThis = $(this).parent().parent().parent().parent();
   var mainId = mainThis.attr("id");
   mainId = mainId.substring(mainId.indexOf("_") + 1);
-  makeLayerBarAndModal(
-    dataOfLastUsedLayerSlot[mainId],
-    dataOfLastUsedLayerSlot[mainId].__level
-  );
+  const cloned = JSON.parse(JSON.stringify(dataOfLastUsedLayerSlot[mainId]));
+  delete cloned.uuid;
+  makeLayerBarAndModal(cloned, cloned.__level);
 
   refresh();
 }

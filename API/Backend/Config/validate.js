@@ -39,6 +39,7 @@ const validateStructure = (config) => {
 const validateLayers = (config) => {
   let errs = [];
 
+  let existingUUIDs = [];
   Utils.traverseLayers(config.layers, (layer) => {
     // Check layer name
     const validNameErrs = isValidLayerName(layer.name);
@@ -90,9 +91,17 @@ const validateLayers = (config) => {
           err(`Unknown layer type: '${layer.type}'`, ["layers[layer].type"])
         );
     }
-  });
 
-  errs = errs.concat(hasNonHeaderWithSublayers(config));
+    if (layer.uuid != null) {
+      if (existingUUIDs.includes(layer.uuid)) {
+        errs = errs.concat([
+          err(
+            `Found a layer with duplicate uuid: ${layer.name} - ${layer.uuid}`
+          ),
+        ]);
+      } else existingUUIDs.push(layer.uuid);
+    }
+  });
 
   return errs;
 };
