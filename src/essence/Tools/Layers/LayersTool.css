@@ -198,6 +198,19 @@
     padding: 0;
     margin: 0;
 }
+#layersTool .settings .layerSettingsTitle {
+    display: flex;
+    height: 30px;
+    line-height: 30px;
+}
+#layersTool .settings .layerSettingsTitle > div:first-child {
+    color: var(--color-h);
+    text-transform: uppercase;
+    font-size: 12px;
+}
+#layersTool .settings .layerSettingsTitle > div:last-child {
+    
+}
 #layersTool .settings ul > li {
     line-height: 30px;
 }
@@ -276,6 +289,7 @@
     padding: 2px 6px 2px 12px;
 }
 
+#layersTool .reload,
 #layersTool .reset,
 #layersTool .layerDownload,
 #layersTool .gears,
@@ -290,17 +304,20 @@
     transition: color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95),
         background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
 }
-
+#layersTool .reload,
 #layersTool .layerDownload,
 #layersTool .gears,
 #layersTool .LayersToolInfo {
     color: transparent;
 }
-#layersTool .reset:hover,
+#layersTool .reload:hover,
 #layersTool .layerDownload:hover,
 #layersTool .gears:hover,
 #layersTool .LayersToolInfo:hover {
     background: var(--color-k);
+}
+#layersTool .reset:hover {
+    color: white;
 }
 #layersTool .reset {
     display: none;
@@ -313,6 +330,7 @@
 #layersTool li.download_on .layerDownload,
 #layersTool li:hover .layerDownload,
 #layersTool li.gears_on .gears,
+#layersTool li:hover .reload,
 #layersTool li:hover .gears,
 #layersTool li:hover .LayersToolInfo {
     color: #fff;

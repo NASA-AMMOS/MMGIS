@@ -82,6 +82,10 @@ function getClientEnvironment(publicUrl) {
           (process.env.NODE_ENV || "development") === "development"
             ? ""
             : process.env.ROOT_PATH || "",
+        WEBSOCKET_ROOT_PATH:
+          (process.env.NODE_ENV || "development") === "development"
+            ? ""
+            : process.env.WEBSOCKET_ROOT_PATH || "",
         // We support configuring the sockjs pathname during development.
         // These settings let a developer run multiple simultaneous projects.
         // They are used as the connection `hostname`, `pathname` and `port`

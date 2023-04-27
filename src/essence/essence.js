@@ -388,10 +388,14 @@ var essence = {
             const path =
                 window.mmgisglobal.NODE_ENV === 'development'
                     ? `${protocol}://localhost:${port}${
-                          window.mmgisglobal.ROOT_PATH || ''
+                          window.mmgisglobal.WEBSOCKET_ROOT_PATH ||
+                          window.mmgisglobal.ROOT_PATH ||
+                          ''
                       }/`
                     : `${protocol}://${window.location.host}${
-                          window.mmgisglobal.ROOT_PATH || ''
+                          window.mmgisglobal.WEBSOCKET_ROOT_PATH ||
+                          window.mmgisglobal.ROOT_PATH ||
+                          ''
                       }/`
 
             essence.connectWebSocket(path, true)

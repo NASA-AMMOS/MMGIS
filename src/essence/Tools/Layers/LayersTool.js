@@ -457,9 +457,11 @@ function interfaceWithMMGIS(fromInit) {
                                     `<div class="layerName" title="${node[i].display_name}">`,
                                         node[i].display_name,
                                     '</div>',
-                                    '<div class="reset">',
+                                    node[i].type === 'vector' ?
+                                    ['<div class="reload" title="Reload Layer">',
                                         '<i class="mdi mdi-refresh mdi-18px"></i>',
-                                    '</div>',
+                                    '</div>'].join('\n')
+                                    : null,
                                     (layerExport != '') ? ['<div title="Download" class="layerDownload" id="layerexport' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
                                         '<i class="mdi mdi-download mdi-18px" name="layerexport"></i>',
                                     '</div>'].join('\n') : '',
@@ -480,6 +482,12 @@ function interfaceWithMMGIS(fromInit) {
                                     timeDisplay,
                                 '</div>',
                                 '<div class="settings settingsmain' + node[i].type + '">',
+                                    '<div class="layerSettingsTitle">',
+                                        '<div>Layer Settings</div>',
+                                        '<div class="reset" title="Reset Settings">',
+                                            '<i class="mdi mdi-restore mdi-18px"></i>',
+                                        '</div>',
+                                    '</div>',
                                     settings,
                                 '</div>',
                             '</li>',
@@ -740,10 +748,26 @@ function interfaceWithMMGIS(fromInit) {
             '.json'
         )
     })
+    //Refresh settings
+    $('.reload').on('click', function () {
+        const li = $(this).parent().parent()
+        let layer = li.attr('name')
+        layer = L_.asLayerUUID(layer)
+        layer = L_.layers.data[layer]
+        if (L_.layers.layer[layer.name] === null) return
+
+        if (layer.type === 'tile') {
+        } else {
+            if (layer.controlled !== true)
+                try {
+                    Map_.refreshLayer(layer)
+                } catch (err) {}
+        }
+    })
 
     //Refresh settings
     $('.reset').on('click', function () {
-        var li = $(this).parent().parent()
+        const li = $(this).parent().parent().parent()
 
         L_.setLayerOpacity(li.attr('name'), 1)
         li.find('.transparencyslider').val(1)

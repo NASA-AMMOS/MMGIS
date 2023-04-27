@@ -767,6 +767,7 @@ setups.getBackendSetups(function (setups) {
             THIRD_PARTY_COOKIES: process.env.THIRD_PARTY_COOKIES,
             PORT: process.env.PORT,
             ROOT_PATH: ROOT_PATH,
+            WEBSOCKET_ROOT_PATH: process.env.WEBSOCKET_ROOT_PATH,
             HOSTS: JSON.stringify({
               scienceIntent: process.env.SCIENCE_INTENT_HOST,
             }),
