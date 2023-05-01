@@ -12,8 +12,16 @@ const Websocket = {
 
     const path =
       window.mmgisglobal.NODE_ENV === "development"
-        ? `${protocol}://localhost:${port}${window.mmgisglobal.ROOT_PATH}/`
-        : `${protocol}://${window.location.host}${window.mmgisglobal.ROOT_PATH}/`;
+        ? `${protocol}://localhost:${port}${
+            window.mmgisglobal.WEBSOCKET_ROOT_PATH ||
+            window.mmgisglobal.ROOT_PATH ||
+            ""
+          }/`
+        : `${protocol}://${window.location.host}${
+            window.mmgisglobal.WEBSOCKET_ROOT_PATH ||
+            window.mmgisglobal.ROOT_PATH ||
+            ""
+          }/`;
 
     // Create WebSocket connection.
     const socket = new WebSocket(path);

@@ -48,7 +48,7 @@ const websocket = {
       try {
         if (
           pathname ===
-          (process.env.ROOT_PATH || process.env.WEBSOCKET_ROOT_PATH || "") + "/"
+          (process.env.WEBSOCKET_ROOT_PATH || process.env.ROOT_PATH || "") + "/"
         ) {
           wss.handleUpgrade(request, socket, head, function done(ws) {
             wss.emit("connection", ws, request);
