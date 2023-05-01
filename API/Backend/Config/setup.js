@@ -25,6 +25,10 @@ let setup = {
               process.env.NODE_ENV === "development"
                 ? ""
                 : process.env.ROOT_PATH || "",
+            WEBSOCKET_ROOT_PATH:
+              process.env.NODE_ENV === "development"
+                ? ""
+                : process.env.WEBSOCKET_ROOT_PATH || "",
           });
         }
       );

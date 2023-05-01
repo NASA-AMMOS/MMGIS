@@ -88,6 +88,10 @@ Sets "SameSite=None; Secure" on the login cookie. Useful when using AUTH=local a
 
 Set MMGIS to be deployed under a subpath. For example if serving at the subpath 'https://{domain}/path/where/I/serve/mmgis' is desired, set `ROOT_PATH=/path/where/I/serve/mmgis`. If no subpath, leave blank. | string | default `""`
 
+#### `WEBSOCKET_ROOT_PATH=`
+
+Overrides ROOT_PATH's use when the client connects via websocket. Websocket url: `${ws_protocol}://${window.location.host}${WEBSOCKET_ROOT_PATH || ROOT_PATH || ''}/` | string | default `""`
+
 #### `CLEARANCE_NUMBER=`
 
 Sets a clearance for the website | string | default `CL##-####`
