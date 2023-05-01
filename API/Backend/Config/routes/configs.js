@@ -668,7 +668,7 @@ function openWebSocket(body, response, info, forceClientUpdate) {
   }
 
   const port = parseInt(process.env.PORT || "8888", 10);
-  const path = `ws://localhost:${port}/`;
+  const path = `ws://localhost:${port}${process.env.ROOT_PATH}/`;
   const ws = new WebSocket(path);
   ws.onopen = function () {
     const data = {
