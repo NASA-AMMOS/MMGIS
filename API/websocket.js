@@ -24,7 +24,8 @@ const websocket = {
       null,
       ""
     );
-    const wss = new WebSocket.Server({ server });
+
+    const wss = new WebSocket.Server({ noServer: true });
     websocket.wss = wss;
 
     // Broadcast to all clients
@@ -40,6 +41,24 @@ const websocket = {
       ws.on("message", (message) => {
         wss.broadcast(message);
       });
+    });
+
+    server.on("upgrade", function upgrade(request, socket, head) {
+      const pathname = request.url;
+      try {
+        if (
+          pathname ===
+          (process.env.WEBSOCKET_ROOT_PATH || process.env.ROOT_PATH || "") + "/"
+        ) {
+          wss.handleUpgrade(request, socket, head, function done(ws) {
+            wss.emit("connection", ws, request);
+          });
+        } else {
+          socket.destroy();
+        }
+      } catch (err) {
+        socket.destroy();
+      }
     });
 
     wss.on("close", () => {

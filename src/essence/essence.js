@@ -162,10 +162,11 @@ var essence = {
 
             M.Toast.dismissAll()
 
+            const asMinutes = essence.webSocketRetryInterval / 60000 || ''
             M.toast({
-                html: `Not connected to WebSocket. Will retry in ${(
-                    essence.webSocketRetryInterval / 60000
-                ).toFixed(2)} minutes...`,
+                html: `Not connected to WebSocket. Retrying in ${
+                    asMinutes >= 1 ? parseInt(asMinutes) : asMinutes.toFixed(2)
+                } minute${asMinutes > 1 ? 's' : ''}...`,
                 displayLength: 10000,
                 classes: 'mmgisToast failure',
             })
@@ -182,11 +183,13 @@ var essence = {
                 essence.webSocketRetryInterval >
                 essence.initialWebSocketRetryInterval
             ) {
+                /*
                 M.toast({
                     html: 'Successfully connected to WebSocket',
                     displayLength: 1600,
                     classes: 'mmgisToast',
                 })
+                */
 
                 essence.webSocketRetryInterval =
                     essence.initialWebSocketRetryInterval
