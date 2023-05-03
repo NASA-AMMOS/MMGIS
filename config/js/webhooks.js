@@ -126,7 +126,7 @@ function makeWebhookCard(data) {
                 "</li>" +
                 "<li class='row'>" +
                     "<div class='inject-label input-field col s9' id='webhookUrlEl'>" +
-                        "<label>Valid injectable variables for URL and Body fields: {file_id}, {file_name}, {geojson}</label>" +
+                        "<label>Valid injectable variables for URL and Body fields: {file_id}, {file_name}, {file_owner}, {geojson}</label>" +
                     "</div>" +
                     "<div class='col s3 push-s1' id='deleteWebhook_" + webhooksCounter +"'>" +
                         "<a class='btn waves-effect' style='color: black; background: white;'>Delete<i class='mdi mdi-delete mdi-24px' style='float: right; margin-top: 1px;'></i></a>" +
@@ -202,7 +202,7 @@ function saveWebhookChanges() {
   var json = { webhooks: [] };
 
   $("#webhooksParent")
-    .children("div")
+    .find(".card")
     .each(function () {
       var webhookId = $(this).attr("webhookId");
       var action = $(this).find("#webhookAction").val();
@@ -225,7 +225,6 @@ function saveWebhookChanges() {
         body,
       });
     });
-
   saveWebhookConfig(json);
 }
 
