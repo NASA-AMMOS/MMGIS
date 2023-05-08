@@ -62,7 +62,6 @@ const TimeUI = {
     modeIndex: 0,
     _initialStart: null,
     _initialEnd: null,
-    _tickTippies: [],
     init: function (timeChange, enabled) {
         TimeUI.timeChange = timeChange
         TimeUI.enabled = enabled
@@ -604,8 +603,9 @@ const TimeUI = {
         const rangeMode =
             TimeUI.modes[TimeUI.modeIndex] === 'Range' ? true : false
         if (TimeUI.timeSlider) {
-            $('#mmgisTimeUITimelineSlider').empty()
+            TimeUI.timeSlider.$destroy()
             TimeUI.timeSlider = null
+            $('#mmgisTimeUITimelineSlider').empty()
             if (rangeMode) $('#mmgisTimeUITimelineSlider').addClass('rangeMode')
             else $('#mmgisTimeUITimelineSlider').removeClass('rangeMode')
         }
@@ -646,7 +646,6 @@ const TimeUI = {
                 },
             },
         })
-
         TimeUI.timeSlider.$on('start', (e) => {
             TimeUI.toggleTimeNow(false)
             if (TimeUI.play) {
@@ -1024,9 +1023,7 @@ const TimeUI = {
 
         let first = true
         const bigTicks = F_.getTimeStartsBetweenTimestamps(s, e, unit)
-        TimeUI._tickTippies.forEach((t) => {
-            if (t[0].state.isDestroyed != true) t[0].destroy()
-        })
+
         for (let i = 0; i < bigTicks.length; i++) {
             const left = F_.linearScale([s, e], [0, 100], bigTicks[i].ts)
             if (left >= 0 && left <= 100) {
@@ -1041,15 +1038,6 @@ const TimeUI = {
                     ].join('\n')
                 )
                 first = false
-                TimeUI._tickTippies.push(
-                    tippy(`#mmgisTimeUITickLabel_${i}`, {
-                        content: moment(
-                            TimeUI.addOffset(new Date(bigTicks[i].ts))
-                        ).format(FORMAT),
-                        placement: 'top',
-                        theme: 'blue',
-                    })
-                )
             }
         }
 
