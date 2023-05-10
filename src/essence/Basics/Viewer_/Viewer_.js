@@ -3,10 +3,11 @@ import * as d3 from 'd3'
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
 
-import * as THREE from '../../../external/THREE/three118'
+import * as THREE from '../../../external/THREE/three152'
 
 import Photosphere from './Photosphere'
 import ModelViewer from './ModelViewer'
+import VolumeViewer from './VolumeViewer'
 
 import Dropy from '../../../external/Dropy/dropy'
 
@@ -38,6 +39,7 @@ var Viewer_ = {
     imageIntro: null,
     photosphere: null,
     modelviewer: null,
+    volumeviewer: null,
     baseToolbar: null,
     lookupPath: null,
     toolBar: null,
@@ -192,7 +194,9 @@ var Viewer_ = {
                 this.masterImg =
                     '../../../../' + L_.missionPath + this.masterImg
         } else this.masterImg = null
-
+        o.isVolume = true
+        o.isPanoramic = false
+        console.log(o)
         if (o.isModel) {
             this.imageModel.style('display', 'inherit')
             this.imagePanorama.style('display', 'none')
@@ -287,6 +291,21 @@ var Viewer_ = {
                     }
                 }
             )
+        } else if (o.isVolume) {
+            this.imageModel.style('display', 'inherit')
+            this.imagePanorama.style('display', 'none')
+            this.imageViewer.style('display', 'none')
+            this.baseToolbar.style('display', 'none')
+
+            this.imageIntro.style('display', 'none')
+
+            if (this.volumeviewer == null) {
+                this.volumeviewer = VolumeViewer(
+                    document.getElementById('imageModelWebGL'),
+                    this.lookupPath
+                )
+            }
+            this.volumeviewer.changeVolume()
         } else {
             this.imageViewer.style('display', 'inherit')
             this.imagePanorama.style('display', 'none')

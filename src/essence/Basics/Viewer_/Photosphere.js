@@ -5,7 +5,7 @@ import Sprites from '../../Ancillary/Sprites'
 import Hammer from 'hammerjs'
 import WebVR from '../../../external/THREE/WebVR'
 
-import * as THREE from '../../../external/THREE/three118'
+import * as THREE from '../../../external/THREE/three152'
 
 import './Photosphere.css'
 

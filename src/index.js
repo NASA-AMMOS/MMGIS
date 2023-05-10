@@ -25,7 +25,7 @@ import ltl from './external/Leaflet/leaflet.tilelayer.gl'
 import lvg from './external/Leaflet/leaflet.vectorGrid.bundled'
 import lrm from './external/Leaflet/leaflet.rotatedMarker'
 
-import THREE from './external/THREE/three118.js'
+import THREE from './external/THREE/three152.js'
 import OrbitControls from './external/THREE/OrbitControls'
 import PointerLockControls from './external/THREE/PointerLockControls'
 import DeviceOrientationControls from './external/THREE/DeviceOrientationControls'

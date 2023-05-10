@@ -4,7 +4,7 @@ import L_ from '../Layers_/Layers_'
 import Hammer from 'hammerjs'
 import WebVR from '../../../external/THREE/WebVR'
 
-import * as THREE from '../../../external/THREE/three118'
+import * as THREE from '../../../external/THREE/three152'
 
 export default function (domEl, lookupPath, options) {
     options = options || {}
