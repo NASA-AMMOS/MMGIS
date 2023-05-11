@@ -1,10 +1,11 @@
 {
-    "defaultIcon": "format-list-bulleted-type",
+    "defaultIcon": "map-legend",
     "description": "Show a chart mapping colors and symbols to meaning.",
     "descriptionFull": "",
     "hasVars": false,
     "name": "Legend",
     "toolbarPriority": 2,
+    "separatedTool": true,
     "paths": {
         "LegendTool": "essence/Tools/Legend/LegendTool"
     }

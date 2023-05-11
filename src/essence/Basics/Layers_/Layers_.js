@@ -2921,7 +2921,9 @@ function parseConfig(configData, urlOnLayers) {
 
                 //relative or full path?
                 let legendPath = d[i].legend
-                if (legendPath != undefined) {
+                if (d[i]?.variables?.legend) {
+                    L_.layers.data[d[i].name]._legend = d[i].variables.legend
+                } else if (legendPath != undefined) {
                     if (!F_.isUrlAbsolute(legendPath))
                         legendPath = L_.missionPath + legendPath
                     $.get(

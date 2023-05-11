@@ -306,6 +306,9 @@ body {
 .toolButton:hover {
     background: var(--color-a1-5) !important;
 }
+.toolButtonSep:hover {
+    color: var(--color-c) !important;
+}
 #tScreen {
     width: 100%;
     position: absolute;

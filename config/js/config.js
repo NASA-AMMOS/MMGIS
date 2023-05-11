@@ -2193,7 +2193,13 @@ function save(returnJSON) {
     //Tools
     for (var i = 0; i < tData.length; i++) {
       if ($("#tab_tools #tools_" + tData[i].name).prop("checked")) {
-        var toolsjson = { name: "", icon: "", js: "" };
+        var toolsjson = {
+          name: "",
+          icon: "",
+          js: "",
+        };
+        if (tData[i].separatedTool === true) toolsjson.separatedTool = true;
+
         toolsjson.name = tData[i].name;
         toolsjson.icon = $("#t" + tData[i].name + "icon input").val();
         toolsjson.js = tData[i].name + "Tool";
@@ -2743,6 +2749,15 @@ function layerPopulateVariable(modalId, layerType) {
   modalId = "Variable" + modalId;
   if (layerEditors[modalId]) {
     var currentLayerVars = JSON.parse(layerEditors[modalId].getValue() || "{}");
+
+    currentLayerVars.legend = currentLayerVars.legend || [
+      {
+        color: "#999",
+        strokecolor: "black",
+        shape: "circle",
+        value: "Example",
+      },
+    ];
 
     if (layerType == "data") {
       currentLayerVars = currentLayerVars.shader

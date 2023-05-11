@@ -290,7 +290,7 @@ var UserInterface = {
             .style('width', '30px')
             .style('height', '30px')
             .style('position', 'absolute')
-            .style('left', '22px')
+            .style('left', '23px')
             .style('z-index', '-1')
         this.mapSplitInner
             .append('i')
@@ -930,25 +930,31 @@ var UserInterface = {
                 display: l_.configData.look.settings ? 'inherit' : 'none',
             })
 
-        if (l_.configData.look && l_.configData.look.info != null && l_.configData.look.infourl != '') {
+        if (
+            l_.configData.look &&
+            l_.configData.look.info != null &&
+            l_.configData.look.infourl != ''
+        ) {
             $('#topBarInfo').css({
                 display: l_.configData.look.info ? 'inherit' : 'none',
             })
-        }
-        else {
+        } else {
             $('#topBarInfo').css({
-                display: 'none'
+                display: 'none',
             })
         }
 
-        if (l_.configData.look && l_.configData.look.help != null && l_.configData.look.helpurl != '') {
+        if (
+            l_.configData.look &&
+            l_.configData.look.help != null &&
+            l_.configData.look.helpurl != ''
+        ) {
             $('#topBarHelp').css({
                 display: l_.configData.look.help ? 'inherit' : 'none',
             })
-        }
-        else {
+        } else {
             $('#topBarHelp').css({
-                display: 'none'
+                display: 'none',
             })
         }
 
