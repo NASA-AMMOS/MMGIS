@@ -18,12 +18,16 @@ var LegendTool = {
         this.MMWebGISInterface = new interfaceWithMMWebGIS()
         this.activeLayerNames = []
 
+        L_.subscribeOnLayerToggle('LegendTool', () => {
+            this.MMWebGISInterface = new interfaceWithMMWebGIS()
+        })
+
         this.made = true
     },
     destroy: function () {
         this.MMWebGISInterface.separateFromMMWebGIS()
         this.targetId = null
-
+        L_.unsubscribeOnLayerToggle('LegendTool')
         this.made = false
     },
     overwriteLegends: overwriteLegends,
@@ -34,6 +38,7 @@ function interfaceWithMMWebGIS() {
     this.separateFromMMWebGIS = function () {
         separateFromMMWebGIS()
     }
+    separateFromMMWebGIS()
 
     let tools = drawLegendHeader()
 

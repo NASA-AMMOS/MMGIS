@@ -407,6 +407,7 @@ var Viewer_ = {
 
 function buildToolBar() {
     d3.select('#viewerToolBar').html('')
+
     Viewer_.toolBar = d3
         .select('#viewerToolBar')
         .append('div')
@@ -415,6 +416,7 @@ function buildToolBar() {
         .style('display', 'flex')
         .style('justify-content', 'space-between')
         .style('padding', '0px 5px')
+    //.style()
 
     let left = Viewer_.toolBar.append('div')
 

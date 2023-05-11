@@ -51,6 +51,7 @@ let ToolController_ = {
             this.toolModuleNames.push(tools[i].js)
 
             if (tools[i].separatedTool) {
+                d3.select('#viewerToolBar').style('padding-left', '36px')
                 let sep = this.separatedDiv
                     .append('div')
                     .attr('id', `toolSeparated_${tools[i].name}`)
