@@ -9,6 +9,7 @@ let ToolController_ = {
     tools: null,
     incToolsDiv: null,
     excToolsDiv: null,
+    separatedDiv: null,
     toolModuleNames: [],
     toolModules: toolModules,
     activeTool: null,
@@ -36,98 +37,162 @@ let ToolController_ = {
             .style('opacity', '0')
             .style('padding-bottom', '8px')
 
-        for (var i = 0; i < tools.length; i++) {
+        this.separatedDiv = d3
+            .select('#splitscreens')
+            .append('div')
+            .attr('id', 'toolcontroller_sepdiv')
+            .style('position', 'absolute')
+            .style('top', '40px')
+            .style('left', '0px')
+            .style('margin-left', '6px')
+            .style('z-index', '1004')
+
+        for (let i = 0; i < tools.length; i++) {
             this.toolModuleNames.push(tools[i].js)
 
-            this.incToolsDiv
-                .append('div')
-                .attr('id', `toolButton${tools[i].name}`)
-                .attr('class', 'toolButton')
-                .style(
-                    'transition',
-                    'color 0.25s ease-in, background 0.25s ease-in'
-                )
-                .style('width', '100%')
-                .style('height', '36px')
-                .style('display', 'inline-block')
-                .style('text-align', 'center')
-                .style('line-height', '36px')
-                .style(
-                    'border-top',
-                    i === 0 ? '1px solid var(--color-a-5)' : 'none'
-                )
-                .style('border-bottom', '1px solid var(--color-a-5)')
-                //.style( 'text-shadow', '0px 1px #111' )
-                .style('vertical-align', 'middle')
-                .style('cursor', 'pointer')
-                .attr('tabindex', i + 1)
-                .style('transition', 'all 0.2s ease-in')
-                .style('color', ToolController_.defaultColor)
-                .on(
-                    'click',
-                    (function (i) {
-                        return function () {
-                            var hasActive = false
-                            if ($(this).hasClass('active')) {
-                                hasActive = true
+            if (tools[i].separatedTool) {
+                d3.select('#viewerToolBar').style('padding-left', '36px')
+                let sep = this.separatedDiv
+                    .append('div')
+                    .attr('id', `toolSeparated_${tools[i].name}`)
+                    .style('position', 'relative')
+                    .style('border-radius', '3px')
+                    .style('background', 'var(--color-a)')
+
+                sep.append('div')
+                    .attr('id', `toolContentSeparated_${tools[i].name}`)
+                    .style('position', 'absolute')
+                    .style('top', '0px')
+                    .style('left', '0px')
+                    .style('border-radius', '3px')
+                    .style('background', 'var(--color-a)')
+
+                sep.append('div')
+                    .attr('id', `toolButtonSeparated_${tools[i].name}`)
+                    .attr('class', 'toolButtonSep')
+                    .style('position', 'relative')
+                    .style('width', '30px')
+                    .style('height', '30px')
+                    .style('display', 'inline-block')
+                    .style('text-align', 'center')
+                    .style('line-height', '30px')
+                    //.style( 'text-shadow', '0px 1px #111' )
+                    .style('vertical-align', 'middle')
+                    .style('cursor', 'pointer')
+                    .attr('tabindex', i + 1)
+                    .style('transition', 'all 0.2s ease-in')
+                    .style('color', ToolController_.defaultColor)
+                    .on(
+                        'click',
+                        (function (i) {
+                            return function () {
+                                const tM =
+                                    ToolController_.toolModules[
+                                        `${ToolController_.tools[i].name}Tool`
+                                    ]
+                                if (tM) {
+                                    if (tM.made === false)
+                                        tM.make(
+                                            `toolContentSeparated_${ToolController_.tools[i].name}`
+                                        )
+                                    else tM.destroy()
+                                }
                             }
-                            var prevActive = $('#toolcontroller_incdiv .active')
-                            prevActive.removeClass('active').css({
-                                color: ToolController_.defaultColor,
-                                background: 'none',
-                            })
-                            prevActive.parent().css({
-                                background: 'none',
-                            })
-                            if (!hasActive) {
-                                var newActive = $(
-                                    '#toolcontroller_incdiv #' +
-                                        ToolController_.tools[i].name +
-                                        'Tool'
+                        })(i)
+                    )
+                    .append('i')
+                    .attr('id', tools[i].name + 'Tool')
+                    .attr('class', 'mdi mdi-' + tools[i].icon + ' mdi-18px')
+                    .style('cursor', 'pointer')
+            } else {
+                this.incToolsDiv
+                    .append('div')
+                    .attr('id', `toolButton${tools[i].name}`)
+                    .attr('class', 'toolButton')
+                    .style('width', '100%')
+                    .style('height', '36px')
+                    .style('display', 'inline-block')
+                    .style('text-align', 'center')
+                    .style('line-height', '36px')
+                    .style(
+                        'border-top',
+                        i === 0 ? '1px solid var(--color-a-5)' : 'none'
+                    )
+                    .style('border-bottom', '1px solid var(--color-a-5)')
+                    //.style( 'text-shadow', '0px 1px #111' )
+                    .style('vertical-align', 'middle')
+                    .style('cursor', 'pointer')
+                    .attr('tabindex', i + 1)
+                    .style('transition', 'all 0.2s ease-in')
+                    .style('color', ToolController_.defaultColor)
+                    .on(
+                        'click',
+                        (function (i) {
+                            return function () {
+                                var hasActive = false
+                                if ($(this).hasClass('active')) {
+                                    hasActive = true
+                                }
+                                var prevActive = $(
+                                    '#toolcontroller_incdiv .active'
                                 )
-                                newActive.addClass('active').css({
-                                    color: ToolController_.activeColor,
+                                prevActive.removeClass('active').css({
+                                    color: ToolController_.defaultColor,
+                                    background: 'none',
                                 })
-                                newActive.parent().css({
-                                    background: ToolController_.activeBG,
+                                prevActive.parent().css({
+                                    background: 'none',
                                 })
+                                if (!hasActive) {
+                                    var newActive = $(
+                                        '#toolcontroller_incdiv #' +
+                                            ToolController_.tools[i].name +
+                                            'Tool'
+                                    )
+                                    newActive.addClass('active').css({
+                                        color: ToolController_.activeColor,
+                                    })
+                                    newActive.parent().css({
+                                        background: ToolController_.activeBG,
+                                    })
+                                }
+                                ToolController_.makeTool(
+                                    ToolController_.toolModuleNames[i]
+                                )
+
+                                // Dispatch `toolChange` event
+                                let _event = new CustomEvent('toolChange', {
+                                    detail: {
+                                        activeTool: ToolController_.activeTool,
+                                        activeToolName:
+                                            ToolController_.activeToolName,
+                                    },
+                                })
+                                document.dispatchEvent(_event)
                             }
-                            ToolController_.makeTool(
-                                ToolController_.toolModuleNames[i]
-                            )
-
-                            // Dispatch `toolChange` event
-                            let _event = new CustomEvent('toolChange', {
-                                detail: {
-                                    activeTool: ToolController_.activeTool,
-                                    activeToolName:
-                                        ToolController_.activeToolName,
-                                },
-                            })
-                            document.dispatchEvent(_event)
+                        })(i)
+                    )
+                    .on('mouseover', function () {
+                        if (!$(this).hasClass('active')) {
+                            $(this).css({ color: ToolController_.hoverColor })
                         }
-                    })(i)
-                )
-                .on('mouseover', function () {
-                    if (!$(this).hasClass('active')) {
-                        $(this).css({ color: ToolController_.hoverColor })
-                    }
-                })
-                .on('mouseleave', function () {
-                    if (!$(this).hasClass('active')) {
-                        $(this).css({ color: ToolController_.defaultColor })
-                    }
-                })
-                .append('i')
-                .attr('id', tools[i].name + 'Tool')
-                .attr('class', 'mdi mdi-' + tools[i].icon + ' mdi-18px')
-                .style('cursor', 'pointer')
+                    })
+                    .on('mouseleave', function () {
+                        if (!$(this).hasClass('active')) {
+                            $(this).css({ color: ToolController_.defaultColor })
+                        }
+                    })
+                    .append('i')
+                    .attr('id', tools[i].name + 'Tool')
+                    .attr('class', 'mdi mdi-' + tools[i].icon + ' mdi-18px')
+                    .style('cursor', 'pointer')
 
-            tippy(`#toolButton${tools[i].name}`, {
-                content: tools[i].name,
-                placement: 'right',
-                theme: 'blue',
-            })
+                tippy(`#toolButton${tools[i].name}`, {
+                    content: tools[i].name,
+                    placement: 'right',
+                    theme: 'blue',
+                })
+            }
         }
 
         ToolController_.incToolsDiv

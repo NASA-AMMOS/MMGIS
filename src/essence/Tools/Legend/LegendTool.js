@@ -11,13 +11,24 @@ var LegendTool = {
     width: 200,
     activeLayerNames: null,
     MMWebGISInterface: null,
-    make: function () {
+    targetId: null,
+    made: false,
+    make: function (targetId) {
+        this.targetId = targetId
         this.MMWebGISInterface = new interfaceWithMMWebGIS()
-
         this.activeLayerNames = []
+
+        L_.subscribeOnLayerToggle('LegendTool', () => {
+            this.MMWebGISInterface = new interfaceWithMMWebGIS()
+        })
+
+        this.made = true
     },
     destroy: function () {
         this.MMWebGISInterface.separateFromMMWebGIS()
+        this.targetId = null
+        L_.unsubscribeOnLayerToggle('LegendTool')
+        this.made = false
     },
     overwriteLegends: overwriteLegends,
 }
@@ -27,8 +38,9 @@ function interfaceWithMMWebGIS() {
     this.separateFromMMWebGIS = function () {
         separateFromMMWebGIS()
     }
+    separateFromMMWebGIS()
 
-    var tools = drawLegendHeader()
+    let tools = drawLegendHeader()
 
     //Add the markup to tools or do it manually
     //tools.html( markup );
@@ -40,7 +52,13 @@ function interfaceWithMMWebGIS() {
         if (L_.layers.on[l] == true) {
             if (L_.layers.data[l].type != 'header') {
                 if (L_.layers.data[l]?._legend != undefined) {
-                    drawLegends(tools, L_.layers.data[l]?._legend, l, L_.layers.data[l].display_name, L_.layers.opacity[l])
+                    drawLegends(
+                        tools,
+                        L_.layers.data[l]?._legend,
+                        l,
+                        L_.layers.data[l].display_name,
+                        L_.layers.opacity[l]
+                    )
                 }
             }
         }
@@ -48,7 +66,14 @@ function interfaceWithMMWebGIS() {
 
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
-    function separateFromMMWebGIS() {}
+    function separateFromMMWebGIS() {
+        let tools = d3.select(
+            LegendTool.targetId ? `#${LegendTool.targetId}` : '#toolPanel'
+        )
+        tools.style('background', 'var(--color-k)')
+        //Clear it
+        tools.selectAll('*').remove()
+    }
 }
 
 // The legends parameter should be an array of objects, where each object must contain
@@ -58,16 +83,12 @@ function interfaceWithMMWebGIS() {
 // layerUUID and display_name should be strings and opacity should be a number between 0 and 1.
 function overwriteLegends(legends) {
     if (!Array.isArray(legends)) {
-        console.warn(
-            "legends parameter must be an array.", legends
-        )
+        console.warn('legends parameter must be an array.', legends)
         return
     }
 
     if (legends.length < 1) {
-        console.warn(
-            "legends array is empty.", legends
-        )
+        console.warn('legends array is empty.', legends)
         return
     }
 
@@ -76,9 +97,7 @@ function overwriteLegends(legends) {
     for (let l in legends) {
         const { legend, layerUUID, display_name, opacity } = legends[l]
         if (!legend || !layerUUID || !display_name || !opacity) {
-            console.warn(
-                "Unable to overwrite legends in LegendTool.", legends
-            )
+            console.warn('Unable to overwrite legends in LegendTool.', legends)
             return
         }
         drawLegends(tools, legend, layerUUID, display_name, opacity)
@@ -87,20 +106,26 @@ function overwriteLegends(legends) {
 
 function drawLegendHeader() {
     //MMWebGIS should always have a div with id 'tools'
-    var tools = d3.select('#toolPanel')
+    let tools = d3.select(
+        LegendTool.targetId ? `#${LegendTool.targetId}` : '#toolPanel'
+    )
     tools.style('background', 'var(--color-k)')
     //Clear it
     tools.selectAll('*').remove()
     tools
         .append('div')
-        .style('height', '40px')
-        .style('line-height', '40px')
-        .style('font-size', '16px')
-        .style('padding-left', '6px')
+        .style('height', '30px')
+        .style('line-height', '30px')
+        .style('font-size', '13px')
+        .style('padding-right', '8px')
+        .style('padding-left', '30px')
         .style('color', 'var(--color-l)')
-        .style('background', 'var(--color-a)')
+        .style('background', 'var(--color-i)')
         .style('font-family', 'lato-light')
         .style('text-transform', 'uppercase')
+        .style('border-top-left-radius', '3px')
+        .style('border-top-right-radius', '3px')
+        .style('border-bottom', '1px solid var(--color-i)')
         .html('Legend')
     //Add a semantic container
     tools = tools
@@ -108,6 +133,9 @@ function drawLegendHeader() {
         .attr('id', 'LegendTool')
         .style('color', '#dcdcdc')
         .style('height', 'calc(100% - 40px)')
+        .style('max-height', 'calc(100vh - 185px)')
+        .style('border-bottom-left-radius', '3px')
+        .style('border-bottom-right-radius', '3px')
         .style('overflow-y', 'auto')
 
     return tools
@@ -120,16 +148,17 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity) {
         .style('width', '100%')
         .style('display', 'inline-block')
         .style('padding-top', '5px')
-        .style('border-top', '1px solid var(--color-i)')
+        .style('padding-right', '12px')
+        .style('border-bottom', '1px solid var(--color-i)')
 
     c.append('div')
         .attr('class', 'row')
         .append('p')
-        .style('font-size', '16px')
+        .style('font-size', '13px')
         .style('color', 'var(--color-f)')
         .style('margin-bottom', '5px')
-        .style('padding-left', '10px')
-        .html(display_name)
+        .style('padding-left', '8px')
+        .text(display_name)
 
     let lastContinues = []
     let lastShape = ''
@@ -151,97 +180,50 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity) {
                 .append('div')
                 .attr('class', 'row')
                 .style('display', 'flex')
-                .style('margin', '0px 0px 10px 10px')
-            var svg = r
-                .append('svg')
-                .attr('width', '20px')
-                .attr('height', '20px')
+                .style('margin', '0px 0px 8px 9px')
 
             switch (shape) {
                 case 'circle':
-                    svg.append('circle')
+                    r.append('div')
                         .attr('class', layerUUID + '_legendshape')
-                        .attr('r', 7)
-                        .attr('cx', 10)
-                        .attr('cy', 10)
-                        .attr(
-                            'fill',
-                            _legend[d].color
-                        )
-                        .attr('opacity', opacity)
-                        .attr(
-                            'stroke',
-                            _legend[d]
-                                .strokecolor
-                        )
+                        .style('width', '18px')
+                        .style('height', '18px')
+                        .style('background', _legend[d].color)
+                        .style('opacity', opacity)
+                        .style('border', `1px solid ${_legend[d].strokecolor}`)
+                        .style('border-radius', '50%')
                     break
                 case 'square':
-                    svg.append('rect')
+                    r.append('div')
                         .attr('class', layerUUID + '_legendshape')
-                        .attr('width', 20)
-                        .attr('height', 20)
-                        .attr(
-                            'fill',
-                            _legend[d].color
-                        )
-                        .attr('opacity', opacity)
-                        .attr(
-                            'stroke',
-                            _legend[d]
-                                .strokecolor
-                        )
+                        .style('width', '18px')
+                        .style('height', '18px')
+                        .style('background', _legend[d].color)
+                        .style('opacity', opacity)
+                        .style('border', `1px solid ${_legend[d].strokecolor}`)
                     break
                 case 'rect':
-                    svg.append('rect')
+                    r.append('div')
                         .attr('class', layerUUID + '_legendshape')
-                        .attr('width', 20)
-                        .attr('height', 10)
-                        .attr('y', 5)
-                        .attr(
-                            'fill',
-                            _legend[d].color
-                        )
-                        .attr('opacity', opacity)
-                        .attr(
-                            'stroke',
-                            _legend[d]
-                                .strokecolor
-                        )
+                        .style('width', '18px')
+                        .style('height', '8px')
+                        .style('margin', '5px 0px 5px 0px')
+                        .style('background', _legend[d].color)
+                        .style('opacity', opacity)
+                        .style('border', `1px solid ${_legend[d].strokecolor}`)
                     break
-                case 'triangle':
-                    var trianglePoints = '0 0, 10 20, 20 0'
-                    svg.append('polyline')
-                        .attr('class', layerUUID + '_legendshape')
-                        .attr('width', 20)
-                        .attr('height', 20)
-                        .attr('points', trianglePoints)
-                        .attr(
-                            'fill',
-                            _legend[d].color
-                        )
-                        .attr('opacity', opacity)
-                        .attr(
-                            'stroke',
-                            _legend[d]
-                                .strokecolor
-                        )
-                    break
+                default:
             }
-            svg.append(shape).attr(
-                'fill',
-                _legend[d].color
-            )
+
             r.append('div')
                 .style('margin-left', '5px')
                 .style('height', '100%')
-                .style('line-height', '21px')
+                .style('line-height', '19px')
                 .style('font-size', '14px')
                 .style('overflow', 'auto')
-                .html(_legend[d].value)
-        } else if (
-            shape == 'continuous' ||
-            shape == 'discreet'
-        ) {
+                .style('white-space', 'nowrap')
+                .text(_legend[d].value)
+        } else if (shape == 'continuous' || shape == 'discreet') {
             if (lastShape != shape) {
                 if (lastContinues.length > 0) {
                     pushScale(lastContinues)
@@ -266,7 +248,7 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity) {
             .append('div')
             .attr('class', 'row')
             .style('display', 'flex')
-            .style('margin', '0px 0px 10px 10px')
+            .style('margin', '0px 0px 8px 8px')
         var gradient = r
             .append('div')
             .style('width', '19px')
@@ -282,7 +264,8 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity) {
                 .style('line-height', '19px')
                 .style('font-size', '14px')
                 .style('position', 'relative')
-                .html(lastContinues[i].value)
+                .style('white-space', 'nowrap')
+                .text(lastContinues[i].value)
 
             if (lastContinues[i].shape == 'continuous') {
                 v.append('div')
@@ -329,7 +312,6 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity) {
             'linear-gradient(to bottom, ' + gradientArray.join(',') + ')'
         )
     }
-
 }
 
 //Other functions
