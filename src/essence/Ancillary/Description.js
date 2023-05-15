@@ -154,6 +154,12 @@ const Description = {
         })
     },
     updatePoint: function (activeLayer) {
+        if (
+            activeLayer == null ||
+            Description.L_.layers.data[activeLayer.options.layerName] == null
+        )
+            return
+
         this.descCont.style('display', 'flex')
         $('.mainDescription').animate(
             {

@@ -2348,12 +2348,15 @@ var Editing = {
             if (DrawTool.plugins?.Geologic?.custom?.resetGeologic)
                 DrawTool.plugins.Geologic.custom.resetGeologic()
 
-            const templaterProperties = templater.getValues(
-                L_.layers.layer[DrawTool.lastContextLayerIndexFileId.layer],
-                properties,
-                grouping ? true : false
-            )
-            if (templaterProperties === false) return
+            let templaterProperties = {}
+            if (templater) {
+                templaterProperties = templater.getValues(
+                    L_.layers.layer[DrawTool.lastContextLayerIndexFileId.layer],
+                    properties,
+                    grouping ? true : false
+                )
+                if (templaterProperties === false) return
+            }
 
             if (!grouping) {
                 //Then just a regular single save
