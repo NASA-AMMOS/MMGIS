@@ -154,7 +154,7 @@ var Files = {
                 DrawTool.setDrawingType(drawType)
             } else {
                 CursorInfo.update(
-                    `Please select a file from the list below (by clicking on its name). If none exist, create one with the + above.`,
+                    `Please select a file from the list below (by clicking on its name). If none exist, make one with the create button below.`,
                     6000,
                     false,
                     {
