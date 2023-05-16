@@ -926,6 +926,7 @@ const L_ = {
                 const savedOptions = JSON.parse(JSON.stringify(layer.options))
                 layer.setStyle({
                     color: color,
+                    stroke: color,
                 })
                 layer.options = savedOptions
             }
@@ -1541,6 +1542,7 @@ const L_ = {
                                 fillColor: layer.options.fillColor || fillColor,
                                 weight: parseInt(weight),
                                 color: layer.options.color || color,
+                                stroke: layer.options.color || color,
                             })
                         } catch (err) {
                             if (layer._icon) layer._icon.style.filter = ''
@@ -1606,6 +1608,7 @@ const L_ = {
                         if (typeof layer.setStyle === 'function')
                             layer.setStyle({
                                 color: color,
+                                stroke: color,
                             })
                         else if (layer._icon?.style) {
                             layer._icon.style.filter = 'unset'
