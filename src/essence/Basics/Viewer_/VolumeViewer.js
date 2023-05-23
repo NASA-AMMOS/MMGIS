@@ -2,6 +2,9 @@ import * as THREE from '../../../external/THREE/three152'
 import { GUI } from './lil-gui.module.min.js'
 
 import { VolumeRenderShader1 } from './VolumeShader.js'
+import loadNetcdf from '../../loaders/netcdf'
+
+import { NRRDLoader } from './temp/NRRDLoader'
 
 export default function (domEl, lookupPath, options) {
     options = options || {}
@@ -12,7 +15,6 @@ export default function (domEl, lookupPath, options) {
         renderer,
         orbitControls,
         material,
-        orientationControls,
         volconfig,
         cmtextures
 
@@ -34,25 +36,18 @@ export default function (domEl, lookupPath, options) {
     function init() {
         /*
         camera = new THREE.PerspectiveCamera(
-            options.view || 75,
-            domEl.offsetWidth / domEl.offsetHeight,
-            0.0001,
-            100
+            options.view || 75,            domEl.offsetWidth / domEl.offsetHeight,            0.0001,            100
         )
         camera.position.x = 0
         camera.position.y = 10
         camera.position.z = 0
         */
+        /*
         // Create camera (The volume renderer does not work very well with perspective yet)
         const h = 512 // frustum height
         const aspect = domEl.offsetWidth / domEl.offsetHeight
         camera = new THREE.OrthographicCamera(
-            (-h * aspect) / 2,
-            (h * aspect) / 2,
-            h / 2,
-            -h / 2,
-            1,
-            1000
+            (-h * aspect) / 2,            (h * aspect) / 2,            h / 2,            -h / 2,            1,            1000
         )
         camera.position.set(-64, -64, 128)
         camera.up.set(0, 0, 1) // In our data, z is up
@@ -75,11 +70,12 @@ export default function (domEl, lookupPath, options) {
             orbitControls.flipPanUp = true
             orbitControls.panSpeed = 0.2
             orbitControls.rotateSpeed = 0.2
-
-            orientationControls = new THREE.DeviceOrientationControls(camera)
+            orbitControls.target.set(64, 64, 128)
+            orbitControls.minZoom = 0.5
+            orbitControls.maxZoom = 4
+            orbitControls.update()
 
             controls = orbitControls
-            controls.target = new THREE.Vector3(0, 0, 0)
 
             controls.addEventListener('change', render)
 
@@ -89,8 +85,8 @@ export default function (domEl, lookupPath, options) {
             const light = new THREE.AmbientLight(0xfefefe)
             scene.add(light)
         }
+        */
 
-        /*
         scene = new THREE.Scene()
 
         // Create renderer
@@ -101,7 +97,7 @@ export default function (domEl, lookupPath, options) {
 
         // Create camera (The volume renderer does not work very well with perspective yet)
         const h = 512 // frustum height
-        const aspect = window.innerWidth / window.innerHeight
+        const aspect = domEl.offsetWidth / domEl.offsetHeight
         camera = new THREE.OrthographicCamera(
             (-h * aspect) / 2,
             (h * aspect) / 2,
@@ -109,6 +105,12 @@ export default function (domEl, lookupPath, options) {
             -h / 2,
             1,
             1000
+        )
+        camera = new THREE.PerspectiveCamera(
+            options.view || 75,
+            domEl.offsetWidth / domEl.offsetHeight,
+            0.0001,
+            100
         )
         camera.position.set(-64, -64, 128)
         camera.up.set(0, 0, 1) // In our data, z is up
@@ -118,10 +120,9 @@ export default function (domEl, lookupPath, options) {
         controls.addEventListener('change', render)
         controls.target.set(64, 64, 128)
         controls.minZoom = 0.5
-        controls.maxZoom = 4
+        controls.maxZoom = 8
         controls.enablePan = false
         controls.update()
-        */
     }
 
     function render() {
@@ -130,9 +131,14 @@ export default function (domEl, lookupPath, options) {
 
     function resize() {
         if (renderer != undefined) {
-            camera.aspect = domEl.offsetWidth / domEl.offsetHeight
-            camera.updateProjectionMatrix()
             renderer.setSize(domEl.offsetWidth, domEl.offsetHeight)
+            const aspect = domEl.offsetWidth / domEl.offsetHeight
+
+            const frustumHeight = camera.top - camera.bottom
+
+            camera.left = (-frustumHeight * aspect) / 2
+            camera.right = (frustumHeight * aspect) / 2
+            camera.updateProjectionMatrix()
             render()
         }
     }
@@ -158,100 +164,93 @@ export default function (domEl, lookupPath, options) {
         )
         gui.add(volconfig, 'isothreshold', 0, 1, 0.01).onChange(updateUniforms)
 
-        // create a buffer with some data
-        const volume = {
-            sizeX: 32,
-            sizeY: 32,
-            sizeZ: 32,
-            data: null,
-        }
+        //loadNetcdf(null, 'THT', (volume) => {
+        new NRRDLoader().load(
+            'https://threejs.org/examples/models/nrrd/stent.nrrd',
+            function (volume) {
+                console.log(volume)
+                // Texture to hold the volume. We have scalars, so we put our data in the red channel.
+                // THREEJS will select R32F (33326) based on the THREE.RedFormat and THREE.FloatType.
+                // Also see https://www.khronos.org/registry/webgl/specs/latest/2.0/#TEXTURE_TYPES_FORMATS_FROM_DOM_ELEMENTS_TABLE
+                // TODO: look the dtype up in the volume metadata
+                volume.sizeX = volume.xLength
+                volume.sizeY = volume.yLength
+                volume.sizeZ = volume.zLength
+                /*
+                camera.position.set(
+                    -volume.sizeX / 2,
+                    -volume.sizeY / 2,
+                    volume.size2 / 2
+                )
+                controls.target.set(
+                    volume.sizeX / 2,
+                    volume.sizeY / 2,
+                    volume.size2 / 2
+                )
+                controls.update()
+*/
+                const texture = new THREE.Data3DTexture(
+                    volume.data,
+                    volume.sizeX,
+                    volume.sizeY,
+                    volume.sizeZ
+                )
+                texture.format = THREE.RedFormat
+                texture.type = THREE.FloatType // THREE.UnsignedIntType
+                texture.minFilter = texture.magFilter = THREE.LinearFilter
+                texture.unpackAlignment = 1
+                texture.needsUpdate = true
 
-        //volume.data = new Uint8Array(volume.sizeX * volume.sizeY * volume.sizeZ)
-
-        volume.data = new Float32Array(
-            volume.sizeX * volume.sizeY * volume.sizeZ
-        )
-        let i = 0
-
-        for (let z = 0; z < volume.sizeZ; z++) {
-            for (let y = 0; y < volume.sizeY; y++) {
-                for (let x = 0; x < volume.sizeX; x++) {
-                    volume.data[i] = Math.random()
-                    if (y > volume.sizeY / 1.5) volume.data[i] = 0.85
-                    if (y > volume.sizeY / 2) volume.data[i] = 0.65
-                    if (y > volume.sizeY / 3) volume.data[i] = 0.45
-                    if (y > volume.sizeY / 4) volume.data[i] = 0.25
-                    if (y > volume.sizeY / 8) volume.data[i] = 0.1
-                    volume.data[i] = 0.85
-                    i++
+                // Colormap textures
+                cmtextures = {
+                    viridis: new THREE.TextureLoader().load(
+                        './public/images/cm_viridis.png',
+                        render
+                    ),
                 }
+
+                // Material
+                const shader = VolumeRenderShader1
+
+                const uniforms = THREE.UniformsUtils.clone(shader.uniforms)
+
+                uniforms['u_data'].value = texture
+                uniforms['u_size'].value.set(
+                    volume.xLength,
+                    volume.yLength,
+                    volume.zLength
+                )
+                uniforms['u_clim'].value.set(volconfig.clim1, volconfig.clim2)
+                uniforms['u_renderstyle'].value =
+                    volconfig.renderstyle == 'mip' ? 0 : 1 // 0: MIP, 1: ISO
+                uniforms['u_renderthreshold'].value = volconfig.isothreshold // For ISO renderstyle
+                uniforms['u_cmdata'].value = cmtextures[volconfig.colormap]
+
+                material = new THREE.ShaderMaterial({
+                    uniforms: uniforms,
+                    vertexShader: shader.vertexShader,
+                    fragmentShader: shader.fragmentShader,
+                    side: THREE.BackSide, // The volume shader uses the backface as its "reference point"
+                })
+
+                // THREE.Mesh
+                const geometry = new THREE.BoxGeometry(
+                    volume.sizeX,
+                    volume.sizeY,
+                    volume.sizeZ
+                )
+                geometry.translate(
+                    volume.sizeX / 2 - 0.5,
+                    volume.sizeY / 2 - 0.5,
+                    volume.sizeZ / 2 - 0.5
+                )
+
+                const mesh = new THREE.Mesh(geometry, material)
+                scene.add(mesh)
+
+                render()
             }
-        }
-
-        // Texture to hold the volume. We have scalars, so we put our data in the red channel.
-        // THREEJS will select R32F (33326) based on the THREE.RedFormat and THREE.FloatType.
-        // Also see https://www.khronos.org/registry/webgl/specs/latest/2.0/#TEXTURE_TYPES_FORMATS_FROM_DOM_ELEMENTS_TABLE
-        // TODO: look the dtype up in the volume metadata
-
-        const texture = new THREE.Data3DTexture(
-            volume.data,
-            volume.sizeX,
-            volume.sizeY,
-            volume.sizeZ
         )
-        texture.format = THREE.RedFormat
-        ;(texture.type = THREE.FloatType), THREE.UnsignedIntType
-        texture.minFilter = texture.magFilter = THREE.LinearFilter
-        texture.unpackAlignment = 1
-        texture.needsUpdate = true
-
-        // Colormap textures
-        cmtextures = {
-            viridis: new THREE.TextureLoader().load(
-                './public/images/cm_viridis.png',
-                render
-            ),
-        }
-
-        // Material
-        const shader = VolumeRenderShader1
-
-        const uniforms = THREE.UniformsUtils.clone(shader.uniforms)
-
-        uniforms['u_data'].value = texture
-        uniforms['u_size'].value.set(
-            volume.xLength,
-            volume.yLength,
-            volume.zLength
-        )
-        uniforms['u_clim'].value.set(volconfig.clim1, volconfig.clim2)
-        uniforms['u_renderstyle'].value = volconfig.renderstyle == 'mip' ? 0 : 1 // 0: MIP, 1: ISO
-        uniforms['u_renderthreshold'].value = volconfig.isothreshold // For ISO renderstyle
-        uniforms['u_cmdata'].value = cmtextures[volconfig.colormap]
-
-        material = new THREE.ShaderMaterial({
-            uniforms: uniforms,
-            vertexShader: shader.vertexShader,
-            fragmentShader: shader.fragmentShader,
-            side: THREE.BackSide, // The volume shader uses the backface as its "reference point"
-        })
-
-        // THREE.Mesh
-        const geometry = new THREE.BoxGeometry(
-            volume.sizeX,
-            volume.sizeY,
-            volume.sizeZ
-        )
-        geometry.translate(
-            volume.sizeX / 2 - 0.5,
-            volume.sizeY / 2 - 0.5,
-            volume.sizeZ / 2 - 0.5
-        )
-
-        const mesh = new THREE.Mesh(geometry, material)
-        scene.add(mesh)
-
-        render()
     }
 
     function updateUniforms() {

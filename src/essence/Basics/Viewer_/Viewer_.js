@@ -306,6 +306,7 @@ var Viewer_ = {
                 )
             }
             this.volumeviewer.changeVolume()
+            window.onresize = this.volumeviewer.resize
         } else {
             this.imageViewer.style('display', 'inherit')
             this.imagePanorama.style('display', 'none')
@@ -370,6 +371,9 @@ var Viewer_ = {
     invalidateSize: function () {
         if (this.modelviewer != null) {
             this.modelviewer.resize()
+        }
+        if (this.volumeviewer != null) {
+            this.volumeviewer.resize()
         }
         if (this.photosphere != null) {
             this.photosphere.resize()
