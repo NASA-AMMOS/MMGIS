@@ -36,13 +36,13 @@
     "cesium"
   ],
   "scripts": {
-    "start": "node run/init-db.js && node run/server.js",
-    "start:prod": "node run/init-db.js && cross-env NODE_ENV=production node run/server.js",
-    "start:prod:with_examples": "cross-env NODE_ENV=production node run/server.js --with_examples",
+    "start": "node scripts/init-db.js && node scripts/server.js",
+    "start:prod": "node scripts/init-db.js && cross-env NODE_ENV=production node scripts/server.js",
+    "start:prod:with_examples": "cross-env NODE_ENV=production node scripts/server.js --with_examples",
     "start:docs": "cd ./docs && bundle exec jekyll serve",
-    "start:analyzer": "node run/server.js --analyze",
-    "build": "node run/build.js",
-    "test": "node run/test.js"
+    "start:analyzer": "node scripts/server.js --analyze",
+    "build": "node scripts/build.js",
+    "test": "node scripts/test.js"
   },
   "dependencies": {
     "@babel/core": "7.9.0",
