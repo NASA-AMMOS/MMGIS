@@ -10,7 +10,7 @@ import calls from '../../../pre/calls'
 
 import metricsGraphics from '../../../external/MetricsGraphics/metricsgraphics.min'
 
-import ReactDOM from 'react-dom'
+import {render, unmountComponentAtNode } from 'react-dom'
 import React, { useState, useEffect, useRef } from 'react'
 
 import { Chart } from 'chart.js'
@@ -622,10 +622,10 @@ let MeasureTool = {
         this.dems = MeasureTool.getDems()
         this.activeDemIdx = 0
 
-        ReactDOM.render(<Measure />, document.getElementById('tools'))
+        render(<Measure />, document.getElementById('tools'))
     },
     destroy: function () {
-        ReactDOM.unmountComponentAtNode(document.getElementById('tools'))
+        unmountComponentAtNode(document.getElementById('tools'))
 
         Map_.map
             .off('click', MeasureTool.clickMap)
