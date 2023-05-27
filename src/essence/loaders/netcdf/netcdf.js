@@ -1,32 +1,59 @@
 //Adapted from https://github.com/umrlastig/netcdf-three
-import * as THREE from '../../external/THREE/three152'
+import * as THREE from '../../../external/THREE/three152'
 import { NetCDFReader } from 'netcdfjs'
+import { Volume } from './Volume.js'
 
 export default function (path, volumeName, callback) {
-    fetch('./public/misc/A2003.1.WENO5.002.nc')
+    fetch(
+        //'./public/misc/A2003.1.WENO5.002.nc'
+        './public/misc/marsYard1.nc'
+    )
         .then(readNetcdfHeader)
         .then((header) => fetchVolume(header, volumeName))
         .then(normalizeVolume)
-        //.then(dataToRedBand)
+        .then(formatVolume)
         .then((volume) => callback(volume))
 }
 
-function dataToRedBand(volume) {
-    const newData = []
-    let nI = 0
-    for (var i = 0; i < volume.size; i++) {
-        newData[nI] = volume.data[i]
-        newData[nI + 1] = 0
-        newData[nI + 2] = 0
-        newData[nI + 3] = 0
-        nI += 4
-    }
-    volume.data = new Float32Array(newData)
-    volume.size *= 4
-    volume.sizeX *= 4
-    volume.sizeY *= 4
-    volume.sizeZ *= 4
-    return volume
+function formatVolume(volume) {
+    const formattedVolume = new Volume()
+
+    formattedVolume.data = volume.data
+
+    formattedVolume.sizeX = volume.sizeX
+    formattedVolume.sizeY = volume.sizeY
+    formattedVolume.sizeZ = volume.sizeZ
+
+    formattedVolume.xLength = formattedVolume.sizeX
+    formattedVolume.yLength = formattedVolume.sizeY
+    formattedVolume.zLength = formattedVolume.sizeZ
+
+    formattedVolume.matrix = new THREE.Matrix4()
+    formattedVolume.matrix.set(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
+
+    formattedVolume.inverseMatrix = new THREE.Matrix4()
+    formattedVolume.inverseMatrix.copy(formattedVolume.matrix).invert()
+
+    formattedVolume.RASDimensions = [
+        Math.floor(formattedVolume.sizeX),
+        Math.floor(formattedVolume.sizeY),
+        Math.floor(formattedVolume.sizeZ),
+    ]
+    formattedVolume.dimensions = formattedVolume.RASDimensions
+
+    formattedVolume.min = 0 //volume.min
+    formattedVolume.max = 1 //volume.max
+    formattedVolume.lowerThreshold = formattedVolume.min //volume.min
+    formattedVolume.upperThreshold = formattedVolume.max //volume.max
+
+    formattedVolume.windowHigh = 1
+    formattedVolume.windowLow = 0
+
+    formattedVolume.spacing = [1, 1, 1]
+
+    formattedVolume.axisOrder = ['x', 'y', 'z']
+
+    return formattedVolume
 }
 
 function readNetcdfHeader(response) {

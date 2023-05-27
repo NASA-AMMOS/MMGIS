@@ -1568,7 +1568,7 @@ input::-webkit-inner-spin-button {
     height: auto;
     line-height: 1.5em;
     background-color: var(--color-mmgis);
-    padding: 10px 25px;
+    padding: 2px 8px;
     /*
     font-size: 1.1rem;
     font-weight: 300;

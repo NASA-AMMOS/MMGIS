@@ -1,10 +1,12 @@
+import $ from 'jquery'
+
 import * as THREE from '../../../external/THREE/three152'
 import { GUI } from './lil-gui.module.min.js'
 
 import { VolumeRenderShader1 } from './VolumeShader.js'
-import loadNetcdf from '../../loaders/netcdf'
+import loadNetcdf from '../../loaders/netcdf/netcdf'
 
-import { NRRDLoader } from './temp/NRRDLoader'
+import { NRRDLoader } from './temp/NRRDLoader.js'
 
 export default function (domEl, lookupPath, options) {
     options = options || {}
@@ -16,7 +18,38 @@ export default function (domEl, lookupPath, options) {
         orbitControls,
         material,
         volconfig,
-        cmtextures
+        cmtextures,
+        gui,
+        mode = 'volume' //'slicer'
+
+    const colorRamps = {
+        blue: ['#ffffcc', '#a1dab4', '#41b6c4', '#2c7fb8', '#253494'],
+        'blue-orange': ['#ff6219', '#9c461e', '#3b312c', '#1f9787', '#00ffdc'],
+        grayscale: ['#000000', '#323232', '#494949', '#8c8c8c', '#ffffff'],
+        'green-centered': [
+            '#2f4147',
+            '#18a064',
+            '#00ff78',
+            '#18a064',
+            '#2f4147',
+        ],
+        heatmap: [
+            '#0022c8',
+            '#2b1ca7',
+            '#551785',
+            '#801164',
+            '#aa0b43',
+            '#d50621',
+            '#ff0000',
+            '#ff3900',
+            '#ff7100',
+            '#ffaa00',
+            '#ffc655',
+            '#ffe3aa',
+            '#ffffff',
+        ],
+        rainbow: ['#5813fc', '#1cc2fd', '#7dfd94', '#f5c926', '#ff2b18'],
+    }
 
     const webglSupport = (function () {
         try {
@@ -34,59 +67,6 @@ export default function (domEl, lookupPath, options) {
     init()
 
     function init() {
-        /*
-        camera = new THREE.PerspectiveCamera(
-            options.view || 75,            domEl.offsetWidth / domEl.offsetHeight,            0.0001,            100
-        )
-        camera.position.x = 0
-        camera.position.y = 10
-        camera.position.z = 0
-        */
-        /*
-        // Create camera (The volume renderer does not work very well with perspective yet)
-        const h = 512 // frustum height
-        const aspect = domEl.offsetWidth / domEl.offsetHeight
-        camera = new THREE.OrthographicCamera(
-            (-h * aspect) / 2,            (h * aspect) / 2,            h / 2,            -h / 2,            1,            1000
-        )
-        camera.position.set(-64, -64, 128)
-        camera.up.set(0, 0, 1) // In our data, z is up
-
-        if (webglSupport) {
-            renderer = new THREE.WebGLRenderer()
-            renderer.setPixelRatio(window.devicePixelRatio)
-            renderer.setSize(domEl.offsetWidth, domEl.offsetHeight)
-            renderer.setClearColor(0x000000)
-
-            domEl.appendChild(renderer.domElement)
-
-            orbitControls = new THREE.OrbitControls(camera, renderer.domElement)
-            orbitControls.enablePan = true
-            orbitControls.enableZoom = true
-            orbitControls.autoRotate = false
-            orbitControls.enableDamping = true
-            orbitControls.dampingFactor = 0.13
-            orbitControls.autoRotateSpeed = options.speed || 0.5
-            orbitControls.flipPanUp = true
-            orbitControls.panSpeed = 0.2
-            orbitControls.rotateSpeed = 0.2
-            orbitControls.target.set(64, 64, 128)
-            orbitControls.minZoom = 0.5
-            orbitControls.maxZoom = 4
-            orbitControls.update()
-
-            controls = orbitControls
-
-            controls.addEventListener('change', render)
-
-            scene = new THREE.Scene()
-
-            //Light
-            const light = new THREE.AmbientLight(0xfefefe)
-            scene.add(light)
-        }
-        */
-
         scene = new THREE.Scene()
 
         // Create renderer
@@ -95,34 +75,63 @@ export default function (domEl, lookupPath, options) {
         renderer.setSize(domEl.offsetWidth, domEl.offsetHeight)
         domEl.appendChild(renderer.domElement)
 
-        // Create camera (The volume renderer does not work very well with perspective yet)
-        const h = 512 // frustum height
-        const aspect = domEl.offsetWidth / domEl.offsetHeight
-        camera = new THREE.OrthographicCamera(
-            (-h * aspect) / 2,
-            (h * aspect) / 2,
-            h / 2,
-            -h / 2,
-            1,
-            1000
-        )
-        camera = new THREE.PerspectiveCamera(
-            options.view || 75,
-            domEl.offsetWidth / domEl.offsetHeight,
-            0.0001,
-            100
-        )
-        camera.position.set(-64, -64, 128)
-        camera.up.set(0, 0, 1) // In our data, z is up
+        initScene()
 
-        // Create controls
-        controls = new THREE.OrbitControls(camera, renderer.domElement)
-        controls.addEventListener('change', render)
-        controls.target.set(64, 64, 128)
-        controls.minZoom = 0.5
-        controls.maxZoom = 8
-        controls.enablePan = false
-        controls.update()
+        $('#viewerScreen').append(
+            "<div id='volume-viewer-toggle' style='cursor: pointer; position: absolute; left: 0; bottom: 0;'>TOGGLE</div>"
+        )
+        $('#volume-viewer-toggle').on('click', () => {
+            if (mode === 'slicer') mode = 'volume'
+            else if (mode === 'volume') mode = 'slicer'
+
+            initScene()
+            changeVolume()
+        })
+    }
+
+    function initScene() {
+        if (mode === 'volume') {
+            // Create camera (The volume renderer does not work very well with perspective yet)
+            const h = 512 // frustum height
+            const aspect = domEl.offsetWidth / domEl.offsetHeight
+            camera = new THREE.OrthographicCamera(
+                (-h * aspect) / 2,
+                (h * aspect) / 2,
+                h / 2,
+                -h / 2,
+                1,
+                1000
+            )
+            camera.position.set(-64, -64, 128)
+            camera.up.set(0, 0, -1) // In our data, z is up
+
+            // Create controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement)
+            controls.addEventListener('change', render)
+            controls.target.set(64, 64, 128)
+            controls.minZoom = 0.5
+            controls.maxZoom = 8
+            controls.enablePan = false
+            controls.update()
+        } else if (mode === 'slicer') {
+            camera = new THREE.PerspectiveCamera(
+                60,
+                domEl.offsetWidth / domEl.offsetHeight,
+                0.01,
+                1e10
+            )
+            camera.position.z = 300
+            camera.up.set(0, 0, -1) // In our data, z is up
+
+            // Create controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement)
+            controls.addEventListener('change', render)
+            controls.target.set(0, 0, 0)
+            controls.minZoom = 0.5
+            controls.maxZoom = 8
+            controls.enablePan = false
+            controls.update()
+        }
     }
 
     function render() {
@@ -144,51 +153,58 @@ export default function (domEl, lookupPath, options) {
     }
 
     function changeVolume() {
-        // The gui for interaction
-        volconfig = {
-            clim1: 0,
-            clim2: 1,
-            renderstyle: 'mip',
-            isothreshold: 0.15,
-            colormap: 'viridis',
-        }
-        const gui = new GUI()
-        gui.add(volconfig, 'clim1', 0, 1, 0.01).onChange(updateUniforms)
-        gui.add(volconfig, 'clim2', 0, 1, 0.01).onChange(updateUniforms)
-        gui.add(volconfig, 'colormap', {
-            gray: 'gray',
-            viridis: 'viridis',
-        }).onChange(updateUniforms)
-        gui.add(volconfig, 'renderstyle', { mip: 'mip', iso: 'iso' }).onChange(
-            updateUniforms
-        )
-        gui.add(volconfig, 'isothreshold', 0, 1, 0.01).onChange(updateUniforms)
+        if (mode === 'volume') {
+            // The gui for interaction
+            volconfig = {
+                clim1: 0,
+                clim2: 1,
+                renderstyle: 'mip',
+                isothreshold: 0.15,
+                colormap: Object.keys(colorRamps)[0],
+            }
+            if (gui) gui.destroy()
+            gui = new GUI()
+            gui.add(volconfig, 'clim1', 0, 1, 0.01).onChange(updateUniforms)
+            gui.add(volconfig, 'clim2', 0, 1, 0.01).onChange(updateUniforms)
+            const colormap = {}
+            Object.keys(colorRamps).forEach((key) => {
+                colormap[key] = key
+            })
+            gui.add(volconfig, 'colormap', colormap).onChange(updateUniforms)
+            gui.add(volconfig, 'renderstyle', {
+                mip: 'mip',
+                iso: 'iso',
+            }).onChange(updateUniforms)
+            gui.add(volconfig, 'isothreshold', 0, 1, 0.01).onChange(
+                updateUniforms
+            )
 
-        //loadNetcdf(null, 'THT', (volume) => {
-        new NRRDLoader().load(
-            'https://threejs.org/examples/models/nrrd/stent.nrrd',
-            function (volume) {
-                console.log(volume)
+            loadNetcdf(null, 'gpr', (volume) => {
+                //new NRRDLoader().load(
+                //'https://threejs.org/examples/models/nrrd/stent.nrrd',
+                //function (volume) {
                 // Texture to hold the volume. We have scalars, so we put our data in the red channel.
                 // THREEJS will select R32F (33326) based on the THREE.RedFormat and THREE.FloatType.
                 // Also see https://www.khronos.org/registry/webgl/specs/latest/2.0/#TEXTURE_TYPES_FORMATS_FROM_DOM_ELEMENTS_TABLE
                 // TODO: look the dtype up in the volume metadata
-                volume.sizeX = volume.xLength
-                volume.sizeY = volume.yLength
-                volume.sizeZ = volume.zLength
-                /*
+                //volume.sizeX = volume.xLength
+                //volume.sizeY = volume.yLength
+                //volume.sizeZ = volume.zLength
+
+                console.log(volume)
+
                 camera.position.set(
                     -volume.sizeX / 2,
                     -volume.sizeY / 2,
-                    volume.size2 / 2
+                    volume.sizeZ / 2
                 )
                 controls.target.set(
                     volume.sizeX / 2,
                     volume.sizeY / 2,
-                    volume.size2 / 2
+                    volume.sizeZ / 2
                 )
                 controls.update()
-*/
+
                 const texture = new THREE.Data3DTexture(
                     volume.data,
                     volume.sizeX,
@@ -202,12 +218,13 @@ export default function (domEl, lookupPath, options) {
                 texture.needsUpdate = true
 
                 // Colormap textures
-                cmtextures = {
-                    viridis: new THREE.TextureLoader().load(
-                        './public/images/cm_viridis.png',
+                cmtextures = {}
+                Object.keys(colorRamps).forEach((key) => {
+                    cmtextures[key] = new THREE.TextureLoader().load(
+                        getColorRamp(key),
                         render
-                    ),
-                }
+                    )
+                })
 
                 // Material
                 const shader = VolumeRenderShader1
@@ -216,9 +233,9 @@ export default function (domEl, lookupPath, options) {
 
                 uniforms['u_data'].value = texture
                 uniforms['u_size'].value.set(
-                    volume.xLength,
-                    volume.yLength,
-                    volume.zLength
+                    volume.sizeX,
+                    volume.sizeY,
+                    volume.sizeZ
                 )
                 uniforms['u_clim'].value.set(volconfig.clim1, volconfig.clim2)
                 uniforms['u_renderstyle'].value =
@@ -249,8 +266,94 @@ export default function (domEl, lookupPath, options) {
                 scene.add(mesh)
 
                 render()
-            }
-        )
+            })
+        } else if (mode === 'slicer') {
+            loadNetcdf(null, 'THT', (volume) => {
+                //box helper to see the extend of the volume
+                const geometry = new THREE.BoxGeometry(
+                    volume.xLength,
+                    volume.yLength,
+                    volume.zLength
+                )
+                const material = new THREE.MeshBasicMaterial({
+                    color: 0x00ff00,
+                })
+                const cube = new THREE.Mesh(geometry, material)
+                cube.visible = false
+                const box = new THREE.BoxHelper(cube)
+                scene.add(box)
+                box.applyMatrix4(volume.matrix)
+                scene.add(cube)
+
+                //z plane
+                const sliceZ = volume.extractSlice(
+                    'z',
+                    Math.floor(volume.RASDimensions[2] / 4)
+                )
+                scene.add(sliceZ.mesh)
+
+                //y plane
+                const sliceY = volume.extractSlice(
+                    'y',
+                    Math.floor(volume.RASDimensions[1] / 2)
+                )
+                scene.add(sliceY.mesh)
+
+                //x plane
+                const sliceX = volume.extractSlice(
+                    'x',
+                    Math.floor(volume.RASDimensions[0] / 2)
+                )
+                scene.add(sliceX.mesh)
+
+                if (gui) gui.destroy()
+                gui = new GUI()
+
+                gui.add(sliceX, 'index', 0, volume.RASDimensions[0], 1)
+                    .name('indexX')
+                    .onChange(function () {
+                        sliceX.repaint.call(sliceX)
+                        render()
+                    })
+                gui.add(sliceY, 'index', 0, volume.RASDimensions[1], 1)
+                    .name('indexY')
+                    .onChange(function () {
+                        sliceY.repaint.call(sliceY)
+                        render()
+                    })
+                gui.add(sliceZ, 'index', 0, volume.RASDimensions[2], 1)
+                    .name('indexZ')
+                    .onChange(function () {
+                        sliceZ.repaint.call(sliceZ)
+                        render()
+                    })
+
+                gui.add(volume, 'lowerThreshold', volume.min, volume.max, 1)
+                    .name('Lower Threshold')
+                    .onChange(function () {
+                        volume.repaintAllSlices()
+                        render()
+                    })
+                gui.add(volume, 'upperThreshold', volume.min, volume.max, 1)
+                    .name('Upper Threshold')
+                    .onChange(function () {
+                        volume.repaintAllSlices()
+                        render()
+                    })
+                gui.add(volume, 'windowLow', volume.min, volume.max, 1)
+                    .name('Window Low')
+                    .onChange(function () {
+                        volume.repaintAllSlices()
+                        render()
+                    })
+                gui.add(volume, 'windowHigh', volume.min, volume.max, 1)
+                    .name('Window High')
+                    .onChange(function () {
+                        volume.repaintAllSlices()
+                        render()
+                    })
+            })
+        }
     }
 
     function updateUniforms() {
@@ -261,6 +364,22 @@ export default function (domEl, lookupPath, options) {
         material.uniforms['u_cmdata'].value = cmtextures[volconfig.colormap]
 
         render()
+    }
+
+    function getColorRamp(rampName) {
+        let colors = colorRamps[rampName] || []
+        let canvas = document.createElement('canvas')
+        canvas.width = 256
+        canvas.height = 1
+        let ctx = canvas.getContext('2d')
+        let gradient = ctx.createLinearGradient(0, 0, 256, 0)
+        colors.forEach((c, idx) => {
+            gradient.addColorStop(idx / (colors.length - 1), c)
+        })
+        ctx.fillStyle = gradient
+        ctx.fillRect(0, 0, 255, 1)
+
+        return canvas.toDataURL()
     }
 
     return {

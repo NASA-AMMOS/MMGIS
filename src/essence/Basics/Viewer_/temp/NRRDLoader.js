@@ -48,7 +48,6 @@ class NRRDLoader extends THREE.Loader {
 
     parse(data) {
         // this parser is largely inspired from the XTK NRRD parser : https://github.com/xtk/X
-
         let _data = data
 
         let _dataPointer = 0
@@ -203,7 +202,6 @@ class NRRDLoader extends THREE.Loader {
             let number = ''
             start = start || 0
             end = end || data.length
-            console.log(data)
             let value
             //length of the result is the product of the sizes
             const lengthOfTheResult = headerObject.sizes.reduce(function (
@@ -304,6 +302,7 @@ class NRRDLoader extends THREE.Loader {
         // parse the (unzipped) data to a datastream of the correct type
         //
         volume.data = new headerObject.__array(_data)
+
         // get the min and max intensities
         const min_max = volume.computeMinMax()
         const min = min_max[0]
