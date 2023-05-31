@@ -20,7 +20,7 @@ export default function (domEl, lookupPath, options) {
         volconfig,
         cmtextures,
         gui,
-        mode = 'volume' //'slicer'
+        mode = 'slicer' //'volume' //'slicer'
 
     const colorRamps = {
         blue: ['#ffffcc', '#a1dab4', '#41b6c4', '#2c7fb8', '#253494'],
@@ -268,7 +268,7 @@ export default function (domEl, lookupPath, options) {
                 render()
             })
         } else if (mode === 'slicer') {
-            loadNetcdf(null, 'THT', (volume) => {
+            loadNetcdf(null, 'gpr', (volume) => {
                 //box helper to see the extend of the volume
                 const geometry = new THREE.BoxGeometry(
                     volume.xLength,
@@ -328,25 +328,25 @@ export default function (domEl, lookupPath, options) {
                         render()
                     })
 
-                gui.add(volume, 'lowerThreshold', volume.min, volume.max, 1)
+                gui.add(volume, 'lowerThreshold', volume.min, volume.max, 0.01)
                     .name('Lower Threshold')
                     .onChange(function () {
                         volume.repaintAllSlices()
                         render()
                     })
-                gui.add(volume, 'upperThreshold', volume.min, volume.max, 1)
+                gui.add(volume, 'upperThreshold', volume.min, volume.max, 0.01)
                     .name('Upper Threshold')
                     .onChange(function () {
                         volume.repaintAllSlices()
                         render()
                     })
-                gui.add(volume, 'windowLow', volume.min, volume.max, 1)
+                gui.add(volume, 'windowLow', volume.min, volume.max, 0.01)
                     .name('Window Low')
                     .onChange(function () {
                         volume.repaintAllSlices()
                         render()
                     })
-                gui.add(volume, 'windowHigh', volume.min, volume.max, 1)
+                gui.add(volume, 'windowHigh', volume.min, volume.max, 0.01)
                     .name('Window High')
                     .onChange(function () {
                         volume.repaintAllSlices()

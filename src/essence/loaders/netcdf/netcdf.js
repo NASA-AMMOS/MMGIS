@@ -6,7 +6,7 @@ import { Volume } from './Volume.js'
 export default function (path, volumeName, callback) {
     fetch(
         //'./public/misc/A2003.1.WENO5.002.nc'
-        './public/misc/marsYard1.nc'
+        './public/misc/marsYard4.nc'
     )
         .then(readNetcdfHeader)
         .then((header) => fetchVolume(header, volumeName))
