@@ -212,10 +212,18 @@ const L_ = {
             L_._onLayerToggleSubscriptions[k](s.name, !on)
         })
     },
-    toggleLayerHelper: async function (s, on, ignoreToggleStateChange) {
+    toggleLayerHelper: async function (
+        s,
+        on,
+        ignoreToggleStateChange,
+        globeOnly
+    ) {
         if (s.type !== 'header') {
             if (on) {
-                if (L_.Map_.map.hasLayer(L_.layers.layer[s.name])) {
+                if (
+                    L_.Map_.map.hasLayer(L_.layers.layer[s.name]) &&
+                    globeOnly != true
+                ) {
                     try {
                         $('.drawToolContextMenuHeaderClose').click()
                     } catch (err) {}
@@ -261,7 +269,7 @@ const L_ = {
                     L_.Globe_.litho.toggleLayer(s.name, false)
                 } else L_.Globe_.litho.removeLayer(s.name)
             } else {
-                if (L_.layers.layer[s.name]) {
+                if (L_.layers.layer[s.name] && globeOnly != true) {
                     if (L_.layers.attachments[s.name]) {
                         for (let sub in L_.layers.attachments[s.name]) {
                             if (L_.layers.attachments[s.name][sub].on) {
@@ -302,13 +310,18 @@ const L_ = {
                                         break
                                     case 'labels':
                                     case 'pairings':
-                                        L_.layers.attachments[s.name][
-                                            sub
-                                        ].layer.on(
-                                            false,
+                                        if (
                                             L_.layers.attachments[s.name][sub]
                                                 .layer
                                         )
+                                            L_.layers.attachments[s.name][
+                                                sub
+                                            ].layer.on(
+                                                false,
+                                                L_.layers.attachments[s.name][
+                                                    sub
+                                                ].layer
+                                            )
                                         break
                                     default:
                                         L_.Map_.map.addLayer(
@@ -396,37 +409,43 @@ const L_ = {
                     }
                 } else {
                     let hadToMake = false
-                    if (L_.layers.layer[s.name] === false) {
+                    if (
+                        L_.layers.layer[s.name] === false &&
+                        globeOnly != true
+                    ) {
                         await L_.Map_.makeLayer(s, true)
                         Description.updateInfo()
                         hadToMake = true
                     }
                     if (L_.layers.layer[s.name]) {
-                        if (!hadToMake) {
-                            // Refresh annotation popups
-                            if (L_.layers.layer[s.name]._layers)
-                                Object.keys(
-                                    L_.layers.layer[s.name]._layers
-                                ).forEach((key) => {
-                                    const l =
-                                        L_.layers.layer[s.name]._layers[key]
-                                    if (l._isAnnotation) {
-                                        L_.layers.layer[s.name]._layers[key] =
-                                            L_.createAnnotation(
+                        if (globeOnly != true) {
+                            if (!hadToMake) {
+                                // Refresh annotation popups
+                                if (L_.layers.layer[s.name]._layers)
+                                    Object.keys(
+                                        L_.layers.layer[s.name]._layers
+                                    ).forEach((key) => {
+                                        const l =
+                                            L_.layers.layer[s.name]._layers[key]
+                                        if (l._isAnnotation) {
+                                            L_.layers.layer[s.name]._layers[
+                                                key
+                                            ] = L_.createAnnotation(
                                                 l._annotationParams.feature,
                                                 l._annotationParams.className,
                                                 l._annotationParams.layerId,
                                                 l._annotationParams.id1
                                             )
-                                    }
-                                })
+                                        }
+                                    })
+                            }
+                            L_.Map_.map.addLayer(L_.layers.layer[s.name])
+                            L_.layers.layer[s.name].setZIndex(
+                                L_._layersOrdered.length +
+                                    1 -
+                                    L_._layersOrdered.indexOf(s.name)
+                            )
                         }
-                        L_.Map_.map.addLayer(L_.layers.layer[s.name])
-                        L_.layers.layer[s.name].setZIndex(
-                            L_._layersOrdered.length +
-                                1 -
-                                L_._layersOrdered.indexOf(s.name)
-                        )
                         if (s.type === 'vector') {
                             L_.Globe_.litho.addLayer(
                                 s.layer3dType || 'clamped',
@@ -478,23 +497,25 @@ const L_ = {
             }
         }
 
-        if (!ignoreToggleStateChange) {
-            if (on) L_.layers.on[s.name] = false
-            if (!on) L_.layers.on[s.name] = true
-        }
+        if (globeOnly != true) {
+            if (!ignoreToggleStateChange) {
+                if (on) L_.layers.on[s.name] = false
+                if (!on) L_.layers.on[s.name] = true
+            }
 
-        if (s.type === 'vector') L_._updatePairings(s.name, !on)
+            if (s.type === 'vector') L_._updatePairings(s.name, !on)
 
-        if (!on && s.type === 'vector') {
-            L_.Map_.orderedBringToFront()
-        }
-        L_._refreshAnnotationEvents()
+            if (!on && s.type === 'vector') {
+                L_.Map_.orderedBringToFront()
+            }
+            L_._refreshAnnotationEvents()
 
-        // Toggling rereveals hidden features, so make sure they stay hidden
-        if (L_.toggledOffFeatures && L_.toggledOffFeatures.length > 0) {
-            L_.toggledOffFeatures.forEach((f) => {
-                L_.toggleFeature(f, false)
-            })
+            // Toggling rereveals hidden features, so make sure they stay hidden
+            if (L_.toggledOffFeatures && L_.toggledOffFeatures.length > 0) {
+                L_.toggledOffFeatures.forEach((f) => {
+                    L_.toggleFeature(f, false)
+                })
+            }
         }
     },
     _refreshAnnotationEvents() {
@@ -656,10 +677,11 @@ const L_ = {
                                             break
                                         case 'labels':
                                         case 'pairings':
-                                            sublayer.layer.on(
-                                                false,
-                                                sublayer.layer
-                                            )
+                                            if (sublayer.layer)
+                                                sublayer.layer.on(
+                                                    false,
+                                                    sublayer.layer
+                                                )
                                             break
                                         default:
                                             map.addLayer(sublayer.layer)
@@ -829,8 +851,7 @@ const L_ = {
         // Remove layer
         L_.Map_.rmNotNull(L_.layers.layer[layer._layerName])
         // Remove sublayers
-        L_.syncSublayerData(layer._layerName, true)
-
+        await L_.syncSublayerData(layer._layerName, true)
         // Remake Layer
         await L_.Map_.makeLayer(
             L_.layers.data[layer._layerName],
@@ -839,10 +860,20 @@ const L_ = {
         )
 
         if (initialOn) {
-            L_.toggleLayerHelper(L_.layers.data[layer._layerName], false)
+            await L_.toggleLayerHelper(L_.layers.data[layer._layerName], false)
             L_.layers.on[layer._layerName] = true
         }
-        L_.syncSublayerData(layer._layerName)
+        await L_.syncSublayerData(layer._layerName)
+
+        if (initialOn) {
+            // Reselect activeFeature
+            if (L_.activeFeature) {
+                L_.selectFeature(
+                    L_.activeFeature.layerName,
+                    L_.activeFeature.feature
+                )
+            }
+        }
     },
     clearGeoJSONData: function (layer) {
         if (layer._sourceGeoJSON) layer._sourceGeoJSON = F_.getBaseGeoJSON()
@@ -2480,7 +2511,7 @@ const L_ = {
         }
     },
     // Make a layer's sublayer match the layers data again
-    syncSublayerData: function (layerName, onlyClear) {
+    syncSublayerData: async function (layerName, onlyClear) {
         layerName = L_.asLayerUUID(layerName)
 
         try {
@@ -2500,23 +2531,32 @@ const L_ = {
                         subUpdateLayers[sub].layer != null
                     ) {
                         subUpdateLayers[sub].layer.clearLayers()
+                        if (subUpdateLayers[sub].layer._layers)
+                            Object.keys(
+                                subUpdateLayers[sub].layer._layers
+                            ).forEach((l) => {
+                                L_.Map_.rmNotNull(
+                                    subUpdateLayers[sub].layer._layers[l]
+                                )
+                            })
 
                         if (!onlyClear) {
                             if (
                                 typeof subUpdateLayers[sub].layer
                                     .addDataEnhanced === 'function'
-                            )
+                            ) {
                                 subUpdateLayers[sub].layer.addDataEnhanced(
                                     geojson,
                                     layerName,
                                     sub,
                                     L_.Map_
                                 )
-                            else if (
+                            } else if (
                                 typeof subUpdateLayers[sub].layer.addData ===
                                 'function'
-                            )
+                            ) {
                                 subUpdateLayers[sub].layer.addData(geojson)
+                            }
                         }
                     }
                 }
@@ -2528,7 +2568,7 @@ const L_ = {
             )
         }
 
-        L_.globeLithoLayerHelper(L_.layers.data[layerName], onlyClear)
+        await L_.globeLithoLayerHelper(L_.layers.data[layerName], onlyClear)
     },
     clearVectorLayerInfo: function () {
         // Clear the InfoTools data
@@ -2548,10 +2588,10 @@ const L_ = {
             // because if the layer is toggled off, it is not on the globe
             if (L_.layers.on[s.name]) {
                 // turn off
-                await L_.toggleLayerHelper(s, true, true)
+                await L_.toggleLayerHelper(s, true, true, true)
                 // Toggle the layer so its drawn in the globe
                 // turn on
-                if (!onlyClear) L_.toggleLayerHelper(s, false, true)
+                if (!onlyClear) await L_.toggleLayerHelper(s, false, true, true)
             }
         }
     },

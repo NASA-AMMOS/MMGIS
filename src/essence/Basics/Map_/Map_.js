@@ -360,12 +360,13 @@ let Map_ = {
                             L_.layers.attachments[
                                 L_._layersOrdered[hasIndex[i]]
                             ][s].type !== 'model'
-                        )
+                        ) {
                             Map_.map.addLayer(
                                 L_.layers.attachments[
                                     L_._layersOrdered[hasIndex[i]]
                                 ][s].layer
                             )
+                        }
                     }
                 }
             }
