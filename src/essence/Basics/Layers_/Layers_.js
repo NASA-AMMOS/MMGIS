@@ -821,7 +821,7 @@ const L_ = {
 
         L_._refreshAnnotationEvents()
     },
-    addGeoJSONData: async function (layer, geojson) {
+    addGeoJSONData: function (layer, geojson) {
         if (layer._sourceGeoJSON) {
             if (layer._sourceGeoJSON.features)
                 if (geojson.features)
@@ -851,19 +851,19 @@ const L_ = {
         // Remove layer
         L_.Map_.rmNotNull(L_.layers.layer[layer._layerName])
         // Remove sublayers
-        await L_.syncSublayerData(layer._layerName, true)
+        L_.syncSublayerData(layer._layerName, true)
         // Remake Layer
-        await L_.Map_.makeLayer(
+        L_.Map_.makeLayer(
             L_.layers.data[layer._layerName],
             true,
             layer._sourceGeoJSON
         )
 
         if (initialOn) {
-            await L_.toggleLayerHelper(L_.layers.data[layer._layerName], false)
+            L_.toggleLayerHelper(L_.layers.data[layer._layerName], false)
             L_.layers.on[layer._layerName] = true
         }
-        await L_.syncSublayerData(layer._layerName)
+        //L_.syncSublayerData(layer._layerName)
 
         if (initialOn) {
             // Reselect activeFeature
@@ -2531,14 +2531,6 @@ const L_ = {
                         subUpdateLayers[sub].layer != null
                     ) {
                         subUpdateLayers[sub].layer.clearLayers()
-                        if (subUpdateLayers[sub].layer._layers)
-                            Object.keys(
-                                subUpdateLayers[sub].layer._layers
-                            ).forEach((l) => {
-                                L_.Map_.rmNotNull(
-                                    subUpdateLayers[sub].layer._layers[l]
-                                )
-                            })
 
                         if (!onlyClear) {
                             if (
