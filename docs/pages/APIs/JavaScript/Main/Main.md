@@ -597,7 +597,7 @@ window.mmgisAPI.updateLayersTime();
 
 ### addEventListener(eventName, functionReference)
 
-This function adds a map event or MMGIS action listener added using the MMGIS API. This function takes in one of the following events: `onPan`, `onZoom`, `onClick`, `toolChange`, `layerVisibilityChange`. The MMGIS action listener (`toolChange`, `layerVisibilityChange`, `websocketChange`) functions are called with an `event` parameter.
+This function adds a map event or MMGIS action listener added using the MMGIS API. This function takes in one of the following events: `onPan`, `onZoom`, `onClick`, `toolChange`, `layerVisibilityChange`. The MMGIS action listener (`toolChange`, `layerVisibilityChange`, `websocketChange`, `toggleSeparatedTool`) functions are called with an `event` parameter.
 
 #### Function parameters
 

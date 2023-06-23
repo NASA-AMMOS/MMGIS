@@ -389,6 +389,7 @@ var mmgisAPI_ = {
             'toolChange',
             'layerVisibilityChange',
             'websocketChange',
+            'toggleSeparatedTool',
         ]
         return validEvents.includes(eventName)
     },
@@ -649,7 +650,7 @@ var mmgisAPI = {
     getVisibleLayers: mmgisAPI_.getVisibleLayers,
 
     /** addEventListener - adds map event or MMGIS action listener.
-     * @param {string} - eventName - name of event to add listener to. Available events: onPan, onZoom, onClick, toolChange, layerVisibilityChange
+     * @param {string} - eventName - name of event to add listener to. Available events: onPan, onZoom, onClick, toolChange, layerVisibilityChange, toggleSeparatedTool
 
      * @param {function} - functionReference - function reference to listener event callback function. null value removes all functions for a given eventName
 
@@ -657,7 +658,7 @@ var mmgisAPI = {
     addEventListener: mmgisAPI_.addEventListener,
 
     /** removeEventListener - removes map event or MMGIS action listener added using the MMGIS API.
-     * @param {string} - eventName - name of event to add listener to. Available events: onPan, onZoom, onClick, toolChange, layerVisibilityChange
+     * @param {string} - eventName - name of event to add listener to. Available events: onPan, onZoom, onClick, toolChange, layerVisibilityChange, toggleSeparatedTool
      * @param {function} - functionReference - function reference to listener event callback function. null value removes all functions for a given eventName
      */
     removeEventListener: mmgisAPI_.removeEventListener,
@@ -691,7 +692,7 @@ var mmgisAPI = {
      */
     toggleLayer: mmgisAPI_.toggleLayer,
 
-    /** overwriteLegends - overwrite the contents displayed in the LegendTool; useful when used with `toolChange` event listener in mmgisAPI
+    /** overwriteLegends - overwrite the contents displayed in the LegendTool; useful when used with `toggleSeparatedTool` event listener in mmgisAPI
      * @param {array} - legends - an array of objects, where each object must contain the following keys: legend, layerUUID, display_name, opacity. The value for the legend key should be in the same format as what is stored in the layers data under the `_legend` key (i.e. `L_.layers.data[layerName]._legend`). layerUUID and display_name should be strings and opacity should be a number between 0 and 1.
      */
     overwriteLegends: LegendTool.overwriteLegends,

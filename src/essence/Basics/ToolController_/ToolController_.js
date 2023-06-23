@@ -96,6 +96,15 @@ let ToolController_ = {
                                             `toolContentSeparated_${ToolController_.tools[i].name}`
                                         )
                                     else tM.destroy()
+
+                                    // Dispatch `toggleSeparatedTool` event
+                                    let _event = new CustomEvent('toggleSeparatedTool', {
+                                        detail: {
+                                            toggledToolName: ToolController_.tools[i].js,
+                                            visible: tM.made,
+                                        },
+                                    })
+                                    document.dispatchEvent(_event)
                                 }
                             }
                         })(i)
