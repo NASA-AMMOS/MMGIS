@@ -2469,9 +2469,24 @@ const L_ = {
                     return
                 }
 
-                L_.clearVectorLayerInfo()
+                const initialOn = L_.layers.on[layerName]
+                if (initialOn) {
+                    L_.toggleLayerHelper(L_.layers.data[layerName], false)
+                    L_.layers.on[layerName] = true
+                }
+
                 L_.clearGeoJSONData(updateLayer)
                 L_.addGeoJSONData(updateLayer, layersGeoJSON)
+
+                if (initialOn) {
+                    // Reselect activeFeature
+                    if (L_.activeFeature) {
+                        L_.selectFeature(
+                            L_.activeFeature.layerName,
+                            L_.activeFeature.feature
+                        )
+                    }
+                }
             } else {
                 console.warn(
                     'Warning: Unable to append to the vector layer `' +
