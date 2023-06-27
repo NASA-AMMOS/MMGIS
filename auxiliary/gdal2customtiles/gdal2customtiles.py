@@ -1460,6 +1460,7 @@ def create_base_tile(tile_job_info: "TileJobInfo", tile_detail: "TileDetail") ->
     wxsize = tile_detail.wxsize
     wysize = tile_detail.wysize
     querysize = tile_detail.querysize
+
     # MMGIS
     isDEMtile = tile_detail.isDEMtile
 
@@ -1569,7 +1570,7 @@ def create_base_tile(tile_job_info: "TileJobInfo", tile_detail: "TileDetail") ->
                 band_list=list(range(1, dataBandsCount + 1)),
             )
             dstile.WriteRaster(wx, wy, wxsize, wysize,
-                               alpha, band_list=[tilebands])
+                            alpha, band_list=[tilebands])
 
             # Note: For source drivers based on WaveLet compression (JPEG2000, ECW,
             # MrSID) the ReadRaster function returns high-quality raster (not ugly
@@ -2552,38 +2553,26 @@ class GDAL2Tiles(object):
         
         
         if self.isRasterBounded:  
-            self.warped_input_dataset.fRasterXSize = int(math.ceil(self.warped_input_dataset.RasterXSize * (self.fmaxx - self.fminx) / (
-                self.omaxx - self.ominx) * (self.warped_input_dataset.PixelSize / self.warped_input_dataset.fPixelSize)))
-            self.warped_input_dataset.fRasterYSize = int(math.floor(self.warped_input_dataset.RasterYSize * (self.fmaxy - self.fminy) / (
-                self.omaxy - self.ominy) * (self.warped_input_dataset.PixelSize / self.warped_input_dataset.fPixelSize)))
-            self.warped_input_dataset.fRasterXSizeRaw = int(math.ceil(
-                self.warped_input_dataset.RasterXSize * (self.fmaxx - self.fminx) / (self.omaxx - self.ominx)))
-            self.warped_input_dataset.fRasterYSizeRaw = int(math.floor(
-                self.warped_input_dataset.RasterYSize * (self.fmaxy - self.fminy) / (self.omaxy - self.ominy)))
-            self.warped_input_dataset.fRasterXOrigin = int(math.ceil(linearScale(
-                [self.fminx, self.fmaxx], [0, self.warped_input_dataset.fRasterXSize], self.out_gt[0])))
-            self.warped_input_dataset.fRasterYOrigin = int(math.floor(linearScale(
-                [self.fminy, self.fmaxy], [self.warped_input_dataset.fRasterYSize, 0], self.out_gt[3])))
-            self.warped_input_dataset.fRasterXOriginRaw = int(math.ceil(linearScale([self.fminx, self.fmaxx], [
-                                                0, self.warped_input_dataset.fRasterXSize], self.out_gt[0]) * (self.warped_input_dataset.fPixelSize / self.warped_input_dataset.PixelSize)))
-            self.warped_input_dataset.fRasterYOriginRaw = int(math.floor(linearScale([self.fminy, self.fmaxy], [
-                                                self.warped_input_dataset.fRasterYSize, 0], self.out_gt[3]) * (self.warped_input_dataset.fPixelSize / self.warped_input_dataset.PixelSize)))
-            #self.warped_input_dataset.fRasterXWidth = int(math.ceil(linearScale(
-            #    [self.fminx, self.fmaxx], [0, self.warped_input_dataset.fRasterXSize], self.omaxx))) - self.warped_input_dataset.fRasterXOrigin
-            self.warped_input_dataset.fRasterXWidth = int(math.ceil(linearScale(
-                [self.fminx, self.fmaxx], [0, self.warped_input_dataset.fRasterXSize], self.omaxx))) - int(math.ceil(linearScale(
-                [self.fminx, self.fmaxx], [0, self.warped_input_dataset.fRasterXSize], self.ominx)))
-            print('==x', int(math.ceil(linearScale(
-                [self.fminx, self.fmaxx], [0, self.warped_input_dataset.fRasterXSize], self.omaxx))), int(math.ceil(linearScale(
-                [self.fminx, self.fmaxx], [0, self.warped_input_dataset.fRasterXSize], self.ominx))))
-            print('==y', int(math.ceil(linearScale(
-                [self.fminy, self.fmaxy], [0, self.warped_input_dataset.fRasterYSize], self.omaxy))), int(math.ceil(linearScale(
-                [self.fminy, self.fmaxy], [0, self.warped_input_dataset.fRasterYSize], self.ominy))))
-            #self.warped_input_dataset.fRasterYHeight = int(math.floor(linearScale(
-            #    [self.fminy, self.fmaxy], [0, self.warped_input_dataset.fRasterYSize], self.omaxy))) - self.warped_input_dataset.fRasterYOrigin
-            self.warped_input_dataset.fRasterYHeight = int(math.ceil(linearScale(
-                [self.fminy, self.fmaxy], [0, self.warped_input_dataset.fRasterYSize], self.omaxy))) - int(math.ceil(linearScale(
-                [self.fminy, self.fmaxy], [0, self.warped_input_dataset.fRasterYSize], self.ominy)))
+            self.warped_input_dataset.fRasterXSize = self.warped_input_dataset.RasterXSize * (self.fmaxx - self.fminx) / (
+                self.omaxx - self.ominx) * (self.warped_input_dataset.PixelSize / self.warped_input_dataset.fPixelSize)
+            self.warped_input_dataset.fRasterYSize = self.warped_input_dataset.RasterYSize * (self.fmaxy - self.fminy) / (
+                self.omaxy - self.ominy) * (self.warped_input_dataset.PixelSize / self.warped_input_dataset.fPixelSize)
+            self.warped_input_dataset.fRasterXSizeRaw = self.warped_input_dataset.RasterXSize * (self.fmaxx - self.fminx) / (self.omaxx - self.ominx)
+            self.warped_input_dataset.fRasterYSizeRaw = self.warped_input_dataset.RasterYSize * (self.fmaxy - self.fminy) / (self.omaxy - self.ominy)
+            self.warped_input_dataset.fRasterXOrigin = linearScale(
+                [self.fminx, self.fmaxx], [0, self.warped_input_dataset.fRasterXSize], self.out_gt[0])
+            self.warped_input_dataset.fRasterYOrigin = linearScale(
+                [self.fminy, self.fmaxy], [self.warped_input_dataset.fRasterYSize, 0], self.out_gt[3])
+            self.warped_input_dataset.fRasterXOriginRaw = linearScale([self.fminx, self.fmaxx], [
+                                                0, self.warped_input_dataset.fRasterXSize], self.out_gt[0]) * (self.warped_input_dataset.fPixelSize / self.warped_input_dataset.PixelSize)
+            self.warped_input_dataset.fRasterYOriginRaw = linearScale([self.fminy, self.fmaxy], [
+                                                self.warped_input_dataset.fRasterYSize, 0], self.out_gt[3]) * (self.warped_input_dataset.fPixelSize / self.warped_input_dataset.PixelSize)
+            self.warped_input_dataset.fRasterXWidth = linearScale(
+                [self.fminx, self.fmaxx], [0, self.warped_input_dataset.fRasterXSize], self.omaxx) - linearScale(
+                [self.fminx, self.fmaxx], [0, self.warped_input_dataset.fRasterXSize], self.ominx)
+            self.warped_input_dataset.fRasterYHeight = linearScale(
+                [self.fminy, self.fmaxy], [0, self.warped_input_dataset.fRasterYSize], self.omaxy) - linearScale(
+                [self.fminy, self.fmaxy], [0, self.warped_input_dataset.fRasterYSize], self.ominy)
         if self.options.verbose:
             print("ominx", self.ominx, "omaxx", self.omaxx, "ominy", self.ominy, "omaxy", self.omaxy)
             print("fminx", self.fminx, "fmaxx", self.fmaxx, "fminy", self.fminy, "fmaxy", self.fmaxy)
@@ -2723,18 +2712,12 @@ class GDAL2Tiles(object):
                     math.ceil(log2(self.warped_input_dataset.fRasterYSize/float(self.tile_size)))))
 
             # MMGIS
-            self.warped_input_dataset.fWorldXSize = int(
-                float(self.warped_input_dataset.fRasterXSize) * (2**(self.nativezoom - self.basenativezoom)))
-            self.warped_input_dataset.fWorldYSize = int(
-                float(self.warped_input_dataset.fRasterYSize) * (2**(self.nativezoom - self.basenativezoom)))
-            self.warped_input_dataset.fRasterXOriginWorld = int(float(
-                self.warped_input_dataset.fWorldXSize) * (float(self.warped_input_dataset.fRasterXOrigin) / self.warped_input_dataset.fRasterXSize))
-            self.warped_input_dataset.fRasterYOriginWorld = int(float(
-                self.warped_input_dataset.fWorldYSize) * (float(self.warped_input_dataset.fRasterYOrigin) / self.warped_input_dataset.fRasterYSize))
-            self.warped_input_dataset.fRasterXSizeWorld = int(float(
-                self.warped_input_dataset.fWorldXSize) * (float(self.warped_input_dataset.fRasterXWidth) / self.warped_input_dataset.fRasterXSize))
-            self.warped_input_dataset.fRasterYSizeWorld = int(float(
-                self.warped_input_dataset.RasterYSize) * (float(self.warped_input_dataset.fRasterXSizeWorld) / self.warped_input_dataset.RasterXSize)) 
+            self.warped_input_dataset.fWorldXSize = float(self.warped_input_dataset.fRasterXSize) * (2**(self.nativezoom - self.basenativezoom))
+            self.warped_input_dataset.fWorldYSize = float(self.warped_input_dataset.fRasterYSize) * (2**(self.nativezoom - self.basenativezoom))
+            self.warped_input_dataset.fRasterXOriginWorld = float(self.warped_input_dataset.fWorldXSize) * (float(self.warped_input_dataset.fRasterXOrigin) / self.warped_input_dataset.fRasterXSize)
+            self.warped_input_dataset.fRasterYOriginWorld = float(self.warped_input_dataset.fWorldYSize) * (float(self.warped_input_dataset.fRasterYOrigin) / self.warped_input_dataset.fRasterYSize)
+            self.warped_input_dataset.fRasterXSizeWorld = float(self.warped_input_dataset.fWorldXSize) * (float(self.warped_input_dataset.fRasterXWidth) / self.warped_input_dataset.fRasterXSize)
+            self.warped_input_dataset.fRasterYSizeWorld = float(self.warped_input_dataset.RasterYSize) * (float(self.warped_input_dataset.fRasterXSizeWorld) / self.warped_input_dataset.RasterXSize) 
             
             #self.warped_input_dataset.fRasterXSizeWorld = self.warped_input_dataset.RasterXSize
             #self.warped_input_dataset.fRasterYSizeWorld = self.warped_input_dataset.RasterYSize
@@ -3172,7 +3155,7 @@ class GDAL2Tiles(object):
                         querysize = self.tile_size
 
                     rx = (tx) * tsize - self.warped_input_dataset.fRasterXOriginWorld
-                    
+
                     rxsize = 0
                     rxsize = tsize
 
@@ -3183,41 +3166,47 @@ class GDAL2Tiles(object):
                         self.warped_input_dataset.fRasterYOriginWorld
 
                     wx, wy = 0, 0
-                    wxsize = int(rxsize/float(tsize) * self.tile_size)
-                    wysize = int(rysize/float(tsize) * self.tile_size)
+                    wxsize = rxsize/float(tsize) * self.tile_size
+                    wysize = rysize/float(tsize) * self.tile_size
                     if wysize != self.tile_size:
                         wy = self.tile_size - wysize
 
                     if rx < 0:
                         rxsize = tsize + rx
                         wx = -rx
-                        wxsize = int(rxsize/float(tsize) * self.tile_size)
+                        wxsize = rxsize/float(tsize) * self.tile_size
                         rx = 0
                     if ry < 0:
                         rysize = tsize + ry
                         wy = -ry
-                        wysize = int(rysize/float(tsize) * self.tile_size)
+                        wysize = rysize/float(tsize) * self.tile_size
                         ry = 0
                     if rx + rxsize > self.warped_input_dataset.fRasterXSizeWorld:
                         rxsize = self.warped_input_dataset.fRasterXSizeWorld - rx
-                        wxsize = int(rxsize/float(tsize) * self.tile_size)
+                        wxsize = rxsize/float(tsize) * self.tile_size
                     if ry + rysize > self.warped_input_dataset.fRasterYSizeWorld:
                         rysize = self.warped_input_dataset.fRasterYSizeWorld - ry
-                        wysize = int(rysize/float(tsize) * self.tile_size)
+                        wysize = rysize/float(tsize) * self.tile_size
 
                     # Convert rx, ry back to non-world coordinates
-                    rx = int(float(self.warped_input_dataset.RasterXSize) *
-                             (float(rx) / self.warped_input_dataset.fRasterXSizeWorld))
-                    ry = int(float(self.warped_input_dataset.RasterYSize) *
-                             (float(ry) / self.warped_input_dataset.fRasterYSizeWorld))
-                    rxsize = int(float(self.warped_input_dataset.RasterXSize) *
-                                 (float(rxsize) / self.warped_input_dataset.fRasterXSizeWorld))
-                    rysize = int(float(self.warped_input_dataset.RasterYSize) *
-                                 (float(rysize) / self.warped_input_dataset.fRasterYSizeWorld))
+                    rx = float(self.warped_input_dataset.RasterXSize) * (float(rx) / self.warped_input_dataset.fRasterXSizeWorld)
+                    ry = float(self.warped_input_dataset.RasterYSize) * (float(ry) / self.warped_input_dataset.fRasterYSizeWorld)
+                    rxsize = float(self.warped_input_dataset.RasterXSize) * (float(rxsize) / self.warped_input_dataset.fRasterXSizeWorld)
+                    rysize = float(self.warped_input_dataset.RasterYSize) * (float(rysize) / self.warped_input_dataset.fRasterYSizeWorld)
                     
                     if self.isDEMtile:
                         wxsize -= 1  # 1bto4b
                         wysize -= 1  # 1bto4b
+
+                    rx = round(rx)
+                    ry = round(ry)
+                    rxsize = math.floor(rxsize)
+                    rysize = math.floor(rysize)
+                    wx = round(wx)
+                    wy = round(wy)
+                    wxsize = round(wxsize)
+                    wysize = round(wysize)
+
 
                     #print("Tile: ", (tz, tx, ty, tsize))
                     #print("Read: ", (rx, ry, rxsize, rysize))
