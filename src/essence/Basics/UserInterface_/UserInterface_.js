@@ -1378,20 +1378,20 @@ function windowresize() {
     UserInterface.mainHeight = $('#splitscreens').height()
 
     //Resize widest panel so that their sum is the screen width
-    var widest = Math.max(
+    const widest = Math.max(
         UserInterface.pxIsViewer,
         UserInterface.pxIsMap,
         UserInterface.pxIsGlobe
     )
-    if (UserInterface.pxIsViewer == widest)
-        UserInterface.pxIsViewer =
-            UserInterface.mainWidth -
-            UserInterface.pxIsMap -
-            UserInterface.pxIsGlobe
-    else if (UserInterface.pxIsMap == widest)
+    if (UserInterface.pxIsMap == widest)
         UserInterface.pxIsMap =
             UserInterface.mainWidth -
             UserInterface.pxIsViewer -
+            UserInterface.pxIsGlobe
+    else if (UserInterface.pxIsViewer == widest)
+        UserInterface.pxIsViewer =
+            UserInterface.mainWidth -
+            UserInterface.pxIsMap -
             UserInterface.pxIsGlobe
     else if (UserInterface.pxIsGlobe == widest)
         UserInterface.pxIsGlobe =
