@@ -805,9 +805,9 @@ const pairings = (geojson, layerObj, leafletLayerObject) => {
             return
         }
 
-        const getPairingLayer = (dontCalculate) => {
+        const getPairingLayer = (dontCalculate, forceGeojson) => {
             const pairingLineFeatures = []
-
+            if (forceGeojson) geojson = forceGeojson
             if (!dontCalculate)
                 geojson.features.forEach((f) => {
                     const featureCenter = centroid(f).geometry.coordinates
@@ -857,7 +857,11 @@ const pairings = (geojson, layerObj, leafletLayerObject) => {
             let layer = L.geoJson(pairingLineFeatures, styleObject)
 
             layer.on = (firstTime, sublayerLayer) => {
-                layer.off()
+                const layerMain =
+                    L_.layers.attachments?.[layerObj.name]?.pairings?.layer
+                if (layerMain == null) return
+
+                layerMain.off()
                 // For checking whether we can use the previous layer instead of recreating
                 const constructedFromLayers = []
                 layers.forEach((layerName) => {
@@ -875,14 +879,20 @@ const pairings = (geojson, layerObj, leafletLayerObject) => {
                 if (constructedTag.length > 0) {
                     if (
                         sublayerLayer == null ||
-                        constructedTag !== layer.constructedTag
+                        constructedTag !== layerMain.constructedTag
                     ) {
-                        layer = getPairingLayer()
-                        layer.constructedTag = constructedTag
-                        if (sublayerLayer) sublayerLayer = layer
+                        L_.layers.attachments[layerObj.name].pairings.layer =
+                            getPairingLayer()
+                        L_.layers.attachments[
+                            layerObj.name
+                        ].pairings.layer.constructedTag = constructedTag
+                        if (sublayerLayer)
+                            sublayerLayer =
+                                L_.layers.attachments[layerObj.name].pairings
+                                    .layer
                     }
-                    L_.Map_.map.addLayer(layer)
-                    layer.setZIndex(
+                    L_.Map_.map.addLayer(layerMain)
+                    layerMain.setZIndex(
                         L_._layersOrdered.length +
                             1 -
                             L_._layersOrdered.indexOf(layerObj.name)
@@ -890,12 +900,32 @@ const pairings = (geojson, layerObj, leafletLayerObject) => {
                 }
             }
             layer.off = () => {
-                L_.Map_.rmNotNull(layer)
+                const layerMain =
+                    L_.layers.attachments?.[layerObj.name]?.pairings?.layer
+                if (layerMain == null) return
+
+                L_.Map_.rmNotNull(layerMain)
             }
             return layer
         }
 
+        // Doesn't matter if Map isn't attached to Layers for the first time
+        if (L_.Map_) {
+            L_.Map_.rmNotNull(
+                L_.layers.attachments?.[layerObj.name]?.pairings?.layer
+            )
+        }
         const layer = getPairingLayer(true)
+
+        layer.addDataEnhanced = function (geojson, layerName, subName, Map_) {
+            Map_.rmNotNull(L_.layers.attachments[layerName][subName].layer)
+            L_.layers.attachments[layerName][subName].geojson = geojson
+            L_.layers.attachments[layerName][subName].layer = getPairingLayer(
+                false,
+                geojson
+            )
+            Map_.map.addLayer(L_.layers.attachments[layerName][subName].layer) //
+        }
 
         return {
             on: L_.layers.attachments[layerObj.name]?.pairings
