@@ -2568,10 +2568,22 @@ class GDAL2Tiles(object):
                                                 0, self.warped_input_dataset.fRasterXSize], self.out_gt[0]) * (self.warped_input_dataset.fPixelSize / self.warped_input_dataset.PixelSize)))
             self.warped_input_dataset.fRasterYOriginRaw = int(math.floor(linearScale([self.fminy, self.fmaxy], [
                                                 self.warped_input_dataset.fRasterYSize, 0], self.out_gt[3]) * (self.warped_input_dataset.fPixelSize / self.warped_input_dataset.PixelSize)))
+            #self.warped_input_dataset.fRasterXWidth = int(math.ceil(linearScale(
+            #    [self.fminx, self.fmaxx], [0, self.warped_input_dataset.fRasterXSize], self.omaxx))) - self.warped_input_dataset.fRasterXOrigin
             self.warped_input_dataset.fRasterXWidth = int(math.ceil(linearScale(
-                [self.fminx, self.fmaxx], [0, self.warped_input_dataset.fRasterXSize], self.omaxx))) - self.warped_input_dataset.fRasterXOrigin
-            self.warped_input_dataset.fRasterYHeight = int(math.floor(linearScale(
-                [self.fminy, self.fmaxy], [0, self.warped_input_dataset.fRasterYSize], self.omaxy))) - self.warped_input_dataset.fRasterYOrigin
+                [self.fminx, self.fmaxx], [0, self.warped_input_dataset.fRasterXSize], self.omaxx))) - int(math.ceil(linearScale(
+                [self.fminx, self.fmaxx], [0, self.warped_input_dataset.fRasterXSize], self.ominx)))
+            print('==x', int(math.ceil(linearScale(
+                [self.fminx, self.fmaxx], [0, self.warped_input_dataset.fRasterXSize], self.omaxx))), int(math.ceil(linearScale(
+                [self.fminx, self.fmaxx], [0, self.warped_input_dataset.fRasterXSize], self.ominx))))
+            print('==y', int(math.ceil(linearScale(
+                [self.fminy, self.fmaxy], [0, self.warped_input_dataset.fRasterYSize], self.omaxy))), int(math.ceil(linearScale(
+                [self.fminy, self.fmaxy], [0, self.warped_input_dataset.fRasterYSize], self.ominy))))
+            #self.warped_input_dataset.fRasterYHeight = int(math.floor(linearScale(
+            #    [self.fminy, self.fmaxy], [0, self.warped_input_dataset.fRasterYSize], self.omaxy))) - self.warped_input_dataset.fRasterYOrigin
+            self.warped_input_dataset.fRasterYHeight = int(math.ceil(linearScale(
+                [self.fminy, self.fmaxy], [0, self.warped_input_dataset.fRasterYSize], self.omaxy))) - int(math.ceil(linearScale(
+                [self.fminy, self.fmaxy], [0, self.warped_input_dataset.fRasterYSize], self.ominy)))
         if self.options.verbose:
             print("ominx", self.ominx, "omaxx", self.omaxx, "ominy", self.ominy, "omaxy", self.omaxy)
             print("fminx", self.fminx, "fmaxx", self.fmaxx, "fminy", self.fminy, "fmaxy", self.fmaxy)
@@ -2737,6 +2749,8 @@ class GDAL2Tiles(object):
 
             if self.options.verbose:
                 print("Native zoom of the raster:", self.nativezoom)
+                print("Base native zoom of the raster:", self.basenativezoom)
+                print("tile_size:", self.tile_size)
 
             # Get the minimal zoom level (whole raster in one tile)
             if self.tminz is None:
