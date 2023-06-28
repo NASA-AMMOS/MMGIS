@@ -1825,7 +1825,9 @@ const L_ = {
     selectPoint(activePoint) {
         if (activePoint == null) return false
         // Backward pre-uuid compatibility
-        activePoint.layerUUID = L_.asLayerUUID(activePoint.layerUUID)
+        activePoint.layerUUID = L_.asLayerUUID(
+            activePoint.layerUUID || activePoint.layerName
+        )
 
         if (
             activePoint.layerUUID != null &&
@@ -1919,6 +1921,9 @@ const L_ = {
                 L_.Globe_.litho.setCenter(newView)
             }
         }
+        setTimeout(() => {
+            L_.setActiveFeature(layer)
+        }, 300)
     },
     reorderLayers: function (newLayersOrdered) {
         // Check that newLayersOrdered is valid
