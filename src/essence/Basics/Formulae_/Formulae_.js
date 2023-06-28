@@ -1718,15 +1718,41 @@ var Formulae_ = {
             },
         }
     },
-    pointsInPoint(point, layers) {
-        var points = []
+    // searchRadiusInDegrees = [lng, lng, lat, lat] bbox
+    pointsInPoint(point, layers, searchRadiusInDegrees) {
+        const points = []
 
-        var l = layers._layers
+        const l = layers._layers
 
         if (l == null) return points
 
-        for (var i in l) {
-            if (
+        for (let i in l) {
+            if (searchRadiusInDegrees != null) {
+                if (
+                    l[i].feature.geometry.coordinates[0] >
+                        Math.min(
+                            searchRadiusInDegrees[0],
+                            searchRadiusInDegrees[1]
+                        ) &&
+                    l[i].feature.geometry.coordinates[0] <
+                        Math.max(
+                            searchRadiusInDegrees[0],
+                            searchRadiusInDegrees[1]
+                        ) &&
+                    l[i].feature.geometry.coordinates[1] >
+                        Math.min(
+                            searchRadiusInDegrees[2],
+                            searchRadiusInDegrees[3]
+                        ) &&
+                    l[i].feature.geometry.coordinates[1] <
+                        Math.max(
+                            searchRadiusInDegrees[2],
+                            searchRadiusInDegrees[3]
+                        )
+                ) {
+                    points.push(l[i])
+                }
+            } else if (
                 l[i].feature.geometry.coordinates[0] == point[0] &&
                 l[i].feature.geometry.coordinates[1] == point[1]
             )

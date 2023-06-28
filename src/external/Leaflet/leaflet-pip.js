@@ -68,10 +68,9 @@
                                 p = p.concat().reverse()
 
                             var results = []
-                            if (typeof layer.eachLayer === 'feature') {
+                            if (typeof layer.eachLayer === 'function') {
                                 layer.eachLayer(function (l) {
                                     if (first && results.length) return
-
                                     if (
                                         isPoly(l) &&
                                         gju.pointInPolygon(
