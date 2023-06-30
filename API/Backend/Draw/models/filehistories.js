@@ -43,6 +43,11 @@ const attributes = {
     type: Sequelize.DataTypes.ARRAY(Sequelize.DataTypes.INTEGER),
     allowNull: true,
   },
+  author: {
+    type: Sequelize.STRING,
+    unique: false,
+    allowNull: true,
+  },
 };
 
 const options = {
@@ -57,5 +62,27 @@ var FilehistoriesTEST = sequelize.define(
   options
 );
 
+// Adds to the table, never removes
+const up = async () => {
+  // author column
+  await sequelize
+    .query(
+      `ALTER TABLE file_histories ADD COLUMN IF NOT EXISTS author varchar(255) NULL;`
+    )
+    .then(() => {
+      return null;
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        `Failed to adding file_histories.author column. DB tables may be out of sync!`,
+        "file_histories",
+        null,
+        err
+      );
+      return null;
+    });
+};
+
 // export Filehistories model for use in other files.
-module.exports = { Filehistories, FilehistoriesTEST };
+module.exports = { Filehistories, FilehistoriesTEST, up };

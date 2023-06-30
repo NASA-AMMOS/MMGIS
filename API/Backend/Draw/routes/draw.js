@@ -49,6 +49,7 @@ const pushToHistory = (
   time,
   undoToTime,
   action_index,
+  user,
   successCallback,
   failureCallback
 ) => {
@@ -85,6 +86,7 @@ const pushToHistory = (
             time: time,
             action_index: action_index,
             history: h,
+            author: user,
           };
           // Insert new entry into the history table
           Table.create(newHistoryEntry)
@@ -252,6 +254,7 @@ const clipOver = function (
                 time,
                 null,
                 5,
+                req.user,
                 () => {
                   if (typeof successCallback === "function") successCallback();
                 },
@@ -392,6 +395,7 @@ const clipUnder = function (
                 time,
                 null,
                 7,
+                req.user,
                 () => {
                   if (typeof successCallback === "function") successCallback();
                 },
@@ -475,13 +479,28 @@ const add = function (
   Files.findOne({
     where: {
       id: req.body.file_id,
-      [Sequelize.Op.or]: {
-        file_owner: req.user,
-        [Sequelize.Op.and]: {
-          file_owner: "group",
-          file_owner_group: { [Sequelize.Op.overlap]: groups },
+      [Sequelize.Op.or]: [
+        { file_owner: req.user },
+        {
+          [Sequelize.Op.and]: {
+            file_owner: "group",
+            file_owner_group: { [Sequelize.Op.overlap]: groups },
+          },
         },
-      },
+        {
+          [Sequelize.Op.and]: {
+            public: "1",
+            publicity_type: "list_edit",
+            public_editors: { [Sequelize.Op.contains]: [req.user] },
+          },
+        },
+        {
+          [Sequelize.Op.and]: {
+            public: "1",
+            publicity_type: "all_edit",
+          },
+        },
+      ],
     },
   }).then((file) => {
     if (!file) {
@@ -581,6 +600,7 @@ const add = function (
                       time,
                       null,
                       0,
+                      req.user,
                       () => {
                         if (typeof successCallback === "function")
                           successCallback(created.id, created.intent);
@@ -665,13 +685,28 @@ const edit = function (req, res, successCallback, failureCallback) {
   Files.findOne({
     where: {
       id: req.body.file_id,
-      [Sequelize.Op.or]: {
-        file_owner: req.user,
-        [Sequelize.Op.and]: {
-          file_owner: "group",
-          file_owner_group: { [Sequelize.Op.overlap]: groups },
+      [Sequelize.Op.or]: [
+        { file_owner: req.user },
+        {
+          [Sequelize.Op.and]: {
+            file_owner: "group",
+            file_owner_group: { [Sequelize.Op.overlap]: groups },
+          },
         },
-      },
+        {
+          [Sequelize.Op.and]: {
+            public: "1",
+            publicity_type: "list_edit",
+            public_editors: { [Sequelize.Op.contains]: [req.user] },
+          },
+        },
+        {
+          [Sequelize.Op.and]: {
+            public: "1",
+            publicity_type: "all_edit",
+          },
+        },
+      ],
     },
   })
     .then((file) => {
@@ -749,6 +784,7 @@ const edit = function (req, res, successCallback, failureCallback) {
                       time,
                       null,
                       1,
+                      req.user,
                       () => {
                         successCallback(createdId, createdUUID, createdIntent);
                       },
@@ -822,13 +858,28 @@ router.post("/remove", function (req, res, next) {
   Files.findOne({
     where: {
       id: req.body.file_id,
-      [Sequelize.Op.or]: {
-        file_owner: req.user,
-        [Sequelize.Op.and]: {
-          file_owner: "group",
-          file_owner_group: { [Sequelize.Op.overlap]: groups },
+      [Sequelize.Op.or]: [
+        { file_owner: req.user },
+        {
+          [Sequelize.Op.and]: {
+            file_owner: "group",
+            file_owner_group: { [Sequelize.Op.overlap]: groups },
+          },
         },
-      },
+        {
+          [Sequelize.Op.and]: {
+            public: "1",
+            publicity_type: "list_edit",
+            public_editors: { [Sequelize.Op.contains]: [req.user] },
+          },
+        },
+        {
+          [Sequelize.Op.and]: {
+            public: "1",
+            publicity_type: "all_edit",
+          },
+        },
+      ],
     },
   }).then((file) => {
     if (!file) {
@@ -861,6 +912,7 @@ router.post("/remove", function (req, res, next) {
             time,
             null,
             2,
+            req.user,
             () => {
               logger("info", "Feature removed.", req.originalUrl, req);
               res.send({
@@ -927,13 +979,28 @@ router.post("/undo", function (req, res, next) {
   Files.findOne({
     where: {
       id: req.body.file_id,
-      [Sequelize.Op.or]: {
-        file_owner: req.user,
-        [Sequelize.Op.and]: {
-          file_owner: "group",
-          file_owner_group: { [Sequelize.Op.overlap]: groups },
+      [Sequelize.Op.or]: [
+        { file_owner: req.user },
+        {
+          [Sequelize.Op.and]: {
+            file_owner: "group",
+            file_owner_group: { [Sequelize.Op.overlap]: groups },
+          },
         },
-      },
+        {
+          [Sequelize.Op.and]: {
+            public: "1",
+            publicity_type: "list_edit",
+            public_editors: { [Sequelize.Op.contains]: [req.user] },
+          },
+        },
+        {
+          [Sequelize.Op.and]: {
+            public: "1",
+            publicity_type: "all_edit",
+          },
+        },
+      ],
     },
   }).then((file) => {
     if (!file) {
@@ -992,6 +1059,7 @@ router.post("/undo", function (req, res, next) {
             time,
             req.body.undo_time,
             3,
+            req.user,
             () => {
               logger("info", "Undo successful.", req.originalUrl, req);
               res.send({
@@ -1052,13 +1120,28 @@ router.post("/merge", function (req, res, next) {
   Files.findOne({
     where: {
       id: req.body.file_id,
-      [Sequelize.Op.or]: {
-        file_owner: req.user,
-        [Sequelize.Op.and]: {
-          file_owner: "group",
-          file_owner_group: { [Sequelize.Op.overlap]: groups },
+      [Sequelize.Op.or]: [
+        { file_owner: req.user },
+        {
+          [Sequelize.Op.and]: {
+            file_owner: "group",
+            file_owner_group: { [Sequelize.Op.overlap]: groups },
+          },
         },
-      },
+        {
+          [Sequelize.Op.and]: {
+            public: "1",
+            publicity_type: "list_edit",
+            public_editors: { [Sequelize.Op.contains]: [req.user] },
+          },
+        },
+        {
+          [Sequelize.Op.and]: {
+            public: "1",
+            publicity_type: "all_edit",
+          },
+        },
+      ],
     },
   }).then((file) => {
     if (!file) {
@@ -1131,6 +1214,7 @@ router.post("/merge", function (req, res, next) {
                   time,
                   null,
                   6,
+                  req.user,
                   () => {
                     logger(
                       "info",
@@ -1216,13 +1300,28 @@ router.post("/split", function (req, res, next) {
   Files.findOne({
     where: {
       id: req.body.file_id,
-      [Sequelize.Op.or]: {
-        file_owner: req.user,
-        [Sequelize.Op.and]: {
-          file_owner: "group",
-          file_owner_group: { [Sequelize.Op.overlap]: groups },
+      [Sequelize.Op.or]: [
+        { file_owner: req.user },
+        {
+          [Sequelize.Op.and]: {
+            file_owner: "group",
+            file_owner_group: { [Sequelize.Op.overlap]: groups },
+          },
         },
-      },
+        {
+          [Sequelize.Op.and]: {
+            public: "1",
+            publicity_type: "list_edit",
+            public_editors: { [Sequelize.Op.contains]: [req.user] },
+          },
+        },
+        {
+          [Sequelize.Op.and]: {
+            public: "1",
+            publicity_type: "all_edit",
+          },
+        },
+      ],
     },
   })
     .then((file) => {
@@ -1290,6 +1389,7 @@ router.post("/split", function (req, res, next) {
                   time,
                   null,
                   8,
+                  req.user,
                   () => {
                     res.send({
                       status: "success",

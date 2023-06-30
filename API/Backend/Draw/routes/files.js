@@ -48,14 +48,25 @@ router.post("/", function (req, res, next) {
 router.post("/getfiles", function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
 
+  const orWhere = [
+    {
+      file_owner: req.user,
+    },
+    { public: "1" },
+    {
+      public:
+        req.leadGroupName != null &&
+        req.groups != null &&
+        req.groups[req.leadGroupName] === true
+          ? "0"
+          : "1",
+    },
+  ];
   Table.findAll({
     where: {
       //file_owner is req.user or public is '0'
       hidden: "0",
-      [Sequelize.Op.or]: {
-        file_owner: req.user,
-        public: "1",
-      },
+      [Sequelize.Op.or]: orWhere,
     },
   })
     .then((files) => {
@@ -131,6 +142,7 @@ router.post("/make", function (req, res, next) {
     file_description: req.body.file_description,
     intent: req.body.intent,
     public: "1",
+    publicity_type: "read_only",
     hidden: "0",
     template: req.body.template ? JSON.parse(req.body.template) : null,
   };
@@ -403,6 +415,9 @@ router.post("/restore", function (req, res, next) {
  * 	file_name: <string> (optional)
  * 	file_description: <string> (optional)
  * 	public: <0|1> (optional)
+ *  template: <json> (optional)
+ *  publicity_type: <string> (optional)
+ *  public_editors: <string[]> (optional)
  * }
  */
 router.post("/change", function (req, res, next) {
@@ -428,6 +443,24 @@ router.post("/change", function (req, res, next) {
   if (req.body.hasOwnProperty("template") && req.body.template != null) {
     try {
       toUpdateTo.template = JSON.parse(req.body.template);
+    } catch (err) {}
+  }
+  if (
+    req.body.hasOwnProperty("publicity_type") &&
+    [null, "read_only", "list_edit", "all_edit"].includes(
+      req.body.publicity_type
+    )
+  ) {
+    toUpdateTo.publicity_type = req.body.publicity_type;
+  }
+  if (req.body.hasOwnProperty("public_editors")) {
+    try {
+      let public_editors = null;
+      if (typeof req.body.public_editors === "string")
+        public_editors = req.body.public_editors
+          .split(",")
+          .map((e) => e.trim());
+      toUpdateTo.public_editors = public_editors;
     } catch (err) {}
   }
 
