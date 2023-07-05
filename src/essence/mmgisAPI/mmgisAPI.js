@@ -30,8 +30,8 @@ var mmgisAPI_ = {
             document.cookie =
                 'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'
             document.cookie = `MMGISUser=${JSON.stringify({
-                username: username,
-                token: token,
+                username: mmgisAPI_._loginToken.username,
+                token: mmgisAPI_._loginToken.token,
             })}${
                 window.mmgisglobal.THIRD_PARTY_COOKIES === 'true'
                     ? `; SameSite=None;${
