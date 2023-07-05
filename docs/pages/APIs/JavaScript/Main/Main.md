@@ -54,6 +54,7 @@ The `src/essence/mmgisAPI/mmgisAPI.js` file exposes functions that can be called
   - [writeCoordinateURL()](#writecoordinateurl)
   - [onLoaded(onLoadCallback)](#onloadedonloadcallback)
   - [getActiveTool()](#getactivetool)
+  - [setLoginToken(username, token)](#setlogintoken)
   - [project(lnglat)](#projectlnglat)
   - [unproject(xy)](#unprojectxy)
 
@@ -821,6 +822,16 @@ The following is an example of how to call the `getActiveTool` function:
 window.mmgisAPI.getActiveTool();
 ```
 
+### setLoginToken(username, token)
+
+This function sets the MMGISUser cookie to the given username and token before MMGIS' initial login. This enables MMGIS logins from a parent source to propagate down into MMGIS first login.
+
+The following is an example of how to call the `setLoginToken` function:
+
+```javascript
+window.mmgisAPI.setLoginToken("User1", "a89c4259265f491...");
+```
+
 ### project(lnglat)
 
 This function convert a Longitude, Latitude object into X, Y (i.e. Easting, Northing) coordinates. It uses the map's base projection and the proj4 library to perform the transformation.
@@ -851,47 +862,48 @@ This function can be used to overwrite the contents displayed in the LegendTool.
 
 #### Function parameters
 
-- `legends` -  An array of objects, where each object must contain the following keys: legend, layerUUID, display_name, opacity. The value for the legend key should be in the same format as what is stored in the layers data under the `_legend` key (i.e. `L_.layers.data[layerName]._legend`). layerUUID and display_name should be strings and opacity should be a number between 0 and 1.
+- `legends` - An array of objects, where each object must contain the following keys: legend, layerUUID, display*name, opacity. The value for the legend key should be in the same format as what is stored in the layers data under the `_legend` key (i.e. `L*.layers.data[layerName].\_legend`). layerUUID and display_name should be strings and opacity should be a number between 0 and 1.
 
 The following is an example of how to call the `overwriteLegends` function:
+
 ```javascript
 const legends = [
-    {
-        color: '#00e400',
-        strokecolor: '#000000',
-        shape: 'continuous',
-        value: '0 - 54',
-    },
-    {
-        color: '#ffff00',
-        strokecolor: '#000000',
-        shape: 'continuous',
-        value: '54 - 154',
-    },
-    {
-        color: '#ff7e00',
-        strokecolor: '#000000',
-        shape: 'continuous',
-        value: '154 - 254',
-    },
-    {
-        color: '#8f3f97',
-        strokecolor: '#000000',
-        shape: 'continuous',
-        value: '254 - 354',
-    },
-    {
-        color: '#8f3f97',
-        strokecolor: '#000000',
-        shape: 'continuous',
-        value: '354 - 424',
-    },
-    {
-        color: '#7e0023',
-        strokecolor: '#000000',
-        shape: 'continuous',
-        value: '> 424',
-    },
+  {
+    color: "#00e400",
+    strokecolor: "#000000",
+    shape: "continuous",
+    value: "0 - 54",
+  },
+  {
+    color: "#ffff00",
+    strokecolor: "#000000",
+    shape: "continuous",
+    value: "54 - 154",
+  },
+  {
+    color: "#ff7e00",
+    strokecolor: "#000000",
+    shape: "continuous",
+    value: "154 - 254",
+  },
+  {
+    color: "#8f3f97",
+    strokecolor: "#000000",
+    shape: "continuous",
+    value: "254 - 354",
+  },
+  {
+    color: "#8f3f97",
+    strokecolor: "#000000",
+    shape: "continuous",
+    value: "354 - 424",
+  },
+  {
+    color: "#7e0023",
+    strokecolor: "#000000",
+    shape: "continuous",
+    value: "> 424",
+  },
 ];
 
 window.mmgisAPI.overwriteLegends(legends);

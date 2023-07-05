@@ -221,7 +221,7 @@ var Login = {
                     : 'mdi mdi-login mdi-18px'
             )
 
-        //Sign in at page load from cookie if possible
+        // Sign in at page load from cookie if possible
         if (
             window.mmgisglobal.AUTH !== 'off' &&
             window.mmgisglobal.AUTH !== 'csso'

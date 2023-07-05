@@ -21,6 +21,28 @@ var mmgisAPI_ = {
             mmgisAPI_.onLoadCallback = null
         }
     },
+    intermediate: function () {
+        if (
+            mmgisAPI_._loginToken &&
+            mmgisAPI_._loginToken.username &&
+            mmgisAPI_._loginToken.token
+        ) {
+            document.cookie =
+                'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+            document.cookie = `MMGISUser=${JSON.stringify({
+                username: username,
+                token: token,
+            })}${
+                window.mmgisglobal.THIRD_PARTY_COOKIES === 'true'
+                    ? `; SameSite=None;${
+                          window.mmgisglobal.NODE_ENV === 'production'
+                              ? ' Secure'
+                              : ''
+                      }`
+                    : ''
+            }`
+        }
+    },
     // Adds a layer to the map. For a more "temporary" layer, use Leaflet directly through `mmgisAPI.map`
     addLayer: function (layerObj, placement) {
         return new Promise(async (resolve, reject) => {
@@ -399,6 +421,10 @@ var mmgisAPI_ = {
     onLoaded: function (onLoadCallback) {
         mmgisAPI_.onLoadCallback = onLoadCallback
     },
+    _loginToken: null,
+    setLoginToken: function (username, token) {
+        mmgisAPI_._loginToken = { username, token }
+    },
     // Convert {lng: , lat:} to x, y
     project: function (lnglat) {
         return window.mmgisglobal.customCRS.project(lnglat)
@@ -672,6 +698,12 @@ var mmgisAPI = {
      * @param {function} - onLoadCallback - function reference to function that is called when MMGIS is finished loading
      */
     onLoaded: mmgisAPI_.onLoaded,
+
+    /** setLoginToken - sets the MMGISUser cookie to the given username and token before MMGIS' initial login. This enables MMGIS logins from a parent source to propagate down into MMGIS first login.
+     * @param {username} - username - string
+     * @param {token} - token - string
+     */
+    setLoginToken: mmgisAPI_.setLoginToken,
 
     /** project - converts a lnglat into xy coordinates with the current (custom or default web mercator) proj4 definition
      * @param {object} {lng: 0, lat: 0} - lnglat to convert
