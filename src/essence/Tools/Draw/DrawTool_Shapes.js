@@ -660,6 +660,23 @@ var Shapes = {
             })
 
             for (var i = 0; i < DrawTool.files.length; i++) {
+                const file = DrawTool.files[i]
+                let ownedByUser = false
+                if (
+                    mmgisglobal.user == file.file_owner ||
+                    (file.file_owner_group &&
+                        F_.diff(file.file_owner_group, DrawTool.userGroups)
+                            .length > 0)
+                )
+                    ownedByUser = true
+                const isListEdit =
+                    file.public == '1' &&
+                    file.publicity_type == 'list_edit' &&
+                    typeof file.public_editors?.includes === 'function' &&
+                    (file.public_editors.includes(mmgisglobal.user) ||
+                        ownedByUser)
+                const isAllEdit =
+                    file.public == '1' && file.publicity_type == 'all_edit'
                 //Lead Files
                 if (
                     DrawTool.userGroups.indexOf('mmgis-group') != -1 &&
@@ -684,7 +701,9 @@ var Shapes = {
                         .attr('value', DrawTool.files[i].id)
                         .text(DrawTool.files[i].file_name + ' [Lead]')
                 } else if (
-                    mmgisglobal.user == DrawTool.files[i].file_owner &&
+                    (mmgisglobal.user == DrawTool.files[i].file_owner ||
+                        isListEdit ||
+                        isAllEdit) &&
                     filenames.indexOf(DrawTool.files[i].file_name) == -1 &&
                     intent == DrawTool.files[i].intent &&
                     DrawTool.files[i].hidden == '0'

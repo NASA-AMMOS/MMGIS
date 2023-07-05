@@ -90,7 +90,10 @@ var History = {
             var markup = [
                     "<div class='flexbetween' time=" + h.time + ">",
                         "<span>" + h.message + "</span>",
-                        "<span>" + F_.timestampToDate(h.time / 1000) + "</span>",
+                        "<span style='white-space: nowrap;'>",
+                            `<span style='color: var(--color-a5); font-size: 12px;'>${h.author ? `${h.author} - ` : ''}</span>`,
+                            `<span>${F_.timestampToDate(h.time / 1000, true)}</span>`,
+                        "</span>",
                     "</div>"
                 ].join('\n');
 

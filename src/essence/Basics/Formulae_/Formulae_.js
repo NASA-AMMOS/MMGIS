@@ -1783,7 +1783,7 @@ var Formulae_ = {
         image.style.color = stringToTest
         return image.style.color !== 'rgb(255, 255, 255)'
     },
-    timestampToDate(timestamp) {
+    timestampToDate(timestamp, small) {
         var a = new Date(timestamp * 1000)
         var months = [
             'Jan',
@@ -1810,6 +1810,19 @@ var Formulae_ = {
         var sec =
             a.getUTCSeconds() < 10 ? '0' + a.getUTCSeconds() : a.getUTCSeconds()
 
+        if (small) {
+            return (
+                month +
+                '/' +
+                date +
+                '/' +
+                (year + '').slice(-2) +
+                ' ' +
+                hour +
+                ':' +
+                min
+            )
+        }
         return (
             monthName +
             ' ' +
