@@ -104,7 +104,7 @@ $(document).keyup(function (e) {
     // On tab, add tab styles
     if (e.which == '9' && !tabFocusAdded) {
         document.styleSheets[0].insertRule(
-            '.toolButton:focus,#barBottom > i:focus,#topBarTitleName:focus,.mainInfo > div:focus,#mainDescription:focus,#SearchType:focus,#auto_search:focus,#loginoutButton:focus,#mapSplitInnerLeft:focus,#mapSplitInnerRight:focus,#globeSplitInnerLeft:focus,#globeSplitInnerRight:focus {border: 2px solid var(--color-mmgis) !important;}',
+            '.toolButton:focus,#barBottom > i:focus,#topBarTitleName:focus,.mainInfo > div:focus,#mainDescription:focus,#SearchType:focus,#auto_search:focus,#loginoutButton:focus,#mapSplitInnerLeft:focus,#mapSplitInnerRight:focus,#globeSplitInnerLeft:focus,#globeSplitInnerRight:focus {box-shadow: inset 0px 0px 0px 2px var(--color-mmgis) !important;}',
             1
         )
         tabFocusAdded = true

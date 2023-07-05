@@ -352,13 +352,21 @@ var Files = {
             )
                 ownedByUser = true
 
+            const isListEdit =
+                file.public == '1' &&
+                file.publicity_type == 'list_edit' &&
+                typeof file.public_editors?.includes === 'function' &&
+                (file.public_editors.includes(mmgisglobal.user) || ownedByUser)
+            const isAllEdit =
+                file.public == '1' && file.publicity_type == 'all_edit'
+
             // prettier-ignore
             var markup = [
                 "<div class='flexbetween' style='height: 30px; line-height: 30px;'>",
                     "<div class='drawToolFileSelector flexbetween' file_id='" + file.id + "' file_owner='" + file.file_owner + "' file_intent='" + file.intent + "'>",
                     "<div class='drawToolIntentColor' style='height: 100%; width: 7px; background: " + DrawTool.categoryStyles[file.intent].color + "'></div>",
                     "<div class='drawToolFileInfo'>",
-                        "<i title='Owned by you!' class='drawToolFileOwner mdi" + ( (ownedByUser) ? ((file.is_master) ? ' mdi-account-tie' : ' mdi-account') : '' ) + " mdi-18px " + ( (ownedByUser) ? 'alwaysShow' : '' )  + "' style='pointer-event: " + ( (ownedByUser) ? 'all' : 'none' ) + "' file_id='" + file.id + "'></i>",
+                        "<i title='Owned by you!' class='drawToolFileOwner mdi" + (file.is_master ? ' mdi-account-tie' : isAllEdit ? ' mdi-account-group' : isListEdit ? ' mdi-account-multiple' : (ownedByUser) ? ' mdi-account' : '' ) + " mdi-18px " + ( (file.is_master || ownedByUser || isAllEdit || isListEdit) ? 'alwaysShow' : '' )  + "' style='pointer-events: " + ( (ownedByUser) ? 'all' : 'none' ) + "' file_id='" + file.id + "'></i>",
                         `<div class='drawToolFileName' title='${file.file_name}\nIntent: ${file.intent}\nAuthor: ${file.file_owner}\nId: ${file.id}\nSelect to draw in,\nInfo button for information,\nCheck-box to toggle on,\nRight-Click for actions'>${file.file_name}</div>`,
                     "</div>",
                     "</div>",
@@ -939,10 +947,16 @@ var Files = {
                         "<div>",
                             `<div id="drawToolFileEditOnHeadingOwner">by ${file.file_owner}${ownedByUser ? ' (you)' : ''}</div>`,
                             "<select id='drawToolFileEditOnPublicityDropdown' class='ui dropdown dropdown_2 unsetMaxWidth'>",
-                                `<option value='public' ${file.public == '1' ? 'selected' : ''}>Public</option>`,
-                                `<option value='private' ${file.public != '1' ? 'selected' : ''}>Private</option>`,
+                                `<option value='private' ${file.public == '0' ? 'selected' : ''}>Private</option>`,
+                                `<option value='public read_only' ${file.public == '1' && file.publicity_type != 'list_edit' && file.publicity_type != 'all_edit' ? 'selected' : ''}>Public - Read-Only</option>`,
+                                `<option value='public list_edit' ${file.public == '1' && file.publicity_type == 'list_edit' ? 'selected' : ''}>Public - List-Editors</option>`,
+                                `<option value='public all_edit' ${file.public == '1' && file.publicity_type == 'all_edit' ? 'selected' : ''}>Public - All-Edit</option>`,
                             "</select>",
                         "</div>",
+                    "</div>",
+                    `<div class='drawToolFileEditListEditors' style='display: ${file.public == '1' && file.publicity_type == 'list_edit' ? 'flex' : 'none'}'>`,
+                        "<div>File Editors:</div>",
+                        `<input id='drawToolFileEditListEditors' type='text' placeholder='Comma-separated names of users who can edit this file...' value='${file.public_editors && typeof file.public_editors.join === 'function' ? file.public_editors.join(',') : ''}'></input>`,
                     "</div>",
                     "<div class='drawToolFileEditOnDates'>",
                         "<div>",
@@ -1269,7 +1283,17 @@ var Files = {
                         $('#drawToolFileEditOnTagsNew').val('')
                         existingTagFol[type].push(newTag)
                     }
-
+                    $('#drawToolFileEditOnPublicityDropdown').on(
+                        'change',
+                        function () {
+                            $('.drawToolFileEditListEditors').css({
+                                display:
+                                    $(this).val() === 'public list_edit'
+                                        ? 'flex'
+                                        : 'none',
+                            })
+                        }
+                    )
                     $('#drawToolFileEditOnTagsNewAdd').on('click', function () {
                         tagFolderAdd('tags')
                     })
@@ -1344,10 +1368,25 @@ var Files = {
                                     .find(
                                         '#drawToolFileEditOnPublicityDropdown'
                                     )
-                                    .val() == 'public'
+                                    .val()
+                                    .indexOf('public') != -1
                                     ? 1
                                     : 0,
                             template: JSON.stringify(template),
+                            publicity_type: elm
+                                .find('#drawToolFileEditOnPublicityDropdown')
+                                .val()
+                                .includes('public')
+                                ? elm
+                                      .find(
+                                          '#drawToolFileEditOnPublicityDropdown'
+                                      )
+                                      .val()
+                                      .replace('public ', '')
+                                : null,
+                            public_editors: elm
+                                .find('#drawToolFileEditListEditors')
+                                .val(),
                         }
 
                         DrawTool.changeFile(
@@ -1580,13 +1619,30 @@ var Files = {
             // Only select files you own
             const fileId = $(this).attr('file_id')
             var fileFromId = DrawTool.getFileObjectWithId(fileId)
+
             if (
-                mmgisglobal.user !== $(this).attr('file_owner') &&
+                mmgisglobal.user !== fileFromId.file_owner &&
                 fileFromId &&
                 F_.diff(fileFromId.file_owner_group, DrawTool.userGroups)
                     .length == 0
-            )
-                return
+            ) {
+                // Now check public list_edit
+                if (
+                    !(
+                        (fileFromId.public == '1' &&
+                            fileFromId.publicity_type == 'all_edit') ||
+                        (fileFromId.public == '1' &&
+                            fileFromId.publicity_type == 'list_edit' &&
+                            fileFromId.public_editors != null &&
+                            typeof fileFromId.public_editors.includes ===
+                                'function' &&
+                            fileFromId.public_editors.includes(
+                                mmgisglobal.user
+                            ))
+                    )
+                )
+                    return
+            }
 
             const wasOn = $(this).parent().parent().hasClass('checked')
 

@@ -1364,6 +1364,32 @@
     font-size: 12px;
     padding: 0px 5px 0px 9px;
 }
+.drawToolFileEditListEditors {
+    height: 31px;
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+    box-sizing: initial;
+}
+.drawToolFileEditListEditors > div {
+    line-height: 31px;
+    padding: 0px 8px;
+    font-size: 12px;
+    color: var(--color-a4);
+}
+.drawToolFileEditListEditors > input {
+    width: 180px;
+    height: 31px;
+    background: var(--color-a1-5);
+    border: none;
+    padding: 0px 8px;
+    font-size: 14px;
+    color: var(--color-mw2);
+    flex: 1 1;
+    border-left: 1px solid black;
+    transition: background 0.2s ease-out, border 0.2s ease-out;
+}
 .drawToolFileEditOnDescription {
     display: flex;
     justify-content: space-between;
@@ -2001,7 +2027,6 @@
     transition: height 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 #drawToolHistorySequenceList {
-    margin: 0px 2px 0px 5px;
     flex: 1;
     overflow-y: auto;
 }
@@ -2015,8 +2040,8 @@
 #drawToolHistorySequenceList > ul > li {
     color: var(--color-f);
     background: rgba(0, 0, 0, 0);
-    border-bottom: 1px solid rgba(0, 0, 17, 0.25);
-    padding: 2px 5px;
+    border-top: 1px solid var(--color-a1-5);
+    padding: 3px 8px;
     font-size: 13px;
     cursor: pointer;
     transition: background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
