@@ -224,25 +224,29 @@ var Login = {
         // Sign in at page load from cookie if possible
         if (
             window.mmgisglobal.AUTH !== 'off' &&
-            window.mmgisglobal.AUTH !== 'csso'
+            window.mmgisglobal.AUTH !== 'csso' &&
+            window.mmgisglobal.SKIP_CLIENT_INITIAL_LOGIN != 'true'
         ) {
-            calls.api(
-                'login',
-                {
-                    useToken: true,
-                },
-                function (d) {
-                    Login.username = d.username
-                    window.mmgisglobal.user = Login.username
-                    window.mmgisglobal.groups = d.groups
-
-                    loginSuccess(d)
-                },
-                function (d) {
-                    loginSuccess(d, true)
-                }
-            )
+            Login.initialLogin()
         }
+    },
+    initialLogin() {
+        calls.api(
+            'login',
+            {
+                useToken: true,
+            },
+            function (d) {
+                Login.username = d.username
+                window.mmgisglobal.user = Login.username
+                window.mmgisglobal.groups = d.groups
+
+                loginSuccess(d)
+            },
+            function (d) {
+                loginSuccess(d, true)
+            }
+        )
     },
     createModal: function () {
         this.removeModal()

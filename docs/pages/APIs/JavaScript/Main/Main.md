@@ -822,14 +822,14 @@ The following is an example of how to call the `getActiveTool` function:
 window.mmgisAPI.getActiveTool();
 ```
 
-### setLoginToken(username, token)
+### initialLogin()
 
-This function sets the MMGISUser cookie to the given username and token before MMGIS' initial login. This enables MMGIS logins from a parent source to propagate down into MMGIS first login.
+Performs the initial login call to relogin returning users. Pairable with the ENV `SKIP_CLIENT_INITIAL_LOGIN=`.
 
-The following is an example of how to call the `setLoginToken` function:
+The following is an example of how to call the `initialLogin` function:
 
 ```javascript
-window.mmgisAPI.setLoginToken("User1", "a89c4259265f491...");
+window.mmgisAPI.initialLogin();
 ```
 
 ### project(lnglat)

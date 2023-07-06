@@ -497,8 +497,6 @@ var essence = {
                 Coordinates,
                 TimeControl
             )
-            // Intermediate fina of the mmgisAPI
-            mmgisAPI_.intermediate()
             //Finalize the interface
             UserInterface_.fina(L_, Viewer_, Map_, Globe_)
             //Finalize the Viewer

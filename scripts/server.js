@@ -764,6 +764,7 @@ setups.getBackendSetups(function (setups) {
             CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER,
             ENABLE_MMGIS_WEBSOCKETS: process.env.ENABLE_MMGIS_WEBSOCKETS,
             MAIN_MISSION: process.env.MAIN_MISSION,
+            SKIP_CLIENT_INITIAL_LOGIN: process.env.SKIP_CLIENT_INITIAL_LOGIN,
             THIRD_PARTY_COOKIES: process.env.THIRD_PARTY_COOKIES,
             PORT: process.env.PORT,
             ROOT_PATH: ROOT_PATH,

@@ -104,6 +104,8 @@ function getClientEnvironment(publicUrl) {
         PORT: process.env.PORT,
         ENABLE_MMGIS_WEBSOCKETS: process.env.ENABLE_MMGIS_WEBSOCKETS,
         MAIN_MISSION: process.env.MAIN_MISSION,
+        THIRD_PARTY_COOKIES: process.env.THIRD_PARTY_COOKIES || "",
+        SKIP_CLIENT_INITIAL_LOGIN: process.env.SKIP_CLIENT_INITIAL_LOGIN || "",
       }
     );
   // Stringify all values so we can feed into webpack DefinePlugin
