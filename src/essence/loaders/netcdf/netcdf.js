@@ -41,13 +41,13 @@ function formatVolume(volume) {
     ]
     formattedVolume.dimensions = formattedVolume.RASDimensions
 
-    formattedVolume.min = 0 //volume.min
-    formattedVolume.max = 1 //volume.max
+    formattedVolume.min = volume.min
+    formattedVolume.max = volume.max
     formattedVolume.lowerThreshold = formattedVolume.min //volume.min
     formattedVolume.upperThreshold = formattedVolume.max //volume.max
 
-    formattedVolume.windowHigh = 1
-    formattedVolume.windowLow = 0
+    formattedVolume.windowLow = formattedVolume.min
+    formattedVolume.windowHigh = formattedVolume.max
 
     formattedVolume.spacing = [1, 1, 1]
 
@@ -238,5 +238,8 @@ function normalizeVolume(volume) {
                 (volume.data[i] - volume.min) / (volume.max - volume.min)
             )
         )
+
+    volume.min = 0
+    volume.max = 1
     return volume
 }
