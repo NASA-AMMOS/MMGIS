@@ -2,6 +2,7 @@
 import * as THREE from '../../../external/THREE/three152'
 import { NetCDFReader } from 'netcdfjs'
 import { Volume } from './Volume.js'
+import F_ from '../../Basics/Formulae_/Formulae_'
 
 export default function (path, volumeName, callback) {
     fetch(
@@ -52,6 +53,10 @@ function formatVolume(volume) {
     formattedVolume.spacing = [1, 1, 1]
 
     formattedVolume.axisOrder = ['x', 'y', 'z']
+
+    formattedVolume.cropData = (min, max) => {
+        return cropData(formattedVolume.data, min, max)
+    }
 
     return formattedVolume
 }
@@ -230,16 +235,31 @@ function fetchVolume(header, variableName, forceRangeRequest = false) {
 
 function normalizeVolume(volume) {
     if (getGLtype(volume.type) != THREE.FloatType) return volume
-    for (var i = 0; i < volume.size; i++)
-        volume.data[i] = Math.min(
-            1,
-            Math.max(
-                0,
-                (volume.data[i] - volume.min) / (volume.max - volume.min)
-            )
+    volume.min = Infinity
+    volume.max = -Infinity
+    for (var i = 0; i < volume.size; i++) {
+        volume.min = Math.min(volume.data[i], volume.min)
+        volume.max = Math.max(volume.data[i], volume.max)
+    }
+    for (var i = 0; i < volume.size; i++) {
+        volume.data[i] = F_.linearScale(
+            [volume.min, volume.max],
+            [0, 1],
+            volume.data[i]
         )
+    }
 
     volume.min = 0
     volume.max = 1
     return volume
+}
+
+function cropData(data, min, max) {
+    const stretchedData = new Float32Array(data)
+    for (var i = 0; i < stretchedData.length; i++) {
+        if (stretchedData[i] < min) stretchedData[i] = min
+        else if (stretchedData[i] > max) stretchedData[i] = max
+        stretchedData[i] = F_.linearScale([min, max], [0, 1], stretchedData[i])
+    }
+    return stretchedData
 }

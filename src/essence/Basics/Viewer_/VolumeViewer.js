@@ -23,7 +23,7 @@ export default function (domEl, lookupPath, options) {
         cmtextures,
         gui,
         layeredVars = {},
-        mode = 'layered' //'volume' //'slicer',
+        mode = 'layered' //'volume' //'slicer',// 'layered'
 
     const colorRamps = {
         blue: ['#ffffcc', '#a1dab4', '#41b6c4', '#2c7fb8', '#253494'],
@@ -143,7 +143,7 @@ export default function (domEl, lookupPath, options) {
                 1e10
             )
             camera.position.z = 2
-            camera.up.set(0, 0, -1) // In our data, z is up
+            camera.up.set(0, 0, 1) // In our data, z is up
 
             // Create controls
             controls = new THREE.OrbitControls(camera, renderer.domElement)
@@ -158,15 +158,13 @@ export default function (domEl, lookupPath, options) {
 
     function render() {
         if (mode === 'layered') {
-            //const delta = clock.getDelta();
             //Render first pass and store the world space coords of the back face fragments into the texture.
-            //renderer.setRenderTarget(layeredVars.rtTexture)
-            //renderer.clear()
+            renderer.setRenderTarget(layeredVars.rtTexture)
             renderer.render(scene, camera)
-            //renderer.setRenderTarget(null)
+            renderer.setRenderTarget(null)
 
             //Render the second pass and perform the volume rendering.
-            //renderer.render(scene2, camera)
+            renderer.render(scene2, camera)
 
             layeredVars.materialSecondPass.uniforms.steps.value =
                 layeredVars.guiControls.steps
@@ -400,166 +398,196 @@ export default function (domEl, lookupPath, options) {
             })
         } else if (mode === 'layered') {
             loadNetcdf(null, 'gpr', (volume) => {
-                console.log(volume)
-                console.log(LayeredShader)
                 layeredVars.guiControls = new (function () {
                     this.model = 'foot'
                     this.steps = 256.0
                     this.alphaCorrection = 1.0
                     this.color1 = '#00FA58'
                     this.stepPos1 = 0.1
-                    this.color2 = '#CC6600'
-                    this.stepPos2 = 0.7
-                    this.color3 = '#F2F200'
+                    this.color2 = '#FFDD00'
+                    this.stepPos2 = 0.5
+                    this.color3 = '#F00000'
                     this.stepPos3 = 1.0
+                    this.min = 0
+                    this.max = 1
                 })()
 
                 //Load the 2D texture containing the Z slices.
-                new THREE.TextureLoader().load(
-                    'public/misc/foot.raw.png',
-                    keepGoing
+                const cubeTexture = new THREE.TextureLoader().load(
+                    //'public/misc/foot.raw.png'
+                    layered_makeCanvas(volume)
                 )
 
-                function keepGoing(cubeTexture) {
-                    console.log(cubeTexture)
-                    //Don't let it generate mipmaps to save memory and apply linear filtering to prevent use of LOD.
-                    cubeTexture.generateMipmaps = false
-                    cubeTexture.minFilter = THREE.LinearFilter
-                    cubeTexture.magFilter = THREE.LinearFilter
+                //Don't let it generate mipmaps to save memory and apply linear filtering to prevent use of LOD.
+                cubeTexture.generateMipmaps = false
+                cubeTexture.minFilter = THREE.LinearFilter
+                cubeTexture.magFilter = THREE.LinearFilter
 
-                    const transferTexture = layered_updateTransferFunction()
+                const transferTexture = layered_updateTransferFunction()
 
-                    const screenSize = new THREE.Vector2(
-                        domEl.offsetWidth,
-                        domEl.offsetHeight
-                    )
-                    //Use NearestFilter to eliminate interpolation.  At the cube edges, interpolated world coordinates
-                    //will produce bogus ray directions in the fragment shader, and thus extraneous colors.
-                    layeredVars.rtTexture = new THREE.WebGLRenderTarget(
-                        screenSize.x,
-                        screenSize.y,
-                        {
-                            minFilter: THREE.NearestFilter,
-                            magFilter: THREE.NearestFilter,
-                            stencilBuffer: true,
-                            wrapS: THREE.ClampToEdgeWrapping,
-                            wrapT: THREE.ClampToEdgeWrapping,
-                            format: THREE.RGBAFormat,
-                            type: THREE.FloatType,
-                            generateMipmaps: false,
-                        }
-                    )
+                const screenSize = new THREE.Vector2(
+                    domEl.offsetWidth,
+                    domEl.offsetHeight
+                )
+                //Use NearestFilter to eliminate interpolation.  At the cube edges, interpolated world coordinates
+                //will produce bogus ray directions in the fragment shader, and thus extraneous colors.
+                layeredVars.rtTexture = new THREE.WebGLRenderTarget(
+                    screenSize.x,
+                    screenSize.y,
+                    {
+                        minFilter: THREE.NearestFilter,
+                        magFilter: THREE.NearestFilter,
+                        wrapS: THREE.ClampToEdgeWrapping,
+                        wrapT: THREE.ClampToEdgeWrapping,
+                        format: THREE.RGBAFormat,
+                        type: THREE.FloatType,
+                        generateMipmaps: false,
+                        stencilBuffer: true,
+                    }
+                )
 
-                    const materialFirstPass = new THREE.ShaderMaterial({
-                        vertexShader: LayeredShader.vertexShaderFirstPass,
-                        fragmentShader: LayeredShader.fragmentShaderFirstPass,
-                        side: THREE.BackSide,
-                    })
-                    layeredVars.materialSecondPass = new THREE.ShaderMaterial({
-                        vertexShader: LayeredShader.vertexShaderSecondPass,
-                        fragmentShader: LayeredShader.fragmentShaderSecondPass,
-                        side: THREE.FrontSide,
-                        uniforms: {
-                            tex: { type: 't', value: layeredVars.rtTexture },
-                            cubeTex: { type: 't', value: cubeTexture },
-                            transferTex: { type: 't', value: transferTexture },
-                            steps: {
-                                type: '1f',
-                                value: layeredVars.guiControls.steps,
-                            },
-                            alphaCorrection: {
-                                type: '1f',
-                                value: layeredVars.guiControls.alphaCorrection,
-                            },
+                const materialFirstPass = new THREE.ShaderMaterial({
+                    vertexShader: LayeredShader.vertexShaderFirstPass,
+                    fragmentShader: LayeredShader.fragmentShaderFirstPass,
+                    side: THREE.BackSide,
+                })
+                layeredVars.materialSecondPass = new THREE.ShaderMaterial({
+                    vertexShader: LayeredShader.vertexShaderSecondPass,
+                    fragmentShader: LayeredShader.fragmentShaderSecondPass,
+                    side: THREE.FrontSide,
+                    uniforms: {
+                        tex: {
+                            type: 't',
+                            value: layeredVars.rtTexture.texture,
                         },
-                    })
-                    const boxGeometry = new THREE.BoxGeometry(1.0, 1.0, 1.0)
-                    boxGeometry.doubleSided = true
+                        cubeTex: { type: 't', value: cubeTexture },
+                        transferTex: { type: 't', value: transferTexture },
+                        steps: {
+                            type: '1f',
+                            value: layeredVars.guiControls.steps,
+                        },
+                        alphaCorrection: {
+                            type: '1f',
+                            value: layeredVars.guiControls.alphaCorrection,
+                        },
+                    },
+                })
+                layeredVars.materialSecondPass.needsUpdate = true
 
-                    const meshFirstPass = new THREE.Mesh(
-                        boxGeometry,
-                        materialFirstPass
-                    )
-                    const meshSecondPass = new THREE.Mesh(
-                        boxGeometry,
-                        layeredVars.materialSecondPass
-                    )
+                const maxDimen = Math.max(
+                    volume.sizeX,
+                    volume.sizeY,
+                    volume.sizeZ
+                )
+                const boxGeometry = new THREE.BoxGeometry(
+                    volume.sizeY / maxDimen,
+                    volume.sizeX / maxDimen,
+                    volume.sizeZ / maxDimen
+                )
+                boxGeometry.doubleSided = true
 
-                    console.log(meshFirstPass, meshSecondPass)
+                const meshFirstPass = new THREE.Mesh(
+                    boxGeometry,
+                    materialFirstPass
+                )
+                const meshSecondPass = new THREE.Mesh(
+                    boxGeometry,
+                    layeredVars.materialSecondPass
+                )
 
-                    scene.add(meshFirstPass)
-                    scene2.add(meshSecondPass)
+                scene.add(meshFirstPass)
+                scene2.add(meshSecondPass)
 
-                    ////
+                ////
 
-                    var gui = new GUI()
-                    var modelSelected = gui.add(
-                        layeredVars.guiControls,
-                        'model',
-                        ['bonsai', 'foot', 'teapot']
-                    )
-                    gui.add(layeredVars.guiControls, 'steps', 0.0, 512.0)
-                    gui.add(
-                        layeredVars.guiControls,
-                        'alphaCorrection',
-                        0.01,
-                        5.0
-                    ).step(0.01)
+                var gui = new GUI()
+                var modelSelected = gui.add(layeredVars.guiControls, 'model', [
+                    'bonsai',
+                    'foot',
+                    'teapot',
+                ])
+                gui.add(layeredVars.guiControls, 'steps', 0.0, 512.0)
+                gui.add(
+                    layeredVars.guiControls,
+                    'alphaCorrection',
+                    0.01,
+                    5.0
+                ).step(0.01)
 
-                    modelSelected.onChange(function (value) {
-                        layeredVars.materialSecondPass.uniforms.cubeTex.value =
-                            cubeTexture
-                    })
+                modelSelected.onChange(function (value) {
+                    layeredVars.materialSecondPass.uniforms.cubeTex.value =
+                        cubeTexture
+                })
 
-                    //Setup transfer function steps.
-                    var step1Folder = gui.addFolder('Step 1')
-                    var controllerColor1 = step1Folder.addColor(
-                        layeredVars.guiControls,
-                        'color1'
-                    )
-                    var controllerStepPos1 = step1Folder.add(
-                        layeredVars.guiControls,
-                        'stepPos1',
-                        0.0,
-                        1.0
-                    )
-                    controllerColor1.onChange(layered_updateTextures)
-                    controllerStepPos1.onChange(layered_updateTextures)
+                //Setup transfer function steps.
+                var step1Folder = gui.addFolder('Step 1')
+                var controllerColor1 = step1Folder.addColor(
+                    layeredVars.guiControls,
+                    'color1'
+                )
+                var controllerStepPos1 = step1Folder.add(
+                    layeredVars.guiControls,
+                    'stepPos1',
+                    0.0,
+                    1.0
+                )
+                controllerColor1.onChange(layered_updateTextures)
+                controllerStepPos1.onChange(layered_updateTextures)
 
-                    var step2Folder = gui.addFolder('Step 2')
-                    var controllerColor2 = step2Folder.addColor(
-                        layeredVars.guiControls,
-                        'color2'
-                    )
-                    var controllerStepPos2 = step2Folder.add(
-                        layeredVars.guiControls,
-                        'stepPos2',
-                        0.0,
-                        1.0
-                    )
-                    controllerColor2.onChange(layered_updateTextures)
-                    controllerStepPos2.onChange(layered_updateTextures)
+                var step2Folder = gui.addFolder('Step 2')
+                var controllerColor2 = step2Folder.addColor(
+                    layeredVars.guiControls,
+                    'color2'
+                )
+                var controllerStepPos2 = step2Folder.add(
+                    layeredVars.guiControls,
+                    'stepPos2',
+                    0.0,
+                    1.0
+                )
+                controllerColor2.onChange(layered_updateTextures)
+                controllerStepPos2.onChange(layered_updateTextures)
 
-                    var step3Folder = gui.addFolder('Step 3')
-                    var controllerColor3 = step3Folder.addColor(
-                        layeredVars.guiControls,
-                        'color3'
-                    )
-                    var controllerStepPos3 = step3Folder.add(
-                        layeredVars.guiControls,
-                        'stepPos3',
-                        0.0,
-                        1.0
-                    )
-                    controllerColor3.onChange(layered_updateTextures)
-                    controllerStepPos3.onChange(layered_updateTextures)
+                var step3Folder = gui.addFolder('Step 3')
+                var controllerColor3 = step3Folder.addColor(
+                    layeredVars.guiControls,
+                    'color3'
+                )
+                var controllerStepPos3 = step3Folder.add(
+                    layeredVars.guiControls,
+                    'stepPos3',
+                    0.0,
+                    1.0
+                )
+                controllerColor3.onChange(layered_updateTextures)
+                controllerStepPos3.onChange(layered_updateTextures)
 
-                    step1Folder.open()
-                    step2Folder.open()
-                    step3Folder.open()
+                var modifyFolder = gui.addFolder('Crop Data')
+                var modifyMin = modifyFolder.add(
+                    layeredVars.guiControls,
+                    'min',
+                    0.0,
+                    1.0
+                )
+                var modifyMax = modifyFolder.add(
+                    layeredVars.guiControls,
+                    'max',
+                    0.0,
+                    1.0
+                )
+                modifyMin.onFinishChange(() => {
+                    layered_cropData(volume)
+                })
+                modifyMax.onFinishChange(() => {
+                    layered_cropData(volume)
+                })
 
-                    animate()
-                }
+                step1Folder.open()
+                step2Folder.open()
+                step3Folder.open()
+                modifyFolder.open()
+
+                animate()
             })
         }
     }
@@ -593,6 +621,16 @@ export default function (domEl, lookupPath, options) {
     function layered_updateTextures(value) {
         layeredVars.materialSecondPass.uniforms.transferTex.value =
             layered_updateTransferFunction()
+    }
+    function layered_cropData(volume) {
+        const cubeTexture = new THREE.TextureLoader().load(
+            layered_makeCanvas(volume)
+        )
+        cubeTexture.generateMipmaps = false
+        cubeTexture.minFilter = THREE.LinearFilter
+        cubeTexture.magFilter = THREE.LinearFilter
+
+        layeredVars.materialSecondPass.uniforms.cubeTex.value = cubeTexture
     }
     function layered_updateTransferFunction() {
         const canvas = document.createElement('canvas')
@@ -631,8 +669,6 @@ export default function (domEl, lookupPath, options) {
             THREE.ClampToEdgeWrapping
         transferTexture.needsUpdate = true
 
-        console.log(transferTexture)
-
         return transferTexture
     }
     function layered_makeCanvas(volume) {
@@ -649,37 +685,38 @@ export default function (domEl, lookupPath, options) {
         const newHeight = height * maxTilesHeight
 
         const canvas = document.createElement('canvas')
-        /*
-        document.body.append(canvas)
+
+        //document.body.append(canvas)
         canvas.style.position = 'fixed'
-        canvas.style.top = 0
+        canvas.style.top = '100px'
         canvas.style.left = 0
         canvas.style.background = 'white'
-        */
+
         canvas.width = newWidth
         canvas.height = newHeight
         const ctx = canvas.getContext('2d')
         const imgData = ctx.createImageData(newWidth, newHeight)
 
-        const flipY = false
+        const flipY = true
 
         const length = volume.data.Length
 
         let realPosX, realPosY
 
-        let pos = 0
+        const croppedData = volume.cropData(
+            layeredVars.guiControls.min,
+            layeredVars.guiControls.max
+        )
+
         let zPos = 0
 
         for (let z = 0; z < totalTiles; z++) {
-            // Find the starting position for this z slice
-            pos = z * width * height
-            zPos += Math.round(depth / totalTiles)
+            zPos = Math.round(((totalTiles - z) / totalTiles) * depth)
             for (let y = 0; y < height; y++) {
                 for (let x = 0; x < width; x++) {
-                    let value = 255 //parseInt(Math.random() * 64) // volume.data[pos] * 255
-                    if (x === width - 1 || y === height - 1) value = 255
+                    let value = croppedData[volume.access(x, y, zPos)] * 255
 
-                    realPosX = x + (z % maxTilesHeight) * width
+                    realPosX = x + (z % maxTilesWidth) * width
 
                     let yPos
                     if (flipY) {
@@ -689,15 +726,13 @@ export default function (domEl, lookupPath, options) {
                     }
 
                     realPosY = yPos + parseInt(z / maxTilesWidth) * height
-                    imgData.data[realPosY * newWidth * 4 + realPosX * 4] = value
-                    imgData.data[realPosY * newWidth * 4 + realPosX * 4 + 1] =
+                    imgData.data[(realPosY * newWidth + realPosX) * 4] = value
+                    imgData.data[(realPosY * newWidth + realPosX) * 4 + 1] =
                         value
-                    imgData.data[realPosY * newWidth * 4 + realPosX * 4 + 2] =
+                    imgData.data[(realPosY * newWidth + realPosX) * 4 + 2] =
                         value
-                    imgData.data[realPosY * newWidth * 4 + realPosX * 4 + 3] =
+                    imgData.data[(realPosY * newWidth + realPosX) * 4 + 3] =
                         value
-
-                    pos++
                 }
             }
         }
