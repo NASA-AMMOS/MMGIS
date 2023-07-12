@@ -520,19 +520,26 @@ var Editing = {
         if (displayOnly) ownedByUser = false
         else {
             for (var i = 0; i < DrawTool.contextMenuLayers.length; i++) {
+                const cfile = DrawTool.contextMenuLayers[i].file
+                const isListEdit =
+                    file.public == '1' &&
+                    file.publicity_type == 'list_edit' &&
+                    typeof file.public_editors?.includes === 'function' &&
+                    (file.public_editors.includes(mmgisglobal.user) ||
+                        ownedByUser)
+                const isAllEdit =
+                    file.public == '1' && file.publicity_type == 'all_edit'
+
                 if (
-                    DrawTool.contextMenuLayers[i].file.file_owner == 'master' ||
-                    (mmgisglobal.user !==
-                        DrawTool.contextMenuLayers[i].file.file_owner &&
-                        (DrawTool.contextMenuLayers[i].file.file_owner_group ==
-                            null ||
-                            (DrawTool.contextMenuLayers[i].file
-                                .file_owner_group &&
-                                F_.diff(
-                                    DrawTool.contextMenuLayers[i].file
-                                        .file_owner_group,
-                                    DrawTool.userGroups
-                                ).length == 0)))
+                    (cfile.file_owner == 'master' ||
+                        (mmgisglobal.user !== cfile.file_owner &&
+                            (cfile.file_owner_group == null ||
+                                (cfile.file_owner_group &&
+                                    F_.diff(
+                                        cfile.file_owner_group,
+                                        DrawTool.userGroups
+                                    ).length == 0)))) &&
+                    !(isListEdit || isAllEdit)
                 )
                     ownedByUser = false
             }
