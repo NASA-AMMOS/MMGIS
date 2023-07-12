@@ -13,6 +13,11 @@ var LegendTool = {
     MMWebGISInterface: null,
     targetId: null,
     made: false,
+    displayOnStart: false,
+    initialize: function () {
+        //Get tool variables
+        this.displayOnStart = L_.getToolVars('legend')['displayOnStart']
+    },
     make: function (targetId) {
         this.targetId = targetId
         this.MMWebGISInterface = new interfaceWithMMWebGIS()

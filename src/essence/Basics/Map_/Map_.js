@@ -1131,6 +1131,20 @@ function allLayersLoaded() {
 
         L_.loaded()
         //OTHER TEMPORARY TEST STUFF THINGS
+
+        // Turn on legend if displayOnStart is true
+        if ('LegendTool' in ToolController_.toolModules) {
+            if (ToolController_.toolModules['LegendTool'].displayOnStart == true) {
+                ToolController_.toolModules['LegendTool'].make('toolContentSeparated_Legend')
+                let _event = new CustomEvent('toggleSeparatedTool', {
+                    detail: {
+                        toggledToolName: 'LegendTool',
+                        visible: true,
+                    },
+                })
+                document.dispatchEvent(_event)
+            }
+        }
     }
 }
 

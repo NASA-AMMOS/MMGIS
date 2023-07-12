@@ -2,7 +2,7 @@
     "defaultIcon": "map-legend",
     "description": "Show a chart mapping colors and symbols to meaning.",
     "descriptionFull": "",
-    "hasVars": false,
+    "hasVars": true,
     "name": "Legend",
     "toolbarPriority": 2,
     "separatedTool": true,
