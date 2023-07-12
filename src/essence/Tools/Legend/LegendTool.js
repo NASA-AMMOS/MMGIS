@@ -227,6 +227,7 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity) {
                 .style('font-size', '14px')
                 .style('overflow', 'auto')
                 .style('white-space', 'nowrap')
+                .style('max-width', '270px')
                 .text(_legend[d].value)
         } else if (shape == 'continuous' || shape == 'discreet') {
             if (lastShape != shape) {
