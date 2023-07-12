@@ -9,7 +9,13 @@ parent: Tools
 
 A layer can be configured with a legend by pointing its Legend field to a .csv file or by including a JSON `legend` array into the layer's Raw Variables. The Legend Tool renders symbologies and gradient scales for any properly configured on layer.
 
-The Legend Tool takes no raw variable configurations in the Tools Tab.
+On the Configure page, under Tools, you can specify if the expanded legend should automatically be displayed on start:
+
+```javascript
+{
+    "displayOnStart": true
+}
+```
 
 ### legend.csv example:
 
