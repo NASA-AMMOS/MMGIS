@@ -1,0 +1,34 @@
+
+#volume-viewer_mode-dropdown {
+    min-width: 100px;
+    position: absolute;
+    left: 5px;
+    top: 0;
+}
+#volume-viewer_mode-dropdown .dropy {
+    background: var(--color-a);
+    margin-bottom: 0;
+    font-size: 14px !important;
+}
+
+#volume-viewer_controls {
+    position: absolute;
+    left: 5px;
+    top: 40px;
+    font-size: 13px;
+}
+#volume-viewer_controls > div > .children {
+    padding-left: 5px;
+}
+#volume-viewer_controls > div > .children .name {
+    text-transform: capitalize;
+}
+#volume-viewer_controls .lil-gui.root > .title {
+    background: var(--color-a2);
+}
+#volume-viewer_controls .lil-gui .controller.number .slider {
+    background-color: var(--color-a1);
+}
+#volume-viewer_controls .lil-gui .controller.number input {
+    background-color: var(--color-a1);
+}

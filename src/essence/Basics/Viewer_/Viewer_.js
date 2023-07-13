@@ -196,7 +196,7 @@ var Viewer_ = {
         } else this.masterImg = null
         o.isVolume = true
         o.isPanoramic = false
-        console.log(o)
+
         if (o.isModel) {
             this.imageModel.style('display', 'inherit')
             this.imagePanorama.style('display', 'none')

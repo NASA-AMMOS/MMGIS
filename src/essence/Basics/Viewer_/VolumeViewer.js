@@ -7,7 +7,8 @@ import { VolumeRenderShader1 } from './VolumeShader.js'
 import { LayeredShader } from './LayeredShader.js'
 import loadNetcdf from '../../loaders/netcdf/netcdf'
 
-import { NRRDLoader } from './temp/NRRDLoader.js'
+import Dropy from '../../../external/Dropy/dropy'
+import './VolumeViewer.css'
 
 export default function (domEl, lookupPath, options) {
     options = options || {}
@@ -21,9 +22,11 @@ export default function (domEl, lookupPath, options) {
         material,
         volconfig,
         cmtextures,
+        resizeTimeout,
         gui,
         layeredVars = {},
-        mode = 'layered' //'volume' //'slicer',// 'layered'
+        modes = ['Volume', 'Slicer', 'Layered']
+    let mode = modes[0].toLowerCase()
 
     const colorRamps = {
         blue: ['#ffffcc', '#a1dab4', '#41b6c4', '#2c7fb8', '#253494'],
@@ -70,9 +73,6 @@ export default function (domEl, lookupPath, options) {
     init()
 
     function init() {
-        scene = new THREE.Scene()
-        scene2 = new THREE.Scene()
-
         // Create renderer
         renderer = new THREE.WebGLRenderer()
         renderer.setPixelRatio(window.devicePixelRatio)
@@ -81,12 +81,21 @@ export default function (domEl, lookupPath, options) {
 
         initScene()
 
-        $('#viewerScreen').append(
-            "<div id='volume-viewer-toggle' style='cursor: pointer; position: absolute; left: 0; bottom: 0;'>TOGGLE</div>"
+        //prettier-ignore
+        $('#viewerToolBar .row').append(
+            ["<div id='volume-viewer_subtoolbar'>",
+                "<div id='volume-viewer_mode-dropdown'></div>",
+                "<div id='volume-viewer_controls'></div>",
+            "</div>"].join('\n')
         )
-        $('#volume-viewer-toggle').on('click', () => {
-            if (mode === 'slicer') mode = 'volume'
-            else if (mode === 'volume') mode = 'slicer'
+
+        $('#volume-viewer_mode-dropdown').html(
+            Dropy.construct(modes, 'Mode', 0)
+        )
+        Dropy.init($('#volume-viewer_mode-dropdown'), function (idx) {
+            mode = modes[idx].toLowerCase()
+
+            $('#volume-viewer_controls').empty()
 
             initScene()
             changeVolume()
@@ -94,6 +103,9 @@ export default function (domEl, lookupPath, options) {
     }
 
     function initScene() {
+        scene = new THREE.Scene()
+        scene2 = new THREE.Scene()
+
         if (mode === 'volume') {
             // Create camera (The volume renderer does not work very well with perspective yet)
             const h = 512 // frustum height
@@ -124,7 +136,7 @@ export default function (domEl, lookupPath, options) {
                 0.01,
                 1e10
             )
-            camera.position.z = 300
+            camera.position.set(0, 400, 0)
             camera.up.set(0, 0, -1) // In our data, z is up
 
             // Create controls
@@ -142,7 +154,7 @@ export default function (domEl, lookupPath, options) {
                 0.01,
                 1e10
             )
-            camera.position.z = 2
+            camera.position.set(0, 2, 0)
             camera.up.set(0, 0, 1) // In our data, z is up
 
             // Create controls
@@ -162,14 +174,8 @@ export default function (domEl, lookupPath, options) {
             renderer.setRenderTarget(layeredVars.rtTexture)
             renderer.render(scene, camera)
             renderer.setRenderTarget(null)
-
             //Render the second pass and perform the volume rendering.
             renderer.render(scene2, camera)
-
-            layeredVars.materialSecondPass.uniforms.steps.value =
-                layeredVars.guiControls.steps
-            layeredVars.materialSecondPass.uniforms.alphaCorrection.value =
-                layeredVars.guiControls.alphaCorrection
         } else {
             renderer.render(scene, camera)
         }
@@ -179,20 +185,22 @@ export default function (domEl, lookupPath, options) {
         if (renderer != undefined) {
             renderer.setSize(domEl.offsetWidth, domEl.offsetHeight)
             const aspect = domEl.offsetWidth / domEl.offsetHeight
+            if (mode === 'volume') {
+                const frustumHeight = camera.top - camera.bottom
 
-            const frustumHeight = camera.top - camera.bottom
-
-            camera.left = (-frustumHeight * aspect) / 2
-            camera.right = (frustumHeight * aspect) / 2
-            camera.updateProjectionMatrix()
-            render()
+                camera.left = (-frustumHeight * aspect) / 2
+                camera.right = (frustumHeight * aspect) / 2
+                camera.updateProjectionMatrix()
+                render()
+            } else {
+                camera.aspect = aspect
+                camera.updateProjectionMatrix()
+                clearTimeout(resizeTimeout)
+                resizeTimeout = setTimeout(() => {
+                    changeVolume()
+                }, 300)
+            }
         }
-    }
-
-    function animate() {
-        requestAnimationFrame(animate)
-
-        render()
     }
 
     function changeVolume() {
@@ -206,36 +214,33 @@ export default function (domEl, lookupPath, options) {
                 colormap: Object.keys(colorRamps)[0],
             }
             if (gui) gui.destroy()
-            gui = new GUI()
-            gui.add(volconfig, 'clim1', 0, 1, 0.01).onChange(updateUniforms)
-            gui.add(volconfig, 'clim2', 0, 1, 0.01).onChange(updateUniforms)
+            gui = new GUI({
+                container: document.getElementById('volume-viewer_controls'),
+            })
+            gui.add(volconfig, 'clim1', 0, 1, 0.01)
+                .name('Color Limit 1')
+                .onChange(updateUniforms)
+            gui.add(volconfig, 'clim2', 0, 1, 0.01)
+                .name('Color Limit 2')
+                .onChange(updateUniforms)
             const colormap = {}
             Object.keys(colorRamps).forEach((key) => {
                 colormap[key] = key
             })
-            gui.add(volconfig, 'colormap', colormap).onChange(updateUniforms)
+            gui.add(volconfig, 'colormap', colormap)
+                .name('Color Map')
+                .onChange(updateUniforms)
             gui.add(volconfig, 'renderstyle', {
                 mip: 'mip',
                 iso: 'iso',
-            }).onChange(updateUniforms)
-            gui.add(volconfig, 'isothreshold', 0, 1, 0.01).onChange(
-                updateUniforms
-            )
+            })
+                .name('Render Style')
+                .onChange(updateUniforms)
+            gui.add(volconfig, 'isothreshold', 0, 1, 0.01)
+                .name('ISO Threshold')
+                .onChange(updateUniforms)
 
             loadNetcdf(null, 'gpr', (volume) => {
-                //new NRRDLoader().load(
-                //'https://threejs.org/examples/models/nrrd/stent.nrrd',
-                //function (volume) {
-                // Texture to hold the volume. We have scalars, so we put our data in the red channel.
-                // THREEJS will select R32F (33326) based on the THREE.RedFormat and THREE.FloatType.
-                // Also see https://www.khronos.org/registry/webgl/specs/latest/2.0/#TEXTURE_TYPES_FORMATS_FROM_DOM_ELEMENTS_TABLE
-                // TODO: look the dtype up in the volume metadata
-                //volume.sizeX = volume.xLength
-                //volume.sizeY = volume.yLength
-                //volume.sizeZ = volume.zLength
-
-                console.log(volume)
-
                 camera.position.set(
                     -volume.sizeX / 2,
                     -volume.sizeY / 2,
@@ -350,22 +355,26 @@ export default function (domEl, lookupPath, options) {
                 scene.add(sliceX.mesh)
 
                 if (gui) gui.destroy()
-                gui = new GUI()
+                gui = new GUI({
+                    container: document.getElementById(
+                        'volume-viewer_controls'
+                    ),
+                })
 
                 gui.add(sliceX, 'index', 0, volume.RASDimensions[0], 1)
-                    .name('indexX')
+                    .name('X Plane')
                     .onChange(function () {
                         sliceX.repaint.call(sliceX)
                         render()
                     })
                 gui.add(sliceY, 'index', 0, volume.RASDimensions[1], 1)
-                    .name('indexY')
+                    .name('Y Plane')
                     .onChange(function () {
                         sliceY.repaint.call(sliceY)
                         render()
                     })
                 gui.add(sliceZ, 'index', 0, volume.RASDimensions[2], 1)
-                    .name('indexZ')
+                    .name('Z Plane')
                     .onChange(function () {
                         sliceZ.repaint.call(sliceZ)
                         render()
@@ -395,6 +404,7 @@ export default function (domEl, lookupPath, options) {
                         volume.repaintAllSlices()
                         render()
                     })
+                render()
             })
         } else if (mode === 'layered') {
             loadNetcdf(null, 'gpr', (volume) => {
@@ -420,8 +430,8 @@ export default function (domEl, lookupPath, options) {
 
                 //Don't let it generate mipmaps to save memory and apply linear filtering to prevent use of LOD.
                 cubeTexture.generateMipmaps = false
-                cubeTexture.minFilter = THREE.LinearFilter
-                cubeTexture.magFilter = THREE.LinearFilter
+                cubeTexture.minFilter = THREE.NearestFilter //THREE.LinearFilter
+                cubeTexture.magFilter = THREE.NearestFilter //THREE.LinearFilter
 
                 const transferTexture = layered_updateTransferFunction()
 
@@ -429,6 +439,17 @@ export default function (domEl, lookupPath, options) {
                     domEl.offsetWidth,
                     domEl.offsetHeight
                 )
+                const maxDimen = Math.max(
+                    volume.sizeX,
+                    volume.sizeY,
+                    volume.sizeZ
+                )
+                layeredVars.boxSize = [
+                    volume.sizeX / maxDimen,
+                    volume.sizeY / maxDimen,
+                    volume.sizeZ / maxDimen,
+                ]
+
                 //Use NearestFilter to eliminate interpolation.  At the cube edges, interpolated world coordinates
                 //will produce bogus ray directions in the fragment shader, and thus extraneous colors.
                 layeredVars.rtTexture = new THREE.WebGLRenderTarget(
@@ -445,11 +466,24 @@ export default function (domEl, lookupPath, options) {
                         stencilBuffer: true,
                     }
                 )
-
                 const materialFirstPass = new THREE.ShaderMaterial({
                     vertexShader: LayeredShader.vertexShaderFirstPass,
                     fragmentShader: LayeredShader.fragmentShaderFirstPass,
                     side: THREE.BackSide,
+                    uniforms: {
+                        boxWidth: {
+                            type: '1f',
+                            value: layeredVars.boxSize[0],
+                        },
+                        boxHeight: {
+                            type: '1f',
+                            value: layeredVars.boxSize[1],
+                        },
+                        boxDepth: {
+                            type: '1f',
+                            value: layeredVars.boxSize[2],
+                        },
+                    },
                 })
                 layeredVars.materialSecondPass = new THREE.ShaderMaterial({
                     vertexShader: LayeredShader.vertexShaderSecondPass,
@@ -470,20 +504,28 @@ export default function (domEl, lookupPath, options) {
                             type: '1f',
                             value: layeredVars.guiControls.alphaCorrection,
                         },
+                        boxWidth: {
+                            type: '1f',
+                            value: layeredVars.boxSize[0],
+                        },
+                        boxHeight: {
+                            type: '1f',
+                            value: layeredVars.boxSize[1],
+                        },
+                        boxDepth: {
+                            type: '1f',
+                            value: layeredVars.boxSize[2],
+                        },
                     },
                 })
                 layeredVars.materialSecondPass.needsUpdate = true
 
-                const maxDimen = Math.max(
-                    volume.sizeX,
-                    volume.sizeY,
-                    volume.sizeZ
-                )
                 const boxGeometry = new THREE.BoxGeometry(
-                    volume.sizeY / maxDimen,
-                    volume.sizeX / maxDimen,
-                    volume.sizeZ / maxDimen
+                    layeredVars.boxSize[0],
+                    layeredVars.boxSize[1],
+                    layeredVars.boxSize[2]
                 )
+
                 boxGeometry.doubleSided = true
 
                 const meshFirstPass = new THREE.Mesh(
@@ -499,82 +541,70 @@ export default function (domEl, lookupPath, options) {
                 scene2.add(meshSecondPass)
 
                 ////
-
-                var gui = new GUI()
-                var modelSelected = gui.add(layeredVars.guiControls, 'model', [
-                    'bonsai',
-                    'foot',
-                    'teapot',
-                ])
-                gui.add(layeredVars.guiControls, 'steps', 0.0, 512.0)
-                gui.add(
+                if (gui) gui.destroy()
+                gui = new GUI({
+                    container: document.getElementById(
+                        'volume-viewer_controls'
+                    ),
+                })
+                const controllerSteps = gui.add(
                     layeredVars.guiControls,
-                    'alphaCorrection',
-                    0.01,
-                    5.0
-                ).step(0.01)
+                    'steps',
+                    0.0,
+                    512.0
+                )
+                controllerSteps.onChange(function (val) {
+                    layeredVars.materialSecondPass.uniforms.steps.value = val
+                    render()
+                })
 
-                modelSelected.onChange(function (value) {
-                    layeredVars.materialSecondPass.uniforms.cubeTex.value =
-                        cubeTexture
+                const controllerAlphaCorrection = gui
+                    .add(layeredVars.guiControls, 'alphaCorrection', 0.01, 5.0)
+                    .step(0.01)
+                controllerAlphaCorrection.onChange(function (val) {
+                    layeredVars.materialSecondPass.uniforms.alphaCorrection.value =
+                        val
+                    render()
                 })
 
                 //Setup transfer function steps.
                 var step1Folder = gui.addFolder('Step 1')
-                var controllerColor1 = step1Folder.addColor(
-                    layeredVars.guiControls,
-                    'color1'
-                )
-                var controllerStepPos1 = step1Folder.add(
-                    layeredVars.guiControls,
-                    'stepPos1',
-                    0.0,
-                    1.0
-                )
+                var controllerColor1 = step1Folder
+                    .addColor(layeredVars.guiControls, 'color1')
+                    .name('Color 1')
+                var controllerStepPos1 = step1Folder
+                    .add(layeredVars.guiControls, 'stepPos1', 0.0, 1.0)
+                    .name('Step 1')
                 controllerColor1.onChange(layered_updateTextures)
                 controllerStepPos1.onChange(layered_updateTextures)
 
                 var step2Folder = gui.addFolder('Step 2')
-                var controllerColor2 = step2Folder.addColor(
-                    layeredVars.guiControls,
-                    'color2'
-                )
-                var controllerStepPos2 = step2Folder.add(
-                    layeredVars.guiControls,
-                    'stepPos2',
-                    0.0,
-                    1.0
-                )
+                var controllerColor2 = step2Folder
+                    .addColor(layeredVars.guiControls, 'color2')
+                    .name('Color 2')
+                var controllerStepPos2 = step2Folder
+                    .add(layeredVars.guiControls, 'stepPos2', 0.0, 1.0)
+                    .name('Step 2')
                 controllerColor2.onChange(layered_updateTextures)
                 controllerStepPos2.onChange(layered_updateTextures)
 
                 var step3Folder = gui.addFolder('Step 3')
-                var controllerColor3 = step3Folder.addColor(
-                    layeredVars.guiControls,
-                    'color3'
-                )
-                var controllerStepPos3 = step3Folder.add(
-                    layeredVars.guiControls,
-                    'stepPos3',
-                    0.0,
-                    1.0
-                )
+                var controllerColor3 = step3Folder
+                    .addColor(layeredVars.guiControls, 'color3')
+                    .name('Color 3')
+                var controllerStepPos3 = step3Folder
+                    .add(layeredVars.guiControls, 'stepPos3', 0.0, 1.0)
+                    .name('Step 3')
                 controllerColor3.onChange(layered_updateTextures)
                 controllerStepPos3.onChange(layered_updateTextures)
 
                 var modifyFolder = gui.addFolder('Crop Data')
-                var modifyMin = modifyFolder.add(
-                    layeredVars.guiControls,
-                    'min',
-                    0.0,
-                    1.0
-                )
-                var modifyMax = modifyFolder.add(
-                    layeredVars.guiControls,
-                    'max',
-                    0.0,
-                    1.0
-                )
+                var modifyMin = modifyFolder
+                    .add(layeredVars.guiControls, 'min', 0.0, 1.0)
+                    .name('Min')
+                var modifyMax = modifyFolder
+                    .add(layeredVars.guiControls, 'max', 0.0, 1.0)
+                    .name('Max')
                 modifyMin.onFinishChange(() => {
                     layered_cropData(volume)
                 })
@@ -586,8 +616,9 @@ export default function (domEl, lookupPath, options) {
                 step2Folder.open()
                 step3Folder.open()
                 modifyFolder.open()
-
-                animate()
+                setTimeout(() => {
+                    render()
+                }, 1)
             })
         }
     }
@@ -621,24 +652,26 @@ export default function (domEl, lookupPath, options) {
     function layered_updateTextures(value) {
         layeredVars.materialSecondPass.uniforms.transferTex.value =
             layered_updateTransferFunction()
+
+        render()
     }
     function layered_cropData(volume) {
         const cubeTexture = new THREE.TextureLoader().load(
             layered_makeCanvas(volume)
         )
         cubeTexture.generateMipmaps = false
-        cubeTexture.minFilter = THREE.LinearFilter
-        cubeTexture.magFilter = THREE.LinearFilter
+        cubeTexture.minFilter = THREE.NearestFilter //THREE.LinearFilter
+        cubeTexture.magFilter = THREE.NearestFilter //THREE.LinearFilter
 
         layeredVars.materialSecondPass.uniforms.cubeTex.value = cubeTexture
+        setTimeout(() => {
+            render()
+        }, 1)
     }
     function layered_updateTransferFunction() {
+        $('#volume-viewer_control_layered_transfer').remove()
         const canvas = document.createElement('canvas')
-        document.body.appendChild(canvas)
-        canvas.style.position = 'fixed'
-        canvas.style.top = 0
-        canvas.height = 20
-        canvas.width = 256
+        canvas.id = 'volume-viewer_control_layered_transfer'
 
         const ctx = canvas.getContext('2d')
 
@@ -698,8 +731,6 @@ export default function (domEl, lookupPath, options) {
         const imgData = ctx.createImageData(newWidth, newHeight)
 
         const flipY = true
-
-        const length = volume.data.Length
 
         let realPosX, realPosY
 

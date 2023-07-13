@@ -44,6 +44,9 @@
 }
 #viewer_dropdownselector {
     min-width: 30%;
+    position: absolute;
+    right: 5px;
+    top: 0;
 }
 #viewer_dropdownselector .dropy {
     background: var(--color-a);
