@@ -131,3 +131,7 @@ For use when `ENABLE_CONFIG_WEBSOCKETS=true` (if `ENABLE_CONFIG_WEBSOCKETS=false
 #### `MAIN_MISSION=`
 
 If the new MAIN_MISSION ENV is set to a valid mission, skip the landing page and go straight to that mission. Other missions will still be accessible by either forcing the landing page (clicking the top-left M logo) or by going to a link directly. | string | default `''`
+
+#### `SKIP_CLIENT_INITIAL_LOGIN=`
+
+If true, MMGIS will not auto-login returning users. This can be useful when login is managed someplace else. The initial login process can be manually triggered with `mmgisAPI.initialLogin()` | boolean | default `false`

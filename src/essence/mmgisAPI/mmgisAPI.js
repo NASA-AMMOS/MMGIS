@@ -3,6 +3,7 @@ import F_ from '../Basics/Formulae_/Formulae_'
 import ToolController_ from '../Basics/ToolController_/ToolController_'
 import QueryURL from '../Ancillary/QueryURL'
 import TimeControl from '../Ancillary/TimeControl'
+import Login from '../Ancillary/Login/Login'
 import LegendTool from '../Tools/Legend/LegendTool.js'
 
 import $ from 'jquery'
@@ -673,6 +674,10 @@ var mmgisAPI = {
      * @param {function} - onLoadCallback - function reference to function that is called when MMGIS is finished loading
      */
     onLoaded: mmgisAPI_.onLoaded,
+
+    /** initialLogin: performs the initial login call to relogin returning users. Pairable with the ENV `SKIP_CLIENT_INITIAL_LOGIN=`.
+     */
+    initialLogin: Login.initialLogin,
 
     /** project - converts a lnglat into xy coordinates with the current (custom or default web mercator) proj4 definition
      * @param {object} {lng: 0, lat: 0} - lnglat to convert
