@@ -145,6 +145,9 @@ var mmgisAPI_ = {
 
         // For all MMGIS layers
         for (let key in L_.layers.layer) {
+            if (L_.layers.layer[key] === false || L_.layers.layer[key] == null)
+                continue
+
             if (L_.layers.layer[key].hasOwnProperty('_layers')) {
                 // For normal layers
                 const foundFeatures = findFeaturesInLayer(
