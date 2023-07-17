@@ -240,7 +240,7 @@ export default function (domEl, lookupPath, options) {
                 .name('ISO Threshold')
                 .onChange(updateUniforms)
 
-            loadNetcdf(null, 'gpr', (volume) => {
+            loadNetcdf(lookupPath, options.dimension, (volume) => {
                 camera.position.set(
                     -volume.sizeX / 2,
                     -volume.sizeY / 2,
@@ -316,7 +316,7 @@ export default function (domEl, lookupPath, options) {
                 render()
             })
         } else if (mode === 'slicer') {
-            loadNetcdf(null, 'gpr', (volume) => {
+            loadNetcdf(lookupPath, options.dimension, (volume) => {
                 //box helper to see the extend of the volume
                 const geometry = new THREE.BoxGeometry(
                     volume.xLength,
@@ -407,9 +407,8 @@ export default function (domEl, lookupPath, options) {
                 render()
             })
         } else if (mode === 'layered') {
-            loadNetcdf(null, 'gpr', (volume) => {
+            loadNetcdf(lookupPath, options.dimension, (volume) => {
                 layeredVars.guiControls = new (function () {
-                    this.model = 'foot'
                     this.steps = 256.0
                     this.alphaCorrection = 1.0
                     this.color1 = '#00FA58'

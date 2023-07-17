@@ -72,7 +72,7 @@ export default function (domEl, lookupPath, options, Map_) {
             renderer.setPixelRatio(window.devicePixelRatio)
             renderer.setSize(domEl.offsetWidth, domEl.offsetHeight)
 
-            renderer.vr.enabled = true
+            if (renderer.vr) renderer.vr.enabled = true
 
             if (WebVR) domEl.appendChild(WebVR.createButton(renderer))
 
@@ -117,20 +117,31 @@ export default function (domEl, lookupPath, options, Map_) {
             var shape = new THREE.Shape()
             shape.moveTo(radius, 0)
             shape.absarc(0, 0, radius, 0, 2 * Math.PI, false)
-            var spacedPoints = shape.createSpacedPointsGeometry(360)
+            var spacedPoints = shape.extractPoints(360).shape
 
-            var vertexColors = [] // array for our vertex colours
-            spacedPoints.vertices.forEach(function (vertex) {
+            var vertexColors = [] // array for our vertex colors
+            spacedPoints.forEach(function (vertex) {
+                let rgb = { r: 0, g: 0, b: 0 }
                 // fill the array
-                if (vertex.y < 0) vertexColors.push(new THREE.Color(0xff0000))
-                else vertexColors.push(new THREE.Color(0x0000ff))
+                if (vertex.y < 0) rgb.r = 1
+                else rgb.b = 1
+
+                vertexColors.push(rgb.r)
+                vertexColors.push(rgb.g)
+                vertexColors.push(rgb.b)
             })
-            spacedPoints.colors = vertexColors // assign the array
+            spacedPoints = new THREE.BufferGeometry().setFromPoints(
+                spacedPoints
+            )
+            spacedPoints.setAttribute(
+                'color',
+                new THREE.Float32BufferAttribute(vertexColors, 3)
+            )
 
             azCircle = new THREE.Line(
                 spacedPoints,
                 new THREE.LineBasicMaterial({
-                    vertexColors: THREE.VertexColors, // set this parameter like it shown here
+                    vertexColors: true,
                 })
             )
             azCircle.visible = advancedAzElOn
@@ -140,20 +151,33 @@ export default function (domEl, lookupPath, options, Map_) {
             var shape = new THREE.Shape()
             shape.moveTo(radius, 0)
             shape.absarc(0, 0, radius, 0, 2 * Math.PI, false)
-            var spacedPoints = shape.createSpacedPointsGeometry(360)
+            var spacedPoints = shape.extractPoints(360).shape
 
-            var vertexColors = [] // array for our vertex colours
-            spacedPoints.vertices.forEach(function (vertex) {
+            var vertexColors = [] // array for our vertex colors
+            spacedPoints.forEach(function (vertex) {
+                let rgb = { r: 0, g: 0, b: 0 }
                 // fill the array
-                if (vertex.y < 0) vertexColors.push(new THREE.Color(0xffff00))
-                else vertexColors.push(new THREE.Color(0x00ff00))
+                if (vertex.y < 0) {
+                    rgb.r = 1
+                    rgb.g = 1
+                } else rgb.g = 1
+
+                vertexColors.push(rgb.r)
+                vertexColors.push(rgb.g)
+                vertexColors.push(rgb.b)
             })
-            spacedPoints.colors = vertexColors // assign the array
+            spacedPoints = new THREE.BufferGeometry().setFromPoints(
+                spacedPoints
+            )
+            spacedPoints.setAttribute(
+                'color',
+                new THREE.Float32BufferAttribute(vertexColors, 3)
+            )
 
             elCircle = new THREE.Line(
                 spacedPoints,
                 new THREE.LineBasicMaterial({
-                    vertexColors: THREE.VertexColors, // set this parameter like it shown here
+                    vertexColors: true,
                 })
             )
             elCircleP = new THREE.Object3D()

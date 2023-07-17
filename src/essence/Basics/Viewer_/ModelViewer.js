@@ -59,7 +59,7 @@ export default function (domEl, lookupPath, options) {
             renderer.setSize(domEl.offsetWidth, domEl.offsetHeight)
             renderer.setClearColor(0x000000)
 
-            renderer.vr.enabled = true
+            if (renderer.vr) renderer.vr.enabled = true
             domEl.appendChild(WebVR.createButton(renderer))
 
             domEl.appendChild(renderer.domElement)

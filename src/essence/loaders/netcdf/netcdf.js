@@ -5,15 +5,15 @@ import { Volume } from './Volume.js'
 import F_ from '../../Basics/Formulae_/Formulae_'
 
 export default function (path, volumeName, callback) {
-    fetch(
-        //'./public/misc/A2003.1.WENO5.002.nc'
-        './public/misc/marsYard4.nc'
-    )
+    fetch(path)
         .then(readNetcdfHeader)
         .then((header) => fetchVolume(header, volumeName))
         .then(normalizeVolume)
         .then(formatVolume)
         .then((volume) => callback(volume))
+        .catch((err) => {
+            console.error(err)
+        })
 }
 
 function formatVolume(volume) {
@@ -65,39 +65,44 @@ function readNetcdfHeader(response) {
     var reader = response.body.getReader()
     var bytesReceived = 0
     var buffer = null
-    return reader.read().then(function process(result) {
-        // append new bytes to the buffer
-        var received = bytesReceived + result.value.length
-        if (!buffer) {
-            buffer = result.value
-        } else {
-            var old = buffer.subarray(0, bytesReceived)
-            buffer = new Uint8Array(received)
-            buffer.set(old, 0, bytesReceived)
-            buffer.set(result.value, bytesReceived)
-        }
-        bytesReceived = received
-
-        // try reading the header
-        try {
-            const header = new NetCDFReader(buffer)
-            header.url = response.url
-            header.reader = reader
-            header.bytesTotal = response.headers.get('Content-Length')
-            header.acceptRanges =
-                response.headers.get('Accept-Ranges') === 'bytes'
-            header.bytesReceived = bytesReceived
-            return header
-        } catch (e) {
-            // end is reached with no decodable header
-            if (result.done) {
-                console.log('eof, no valid netcdf header!')
-                return
+    return reader
+        .read()
+        .then(function process(result) {
+            // append new bytes to the buffer
+            var received = bytesReceived + result.value.length
+            if (!buffer) {
+                buffer = result.value
+            } else {
+                var old = buffer.subarray(0, bytesReceived)
+                buffer = new Uint8Array(received)
+                buffer.set(old, 0, bytesReceived)
+                buffer.set(result.value, bytesReceived)
             }
-            // keep reading
-            return reader.read().then(process)
-        }
-    })
+            bytesReceived = received
+
+            // try reading the header
+            try {
+                const header = new NetCDFReader(buffer)
+                header.url = response.url
+                header.reader = reader
+                header.bytesTotal = response.headers.get('Content-Length')
+                header.acceptRanges =
+                    response.headers.get('Accept-Ranges') === 'bytes'
+                header.bytesReceived = bytesReceived
+                return header
+            } catch (e) {
+                // end is reached with no decodable header
+                if (result.done) {
+                    console.log('eof, no valid netcdf header!')
+                    return
+                }
+                // keep reading
+                return reader.read().then(process)
+            }
+        })
+        .catch((err) => {
+            console.error(err)
+        })
 }
 
 function getValue(view, offset, type) {

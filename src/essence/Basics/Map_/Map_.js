@@ -1156,6 +1156,21 @@ function propertiesToImages(props, baseUrl) {
                         values: props.images[i].values || {},
                         master: props.images[i].master,
                     })
+                } else if (props.images[i].isVolume) {
+                    images.push({
+                        ...props.images[i],
+                        url: url,
+                        name:
+                            (props.images[i].name ||
+                                props.images[i].url.match(/([^\/]*)\/*$/)[1]) +
+                            ' [Volume]',
+                        type: 'image',
+                        isPanoramic: false,
+                        isModel: false,
+                        isVolume: true,
+                        values: props.images[i].values || {},
+                        master: props.images[i].master,
+                    })
                 } else {
                     if (props.images[i].isPanoramic) {
                         images.push({

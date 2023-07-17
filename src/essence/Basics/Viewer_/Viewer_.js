@@ -76,6 +76,15 @@ var Viewer_ = {
             .style('height', '100%')
             .style('display', 'none')
 
+        this.imageVolume = d3
+            .select('#viewer')
+            .append('div')
+            .attr('id', 'imageVolumeWebGL')
+            .style('position', 'absolute')
+            .style('width', '100%')
+            .style('height', '100%')
+            .style('display', 'none')
+
         this.imageIntro = d3
             .select('#viewer')
             .append('div')
@@ -172,6 +181,7 @@ var Viewer_ = {
         Viewer_.lastImageId = imageId
         if (o == null) {
             this.imageModel.style('display', 'none')
+            this.imageVolume.style('display', 'none')
             this.imagePanorama.style('display', 'none')
             this.imageViewer.style('display', 'none')
             this.baseToolbar.style('display', 'none')
@@ -194,11 +204,10 @@ var Viewer_ = {
                 this.masterImg =
                     '../../../../' + L_.missionPath + this.masterImg
         } else this.masterImg = null
-        o.isVolume = true
-        o.isPanoramic = false
 
         if (o.isModel) {
             this.imageModel.style('display', 'inherit')
+            this.imageVolume.style('display', 'none')
             this.imagePanorama.style('display', 'none')
             this.imageViewer.style('display', 'none')
             this.baseToolbar.style('display', 'none')
@@ -251,6 +260,7 @@ var Viewer_ = {
             )
         } else if (o.isPanoramic) {
             this.imagePanorama.style('display', 'inherit')
+            this.imageVolume.style('display', 'none')
             this.imageViewer.style('display', 'none')
             this.imageModel.style('display', 'none')
             this.baseToolbar.style('display', 'none')
@@ -292,7 +302,8 @@ var Viewer_ = {
                 }
             )
         } else if (o.isVolume) {
-            this.imageModel.style('display', 'inherit')
+            this.imageVolume.style('display', 'inherit')
+            this.imageModel.style('display', 'none')
             this.imagePanorama.style('display', 'none')
             this.imageViewer.style('display', 'none')
             this.baseToolbar.style('display', 'none')
@@ -301,14 +312,16 @@ var Viewer_ = {
 
             if (this.volumeviewer == null) {
                 this.volumeviewer = VolumeViewer(
-                    document.getElementById('imageModelWebGL'),
-                    this.lookupPath
+                    document.getElementById('imageVolumeWebGL'),
+                    this.url,
+                    o
                 )
             }
             this.volumeviewer.changeVolume()
             window.onresize = this.volumeviewer.resize
         } else {
             this.imageViewer.style('display', 'inherit')
+            this.imageVolume.style('display', 'none')
             this.imagePanorama.style('display', 'none')
             this.imageModel.style('display', 'none')
             this.baseToolbar.style('display', 'flex')
