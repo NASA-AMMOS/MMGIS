@@ -412,7 +412,7 @@ export default function (domEl, lookupPath, options) {
                     this.steps = 256.0
                     this.alphaCorrection = 1.0
                     this.color1 = '#00FA58'
-                    this.stepPos1 = 0.1
+                    this.stepPos1 = 0.0
                     this.color2 = '#FFDD00'
                     this.stepPos2 = 0.5
                     this.color3 = '#F00000'

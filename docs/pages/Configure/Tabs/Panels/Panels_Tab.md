@@ -31,6 +31,11 @@ The Viewer sits to the left of the main Map. It can be expanded by clicking the 
             "type": "radargram"
         },
         {
+            "url": "Data/netcdfv3/marsYard4.nc",
+            "dimension": "netcdf_dimension_name",
+            "isVolume": true
+        },
+        {
             "name": "Model Example",
             "url": "Data/models/example_model.obj",
             "texture": "Data/models/example_texture.jpg",
