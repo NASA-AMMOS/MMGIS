@@ -1,0 +1,26 @@
+{
+    "defaultIcon": "sun-angle-outline",
+    "description": "Realtime user generated sun and orbiter masks.",
+    "descriptionFull": {
+        "title": "Renders dynamic tilesets based on line-of-sight visibilities from user defined source points. DEM tiles are used to generate these. At least one DEM tileset must be configured. curvature is optional and can be set to false to disable using the Major Radius to account for curvature during generations.",
+        "example": {
+            "data": [
+                {
+                    "name": "Unique Name 1",
+                    "demtileurl": "Layers/Example/demtileset/{z}/{x}/{y}.png",
+                    "minZoom": 8,
+                    "maxNativeZoom": 18
+                },
+                { "...": "..." }
+            ]
+        }
+    },
+    "hasVars": true,
+    "name": "Shade",
+    "toolbarPriority": 102,
+    "paths": {
+        "ShadeTool": "essence/Tools/Shade/ShadeTool",
+        "ShadeTool_Manager": "essence/Tools/Shade/ShadeTool_Algorithm",
+        "ShadeTool_Algorithm": "essence/Tools/Shade/ShadeTool_Algorithm"
+    }
+}
