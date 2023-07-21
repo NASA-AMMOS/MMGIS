@@ -49,6 +49,16 @@ var TimeControl = {
         if ((TimeControl.enabled = true && TimeControl.timeUI != null))
             TimeControl.timeUI.fina()
     },
+    subscribe: function () {},
+    unsubscribe: function () {},
+    _subscriptions: {},
+    subscribe: function (fid, func) {
+        if (typeof func === 'function') TimeControl._subscriptions[fid] = func
+    },
+    unsubscribe: function (fid) {
+        if (TimeControl._subscriptions[fid] != null)
+            delete TimeControl._subscriptions[fid]
+    },
     setTime: function (
         startTime,
         endTime,
@@ -331,6 +341,14 @@ function timeInputChange(startTime, endTime, currentTime, skipUpdate) {
     TimeControl.startTime = startTime
     TimeControl.currentTime = currentTime == null ? endTime : currentTime
     TimeControl.endTime = endTime
+
+    Object.keys(TimeControl._subscriptions).forEach((k) => {
+        TimeControl._subscriptions[k]({
+            startTime: TimeControl.startTime,
+            endTime: TimeControl.endTime,
+            currentTime: TimeControl.currentTime,
+        })
+    })
 
     if (skipUpdate !== true) {
         // Update layer times and reload

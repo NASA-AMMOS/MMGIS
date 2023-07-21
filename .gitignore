@@ -6,6 +6,7 @@
 /API/logs/*
 /Missions/*
 !/Missions/.gitkeep
+/private/api/spice/kernels/*
 
 #Nested repo where private backend might reside
 /API/MMGIS-Private-Backend

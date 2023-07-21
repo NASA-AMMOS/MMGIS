@@ -14,13 +14,6 @@ let ShadeTool_Algorithm = {
     // 9: no data
     perOctant: false,
     shade: function (d) {
-        d.sourceAzimuth = 45
-        d.sourceElevation = 45
-        d.sourceAltitude = 100000
-        d.dataSource = { x: d.data[0].length - 1, y: 1 }
-        d.dataSource = { x: 100000, y: 100000 } // Somewhere far away
-        console.log(d)
-
         this.curveData(d)
         /*
             console.log(d)
@@ -47,11 +40,14 @@ let ShadeTool_Algorithm = {
             */
 
         let grids = this.initializeGrids(d)
-        //this.processFirst(d, grids)
-        this.processUp(d, grids)
-        this.processDown(d, grids)
 
-        this.mask(d, grids)
+        //this.processFirst(d, grids)
+        if (d.targetSource.altitude > 0) {
+            this.processUp(d, grids)
+            this.processDown(d, grids)
+
+            this.mask(d, grids)
+        }
 
         //console.log(grids)
 
@@ -65,10 +61,6 @@ let ShadeTool_Algorithm = {
             refGrid.push(new Array(d.data[0].length).fill(0))
             resultGrid.push(new Array(d.data[0].length).fill(0))
         }
-
-        // Populate the ref grid with the observer's height
-        const o = d.dataSource //observer
-        d.source.surfaceHeight = d.sourceAltitude
 
         // We're going to say that all edges (2px thick) of the screen/data are visible
 
@@ -203,7 +195,7 @@ let ShadeTool_Algorithm = {
     processUp: function (d, g) {
         const o = d.dataSource //observer
 
-        const observerHeight = d.sourceAltitude
+        const observerHeight = d.targetSource.altitude
         let dataH
 
         // Scan Up
@@ -318,7 +310,7 @@ let ShadeTool_Algorithm = {
     processDown: function (d, g) {
         const o = d.dataSource //observer
 
-        const observerHeight = d.sourceAltitude
+        const observerHeight = d.targetSource.altitude
         let dataH
 
         // Scan Down

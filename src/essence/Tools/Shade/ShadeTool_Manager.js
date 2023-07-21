@@ -21,6 +21,7 @@ let ShadeTool_Manager = {
         dataLayer,
         resolution,
         source,
+        targetSource,
         options,
         vars,
         progcb,
@@ -39,6 +40,7 @@ let ShadeTool_Manager = {
                 dataLayer: dataLayer,
                 resolution: resolution,
                 source: source,
+                targetSource: targetSource,
                 desiredTiles: [],
                 topLeftTile: {},
                 bottomLeftLatLng: {},
@@ -223,7 +225,9 @@ let ShadeTool_Manager = {
         let dv = this.data[shadeId]
 
         let topLeftTile = new L.Point(dv.topLeftTile.x, dv.topLeftTile.y)
-        let sourcePoint = Map_.map.project(dv.source, dv.zoom).divideBy(256)
+        let sourcePoint = Map_.map
+            .project(dv.targetSource, dv.zoom)
+            .divideBy(256)
         this.data[shadeId].dataSource = sourcePoint
             .subtract(topLeftTile)
             .multiplyBy(dv.tileResolution)

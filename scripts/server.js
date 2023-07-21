@@ -620,6 +620,7 @@ setups.getBackendSetups(function (setups) {
   );
 
   // API
+  // TODO: move to API/Backend
   //TEST
   app.post(`${ROOT_PATH}/api/test`, function (req, res) {
     res.send("Hello World!");
@@ -677,6 +678,34 @@ setups.getBackendSetups(function (setups) {
         "python",
         ["private/api/BandsToProfile.py", path, x, y, xyorll, bands],
         function (error, stdout, stderr) {
+          if (error)
+            logger("error", "getbands failure:", "server", null, error);
+          res.send(stdout);
+        }
+      );
+    }
+  );
+
+  //utils ll2aerll
+  app.post(
+    `${ROOT_PATH}/api/utils/ll2aerll`,
+    ensureUser(),
+    ensureGroup(permissions.users),
+    function (req, res) {
+      const lng = encodeURIComponent(req.body.lng);
+      const lat = encodeURIComponent(req.body.lat);
+      const height = encodeURIComponent(req.body.height);
+      const target = encodeURIComponent(req.body.target);
+      const time = encodeURIComponent(req.body.time)
+        .replace(/%20/g, " ")
+        .replace(/%3A/g, ":");
+
+      execFile(
+        "python",
+        ["private/api/spice/ll2aerll.py", lng, lat, height, target, time],
+        function (error, stdout, stderr) {
+          if (error)
+            logger("error", "ll2aerll failure:", "server", null, error);
           res.send(stdout);
         }
       );
