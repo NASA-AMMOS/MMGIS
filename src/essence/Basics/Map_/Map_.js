@@ -17,6 +17,9 @@ import { Kinds } from '../../../pre/tools'
 import DataShaders from '../../Ancillary/DataShaders'
 import calls from '../../../pre/calls'
 import TimeControl from '../../Ancillary/TimeControl'
+
+import gjv from 'geojson-validation'
+
 let L = window.L
 
 let essenceFina = function () {}
@@ -796,7 +799,27 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
                 )
 
             function add(data) {
-                if (data == null || data === 'off') {
+                let invalidGeoJSONTrace = gjv.valid(data, true)
+                const allowableErrors = [`position must only contain numbers`]
+                invalidGeoJSONTrace = invalidGeoJSONTrace.filter((t) => {
+                    if (typeof t !== 'string') return false
+                    for (let i = 0; i < allowableErrors.length; i++) {
+                        if (t.toLowerCase().indexOf(allowableErrors[i]) != -1)
+                            return false
+                    }
+                    return true
+                })
+                if (
+                    data == null ||
+                    data === 'off' ||
+                    invalidGeoJSONTrace.length > 0
+                ) {
+                    if (data != null && data != 'off') {
+                        data = null
+                        console.warn(
+                            `ERROR: ${layerObj.display_name} has invalid GeoJSON!`
+                        )
+                    }
                     L_._layersLoaded[
                         L_._layersOrdered.indexOf(layerObj.name)
                     ] = true
@@ -1134,8 +1157,12 @@ function allLayersLoaded() {
 
         // Turn on legend if displayOnStart is true
         if ('LegendTool' in ToolController_.toolModules) {
-            if (ToolController_.toolModules['LegendTool'].displayOnStart == true) {
-                ToolController_.toolModules['LegendTool'].make('toolContentSeparated_Legend')
+            if (
+                ToolController_.toolModules['LegendTool'].displayOnStart == true
+            ) {
+                ToolController_.toolModules['LegendTool'].make(
+                    'toolContentSeparated_Legend'
+                )
                 let _event = new CustomEvent('toggleSeparatedTool', {
                     detail: {
                         toggledToolName: 'LegendTool',
