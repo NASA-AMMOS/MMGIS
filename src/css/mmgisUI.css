@@ -1580,7 +1580,7 @@ input::-webkit-inner-spin-button {
     cursor: default;
 }
 .mmgisToast.failure {
-    background-color: #a11717;
+    background-color: var(--color-r1);
 }
 
 /*spinner1*/

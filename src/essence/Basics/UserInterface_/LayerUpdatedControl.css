@@ -33,7 +33,7 @@
     color: var(--color-a) !important;
 }
 .DISCONNECTED {
-    background: var(--color-red) !important;
+    background: var(--color-r1) !important;
     color: var(--color-f) !important;
 }
 .leaflet-control-update-layer-icon > .mdi-reload-alert,
