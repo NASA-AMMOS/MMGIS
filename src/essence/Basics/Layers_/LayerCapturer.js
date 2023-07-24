@@ -70,7 +70,7 @@ export const captureVector = (layerObj, options, cb) => {
                 },
                 function (data) {
                     console.warn(
-                        'ERROR! ' +
+                        'ERROR: ' +
                             data.status +
                             ' in ' +
                             layerUrl +
