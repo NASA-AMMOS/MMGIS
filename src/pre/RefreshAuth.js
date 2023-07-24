@@ -36,7 +36,7 @@ if (mmgisglobal.SERVER == 'node' && mmgisglobal.AUTH == 'csso') {
 
     mmgisglobal.lastInteraction = Math.floor(Date.now() / 1000)
     var _refreshAuth_checkEvery = 60000 * 10 //milliseconds
-    var _refreshAuth_expiringLessThan = 60 * 11 //seconds
+    var _refreshAuth_expiringLessThan = 60 * 20 //seconds
     var _refreshAuth_interactedPast = 60000 * 30 //milliseconds
 
     function ssorefresh() {
