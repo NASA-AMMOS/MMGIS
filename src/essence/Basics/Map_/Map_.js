@@ -799,8 +799,21 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
                 )
 
             function add(data) {
-                const isValidGeoJSON = gjv.valid(data)
-                if (data == null || data === 'off' || !isValidGeoJSON) {
+                let invalidGeoJSONTrace = gjv.valid(data, true)
+                const allowableErrors = [`position must only contain numbers`]
+                invalidGeoJSONTrace = invalidGeoJSONTrace.filter((t) => {
+                    if (typeof t !== 'string') return false
+                    for (let i = 0; i < allowableErrors.length; i++) {
+                        if (t.toLowerCase().indexOf(allowableErrors[i]) != -1)
+                            return false
+                    }
+                    return true
+                })
+                if (
+                    data == null ||
+                    data === 'off' ||
+                    invalidGeoJSONTrace.length > 0
+                ) {
                     if (data != null && data != 'off') {
                         data = null
                         console.warn(
