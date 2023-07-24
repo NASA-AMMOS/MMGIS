@@ -4,6 +4,7 @@ import * as d3 from 'd3'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import ToolController_ from '../../Basics/ToolController_/ToolController_'
+import tippy from 'tippy.js'
 
 import calls from '../../../pre/calls'
 
@@ -89,8 +90,8 @@ var Login = {
 
         Login.loginBar
             .append('div')
+            .attr('class', 'attention')
             .attr('id', 'loginUser')
-            .attr('title', Login.loggedIn ? Login.username : '')
             .style('text-align', 'center')
             .style('font-size', '12px')
             .style('font-weight', 'bold')
@@ -109,6 +110,17 @@ var Login = {
             .style('text-transform', 'uppercase')
             .style('transition', 'opacity 0.2s ease-out')
             .html(Login.loggedIn ? Login.username[0] : '')
+
+        if (Login.loggedIn) {
+            if (window._tippyLoginUser && window._tippyLoginUser[0])
+                window._tippyLoginUser[0].setContent(Login.username)
+            else
+                window._tippyLoginUser = tippy('#loginUser', {
+                    content: Login.username,
+                    placement: 'bottom',
+                    theme: 'blue',
+                })
+        }
 
         //Show signup for admins
         if (
@@ -541,6 +553,18 @@ function loginSuccess(data, ignoreError) {
                 background: Login.loggedIn ? 'var(--color-a)' : 'transparent',
             })
             .html(Login.username[0])
+
+        if (Login.loggedIn) {
+            if (window._tippyLoginUser && window._tippyLoginUser[0])
+                window._tippyLoginUser[0].setContent(Login.username)
+            else
+                window._tippyLoginUser = tippy('#loginUser', {
+                    content: Login.username,
+                    placement: 'bottom',
+                    theme: 'blue',
+                    allowHTML: true,
+                })
+        }
     } else {
         document.cookie = 'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'
 

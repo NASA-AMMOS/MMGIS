@@ -49,26 +49,23 @@ if (mmgisglobal.SERVER == 'node' && mmgisglobal.AUTH == 'csso') {
 
                 var now = Math.floor(Date.now() / 1000)
 
-                if (mmgisglobal.SHOW_AUTH_TIMEOUT) {
-                    var append = false
-
-                    var elm = document.getElementById('AUTH_TIMEOUT')
-                    if (elm == null) {
-                        elm = document.createElement('div')
-                        append = true
-                    }
-                    elm.id = 'AUTH_TIMEOUT'
-                    elm.style.cssText =
-                        'position:fixed;left:225px;bottom:0px;z-index:11000;font-family:monospace;font-size:11px;color:#121626;'
-                    elm.innerHTML =
-                        'Authentication expiring in ' +
-                        (result.exp - now).toString().toHHMMSS() +
-                        '<div onclick="ssologin()" style="cursor:pointer;">Login again to renew</div>'
-
-                    if (append) document.body.appendChild(elm)
-                }
-
                 if (result.authenticated) {
+                    const content = `${
+                        result.sub
+                    }<br />Authentication expiring in ${(result.exp - now)
+                        .toString()
+                        .toHHMMSS()}`
+                    if (window._tippyLoginUser && window._tippyLoginUser[0])
+                        window._tippyLoginUser[0].setContent(content)
+                    if (
+                        result.exp - now <= 1000 &&
+                        document.getElementById('loginUser') != null
+                    ) {
+                        document
+                            .getElementById('loginUser')
+                            .classList.add('attention')
+                    }
+
                     if (
                         mmgisglobal.lastInteraction +
                             _refreshAuth_interactedPast <=
