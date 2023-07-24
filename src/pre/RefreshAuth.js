@@ -58,7 +58,7 @@ if (mmgisglobal.SERVER == 'node' && mmgisglobal.AUTH == 'csso') {
                     if (window._tippyLoginUser && window._tippyLoginUser[0])
                         window._tippyLoginUser[0].setContent(content)
                     if (
-                        result.exp - now <= 1000 &&
+                        result.exp - now <= _refreshAuth_expiringLessThan &&
                         document.getElementById('loginUser') != null
                     ) {
                         document

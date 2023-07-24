@@ -90,7 +90,6 @@ var Login = {
 
         Login.loginBar
             .append('div')
-            .attr('class', 'attention')
             .attr('id', 'loginUser')
             .style('text-align', 'center')
             .style('font-size', '12px')
@@ -117,8 +116,9 @@ var Login = {
             else
                 window._tippyLoginUser = tippy('#loginUser', {
                     content: Login.username,
-                    placement: 'bottom',
+                    placement: 'bottom-end',
                     theme: 'blue',
+                    allowHTML: true,
                 })
         }
 
@@ -560,7 +560,7 @@ function loginSuccess(data, ignoreError) {
             else
                 window._tippyLoginUser = tippy('#loginUser', {
                     content: Login.username,
-                    placement: 'bottom',
+                    placement: 'bottom-end',
                     theme: 'blue',
                     allowHTML: true,
                 })
