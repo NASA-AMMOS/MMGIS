@@ -67,10 +67,12 @@ export const constructVectorLayer = (
             if (feature.properties.hasOwnProperty('style')) {
                 let className = layerObj.style.className
                 let layerName = layerObj.style.layerName
+                layerObj.style = Object.assign({}, layerObj.style)
                 layerObj.style = {
-                    ...JSON.parse(JSON.stringify(layerObj.style)),
+                    ...layerObj.style,
                     ...JSON.parse(JSON.stringify(feature.properties.style)),
                 }
+
                 if (className) layerObj.style.className = className
                 if (layerName) layerObj.style.layerName = layerName
             } else {

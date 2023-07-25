@@ -27,6 +27,8 @@ function showContextMenuMap(e) {
         []
     )
 
+    console.log(L_.getFeaturesAtPoint(e))
+
     hideContextMenuMap(true)
     var x = e.originalEvent.clientX
     var y = e.originalEvent.clientY

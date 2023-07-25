@@ -2892,6 +2892,92 @@ const L_ = {
             }
         })
     },
+    // Returns all feature at a leaflet map click
+    // e = {latlng: {lat, lng}, containerPoint?: {x, y}}
+    getFeaturesAtPoint(e) {
+        let features = []
+        if (e.latlng && e.latlng.lng != null && e.latlng.lat != null) {
+            // To better intersect points on click we're going to buffer out a small bounding box
+            const mapRect = document
+                .getElementById('map')
+                .getBoundingClientRect()
+
+            const wOffset = e.containerPoint?.x || mapRect.width / 2
+            const hOffset = e.containerPoint?.y || mapRect.height / 2
+
+            let nwLatLong = L_.Map_.map.containerPointToLatLng([
+                wOffset - 15,
+                hOffset - 15,
+            ])
+            let seLatLong = L_.Map_.map.containerPointToLatLng([
+                wOffset + 15,
+                hOffset + 15,
+            ])
+            // If we didn't have a container click point, buffer out e.latlng
+            if (e.containerPoint == null) {
+                const lngDif = Math.abs(nwLatLong.lng - seLatLong.lng) / 2
+                const latDif = Math.abs(nwLatLong.lat - seLatLong.lat) / 2
+                nwLatLong = {
+                    lng: e.latlng.lng - lngDif,
+                    lat: e.latlng.lat - latDif,
+                }
+                seLatLong = {
+                    lng: e.latlng.lng + lngDif,
+                    lat: e.latlng.lat + latDif,
+                }
+            }
+
+            // Find all the intersected points and polygons of the click
+            Object.keys(L_.layers.layer).forEach((lName) => {
+                if (
+                    L_.layers.on[lName] &&
+                    L_.layers.data[lName].type === 'vector' &&
+                    L_.layers.layer[lName]
+                ) {
+                    features = features.concat(
+                        L.leafletPip
+                            .pointInLayer(
+                                [e.latlng.lng, e.latlng.lat],
+                                L_.layers.layer[lName]
+                            )
+                            .concat(
+                                F_.pointsInPoint(
+                                    [e.latlng.lng, e.latlng.lat],
+                                    L_.layers.layer[lName],
+                                    [
+                                        nwLatLong.lng,
+                                        seLatLong.lng,
+                                        nwLatLong.lat,
+                                        seLatLong.lat,
+                                    ]
+                                )
+                            )
+                            .reverse()
+                    )
+                }
+            })
+
+            if (features[0] == null) features = []
+            else {
+                const swapFeatures = []
+                features.forEach((f) => {
+                    if (
+                        typeof f.type === 'string' &&
+                        f.type.toLowerCase() === 'feature'
+                    )
+                        swapFeatures.push(f)
+                    else if (
+                        f.feature &&
+                        typeof f.feature.type === 'string' &&
+                        f.feature.type.toLowerCase() === 'feature'
+                    )
+                        swapFeatures.push(f.feature)
+                })
+                features = swapFeatures
+            }
+        }
+        return features
+    },
 }
 
 //Takes in a configData object and does a depth-first search through its

@@ -543,13 +543,23 @@ function getLayersChosenNamePropVal(feature, layer) {
             })
         }
     }
-    // Use first key
+
+    // Use first key that is not an object
     if (!foundThroughVariables) {
         for (let key in feature.properties) {
-            //Store the current feature's key
-            propertyNames = [key]
+            //Default to show geometry type
+            propertyNames = ['Type']
+            propertyValues = [feature.geometry.type]
+
             //Be certain we have that key in the feature
-            if (feature.properties.hasOwnProperty(key)) {
+            if (
+                false &&
+                feature.properties.hasOwnProperty(key) &&
+                (typeof feature.properties[key] === 'string' ||
+                    typeof feature.properties[key] === 'number')
+            ) {
+                //Store the current feature's key
+                propertyNames = [key]
                 //Store the current feature's value
                 propertyValues = [feature.properties[key]]
                 //Break out of for loop since we're done
