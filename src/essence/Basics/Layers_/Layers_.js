@@ -2892,6 +2892,150 @@ const L_ = {
             }
         })
     },
+    //Specific internal functions likely only to be used once
+    getLayersChosenNamePropVal(feature, layer) {
+        //These are what you'd think they'd be (Name could be thought of as key)
+        let propertyNames, propertyValues
+        let foundThroughVariables = false
+
+        let layerName =
+            typeof layer === 'string' ? layer : layer?.options?.layerName
+        if (layerName != null) {
+            const l = L_.layers.data[layerName]
+            if (
+                l.hasOwnProperty('variables') &&
+                l.variables.hasOwnProperty('useKeyAsName')
+            ) {
+                propertyNames = l.variables['useKeyAsName']
+                if (typeof propertyNames === 'string')
+                    propertyNames = [propertyNames]
+                propertyValues = Array(propertyNames.length).fill(null)
+                propertyNames.forEach((propertyName, idx) => {
+                    if (feature.properties.hasOwnProperty(propertyName)) {
+                        propertyValues[idx] = F_.getIn(
+                            feature.properties,
+                            propertyName
+                        )
+                        if (propertyValues[idx] != null)
+                            foundThroughVariables = true
+                    }
+                })
+            }
+        }
+
+        // Use first key that is not an object
+        if (!foundThroughVariables) {
+            for (let key in feature.properties) {
+                //Default to show geometry type
+                propertyNames = ['Type']
+                propertyValues = [feature.geometry.type]
+
+                //Be certain we have that key in the feature
+                if (
+                    feature.properties.hasOwnProperty(key) &&
+                    (typeof feature.properties[key] === 'string' ||
+                        typeof feature.properties[key] === 'number')
+                ) {
+                    //Store the current feature's key
+                    propertyNames = [key]
+                    //Store the current feature's value
+                    propertyValues = [feature.properties[key]]
+                    //Break out of for loop since we're done
+                    break
+                }
+            }
+        }
+        return F_.stitchArrays(propertyNames, propertyValues)
+    },
+    // Returns all feature at a leaflet map click
+    // e = {latlng: {lat, lng}, containerPoint?: {x, y}}
+    getFeaturesAtPoint(e, fullLayers) {
+        let features = []
+        let correspondingLayerNames = []
+        if (e.latlng && e.latlng.lng != null && e.latlng.lat != null) {
+            // To better intersect points on click we're going to buffer out a small bounding box
+            const mapRect = document
+                .getElementById('map')
+                .getBoundingClientRect()
+
+            const wOffset = e.containerPoint?.x || mapRect.width / 2
+            const hOffset = e.containerPoint?.y || mapRect.height / 2
+
+            let nwLatLong = L_.Map_.map.containerPointToLatLng([
+                wOffset - 15,
+                hOffset - 15,
+            ])
+            let seLatLong = L_.Map_.map.containerPointToLatLng([
+                wOffset + 15,
+                hOffset + 15,
+            ])
+            // If we didn't have a container click point, buffer out e.latlng
+            if (e.containerPoint == null) {
+                const lngDif = Math.abs(nwLatLong.lng - seLatLong.lng) / 2
+                const latDif = Math.abs(nwLatLong.lat - seLatLong.lat) / 2
+                nwLatLong = {
+                    lng: e.latlng.lng - lngDif,
+                    lat: e.latlng.lat - latDif,
+                }
+                seLatLong = {
+                    lng: e.latlng.lng + lngDif,
+                    lat: e.latlng.lat + latDif,
+                }
+            }
+
+            // Find all the intersected points and polygons of the click
+            Object.keys(L_.layers.layer).forEach((lName) => {
+                if (
+                    L_.layers.on[lName] &&
+                    L_.layers.data[lName].type === 'vector' &&
+                    L_.layers.layer[lName]
+                ) {
+                    const nextFeatures = L.leafletPip
+                        .pointInLayer(
+                            [e.latlng.lng, e.latlng.lat],
+                            L_.layers.layer[lName]
+                        )
+                        .concat(
+                            F_.pointsInPoint(
+                                [e.latlng.lng, e.latlng.lat],
+                                L_.layers.layer[lName],
+                                [
+                                    nwLatLong.lng,
+                                    seLatLong.lng,
+                                    nwLatLong.lat,
+                                    seLatLong.lat,
+                                ]
+                            )
+                        )
+                        .reverse()
+                    features = features.concat(nextFeatures)
+                    correspondingLayerNames = correspondingLayerNames.concat(
+                        new Array(nextFeatures.length).fill().map(() => lName)
+                    )
+                }
+            })
+
+            if (features[0] == null) features = []
+            else {
+                const swapFeatures = []
+                features.forEach((f) => {
+                    if (
+                        typeof f.type === 'string' &&
+                        f.type.toLowerCase() === 'feature'
+                    )
+                        swapFeatures.push(f)
+                    else if (
+                        f.feature &&
+                        typeof f.feature.type === 'string' &&
+                        f.feature.type.toLowerCase() === 'feature'
+                    )
+                        swapFeatures.push(fullLayers ? f : f.feature)
+                })
+                features = swapFeatures
+            }
+        }
+        return features
+    },
 }
 
 //Takes in a configData object and does a depth-first search through its

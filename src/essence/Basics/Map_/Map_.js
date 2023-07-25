@@ -513,53 +513,6 @@ let Map_ = {
     allLayersLoaded: allLayersLoaded,
 }
 
-//Specific internal functions likely only to be used once
-function getLayersChosenNamePropVal(feature, layer) {
-    //These are what you'd think they'd be (Name could be thought of as key)
-    let propertyNames, propertyValues
-    let foundThroughVariables = false
-    if (
-        layer.hasOwnProperty('options') &&
-        layer.options.hasOwnProperty('layerName')
-    ) {
-        const l = L_.layers.data[layer.options.layerName]
-        if (
-            l.hasOwnProperty('variables') &&
-            l.variables.hasOwnProperty('useKeyAsName')
-        ) {
-            propertyNames = l.variables['useKeyAsName']
-            if (typeof propertyNames === 'string')
-                propertyNames = [propertyNames]
-            propertyValues = Array(propertyNames.length).fill(null)
-            propertyNames.forEach((propertyName, idx) => {
-                if (feature.properties.hasOwnProperty(propertyName)) {
-                    propertyValues[idx] = F_.getIn(
-                        feature.properties,
-                        propertyName
-                    )
-                    if (propertyValues[idx] != null)
-                        foundThroughVariables = true
-                }
-            })
-        }
-    }
-    // Use first key
-    if (!foundThroughVariables) {
-        for (let key in feature.properties) {
-            //Store the current feature's key
-            propertyNames = [key]
-            //Be certain we have that key in the feature
-            if (feature.properties.hasOwnProperty(key)) {
-                //Store the current feature's value
-                propertyValues = [feature.properties[key]]
-                //Break out of for loop since we're done
-                break
-            }
-        }
-    }
-    return F_.stitchArrays(propertyNames, propertyValues)
-}
-
 //Takes an array of layer objects and makes them map layers
 function makeLayers(layersObj) {
     //Make each layer (backwards to maintain draw order)
@@ -601,7 +554,7 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
     //Default is onclick show full properties and onhover show 1st property
     Map_.onEachFeatureDefault = onEachFeatureDefault
     function onEachFeatureDefault(feature, layer) {
-        const pv = getLayersChosenNamePropVal(feature, layer)
+        const pv = L_.getLayersChosenNamePropVal(feature, layer)
 
         layer['useKeyAsName'] = Object.keys(pv)[0]
         if (
