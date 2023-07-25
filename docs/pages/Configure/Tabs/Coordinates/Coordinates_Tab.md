@@ -50,6 +50,11 @@ Example:
         {
             "name": "The text for this menu entry when users right-click",
             "link": "https://domain?I={ll[0]}&will={ll[1]}&replace={ll[2]}&these={en[0]}&brackets={en[1]}&for={cproj[0]}&you={sproj[0]}&with={rxy[0]}&coordinates={site[2]}"
+        },
+        {
+            "name": "WKT text insertions. Do so only for polygons.",
+            "link": "https://domain?regularWKT={wkt}&wkt_where_commas_are_replaced_with_underscores={wkt_}",
+            "for": "polygon"
         }
     ]
 }

@@ -328,7 +328,12 @@ const Coordinates = {
     getLngLat: function () {
         return Coordinates.mouseLngLat
     },
-    getLatLng: function () {
+    getLatLng: function (asObject) {
+        if (asObject)
+            return {
+                lat: Coordinates.mouseLngLat[1],
+                lng: Coordinates.mouseLngLat[0],
+            }
         return [Coordinates.mouseLngLat[1], Coordinates.mouseLngLat[0]]
     },
     getAllCoordinates: function () {
