@@ -5,6 +5,7 @@ import LayerGeologic from '../../Basics/Layers_/LayerGeologic/LayerGeologic'
 import Globe_ from '../../Basics/Globe_/Globe_'
 import Map_ from '../../Basics/Map_/Map_'
 import UserInterface_ from '../../Basics/UserInterface_/UserInterface_'
+import CursorInfo from '../../Ancillary/CursorInfo'
 import turf from 'turf'
 
 import DrawTool_Templater from './DrawTool_Templater'
@@ -2333,7 +2334,17 @@ var Editing = {
 
                             if (DrawTool.isReviewOpen) DrawTool.showReview()
                         },
-                        function () {
+                        function (err) {
+                            CursorInfo.update(
+                                `${err.message}${
+                                    err.body?.error
+                                        ? ` - ${err.body.error}`
+                                        : ''
+                                }`,
+                                6000,
+                                true,
+                                { x: 305, y: 6 }
+                            )
                             $('.drawToolContextMenuSave').css(
                                 'background',
                                 '#ff2626'
@@ -2468,7 +2479,17 @@ var Editing = {
                                 if (DrawTool.isReviewOpen) DrawTool.showReview()
                             }
                         })(newProperties, newGeometry, featureType, fileid),
-                        function () {
+                        function (err) {
+                            CursorInfo.update(
+                                `${err.message}${
+                                    err.body?.error
+                                        ? ` - ${err.body.error}`
+                                        : ''
+                                }`,
+                                6000,
+                                true,
+                                { x: 305, y: 6 }
+                            )
                             $('.drawToolContextMenuSave').css(
                                 'background',
                                 '#ff2626'
@@ -2536,7 +2557,17 @@ var Editing = {
                                     }, 2)
                                 }
                             })(l, l.file.id, l.properties._.id, newProperties),
-                            function () {
+                            function (err) {
+                                CursorInfo.update(
+                                    `${err.message}${
+                                        err.body?.error
+                                            ? ` - ${err.body.error}`
+                                            : ''
+                                    }`,
+                                    6000,
+                                    true,
+                                    { x: 305, y: 6 }
+                                )
                                 $('.drawToolContextMenuSave').css(
                                     'background',
                                     '#ff2626'
