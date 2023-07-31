@@ -358,7 +358,7 @@ const DrawTool_Templater = {
                             ).val()
 
                             const nextIncrement =
-                                DrawTool_Templater._getNextIncrement(
+                                DrawTool_Templater._validateIncrement(
                                     values[t.field],
                                     t,
                                     layer,
@@ -462,7 +462,7 @@ const DrawTool_Templater = {
      * @param {*} layer
      * @returns {newValue: Number, error: String}
      */
-    _getNextIncrement(value, t, layer, existingProperties) {
+    _validateIncrement(value, t, layer, existingProperties) {
         const response = {
             newValue: value,
             error: null,
@@ -500,7 +500,6 @@ const DrawTool_Templater = {
             usedValues.forEach((v) => {
                 if (bestVal === v) bestVal++
             })
-            response.newValue = response.newValue.replace('#', bestVal)
         } else if (existingProperties) {
             let numVal = response.newValue.replace(start, '').replace(end, '')
             if (numVal != '#') {
@@ -1238,7 +1237,7 @@ const DrawTool_Templater = {
                 switch (t.type) {
                     case 'incrementer':
                         const nextIncrement =
-                            DrawTool_Templater._getNextIncrement(
+                            DrawTool_Templater._validateIncrement(
                                 t.default,
                                 t,
                                 layer
