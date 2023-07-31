@@ -99,6 +99,30 @@ const Utils = {
     });
     return UUIDs;
   },
+  // From https://javascript.plainenglish.io/4-ways-to-compare-objects-in-javascript-97fe9b2a949c
+  isEqual(obj1, obj2, isSimple) {
+    if (isSimple) {
+      return JSON.stringify(obj1) === JSON.stringify(obj2);
+    } else {
+      let props1 = Object.getOwnPropertyNames(obj1);
+      let props2 = Object.getOwnPropertyNames(obj2);
+      if (props1.length != props2.length) {
+        return false;
+      }
+      for (let i = 0; i < props1.length; i++) {
+        let prop = props1[i];
+        let bothAreObjects =
+          typeof obj1[prop] === "object" && typeof obj2[prop] === "object";
+        if (
+          (!bothAreObjects && obj1[prop] !== obj2[prop]) ||
+          (bothAreObjects && !Utils.isEqual(obj1[prop], obj2[prop]))
+        ) {
+          return false;
+        }
+      }
+      return true;
+    }
+  },
 };
 
 module.exports = Utils;

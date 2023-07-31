@@ -449,122 +449,136 @@ const clipUnder = function (
     });
 };
 
-const _templateConform = (req) => {
+const _templateConform = (req, from) => {
   return new Promise((resolve, reject) => {
-    req.body.id = req.body.file_id
+    req.body.id = req.body.file_id;
 
-    getfile(req, { send: (r) => {
-      if( r.status === 'success') {
-        const geojson = r.body.geojson
-        const template = r.body.file?.[0]?.dataValues?.template?.template || [] 
-        const existingProperties = JSON.parse(req.body.properties || '{}')
-        const templaterProperties = {}
+    getfile(req, {
+      send: (r) => {
+        if (r.status === "success") {
+          const geojson = r.body.geojson;
+          const template =
+            r.body.file?.[0]?.dataValues?.template?.template || [];
+          const existingProperties = JSON.parse(req.body.properties || "{}");
+          const templaterProperties = {};
 
-        template.forEach((t, idx) => {
-          switch (t.type) {
-            case 'incrementer':
-              const nextIncrement =
-                _getNextIncrement(
-                    existingProperties[t.field],
-                    t,
-                    geojson.features,
-                    existingProperties
-                )
-              if (nextIncrement.error != null) {
-                reject(nextIncrement.error)
-                return
-              }
-              else templaterProperties[t.field] = nextIncrement.newValue
-              break;
-            default:
-          }
-        })
+          template.forEach((t, idx) => {
+            switch (t.type) {
+              case "incrementer":
+                const nextIncrement = _getNextIncrement(
+                  existingProperties[t.field],
+                  t,
+                  geojson.features,
+                  existingProperties,
+                  from
+                );
+                if (nextIncrement.error != null) {
+                  reject(nextIncrement.error);
+                  return;
+                } else templaterProperties[t.field] = nextIncrement.newValue;
+                break;
+              default:
+            }
+          });
 
-        req.body.properties = JSON.stringify({ ...existingProperties, ...templaterProperties })
-      }
-      resolve()
-      return
-    }})
+          req.body.properties = JSON.stringify({
+            ...existingProperties,
+            ...templaterProperties,
+          });
+        }
+        resolve();
+        return;
+      },
+    });
 
     function _getNextIncrement(value, t, layer, existingProperties) {
       const response = {
-          newValue: value,
-          error: null,
-      }
+        newValue: value,
+        error: null,
+      };
 
-      let usedValues = []
-      const split = (t._default || t.default).split('#')
-      const start = split[0]
-      const end = split[1]
+      let usedValues = [];
+      const split = (t._default || t.default).split("#");
+      const start = split[0];
+      const end = split[1];
 
       for (let i = 0; i < layer.length; i++) {
-          if (layer[i] == null) continue
-          let geojson = layer[i]
-          if (geojson?.properties?.[t.field] != null) {
-              let featuresVal = geojson?.properties?.[t.field]
-
-              featuresVal = featuresVal.replace(start, '').replace(end, '')
-
-              if (featuresVal !== '#') {
-                  featuresVal = parseInt(featuresVal)
-                  usedValues.push(featuresVal)
-              }
-          }
-      }
-
-      if ((response.newValue || '').indexOf('#') !== -1) {
-          // Actually increment the incrementer for the first time
-          let bestVal = 0
-          usedValues.sort(function (a, b) {
-              return a - b
-          })
-          usedValues = [...new Set(usedValues)] // makes it unique
-          usedValues.forEach((v) => {
-              if (bestVal === v) bestVal++
-          })
-          response.newValue = response.newValue.replace('#', bestVal)
-      } else if (existingProperties) {
-          let numVal = response.newValue.replace(start, '').replace(end, '')
-          if (numVal != '#') {
-              numVal = parseInt(numVal)
-              if (existingProperties[t.field] === response.newValue) {
-                  // In case of a resave, make sure the id exists only once
-                  let count = 0
-                  usedValues.forEach((v) => {
-                      if (numVal === v) count++
-                  })
-                  if (count > 1)
-                      response.error = `Incrementing field: '${t.field}' is not unique`
-              } else {
-                  // In case a manual change, make sure the id is unique
-                  if (usedValues.indexOf(numVal) !== -1)
-                      response.error = `Incrementing field: '${t.field}' is not unique`
-              }
-          }
-      }
-
-      // Check that the field still matches the surrounding string
-      const incRegex = new RegExp(`^${start}\\d+${end}$`)
-      if (incRegex.test(response.newValue) == false) {
-          response.error = `Incrementing field: '${t.field}' must follow syntax: '${start}{#}${end}'`
-      }
-
-      // Check that incrementer is unique
-      for (let i = 0; i < layer.length; i++) {
-        if (layer[i] == null) continue
-        let geojson = layer[i]
+        if (layer[i] == null) continue;
+        let geojson = layer[i];
         if (geojson?.properties?.[t.field] != null) {
-            let featuresVal = geojson?.properties?.[t.field]
-            if ((response.newValue || '').indexOf('#') == -1 && response.newValue === featuresVal) {
-              response.error = `Incrementing field: '${t.field}' is not unique`
-            }
+          let featuresVal = geojson?.properties?.[t.field];
+
+          featuresVal = featuresVal.replace(start, "").replace(end, "");
+
+          if (featuresVal !== "#") {
+            featuresVal = parseInt(featuresVal);
+            usedValues.push(featuresVal);
+          }
         }
       }
 
-      return response
+      if ((response.newValue || "").indexOf("#") !== -1) {
+        // Actually increment the incrementer for the first time
+        let bestVal = 0;
+        usedValues.sort(function (a, b) {
+          return a - b;
+        });
+        usedValues = [...new Set(usedValues)]; // makes it unique
+        usedValues.forEach((v) => {
+          if (bestVal === v) bestVal++;
+        });
+        response.newValue = response.newValue.replace("#", bestVal);
+      } else if (existingProperties) {
+        let numVal = response.newValue.replace(start, "").replace(end, "");
+        if (numVal != "#") {
+          numVal = parseInt(numVal);
+          if (existingProperties[t.field] === response.newValue) {
+            // In case of a resave, make sure the id exists only once
+            let count = 0;
+            usedValues.forEach((v) => {
+              if (numVal === v) count++;
+            });
+            if (count > 1)
+              response.error = `Incrementing field: '${t.field}' is not unique`;
+          } else {
+            // In case a manual change, make sure the id is unique
+            if (usedValues.indexOf(numVal) !== -1)
+              response.error = `Incrementing field: '${t.field}' is not unique`;
+          }
+        }
+      }
+
+      // Check that the field still matches the surrounding string
+      const incRegex = new RegExp(`^${start}\\d+${end}$`);
+      if (incRegex.test(response.newValue) == false) {
+        response.error = `Incrementing field: '${t.field}' must follow syntax: '${start}{#}${end}'`;
+      }
+
+      // Check that incrementer is unique
+      let numMatches = 0;
+      for (let i = 0; i < layer.length; i++) {
+        if (layer[i] == null) continue;
+        let geojson = layer[i];
+        if (geojson?.properties?.[t.field] != null) {
+          let featuresVal = geojson?.properties?.[t.field];
+          if (
+            (value || "").indexOf("#") == -1 &&
+            response.newValue === featuresVal &&
+            geojson?.properties?.uuid != existingProperties.uuid
+          ) {
+            numMatches++;
+          }
+        }
+      }
+      // If we're are editing and the value did not change, allow a single match
+      if (numMatches > 0) {
+        response.error = `Incrementing field: '${t.field}' is not unique`;
+      }
+
+      return response;
     }
-  })
-} 
+  });
+};
 /**
  * Adds a feature
  * {
@@ -586,13 +600,13 @@ const add = async function (
   failureCallback2
 ) {
   let failedTemplate = false;
-  await _templateConform(req).catch(err => {
-    failedTemplate = err
-  })
-  if( failedTemplate !== false) {
+  await _templateConform(req, "add").catch((err) => {
+    failedTemplate = err;
+  });
+  if (failedTemplate !== false) {
     if (typeof failureCallback2 === "function")
-        failureCallback2(failedTemplate);
-      return
+      failureCallback2(failedTemplate);
+    return;
   }
 
   let Files = req.body.test === "true" ? UserfilesTEST : Userfiles;
@@ -803,13 +817,12 @@ router.post("/add", function (req, res, next) {
  */
 const edit = async function (req, res, successCallback, failureCallback) {
   let failedTemplate = false;
-  await _templateConform(req).catch(err => {
-    failedTemplate = err
-  })
-  if( failedTemplate !== false) {
-    if (typeof failureCallback === "function")
-        failureCallback(failedTemplate);
-      return
+  await _templateConform(req, "edit").catch((err) => {
+    failedTemplate = err;
+  });
+  if (failedTemplate !== false) {
+    if (typeof failureCallback === "function") failureCallback(failedTemplate);
+    return;
   }
 
   let Files = req.body.test === "true" ? UserfilesTEST : Userfiles;
@@ -974,7 +987,7 @@ router.post("/edit", function (req, res) {
         status: "failure",
         message: "Failed to edit feature.",
         body: {
-          error: err
+          error: err,
         },
       });
     }
