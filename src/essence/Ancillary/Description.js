@@ -100,7 +100,9 @@ const Description = {
                                   0
                               )
                             : Object.keys(layers).length - 1
-                    let feature = layers[Object.keys(layers)[which]].feature
+                    let feature = layers[Object.keys(layers)[which]]?.feature
+                    if (feature == null) continue
+
                     let infoText = F_.bracketReplace(
                         l.variables.info[i].value,
                         feature.properties

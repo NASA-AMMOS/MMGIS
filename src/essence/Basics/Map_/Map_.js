@@ -752,6 +752,9 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
                 )
 
             function add(data) {
+                if (Array.isArray(data) && data.length === 0) {
+                    data = { type: 'FeatureCollection', features: [] }
+                }
                 let invalidGeoJSONTrace = gjv.valid(data, true)
                 const allowableErrors = [`position must only contain numbers`]
                 invalidGeoJSONTrace = invalidGeoJSONTrace.filter((t) => {
