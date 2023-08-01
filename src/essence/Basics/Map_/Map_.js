@@ -752,9 +752,26 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
                 )
 
             function add(data) {
+                // []
                 if (Array.isArray(data) && data.length === 0) {
                     data = { type: 'FeatureCollection', features: [] }
                 }
+                // [<FeatureCollection>]
+                else if (
+                    Array.isArray(data) &&
+                    data[0] &&
+                    data[0].type === 'FeatureCollection'
+                ) {
+                    const nextData = { type: 'FeatureCollection', features: [] }
+                    data.forEach((fc) => {
+                        if (fc.type === 'FeatureCollection')
+                            nextData.features = nextData.features.concat(
+                                fc.features
+                            )
+                    })
+                    data = nextData
+                }
+
                 let invalidGeoJSONTrace = gjv.valid(data, true)
                 const allowableErrors = [`position must only contain numbers`]
                 invalidGeoJSONTrace = invalidGeoJSONTrace.filter((t) => {
