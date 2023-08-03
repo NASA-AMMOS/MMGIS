@@ -417,7 +417,8 @@ var Kinds = {
                     Object.keys(L_.layers.layer).forEach((lName) => {
                         if (
                             L_.layers.on[lName] &&
-                            L_.layers.data[lName].type === 'vector' &&
+                            (L_.layers.data[lName].type === 'vector' ||
+                                L_.layers.data[lName].type === 'query') &&
                             L_.layers.layer[lName]
                         ) {
                             features = features.concat(
