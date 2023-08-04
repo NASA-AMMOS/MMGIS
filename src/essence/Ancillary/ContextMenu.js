@@ -58,7 +58,7 @@ function showContextMenuMap(e) {
                 featuresAtClick.map((f, idx2) => {
                     const items = []
                     const layerName = f.options.layerName
-                    const displayName = L_.layers.data[layerName].display_name
+                    const displayName = L_.layers.data[layerName]?.display_name || layerName
                     const pv = L_.getLayersChosenNamePropVal(f.feature, layerName)
                     const key = Object.keys(pv)[0]
                     const val = pv[key]
@@ -128,13 +128,15 @@ function showContextMenuMap(e) {
                     }
                 })
 
+                const geom = F_.simplifyGeometry(l.feature.geometry, 0.0003)
+
                 let wkt
                 if (link.indexOf(`{wkt}`) !== -1) {
-                    wkt = geojsonToWKT(l.feature.geometry)
+                    wkt = geojsonToWKT(geom)
                     link = link.replace(new RegExp(`{wkt}`, 'gi'), wkt)
                 }
                 if (link.indexOf(`{wkt_}`) !== -1) {
-                    wkt = geojsonToWKT(l.feature.geometry)
+                    wkt = geojsonToWKT(geom)
                     link = link.replace(
                         new RegExp(`{wkt_}`, 'gi'),
                         wkt.replace(/,/g, '_')

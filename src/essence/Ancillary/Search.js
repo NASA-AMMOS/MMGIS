@@ -1,7 +1,7 @@
 import $ from 'jquery'
 import F_ from '../Basics/Formulae_/Formulae_'
 //jqueryUI
-import turf from 'turf'
+import { center } from '@turf/turf'
 import * as d3 from 'd3'
 
 import Dropy from '../../external/Dropy/dropy'
@@ -510,8 +510,9 @@ function getMapZoomCoordinate(layers) {
     var longitudeValidRange = [-180, 180]
 
     for (var i = 0; i < layers.length; i++) {
-        const center = turf.center(layers[i].feature)?.geometry
-            ?.coordinates || [-1001, -1001]
+        const center = center(layers[i].feature)?.geometry?.coordinates || [
+            -1001, -1001,
+        ]
         var latitude = center[1]
         var longitude = center[0]
 

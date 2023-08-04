@@ -1,5 +1,5 @@
 //Holds a bunch of reusable mathy formulas and variables
-import turf from '@turf/turf'
+import { bbox, simplify } from '@turf/turf'
 import { saveAs } from 'file-saver'
 import $ from 'jquery'
 import calls from '../../../pre/calls'
@@ -247,6 +247,9 @@ var Formulae_ = {
     },
     degreesToMeters: function (degrees) {
         return degrees * (Math.PI / 180) * this.radiusOfPlanetMajor
+    },
+    simplifyGeometry: function (geometry, tolerance) {
+        return simplify(geometry, { tolerance: tolerance })
     },
     //2D
     distanceFormula: function (x1, y1, x2, y2) {
@@ -1422,7 +1425,7 @@ var Formulae_ = {
         for (var i = 0; i < savedFeatures.length; i++) {
             if (i != 0) {
                 featuresString += '\n,'
-                savedFeatures[i].properties['boundingbox'] = turf.bbox(
+                savedFeatures[i].properties['boundingbox'] = bbox(
                     savedFeatures[i]
                 )
             }
@@ -1720,43 +1723,54 @@ var Formulae_ = {
     },
     // searchRadiusInDegrees = [lng, lng, lat, lat] bbox
     pointsInPoint(point, layers, searchRadiusInDegrees) {
-        const points = []
+        let points = []
 
-        const l = layers._layers
+        if (Array.isArray(layers)) {
+            layers.forEach((l) => {
+                points = points.concat(
+                    Formulae_.pointsInPoint(point, l, searchRadiusInDegrees)
+                )
+            })
+        } else {
+            let l
+            if (layers.feature && layers.feature.geometry?.type === 'Point') {
+                l = [layers]
+            } else l = layers._layers
 
-        if (l == null) return points
-
-        for (let i in l) {
-            if (searchRadiusInDegrees != null) {
-                if (
-                    l[i].feature.geometry.coordinates[0] >
-                        Math.min(
-                            searchRadiusInDegrees[0],
-                            searchRadiusInDegrees[1]
-                        ) &&
-                    l[i].feature.geometry.coordinates[0] <
-                        Math.max(
-                            searchRadiusInDegrees[0],
-                            searchRadiusInDegrees[1]
-                        ) &&
-                    l[i].feature.geometry.coordinates[1] >
-                        Math.min(
-                            searchRadiusInDegrees[2],
-                            searchRadiusInDegrees[3]
-                        ) &&
-                    l[i].feature.geometry.coordinates[1] <
-                        Math.max(
-                            searchRadiusInDegrees[2],
-                            searchRadiusInDegrees[3]
-                        )
-                ) {
+            if (l == null) return points
+            for (let i in l) {
+                if (l[i].feature == null) continue
+                if (searchRadiusInDegrees != null) {
+                    if (
+                        l[i].feature.geometry.coordinates[0] >
+                            Math.min(
+                                searchRadiusInDegrees[0],
+                                searchRadiusInDegrees[1]
+                            ) &&
+                        l[i].feature.geometry.coordinates[0] <
+                            Math.max(
+                                searchRadiusInDegrees[0],
+                                searchRadiusInDegrees[1]
+                            ) &&
+                        l[i].feature.geometry.coordinates[1] >
+                            Math.min(
+                                searchRadiusInDegrees[2],
+                                searchRadiusInDegrees[3]
+                            ) &&
+                        l[i].feature.geometry.coordinates[1] <
+                            Math.max(
+                                searchRadiusInDegrees[2],
+                                searchRadiusInDegrees[3]
+                            )
+                    ) {
+                        points.push(l[i])
+                    }
+                } else if (
+                    l[i].feature.geometry.coordinates[0] == point[0] &&
+                    l[i].feature.geometry.coordinates[1] == point[1]
+                )
                     points.push(l[i])
-                }
-            } else if (
-                l[i].feature.geometry.coordinates[0] == point[0] &&
-                l[i].feature.geometry.coordinates[1] == point[1]
-            )
-                points.push(l[i])
+            }
         }
 
         return points

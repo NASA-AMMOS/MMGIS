@@ -68,6 +68,7 @@
                                 p = p.concat().reverse()
 
                             var results = []
+
                             if (typeof layer.eachLayer === 'function') {
                                 layer.eachLayer(function (l) {
                                     if (first && results.length) return
@@ -82,6 +83,42 @@
                                         )
                                     ) {
                                         results.push(l)
+                                    }
+                                })
+                            } else if (Array.isArray(layer)) {
+                                layer.forEach((innerLayer) => {
+                                    if (
+                                        typeof innerLayer.eachLayer ===
+                                        'function'
+                                    ) {
+                                        innerLayer.eachLayer(function (l) {
+                                            if (first && results.length) return
+                                            if (
+                                                isPoly(l) &&
+                                                gju.pointInPolygon(
+                                                    {
+                                                        type: 'Point',
+                                                        coordinates: p,
+                                                    },
+                                                    l.toGeoJSON(10).geometry
+                                                )
+                                            ) {
+                                                results.push(l)
+                                            }
+                                        })
+                                    } else {
+                                        if (
+                                            isPoly(innerLayer) &&
+                                            gju.pointInPolygon(
+                                                {
+                                                    type: 'Point',
+                                                    coordinates: p,
+                                                },
+                                                innerLayer.feature.geometry
+                                            )
+                                        ) {
+                                            results.push(innerLayer)
+                                        }
                                     }
                                 })
                             } else {
