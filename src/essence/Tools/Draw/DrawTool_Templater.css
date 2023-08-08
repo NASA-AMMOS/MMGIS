@@ -192,13 +192,16 @@
     background: var(--color-a2);
 }
 .drawToolTemplaterLiBodyDropdown_format {
-    width: 200px;
+    width: 160px;
 }
 .drawToolTemplaterLiBodyDropdown_format .dropy,
 .drawToolTemplaterLiType > div .dropy {
     margin-bottom: 0;
 }
-.drawToolTemplaterLiBodyDropdown_format .dropy__title,
+.drawToolTemplaterLiBodyDropdown_format .dropy__title {
+    line-height: 21px;
+    font-size: 11px;
+}
 .drawToolTemplaterLiType > div .dropy__title {
     line-height: 13px;
     font-size: 14px;
@@ -206,6 +209,9 @@
 .drawToolTemplaterLiBodyDropdown_format .dropy__title > i,
 .drawToolTemplaterLiType > div .dropy__title > i {
     transform: translateY(30%);
+}
+.drawToolTemplaterLiBody_date_default > input {
+    width: 125px;
 }
 .drawToolTemplaterDesignHeadingRemove {
     width: 30px;

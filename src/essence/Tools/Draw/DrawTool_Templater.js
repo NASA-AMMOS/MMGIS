@@ -806,6 +806,14 @@ const DrawTool_Templater = {
                                     `<div>Format: </div>`,
                                     `<div id='drawToolTemplaterLiBody_${idx}_format' class='drawToolTemplaterLiBodyDropdown_format ui dropdown short' value='${opts.format != null ? opts.format : DrawTool_Templater._DATE_FORMATS[0]}'></div>`,
                                 "</div>",
+                                `<div class='drawToolTemplaterLiBody_${type}_isStart'>`,
+                                    `<div title="Use this field as the feature's Start Time">S: </div>`,
+                                    `<div class="mmgis-checkbox"><input type="checkbox" ${opts.isStart === true ? 'checked ' : ''}id="design-date-checkbox-${idx}-start"/><label for="design-date-checkbox-${idx}-start"></label></div>`,
+                                "</div>",
+                                `<div class='drawToolTemplaterLiBody_${type}_isEnd'>`,
+                                    `<div title="Use this field as the feature's End Time">E: </div>`,
+                                    `<div class="mmgis-checkbox"><input type="checkbox" ${opts.isEnd === true ? 'checked ' : ''}id="design-date-checkbox-${idx}-end"/><label for="design-date-checkbox-${idx}-end"></label></div>`,
+                                "</div>",
                                 `<div class='drawToolTemplaterLiBody_${type}_required'>`,
                                     `<div title='Required'>Req: </div>`,
                                     `<div class="mmgis-checkbox"><input type="checkbox" ${opts.required === true ? 'checked ' : ''}id="design-date-checkbox-${idx}"/><label for="design-date-checkbox-${idx}"></label></div>`,
@@ -1041,6 +1049,12 @@ const DrawTool_Templater = {
                         item.format = $(this)
                             .find('.drawToolTemplaterLiBodyDropdown_format')
                             .attr('value')
+                        item.isStart = $(this)
+                            .find('.drawToolTemplaterLiBody_date_isStart input')
+                            .prop('checked')
+                        item.isEnd = $(this)
+                            .find('.drawToolTemplaterLiBody_date_isEnd input')
+                            .prop('checked')
                         item.required = $(this)
                             .find(
                                 '.drawToolTemplaterLiBody_date_required input'
@@ -1107,6 +1121,10 @@ const DrawTool_Templater = {
             }
         }
 
+        // Only allow one of each:
+        let hasADateStartTime = false
+        let hasADateEndTime = false
+
         for (let i = 0; i < template.template.length; i++) {
             const t = template.template[i]
             if (t.field == null || t.field == '') {
@@ -1130,6 +1148,45 @@ const DrawTool_Templater = {
                     'black'
                 )
                 return false
+            }
+            if (t.type === 'date') {
+                if (t.isStart && t.isEnd) {
+                    CursorInfo.update(
+                        `Template cannot use same date field as Start Time and End Time.`,
+                        6000,
+                        true,
+                        { x: 305, y: 6 },
+                        '#e9ff26',
+                        'black'
+                    )
+                    return false
+                } else if (t.isStart) {
+                    if (hasADateStartTime === false) hasADateStartTime = true
+                    else {
+                        CursorInfo.update(
+                            `Template cannot use multiple date fields as Start Times.`,
+                            6000,
+                            true,
+                            { x: 305, y: 6 },
+                            '#e9ff26',
+                            'black'
+                        )
+                        return false
+                    }
+                } else if (t.isEnd) {
+                    if (hasADateEndTime === false) hasADateEndTime = true
+                    else {
+                        CursorInfo.update(
+                            `Template cannot use multiple date fields as End Times.`,
+                            6000,
+                            true,
+                            { x: 305, y: 6 },
+                            '#e9ff26',
+                            'black'
+                        )
+                        return false
+                    }
+                }
             }
             if (t.regex != null) {
                 try {

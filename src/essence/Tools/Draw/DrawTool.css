@@ -2602,11 +2602,11 @@
     background: var(--color-c);
 }
 
-#cmExportGeoJSON, 
+#cmExportGeoJSON,
 #cmExportSourceGeoJSON {
     display: block;
 }
-#cmExportGeoJSON > div:last-child, 
+#cmExportGeoJSON > div:last-child,
 #cmExportSourceGeoJSON > div:last-child {
     font-size: 12px;
     text-align: right;
@@ -2693,4 +2693,25 @@
 }
 #drawToolFilesLoadingSpinner.on {
     opacity: 1;
+}
+
+#DrawTool_TimeToggle {
+    position: absolute;
+    bottom: 45px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    background: var(--color-a);
+    border-radius: 2px;
+    height: 24px;
+    line-height: 18px;
+    padding: 3px 3px;
+    font-size: 13px;
+}
+#DrawTool_TimeToggle > div:first-child {
+    padding: 0px 6px 0px 3px;
+    letter-spacing: 1px;
+}
+#DrawTool_TimeToggle_switch {
+    top: -14px;
 }
