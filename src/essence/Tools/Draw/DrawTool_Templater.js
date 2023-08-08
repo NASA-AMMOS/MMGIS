@@ -17,6 +17,7 @@ const DrawTool_Templater = {
         properties = properties || {}
         const template = JSON.parse(JSON.stringify(templateObj.template))
 
+        let hasStartTime, hasEndTime
         // prettier-ignore
         const markup = [
             "<ul id='drawToolTemplater'>",
@@ -26,6 +27,10 @@ const DrawTool_Templater = {
                     t._default = t.default
                     t.default = properties[t.field]
                 }
+                if( hasStartTime == null && t.isStart)
+                    hasStartTime = t
+                if( hasEndTime == null && t.isEnd )
+                    hasEndTime = t
                 // prettier-ignore
                 switch(t.type) {
                     case 'checkbox':
@@ -106,14 +111,23 @@ const DrawTool_Templater = {
                         return null
                 }
             }).join('\n'),
+            hasStartTime || hasEndTime ? [
+                `<li id='drawToolTemplater_setTime'>`,
+                    `<div id='drawToolTemplater_setTimeStart' class="${hasStartTime && hasStartTime.default.length > 0 ? 'active' : ''}"><i class='mdi mdi-clock mdi-18px'></i><div>Use Start Time</div></div>`,
+                    `<div id='drawToolTemplater_setTimeEnd' class="${hasEndTime && hasEndTime.default.length > 0 ? 'active' : ''}"><div>Use End Time</div><i class='mdi mdi-clock-outline mdi-18px'></i></div>`,
+                `</li>`].join('\n') : null,
             "</ul>"
         ].join('\n')
 
         $(`#${containerId}`).append(markup)
 
         const helperStates = {}
+        let startTime, endTime
         // Attach events
         template.forEach((t, idx) => {
+            if (startTime == null && t.isStart) startTime = t.field
+            if (endTime == null && t.isEnd) endTime = t.field
+
             switch (t.type) {
                 case 'range':
                 case 'slider':
@@ -218,6 +232,19 @@ const DrawTool_Templater = {
                 default:
                     break
             }
+        })
+
+        $(`#drawToolTemplater_setTimeStart`).on('click', () => {
+            L_.TimeControl_.setTime(
+                properties[startTime],
+                L_.TimeControl_.getEndTime()
+            )
+        })
+        $(`#drawToolTemplater_setTimeEnd`).on('click', () => {
+            L_.TimeControl_.setTime(
+                L_.TimeControl_.getStartTime(),
+                properties[endTime]
+            )
         })
 
         return {

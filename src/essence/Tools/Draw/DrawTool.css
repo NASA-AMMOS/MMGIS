@@ -985,6 +985,9 @@
     color: black;
     font-weight: bold;
 }
+.drawToolShapeLi.temporallyHidden {
+    display: none !important;
+}
 
 .drawToolShapeLiItem {
     cursor: pointer;
@@ -2707,9 +2710,10 @@
     line-height: 18px;
     padding: 3px 3px;
     font-size: 13px;
+    box-shadow: 0px 4px 3px 0px rgba(0,0,0,0.2);
 }
 #DrawTool_TimeToggle > div:first-child {
-    padding: 0px 6px 0px 3px;
+    padding: 0px 6px 0px 5px;
     letter-spacing: 1px;
 }
 #DrawTool_TimeToggle_switch {

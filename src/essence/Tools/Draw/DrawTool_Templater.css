@@ -24,6 +24,52 @@
     font-size: 14px;
 }
 
+#drawToolTemplater_setTime {
+    border-top: 1px solid var(--color-a1);
+    padding-top: 8px;
+    display: flex;
+}
+#drawToolTemplater_setTime > div:first-child {
+    display: flex;
+    margin-right: 4px;
+}
+#drawToolTemplater_setTime > div:last-child {
+    display: flex;
+    margin-left: 4px;
+}
+#drawToolTemplater_setTime > div {
+    display: flex !important;
+    justify-content: center;;
+    text-align: center;
+    flex: 1;
+    background: var(--color-a1);
+    line-height: 26px !important;
+    cursor: pointer;
+    opacity: 0.4;
+    pointer-events: none;
+    transition: all 0.2s ease-in-out;
+}
+#drawToolTemplater_setTime > div > div {
+    line-height: 32px;
+    font-size: 13px;
+}
+#drawToolTemplater_setTime > div:hover {
+    color: white;
+    background: var(--color-a2);
+}
+#drawToolTemplater_setTime > div.active {
+    opacity: 1;
+    pointer-events: all;
+}
+#drawToolTemplater_setTime > div:first-child > i {
+    margin-right: 4px;
+    line-height: 30px;
+}
+#drawToolTemplater_setTime > div:last-child > i {
+    margin-left: 4px;
+    line-height: 30px;
+}
+
 .drawToolTemplatercheckbox .mmgis-checkbox {
     margin-right: 5px;
     margin-top: 5px;
