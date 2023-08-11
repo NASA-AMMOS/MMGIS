@@ -71,7 +71,7 @@ var markup = [
                     "<div class='drawToolDrawingTypeText' draw='text' title='Text'><i class='mdi mdi-format-text mdi-18px'></i></div>",
                     "<div class='drawToolDrawingTypeArrow' draw='arrow' title='Arrow'><i class='mdi mdi-arrow-top-right mdi-18px'></i></div>",
                 "</div>",
-                "<div id='drawToolDrawingSettingsToggle' title='Draw Settings'><i class='mdi mdi-settings mdi-18px'></i></div>",
+                "<div id='drawToolDrawingSettingsToggle' title='Draw Settings'><i class='mdi mdi-cog mdi-18px'></i></div>",
             "</div>",
             "<div id='drawToolDrawSettings'>",
                 "<div id='drawToolDrawSettingsBody'>",

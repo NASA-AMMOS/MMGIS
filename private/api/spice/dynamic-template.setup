@@ -1,0 +1,19 @@
+KPL/FK
+
+   \begindata
+      SITES = ('DYNAMIC')
+
+      DYNAMIC_CENTER = 499
+      DYNAMIC_FRAME = 'IAU_MARS'
+      DYNAMIC_IDCODE = -654321
+      DYNAMIC_LATLON = ( -4.67515091, -137.37137318, -4.424257 )
+      DYNAMIC_UP     = 'Z'
+      DYNAMIC_NORTH  = 'X'
+      
+      DYNAMIC_TOPO_FRAME = 'DYNAMIC_TOPO'
+      DYNAMIC_TOPO_ID    = -654321
+
+      NAIF_BODY_NAME += ( 'DYNAMIC_TOPO' )
+      NAIF_BODY_CODE += ( -654321 )
+
+   \begintext

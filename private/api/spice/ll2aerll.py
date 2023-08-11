@@ -26,7 +26,9 @@ def ll2aerll(lng, lat, height, target, time):
         'mar097s.bsp',
         'mars_iau2000_v1.tpc',
         'mro_psp.bsp',
-        'pck00011.tpc'
+        'pck00011.tpc',
+        'dynamic.bsp',
+        'dynamic.tf'
     ]
     for k in kernels_to_load:
         spiceypy.furnsh( os.path.join(package_dir + '/kernels/', k) )
@@ -45,29 +47,38 @@ def ll2aerll(lng, lat, height, target, time):
     obsctr = "MARS"
     obsref = "IAU_MARS"
 
+    """
     # convert planetocentric coordinates of the observer
     # to rectangular coordinates.
-    radiusOfMarsM = 3396190
-    observerElevationM = height
-    r = (radiusOfMarsM + observerElevationM) / 1000
+    radii = spiceypy.bodvrd( "MARS", "RADII", 3)[1]
+    re  =  radii[0]
+    rp  =  radii[2]
+    flattening   =  ( re - rp ) / re
 
-    # TODO: use georec instead
-    obspos = spiceypy.latrec( r, lng * spiceypy.rpd(), lat * spiceypy.rpd())
+    obspos = spiceypy.georec( lng * spiceypy.rpd(), lat * spiceypy.rpd(), height / 1000, radii[0], flattening)
     output = spiceypy.azlcpo( method, target, et, abcorr, azccw, elplsz, obspos, obsctr, obsref)
 
     razel = output[0]
     # lighttime = output[1]
+    """
+    obs = "-654321"
+    ref = "IAU_MARS"
+
+    state = spiceypy.spkezr( target, et, ref, abcorr, obs )
+    razel = spiceypy.recazl( [state[0][0], state[0][1], state[0][2]], azccw, elplsz )
 
     az_output = razel[1] * spiceypy.dpr()
     el_output = razel[2] * spiceypy.dpr()
     range_output = razel[0] * 1000
+
+
 
     # Unload kernels
     for k in kernels_to_load:
         spiceypy.unload( os.path.join(package_dir + '/kernels/', k) )
 
     # Compute ll position on surface directly under target/orbiter
-    target_ll = pm.aer2geodetic(az_output, el_output, range_output * 1000, lat, lng, observerElevationM, None, True)
+    target_ll = pm.aer2geodetic(az_output, el_output, range_output * 1000, lat, lng, height, None, True)
 
     # Altitude above the tangential plane of the surface observer latlng
     horizontal_altitude = range_output * math.sin(razel[2])
@@ -88,4 +99,7 @@ height = float(sys.argv[3])
 target = unquote(sys.argv[4])
 time = unquote(sys.argv[5])
 
-print(ll2aerll(lng, lat, height, target, time))
+try:
+    print(ll2aerll(lng, lat, height, target, time))
+except:
+    print(json.dumps({"error": True, "message": 'Error: ' + str(sys.exc_info()[0])}))

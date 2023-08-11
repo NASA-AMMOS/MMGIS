@@ -24,41 +24,6 @@ import ShaderTool_Algorithm from './ShadeTool_Algorithm'
 
 import './ShadeTool.css'
 
-// prettier-ignore
-let markup = [
-    "<div id='shadeTool'>",
-        "<div id='vstHeader'>",
-            "<div>",
-                "<div id='vstTitle'>Shade</div>",
-                "<div id='vstNew'>",
-                    "<div>New</div>",
-                    "<i class='mdi mdi-plus mdi-18px'></i>",
-                "</div>",
-            "</div>",
-            "<div>",
-                "<div id='vstToggleAll' class='checkbox on'></div>",
-                "<div class='vstLabel'>Toggle All</div>",
-            "</div>",
-        "</div>",
-        "<div id='vstContent'>",
-            "<ul id='vstShades'>",
-            "</ul>",
-        "</div>",
-        "<div id='shadeTool_indicators'>",
-        "<div>",
-            "<div>Azimuth</div>",
-            "<canvas id='shadeTool_az'></canvas>",
-            "<div id='shadeTool_azValue'></div>",
-        "</div>",
-        "<div>",
-            "<div>Elevation</div>",
-            "<canvas id='shadeTool_el'></canvas>",
-            "<div id='shadeTool_elValue'></div>",
-        "</div>",
-    "</div>",
-    "</div>"
-].join('\n');
-
 let ShadeTool = {
     height: 0,
     width: 250,
@@ -189,7 +154,7 @@ let ShadeTool = {
         $('#shadeTool .vstRegen').addClass('changed')
         $('#vstShades li').each((i, elm) => {
             const id = $(elm).attr('shadeId')
-            $('#vstShades #vstId_' + id + ' .vstOptionTime input').val(time)
+            $('.vstOptionTime input').val(time)
             // prettier-ignore
             if (
                     ShadeTool.tags[id] != null && // already generated
@@ -258,7 +223,8 @@ let ShadeTool = {
                     : ShadeTool.shedColors[id % ShadeTool.shedColors.length],
             opacity: initObj.opacity != null ? initObj.opacity : 0.6,
             resolution: initObj.resolution != null ? initObj.resolution : 1,
-            height: initObj.height != null ? initObj.height : 2,
+            target: initObj.target != null ? initObj.target : 0,
+            height: initObj.height != null ? initObj.height : 0,
         }
 
         let allData = ''
@@ -296,9 +262,6 @@ let ShadeTool = {
                             "<input title='Rename' autocomplete='off' autocorrect='off' autocapitalize='off' spellcheck='false' value='" + initObj.name + "'></input>",
                         "</div>",
                         "<div>",
-                            "<div class='vstShade3D' vstId='" + id + "' title='3D Shade'>",
-                                "<i class='mdi mdi-video-3d mdi-24px'></i>",
-                            "</div>",
                             "<div class='vstShadeTune' vstId='" + id + "' title='Options'>",
                                 "<i class='mdi mdi-tune mdi-18px'></i>",
                             "</div>",
@@ -306,7 +269,7 @@ let ShadeTool = {
                     "</div>",
                     "<div class='vstShadeContents' style='border-left: 6px solid " + initObj.color + ";'>",
                         "<div class='vstOptionData'>",
-                            "<div title='Dataset to shade.'>Data</div>",
+                            "<div title='Dataset to shade.'>Elevation Map</div>",
                             "<select class='dropdown'>",
                                 allData,
                             "</select>",
@@ -328,17 +291,21 @@ let ShadeTool = {
                                 "<option value='3' " + (initObj.resolution == 3 ? 'selected' : '') + ">Ultra</option>",
                             "</select>",
                         "</div>",
+                        "<div class='vstOptionTarget'>",
+                            `<div title='Orbiter or body that is the source of "light".'>Source Entity</div>`,
+                            "<select class='dropdown'>",
+                                "<option value='MRO' " + (initObj.target == 0 ? 'selected' : '') + ">MRO</option>",
+                                "<option value='MVN' " + (initObj.target == 1 ? 'selected' : '') + ">MVN</option>",
+                                "<option value='ODY' " + (initObj.target == 2 ? 'selected' : '') + ">ODY</option>",
+                                "<option value='SUN' " + (initObj.target == 3 ? 'selected' : '') + ">The Sun</option>",
+                                "<option value='TGO' " + (initObj.target == 4 ? 'selected' : '') + ">TGO</option>",
+                            "</select>",
+                        "</div>",
                         "<div class='vstOptionHeight'>",
                             "<div title='Height above surface of source point.'>Observer Height</div>",
                             "<div class='flexbetween'>",
                                 "<input type='number' min='0' step='1' value='" + initObj.height + "' default='2'>",
                                 "<div class='vstUnit smallFont'>m</div>",
-                            "</div>",
-                        "</div>",
-                        "<div class='vstOptionTime'>",
-                            "<div title='Date'>Time</div>",
-                            "<div class='flexbetween'>",
-                                "<input type='text' value='" + `2023 JUL 16 03:56:00 TDB` + "'>",
                             "</div>",
                         "</div>",
                         "<div class='vstShadeBar'>",
@@ -365,6 +332,19 @@ let ShadeTool = {
                                     "<i class='mdi mdi-close mdi-18px'></i>",
                                 "</div>",
                                 "<div>Are you sure?</div>",
+                            "</div>",
+                        "</div>",
+                    
+                        "<div id='shadeTool_indicators'>",
+                            "<div>",
+                                "<div>Azimuth</div>",
+                                "<canvas id='shadeTool_az'></canvas>",
+                                "<div id='shadeTool_azValue'></div>",
+                            "</div>",
+                            "<div>",
+                                "<div>Elevation</div>",
+                                "<canvas id='shadeTool_el'></canvas>",
+                                "<div id='shadeTool_elValue'></div>",
                             "</div>",
                         "</div>",
                     "</div>",
@@ -416,15 +396,6 @@ let ShadeTool = {
             })(id)
         )
 
-        $('#vstShades #vstId_' + id + ' .vstShade3D').on(
-            'click',
-            (function (id) {
-                return function () {
-                    ShadeTool.matchGlobe(id)
-                }
-            })(id)
-        )
-
         $('#vstShades #vstId_' + id + ' .vstShadeClone').on(
             'click',
             (function (id) {
@@ -450,7 +421,7 @@ let ShadeTool = {
             })(id)
         )
         $('#vstShades #vstId_' + id + ' .vstOptionOpacity input').on(
-            'input',
+            'change',
             (function (id) {
                 return function () {
                     $('#vstShades #vstId_' + id + ' .vstRegen').addClass(
@@ -468,6 +439,16 @@ let ShadeTool = {
             })(id)
         )
         $('#vstShades #vstId_' + id + ' .vstOptionResolution select').on(
+            'change',
+            (function (id) {
+                return function () {
+                    $('#vstShades #vstId_' + id + ' .vstRegen').addClass(
+                        'changed'
+                    )
+                }
+            })(id)
+        )
+        $('#vstShades #vstId_' + id + ' .vstOptionTarget select').on(
             'change',
             (function (id) {
                 return function () {
@@ -689,20 +670,31 @@ let ShadeTool = {
                                 lng: source.lng,
                                 lat: source.lat,
                                 height: data[0][1],
-                                target: 'MRO',
+                                target: options.target,
                                 time: options.time,
                             },
                             function (s) {
                                 s = JSON.parse(s)
-                                ShadeTool.updateRAEIndicators(s)
-                                keepGoing({
-                                    lat: s.latitude,
-                                    lng: s.longitude,
-                                    altitude: s.horizontal_altitude,
-                                    az: s.azimuth,
-                                    el: s.elevation,
-                                    range: s.range,
-                                })
+                                ShadeTool.updateRAEIndicators(s, activeElmId)
+                                if (s.error) {
+                                    CursorInfo.update(
+                                        s.message || 'LatLng to AzEl Error',
+                                        6000,
+                                        true,
+                                        { x: 305, y: 6 },
+                                        '#e9ff26',
+                                        'black'
+                                    )
+                                } else {
+                                    keepGoing({
+                                        lat: s.latitude,
+                                        lng: s.longitude,
+                                        altitude: s.horizontal_altitude,
+                                        az: s.azimuth,
+                                        el: s.elevation,
+                                        range: s.range,
+                                    })
+                                }
                             },
                             function (e) {
                                 console.log('e', e)
@@ -933,12 +925,13 @@ let ShadeTool = {
             ).val(),
             invert: 1,
             targetHeight: 0,
+            target: $(
+                '#vstShades #vstId_' + elmId + ' .vstOptionTarget select'
+            ).val(),
             height: $(
                 '#vstShades #vstId_' + elmId + ' .vstOptionHeight input'
             ).val(),
-            time: $(
-                '#vstShades #vstId_' + elmId + ' .vstOptionTime input'
-            ).val(),
+            time: $('.vstOptionTime input').val(),
         }
     },
     delete: function (activeElmId) {
@@ -1016,53 +1009,22 @@ let ShadeTool = {
             '.asc'
         )
     },
-    matchGlobe: function (id) {
-        if (L_.hasGlobe) {
-            let options = {
-                height: $(
-                    '#vstShades #vstId_' + id + ' .vstOptionHeight input'
-                ).val(),
-            }
-
-            let pp = L_.UserInterface_.getPanelPercents()
-
-            if (pp.globe == 0)
-                L_.UserInterface_.setPanelPercents(
-                    pp.viewer - pp.viewer / 2,
-                    pp.map - pp.map / 2,
-                    50
-                )
-
-            const layerName = 'ShadeTool_' + id
-            Globe_.litho.removeLayer(layerName)
-            Globe_.litho.addLayer('clamped', {
-                name: layerName,
-                opacity: 1,
-                preDrawn: true,
-                data: ShadeTool.canvases[id],
-                on: true,
-            })
-
-            $('#Globe_WalkSettingsHeightValue').val(options.height)
-
-            $('#Globe_WalkStand').addClass('highlightAnim1')
-
-            if ($('#Globe_WalkSettingsPanel').css('display') == 'none')
-                $('#Globe_WalkSettings').click()
-        }
-    },
     // Update Range Azimuth Elevation indicators
-    updateRAEIndicators(rae) {
+    updateRAEIndicators(rae, shadeId) {
         const size = 240
         const sizeInner = 220
         const origin = { x: size / 2, y: size / 2 }
 
         // Azimuth ===================
-        $('#shadeTool_azValue').text(rae.azimuth.toFixed(2) + '°')
-        const cAz = document.getElementById('shadeTool_az')
+        $(`#vstId_${shadeId} #shadeTool_azValue`).text(
+            rae.error ? 'Error' : rae.azimuth.toFixed(2) + '°'
+        )
+        const cAz = document.querySelector(`#vstId_${shadeId} #shadeTool_az`)
         cAz.width = size
         cAz.height = size
         const ctxAz = cAz.getContext('2d')
+
+        ctxAz.clearRect(0, 0, cAz.width, cAz.height)
 
         // Outer circle
         ctxAz.beginPath()
@@ -1090,67 +1052,74 @@ let ShadeTool = {
         ctxAz.strokeStyle = 'rgba(0,0,0,0.9)'
         ctxAz.stroke()
 
-        // Angle guide
-        ctxAz.beginPath()
-        ctxAz.moveTo(origin.x, origin.y)
-        let azim = rae.azimuth
-        if (azim < 0) azim += 360
-        const azGreaterThan180 = azim > 180
-        azim = azim * (Math.PI / 180)
-        ctxAz.arc(
-            origin.x,
-            origin.y,
-            sizeInner / 8,
-            -90 * (Math.PI / 180),
-            azim - 90 * (Math.PI / 180)
-        )
-        ctxAz.lineWidth = 2
-        ctxAz.strokeStyle = '#08ea58'
-        ctxAz.stroke()
+        let azGreaterThan180
+        if (rae.error != true) {
+            // Angle guide
+            ctxAz.beginPath()
+            ctxAz.moveTo(origin.x, origin.y)
+            let azim = rae.azimuth
+            if (azim < 0) azim += 360
+            azGreaterThan180 = azim > 180
+            azim = azim * (Math.PI / 180)
+            ctxAz.arc(
+                origin.x,
+                origin.y,
+                sizeInner / 8,
+                -90 * (Math.PI / 180),
+                azim - 90 * (Math.PI / 180)
+            )
+            ctxAz.lineWidth = 2
+            ctxAz.strokeStyle = '#08ea58'
+            ctxAz.stroke()
 
-        // North indicator
-        ctxAz.font = '20px Arial'
-        ctxAz.fillStyle = 'rgba(255,255,255,0.7)'
-        ctxAz.textAlign = 'center'
-        ctxAz.fillText('N', size / 2, (size - sizeInner) * 1.5)
+            // North indicator
+            ctxAz.font = '20px Arial'
+            ctxAz.fillStyle = 'rgba(255,255,255,0.7)'
+            ctxAz.textAlign = 'center'
+            ctxAz.fillText('N', size / 2, (size - sizeInner) * 1.5)
 
-        // Angle line
-        const endAzPt = F_.rotatePoint(
-            { x: origin.x, y: origin.y - sizeInner / 2 + 10 },
-            [origin.x, origin.y],
-            rae.azimuth * (Math.PI / 180)
-        )
+            // Angle line
+            const endAzPt = F_.rotatePoint(
+                { x: origin.x, y: origin.y - sizeInner / 2 + 10 },
+                [origin.x, origin.y],
+                rae.azimuth * (Math.PI / 180)
+            )
 
-        ctxAz.beginPath()
-        ctxAz.beginPath()
-        ctxAz.moveTo(origin.x, origin.y)
-        ctxAz.lineTo(endAzPt.x, endAzPt.y)
-        ctxAz.lineWidth = 6
-        ctxAz.strokeStyle = 'yellow'
-        ctxAz.stroke()
+            ctxAz.beginPath()
+            ctxAz.beginPath()
+            ctxAz.moveTo(origin.x, origin.y)
+            ctxAz.lineTo(endAzPt.x, endAzPt.y)
+            ctxAz.lineWidth = 6
+            ctxAz.strokeStyle = 'yellow'
+            ctxAz.stroke()
 
-        // Angle Arrow
-        const endAzPtInner = F_.rotatePoint(
-            { x: origin.x, y: origin.y - sizeInner / 2 + 20 },
-            [origin.x, origin.y],
-            rae.azimuth * (Math.PI / 180)
-        )
-        F_.canvasDrawArrow(
-            ctxAz,
-            endAzPtInner.x,
-            endAzPtInner.y,
-            endAzPt.x,
-            endAzPt.y,
-            4,
-            'yellow'
-        )
+            // Angle Arrow
+            const endAzPtInner = F_.rotatePoint(
+                { x: origin.x, y: origin.y - sizeInner / 2 + 20 },
+                [origin.x, origin.y],
+                rae.azimuth * (Math.PI / 180)
+            )
+            F_.canvasDrawArrow(
+                ctxAz,
+                endAzPtInner.x,
+                endAzPtInner.y,
+                endAzPt.x,
+                endAzPt.y,
+                4,
+                'yellow'
+            )
+        }
 
         // El ========================
-        $('#shadeTool_elValue').text(rae.elevation.toFixed(2) + '°')
-        const cEl = document.getElementById('shadeTool_el')
+        $(`#vstId_${shadeId} #shadeTool_elValue`).text(
+            rae.error ? 'Error' : rae.elevation.toFixed(2) + '°'
+        )
+        const cEl = document.querySelector(`#vstId_${shadeId} #shadeTool_el`)
         cEl.width = size
         cEl.height = size
         const ctxEl = cEl.getContext('2d')
+
+        ctxEl.clearRect(0, 0, cEl.width, cEl.height)
 
         // Outer circle
         ctxEl.beginPath()
@@ -1166,8 +1135,14 @@ let ShadeTool = {
         ctxEl.moveTo(origin.x, origin.y)
         ctxEl.arc(origin.x, origin.y, sizeInner / 2, 0, Math.PI, true)
         const sky = ctxEl.createLinearGradient(0, 0, 0, sizeInner / 2)
-        sky.addColorStop(0, 'rgba(8, 174, 234, 0.25)')
-        sky.addColorStop(1, 'rgba(255, 255, 255, 0.25)')
+        sky.addColorStop(
+            0,
+            rae.error ? 'rgba(210, 0, 0, 0.25)' : 'rgba(8, 174, 234, 0.25)'
+        )
+        sky.addColorStop(
+            1,
+            rae.error ? 'rgba(255, 92, 92, 0.25)' : 'rgba(255, 255, 255, 0.25)'
+        )
         ctxEl.fillStyle = sky
         ctxEl.fill()
 
@@ -1180,62 +1155,79 @@ let ShadeTool = {
         ctxEl.strokeStyle = 'rgba(0,0,0,0.9)'
         ctxEl.stroke()
 
-        // Angle guide
-        ctxEl.beginPath()
-        ctxEl.moveTo(origin.x, origin.y)
-        let elev = rae.elevation
-        let ccw = true
-        if (elev < 0) {
-            ccw = false
+        if (rae.error != true) {
+            // Angle guide
+            ctxEl.beginPath()
+            ctxEl.moveTo(origin.x, origin.y)
+            let elev = rae.elevation
+            let ccw = true
+            if (elev < 0) {
+                ccw = false
+            }
+            let startAngle = 0
+            if (azGreaterThan180) {
+                startAngle = Math.PI
+                ccw = !ccw
+                elev = -elev - 180
+            }
+            elev = -elev * (Math.PI / 180)
+            ctxEl.arc(origin.x, origin.y, sizeInner / 4, startAngle, elev, ccw)
+            ctxEl.lineWidth = 2
+            ctxEl.strokeStyle = '#08ea58'
+            ctxEl.stroke()
+
+            let sign = -1
+            let offset = 0
+            if (azGreaterThan180) {
+                sign = 1
+                offset = 180
+            }
+
+            // Angle line
+            const endElPt = F_.rotatePoint(
+                { x: origin.x + sizeInner / 2 - 10, y: origin.y },
+                [origin.x, origin.y],
+                sign * (offset + rae.elevation) * (Math.PI / 180)
+            )
+
+            ctxEl.beginPath()
+            ctxEl.beginPath()
+            ctxEl.moveTo(origin.x, origin.y)
+            ctxEl.lineTo(endElPt.x, endElPt.y)
+            ctxEl.lineWidth = 6
+            ctxEl.strokeStyle = 'yellow'
+            ctxEl.stroke()
+
+            // Angle Arrow
+            const endElPtInner = F_.rotatePoint(
+                { x: origin.x + sizeInner / 2 - 20, y: origin.y },
+                [origin.x, origin.y],
+                sign * (offset + rae.elevation) * (Math.PI / 180)
+            )
+            F_.canvasDrawArrow(
+                ctxEl,
+                endElPtInner.x,
+                endElPtInner.y,
+                endElPt.x,
+                endElPt.y,
+                4,
+                'yellow'
+            )
         }
-        let startAngle = 0
-        if (azGreaterThan180) {
-            startAngle = Math.PI
-            ccw = !ccw
-            elev = -elev - 180
-        }
-        elev = -elev * (Math.PI / 180)
-        ctxEl.arc(origin.x, origin.y, sizeInner / 4, startAngle, elev, ccw)
-        ctxEl.lineWidth = 2
-        ctxEl.strokeStyle = '#08ea58'
-        ctxEl.stroke()
-
-        let sign = -1
-        let offset = 0
-        if (azGreaterThan180) {
-            sign = 1
-            offset = 180
-        }
-
-        // Angle line
-        const endElPt = F_.rotatePoint(
-            { x: origin.x + sizeInner / 2 - 10, y: origin.y },
-            [origin.x, origin.y],
-            sign * (offset + rae.elevation) * (Math.PI / 180)
-        )
-
-        ctxEl.beginPath()
-        ctxEl.beginPath()
-        ctxEl.moveTo(origin.x, origin.y)
-        ctxEl.lineTo(endElPt.x, endElPt.y)
-        ctxEl.lineWidth = 6
-        ctxEl.strokeStyle = 'yellow'
-        ctxEl.stroke()
-
-        // Angle Arrow
-        const endElPtInner = F_.rotatePoint(
-            { x: origin.x + sizeInner / 2 - 20, y: origin.y },
-            [origin.x, origin.y],
-            sign * (offset + rae.elevation) * (Math.PI / 180)
-        )
-        F_.canvasDrawArrow(
-            ctxEl,
-            endElPtInner.x,
-            endElPtInner.y,
-            endElPt.x,
-            endElPt.y,
-            4,
-            'yellow'
+    },
+    parseToTDBTime(time) {
+        //'2023-06-28T03:15:20.883Z' -> '2023 JUL 16 03:56:00 TDB'
+        return (
+            time.substring(0, 4) +
+            ' ' +
+            F_.monthNumberToName(
+                parseInt(time.substring(5, 7)) - 1
+            ).toUpperCase() +
+            ' ' +
+            time.substring(8, 10) +
+            ' ' +
+            time.substring(11, 19) +
+            ' TDB'
         )
     },
 }
@@ -1245,6 +1237,34 @@ function interfaceWithMMGIS() {
     this.separateFromMMGIS = function () {
         separateFromMMGIS()
     }
+
+    // prettier-ignore
+    let markup = [
+        "<div id='shadeTool'>",
+            "<div id='vstHeader'>",
+                "<div>",
+                    "<div id='vstTitle'>Shade</div>",
+                    "<div id='vstNew'>",
+                        "<div>New</div>",
+                        "<i class='mdi mdi-plus mdi-18px'></i>",
+                    "</div>",
+                "</div>",
+                "<div class='vstOptionTime'>",
+                    "<div class='flexbetween'>",
+                        `<input type='text' value='${ShadeTool.parseToTDBTime(TimeControl.getEndTime())}'>`,
+                    "</div>",
+                "</div>",
+                "<div>",
+                    "<div id='vstToggleAll' class='checkbox on'></div>",
+                    "<div class='vstLabel'>Toggle All</div>",
+                "</div>",
+            "</div>",
+            "<div id='vstContent'>",
+                "<ul id='vstShades'>",
+                "</ul>",
+            "</div>",
+        "</div>"
+    ].join('\n');
 
     //MMGIS should always have a div with id 'tools'
     var tools = d3.select('#toolPanel')
@@ -1268,19 +1288,7 @@ function interfaceWithMMGIS() {
     Map_.map.on('moveend', ShadeTool.panEnd)
 
     TimeControl.subscribe('ShadeTool', (t) => {
-        //'2023-06-28T03:15:20.883Z' -> '2023 JUL 16 03:56:00 TDB'
-        const parsedTime =
-            t.currentTime.substring(0, 4) +
-            ' ' +
-            F_.monthNumberToName(
-                parseInt(t.currentTime.substring(5, 7))
-            ).toUpperCase() +
-            ' ' +
-            t.currentTime.substring(8, 10) +
-            ' ' +
-            t.currentTime.substring(11, 19) +
-            ' TDB'
-        ShadeTool.timeChange(parsedTime)
+        ShadeTool.timeChange(ShadeTool.parseToTDBTime(t.currentTime))
     })
 
     //Add event functions and whatnot
