@@ -39,7 +39,7 @@
 }
 #drawToolTemplater_setTime > div {
     display: flex !important;
-    justify-content: center;;
+    justify-content: center;
     text-align: center;
     flex: 1;
     background: var(--color-a1);
@@ -200,6 +200,11 @@
     width: 100%;
     background: var(--color-a1-5);
     color: var(--color-a7);
+}
+.drawToolTemplaterLiBody_slider_default,
+.drawToolTemplaterLiBody_number_default,
+.drawToolTemplaterLiBody_text_regex {
+    flex: 1;
 }
 
 .drawToolTemplaterLi {
