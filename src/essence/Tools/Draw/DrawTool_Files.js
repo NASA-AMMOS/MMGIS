@@ -1520,12 +1520,13 @@ var Files = {
         //Highlight layer if on
         $('.drawToolDrawFilesListElem').off('mouseenter')
         $('.drawToolDrawFilesListElem').on('mouseenter', function () {
+            if (DrawTool.timeToggledOn) return
             $(this).find('.drawToolFileEdit').addClass('shown')
             var fileId = parseInt($(this).attr('file_id'))
             var l = L_.layers.layer['DrawTool_' + fileId]
             if (!l) return
             for (var i = 0; i < l.length; i++) {
-                if (l[i] != null) {
+                if (l[i] != null && l[i].temporallyHidden != true) {
                     if (typeof l[i].setStyle === 'function')
                         l[i].setStyle({ color: '#7fff00' })
                     else if (l[i].hasOwnProperty('_layers')) {
@@ -1544,6 +1545,8 @@ var Files = {
         })
         $('.drawToolDrawFilesListElem').off('mouseleave')
         $('.drawToolDrawFilesListElem').on('mouseleave', function () {
+            if (DrawTool.timeToggledOn) return
+
             $(this).find('.drawToolFileEdit').removeClass('shown')
             var fileId = parseInt($(this).attr('file_id'))
             var l = L_.layers.layer['DrawTool_' + fileId]
@@ -1743,6 +1746,8 @@ var Files = {
                     }
 
                     let features = data.geojson.features
+                    DrawTool.fileGeoJSONFeatures[index] = features
+
                     let coreFeatures = JSON.parse(JSON.stringify(data.geojson))
                     coreFeatures.features = []
 
@@ -1904,6 +1909,7 @@ var Files = {
 
                     L_.enforceVisibilityCutoffs([layerId])
                     DrawTool.maintainLayerOrder()
+                    DrawTool.timeFilterDrawingLayer(index)
 
                     DrawTool.refreshMasterCheckbox()
 

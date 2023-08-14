@@ -811,6 +811,10 @@ function toggleTimeUI() {
     $('#timeUI').css({
         bottom: timeBottom + (UserInterface.pxIsTools || 0) + 'px',
     })
+
+    Object.keys(L_._onTimeUIToggleSubscriptions).forEach((k) => {
+        L_._onTimeUIToggleSubscriptions[k](!active)
+    })
 }
 
 export default Coordinates

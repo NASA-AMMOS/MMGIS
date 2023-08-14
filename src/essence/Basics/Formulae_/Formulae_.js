@@ -98,6 +98,20 @@ var Formulae_ = {
                 return ''
         }
     },
+    addTimeZoneOffset(timestamp) {
+        const date = new Date(timestamp)
+        const addedOffset = new Date(
+            date.getTime() + date.getTimezoneOffset() * 60000
+        )
+        return addedOffset
+    },
+    removeTimeZoneOffset(timestamp) {
+        const date = new Date(timestamp)
+        const removedOffset = new Date(
+            date.getTime() - date.getTimezoneOffset() * 60000
+        )
+        return removedOffset
+    },
     // Returns an array of timestamps between startTime and endTime timestamps that fall along the unit
     getTimeStartsBetweenTimestamps: function (startTime, endTime, unit) {
         const timeStarts = []

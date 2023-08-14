@@ -188,6 +188,23 @@ const L_ = {
             }
         } else console.log('Failure updating to new site')
     },
+    _timeChangeSubscriptions: {},
+    subscribeTimeChange: function (fid, func) {
+        if (typeof func === 'function') L_._timeChangeSubscriptions[fid] = func
+    },
+    unsubscribeTimeChange: function (fid) {
+        if (L_._timeChangeSubscriptions[fid] != null)
+            delete L_._timeChangeSubscriptions[fid]
+    },
+    _onTimeUIToggleSubscriptions: {},
+    subscribeOnTimeUIToggle: function (fid, func) {
+        if (typeof func === 'function')
+            L_._onTimeUIToggleSubscriptions[fid] = func
+    },
+    unsubscribeOnTimeUIToggle: function (fid) {
+        if (L_._onTimeUIToggleSubscriptions[fid] != null)
+            delete L_._onTimeUIToggleSubscriptions[fid]
+    },
     _onLayerToggleSubscriptions: {},
     subscribeOnLayerToggle: function (fid, func) {
         if (typeof func === 'function')
