@@ -19,38 +19,8 @@ except ImportError:
     from urllib import unquote
 
 def lltarg2vistimes(lng, lat, height, target, startTime):
-    """
-    target   = "MRO"
-    obsrvr   = "-9999999"
-    inframe  = "IAU_MARS"
-    crdsys   = "LATITUDINAL"
-    coord    = "LATITUDE"
-    relate   = ">"
-    refval   = math.radians(0)
-    step     = 30
-    nintvals = 100000
-    adjust   = 0.0
-    abcorr   = "NONE"
-    cnfine   = spiceypy.stypes.SPICEDOUBLE_CELL(200000)
-    GS_result   = spiceypy.stypes.SPICEDOUBLE_CELL(200000)
-
-    spiceypy.wninsd(*utc, cnfine)
-
-    spiceypy.gfposc(target, inframe, abcorr, obsrvr, crdsys, coord, relate, refval, adjust, step, nintvals, cnfine, GS_result)
-    spiceypy.wnfetd(GS_result, 0)
-    """
 
     package_dir = os.path.dirname(os.path.abspath(__file__))
-    """
-    with open ('dynamic-template.def', 'r' ) as f:
-        content = f.read()
-        content_new = re.sub('{{NEG_LNG}}', str(-lng), content, flags = re.M)
-        content_new = re.sub('{{LAT_MINUS_90}}', str(lat - 90), content_new, flags = re.M)
-
-    fileTf = open(os.path.join(package_dir + '/kernels/', 'dynamic.def'), "w") 
-    fileTf.write(content_new)
-    fileTf.close()
-    """
 
     # Load kernels
     kernels_to_load = [

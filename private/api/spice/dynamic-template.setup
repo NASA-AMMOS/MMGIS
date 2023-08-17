@@ -6,7 +6,7 @@ KPL/FK
       DYNAMIC_CENTER = 499
       DYNAMIC_FRAME = 'IAU_MARS'
       DYNAMIC_IDCODE = -654321
-      DYNAMIC_LATLON = ( -4.67515091, -137.37137318, -4.424257 )
+      DYNAMIC_LATLON = ( {{LAT}}, {{LNG}}, {{HEIGHT_KM}} )
       DYNAMIC_UP     = 'Z'
       DYNAMIC_NORTH  = 'X'
       

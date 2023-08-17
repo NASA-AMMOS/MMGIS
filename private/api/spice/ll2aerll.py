@@ -7,10 +7,15 @@
 import sys
 import json
 import os
+import subprocess
+import shlex
+import uuid
+import numpy as np
 
 import math
 import spiceypy
 import pymap3d as pm
+import re
 
 try:
     from urllib.parse import unquote
@@ -19,7 +24,29 @@ except ImportError:
 
 def ll2aerll(lng, lat, height, target, time):
     # Load kernels
-    package_dir = os.path.dirname(os.path.abspath(__file__))
+    package_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\','/').replace('C:/', 'C:\\\\')
+
+    # Fill out dynamic template
+    with open (os.path.join(package_dir, 'dynamic-template.setup'), 'r' ) as f:
+        content = f.read()
+        content_new = re.sub('{{LNG}}', str(lng), content, flags = re.M)
+        content_new = re.sub('{{LAT}}', str(lat), content_new, flags = re.M)
+        content_new = re.sub('{{HEIGHT_KM}}', str(height / 1000), content_new, flags = re.M)
+
+    fileTf = open(os.path.join(package_dir + '/kernels/', 'dynamic.setup'), "w") 
+    fileTf.write(content_new)
+    fileTf.close()
+
+    # Create dynamic
+    dynamicSpkFile = f'dynamic-{str(uuid.uuid4())}.bsp'
+    dynamicFkFile = f'dynamic-{str(uuid.uuid4())}.tf'
+    cmd = os.path.join(package_dir + '/', 'pinpoint.exe')
+    setup = os.path.join(package_dir + '/kernels/', 'dynamic.setup')
+    pck = os.path.join(package_dir + '/kernels/', 'mars_iau2000_v1.tpc')
+    dynamicSpk = os.path.join(package_dir + '/kernels/', dynamicSpkFile)
+    dynamicFk = os.path.join(package_dir + '/kernels/', dynamicFkFile)
+    subprocess.call(shlex.split(f'{cmd} -def {setup} -pck {pck} -spk {dynamicSpk} -fk {dynamicFk}'))
+
     kernels_to_load = [
         'de440.bsp',
         'naif0012.tls',
@@ -27,8 +54,8 @@ def ll2aerll(lng, lat, height, target, time):
         'mars_iau2000_v1.tpc',
         'mro_psp.bsp',
         'pck00011.tpc',
-        'dynamic.bsp',
-        'dynamic.tf'
+        dynamicSpkFile,
+        dynamicFkFile
     ]
     for k in kernels_to_load:
         spiceypy.furnsh( os.path.join(package_dir + '/kernels/', k) )
@@ -47,20 +74,20 @@ def ll2aerll(lng, lat, height, target, time):
     obsctr = "MARS"
     obsref = "IAU_MARS"
 
+    # A
     """
-    # convert planetocentric coordinates of the observer
-    # to rectangular coordinates.
     radii = spiceypy.bodvrd( "MARS", "RADII", 3)[1]
-    re  =  radii[0]
-    rp  =  radii[2]
-    flattening   =  ( re - rp ) / re
+    rE = radii[0]
+    rP = radii[2]
+    flattening  = (rE - rP) / rE
 
     obspos = spiceypy.georec( lng * spiceypy.rpd(), lat * spiceypy.rpd(), height / 1000, radii[0], flattening)
     output = spiceypy.azlcpo( method, target, et, abcorr, azccw, elplsz, obspos, obsctr, obsref)
 
     razel = output[0]
-    # lighttime = output[1]
     """
+    
+    # B
     obs = "-654321"
     ref = "IAU_MARS"
 
@@ -71,11 +98,18 @@ def ll2aerll(lng, lat, height, target, time):
     el_output = razel[2] * spiceypy.dpr()
     range_output = razel[0] * 1000
 
-
+    try:
+        visibilities = [] #lltarg2vistimes(1,2,3,4,5)
+    except:
+        visibilities = []
 
     # Unload kernels
     for k in kernels_to_load:
         spiceypy.unload( os.path.join(package_dir + '/kernels/', k) )
+
+    # Remove temporary dyanmic files
+    os.remove(dynamicSpk)
+    os.remove(dynamicFk)
 
     # Compute ll position on surface directly under target/orbiter
     target_ll = pm.aer2geodetic(az_output, el_output, range_output * 1000, lat, lng, height, None, True)
@@ -83,7 +117,9 @@ def ll2aerll(lng, lat, height, target, time):
     # Altitude above the tangential plane of the surface observer latlng
     horizontal_altitude = range_output * math.sin(razel[2])
 
+
     return json.dumps({
+        "visibilities": visibilities,
         "azimuth": az_output,
         "elevation": el_output,
         "range": range_output,
@@ -92,6 +128,74 @@ def ll2aerll(lng, lat, height, target, time):
         "altitude": target_ll[2],
         "horizontal_altitude": horizontal_altitude
     })
+
+def lltarg2vistimes(lng, lat, height, target, startTime):
+
+    package_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Set vars
+    MAXWIN = 750
+    TIMFMT = "YYYY-MON-DD HR:MN:SC.###### (TDB) ::TDB ::RND"
+    TIMLEN = 41
+    GS_RESULT = spiceypy.stypes.SPICEDOUBLE_CELL(2 * MAXWIN)
+    cnfine = spiceypy.stypes.SPICEDOUBLE_CELL(2)
+
+    relate = ">"
+    crdsys = "LATITUDINAL"
+    coord  = "LATITUDE"
+    targ   = "MRO"
+    obsrvr = "-654321"
+    frame  = "IAU_MARS"
+    abcorr = "NONE"
+    
+    #Store the time bounds of our search interval in
+    #the cnfine confinement window.
+    begtim = spiceypy.str2et( "2023 MAY 01" )
+    endtim = spiceypy.str2et( "2023 MAY 05" )
+
+    spiceypy.wninsd( begtim, endtim, cnfine )
+
+    
+    #This search uses a step size of four hours since the
+    #time for all declination zero-to-max-to-zero passes
+    #within the search window exceeds eight hours.
+
+    #The example uses an 83 degree elevation because of its
+    #rare occurrence and short duration.
+    
+    step   = int((4.0/24.0) * spiceypy.spd())
+    adjust = 0.0
+    refval = 65.0 * spiceypy.rpd()
+
+    
+    #List the beginning and ending points in each interval
+    #if result contains data.
+    spiceypy.gfposc( targ, frame, abcorr, obsrvr, crdsys, coord, relate, refval, adjust, step, MAXWIN, cnfine, GS_RESULT )
+    
+    spiceypy.wnfetd(GS_RESULT, 0)
+
+
+    #Creates an array of times in which it passes over target
+    GS_times = []
+    The_times = [GS_times]
+    The_results = [GS_RESULT]
+
+    for i in range(len(The_times)):
+        for ii in range(spiceypy.wncard(The_results[i])):
+            The_times[i].append(np.linspace(*spiceypy.wnfetd(The_results[i], ii), step, endpoint=False))
+
+    visibilities = []
+    for time in GS_times:
+        t = spiceypy.timout(time, TIMFMT)
+        s = time[0]
+        st = time[-1]
+        duration = (st -s)
+        start = t[0]
+        stop  = t[-1]
+        closest_approach = spiceypy.timout((st+s)/2, TIMFMT)
+        visibilities.append({"start": start, "stop": stop, "closest_approach": closest_approach})
+
+    return visibilities
 
 lng = float(sys.argv[1])
 lat = float(sys.argv[2])
