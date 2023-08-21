@@ -691,6 +691,12 @@ function initialize() {
                 $("#tab_time #time_initialend").val(
                   cData.time ? cData.time.initialend : "now"
                 );
+                $("#tab_time #time_initialwindowstart").val(
+                  cData.time ? cData.time.initialwindowstart : ""
+                );
+                $("#tab_time #time_initialwindowend").val(
+                  cData.time ? cData.time.initialwindowend : "now"
+                );
 
                 //tools
                 //uncheck all tools
@@ -2194,6 +2200,10 @@ function save(returnJSON) {
     json.time.format = $("#tab_time #time_format").val();
     json.time.initialstart = $("#tab_time #time_initialstart").val();
     json.time.initialend = $("#tab_time #time_initialend").val();
+    json.time.initialwindowstart = $(
+      "#tab_time #time_initialwindowstart"
+    ).val();
+    json.time.initialwindowend = $("#tab_time #time_initialwindowend").val();
 
     //Tools
     for (var i = 0; i < tData.length; i++) {

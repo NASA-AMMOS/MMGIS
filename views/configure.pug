@@ -505,12 +505,20 @@ script(type='text/javascript' src='config/pre/RefreshAuth.js')
             #time_format_row.input-field.col.s3.push-s2
               input#time_format.validate(type='text' value='%Y-%m-%dT%H:%M:%SZ')
               label(for='time_format') Time Format
+          li.row
             #time_initialstartEl.input-field.col.s3.push-s2
               input#time_initialstart.validate(type='text' value='' title="Parsable time (defaults to a month before the end time)")
               label(for='time_initialstart') Initial Start Time
             #time_initialendEl.input-field.col.s3.push-s2
               input#time_initialend.validate(type='text' value='now' title="Parsable time (default to 'now')")
               label(for='time_initialend') Initial End Time
+          li.row   
+            #time_initialwindowstartEl.input-field.col.s3.push-s2
+              input#time_initialwindowstart.validate(type='text' value='' title="Parsable time (defaults to the Initial Start Time)")
+              label(for='time_initialwindowstart') Initial Timeline Window Start Time
+            #time_initialwindowendEl.input-field.col.s3.push-s2
+              input#time_initialwindowend.validate(type='text' value='now' title="Parsable time (default to the Initial End TIme)")
+              label(for='time_initialwindowend') Initial Timeline Window End Time
 
       #tab_tools.col.s12
         a.helpFromDocs(href='https://nasa-ammos.github.io/MMGIS/configure/tabs/tools' target='__blank' rel='noopener')
