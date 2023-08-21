@@ -411,6 +411,19 @@ const TimeUI = {
             } else TimeUI._initialEnd = dateStaged
         } else TimeUI._initialEnd = new Date()
 
+        // Initial Timeline window end
+        if (
+            L_.configData.time.initialwindowend != null &&
+            L_.configData.time.initialwindowend != 'now'
+        ) {
+            const dateStaged = new Date(L_.configData.time.initialwindowend)
+            if (dateStaged == 'Invalid Date') {
+                console.warn(
+                    "Invalid 'Initial Window End Time' provided. Defaulting to 'now'."
+                )
+            } else TimeUI._timelineEndTimestamp = dateStaged.getTime()
+        }
+
         // Initial start
         // Start 1 month ago
         TimeUI._initialStart = new Date(TimeUI._initialEnd)
@@ -438,6 +451,21 @@ const TimeUI = {
                     "'Initial Start Time' cannot be later than the end time. Defaulting to 1 month before the end time."
                 )
             } else TimeUI._initialStart = dateStaged
+        }
+
+        // Initial Timeline window start
+        if (L_.configData.time.initialwindowstart != null) {
+            const dateStaged = new Date(L_.configData.time.initialwindowstart)
+            if (dateStaged == 'Invalid Date') {
+                console.warn("Invalid 'Initial Window Start Time' provided.")
+            } else if (
+                TimeUI._timelineEndTimestamp == null ||
+                dateStaged.getTime() > TimeUI._timelineEndTimestamp
+            ) {
+                console.warn(
+                    "'Initial Window Start Time' cannot be later than the Initial Window End Time."
+                )
+            } else TimeUI._timelineStartTimestamp = dateStaged.getTime()
         }
 
         // Initialize the time control times, but don't trigger events
