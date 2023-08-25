@@ -12,6 +12,7 @@ import Globe_ from '../../Basics/Globe_/Globe_'
 import CursorInfo from '../../Ancillary/CursorInfo'
 import DataShaders from '../../Ancillary/DataShaders'
 import TimeControl from '../../Ancillary/TimeControl'
+import Help from '../../Ancillary/Help'
 
 import arc from '../../../external/Arc/arc'
 import '../../../external/ColorPicker/jqColorPicker'
@@ -23,6 +24,8 @@ import ShadeTool_Manager from './ShadeTool_Manager'
 import ShaderTool_Algorithm from './ShadeTool_Algorithm'
 
 import './ShadeTool.css'
+
+const helpKey = 'ShadeTool'
 
 let ShadeTool = {
     height: 0,
@@ -1243,7 +1246,10 @@ function interfaceWithMMGIS() {
         "<div id='shadeTool'>",
             "<div id='vstHeader'>",
                 "<div>",
-                    "<div id='vstTitle'>Shade</div>",
+                    "<div>",
+                        "<div id='vstTitle'>Shade</div>",
+                        Help.getComponent(helpKey),
+                    "</div>",
                     "<div id='vstNew'>",
                         "<div>New</div>",
                         "<i class='mdi mdi-plus mdi-18px'></i>",
@@ -1275,6 +1281,8 @@ function interfaceWithMMGIS() {
     tools = tools.append('div').style('height', '100%')
     //Add the markup to tools or do it manually
     tools.html(markup)
+
+    Help.finalize(helpKey)
 
     if (!ShadeTool.firstOpen && ShadeTool.lastShadesUl != null) {
         for (let id in ShadeTool.lastShadesUl) {

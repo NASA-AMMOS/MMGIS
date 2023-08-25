@@ -17,6 +17,10 @@ import spiceypy
 import pymap3d as pm
 import re
 
+
+# chronos.exe -setup ./chronos/chronos-msl.setup -from utc -fromtype scet -to lst -totype lst -time "2023-07-27 23:16:05.644"
+# chronos.exe -setup ./chronos/chronos-msl.setup -to utc -totype scet -from lst -fromtype lst -time "SOL 3901 03:46:54"
+
 try:
     from urllib.parse import unquote
 except ImportError:
@@ -24,10 +28,10 @@ except ImportError:
 
 def ll2aerll(lng, lat, height, target, time):
     # Load kernels
-    package_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\','/').replace('C:/', 'C:\\\\')
+    package_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\','/')
 
     # Fill out dynamic template
-    with open (os.path.join(package_dir, 'dynamic-template.setup'), 'r' ) as f:
+    with open (os.path.join(package_dir, 'pinpoint/dynamic-template.setup'), 'r' ) as f:
         content = f.read()
         content_new = re.sub('{{LNG}}', str(lng), content, flags = re.M)
         content_new = re.sub('{{LAT}}', str(lat), content_new, flags = re.M)
@@ -53,10 +57,12 @@ def ll2aerll(lng, lat, height, target, time):
         'mar097s.bsp',
         'mars_iau2000_v1.tpc',
         'mro_psp.bsp',
+        'mro_psp63.bsp',
         'pck00011.tpc',
         dynamicSpkFile,
         dynamicFkFile
     ]
+
     for k in kernels_to_load:
         spiceypy.furnsh( os.path.join(package_dir + '/kernels/', k) )
 
@@ -89,7 +95,7 @@ def ll2aerll(lng, lat, height, target, time):
     
     # B
     obs = "-654321"
-    ref = "IAU_MARS"
+    ref = "IAU_MARS"# "IAU_MARS"
 
     state = spiceypy.spkezr( target, et, ref, abcorr, obs )
     razel = spiceypy.recazl( [state[0][0], state[0][1], state[0][2]], azccw, elplsz )

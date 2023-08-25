@@ -43,6 +43,12 @@
     border-bottom: 1px solid var(--color-i);
     justify-content: space-between;
 }
+#shadeTool #vstHeader > div:first-child > div {
+    display: flex;
+}
+#shadeTool #helpModal_ShadeTool {
+    margin-top: 11px;
+}
 #shadeTool #vstHeader > div:last-child {
     display: flex;
     height: 30px;

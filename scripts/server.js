@@ -712,6 +712,40 @@ setups.getBackendSetups(function (setups) {
     }
   );
 
+  //utils chronos (spice time converter)
+  app.post(
+    `${ROOT_PATH}/api/utils/chronos`,
+    ensureUser(),
+    ensureGroup(permissions.users),
+    function (req, res) {
+      const target = encodeURIComponent(req.body.target);
+      const fromFormat = encodeURIComponent(req.body.from);
+      const fromtype = encodeURIComponent(req.body.fromtype);
+      const to = encodeURIComponent(req.body.to);
+      const totype = encodeURIComponent(req.body.totype);
+      const time = encodeURIComponent(req.body.time)
+        .replace(/%20/g, " ")
+        .replace(/%3A/g, ":");
+
+      execFile(
+        "python",
+        [
+          "private/api/spice/chronos.py",
+          target,
+          fromFormat,
+          fromtype,
+          to,
+          totype,
+          time,
+        ],
+        function (error, stdout, stderr) {
+          if (error) logger("error", "chronos failure:", "server", null, error);
+          res.send(stdout);
+        }
+      );
+    }
+  );
+
   /*
   //http://localhost:8888/test/timeLayer?start=2022-05-12T16:10:11.648750Z&end=2022-05-12T16:25:25.084933Z
   app.get("/test/timeLayer", (req, res) => {
