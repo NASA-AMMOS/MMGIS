@@ -14,10 +14,10 @@ import DataShaders from '../../Ancillary/DataShaders'
 import TimeControl from '../../Ancillary/TimeControl'
 import Help from '../../Ancillary/Help'
 
-import arc from '../../../external/Arc/arc'
 import '../../../external/ColorPicker/jqColorPicker'
 import '../../../external/PNG/zlib'
 import '../../../external/PNG/png'
+
 import calls from '../../../pre/calls'
 
 import ShadeTool_Manager from './ShadeTool_Manager'
@@ -131,6 +131,10 @@ let ShadeTool = {
             '<style type="text/css">.leaflet-tile { opacity: 1 !important; }</style>'
         )
         $('html > head').append(this.tempSheet)
+
+        // Initial Query
+        $('#vstShades #vstId_0 .vstRegen').click()
+        ShadeTool.updateObserverSpecificTime(0)
     },
     destroy: function () {
         this.MMGISInterface.separateFromMMGIS()
@@ -139,7 +143,7 @@ let ShadeTool = {
     getUrlString: function () {
         let urlString = ''
 
-        $('#vstShades li').each((i, elm) => {
+        $('#vstShades > li').each((i, elm) => {
             const id = $(elm).attr('shadeId')
 
             let o = ShadeTool.getShadeOptions(id)
@@ -155,13 +159,13 @@ let ShadeTool = {
     },
     timeChange: function (time) {
         $('#shadeTool .vstRegen').addClass('changed')
-        $('#vstShades li').each((i, elm) => {
+        $('#vstShades > li').each((i, elm) => {
             const id = $(elm).attr('shadeId')
             $('.vstOptionTime input').val(time)
+            ShadeTool.updateObserverSpecificTime(id)
             // prettier-ignore
             if (
                     ShadeTool.tags[id] != null && // already generated
-                    $('#vstShades #vstId_' + id + ' .vstShadeHeader .checkbox').hasClass('on') &&
                     $('#vstShades #vstId_' + id + ' .vstOptionResolution select').val() <= ShadeTool.dynamicUpdatePanCutoff
                 ) {
                     ShadeTool.setSource(null, null, id)
@@ -170,12 +174,11 @@ let ShadeTool = {
     },
     panEnd: function () {
         $('#shadeTool .vstRegen').addClass('changed')
-        $('#vstShades li').each((i, elm) => {
+        $('#vstShades > li').each((i, elm) => {
             const id = $(elm).attr('shadeId')
             // prettier-ignore
             if (
                     ShadeTool.tags[id] != null && // already generated
-                    $('#vstShades #vstId_' + id + ' .vstShadeHeader .checkbox').hasClass('on') &&
                     $('#vstShades #vstId_' + id + ' .vstOptionResolution select').val() <= ShadeTool.dynamicUpdatePanCutoff
                 ) {
                     ShadeTool.setSource(null, null, id)
@@ -187,7 +190,7 @@ let ShadeTool = {
 
         const isOn = $('#vstToggleAll').hasClass('on')
 
-        $('#vstShades li').each((i, elm) => {
+        $('#vstShades > li').each((i, elm) => {
             const id = $(elm).attr('shadeId')
             if (
                 (isOn &&
@@ -224,7 +227,7 @@ let ShadeTool = {
                 initObj.color != null
                     ? initObj.color
                     : ShadeTool.shedColors[id % ShadeTool.shedColors.length],
-            opacity: initObj.opacity != null ? initObj.opacity : 0.6,
+            opacity: initObj.opacity != null ? initObj.opacity : 0.75,
             resolution: initObj.resolution != null ? initObj.resolution : 1,
             target: initObj.target != null ? initObj.target : 0,
             height: initObj.height != null ? initObj.height : 0,
@@ -250,33 +253,79 @@ let ShadeTool = {
                 .join('\n')
         }
 
+        let allSources = ''
+        if (
+            ShadeTool.vars &&
+            ShadeTool.vars.sources &&
+            ShadeTool.vars.sources.length > 0
+        ) {
+            allSources = ShadeTool.vars.sources
+                .map(
+                    (c, i) =>
+                        "<option value='" +
+                        c.value +
+                        "' " +
+                        (i === 0 ? 'selected' : '') +
+                        '>' +
+                        c.name +
+                        '</option>'
+                )
+                .join('\n')
+        }
+
+        let allObservers = ''
+        if (
+            ShadeTool.vars &&
+            ShadeTool.vars.observers &&
+            ShadeTool.vars.observers.length > 0
+        ) {
+            allObservers = ShadeTool.vars.observers
+                .map(
+                    (c, i) =>
+                        "<option value='" +
+                        c.value +
+                        "' " +
+                        (i === 0 ? 'selected' : '') +
+                        '>' +
+                        c.name +
+                        '</option>'
+                )
+                .join('\n')
+        }
+
         // prettier-ignore
         let markup = [
                 "<li id='vstId_" + id + "' shadeId='" + id + "'>",
-                    "<div class='vstLoading'></div>",
-                    "<div class='vstShadeHeader'>",
-                        "<div>",
-                            "<div class='vstColorbox' style='background: " + initObj.color + ";'></div>",
-                            "<div class='checkbox on' title='Toggle On/Off'></div>",
-                            "<div class='activator vstEditbox' title='Toggle Edit'>",
-                                "<i class='off mdi mdi-checkbox-blank-circle-outline mdi-18px'></i>",
-                                "<i class='on mdi mdi-circle-edit-outline mdi-18px'></i>",
-                            "</div>",
-                            "<input title='Rename' autocomplete='off' autocorrect='off' autocapitalize='off' spellcheck='false' value='" + initObj.name + "'></input>",
-                        "</div>",
-                        "<div>",
-                            "<div class='vstShadeTune' vstId='" + id + "' title='Options'>",
-                                "<i class='mdi mdi-tune mdi-18px'></i>",
-                            "</div>",
-                        "</div>",
-                    "</div>",
-                    "<div class='vstShadeContents' style='border-left: 6px solid " + initObj.color + ";'>",
-                        "<div class='vstOptionData'>",
-                            "<div title='Dataset to shade.'>Elevation Map</div>",
+                    "<div class='vstShadeContents'>",
+                        "<div class='vstLoading'></div>",
+                        `<div class='vstOptionHeading'>Source</div>`,
+                        "<div class='vstOptionTarget'>",
+                            `<div title='Orbiter or body that is the source of "light".'>Entity</div>`,
                             "<select class='dropdown'>",
-                                allData,
+                                allSources,
                             "</select>",
                         "</div>",
+                        `<div class='vstOptionHeading'>Observer</div>`,
+                        "<div class='vstOptionObserver'>",
+                            `<div title='Ground observer for time conversions'>Entity</div>`,
+                            "<select class='dropdown'>",
+                                allObservers,
+                            "</select>",
+                        "</div>",
+                        "<div class='vstOptionTimeSpecific'>",
+                            `<div title='Ground observer time'>Time</div>`,
+                            "<div class='flexbetween'>",
+                                `<input type='text' value='${TimeControl.getEndTime()}'>`,
+                            "</div>",
+                        "</div>",
+                        "<div class='vstOptionHeight'>",
+                            "<div title='Height above surface of source point.'>Height</div>",
+                            "<div class='flexbetween'>",
+                                "<input type='number' min='0' step='1' value='" + initObj.height + "' default='2'>",
+                                "<div class='vstUnit smallFont'>m</div>",
+                            "</div>",
+                        "</div>",
+                        `<div class='vstOptionHeading'>Rendering</div>`,
                         "<div class='vstOptionColor'>",
                             "<div>Color</div>",
                             "<div id='vstId_" + id + "_color'></div>",
@@ -294,50 +343,49 @@ let ShadeTool = {
                                 "<option value='3' " + (initObj.resolution == 3 ? 'selected' : '') + ">Ultra</option>",
                             "</select>",
                         "</div>",
-                        "<div class='vstOptionTarget'>",
-                            `<div title='Orbiter or body that is the source of "light".'>Source Entity</div>`,
+                        "<div class='vstOptionData'>",
+                            "<div title='Dataset to shade.'>Elevation Map</div>",
                             "<select class='dropdown'>",
-                                "<option value='MRO' " + (initObj.target == 0 ? 'selected' : '') + ">MRO</option>",
-                                "<option value='MVN' " + (initObj.target == 1 ? 'selected' : '') + ">MVN</option>",
-                                "<option value='ODY' " + (initObj.target == 2 ? 'selected' : '') + ">ODY</option>",
-                                "<option value='SUN' " + (initObj.target == 3 ? 'selected' : '') + ">The Sun</option>",
-                                "<option value='TGO' " + (initObj.target == 4 ? 'selected' : '') + ">TGO</option>",
+                                allData,
                             "</select>",
                         "</div>",
-                        "<div class='vstOptionHeight'>",
-                            "<div title='Height above surface of source point.'>Observer Height</div>",
-                            "<div class='flexbetween'>",
-                                "<input type='number' min='0' step='1' value='" + initObj.height + "' default='2'>",
-                                "<div class='vstUnit smallFont'>m</div>",
-                            "</div>",
-                        "</div>",
                         "<div class='vstShadeBar'>",
-                            "<div class='vstDelete' title='Delete'>",
-                                "<i class='mdi mdi-delete mdi-18px'></i>",
-                            "</div>",
-                            "<div class='vstSave' title='Save'>",
-                                "<i class='mdi mdi-content-save mdi-18px'></i>",
-                            "</div>",
-                            "<div class='vstShadeClone' vstId='" + id + "' title='Clone Shade'>",
-                                "<i class='mdi mdi-plus-circle-multiple-outline mdi-18px'></i>",
-                            "</div>",
                             "<div class='vstRegen changed'>",
                                 "<div>Generate</div>",
                                 "<span></span>",
                             "</div>",
-                            "<div class='vstDeleteSure'>",
-                                "<div class='vstDeleteSureYes' title='Yes, delete!'>",
-                                    "<span>Yes</span>",
-                                    "<i class='mdi mdi-delete mdi-18px'></i>",
-                                "</div>",
-                                '<div class="vstDeleteSureNo" title="No, keep.">',
-                                    "<span>No</span>",
-                                    "<i class='mdi mdi-close mdi-18px'></i>",
-                                "</div>",
-                                "<div>Are you sure?</div>",
-                            "</div>",
                         "</div>",
-                    
+                    "</div>",
+                    "<div id='shadeTool_results'>",
+                        "<div id='shadeTool_results_title'>Results</div>",
+                        "<div id='shadeTool_results_outputs'>",
+                            "<ul>",
+                                "<li>",
+                                    "<div>Azimuth</div>",
+                                    "<div id='shadeTool_results_outputs_az'></div>",
+                                "</li>",
+                                "<li>",
+                                    "<div>Elevation</div>",
+                                    "<div id='shadeTool_results_outputs_el'></div>",
+                                "</li>",
+                                "<li>",
+                                    "<div>Range</div>",
+                                    "<div id='shadeTool_results_outputs_range'></div>",
+                                "</li>",
+                                "<li>",
+                                    "<div>Longitude</div>",
+                                    "<div id='shadeTool_results_outputs_lng'></div>",
+                                "</li>",
+                                "<li>",
+                                    "<div>Latitude</div>",
+                                    "<div id='shadeTool_results_outputs_lat'></div>",
+                                "</li>",
+                                "<li>",
+                                    "<div>Altitude</div>",
+                                    "<div id='shadeTool_results_outputs_alt'></div>",
+                                "</li>",
+                            "</ul>",
+                        "</div>",
                         "<div id='shadeTool_indicators'>",
                             "<div>",
                                 "<div>Azimuth</div>",
@@ -423,6 +471,26 @@ let ShadeTool = {
                 }
             })(id)
         )
+        $('.vstOptionTime input').on(
+            'change',
+            (function (id) {
+                return function () {
+                    TimeControl.setTime(
+                        TimeControl.getStartTime(),
+                        $(this).val().replace(' TDB', '') + 'Z'
+                    )
+                    ShadeTool.updateObserverSpecificTime(id)
+                }
+            })(id)
+        )
+        $('#vstShades #vstId_' + id + ' .vstOptionTimeSpecific input').on(
+            'change',
+            (function (id) {
+                return function () {
+                    ShadeTool.updateFromObserverSpecificTime(id)
+                }
+            })(id)
+        )
         $('#vstShades #vstId_' + id + ' .vstOptionOpacity input').on(
             'change',
             (function (id) {
@@ -430,14 +498,14 @@ let ShadeTool = {
                     $('#vstShades #vstId_' + id + ' .vstRegen').addClass(
                         'changed'
                     )
-                    //prettier-ignore
                     if (
-                            $('#vstShades #vstId_' + id + ' .vstShadeHeader .checkbox').hasClass('on') &&
-                            $('#vstShades #vstId_' + id + ' .vstOptionResolution select').val() <= ShadeTool.dynamicUpdateResCutoff
-                        ) {
-                            ShadeTool.setActiveElmId(id)
-                            ShadeTool.setSource()
-                        }
+                        $(
+                            `#vstShades #vstId_${id} .vstOptionResolution select`
+                        ).val() <= ShadeTool.dynamicUpdateResCutoff
+                    ) {
+                        ShadeTool.setActiveElmId(id)
+                        ShadeTool.setSource()
+                    }
                 }
             })(id)
         )
@@ -458,6 +526,14 @@ let ShadeTool = {
                     $('#vstShades #vstId_' + id + ' .vstRegen').addClass(
                         'changed'
                     )
+                    if (
+                        $(
+                            `#vstShades #vstId_${id} .vstOptionResolution select`
+                        ).val() <= ShadeTool.dynamicUpdateResCutoff
+                    ) {
+                        ShadeTool.setActiveElmId(id)
+                        ShadeTool.setSource()
+                    }
                 }
             })(id)
         )
@@ -469,7 +545,7 @@ let ShadeTool = {
                         'changed'
                     )
                     // prettier-ignore
-                    if( $('#vstShades #vstId_' + id + ' .vstShadeHeader .checkbox').hasClass('on') &&
+                    if(
                             $('#vstShades #vstId_' + id + ' .vstOptionResolution select').val() <= ShadeTool.dynamicUpdateResCutoff) {
                             ShadeTool.setActiveElmId(id)
                             ShadeTool.setSource()
@@ -494,80 +570,32 @@ let ShadeTool = {
             })(id)
         )
 
-        $('#vstShades #vstId_' + id + ' .vstDelete').on(
-            'click',
-            (function (id) {
-                return function () {
-                    $(
-                        '#vstShades #vstId_' + id + ' .vstDeleteSure'
-                    ).toggleClass('on')
-                }
-            })(id)
-        )
-
-        $('#vstShades #vstId_' + id + ' .vstDeleteSureNo').on(
-            'click',
-            (function (id) {
-                return function () {
-                    $(
-                        '#vstShades #vstId_' + id + ' .vstDeleteSure'
-                    ).removeClass('on')
-                }
-            })(id)
-        )
-
-        $('#vstShades #vstId_' + id + ' .vstDeleteSureYes').on(
-            'click',
-            (function (id) {
-                return function () {
-                    ShadeTool.delete(id)
-                }
-            })(id)
-        )
-
-        $('#vstShades #vstId_' + id + ' .vstSave').on(
-            'click',
-            (function (id) {
-                return function () {
-                    ShadeTool.save(id)
-                }
-            })(id)
-        )
-
         $('#vstId_' + id + '_color').colorPicker({
             opacity: false,
             renderCallback: function (elm, toggled) {
                 const bg = elm._css.backgroundColor.replace('NaN', 1)
-                $('#vstId_' + id + ' .vstColorbox').css({
-                    background: bg,
-                })
                 $('#vstId_' + id + '_color').css({
                     background: bg,
                 })
-                $('#vstId_' + id + ' .vstShadeContents').css({
-                    'border-left': '6px solid ' + bg,
-                })
                 $('#vstShades #vstId_' + id + ' .vstRegen').addClass('changed')
-                $('#vstId_' + id + ' .vstColorbox').attr(
+                $('#vstId_' + id + '_color').attr(
                     'color',
                     JSON.stringify(this.color.colors.RND.rgb)
                 )
-                // prettier-ignore
-                if( $('#vstShades #vstId_' + id + ' .vstShadeHeader .checkbox').hasClass('on') &&
-                        $('#vstShades #vstId_' + id + ' .vstOptionResolution select').val() <= ShadeTool.dynamicUpdateResCutoff) {
+                clearTimeout(ShadeTool._colorTimeout)
+                ShadeTool._colorTimeout = setTimeout(() => {
+                    // prettier-ignore
+                    if( $('#vstShades #vstId_' + id + ' .vstOptionResolution select').val() <= ShadeTool.dynamicUpdateResCutoff) {
                         ShadeTool.setActiveElmId(id)
                         ShadeTool.setSource()
                     }
+                }, 500)
             },
         })
 
         $('#vstId_' + id + '_color').css({
             'background-color': initObj.color,
         })
-        $('#vstId_' + id + ' .vstColorbox').attr(
-            'color',
-            JSON.stringify(initObj.colorObj)
-        )
 
         ShadeTool.setActiveElmId(id)
 
@@ -577,7 +605,7 @@ let ShadeTool = {
                 Math.max(forcedId, ShadeTool.shadeElmCount) + 1
     },
     setActiveElmId: function (activeId) {
-        $('#vstShades li .activator').removeClass('on')
+        $('#vstShades > li .activator').removeClass('on')
         $('#vstShades #vstId_' + activeId + ' .activator').addClass('on')
         ShadeTool.activeElmId = activeId
     },
@@ -593,6 +621,81 @@ let ShadeTool = {
                 lat: e.latlng.lat,
             }
         ShadeTool.shade(source, id, ignoreMarker)
+    },
+    updateObserverSpecificTime: function (id) {
+        id = id || 0
+        calls.api(
+            'chronos',
+            {
+                target: $(
+                    '#vstShades #vstId_' + id + ' .vstOptionObserver select'
+                )
+                    .val()
+                    .toLowerCase(),
+                from: 'utc',
+                fromtype: 'scet',
+                to: 'lst',
+                totype: 'lst',
+                time: TimeControl.getEndTime(),
+            },
+            function (s) {
+                s = JSON.parse(s)
+                if (s.error) {
+                    CursorInfo.update(
+                        "Cannot Convert to Observer's Time",
+                        6000,
+                        true,
+                        { x: 296, y: -5 },
+                        '#e9ff26',
+                        'black'
+                    )
+                } else {
+                    $(
+                        '#vstShades #vstId_' +
+                            id +
+                            ' .vstOptionTimeSpecific input'
+                    ).val(s.result)
+                }
+            }
+        )
+    },
+    updateFromObserverSpecificTime: function (id) {
+        id = id || 0
+        calls.api(
+            'chronos',
+            {
+                target: $(
+                    '#vstShades #vstId_' + id + ' .vstOptionObserver select'
+                )
+                    .val()
+                    .toLowerCase(),
+                from: 'lst',
+                fromtype: 'lst',
+                to: 'utc',
+                totype: 'scet',
+                time: $(
+                    '#vstShades #vstId_' + id + ' .vstOptionTimeSpecific input'
+                ).val(),
+            },
+            function (s) {
+                s = JSON.parse(s)
+                if (s.error) {
+                    CursorInfo.update(
+                        'Cannot Process Inputted Time',
+                        6000,
+                        true,
+                        { x: 296, y: -5 },
+                        '#e9ff26',
+                        'black'
+                    )
+                } else {
+                    TimeControl.setTime(
+                        TimeControl.getStartTime(),
+                        s.result.replace(' ', 'T') + 'Z'
+                    )
+                }
+            }
+        )
     },
     shade: function (source, activeElmId, ignoreMarker, initObj) {
         if (activeElmId == null) return
@@ -678,17 +781,46 @@ let ShadeTool = {
                             },
                             function (s) {
                                 s = JSON.parse(s)
+
                                 ShadeTool.updateRAEIndicators(s, activeElmId)
+                                // CLear result outputs
+                                $('#shadeTool_results_outputs_az').text('--')
+                                $('#shadeTool_results_outputs_el').text('--')
+                                $('#shadeTool_results_outputs_range').text('--')
+                                $('#shadeTool_results_outputs_lng').text('--')
+                                $('#shadeTool_results_outputs_lat').text('--')
+                                $('#shadeTool_results_outputs_alt').text('--')
+
                                 if (s.error) {
                                     CursorInfo.update(
                                         s.message || 'LatLng to AzEl Error',
                                         6000,
                                         true,
-                                        { x: 305, y: 6 },
+                                        { x: 296, y: -5 },
                                         '#e9ff26',
                                         'black'
                                     )
                                 } else {
+                                    // Update result outputs
+                                    $('#shadeTool_results_outputs_az').text(
+                                        s.azimuth.toFixed(3) + '°'
+                                    )
+                                    $('#shadeTool_results_outputs_el').text(
+                                        s.elevation.toFixed(3) + '°'
+                                    )
+                                    $('#shadeTool_results_outputs_range').text(
+                                        s.range.toFixed(3) + 'km'
+                                    )
+                                    $('#shadeTool_results_outputs_lng').text(
+                                        s.longitude.toFixed(8) + '°'
+                                    )
+                                    $('#shadeTool_results_outputs_lat').text(
+                                        s.latitude.toFixed(8) + '°'
+                                    )
+                                    $('#shadeTool_results_outputs_alt').text(
+                                        (s.altitude / 1000).toFixed(3) + 'km'
+                                    )
+
                                     keepGoing({
                                         lat: s.latitude,
                                         lng: s.longitude,
@@ -913,7 +1045,7 @@ let ShadeTool = {
                                   ShadeTool.shedColors.length
                           ]
                       )
-                    : $('#vstId_' + elmId + ' .vstColorbox').attr('color') ||
+                    : $('#vstId_' + elmId + '_color').attr('color') ||
                           JSON.stringify(
                               ShadeTool.shedColors[
                                   elmId % ShadeTool.shedColors.length
@@ -927,96 +1059,27 @@ let ShadeTool = {
                 '#vstShades #vstId_' + elmId + ' .vstOptionResolution select'
             ).val(),
             invert: 1,
-            targetHeight: 0,
             target: $(
                 '#vstShades #vstId_' + elmId + ' .vstOptionTarget select'
             ).val(),
-            height: $(
-                '#vstShades #vstId_' + elmId + ' .vstOptionHeight input'
-            ).val(),
+            targetHeight: parseFloat(
+                $(
+                    '#vstShades #vstId_' + elmId + ' .vstOptionHeight input'
+                ).val()
+            ),
+            height: 0,
             time: $('.vstOptionTime input').val(),
         }
-    },
-    delete: function (activeElmId) {
-        $('#vstId_' + activeElmId).remove()
-        Map_.rmNotNull(L_.layers.layer['shade' + activeElmId])
-        Map_.rmNotNull(ShadeTool.shedMarkers[activeElmId])
-        L_.layers.layer['shade' + activeElmId] = null
-        ShadeTool.shedMarkers[activeElmId] = null
-        ShadeTool.canvases[activeElmId] = null
-    },
-    save: function (activeElmId) {
-        const tag = ShadeTool.tags[activeElmId]
-        const d = ShadeTool_Manager.getData(tag)
-
-        if (d == null) return
-
-        // Turn result into one long space delimited string
-        let strResult = []
-        for (let y = 0; y < d.result.length; y++)
-            strResult.push(d.result[y].join(' '))
-        strResult = strResult.join(' ')
-
-        let geojson = F_.getBaseGeoJSON()
-        geojson.features.push({
-            type: 'Feature',
-            properties: {
-                type: 'mmgis_shade',
-                ncols: d.result[0].length,
-                nrows: d.result.length,
-                xllcorner: d.bottomLeftLatLng.lng,
-                yllcorner: d.bottomLeftLatLng.lat,
-                cellsize: d.cellSize,
-                NODATA_value: 0,
-                source_lng_deg: d.source.lng,
-                source_lat_deg: d.source.lat,
-                source_height_m: d.source.height,
-                source_surface_height: d.source.surfaceHeight,
-                data_layer_name: d.dataLayer.name,
-                data_layer_url: d.dataLayer.demtileurl,
-                key: {
-                    0: 'hidden',
-                    1: 'visible',
-                    2: 'source',
-                    9: 'nodata',
-                },
-            },
-            geometry: {
-                type: 'Point',
-                coordinates: [d.source.lng, d.source.lat],
-            },
-        })
-
-        let dataKey = '0=hidden,1=visible,2=source,9=nodata'
-
-        // prettier-ignore
-        let ascContent =
-                'ncols ' + d.result[0].length + '\n' +
-                'nrows ' + d.result.length  + '\n' +
-                'xllcorner ' + d.bottomLeftLatLng.lng + '\n' +
-                'yllcorner ' + d.bottomLeftLatLng.lat + '\n' +
-                'cellsize ' + d.cellSize + '\n' +
-                'NODATA_value 0\n' +
-                strResult + '\n' +
-                JSON.stringify(geojson) + '\n' +
-                (L_.configData.projection ? L_.configData.projection.proj : 'missing_proj') + '\n' +
-                dataKey
-
-        let vsName = $(
-            '#vstShades #vstId_' + activeElmId + ' .vstShadeHeader input'
-        ).val()
-        F_.downloadObject(
-            ascContent,
-            'mmgis_shade_' +
-                (vsName != null ? vsName.replace(/\W/g, '') : 'none'),
-            '.asc'
-        )
     },
     // Update Range Azimuth Elevation indicators
     updateRAEIndicators(rae, shadeId) {
         const size = 240
         const sizeInner = 220
         const origin = { x: size / 2, y: size / 2 }
+
+        $(`#vstId_${shadeId} #shadeTool_indicators`).css({
+            borderBottom: rae.error ? '3px solid var(--color-red)' : 'none',
+        })
 
         // Azimuth ===================
         $(`#vstId_${shadeId} #shadeTool_azValue`).text(
@@ -1250,20 +1313,24 @@ function interfaceWithMMGIS() {
                         "<div id='vstTitle'>Shade</div>",
                         Help.getComponent(helpKey),
                     "</div>",
+                    /*
                     "<div id='vstNew'>",
                         "<div>New</div>",
                         "<i class='mdi mdi-plus mdi-18px'></i>",
                     "</div>",
+                    */
                 "</div>",
                 "<div class='vstOptionTime'>",
                     "<div class='flexbetween'>",
                         `<input type='text' value='${ShadeTool.parseToTDBTime(TimeControl.getEndTime())}'>`,
                     "</div>",
                 "</div>",
+                /*
                 "<div>",
                     "<div id='vstToggleAll' class='checkbox on'></div>",
                     "<div class='vstLabel'>Toggle All</div>",
                 "</div>",
+                */
             "</div>",
             "<div id='vstContent'>",
                 "<ul id='vstShades'>",
@@ -1305,7 +1372,7 @@ function interfaceWithMMGIS() {
     // Put things back where you found them.
     function separateFromMMGIS() {
         ShadeTool.lastShadesUl = {}
-        $('#vstShades li').each((i, elm) => {
+        $('#vstShades > li').each((i, elm) => {
             const id = $(elm).attr('shadeId')
             ShadeTool.lastShadesUl[id] = ShadeTool.getShadeOptions(id)
         })

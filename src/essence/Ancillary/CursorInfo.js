@@ -63,7 +63,7 @@ var CursorInfo = {
             CursorInfo.forcedPos = true
             CursorInfo.cursorInfoDiv
                 .style('left', position.x + 'px')
-                .style('top', Math.max(45, position.y) + 'px')
+                .style('top', Math.max(40, position.y) + 'px')
         }
         $('#cursorInfo').stop()
         CursorInfo.cursorInfoDiv.style('display', 'block').style('opacity', 1)

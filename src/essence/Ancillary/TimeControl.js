@@ -106,6 +106,14 @@ var TimeControl = {
             TimeControl.endTime = endTimeD.toISOString().split('.')[0] + 'Z'
         }
 
+        // Then set startTime one month before end
+        if (TimeControl.startTime > TimeControl.endTime) {
+            const endTimeD = new Date(endTime)
+            TimeControl.startTime =
+                new Date(endTimeD.setDate(endTimeD.getDate() - 30))
+                    .toISOString()
+                    .split('.')[0] + 'Z'
+        }
         TimeControl.timeUI.updateTimes(
             TimeControl.startTime,
             TimeControl.endTime,

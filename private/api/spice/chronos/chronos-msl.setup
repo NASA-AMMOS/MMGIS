@@ -1,6 +1,6 @@
 \begindata
     PATH_VALUES       = (
-                        './kernels'
+                        './private/api/spice/kernels'
                         )
     PATH_SYMBOLS      = (
                         'KERNELS'

@@ -30,6 +30,13 @@ def ll2aerll(lng, lat, height, target, time):
     # Load kernels
     package_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\','/')
 
+    kernels_to_load = []
+    # Crawl dir for kernels
+    for x in os.listdir(os.path.join(package_dir + '/kernels')):
+        if x.endswith(('.bsp', '.tpc', '.tsc', '.tf', '.tls')) and not x.startswith('dynamic'):
+            # Prints only text file present in My Folder
+            kernels_to_load.append(x)
+
     # Fill out dynamic template
     with open (os.path.join(package_dir, 'pinpoint/dynamic-template.setup'), 'r' ) as f:
         content = f.read()
@@ -51,17 +58,8 @@ def ll2aerll(lng, lat, height, target, time):
     dynamicFk = os.path.join(package_dir + '/kernels/', dynamicFkFile)
     subprocess.call(shlex.split(f'{cmd} -def {setup} -pck {pck} -spk {dynamicSpk} -fk {dynamicFk}'))
 
-    kernels_to_load = [
-        'de440.bsp',
-        'naif0012.tls',
-        'mar097s.bsp',
-        'mars_iau2000_v1.tpc',
-        'mro_psp.bsp',
-        'mro_psp63.bsp',
-        'pck00011.tpc',
-        dynamicSpkFile,
-        dynamicFkFile
-    ]
+    kernels_to_load.append(dynamicSpkFile)
+    kernels_to_load.append(dynamicFkFile)
 
     for k in kernels_to_load:
         spiceypy.furnsh( os.path.join(package_dir + '/kernels/', k) )
@@ -81,7 +79,7 @@ def ll2aerll(lng, lat, height, target, time):
     obsref = "IAU_MARS"
 
     # A
-    """
+    
     radii = spiceypy.bodvrd( "MARS", "RADII", 3)[1]
     rE = radii[0]
     rP = radii[2]
@@ -91,15 +89,26 @@ def ll2aerll(lng, lat, height, target, time):
     output = spiceypy.azlcpo( method, target, et, abcorr, azccw, elplsz, obspos, obsctr, obsref)
 
     razel = output[0]
-    """
+    
     
     # B
+    """
     obs = "-654321"
-    ref = "IAU_MARS"# "IAU_MARS"
+    ref = "IAU_MARS"
 
-    state = spiceypy.spkezr( target, et, ref, abcorr, obs )
-    razel = spiceypy.recazl( [state[0][0], state[0][1], state[0][2]], azccw, elplsz )
+    try:
+        state = spiceypy.spkezr( target, et, ref, abcorr, obs )
+        razel = spiceypy.recazl( [state[0][0], state[0][1], state[0][2]], azccw, elplsz )
+    except Exception as e:
+        # Unload kernels
+        for k in kernels_to_load:
+            spiceypy.unload( os.path.join(package_dir + '/kernels/', k) )
 
+         # Remove temporary dyanmic files
+        os.remove(dynamicSpk)
+        os.remove(dynamicFk)
+        raise e
+        """
     az_output = razel[1] * spiceypy.dpr()
     el_output = razel[2] * spiceypy.dpr()
     range_output = razel[0] * 1000
@@ -135,6 +144,7 @@ def ll2aerll(lng, lat, height, target, time):
         "horizontal_altitude": horizontal_altitude
     })
 
+"""
 def lltarg2vistimes(lng, lat, height, target, startTime):
 
     package_dir = os.path.dirname(os.path.abspath(__file__))
@@ -202,6 +212,7 @@ def lltarg2vistimes(lng, lat, height, target, startTime):
         visibilities.append({"start": start, "stop": stop, "closest_approach": closest_approach})
 
     return visibilities
+"""
 
 lng = float(sys.argv[1])
 lat = float(sys.argv[2])

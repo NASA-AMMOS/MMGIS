@@ -228,10 +228,19 @@ let ShadeTool_Manager = {
         let sourcePoint = Map_.map
             .project(dv.targetSource, dv.zoom)
             .divideBy(256)
-        this.data[shadeId].dataSource = sourcePoint
+        const tilePixelsAcross = dv.tileResolution * Math.pow(2, dv.zoom)
+        let source = sourcePoint
             .subtract(topLeftTile)
             .multiplyBy(dv.tileResolution)
             .floor()
+
+        // Wrap to find nearest point
+        if (source.x < -tilePixelsAcross / 2) source.x += tilePixelsAcross
+        if (source.x > tilePixelsAcross / 2) source.x -= tilePixelsAcross
+        if (source.y < -tilePixelsAcross / 2) source.y += tilePixelsAcross
+        if (source.y > tilePixelsAcross / 2) source.y -= tilePixelsAcross
+
+        this.data[shadeId].dataSource = source
     },
     queryDesiredTiles: function (shadeId, progcb, cb) {
         let url = this.data[shadeId].dataLayer.demtileurl
