@@ -1361,18 +1361,22 @@ var DrawTool = {
                         $(
                             `#drawToolShapeLiItem_DrawTool_${fileId}_${index}`
                         ).removeClass('temporallyHidden')
-                    if (l.temporallyHidden) {
-                        l.setStyle({
-                            opacity: 0,
-                            fillOpacity: 0,
-                        })
-                        if (l._path?.style) l._path.style.pointerEvents = 'none'
-                    } else if (l.savedOptions) {
-                        l.setStyle({
-                            opacity: l.savedOptions.opacity,
-                            fillOpacity: l.savedOptions.fillOpacity,
-                        })
-                        if (l._path?.style) l._path.style.pointerEvents = 'all'
+                    if (l.setStyle) {
+                        if (l.temporallyHidden) {
+                            l.setStyle({
+                                opacity: 0,
+                                fillOpacity: 0,
+                            })
+                            if (l._path?.style)
+                                l._path.style.pointerEvents = 'none'
+                        } else if (l.savedOptions) {
+                            l.setStyle({
+                                opacity: l.savedOptions.opacity,
+                                fillOpacity: l.savedOptions.fillOpacity,
+                            })
+                            if (l._path?.style)
+                                l._path.style.pointerEvents = 'all'
+                        }
                     }
                 }
             })
