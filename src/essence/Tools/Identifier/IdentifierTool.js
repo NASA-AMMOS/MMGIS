@@ -30,7 +30,12 @@ var IdentifierTool = {
         this.MMWebGISInterface = new interfaceWithMMWebGIS()
 
         //Get tool variables
-        this.vars = L_.getToolVars('identifier')
+        this.varsRaw = L_.getToolVars('identifier')
+        this.vars = {}
+        Object.keys(this.varsRaw).forEach((layerName) => {
+            this.vars[L_.asLayerUUID(layerName)] = this.varsRaw[layerName]
+        })
+
         //Probably always 256
         this.tileImageWidth = 256
         //x y and zoom of mousedover tile
