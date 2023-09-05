@@ -1351,6 +1351,8 @@ const L_ = {
             closeOnClick: false,
             autoPan: false,
             offset: new L.point(0, 3),
+            interactive: true,
+            bubblingMouseEvents: true
         })
             .setLatLng(
                 new L.LatLng(
@@ -1371,6 +1373,11 @@ const L_ = {
                 '</div>'
             )
 
+        if (popup?._contentNode?._leaflet_events)
+            Object.keys(popup._contentNode._leaflet_events).forEach((ev) => {
+                delete popup._contentNode._leaflet_events[ev]
+            })
+
         popup._isAnnotation = true
         popup._annotationParams = {
             feature,
@@ -1386,12 +1393,47 @@ const L_ = {
         popup.toGeoJSON = function () {
             return feature
         }
+
         if (andAddToMap) {
             popup.addTo(L_.Map_.map)
+            L_.removePopupStopPropogationFunctions(popup)
             L_.layers.layer[layerId].push(popup)
+        } else {
+            setTimeout(() => {
+                L_.removePopupStopPropogationFunctions(popup)
+            }, 2000)
         }
 
         return popup
+    },
+    removePopupStopPropogationFunctions(popup) {
+        if (popup?._contentNode?._leaflet_events)
+            Object.keys(popup._contentNode._leaflet_events).forEach((ev) => {
+                document
+                    .querySelectorAll('.leaflet-popup-content')
+                    .forEach(function (elm) {
+                        // Now do something with my button
+                        elm.removeEventListener(
+                            'wheel',
+                            popup._contentNode._leaflet_events[ev]
+                        )
+                    })
+            })
+
+        if (popup?._container?.children?.[0]?._leaflet_events)
+            Object.keys(popup._container.children[0]._leaflet_events).forEach(
+                (ev) => {
+                    document
+                        .querySelectorAll('.leaflet-popup-content-wrapper')
+                        .forEach(function (elm) {
+                            // Now do something with my button
+                            elm.removeEventListener(
+                                ev.replace(/\d+$/, ''),
+                                popup._container.children[0]._leaflet_events[ev]
+                            )
+                        })
+                }
+            )
     },
     setLayerOpacity: function (name, newOpacity) {
         newOpacity = parseFloat(newOpacity)
