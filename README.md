@@ -42,13 +42,6 @@
 1. Make a new PostgreSQL database and remember the user, password and database name.
    Use 'pgsl' or the 'SQL Shell' to log into Postgres. It will prompt you for the username and password made during the install.
 
-   Issue the following commands:  
-    `CREATE DATABASE mmgis;`  
-    `\c mmgis`  
-    `CREATE EXTENSION postgis;`  
-    `exit`  
-   In the above `\c` attaches to the database and `CREATE EXTENSION` enables PostGIS by creating a spatial reference table within that database.
-
 1. GDAL and Python are weaker dependencies (desirable but, without them, not everything will work)
 
    - GDAL [2.+](https://gdal.org/download.html) with Python bindings (Windows users may find [these](https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal) helpful)
@@ -150,7 +143,7 @@ This repo contains a `docker-compose.yml` file that defines a service for the ap
 
 ### License: Apache 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
 
-Copyright (c) 2022, California Institute of Technology ("Caltech"). U.S. Government sponsorship acknowledged.
+Copyright (c) 2023, California Institute of Technology ("Caltech"). U.S. Government sponsorship acknowledged.
 
 All rights reserved.
 
