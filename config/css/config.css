@@ -312,6 +312,9 @@ textarea {
   margin: 0px 161px 0px 173px;
   border-bottom: 2px solid #1565c0 !important;
 }
+.col > .CodeMirror {
+  margin: 0px;
+}
 
 #missions {
   margin: 5px 0px;
@@ -442,19 +445,34 @@ textarea {
   display: flex;
   justify-content: space-between;
 }
+.modal .layerHelp {
+  height: 35px;
+  padding: 0px 6px;
+  margin-right: 12px;
+  cursor: pointer;
+  color: #039be5;
+  transition: color 0.1s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
 .modal .clone {
   height: 35px;
   cursor: pointer;
+  margin-left: 12px;
   color: #777;
   transition: color 0.1s cubic-bezier(0.39, 0.575, 0.565, 1);
 }
 .modal .clone:hover {
   color: #000;
 }
+#modal_uuid {
+  text-align: center;
+  margin: 20px 0px;
+  font-size: 14px;
+  color: #555;
+}
 
 #toast-container {
   pointer-events: none;
-  top: 110px !important;
+  top: 48px !important;
   right: 6px !important;
 }
 

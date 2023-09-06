@@ -8,16 +8,19 @@ import TimeControl from '../../Ancillary/TimeControl'
 export const captureVector = (layerObj, options, cb) => {
     options = options || {}
     let layerUrl = layerObj.url
-    const layerData = L_.layersDataByName[layerObj.name]
+    const layerData = L_.layers.data[layerObj.name]
 
     // If there is no url to a JSON file but the "controlled" option is checked in the layer config,
     // create the geoJSON layer with empty GeoJSON data
-    if (options.useEmptyGeoJSON || layerData.controlled) {
+    if (
+        options.useEmptyGeoJSON ||
+        (layerData.controlled && layerUrl.length === 0)
+    ) {
         cb(F_.getBaseGeoJSON())
         return
     }
 
-    if (options.evenIfOff !== true && !L_.toggledArray[layerObj.name]) {
+    if (options.evenIfOff !== true && !L_.layers.on[layerObj.name]) {
         cb('off')
         return
     }
@@ -67,7 +70,7 @@ export const captureVector = (layerObj, options, cb) => {
                 },
                 function (data) {
                     console.warn(
-                        'ERROR! ' +
+                        'ERROR: ' +
                             data.status +
                             ' in ' +
                             layerUrl +

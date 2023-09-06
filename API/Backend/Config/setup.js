@@ -9,7 +9,7 @@ let setup = {
       process.env.HIDE_CONFIG != "true"
     ) {
       s.app.get(
-        "/configure",
+        s.ROOT_PATH + "/configure",
         s.ensureGroup(s.permissions.users),
         s.ensureAdmin(true),
         (req, res) => {
@@ -18,13 +18,24 @@ let setup = {
             user: user,
             AUTH: process.env.AUTH,
             NODE_ENV: process.env.NODE_ENV,
+            PORT: process.env.PORT || "8888",
+            ENABLE_CONFIG_WEBSOCKETS: process.env.ENABLE_CONFIG_WEBSOCKETS,
+            ENABLE_CONFIG_OVERRIDE: process.env.ENABLE_CONFIG_OVERRIDE,
+            ROOT_PATH:
+              process.env.NODE_ENV === "development"
+                ? ""
+                : process.env.ROOT_PATH || "",
+            WEBSOCKET_ROOT_PATH:
+              process.env.NODE_ENV === "development"
+                ? ""
+                : process.env.WEBSOCKET_ROOT_PATH || "",
           });
         }
       );
     }
 
     s.app.use(
-      "/API/configure",
+      s.ROOT_PATH + "/API/configure",
       s.ensureAdmin(),
       s.checkHeadersCodeInjection,
       s.setContentType,

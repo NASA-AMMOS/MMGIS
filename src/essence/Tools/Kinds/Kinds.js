@@ -20,8 +20,8 @@ var Kinds = {
         if (typeof kind !== 'string') return
 
         let layerVar = {}
-        if (L_.layersNamed[layer.options.layerName])
-            layerVar = L_.layersNamed[layer.options.layerName].variables || {}
+        if (L_.layers.data[layer.options.layerName])
+            layerVar = L_.layers.data[layer.options.layerName].variables || {}
 
         // Remove temp layers
         Map_.rmNotNull(Map_.tempOverlayImage)
@@ -369,10 +369,11 @@ var Kinds = {
 
                 if (e.latlng && e.latlng.lng != null && e.latlng.lat != null) {
                     if (
-                        typeof L_.layersGroup[layerName].eachLayer !==
-                        'function'
+                        typeof L_.layers.layer[layerName].eachLayer !==
+                            'function' &&
+                        layerName.indexOf('DrawTool_') != 0
                     ) {
-                        L_.layersGroup[layerName].eachLayer = function (cb) {
+                        L_.layers.layer[layerName].eachLayer = function (cb) {
                             for (var v in this._vectorTiles) {
                                 for (var l in this._vectorTiles[v]._layers) {
                                     cb(this._vectorTiles[v]._layers[l])
@@ -380,18 +381,72 @@ var Kinds = {
                             }
                         }
                     }
-                    features = L.leafletPip
-                        .pointInLayer(
-                            [e.latlng.lng, e.latlng.lat],
-                            L_.layersGroup[layerName]
-                        )
-                        .concat(
-                            F_.pointsInPoint(
-                                [e.latlng.lng, e.latlng.lat],
-                                L_.layersGroup[layerName]
+
+                    // To better intersect points on click we're going to buffer out a small bounding box
+                    const mapRect = document
+                        .getElementById('map')
+                        .getBoundingClientRect()
+
+                    const wOffset = e.containerPoint?.x || mapRect.width / 2
+                    const hOffset = e.containerPoint?.y || mapRect.height / 2
+
+                    let nwLatLong = Map_.map.containerPointToLatLng([
+                        wOffset - 15,
+                        hOffset - 15,
+                    ])
+                    let seLatLong = Map_.map.containerPointToLatLng([
+                        wOffset + 15,
+                        hOffset + 15,
+                    ])
+                    // If we didn't have a container click point, buffer out e.latlng
+                    if (e.containerPoint == null) {
+                        const lngDif =
+                            Math.abs(nwLatLong.lng - seLatLong.lng) / 2
+                        const latDif =
+                            Math.abs(nwLatLong.lat - seLatLong.lat) / 2
+                        nwLatLong = {
+                            lng: e.latlng.lng - lngDif,
+                            lat: e.latlng.lat - latDif,
+                        }
+                        seLatLong = {
+                            lng: e.latlng.lng + lngDif,
+                            lat: e.latlng.lat + latDif,
+                        }
+                    }
+
+                    // Find all the intersected points and polygons of the click
+                    Object.keys(L_.layers.layer).forEach((lName) => {
+                        if (
+                            (L_.layers.on[lName] &&
+                                (L_.layers.data[lName].type === 'vector' ||
+                                    L_.layers.data[lName].type === 'query') &&
+                                L_.layers.layer[lName]) ||
+                            (lName.indexOf('DrawTool_') === 0 &&
+                                L_.layers.layer[lName]?.[0]?._map != null)
+                        ) {
+                            features = features.concat(
+                                L.leafletPip
+                                    .pointInLayer(
+                                        [e.latlng.lng, e.latlng.lat],
+                                        L_.layers.layer[lName]
+                                    )
+                                    .concat(
+                                        F_.pointsInPoint(
+                                            [e.latlng.lng, e.latlng.lat],
+                                            L_.layers.layer[lName],
+                                            [
+                                                nwLatLong.lng,
+                                                seLatLong.lng,
+                                                nwLatLong.lat,
+                                                seLatLong.lat,
+                                            ]
+                                        )
+                                    )
+                                    .reverse()
                             )
-                        )
-                        .reverse()
+                        }
+                    })
+
                     if (features[0] == null) features = [feature]
                     else {
                         const swapFeatures = []

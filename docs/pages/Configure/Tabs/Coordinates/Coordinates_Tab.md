@@ -37,3 +37,35 @@ Check to display Y, X, -Z coordinates to users relative to point features they h
 #### With Elevation
 
 Check to query for and append elevation values to the lower-right coordinates as users mouse around. DEM URL must be set.
+
+#### Raw Variables
+
+All raw variables are optional.
+
+Example:
+
+```javascript
+{
+    "rightClickMenuActions": [
+        {
+            "name": "The text for this menu entry when users right-click",
+            "link": "https://domain?I={ll[0]}&will={ll[1]}&replace={ll[2]}&these={en[0]}&brackets={en[1]}&for={cproj[0]}&you={sproj[0]}&with={rxy[0]}&coordinates={site[2]}"
+        },
+        {
+            "name": "WKT text insertions. Do so only for polygons.",
+            "link": "https://domain?regularWKT={wkt}&wkt_where_commas_are_replaced_with_underscores={wkt_}",
+            "for": "polygon"
+        }
+    ]
+}
+```
+
+- `rightClickMenuActions`: When right-clicking on the Map or Globe, a custom context-menu appears. By default it only offers "Copy Coordinates". By adding objects to the `rightClickMenuActions` array, entries can be added to the context-menu to send users to links with parameters populated with the current coordinates.
+  - `name`: The button text for this action in the right-click context-menu.
+  - `link`: A url template. Curly brackets are included. The available coordinate parameters (with array index in brackets and assuming they are enabled) are:
+    - `ll`: `[longitude, latitude, elevation]` - Longitude Latitude
+    - `en`: `[easting, northing, elevation]` - Easting Northing
+    - `cproj`: `[easting, northing, elevation]` - Projected
+    - `sproj`: `[easting, northing, elevation]` - Secondary Projected
+    - `rxy`: `[x, y, z]` - Relative
+    - `site`: `[y, x, -z]` - Local Level

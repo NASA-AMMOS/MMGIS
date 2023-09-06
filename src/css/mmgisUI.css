@@ -800,6 +800,54 @@
     color: var(--color-c2);
 }
 
+/*vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv toggle switch vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/* Use as: <div class="mmgisToggleSwitch" ><input type="checkbox" id="switch" /><label for="switch">Toggle</label></div> */
+.mmgisToggleSwitch {
+    position: relative;
+}
+.mmgisToggleSwitch input[type='checkbox'] {
+    height: 0;
+    width: 0;
+    visibility: hidden;
+}
+
+.mmgisToggleSwitch label {
+    cursor: pointer;
+    text-indent: -9999px;
+    width: 36px;
+    height: 18px;
+    background: grey;
+    display: block;
+    border-radius: 2px;
+    position: relative;
+    top: -18px;
+}
+
+.mmgisToggleSwitch label:after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background: #fff;
+    border-radius: 2px;
+    transition: 0.3s;
+}
+
+.mmgisToggleSwitch input:checked + label {
+    background: var(--color-c);
+}
+
+.mmgisToggleSwitch input:checked + label:after {
+    left: calc(100% - 2px);
+    transform: translateX(-100%);
+}
+
+.mmgisToggleSwitch label:active:after {
+    width: 20px;
+}
+
 /*vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv switch slider vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
 
 .mmgisMultirange {
@@ -1550,4 +1598,77 @@ input::-webkit-inner-spin-button {
     border-radius: 50%;
     border-top-color: #fff;
     animation: layerLoadingSpin 1s ease-in-out infinite;
+}
+#toast-container {
+    position: fixed !important;
+    bottom: 40px !important;
+    right: 5px !important;
+    z-index: 1001 !important;
+}
+.mmgisToast {
+    z-index: 1000;
+    border-radius: 2px;
+    top: 35px;
+    width: auto;
+    margin-top: 10px;
+    position: relative;
+    max-width: 100%;
+    height: auto;
+    line-height: 1.5em;
+    background-color: var(--color-mmgis);
+    padding: 10px 25px;
+    /*
+    font-size: 1.1rem;
+    font-weight: 300;
+*/
+    color: var(--color-f);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: default;
+}
+.mmgisToast.failure {
+    background-color: var(--color-r1);
+}
+
+/*spinner1*/
+.mmgis-spinner1 {
+    -webkit-animation: spinner1_rotate 2s linear infinite;
+    animation: spinner1_rotate 2s linear infinite;
+    z-index: 2;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin: 0;
+    width: 20px;
+    height: 20px;
+    top: calc(50% - 10px);
+    left: calc(50% - 10px);
+}
+.mmgis-spinner1 .path {
+    stroke: var(--color-c);
+    stroke-linecap: round;
+    -webkit-animation: spinner1_dash 1.5s ease-in-out infinite;
+    animation: spinner1_dash 1.5s ease-in-out infinite;
+}
+
+@keyframes spinner1_rotate {
+    100% {
+        -webkit-transform: rotate(360deg);
+        transform: rotate(360deg);
+    }
+}
+@keyframes spinner1_dash {
+    0% {
+        stroke-dasharray: 1, 150;
+        stroke-dashoffset: 0;
+    }
+    50% {
+        stroke-dasharray: 90, 150;
+        stroke-dashoffset: -35;
+    }
+    100% {
+        stroke-dasharray: 90, 150;
+        stroke-dashoffset: -124;
+    }
 }

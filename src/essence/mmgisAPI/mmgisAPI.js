@@ -3,6 +3,8 @@ import F_ from '../Basics/Formulae_/Formulae_'
 import ToolController_ from '../Basics/ToolController_/ToolController_'
 import QueryURL from '../Ancillary/QueryURL'
 import TimeControl from '../Ancillary/TimeControl'
+import Login from '../Ancillary/Login/Login'
+import LegendTool from '../Tools/Legend/LegendTool.js'
 
 import $ from 'jquery'
 
@@ -20,6 +22,116 @@ var mmgisAPI_ = {
             mmgisAPI_.onLoadCallback = null
         }
     },
+    // Adds a layer to the map. For a more "temporary" layer, use Leaflet directly through `mmgisAPI.map`
+    addLayer: function (layerObj, placement) {
+        return new Promise(async (resolve, reject) => {
+            if (layerObj == null) {
+                reject('Missing parameter: layerObj')
+                return
+            }
+            if (layerObj.name == null) {
+                reject('Missing parameter: layerObj.name')
+                return
+            }
+            if (layerObj.type == null) {
+                reject('Missing parameter: layerObj.type')
+                return
+            }
+
+            if (
+                (layerObj.uuid || layerObj.name) &&
+                L_.layers.data[layerObj.uuid || layerObj.name] != null
+            ) {
+                reject(
+                    `Layer uuid/name already in use: '${
+                        layerObj.uuid || layerObj.name
+                    }'`
+                )
+            }
+
+            // Inject new layer into configData
+            let placementPath = placement?.path
+            let placementIndex = placement?.index
+
+            const configData = JSON.parse(JSON.stringify(L_.configData))
+
+            if (placementPath && typeof placementPath === 'string') {
+                placementPath = placementPath
+                    .split('.')
+                    .map((p) => {
+                        return L_.asLayerUUID(p)
+                    })
+                    .join('.')
+                placementPath = placementPath
+                    .replace(/\./g, '.sublayers.')
+                    .split('.')
+                    .concat('sublayers')
+                    .join('.')
+
+                const level = F_.getIn4Layers(
+                    configData.layers,
+                    placementPath,
+                    null,
+                    true
+                )
+                if (level == null) {
+                    reject(
+                        `Path specified in 'placement.path' not found in 'layers': ${placementPath}.`
+                    )
+                    return
+                }
+                if (placementIndex == null) placementIndex = level.length
+                placementIndex = Math.max(
+                    0,
+                    Math.min(placementIndex, level.length)
+                )
+
+                placementPath += '.'
+            } else {
+                placementPath = ''
+                if (placementIndex == null)
+                    placementIndex = configData.layers.length
+                placementIndex = Math.max(
+                    0,
+                    Math.min(placementIndex, configData.layers.length)
+                )
+            }
+
+            const didSet = F_.setIn4Layers(
+                configData.layers,
+                `${placementPath}${placementIndex}`,
+                layerObj,
+                true,
+                true
+            )
+
+            // Then add
+            if (didSet)
+                await L_.modifyLayer(configData, layerObj.name, 'addLayer')
+            else {
+                reject('Failed to add layer.')
+                return
+            }
+            resolve()
+        })
+    },
+    removeLayer: function (layerUUID) {
+        const configData = JSON.parse(JSON.stringify(L_.configData))
+
+        layerUUID = L_.asLayerUUID(layerUUID)
+        let didRemove = false
+        F_.traverseLayers(configData.layers, (layer, path, index) => {
+            if (layer.uuid === layerUUID) {
+                didRemove = true
+                return 'remove'
+            }
+        })
+        if (didRemove) {
+            L_.modifyLayer(configData, layerUUID, 'removeLayer')
+            return true
+        }
+        return false
+    },
     // Returns an array of all features in a given extent
     featuresContained: function () {
         if (!mmgisAPI_.map) {
@@ -32,49 +144,54 @@ var mmgisAPI_ = {
         let features = {}
 
         // For all MMGIS layers
-        for (let key in L_.layersGroup) {
-            if (L_.layersGroup[key].hasOwnProperty('_layers')) {
+        for (let key in L_.layers.layer) {
+            if (L_.layers.layer[key] === false || L_.layers.layer[key] == null)
+                continue
+
+            if (L_.layers.layer[key].hasOwnProperty('_layers')) {
                 // For normal layers
                 const foundFeatures = findFeaturesInLayer(
                     extent,
-                    L_.layersGroup[key]
+                    L_.layers.layer[key]
                 )
                 features[key] = foundFeatures
             } else if (
                 key.startsWith('DrawTool_') &&
-                Array.isArray(L_.layersGroup[key])
+                Array.isArray(L_.layers.layer[key])
             ) {
                 // If layer is a DrawTool array of layers
-                for (let layer in L_.layersGroup[key]) {
+                for (let layer in L_.layers.layer[key]) {
                     let foundFeatures
-                    if ('getLayers' in L_.layersGroup[key][layer]) {
+                    if ('getLayers' in L_.layers.layer[key][layer]) {
                         if (
-                            L_.layersGroup[key][layer]?.feature?.properties
+                            L_.layers.layer[key][layer]?.feature?.properties
                                 ?.arrow
                         ) {
                             // If the DrawTool sublayer is an arrow
                             foundFeatures = findFeaturesInLayer(
                                 extent,
-                                L_.layersGroup[key][layer]
+                                L_.layers.layer[key][layer]
                             )
 
                             // As long as one of the layers of the arrow layer is in the current Map bounds,
                             // return the parent arrow layer's feature
                             if (foundFeatures && foundFeatures.length > 0) {
                                 foundFeatures =
-                                    L_.layersGroup[key][layer].feature
+                                    L_.layers.layer[key][layer].feature
                             }
                         } else {
                             // If the DrawTool sublayer is Polygon or Line
                             foundFeatures = findFeaturesInLayer(
                                 extent,
-                                L_.layersGroup[key][layer]
+                                L_.layers.layer[key][layer]
                             )
                         }
-                    } else if ('getLatLng' in L_.layersGroup[key][layer]) {
+                    } else if ('getLatLng' in L_.layers.layer[key][layer]) {
                         // If the DrawTool sublayer is a Point
-                        if (isLayerInBounds(L_.layersGroup[key][layer])) {
-                            foundFeatures = [L_.layersGroup[key][layer].feature]
+                        if (isLayerInBounds(L_.layers.layer[key][layer])) {
+                            foundFeatures = [
+                                L_.layers.layer[key][layer].feature,
+                            ]
                         }
                     }
 
@@ -164,10 +281,10 @@ var mmgisAPI_ = {
 
         return null
     },
-    selectFeature: function (layerName, options) {
+    selectFeature: function (layerUUID, options) {
         return L_.selectPoint({
             ...{
-                layerName: layerName,
+                layerUUID: layerUUID,
             },
             ...options,
         })
@@ -184,8 +301,8 @@ var mmgisAPI_ = {
     getLayerConfigs: function (match) {
         if (match) {
             const matchedLayers = {}
-            Object.keys(L_.layersNamed).forEach((name) => {
-                const layer = L_.layersNamed[name]
+            Object.keys(L_.layers.data).forEach((name) => {
+                const layer = L_.layers.data[name]
                 let matched = false
                 Object.keys(match).forEach((key) => {
                     const value = F_.getIn(layer, key)
@@ -199,17 +316,17 @@ var mmgisAPI_ = {
                     matchedLayers[name] = JSON.parse(JSON.stringify(layer))
             })
             return matchedLayers
-        } else return L_.layersNamed
+        } else return L_.layers.data
     },
     getLayers: function () {
-        return L_.layersGroup
+        return L_.layers.layer
     },
     // Returns an object with the visibility state of all layers
     getVisibleLayers: function () {
         // Also return the visibility of the DrawTool layers
         var drawToolVisibility = {}
-        for (let l in L_.layersGroup) {
-            if (!(l in L_.toggledArray)) {
+        for (let l in L_.layers.layer) {
+            if (!(l in L_.layers.on)) {
                 var s = l.split('_')
                 var onId = s[1] != 'master' ? parseInt(s[1]) : s[1]
                 if (s[0] == 'DrawTool') {
@@ -221,7 +338,7 @@ var mmgisAPI_ = {
             }
         }
 
-        return { ...L_.toggledArray, ...drawToolVisibility }
+        return { ...L_.layers.on, ...drawToolVisibility }
     },
     //customListeners: {},
     // Adds map event listener
@@ -276,6 +393,7 @@ var mmgisAPI_ = {
             'toolChange',
             'layerVisibilityChange',
             'websocketChange',
+            'toggleSeparatedTool',
         ]
         return validEvents.includes(eventName)
     },
@@ -295,35 +413,45 @@ var mmgisAPI_ = {
         return window.mmgisglobal.customCRS.unproject(xy)
     },
     toggleLayer: async function (layerName, on) {
-        if (layerName in L_.layersDataByName) {
+        if (layerName in L_.layers.data) {
             if (on === undefined || on === null) {
                 // If on is not defined, switch the visibility state of the layer
-                await L_.toggleLayer(L_.layersDataByName[layerName])
+                await L_.toggleLayer(L_.layers.data[layerName])
             } else {
-                let state = L_.toggledArray[layerName] && !on ? true : false
-                await L_.toggleLayerHelper(
-                    L_.layersDataByName[layerName],
-                    state
-                )
+                let state = !on
+                await L_.toggleLayerHelper(L_.layers.data[layerName], state)
             }
 
             if (ToolController_.activeToolName === 'LayersTool') {
                 const id = `#layerstart${F_.getSafeName(layerName)} .checkbox`
 
-                if (L_.toggledArray[layerName]) {
+                if (L_.layers.on[layerName]) {
                     $(id).addClass('on')
                 } else {
                     $(id).removeClass('on')
                 }
             }
         } else {
-            console.warn(`'Warning: Unable to find layer named ${layereName}`)
+            console.warn(`'Warning: Unable to find layer named ${layerName}`)
             return
         }
     },
 }
 
 var mmgisAPI = {
+    /**
+     * Adds a layer to the map. For a more "temporary" layer, use Leaflet directly through `mmgisAPI.map`
+     * @param {object} layerObj - See schema in configData
+     * @param {object} placement - Position to place layer relative to other layers - {path: , index: }
+     * @returns {Promise}
+     */
+    addLayer: mmgisAPI_.addLayer,
+    /**
+     * Removes a layer from the map.
+     * @params {string} layerUUID - layer name/uuid to remove
+     * @returns {boolean} - true if found and removed, otherwise false
+     */
+    removeLayer: mmgisAPI_.removeLayer,
     /**
      * Clears a layer with a specified name
      * @param {string} - layerName - name of layer to clear
@@ -445,6 +573,12 @@ var mmgisAPI = {
      */
     reloadLayer: TimeControl.reloadLayer,
 
+    /** Sets layer UUIDs and layer Names to UUIDs
+     * @param {string} [uuid]
+     * @returns {string} - Best UUID, else null
+     */
+    asLayerUUID: L_.asLayerUUID,
+
     /** setLayersTimeStatus - will set the status color for all global time enabled layers
      * @param {string} [color]
      * @returns {array} - A list of layers that were set
@@ -520,7 +654,7 @@ var mmgisAPI = {
     getVisibleLayers: mmgisAPI_.getVisibleLayers,
 
     /** addEventListener - adds map event or MMGIS action listener.
-     * @param {string} - eventName - name of event to add listener to. Available events: onPan, onZoom, onClick, toolChange, layerVisibilityChange
+     * @param {string} - eventName - name of event to add listener to. Available events: onPan, onZoom, onClick, toolChange, layerVisibilityChange, toggleSeparatedTool
 
      * @param {function} - functionReference - function reference to listener event callback function. null value removes all functions for a given eventName
 
@@ -528,7 +662,7 @@ var mmgisAPI = {
     addEventListener: mmgisAPI_.addEventListener,
 
     /** removeEventListener - removes map event or MMGIS action listener added using the MMGIS API.
-     * @param {string} - eventName - name of event to add listener to. Available events: onPan, onZoom, onClick, toolChange, layerVisibilityChange
+     * @param {string} - eventName - name of event to add listener to. Available events: onPan, onZoom, onClick, toolChange, layerVisibilityChange, toggleSeparatedTool
      * @param {function} - functionReference - function reference to listener event callback function. null value removes all functions for a given eventName
      */
     removeEventListener: mmgisAPI_.removeEventListener,
@@ -544,6 +678,10 @@ var mmgisAPI = {
      */
     onLoaded: mmgisAPI_.onLoaded,
 
+    /** initialLogin: performs the initial login call to relogin returning users. Pairable with the ENV `SKIP_CLIENT_INITIAL_LOGIN=`.
+     */
+    initialLogin: Login.initialLogin,
+
     /** project - converts a lnglat into xy coordinates with the current (custom or default web mercator) proj4 definition
      * @param {object} {lng: 0, lat: 0} - lnglat to convert
      * @returns {object} {x: 0, y: 0} - converted easting northing xy
@@ -557,10 +695,18 @@ var mmgisAPI = {
     unproject: mmgisAPI_.unproject,
 
     /** toggleLayer - set the visibility state for a named layer
-     * @param {string} - layerName - name of layer to set visiblity
-     * @param {boolean} - on - (optional) Set true if the visibility should be on or false if visibility should be off. If not set, the current visiblity state will switch to the opposite state.
+     * @param {string} - layerName - name of layer to set visibility
+     * @param {boolean} - on - (optional) Set true if the visibility should be on or false if visibility should be off. If not set, the current visibility state will switch to the opposite state.
      */
     toggleLayer: mmgisAPI_.toggleLayer,
+
+    /** overwriteLegends - overwrite the contents displayed in the LegendTool; useful when used with `toggleSeparatedTool` event listener in mmgisAPI
+     * @param {array} - legends - an array of objects, where each object must contain the following keys: legend, layerUUID, display_name, opacity. The value for the legend key should be in the same format as what is stored in the layers data under the `_legend` key (i.e. `L_.layers.data[layerName]._legend`). layerUUID and display_name should be strings and opacity should be a number between 0 and 1.
+     */
+    overwriteLegends: LegendTool.overwriteLegends,
+
+    // Formulae_
+    utils: { ...F_ },
 }
 
 window.mmgisAPI = mmgisAPI

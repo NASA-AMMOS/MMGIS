@@ -8,6 +8,8 @@ import Map_ from '../../Basics/Map_/Map_'
 import CursorInfo from '../../Ancillary/CursorInfo'
 import Modal from '../../Ancillary/Modal'
 
+import DrawTool_Templater from './DrawTool_Templater'
+
 import '../../../external/JQuery/jquery.autocomplete'
 import calls from '../../../pre/calls'
 
@@ -152,7 +154,7 @@ var Files = {
                 DrawTool.setDrawingType(drawType)
             } else {
                 CursorInfo.update(
-                    `Please select a file from the list below (by clicking on its name). If none exist, create one with the + above.`,
+                    `Please select a file from the list below (by clicking on its name). If none exist, make one with the create button below.`,
                     6000,
                     false,
                     {
@@ -350,13 +352,21 @@ var Files = {
             )
                 ownedByUser = true
 
+            const isListEdit =
+                file.public == '1' &&
+                file.publicity_type == 'list_edit' &&
+                typeof file.public_editors?.includes === 'function' &&
+                (file.public_editors.includes(mmgisglobal.user) || ownedByUser)
+            const isAllEdit =
+                file.public == '1' && file.publicity_type == 'all_edit'
+
             // prettier-ignore
             var markup = [
                 "<div class='flexbetween' style='height: 30px; line-height: 30px;'>",
                     "<div class='drawToolFileSelector flexbetween' file_id='" + file.id + "' file_owner='" + file.file_owner + "' file_intent='" + file.intent + "'>",
                     "<div class='drawToolIntentColor' style='height: 100%; width: 7px; background: " + DrawTool.categoryStyles[file.intent].color + "'></div>",
                     "<div class='drawToolFileInfo'>",
-                        "<i title='Owned by you!' class='drawToolFileOwner mdi" + ( (ownedByUser) ? ((file.is_master) ? ' mdi-account-tie' : ' mdi-account') : '' ) + " mdi-18px " + ( (ownedByUser) ? 'alwaysShow' : '' )  + "' style='pointer-event: " + ( (ownedByUser) ? 'all' : 'none' ) + "' file_id='" + file.id + "'></i>",
+                        "<i title='Owned by you!' class='drawToolFileOwner mdi" + (file.is_master ? ' mdi-account-tie' : isAllEdit ? ' mdi-account-group' : isListEdit ? ' mdi-account-multiple' : (ownedByUser) ? ' mdi-account' : '' ) + " mdi-18px " + ( (file.is_master || ownedByUser || isAllEdit || isListEdit) ? 'alwaysShow' : '' )  + "' style='pointer-events: " + ( (ownedByUser) ? 'all' : 'none' ) + "' file_id='" + file.id + "'></i>",
                         `<div class='drawToolFileName' title='${file.file_name}\nIntent: ${file.intent}\nAuthor: ${file.file_owner}\nId: ${file.id}\nSelect to draw in,\nInfo button for information,\nCheck-box to toggle on,\nRight-Click for actions'>${file.file_name}</div>`,
                     "</div>",
                     "</div>",
@@ -421,11 +431,11 @@ var Files = {
                         }
                         if (
                             $(
-                                `.drawToolDrawFilesGroupElem[group_name=${g}] .drawToolDrawFilesGroupListElem > .drawToolDrawFilesListElem[file_id=${file.id}]`
+                                `.drawToolDrawFilesGroupElem[group_name="${g}"] .drawToolDrawFilesGroupListElem > .drawToolDrawFilesListElem[file_id="${file.id}"]`
                             ).length === 0
                         ) {
                             d3.select(
-                                `.drawToolDrawFilesGroupElem[group_name=${g}] .drawToolDrawFilesGroupListElem`
+                                `.drawToolDrawFilesGroupElem[group_name="${g}"] .drawToolDrawFilesGroupListElem`
                             )
                                 .append('li')
                                 .attr(
@@ -529,27 +539,36 @@ var Files = {
 
             hideContextMenu(true)
 
+            const fileId = elm.attr('file_id')
+            const file = DrawTool.getFileObjectWithId(fileId)
+
+            const hasTemplate = file?.template?.template != null
+
             let rect = $(this).get(0).getBoundingClientRect()
 
+            // Export GeoJSON
+            // Export GeoJSON [Forced Template]
             // prettier-ignore
             let markup = [
-                    "<div id='drawToolDrawFilesListElemContextMenu' style='top: " +
-                        (rect.y + rect.height - 1) +
-                        'px; left: ' +
-                        40 +
-                        'px; width: ' +
-                        rect.width +
-                        "px; z-index: 2000; font-size: 14px;'>",
-                        '<ul>',
-                        (!isHead && L_.Coordinates.mainType != 'll') ? `<li id='cmExportGeoJSON' convert='true'><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON (${L_.Coordinates.getMainTypeName()})</li>` : "",
-                        !isHead ? `<li id='cmExportSourceGeoJSON' convert='true'><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON ${L_.Coordinates.mainType != 'll' ? '(lonlat)' : '' }</li>` : "",
-                            //"<li id='cmExportShp'>Export as .shp</li>",
-                            (!isHead && !isPub) ? `<li id='cmToggleLabels'><i class='mdi mdi-label-outline mdi-14px'></i>Toggle Labels</li>` : "",
-                            isHead ? `<li id='drawToolcmRenameTagFol'><i class='mdi mdi-rename-box mdi-14px'></i>Rename ${activeTagFolType === 'tags' ? "Tag" : "Folder"}</li>` : "",
-                            isHead ? `<li id='drawToolcmRemoveTagFol'><i class='mdi mdi-delete-forever mdi-14px'></i>Remove ${activeTagFolType === 'tags' ? "Tag" : "Folder"}</li>` : "",
-                        '</ul>',
-                    '</div>',
-                ].join('\n')
+                "<div id='drawToolDrawFilesListElemContextMenu' style='top: " +
+                    (rect.y + rect.height - 1) +
+                    'px; left: ' +
+                    40 +
+                    'px; width: ' +
+                    rect.width +
+                    "px; z-index: 2000; font-size: 14px;'>",
+                    '<ul>',
+                        (!isHead && L_.Coordinates.mainType != 'll') ? `<li id='cmExportGeoJSON' convert='true'><div><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON</div><div>Coords: (${L_.Coordinates.getMainTypeName()})</div></li>` : "",
+                        !isHead ? `<li id='cmExportSourceGeoJSON' convert='true'><div><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON</div><div>${L_.Coordinates.mainType != 'll' ? 'Coords: lonlat' : '' }</div></li>` : "",
+                        (!isHead && hasTemplate && L_.Coordinates.mainType != 'll') ? `<li id='cmExportGeoJSON' convert='true' templateforced='true' title='All feature properties foreign to the template will be removed.'><div><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON</div><div>Restrict to Template</div></li>` : "",
+                        (!isHead && hasTemplate) ? `<li id='cmExportSourceGeoJSON' convert='true' templateforced='true' title='All feature properties foreign to the template will be removed.'><div><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON</div><div>Restrict to Template</div></li>` : "",
+                        //"<li id='cmExportShp'>Export as .shp</li>",
+                        (!isHead && !isPub) ? `<li id='cmToggleLabels'><i class='mdi mdi-label-outline mdi-14px'></i>Toggle Labels</li>` : "",
+                        isHead ? `<li id='drawToolcmRenameTagFol'><i class='mdi mdi-rename-box mdi-14px'></i>Rename ${activeTagFolType === 'tags' ? "Tag" : "Folder"}</li>` : "",
+                        isHead ? `<li id='drawToolcmRemoveTagFol'><i class='mdi mdi-delete-forever mdi-14px'></i>Remove ${activeTagFolType === 'tags' ? "Tag" : "Folder"}</li>` : "",
+                    '</ul>',
+                '</div>',
+            ].join('\n')
 
             $('body').append(markup)
 
@@ -567,6 +586,7 @@ var Files = {
                 (function (body, isPub) {
                     return function () {
                         const convert = $(this).attr('convert')
+                        const templateForced = $(this).attr('templateforced')
                         DrawTool.getFile(body, function (d) {
                             let geojson = d.geojson
                             let filename = ''
@@ -615,6 +635,11 @@ var Files = {
                                     L_.convertGeoJSONLngLatsToPrimaryCoordinates(
                                         geojson
                                     )
+                            geojson = DrawTool.enforceTemplate(
+                                geojson,
+                                d?.file?.[0]?.template,
+                                templateForced
+                            )
                             F_.downloadObject(geojson, filename, '.geojson')
                         })
                     }
@@ -922,10 +947,16 @@ var Files = {
                         "<div>",
                             `<div id="drawToolFileEditOnHeadingOwner">by ${file.file_owner}${ownedByUser ? ' (you)' : ''}</div>`,
                             "<select id='drawToolFileEditOnPublicityDropdown' class='ui dropdown dropdown_2 unsetMaxWidth'>",
-                                `<option value='public' ${file.public == '1' ? 'selected' : ''}>Public</option>`,
-                                `<option value='private' ${file.public != '1' ? 'selected' : ''}>Private</option>`,
+                                `<option value='private' ${file.public == '0' ? 'selected' : ''}>Private</option>`,
+                                `<option value='public read_only' ${file.public == '1' && file.publicity_type != 'list_edit' && file.publicity_type != 'all_edit' ? 'selected' : ''}>Public - Read-Only</option>`,
+                                `<option value='public list_edit' ${file.public == '1' && file.publicity_type == 'list_edit' ? 'selected' : ''}>Public - List-Editors</option>`,
+                                `<option value='public all_edit' ${file.public == '1' && file.publicity_type == 'all_edit' ? 'selected' : ''}>Public - All-Edit</option>`,
                             "</select>",
                         "</div>",
+                    "</div>",
+                    `<div class='drawToolFileEditListEditors' style='display: ${file.public == '1' && file.publicity_type == 'list_edit' ? 'flex' : 'none'}'>`,
+                        "<div>File Editors:</div>",
+                        `<input id='drawToolFileEditListEditors' type='text' placeholder='Comma-separated names of users who can edit this file...' value='${file.public_editors && typeof file.public_editors.join === 'function' ? file.public_editors.join(',') : ''}'></input>`,
                     "</div>",
                     "<div class='drawToolFileEditOnDates'>",
                         "<div>",
@@ -933,8 +964,12 @@ var Files = {
                             `<div>${file.created_on.split('T')[0]}</div>`,
                         "</div>",
                         "<div>",
-                            "<div>Last Modified:</div>",
+                            "<div>Modified:</div>",
                             `<div>${file.updated_on.split('T')[0]}</div>`,
+                        "</div>",
+                        "<div class='drawToolFileTemplate' id='drawToolFileTemplateEdit'>",
+                            "<div>Template:</div>",
+                            `<div><div>${file.template?.name || 'NONE'}</div><i class='mdi mdi-pencil mdi-14px'></i></div>`,
                         "</div>",
                     "</div>",
                     "<div class='drawToolFileEditOnDescription'>",
@@ -973,6 +1008,8 @@ var Files = {
                 "</div>"
                 ].join('\n')
 
+            let template = file.template || null
+
             // prettier-ignore
             const modalContent = [
                 "<div class='drawToolFileEditOn' file_id='" + fileId + "' file_owner='" + file.file_owner + "' file_name='" + file.file_name + "'>",
@@ -993,8 +1030,12 @@ var Files = {
                             `<div>${file.created_on.split('T')[0]}</div>`,
                         "</div>",
                         "<div>",
-                            "<div>Last Modified:</div>",
+                            "<div>Modified:</div>",
                             `<div>${file.updated_on.split('T')[0]}</div>`,
+                        "</div>",
+                        "<div class='drawToolFileTemplate'>",
+                            "<div>Template:</div>",
+                            `<div><div>${template?.name || 'NONE'}</div></div>`,
                         "</div>",
                     "</div>",
                     "<div class='drawToolFileEditOnDescription'>",
@@ -1028,6 +1069,106 @@ var Files = {
                     ? modalContentEditable
                     : modalContent,
                 function () {
+                    //
+                    $('#drawToolFileTemplateEdit').on('click', () => {
+                        // prettier-ignore
+                        const templateEditMarkup = [
+                            `<div id='drawToolFileTemplateEditModal'>`,
+                                `<div id='drawToolFileTemplateEditModalTitle'>`,
+                                    `<div><i class='mdi mdi-form-select mdi-18px'></i><div>Template</div></div>`,
+                                    `<div id='drawToolFileTemplateEditModalClose'><i class='mmgisHoverBlue mdi mdi-close mdi-18px'></i></div>`,
+                                `</div>`,
+                                `<div id='drawToolFileTemplateContainer'>`,
+                                `</div>`,
+                                `<div id='drawToolFileTemplateEditModalActions'>`,
+                                    `<div id='drawToolFileTemplateEditModalActionsCancel' class='drawToolButton1'>Cancel</div>`,
+                                    `<div id='drawToolFileTemplateEditModalActionsDone' class='drawToolButton1'>Done</div>`,
+                                `</div>`,
+                            `</div>`
+                        ].join('\n')
+                        Modal.set(
+                            templateEditMarkup,
+                            function () {
+                                $(`#drawToolFileTemplateEditModalClose`).on(
+                                    'click',
+                                    function () {
+                                        Modal.remove(false, 1)
+                                    }
+                                )
+                                $(
+                                    `#drawToolFileTemplateEditModalActionsCancel`
+                                ).on('click', function () {
+                                    Modal.remove(false, 1)
+                                })
+                                DrawTool_Templater.renderDesignTemplate(
+                                    'drawToolFileTemplateContainer',
+                                    {
+                                        name: template?.name,
+                                        template: template?.template,
+                                    },
+                                    template?.name == null
+                                )
+                                $(
+                                    `#drawToolFileTemplateEditModalActionsDone`
+                                ).on('click', function () {
+                                    let allTemplates = {}
+                                    if (DrawTool.files) {
+                                        DrawTool.files.forEach((f) => {
+                                            if (
+                                                f.template != null &&
+                                                f.template.name != null &&
+                                                f.template.template != null
+                                            ) {
+                                                allTemplates[f.template.name] =
+                                                    f.template.template
+                                            }
+                                        })
+                                    }
+                                    allTemplates = {
+                                        ...allTemplates,
+                                        ...JSON.parse(
+                                            JSON.stringify(
+                                                DrawTool.vars.templates || {}
+                                            )
+                                        ),
+                                    }
+                                    const designedTemplate =
+                                        DrawTool_Templater.getDesignedTemplate(
+                                            'drawToolFileTemplateContainer',
+                                            allTemplates
+                                        )
+                                    if (designedTemplate === true) {
+                                        template = null
+                                        $(
+                                            `#drawToolFileTemplateEdit > div > div`
+                                        )
+                                            .text('NONE')
+                                            .css({
+                                                color: 'var(--color-green)',
+                                            })
+                                        // Do nothing and continue; user was not designing a new template
+                                    } else if (designedTemplate === false) {
+                                        // User was designing, but it had errors
+                                        return
+                                    } else {
+                                        template = JSON.parse(
+                                            JSON.stringify(designedTemplate)
+                                        )
+                                        $(
+                                            `#drawToolFileTemplateEdit > div > div`
+                                        )
+                                            .text(template.name)
+                                            .css({
+                                                color: 'var(--color-green)',
+                                            })
+                                    }
+                                    Modal.remove(false, 1)
+                                })
+                            },
+                            function () {},
+                            1
+                        )
+                    })
                     // Set up events
                     $('#drawToolFileEditOnTagsNew').autocomplete({
                         lookup: DrawTool.tags,
@@ -1142,7 +1283,17 @@ var Files = {
                         $('#drawToolFileEditOnTagsNew').val('')
                         existingTagFol[type].push(newTag)
                     }
-
+                    $('#drawToolFileEditOnPublicityDropdown').on(
+                        'change',
+                        function () {
+                            $('.drawToolFileEditListEditors').css({
+                                display:
+                                    $(this).val() === 'public list_edit'
+                                        ? 'flex'
+                                        : 'none',
+                            })
+                        }
+                    )
                     $('#drawToolFileEditOnTagsNewAdd').on('click', function () {
                         tagFolderAdd('tags')
                     })
@@ -1204,22 +1355,38 @@ var Files = {
                             file_description:
                                 description +
                                 existingTagFol['efolders']
-                                    .map((t) => ' ^' + t)
+                                    .map((t) => ' ~^' + t)
                                     .join('') +
                                 existingTagFol['folders']
-                                    .map((t) => ' @' + t)
+                                    .map((t) => ' ~@' + t)
                                     .join('') +
                                 existingTagFol['tags']
-                                    .map((t) => ' #' + t)
+                                    .map((t) => ' ~#' + t)
                                     .join(''),
                             public:
                                 elm
                                     .find(
                                         '#drawToolFileEditOnPublicityDropdown'
                                     )
-                                    .val() == 'public'
+                                    .val()
+                                    .indexOf('public') != -1
                                     ? 1
                                     : 0,
+                            template: JSON.stringify(template),
+                            publicity_type: elm
+                                .find('#drawToolFileEditOnPublicityDropdown')
+                                .val()
+                                .includes('public')
+                                ? elm
+                                      .find(
+                                          '#drawToolFileEditOnPublicityDropdown'
+                                      )
+                                      .val()
+                                      .replace('public ', '')
+                                : null,
+                            public_editors: elm
+                                .find('#drawToolFileEditListEditors')
+                                .val(),
                         }
 
                         DrawTool.changeFile(
@@ -1311,15 +1478,15 @@ var Files = {
                                 return function (d) {
                                     //Remove each feature in its group
                                     if (
-                                        L_.layersGroup.hasOwnProperty(layerId)
+                                        L_.layers.layer.hasOwnProperty(layerId)
                                     ) {
                                         for (
                                             var i = 0;
-                                            i < L_.layersGroup[layerId].length;
+                                            i < L_.layers.layer[layerId].length;
                                             i++
                                         ) {
                                             Map_.rmNotNull(
-                                                L_.layersGroup[layerId][i]
+                                                L_.layers.layer[layerId][i]
                                             )
                                         }
                                         //And from the Globe
@@ -1353,12 +1520,13 @@ var Files = {
         //Highlight layer if on
         $('.drawToolDrawFilesListElem').off('mouseenter')
         $('.drawToolDrawFilesListElem').on('mouseenter', function () {
+            if (DrawTool.timeToggledOn) return
             $(this).find('.drawToolFileEdit').addClass('shown')
             var fileId = parseInt($(this).attr('file_id'))
-            var l = L_.layersGroup['DrawTool_' + fileId]
+            var l = L_.layers.layer['DrawTool_' + fileId]
             if (!l) return
             for (var i = 0; i < l.length; i++) {
-                if (l[i] != null) {
+                if (l[i] != null && l[i].temporallyHidden != true) {
                     if (typeof l[i].setStyle === 'function')
                         l[i].setStyle({ color: '#7fff00' })
                     else if (l[i].hasOwnProperty('_layers')) {
@@ -1377,9 +1545,11 @@ var Files = {
         })
         $('.drawToolDrawFilesListElem').off('mouseleave')
         $('.drawToolDrawFilesListElem').on('mouseleave', function () {
+            if (DrawTool.timeToggledOn) return
+
             $(this).find('.drawToolFileEdit').removeClass('shown')
             var fileId = parseInt($(this).attr('file_id'))
-            var l = L_.layersGroup['DrawTool_' + fileId]
+            var l = L_.layers.layer['DrawTool_' + fileId]
             if (!l) return
             for (var i = 0; i < l.length; i++) {
                 var style
@@ -1452,13 +1622,30 @@ var Files = {
             // Only select files you own
             const fileId = $(this).attr('file_id')
             var fileFromId = DrawTool.getFileObjectWithId(fileId)
+
             if (
-                mmgisglobal.user !== $(this).attr('file_owner') &&
+                mmgisglobal.user !== fileFromId.file_owner &&
                 fileFromId &&
                 F_.diff(fileFromId.file_owner_group, DrawTool.userGroups)
                     .length == 0
-            )
-                return
+            ) {
+                // Now check public list_edit
+                if (
+                    !(
+                        (fileFromId.public == '1' &&
+                            fileFromId.publicity_type == 'all_edit') ||
+                        (fileFromId.public == '1' &&
+                            fileFromId.publicity_type == 'list_edit' &&
+                            fileFromId.public_editors != null &&
+                            typeof fileFromId.public_editors.includes ===
+                                'function' &&
+                            fileFromId.public_editors.includes(
+                                mmgisglobal.user
+                            ))
+                    )
+                )
+                    return
+            }
 
             const wasOn = $(this).parent().parent().hasClass('checked')
 
@@ -1525,7 +1712,7 @@ var Files = {
         //Can't refresh what isn't there
         if (
             parsedId != 'master' &&
-            L_.layersGroup.hasOwnProperty('DrawTool_' + parsedId) == false
+            L_.layers.layer.hasOwnProperty('DrawTool_' + parsedId) == false
         )
             return
 
@@ -1541,24 +1728,26 @@ var Files = {
                 return function (data) {
                     var layerId = 'DrawTool_' + index
                     //Remove it first
-                    if (L_.layersGroup.hasOwnProperty(layerId)) {
+                    if (L_.layers.layer.hasOwnProperty(layerId)) {
                         for (
                             var i = 0;
-                            i < L_.layersGroup[layerId].length;
+                            i < L_.layers.layer[layerId].length;
                             i++
                         ) {
                             //Close any popups/labels
-                            var popupLayer = L_.layersGroup[layerId][i]
+                            var popupLayer = L_.layers.layer[layerId][i]
                             DrawTool.removePopupsFromLayer(popupLayer)
 
-                            Map_.rmNotNull(L_.layersGroup[layerId][i])
-                            L_.layersGroup[layerId][i] = null
+                            Map_.rmNotNull(L_.layers.layer[layerId][i])
+                            L_.layers.layer[layerId][i] = null
                         }
                         //And from the Globe
                         Globe_.litho.removeLayer('camptool_' + layerId)
                     }
 
                     let features = data.geojson.features
+                    DrawTool.fileGeoJSONFeatures[index] = features
+
                     let coreFeatures = JSON.parse(JSON.stringify(data.geojson))
                     coreFeatures.features = []
 
@@ -1599,25 +1788,25 @@ var Files = {
 
                             DrawTool.refreshNoteEvents()
                         } else if (features[i].geometry.type === 'Point') {
-                            L_.layersGroup[layerId].push(
+                            L_.layers.layer[layerId].push(
                                 LayerGeologic.createSymbolMarker(
                                     features[i].geometry.coordinates[1],
                                     features[i].geometry.coordinates[0],
                                     features[i].properties.style
                                 ).addTo(Map_.map)
                             )
-                            L_.layersGroup[layerId][
-                                L_.layersGroup[layerId].length - 1
+                            L_.layers.layer[layerId][
+                                L_.layers.layer[layerId].length - 1
                             ].feature = features[i]
                         } else if (features[i].geometry.type === 'LineString') {
-                            L_.layersGroup[layerId].push(
+                            L_.layers.layer[layerId].push(
                                 LayerGeologic.createLinework(
                                     features[i],
                                     style
                                 ).addTo(Map_.map)
                             )
                         } else {
-                            L_.layersGroup[layerId].push(
+                            L_.layers.layer[layerId].push(
                                 L.geoJson(
                                     {
                                         type: 'FeatureCollection',
@@ -1675,8 +1864,8 @@ var Files = {
                         }
 
                         if (features[i].properties.arrow !== true) {
-                            var last = L_.layersGroup[layerId].length - 1
-                            var llast = L_.layersGroup[layerId][last]
+                            var last = L_.layers.layer[layerId].length - 1
+                            var llast = L_.layers.layer[layerId][last]
                             var layer
 
                             if (llast.hasOwnProperty('_layers'))
@@ -1720,6 +1909,7 @@ var Files = {
 
                     L_.enforceVisibilityCutoffs([layerId])
                     DrawTool.maintainLayerOrder()
+                    DrawTool.timeFilterDrawingLayer(index)
 
                     DrawTool.refreshMasterCheckbox()
 
@@ -1779,9 +1969,9 @@ var Files = {
                     .removeClass('on')
             }
             //Remove each feature in its group
-            if (L_.layersGroup.hasOwnProperty(layerId)) {
-                for (var i = 0; i < L_.layersGroup[layerId].length; i++) {
-                    Map_.rmNotNull(L_.layersGroup[layerId][i])
+            if (L_.layers.layer.hasOwnProperty(layerId)) {
+                for (var i = 0; i < L_.layers.layer[layerId].length; i++) {
+                    Map_.rmNotNull(L_.layers.layer[layerId][i])
                 }
                 //And from the Globe
                 Globe_.litho.removeLayer('camptool_' + layerId)
@@ -1802,7 +1992,7 @@ var Files = {
                     .addClass('on')
             }
             //Get the file if we don't already have it
-            L_.layersGroup[layerId] = []
+            L_.layers.layer[layerId] = []
             DrawTool.refreshFile(
                 id == 'master' ? DrawTool.masterFileIds : id,
                 null,
@@ -1813,7 +2003,7 @@ var Files = {
         }
     },
     toggleLabels: function (file_id) {
-        var l = L_.layersGroup['DrawTool_' + file_id]
+        var l = L_.layers.layer['DrawTool_' + file_id]
         let indexOf = DrawTool.labelsOn.indexOf(file_id)
         var isOn = indexOf != -1
         if (isOn) DrawTool.labelsOn.splice(indexOf, 1)
@@ -1840,7 +2030,7 @@ var Files = {
             for (var j = 0; j < DrawTool.filesOn.length; j++) {
                 var file = DrawTool.getFileObjectWithId(DrawTool.filesOn[j])
                 if (file && file.intent === DrawTool.intentOrder[i]) {
-                    for (var e of L_.layersGroup[
+                    for (var e of L_.layers.layer[
                         'DrawTool_' + DrawTool.filesOn[j]
                     ])
                         if (e != null && typeof e.bringToFront === 'function')
@@ -1897,7 +2087,7 @@ var Files = {
         $('.drawToolAnnotation').on('click', function () {
             var layer = 'DrawTool_' + $(this).attr('layer')
             var index = $(this).attr('index')
-            var shape = L_.layersGroup[layer][index]
+            var shape = L_.layers.layer[layer][index]
             if (!mmgisglobal.shiftDown) {
                 if (typeof shape.getBounds === 'function')
                     Map_.map.fitBounds(shape.getBounds())

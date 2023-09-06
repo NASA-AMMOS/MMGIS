@@ -4,6 +4,7 @@ import * as d3 from 'd3'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import ToolController_ from '../../Basics/ToolController_/ToolController_'
+import tippy from 'tippy.js'
 
 import calls from '../../../pre/calls'
 
@@ -90,7 +91,6 @@ var Login = {
         Login.loginBar
             .append('div')
             .attr('id', 'loginUser')
-            .attr('title', Login.loggedIn ? Login.username : '')
             .style('text-align', 'center')
             .style('font-size', '12px')
             .style('font-weight', 'bold')
@@ -109,6 +109,18 @@ var Login = {
             .style('text-transform', 'uppercase')
             .style('transition', 'opacity 0.2s ease-out')
             .html(Login.loggedIn ? Login.username[0] : '')
+
+        if (Login.loggedIn) {
+            if (window._tippyLoginUser && window._tippyLoginUser[0])
+                window._tippyLoginUser[0].setContent(Login.username)
+            else
+                window._tippyLoginUser = tippy('#loginUser', {
+                    content: Login.username,
+                    placement: 'bottom-end',
+                    theme: 'blue',
+                    allowHTML: true,
+                })
+        }
 
         //Show signup for admins
         if (
@@ -221,28 +233,32 @@ var Login = {
                     : 'mdi mdi-login mdi-18px'
             )
 
-        //Sign in at page load from cookie if possible
+        // Sign in at page load from cookie if possible
         if (
             window.mmgisglobal.AUTH !== 'off' &&
-            window.mmgisglobal.AUTH !== 'csso'
+            window.mmgisglobal.AUTH !== 'csso' &&
+            window.mmgisglobal.SKIP_CLIENT_INITIAL_LOGIN != 'true'
         ) {
-            calls.api(
-                'login',
-                {
-                    useToken: true,
-                },
-                function (d) {
-                    Login.username = d.username
-                    window.mmgisglobal.user = Login.username
-                    window.mmgisglobal.groups = d.groups
-
-                    loginSuccess(d)
-                },
-                function (d) {
-                    loginSuccess(d, true)
-                }
-            )
+            Login.initialLogin()
         }
+    },
+    initialLogin() {
+        calls.api(
+            'login',
+            {
+                useToken: true,
+            },
+            function (d) {
+                Login.username = d.username
+                window.mmgisglobal.user = Login.username
+                window.mmgisglobal.groups = d.groups
+
+                loginSuccess(d)
+            },
+            function (d) {
+                loginSuccess(d, true)
+            }
+        )
     },
     createModal: function () {
         this.removeModal()
@@ -364,7 +380,6 @@ var Login = {
             })
 
             values['mission'] = L_.mission
-            values['master'] = L_.masterdb
 
             if (!Login.signUp) {
                 if (validate.username && validate.password) {
@@ -479,12 +494,17 @@ var Login = {
 
 function loginSuccess(data, ignoreError) {
     if (data.status == 'success') {
-        document.cookie =
-            'MMGISUser=' +
-            JSON.stringify({
-                username: data.username,
-                token: data.token,
-            })
+        document.cookie = 'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+        document.cookie = `MMGISUser=${JSON.stringify({
+            username: data.username,
+            token: data.token,
+        })}${
+            mmgisglobal.THIRD_PARTY_COOKIES === 'true'
+                ? `; SameSite=None;${
+                      mmgisglobal.NODE_ENV === 'production' ? ' Secure' : ''
+                  }`
+                : ''
+        }`
 
         Login.loggedIn = true
         $('#loginErrorMessage').animate({ opacity: '0' }, 500)
@@ -533,6 +553,18 @@ function loginSuccess(data, ignoreError) {
                 background: Login.loggedIn ? 'var(--color-a)' : 'transparent',
             })
             .html(Login.username[0])
+
+        if (Login.loggedIn) {
+            if (window._tippyLoginUser && window._tippyLoginUser[0])
+                window._tippyLoginUser[0].setContent(Login.username)
+            else
+                window._tippyLoginUser = tippy('#loginUser', {
+                    content: Login.username,
+                    placement: 'bottom-end',
+                    theme: 'blue',
+                    allowHTML: true,
+                })
+        }
     } else {
         document.cookie = 'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'
 

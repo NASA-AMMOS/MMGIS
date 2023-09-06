@@ -5,7 +5,10 @@ import LayerGeologic from '../../Basics/Layers_/LayerGeologic/LayerGeologic'
 import Globe_ from '../../Basics/Globe_/Globe_'
 import Map_ from '../../Basics/Map_/Map_'
 import UserInterface_ from '../../Basics/UserInterface_/UserInterface_'
+import CursorInfo from '../../Ancillary/CursorInfo'
 import turf from 'turf'
+
+import DrawTool_Templater from './DrawTool_Templater'
 
 import calls from '../../../pre/calls'
 
@@ -55,6 +58,8 @@ var Editing = {
             DrawTool.contextMenuLayer.justDragged = false
             return
         }
+
+        let templater
 
         //ctrl does lots. Here, if ctrl is pressed, check whether the layer is already selected.
         // If it is, remove it
@@ -135,7 +140,7 @@ var Editing = {
         }
 
         var shape = layer
-        if (index != null) shape = L_.layersGroup[shape][index]
+        if (index != null) shape = L_.layers.layer[shape][index]
         //Disable editing the previous drawing layer if it was being
         if (!displayOnly) {
             if (DrawTool.contextMenuLayer) {
@@ -296,8 +301,8 @@ var Editing = {
             properties.style = properties.style || {}
             style = properties.style || {}
             let fallbackStyle = {}
-            if (kindLayerName && L_.layersStyles[kindLayerName])
-                fallbackStyle = L_.layersStyles[kindLayerName]
+            if (kindLayerName && L_.layers.data[kindLayerName]?.style)
+                fallbackStyle = L_.layers.data[kindLayerName].style
 
             //Set blank styles to
             style.color = style.color || fallbackStyle.color || 'black'
@@ -410,8 +415,8 @@ var Editing = {
                 properties.style = properties.style || {}
                 style = properties.style || {}
                 let fallbackStyle = {}
-                if (kindLayerName && L_.layersStyles[kindLayerName])
-                    fallbackStyle = L_.layersStyles[kindLayerName]
+                if (kindLayerName && L_.layers.data[kindLayerName].style)
+                    fallbackStyle = L_.layers.data[kindLayerName].style
                 //Set blank styles to
                 style.color = style.color || fallbackStyle.color || 'black'
                 style.opacity =
@@ -484,7 +489,6 @@ var Editing = {
                         )
                     )
                 }
-                //console.log( JSON.parse(JSON.stringify(DrawTool.contextMenuLayer.feature)) );
 
                 if (
                     reenableEdit &&
@@ -517,19 +521,26 @@ var Editing = {
         if (displayOnly) ownedByUser = false
         else {
             for (var i = 0; i < DrawTool.contextMenuLayers.length; i++) {
+                const cfile = DrawTool.contextMenuLayers[i].file
+                const isListEdit =
+                    file.public == '1' &&
+                    file.publicity_type == 'list_edit' &&
+                    typeof file.public_editors?.includes === 'function' &&
+                    (file.public_editors.includes(mmgisglobal.user) ||
+                        ownedByUser)
+                const isAllEdit =
+                    file.public == '1' && file.publicity_type == 'all_edit'
+
                 if (
-                    DrawTool.contextMenuLayers[i].file.file_owner == 'master' ||
-                    (mmgisglobal.user !==
-                        DrawTool.contextMenuLayers[i].file.file_owner &&
-                        (DrawTool.contextMenuLayers[i].file.file_owner_group ==
-                            null ||
-                            (DrawTool.contextMenuLayers[i].file
-                                .file_owner_group &&
-                                F_.diff(
-                                    DrawTool.contextMenuLayers[i].file
-                                        .file_owner_group,
-                                    DrawTool.userGroups
-                                ).length == 0)))
+                    (cfile.file_owner == 'master' ||
+                        (mmgisglobal.user !== cfile.file_owner &&
+                            (cfile.file_owner_group == null ||
+                                (cfile.file_owner_group &&
+                                    F_.diff(
+                                        cfile.file_owner_group,
+                                        DrawTool.userGroups
+                                    ).length == 0)))) &&
+                    !(isListEdit || isAllEdit)
                 )
                     ownedByUser = false
             }
@@ -591,37 +602,59 @@ var Editing = {
             "<div class='drawToolContextMenuTab drawToolContextMenuTabProperties'>",
                 "<div class='drawToolContextMenuProperties'>",
                     "<div class='drawToolContextMenuPropertiesName flexbetween'>",
-                        "<div>Name</div>",
+                        "<div class='drawToolContextMenuPropertiesTitle'>Name</div>",
                         "<input id='drawToolContextMenuPropertiesName' type='text' value='" + F_.sanitize(defaultName) + "'/>",
                     "</div>",
                     "<div class='drawToolContextMenuPropertiesDescription flexbetween'>",
-                        "<div>Description</div>",
-                        "<textarea id='drawToolContextMenuPropertiesDescription' rows='10'></textarea>",
+                        "<div class='drawToolContextMenuPropertiesTitle'>Description</div>",
+                        "<textarea id='drawToolContextMenuPropertiesDescription' rows='2'></textarea>",
                     "</div>",
-                    (hasLengthMetric) ? [
-                        "<div class='flexbetween' style='margin: 4px 0px;'>",
-                            "<div>Length</div>",
-                            `<div>${F_.getFeatureLength(DrawTool.contextMenuLayer.feature, true)}</div>`,
+                    (file.template != null ) ? [
+                    "<div class='drawToolContextMenuPropertiesCollapsible'>",
+                        `<div class='drawToolContextMenuPropertiesTitle'><div>Template (${file.template?.name})</div><i class='mdi mdi-chevron-down mdi-24px'></i></div>`,
+                        "<div id='drawToolContextMenuPropertiesTemplate'></div>",
+                    "</div>"].join('\n') : "",
+                    "<div class='drawToolContextMenuPropertiesCollapsible state-collapsed'>",
+                        "<div class='drawToolContextMenuPropertiesTitle'><div>Metrics</div><i class='mdi mdi-chevron-down mdi-24px'></i></div>",
+                        "<div>",
+                        (hasLengthMetric) ? [
+                            "<div class='flexbetween' style='margin: 4px 0px;'>",
+                                "<div>Length</div>",
+                                `<div>${F_.getFeatureLength(DrawTool.contextMenuLayer.feature, true)}</div>`,
+                            "</div>",
+                        ].join('\n') : "",
+                        (hasPerimeterMetric) ? [
+                            "<div class='flexbetween' style='margin: 4px 0px;'>",
+                                "<div>Perimeter</div>",
+                                `<div>${F_.getFeatureLength(DrawTool.contextMenuLayer.feature, true)}</div>`,
+                            "</div>",
+                        ].join('\n') : "",
+                        (hasAreaMetric) ? [
+                            "<div class='flexbetween' style='margin-bottom: 4px;'>",
+                                "<div>Area</div>",
+                                `<div>${F_.getFeatureArea(DrawTool.contextMenuLayer.feature, true)}</div>`,
+                            "</div>",
+                        ].join('\n') : "",
+                        (DrawTool.contextMenuLayer?.feature?.properties?._radius != null) ? [
+                            "<div class='flexbetween' style='margin-bottom: 4px;'>",
+                                "<div>Radius</div>",
+                                `<div>${DrawTool.contextMenuLayer.feature.properties._radius.toFixed(3)}m</div>`,
+                            "</div>",
+                        ].join('\n') : "",
                         "</div>",
-                    ].join('\n') : "",
-                    (hasPerimeterMetric) ? [
-                        "<div class='flexbetween' style='margin: 4px 0px;'>",
-                            "<div>Perimeter</div>",
-                            `<div>${F_.getFeatureLength(DrawTool.contextMenuLayer.feature, true)}</div>`,
+                    "</div>",
+                    "<div class='drawToolContextMenuPropertiesCollapsible'>",
+                        "<div class='drawToolContextMenuPropertiesTitle'><div>Properties</div><i class='mdi mdi-chevron-down mdi-24px'></i></div>",
+                        "<div class='drawToolContextMenuPropertiesExtended'>",
+                            Object.keys(DrawTool.contextMenuLayer.feature.properties).map((p) => {
+                                const pv = DrawTool.contextMenuLayer.feature.properties[p]
+                                if(p === 'uuid') return ''
+                                if( typeof pv === 'number' || typeof pv === 'string' || typeof pv === 'boolean')
+                                    return `<li><div>${p}</div><div>${pv}</div></li>`
+                                else return ''
+                            }).join('\n'),
                         "</div>",
-                    ].join('\n') : "",
-                    (hasAreaMetric) ? [
-                        "<div class='flexbetween' style='margin-bottom: 4px;'>",
-                            "<div>Area</div>",
-                            `<div>${F_.getFeatureArea(DrawTool.contextMenuLayer.feature, true)}</div>`,
-                        "</div>",
-                    ].join('\n') : "",
-                    (DrawTool.contextMenuLayer?.feature?.properties?._radius != null) ? [
-                        "<div class='flexbetween' style='margin-bottom: 4px;'>",
-                            "<div>Radius</div>",
-                            `<div>${DrawTool.contextMenuLayer.feature.properties._radius.toFixed(3)}m</div>`,
-                        "</div>",
-                    ].join('\n') : "",
+                    "</div>",
                     (!displayOnly) ? ["<div class='drawToolContextMenuPropertiesReassignUUID flexbetween'>",
                         "<div id='drawToolContextMenuPropertiesReassignUUIDValue'>" + uuid + "</div>",
                         "<div id='drawToolContextMenuPropertiesReassignUUID' class='drawToolButton1'>Reassign</div>",
@@ -843,6 +876,17 @@ var Editing = {
       ].join('\n');
         $('#uiRightPanel').empty()
         $('#uiRightPanel').append(markup)
+
+        templater = DrawTool_Templater.renderTemplate(
+            'drawToolContextMenuPropertiesTemplate',
+            file.template,
+            DrawTool.contextMenuLayer?.feature?.properties
+        )
+        $(
+            `.drawToolContextMenuPropertiesCollapsible > .drawToolContextMenuPropertiesTitle`
+        ).on('click', function () {
+            $(this).parent().toggleClass('state-collapsed')
+        })
         UserInterface_.openRightPanel(360)
 
         $('#drawToolContextMenuPropertiesDescription').text(description)
@@ -920,7 +964,7 @@ var Editing = {
                     !displayOnly &&
                     l != null &&
                     l.hasOwnProperty('l_i_f') &&
-                    L_.layersGroup[l.l_i_f.layer][l.l_i_f.index] != null
+                    L_.layers.layer[l.l_i_f.layer][l.l_i_f.index] != null
                 ) {
                     //Properties
                     //Style
@@ -965,7 +1009,7 @@ var Editing = {
                 !displayOnly &&
                 l != null &&
                 l.hasOwnProperty('l_i_f') &&
-                L_.layersGroup[l.l_i_f.layer][l.l_i_f.index] != null &&
+                L_.layers.layer[l.l_i_f.layer][l.l_i_f.index] != null &&
                 l.properties.arrow == true
             ) {
                 L_.addArrowToMap(
@@ -1063,7 +1107,7 @@ var Editing = {
             }
             DrawTool.removeDrawing(body, function () {
                 Map_.rmNotNull(DrawTool.contextMenuLayer)
-                L_.layersGroup[DrawTool.lastContextLayerIndexFileId.layer][
+                L_.layers.layer[DrawTool.lastContextLayerIndexFileId.layer][
                     DrawTool.lastContextLayerIndexFileId.index
                 ] = null
 
@@ -2222,7 +2266,6 @@ var Editing = {
                                 {}
                             DrawTool.contextMenuLayer.snapediting.enable()
                         } catch (e) {
-                            console.log(e)
                             DrawTool.contextMenuLayer.enableEdit()
                         }
                     } else {
@@ -2291,7 +2334,17 @@ var Editing = {
 
                             if (DrawTool.isReviewOpen) DrawTool.showReview()
                         },
-                        function () {
+                        function (err) {
+                            CursorInfo.update(
+                                `${err.message}${
+                                    err.body?.error
+                                        ? ` - ${err.body.error}`
+                                        : ''
+                                }`,
+                                6000,
+                                true,
+                                { x: 305, y: 6 }
+                            )
                             $('.drawToolContextMenuSave').css(
                                 'background',
                                 '#ff2626'
@@ -2313,6 +2366,16 @@ var Editing = {
             if (DrawTool.plugins?.Geologic?.custom?.resetGeologic)
                 DrawTool.plugins.Geologic.custom.resetGeologic()
 
+            let templaterProperties = {}
+            if (templater) {
+                templaterProperties = templater.getValues(
+                    L_.layers.layer[DrawTool.lastContextLayerIndexFileId.layer],
+                    properties,
+                    grouping ? true : false
+                )
+                if (templaterProperties === false) return
+            }
+
             if (!grouping) {
                 //Then just a regular single save
                 if (typeof DrawTool.contextMenuLayer.toGeoJSON === 'function')
@@ -2333,12 +2396,14 @@ var Editing = {
                     DrawTool.contextMenuLayer._latlng
                 )
 
-                var newProperties = properties
+                let newProperties = properties
                 newProperties.style = properties.style || {}
 
                 setProperties(newProperties)
 
-                var newGeometry
+                newProperties = { ...newProperties, ...templaterProperties }
+
+                let newGeometry
                 if (featureType != 'note' && featureType != 'arrow') {
                     newGeometry = DrawTool.contextMenuLayer.toGeoJSON(
                         L_.GEOJSON_PRECISION
@@ -2414,7 +2479,17 @@ var Editing = {
                                 if (DrawTool.isReviewOpen) DrawTool.showReview()
                             }
                         })(newProperties, newGeometry, featureType, fileid),
-                        function () {
+                        function (err) {
+                            CursorInfo.update(
+                                `${err.message}${
+                                    err.body?.error
+                                        ? ` - ${err.body.error}`
+                                        : ''
+                                }`,
+                                6000,
+                                true,
+                                { x: 305, y: 6 }
+                            )
                             $('.drawToolContextMenuSave').css(
                                 'background',
                                 '#ff2626'
@@ -2451,6 +2526,11 @@ var Editing = {
 
                         setProperties(newProperties)
 
+                        newProperties = {
+                            ...newProperties,
+                            ...templaterProperties,
+                        }
+
                         calls.api(
                             'draw_edit',
                             {
@@ -2477,7 +2557,17 @@ var Editing = {
                                     }, 2)
                                 }
                             })(l, l.file.id, l.properties._.id, newProperties),
-                            function () {
+                            function (err) {
+                                CursorInfo.update(
+                                    `${err.message}${
+                                        err.body?.error
+                                            ? ` - ${err.body.error}`
+                                            : ''
+                                    }`,
+                                    6000,
+                                    true,
+                                    { x: 305, y: 6 }
+                                )
                                 $('.drawToolContextMenuSave').css(
                                     'background',
                                     '#ff2626'
@@ -2640,7 +2730,7 @@ var Editing = {
     getSnapGuides: function (layer) {
         var guides = []
         for (var j = 0; j < DrawTool.filesOn.length; j++) {
-            for (var e of L_.layersGroup['DrawTool_' + DrawTool.filesOn[j]])
+            for (var e of L_.layers.layer['DrawTool_' + DrawTool.filesOn[j]])
                 if (e != null) {
                     var l = e
                     if (l.hasOwnProperty('_layers'))

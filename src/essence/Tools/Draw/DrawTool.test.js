@@ -269,7 +269,7 @@ var Test = {
                     'Switches to polygon drawing',
                     $('.drawToolDrawingTypePolygon').hasClass('active')
                 )
-                var oldLength = L_.layersGroup['DrawTool_7'].length
+                var oldLength = L_.layers.layer['DrawTool_7'].length
                 Test_.mapEvent('click')
                 Test_.fireEvent('mousemove', 300, 300)
                 Test.tool.drawing.polygon.move()
@@ -282,7 +282,7 @@ var Test = {
                 setTimeout(function () {
                     c(
                         'Draws and saves a polygon',
-                        L_.layersGroup['DrawTool_7'].length == oldLength + 1
+                        L_.layers.layer['DrawTool_7'].length == oldLength + 1
                     )
                 }, Test.timeout)
             },
@@ -297,7 +297,7 @@ var Test = {
                     $('.drawToolDrawingTypeLine').hasClass('active')
                 )
 
-                var oldLength = F_.noNullLength(L_.layersGroup['DrawTool_7'])
+                var oldLength = F_.noNullLength(L_.layers.layer['DrawTool_7'])
                 Test_.mapEvent('click')
                 Test_.fireEvent('mousemove', 300, 300)
                 Test.tool.drawing.line.move()
@@ -310,7 +310,7 @@ var Test = {
                 setTimeout(function () {
                     c(
                         'Draws and saves a line',
-                        F_.noNullLength(L_.layersGroup['DrawTool_7']) ==
+                        F_.noNullLength(L_.layers.layer['DrawTool_7']) ==
                             oldLength + 1
                     )
                 }, Test.timeout)
@@ -326,13 +326,13 @@ var Test = {
                     $('.drawToolDrawingTypePoint').hasClass('active')
                 )
 
-                var oldLength = F_.noNullLength(L_.layersGroup['DrawTool_7'])
+                var oldLength = F_.noNullLength(L_.layers.layer['DrawTool_7'])
                 Test.tool.drawing.point.shape = { lat: -5, lng: 138 }
                 Test_.mapEvent('draw:drawstop')
                 setTimeout(function () {
                     c(
                         'Draws and saves a point',
-                        F_.noNullLength(L_.layersGroup['DrawTool_7']) ==
+                        F_.noNullLength(L_.layers.layer['DrawTool_7']) ==
                             oldLength + 1
                     )
                 }, Test.timeout)
@@ -348,7 +348,7 @@ var Test = {
                     $('.drawToolDrawingTypeText').hasClass('active')
                 )
 
-                var oldLength = F_.noNullLength(L_.layersGroup['DrawTool_7'])
+                var oldLength = F_.noNullLength(L_.layers.layer['DrawTool_7'])
                 Test.tool.drawing.annotation.shape = {
                     lat: -4.5,
                     lng: 137.5,
@@ -359,7 +359,7 @@ var Test = {
                 setTimeout(function () {
                     c(
                         'Draws and saves text',
-                        F_.noNullLength(L_.layersGroup['DrawTool_7']) ==
+                        F_.noNullLength(L_.layers.layer['DrawTool_7']) ==
                             oldLength + 1
                     )
                 }, Test.timeout)
@@ -375,7 +375,7 @@ var Test = {
                     $('.drawToolDrawingTypeArrow').hasClass('active')
                 )
 
-                var oldLength = F_.noNullLength(L_.layersGroup['DrawTool_7'])
+                var oldLength = F_.noNullLength(L_.layers.layer['DrawTool_7'])
                 Test.tool.drawing.arrow.start({
                     latlng: { lat: -4.5, lng: 137.5 },
                 })
@@ -385,7 +385,7 @@ var Test = {
                 setTimeout(function () {
                     c(
                         'Draws and saves arrows',
-                        F_.noNullLength(L_.layersGroup['DrawTool_7']) ==
+                        F_.noNullLength(L_.layers.layer['DrawTool_7']) ==
                             oldLength + 1
                     )
                 }, Test.timeout)
@@ -465,7 +465,7 @@ var Test = {
                     setTimeout(function () {
                         c(
                             'Deletes polygon',
-                            L_.layersGroup['DrawTool_7'][0] == null
+                            L_.layers.layer['DrawTool_7'][0] == null
                         )
                     }, Test.timeout)
                 }, Test.timeout)
@@ -539,7 +539,7 @@ var Test = {
                     setTimeout(function () {
                         c(
                             'Deletes line',
-                            L_.layersGroup['DrawTool_7'][1] == null
+                            L_.layers.layer['DrawTool_7'][1] == null
                         )
                     }, Test.timeout)
                 }, Test.timeout)
@@ -620,7 +620,7 @@ var Test = {
                     setTimeout(function () {
                         c(
                             'Deletes point',
-                            L_.layersGroup['DrawTool_7'][2] == null
+                            L_.layers.layer['DrawTool_7'][2] == null
                         )
                     }, Test.timeout)
                 }, Test.timeout)
@@ -705,7 +705,7 @@ var Test = {
                     setTimeout(function () {
                         c(
                             'Deletes text',
-                            L_.layersGroup['DrawTool_7'][3] == null
+                            L_.layers.layer['DrawTool_7'][3] == null
                         )
                     }, Test.timeout)
                 }, Test.timeout)
@@ -780,7 +780,7 @@ var Test = {
                     setTimeout(function () {
                         c(
                             'Deletes arrow',
-                            L_.layersGroup['DrawTool_7'][4] == null
+                            L_.layers.layer['DrawTool_7'][4] == null
                         )
                     }, Test.timeout)
                 }, Test.timeout)
@@ -852,20 +852,20 @@ var Test = {
                     ).click()
                     c(
                         'Can open file popup',
-                        $('#mmgisModal .drawToolFileEditOn').css('display') !=
+                        $('.mmgisModal .drawToolFileEditOn').css('display') !=
                             'none'
                     )
 
-                    $('#mmgisModal .drawToolFileNameInput').val(
+                    $('.mmgisModal .drawToolFileNameInput').val(
                         'Test Trail Altered'
                     )
-                    $('#mmgisModal .drawToolFileDesc').text(
+                    $('.mmgisModal .drawToolFileDesc').text(
                         'Description Altered'
                     )
-                    $('#mmgisModal #drawToolFileEditOnPublicityDropdown').val(
+                    $('.mmgisModal #drawToolFileEditOnPublicityDropdown').val(
                         'private'
                     )
-                    $('#mmgisModal .drawToolFileSave').click()
+                    $('.mmgisModal .drawToolFileSave').click()
 
                     setTimeout(function () {
                         $(
@@ -880,22 +880,22 @@ var Test = {
                         )
                         c(
                             'File name input updates',
-                            $('#mmgisModal .drawToolFileNameInput').val() ===
+                            $('.mmgisModal .drawToolFileNameInput').val() ===
                                 'Test Trail Altered'
                         )
                         c(
                             'File description updates',
-                            $('#mmgisModal .drawToolFileDesc').text() ===
+                            $('.mmgisModal .drawToolFileDesc').text() ===
                                 'Description Altered'
                         )
                         c(
                             'File publicity updates',
                             $(
-                                '#mmgisModal #drawToolFileEditOnPublicityDropdown'
+                                '.mmgisModal #drawToolFileEditOnPublicityDropdown'
                             ).val() == 'private'
                         )
 
-                        $('#mmgisModal .drawToolFileCancel').click()
+                        $('.mmgisModal .drawToolFileCancel').click()
                     }, Test.timeout * 3)
                 }, Test.timeout)
             },
@@ -1374,7 +1374,7 @@ var Test = {
                     )
                 )
 
-                var oldLength = L_.layersGroup[layerId].length
+                var oldLength = L_.layers.layer[layerId].length
                 Test_.mapEvent('click')
                 Test_.fireEvent('mousemove', 300, 300)
                 Test.tool.drawing.polygon.move()
@@ -1388,7 +1388,7 @@ var Test = {
                 setTimeout(function () {
                     c(
                         'Draws polygon off',
-                        L_.layersGroup[layerId].length == oldLength + 1
+                        L_.layers.layer[layerId].length == oldLength + 1
                     )
 
                     $("#drawToolDrawSettingsTier > div[value='over']").click()
@@ -1399,7 +1399,7 @@ var Test = {
                         ).hasClass('active')
                     )
 
-                    oldLength = L_.layersGroup[layerId].filter(Boolean).length
+                    oldLength = L_.layers.layer[layerId].filter(Boolean).length
                     Test_.mapEvent('click')
                     Test_.fireEvent('mousemove', 300, 300)
                     Test.tool.drawing.polygon.move()
@@ -1413,7 +1413,7 @@ var Test = {
                     setTimeout(function () {
                         c(
                             'Draws polygon over',
-                            L_.layersGroup[layerId].filter(Boolean).length ==
+                            L_.layers.layer[layerId].filter(Boolean).length ==
                                 oldLength + 1
                         )
 
@@ -1428,7 +1428,7 @@ var Test = {
                         )
 
                         oldLength =
-                            L_.layersGroup[layerId].filter(Boolean).length
+                            L_.layers.layer[layerId].filter(Boolean).length
                         Test_.mapEvent('click')
                         Test_.fireEvent('mousemove', 300, 300)
                         Test.tool.drawing.polygon.move()
@@ -1442,7 +1442,7 @@ var Test = {
                         setTimeout(function () {
                             c(
                                 'Draws polygon under',
-                                L_.layersGroup[layerId].filter(Boolean)
+                                L_.layers.layer[layerId].filter(Boolean)
                                     .length ==
                                     oldLength + 1
                             )
@@ -1466,7 +1466,7 @@ var Test = {
                     $('.drawToolDrawingTypeLine').hasClass('active')
                 )
 
-                var oldLength = L_.layersGroup[layerId].filter(Boolean).length
+                var oldLength = L_.layers.layer[layerId].filter(Boolean).length
                 Test_.mapEvent('click')
                 Test_.fireEvent('mousemove', 300, 300)
                 Test.tool.drawing.line.move()
@@ -1478,7 +1478,7 @@ var Test = {
                 setTimeout(function () {
                     c(
                         'Draw and save a line',
-                        L_.layersGroup[layerId].filter(Boolean).length ==
+                        L_.layers.layer[layerId].filter(Boolean).length ==
                             oldLength + 1
                     )
 
@@ -1643,7 +1643,7 @@ var Test = {
                     ).click()
                     let layerId = 'DrawTool_7'
                     let oldLength =
-                        L_.layersGroup[layerId].filter(Boolean).length
+                        L_.layers.layer[layerId].filter(Boolean).length
                     Test_.mapEvent('click')
                     Test_.fireEvent('mousemove', 300, 300)
                     Test.tool.drawing.polygon.move()
@@ -1657,7 +1657,7 @@ var Test = {
                     setTimeout(function () {
                         c(
                             'Draws a new polygon for merging',
-                            L_.layersGroup[layerId].filter(Boolean).length ==
+                            L_.layers.layer[layerId].filter(Boolean).length ==
                                 oldLength + 1
                         )
                         Test.tool.showContent('draw')
@@ -1724,7 +1724,7 @@ var Test = {
                 )
 
                 var oldLength =
-                    L_.layersGroup['DrawTool_1'].filter(Boolean).length
+                    L_.layers.layer['DrawTool_1'].filter(Boolean).length
                 Test_.mapEvent('click')
                 Test_.fireEvent('mousemove', 300, 300)
                 Test.tool.drawing.polygon.move()
@@ -1738,7 +1738,7 @@ var Test = {
                 setTimeout(function () {
                     c(
                         'Draws and saves a Lead ROI',
-                        L_.layersGroup['DrawTool_1'].filter(Boolean).length ==
+                        L_.layers.layer['DrawTool_1'].filter(Boolean).length ==
                             oldLength + 1
                     )
                 }, Test.timeout)
@@ -1756,7 +1756,7 @@ var Test = {
                     $('.drawToolDrawingTypePolygon').hasClass('active')
                 )
                 var oldLength =
-                    L_.layersGroup['DrawTool_2'].filter(Boolean).length
+                    L_.layers.layer['DrawTool_2'].filter(Boolean).length
                 Test_.mapEvent('click')
                 Test_.fireEvent('mousemove', 300, 300)
                 Test.tool.drawing.polygon.move()
@@ -1770,7 +1770,7 @@ var Test = {
                 setTimeout(function () {
                     c(
                         'Draws and saves a Lead Campaign',
-                        L_.layersGroup['DrawTool_2'].filter(Boolean).length ==
+                        L_.layers.layer['DrawTool_2'].filter(Boolean).length ==
                             oldLength + 1
                     )
 
@@ -1787,7 +1787,7 @@ var Test = {
                     setTimeout(function () {
                         c(
                             'Draws and saves another Lead Campaign',
-                            L_.layersGroup['DrawTool_2'].filter(Boolean)
+                            L_.layers.layer['DrawTool_2'].filter(Boolean)
                                 .length ==
                                 oldLength + 2
                         )
@@ -1807,7 +1807,7 @@ var Test = {
                     $('.drawToolDrawingTypePolygon').hasClass('active')
                 )
                 var oldLength =
-                    L_.layersGroup['DrawTool_3'].filter(Boolean).length
+                    L_.layers.layer['DrawTool_3'].filter(Boolean).length
                 Test_.mapEvent('click')
                 Test_.fireEvent('mousemove', 300, 300)
                 Test.tool.drawing.polygon.move()
@@ -1821,7 +1821,7 @@ var Test = {
                 setTimeout(function () {
                     c(
                         'Draws and saves a Lead Campsite',
-                        L_.layersGroup['DrawTool_3'].filter(Boolean).length ==
+                        L_.layers.layer['DrawTool_3'].filter(Boolean).length ==
                             oldLength + 1
                     )
                 }, Test.timeout)
@@ -1839,7 +1839,7 @@ var Test = {
                     $('.drawToolDrawingTypeLine').hasClass('active')
                 )
                 var oldLength =
-                    L_.layersGroup['DrawTool_4'].filter(Boolean).length
+                    L_.layers.layer['DrawTool_4'].filter(Boolean).length
                 Test_.mapEvent('click')
                 Test_.fireEvent('mousemove', 300, 300)
                 Test.tool.drawing.line.move()
@@ -1851,7 +1851,7 @@ var Test = {
                 setTimeout(function () {
                     c(
                         'Draws and saves a Lead Trail',
-                        L_.layersGroup['DrawTool_4'].filter(Boolean).length ==
+                        L_.layers.layer['DrawTool_4'].filter(Boolean).length ==
                             oldLength + 1
                     )
                 }, Test.timeout)
@@ -1869,13 +1869,13 @@ var Test = {
                     $('.drawToolDrawingTypePoint').hasClass('active')
                 )
                 var oldLength =
-                    L_.layersGroup['DrawTool_5'].filter(Boolean).length
+                    L_.layers.layer['DrawTool_5'].filter(Boolean).length
                 Test.tool.drawing.point.shape = { lat: -4.45, lng: 137.45 }
                 Test_.mapEvent('draw:drawstop')
                 setTimeout(function () {
                     c(
                         'Draws and saves a Lead Signpost',
-                        L_.layersGroup['DrawTool_5'].filter(Boolean).length ==
+                        L_.layers.layer['DrawTool_5'].filter(Boolean).length ==
                             oldLength + 1
                     )
 
@@ -1887,7 +1887,7 @@ var Test = {
                     setTimeout(function () {
                         c(
                             'Draws and saves another Lead Signpost',
-                            L_.layersGroup['DrawTool_5'].filter(Boolean)
+                            L_.layers.layer['DrawTool_5'].filter(Boolean)
                                 .length ==
                                 oldLength + 2
                         )

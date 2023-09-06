@@ -1,0 +1,338 @@
+#drawToolTemplater {
+}
+
+#drawToolTemplater > li {
+    list-style-type: none;
+    display: flex;
+    justify-content: space-between;
+    height: 30px;
+    margin-bottom: 8px;
+}
+
+#drawToolTemplater > li > div:first-child {
+    line-height: 30px;
+    padding-right: 10px;
+    width: 150px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+#drawToolTemplater > li input {
+    text-align: right;
+    font-size: 14px;
+}
+#drawToolTemplater > li textarea {
+    font-size: 14px;
+}
+
+#drawToolTemplater_setTime {
+    border-top: 1px solid var(--color-a1);
+    padding-top: 8px;
+    display: flex;
+}
+#drawToolTemplater_setTime > div:first-child {
+    display: flex;
+    margin-right: 4px;
+}
+#drawToolTemplater_setTime > div:last-child {
+    display: flex;
+    margin-left: 4px;
+}
+#drawToolTemplater_setTime > div {
+    display: flex !important;
+    justify-content: center;
+    text-align: center;
+    flex: 1;
+    background: var(--color-a1);
+    line-height: 26px !important;
+    cursor: pointer;
+    opacity: 0.4;
+    pointer-events: none;
+    transition: all 0.2s ease-in-out;
+}
+#drawToolTemplater_setTime > div > div {
+    line-height: 32px;
+    font-size: 13px;
+}
+#drawToolTemplater_setTime > div:hover {
+    color: white;
+    background: var(--color-a2);
+}
+#drawToolTemplater_setTime > div.active {
+    opacity: 1;
+    pointer-events: all;
+}
+#drawToolTemplater_setTime > div:first-child > i {
+    margin-right: 4px;
+    line-height: 30px;
+}
+#drawToolTemplater_setTime > div:last-child > i {
+    margin-left: 4px;
+    line-height: 30px;
+}
+
+.drawToolTemplatercheckbox .mmgis-checkbox {
+    margin-right: 5px;
+    margin-top: 5px;
+}
+
+.drawToolTemplaternumber {
+}
+.drawToolTemplatertextarea {
+    height: auto !important;
+}
+.drawToolTemplatertextarea textarea {
+    width: 100%;
+    min-height: 60px;
+    resize: vertical;
+    box-sizing: border-box;
+    margin-bottom: 4px;
+    color: var(--color-f) !important;
+    background: var(--color-i) !important;
+    font-size: 16px;
+    padding: 8px;
+    border: none;
+}
+
+.drawToolTemplaterrange {
+    position: relative;
+}
+.drawToolTemplaterrange > input {
+    margin-top: 7px;
+    padding: 6px 0px !important;
+}
+.drawToolTemplaterrange > span {
+    position: absolute;
+    top: 8px;
+    right: 7px;
+    font-size: 14px;
+    color: white;
+    z-index: 10;
+    pointer-events: none;
+    mix-blend-mode: difference;
+}
+
+.drawToolTemplaterdropdown .dropdown {
+    width: 340px;
+    height: 30px;
+    background: var(--color-a1);
+}
+.drawToolTemplaterdropdown .dropdown .dropy {
+    margin-bottom: 0;
+}
+.drawToolTemplaterdropdown .dropdown .dropy__title {
+    line-height: 9px;
+}
+.drawToolTemplaterdropdown .dropdown .dropy__title > i {
+    transform: translateY(30%);
+}
+
+#drawToolFileModalTemplateContainer {
+    background: var(--color-a-5);
+    margin-bottom: 0px !important;
+}
+#drawToolTemplaterDesignContentWrapper {
+    overflow-y: auto;
+    max-height: calc(80vh - 255px);
+    min-height: 320px;
+}
+#drawToolTemplaterDesignHeading {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px;
+    border-top: 1px solid var(--color-a1);
+}
+#drawToolTemplaterDesignHeadingName {
+    display: flex;
+    flex: 1;
+}
+#drawToolTemplaterDesignHeadingName > div {
+    line-height: 30px;
+    color: var(--color-blue);
+    padding-right: 8px;
+}
+#drawToolTemplaterDesignHeadingCancel {
+    margin: 0;
+    padding: 5px 6px;
+    background: var(--color-a2);
+}
+#drawToolTemplaterDesignHeadingCancel:hover {
+    background: var(--color-p4);
+}
+
+.drawToolTemplaterIsReadOnly #drawToolTemplaterDesignHeadingName > div {
+    font-size: 16px;
+    color: var(--color-mh);
+}
+
+#drawToolTemplaterDesignHeadingAdd {
+    width: 90px;
+    margin: 8px auto 0px auto;
+    border-radius: 15px;
+    padding: 6px 6px 4px 10px;
+    background: var(--color-a);
+    text-transform: uppercase;
+    font-size: 11px;
+    color: var(--color-a5);
+    transition: all 0.2s ease-in-out;
+    display: flex;
+    justify-content: center;
+}
+#drawToolTemplaterDesignHeadingAdd:hover {
+    background: var(--color-a1);
+    color: var(--color-a7);
+}
+#drawToolTemplaterDesignHeadingAdd > div:first-child {
+    line-height: 20px;
+}
+#drawToolTemplaterDesignHeadingAdd > div:last-child {
+    margin-left: 2px;
+}
+#drawToolTemplaterDesign {
+    padding-bottom: 8px;
+}
+#drawToolTemplaterDesign input[type='text'],
+#drawToolTemplaterDesign input[type='number'] {
+    flex: 1 1;
+    border: none;
+    padding: 0px 8px;
+    font-size: 14px;
+    height: 30px;
+    width: 100%;
+    background: var(--color-a1-5);
+    color: var(--color-a7);
+}
+.drawToolTemplaterLiBody_slider_default,
+.drawToolTemplaterLiBody_number_default,
+.drawToolTemplaterLiBody_text_regex {
+    flex: 1;
+}
+
+.drawToolTemplaterLi {
+    list-style-type: none;
+    padding-bottom: 5px;
+    margin: 0px 12px 4px 12px;
+    background: var(--color-a);
+    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.8);
+}
+.drawToolTemplaterLiHead {
+    display: flex;
+    justify-content: space-between;
+    height: 30px;
+    margin-bottom: 5px;
+}
+.drawToolTemplaterLiIdx {
+    height: 30px;
+    line-height: 30px;
+    min-width: 30px;
+    text-align: center;
+    font-size: 14px;
+    background: var(--color-a2);
+}
+.drawToolTemplaterLiField {
+    display: flex;
+    flex: 1;
+}
+.drawToolTemplaterLiField input {
+    width: 300px !important;
+}
+
+.drawToolTemplaterLiBodyDropdown_format,
+.drawToolTemplaterLiType > div {
+    width: 150px;
+    height: 30px;
+    background: var(--color-a2);
+}
+.drawToolTemplaterLiBodyDropdown_format {
+    width: 160px;
+}
+.drawToolTemplaterLiBodyDropdown_format .dropy,
+.drawToolTemplaterLiType > div .dropy {
+    margin-bottom: 0;
+}
+.drawToolTemplaterLiBodyDropdown_format .dropy__title {
+    line-height: 21px;
+    font-size: 11px;
+}
+.drawToolTemplaterLiType > div .dropy__title {
+    line-height: 13px;
+    font-size: 14px;
+}
+.drawToolTemplaterLiBodyDropdown_format .dropy__title > i,
+.drawToolTemplaterLiType > div .dropy__title > i {
+    transform: translateY(30%);
+}
+.drawToolTemplaterLiBody_date_default > input {
+    width: 125px;
+}
+.drawToolTemplaterDesignHeadingRemove {
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    cursor: pointer;
+    background: var(--color-a1);
+    transition: background 0.2s ease-in-out;
+}
+.drawToolTemplaterDesignHeadingRemove:hover {
+    background: var(--color-p4);
+}
+
+.drawToolTemplaterLiBody {
+    height: 30px;
+    padding: 0px 5px 0px 1px;
+}
+.drawToolTemplaterLiBody > div {
+    display: flex;
+}
+.drawToolTemplaterLiBody > div > div {
+    display: flex;
+}
+.drawToolTemplaterLiBody > div > div > div:first-child {
+    margin: 0px 8px 0px 8px;
+    line-height: 31px;
+    color: var(--color-mh);
+    font-size: 13px;
+}
+.drawToolTemplaterLiBody_dropdown > div {
+    width: 100%;
+}
+.drawToolTemplaterLiBody_dropdown_default {
+    width: auto !important;
+}
+
+.drawToolTemplaterLiBody_textarea_default {
+    flex: 1;
+}
+.drawToolTemplaterLiBody_text_default input {
+    width: 130px !important;
+}
+.drawToolTemplaterLiBody_number_default {
+}
+.drawToolTemplaterLiBody_number_min {
+}
+.drawToolTemplaterLiBody_number_max {
+}
+.drawToolTemplaterLiBody_number_step {
+}
+.drawToolTemplaterLiBody .mmgis-checkbox {
+    margin: 5px 3px !important;
+}
+.drawToolTemplaterLiBody_text_regex input {
+    width: 70px !important;
+}
+
+.drawToolTemplaterLiBody input[type='number'] {
+    width: 50px !important;
+}
+.drawToolTemplaterLiBody_number_default input[type='number'] {
+    width: 160px !important;
+}
+.drawToolTemplaterLiBody_slider_default input[type='number'] {
+    width: 227px !important;
+}
+.drawToolTemplaterLiBody_dropdown_default input[type='number'] {
+    width: 90px !important;
+}
+.drawToolTemplaterLiBody_incrementer_default {
+    width: 100%;
+}

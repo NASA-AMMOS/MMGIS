@@ -19,6 +19,7 @@
 
 import $ from 'jquery'
 import WebSocket from 'isomorphic-ws'
+import M from 'materialize-css'
 import F_ from './Basics/Formulae_/Formulae_'
 import T_ from './Basics/Test_/Test_'
 import L_ from './Basics/Layers_/Layers_'
@@ -103,7 +104,7 @@ $(document).keyup(function (e) {
     // On tab, add tab styles
     if (e.which == '9' && !tabFocusAdded) {
         document.styleSheets[0].insertRule(
-            '.toolButton:focus,#barBottom > i:focus,#topBarTitleName:focus,.mainInfo > div:focus,#mainDescription:focus,#SearchType:focus,#auto_search:focus,#loginoutButton:focus,#mapSplitInnerLeft:focus,#mapSplitInnerRight:focus,#globeSplitInnerLeft:focus,#globeSplitInnerRight:focus {border: 2px solid var(--color-mmgis) !important;}',
+            '.toolButton:focus,#barBottom > i:focus,#topBarTitleName:focus,.mainInfo > div:focus,#mainDescription:focus,#SearchType:focus,#auto_search:focus,#loginoutButton:focus,#mapSplitInnerLeft:focus,#mapSplitInnerRight:focus,#globeSplitInnerLeft:focus,#globeSplitInnerRight:focus {box-shadow: inset 0px 0px 0px 2px var(--color-mmgis) !important;}',
             1
         )
         tabFocusAdded = true
@@ -125,6 +126,181 @@ $(document.body).keydown(function (e) {
 var essence = {
     configData: null,
     hasSwapped: false,
+    ws: null,
+    initialWebSocketRetryInterval: 60000, // 1 minute
+    webSocketRetryInterval: 60000, // Start with this time and double if disconnected
+    webSocketPingInterval: null,
+    connectWebSocket: function (path, initial) {
+        // https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/readyState
+        if (
+            essence.ws === undefined ||
+            essence.ws === null ||
+            (essence.ws && essence.ws.readyState === 3)
+        ) {
+            essence.initWebSocket(path)
+
+            // If we're trying to start the WebSocket for the first time, we know we're not connected already
+            // so  we don't need to retry to connect yet
+            if (!initial) {
+                clearInterval(essence.webSocketPingInterval)
+                essence.webSocketRetryInterval =
+                    essence.webSocketRetryInterval * 2
+                essence.webSocketPingInterval = setInterval(
+                    essence.connectWebSocket,
+                    essence.webSocketRetryInterval,
+                    path,
+                    false
+                ) // 10 seconds
+            }
+        }
+    },
+    initWebSocket: function (path) {
+        essence.ws = new WebSocket(path)
+
+        essence.ws.onerror = function (e) {
+            console.log(`Unable to connect to WebSocket at ${path}`)
+
+            M.Toast.dismissAll()
+
+            const asMinutes = essence.webSocketRetryInterval / 60000 || ''
+            M.toast({
+                html: `Not connected to WebSocket. Retrying in ${
+                    asMinutes >= 1 ? parseInt(asMinutes) : asMinutes.toFixed(2)
+                } minute${asMinutes > 1 ? 's' : ''}...`,
+                displayLength: 10000,
+                classes: 'mmgisToast failure',
+            })
+        }
+
+        essence.ws.onopen = function () {
+            console.log('Websocket connection opened...')
+
+            UserInterface_.removeLayerUpdateButton()
+
+            M.Toast.dismissAll()
+
+            if (
+                essence.webSocketRetryInterval >
+                essence.initialWebSocketRetryInterval
+            ) {
+                /*
+                M.toast({
+                    html: 'Successfully connected to WebSocket',
+                    displayLength: 1600,
+                    classes: 'mmgisToast',
+                })
+                */
+
+                essence.webSocketRetryInterval =
+                    essence.initialWebSocketRetryInterval
+                clearInterval(essence.webSocketPingInterval)
+                essence.webSocketPingInterval = setInterval(
+                    essence.connectWebSocket,
+                    essence.webSocketRetryInterval,
+                    path,
+                    false
+                ) // 1 minute
+            }
+        }
+
+        essence.ws.onmessage = function (data) {
+            if (data.data) {
+                try {
+                    const parsed = JSON.parse(data.data)
+                    const mission = essence.configData.msv.mission
+
+                    if (
+                        !parsed.body.mission ||
+                        parsed.body.mission !== mission
+                    ) {
+                        return
+                    }
+
+                    if ('info' in parsed) {
+                        const { type, layerName } = parsed.info
+
+                        if (
+                            type === 'addLayer' ||
+                            type === 'updateLayer' ||
+                            type === 'removeLayer'
+                        ) {
+                            calls.api(
+                                'get',
+                                {
+                                    mission,
+                                },
+                                async function (data) {
+                                    if (Array.isArray(layerName)) {
+                                        // If we're adding an array of new layers, add each layer to the queue individually
+                                        for (let layer in layerName) {
+                                            L_.addLayerQueue.push({
+                                                newLayerName: layerName[layer],
+                                                data,
+                                                type,
+                                            })
+                                        }
+                                    } else {
+                                        // Otherwise only a single new layer was added
+                                        L_.addLayerQueue.push({
+                                            newLayerName: layerName,
+                                            data,
+                                            type,
+                                        })
+                                    }
+
+                                    if (parsed.forceClientUpdate) {
+                                        // Force update the client side
+                                        await L_.updateQueueLayers()
+                                    } else {
+                                        UserInterface_.updateLayerUpdateButton(
+                                            'ADD_LAYER'
+                                        )
+                                    }
+                                },
+                                function (e) {
+                                    console.warn(
+                                        "Warning: Couldn't load: " +
+                                            mission +
+                                            ' configuration.'
+                                    )
+                                }
+                            )
+                        } else {
+                            if (parsed.body && parsed.body.config) {
+                                UserInterface_.updateLayerUpdateButton('RELOAD')
+                            }
+                        }
+                    } else {
+                        if (parsed.body && parsed.body.config) {
+                            UserInterface_.updateLayerUpdateButton('RELOAD')
+                        }
+                    }
+
+                    // Dispatch `websocketChange` event
+                    let _event = new CustomEvent('websocketChange', {
+                        detail: {
+                            layer:
+                                typeof layerName !== 'undefined'
+                                    ? layerName
+                                    : null,
+                            type: typeof type !== 'undefined' ? type : null,
+                            data: parsed,
+                        },
+                    })
+                    document.dispatchEvent(_event)
+                } catch (e) {
+                    console.warn(
+                        `Error parsing data from MMGIS websocket: ${e}`
+                    )
+                }
+            }
+        }
+
+        essence.ws.onclose = function () {
+            console.log('Closed websocket connection...', new Date())
+            UserInterface_.updateLayerUpdateButton('DISCONNECTED')
+        }
+    },
     init: function (config, missionsList, swapping) {
         //Save the config data
         this.configData = config
@@ -209,101 +385,29 @@ var essence = {
             window.mmgisglobal.PORT &&
             window.mmgisglobal.ENABLE_MMGIS_WEBSOCKETS === 'true'
         ) {
-            const port = parseInt(process.env.PORT || '8888', 10)
+            const port = parseInt(window.mmgisglobal.PORT || '8888', 10)
             const protocol =
                 window.location.protocol.indexOf('https') !== -1 ? 'wss' : 'ws'
             const path =
                 window.mmgisglobal.NODE_ENV === 'development'
-                    ? `${protocol}://localhost:${port}/`
-                    : `${protocol}://${window.location.host}/`
+                    ? `${protocol}://localhost:${port}${
+                          window.mmgisglobal.WEBSOCKET_ROOT_PATH ||
+                          window.mmgisglobal.ROOT_PATH ||
+                          ''
+                      }/`
+                    : `${protocol}://${window.location.host}${
+                          window.mmgisglobal.WEBSOCKET_ROOT_PATH ||
+                          window.mmgisglobal.ROOT_PATH ||
+                          ''
+                      }/`
 
-            const ws = new WebSocket(path)
-
-            ws.onmessage = function (data) {
-                if (data.data) {
-                    try {
-                        const parsed = JSON.parse(data.data)
-                        const mission = essence.configData.msv.mission
-
-                        if (
-                            !parsed.body.mission ||
-                            parsed.body.mission !== mission
-                        ) {
-                            return
-                        }
-
-                        if ('info' in parsed) {
-                            const { type, layerName } = parsed.info
-
-                            if (
-                                type === 'addLayer' ||
-                                type === 'updateLayer' ||
-                                type === 'removeLayer'
-                            ) {
-                                calls.api(
-                                    'get',
-                                    {
-                                        mission,
-                                    },
-                                    async function (data) {
-                                        if (parsed.forceClientUpdate) {
-                                            // Force update the client side
-                                            await L_.autoUpdateLayer(
-                                                data,
-                                                layerName,
-                                                type
-                                            )
-                                        } else {
-                                            L_.addLayerQueue.push({
-                                                newLayerName: layerName,
-                                                data,
-                                                type,
-                                            })
-
-                                            UserInterface_.updateLayerUpdateButton(
-                                                'ADD_LAYER'
-                                            )
-                                        }
-                                    },
-                                    function (e) {
-                                        console.warn(
-                                            "Warning: Couldn't load: " +
-                                                mission +
-                                                ' configuration.'
-                                        )
-                                    }
-                                )
-                            }
-                        } else {
-                            if (parsed.body && parsed.body.config) {
-                                UserInterface_.updateLayerUpdateButton('RELOAD')
-                            }
-                        }
-
-                        // Dispatch `websocketChange` event
-                        let _event = new CustomEvent('websocketChange', {
-                            detail: {
-                                layer:
-                                    typeof layerName !== 'undefined'
-                                        ? layerName
-                                        : null,
-                                type: typeof type !== 'undefined' ? type : null,
-                                data: parsed,
-                            },
-                        })
-                        document.dispatchEvent(_event)
-                    } catch (e) {
-                        console.warn(
-                            `Error parsing data from MMGIS websocket: ${e}`
-                        )
-                    }
-                }
-            }
-
-            ws.onclose = function () {
-                console.log('Closed websocket connection...')
-                UserInterface_.updateLayerUpdateButton('DISCONNECTED')
-            }
+            essence.connectWebSocket(path, true)
+            essence.webSocketPingInterval = setInterval(
+                essence.connectWebSocket,
+                essence.webSocketRetryInterval,
+                path,
+                false
+            ) // 10 seconds
         }
     },
     swapMission(to) {

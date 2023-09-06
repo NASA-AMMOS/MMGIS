@@ -11,6 +11,8 @@
   https://github.com/xtk93x/Leaflet.TileLayer.ColorFilter
 */
 
+import F_ from '../../Basics/Formulae_/Formulae_'
+
 var colorFilterExtension = {
     intialize: function (url, options) {
         L.TileLayer.prototype.initialize.call(this, url, options)
@@ -22,8 +24,10 @@ var colorFilterExtension = {
             .replace(/{time}/g, this.options.time)
             .replace(/{starttime}/g, this.options.starttime)
             .replace(/{endtime}/g, this.options.endtime)
-
-        if (this.options.time) url += `?time=${this.options.endtime}`
+        if (this.options.time && this.options.tileFormat === 'tms') {
+            url += `?starttime=${this.options.starttime}&time=${this.options.endtime}`
+            if (this.options.compositeTile === true) url += `&composite=true`
+        }
         return url
     },
     colorFilter: function () {
@@ -89,6 +93,37 @@ var colorFilterExtension = {
         if (this._container) {
             this._container.style.filter = this.colorFilter()
             this._container.style['mix-blend-mode'] = this.colorBlend()
+        }
+    },
+    // Reduces tile flicker. This and refresh() from https://github.com/Leaflet/Leaflet/issues/6659#issuecomment-813328622
+    _refreshTileUrl: function (tile, url) {
+        //use a image in background, so that only replace the actual tile, once image is loaded in cache!
+        let img = new Image()
+        img.onload = function (e) {
+            L.Util.requestAnimFrame(function () {
+                tile.el.src = url
+                tile.el.style.opacity = 1
+            })
+        }
+        img.onerror = function (e) {
+            tile.el.src = F_.getBase64Transparent256Tile()
+            tile.el.style.opacity = 0
+        }
+        img.src = url
+    },
+    refresh: function () {
+        if (this._map == null) return
+
+        for (let key in this._tiles) {
+            const tile = this._tiles[key]
+            if (tile.current && tile.active) {
+                const oldsrc = tile.el.src
+                const newsrc = this.getTileUrl(tile.coords)
+                if (oldsrc != newsrc) {
+                    //L.DomEvent.off(tile, 'load', this._tileOnLoad); ... this doesnt work!
+                    this._refreshTileUrl(tile, newsrc)
+                }
+            }
         }
     },
 }
@@ -232,7 +267,7 @@ L.TileLayer.ColorFilter = L.TileLayer.extend(colorFilterExtension)
 
 // We can't extend an already extended so we'll merge by hand
 L.TileLayer.WMSColorFilter = L.TileLayer.extend(
-    Object.assign(wmsExtension, colorFilterExtension)
+    Object.assign(colorFilterExtension, wmsExtension)
 )
 
 L.tileLayer.colorFilter = function (url, options) {
@@ -243,9 +278,15 @@ L.tileLayer.colorFilter = function (url, options) {
         const wmsOptions = {}
         const urlParams = new URLSearchParams(urlParamString)
         const entries = urlParams.entries()
+
         for (const entry of entries) {
             wmsOptions[entry[0].toUpperCase()] = entry[1]
         }
+        if (wmsOptions.TILESIZE != null) {
+            wmsOptions.tileSize = parseInt(wmsOptions.TILESIZE)
+            delete wmsOptions.TILESIZE
+        }
+
         if (wmsOptions.LAYERS == null)
             console.warn(
                 `WARNING: WMS layer has no "layers" parameter in the url - ${url}`
@@ -255,5 +296,7 @@ L.tileLayer.colorFilter = function (url, options) {
     }
 
     url = url.replace(/{t}/g, '_time_')
-    return new L.TileLayer.ColorFilter(url, options)
+    const tileLayer = new L.TileLayer.ColorFilter(url, options)
+
+    return tileLayer
 }

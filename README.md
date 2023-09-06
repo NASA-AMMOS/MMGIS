@@ -35,19 +35,12 @@
 
 ### System Requirements
 
-1. Install the latest version of [Node.js v14.9.0+](https://nodejs.org/en/download/). Developed with v16.13.2. Note that v18+ of Node.js fails to build.
+1. Install the latest version of [Node.js v16.13.2+](https://nodejs.org/en/download/).
 
 1. Install [PostgreSQL v10.14+](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads). Detailed [install instructions](https://www.postgresqltutorial.com/postgresql-getting-started/) for all platforms.
 1. Install [PostGIS 2.5+](https://postgis.net/install/). From the above install, you can use the 'Application Stack Builder' to install PostGIS or the default [PostGIS install instructions](https://postgis.net/install/) for all platforms.
 1. Make a new PostgreSQL database and remember the user, password and database name.
    Use 'pgsl' or the 'SQL Shell' to log into Postgres. It will prompt you for the username and password made during the install.
-
-   Issue the following commands:  
-    `CREATE DATABASE mmgis;`  
-    `\c mmgis`  
-    `CREATE EXTENSION postgis;`  
-    `exit`  
-   In the above `\c` attaches to the database and `CREATE EXTENSION` enables PostGIS by creating a spatial reference table within that database.
 
 1. GDAL and Python are weaker dependencies (desirable but, without them, not everything will work)
 
@@ -150,7 +143,7 @@ This repo contains a `docker-compose.yml` file that defines a service for the ap
 
 ### License: Apache 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
 
-Copyright (c) 2022, California Institute of Technology ("Caltech"). U.S. Government sponsorship acknowledged.
+Copyright (c) 2023, California Institute of Technology ("Caltech"). U.S. Government sponsorship acknowledged.
 
 All rights reserved.
 

@@ -15,8 +15,8 @@ const sequelize = new Sequelize(
       max: 10,
       min: 0,
       acquire: 30000,
-      idle: 10000
-    }
+      idle: 10000,
+    },
   }
 );
 
@@ -30,7 +30,7 @@ sequelize
       "connection"
     );
   })
-  .catch(err => {
+  .catch((err) => {
     logger(
       "infrastructure_error",
       "Unable to connect to the database.",

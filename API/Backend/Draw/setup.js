@@ -1,12 +1,14 @@
 const routeFiles = require("./routes/files");
 const routerFiles = routeFiles.router;
 const routerDraw = require("./routes/draw").router;
+const ufiles = require("./models/userfiles");
+const file_histories = require("./models/filehistories");
 
 let setup = {
   //Once the app initializes
   onceInit: (s) => {
     s.app.use(
-      "/API/files",
+      s.ROOT_PATH + "/API/files",
       s.ensureUser(),
       s.checkHeadersCodeInjection,
       s.setContentType,
@@ -15,7 +17,7 @@ let setup = {
     );
 
     s.app.use(
-      "/API/draw",
+      s.ROOT_PATH + "/API/draw",
       s.ensureUser(),
       s.checkHeadersCodeInjection,
       s.setContentType,
@@ -27,6 +29,12 @@ let setup = {
   onceStarted: (s) => {},
   //Once all tables sync
   onceSynced: (s) => {
+    if (typeof file_histories.up === "function") {
+      file_histories.up();
+    }
+    if (typeof ufiles.up === "function") {
+      ufiles.up();
+    }
     routeFiles.makeMasterFiles([
       "roi",
       "campaign",

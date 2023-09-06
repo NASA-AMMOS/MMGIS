@@ -41,7 +41,7 @@
 }
 
 .drawToolButton1 {
-    background: var(--color-o);
+    background: #067ca7;
     padding: 3px 8px;
     margin: 5px 0px;
     text-align: center;
@@ -237,46 +237,61 @@
     border-bottom: 1px solid var(--color-mmgis);
     border-left: 1px solid var(--color-mmgis);
 }
-#drawToolDrawFilesNew {
+#drawToolDrawFilesNewUpload {
     cursor: pointer;
-    width: 30px;
+    flex: 1;
+    line-height: 26px;
     height: 30px;
     background: var(--color-a1);
-    color: var(--color-a7);
-    line-height: 30px;
+    color: var(--color-a6);
     text-align: center;
     border-bottom: 1px solid rgba(0, 0, 0, 0.3);
-    transition: color 0.2s ease-out;
+    transition: background 0.2s ease-out;
+    display: flex;
+    justify-content: center;
+    border-right: 1px solid var(--color-a1-5);
+}
+#drawToolDrawFilesNewUpload:hover {
+    background: var(--color-a2);
+    color: var(--color-a7);
+}
+#drawToolDrawFilesNewUpload > div:first-child {
+    line-height: 31px;
+    font-size: 10px;
+}
+#drawToolDrawFilesNewUpload > div:last-child {
+    line-height: 30px;
+    margin-left: 2px;
+}
+#drawToolDrawFilesNew {
+    cursor: pointer;
+    flex: 1;
+    line-height: 26px;
+    height: 30px;
+    background: var(--color-a1);
+    color: var(--color-a6);
+    text-align: center;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+    transition: background 0.2s ease-out;
+    display: flex;
+    justify-content: center;
+    border-left: 1px solid var(--color-a1-5);
+}
+#drawToolDrawFilesNew:hover {
+    background: var(--color-a2);
+    color: var(--color-a7);
+}
+#drawToolDrawFilesNew > div:first-child {
+    line-height: 31px;
+    font-size: 10px;
+}
+#drawToolDrawFilesNew > div:last-child {
+    line-height: 30px;
+    margin-left: 2px;
 }
 
 #drawToolDrawFilesNewName:focus ~ #drawToolDrawFilesNew {
     background: var(--color-mmgis);
-}
-#drawToolDrawFilesNewLoading {
-    width: calc(100% - 14px);
-    height: 2px;
-    position: absolute;
-    top: 36px;
-    left: 7px;
-    overflow: hidden;
-    opacity: 0;
-    transition: opacity 0.1s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-}
-#drawToolDrawFilesNewLoading > div {
-    width: 30%;
-    height: 100%;
-    background: #1169d3;
-    animation: drawToolLoading1 1s ease-in-out infinite;
-}
-@keyframes drawToolLoading1 {
-    0% {
-        transform: translateX(-100%);
-        width: 30%;
-    }
-    100% {
-        transform: translateX(230%);
-        width: 60%;
-    }
 }
 
 .drawToolFileDelete {
@@ -564,6 +579,7 @@
     height: 100%;
     display: flex;
     flex-flow: column;
+    position: relative;
 }
 
 #drawToolMaster {
@@ -969,6 +985,9 @@
     color: black;
     font-weight: bold;
 }
+.drawToolShapeLi.temporallyHidden {
+    display: none !important;
+}
 
 .drawToolShapeLiItem {
     cursor: pointer;
@@ -1228,16 +1247,11 @@
     margin-bottom: 8px;
     flex-flow: column;
 }
-.drawToolContextMenuPropertiesName > div {
-    height: 30px;
-    line-height: 30px;
-}
 .drawToolContextMenuPropertiesDescription {
     flex-flow: column;
-}
-.drawToolContextMenuPropertiesDescription > div {
-    height: 30px;
-    line-height: 30px;
+    border-bottom: 1px solid var(--color-a1);
+    padding-bottom: 8px;
+    margin-bottom: 8px;
 }
 #drawToolContextMenuPropertiesDescription {
     width: 100%;
@@ -1353,17 +1367,42 @@
     font-size: 12px;
     padding: 0px 5px 0px 9px;
 }
+.drawToolFileEditListEditors {
+    height: 31px;
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+    box-sizing: initial;
+}
+.drawToolFileEditListEditors > div {
+    line-height: 31px;
+    padding: 0px 8px;
+    font-size: 12px;
+    color: var(--color-a4);
+}
+.drawToolFileEditListEditors > input {
+    width: 180px;
+    height: 31px;
+    background: var(--color-a1-5);
+    border: none;
+    padding: 0px 8px;
+    font-size: 14px;
+    color: var(--color-mw2);
+    flex: 1 1;
+    border-left: 1px solid black;
+    transition: background 0.2s ease-out, border 0.2s ease-out;
+}
 .drawToolFileEditOnDescription {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 5px;
 }
 .drawToolFileDesc {
     background: var(--color-a);
     border: none;
     border-top: 1px solid black;
     color: var(--color-f);
-    min-width: 411px;
+    min-width: 452px;
     max-width: 750px;
     min-height: 100px;
     max-height: 400px;
@@ -1991,7 +2030,6 @@
     transition: height 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 #drawToolHistorySequenceList {
-    margin: 0px 2px 0px 5px;
     flex: 1;
     overflow-y: auto;
 }
@@ -2005,8 +2043,8 @@
 #drawToolHistorySequenceList > ul > li {
     color: var(--color-f);
     background: rgba(0, 0, 0, 0);
-    border-bottom: 1px solid rgba(0, 0, 17, 0.25);
-    padding: 2px 5px;
+    border-top: 1px solid var(--color-a1-5);
+    padding: 3px 8px;
     font-size: 13px;
     cursor: pointer;
     transition: background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
@@ -2195,35 +2233,6 @@
 #drawToolDrawPublished > div.on .drawToolDrawPublishedCheckbox {
     border: none;
     background: var(--color-c);
-}
-
-#drawToolFileUpload {
-    cursor: pointer;
-    width: 30px;
-    height: 30px;
-    background: var(--color-a1);
-    color: var(--color-a5);
-    border-right: 1px solid var(--color-a);
-    box-sizing: border-box;
-    line-height: 30px;
-    text-align: center;
-    transition: background 0.2s ease-out;
-}
-#drawToolFileUpload:hover {
-    color: var(--color-a7);
-    background: var(--color-a2);
-}
-#drawToolFileUpload i {
-    cursor: pointer;
-    pointer-events: none;
-}
-#drawToolFileUpload input {
-    position: absolute;
-    left: 7px;
-    top: 7px;
-    opacity: 0;
-    height: 30px;
-    width: 26px;
 }
 
 .leaflet-marker-icon.leaflet-div-icon.leaflet-editing-icon.leaflet-touch-icon.leaflet-zoom-animated.leaflet-interactive.leaflet-marker-draggable {
@@ -2537,10 +2546,176 @@
     display: none;
     background: var(--color-k);
     color: var(--color-f);
-    padding: 15px;
+    padding: 10px;
     overflow-y: auto;
     height: calc(100vh - 186px);
 }
 .drawToolContextMenuTab.active {
     display: inherit;
+}
+
+.drawToolContextMenuPropertiesTitle {
+    height: 30px;
+    line-height: 30px;
+    color: var(--color-query);
+}
+.drawToolContextMenuPropertiesExtended {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--color-a1);
+}
+.drawToolContextMenuPropertiesExtended > li {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 0px;
+}
+
+#drawToolContextMenuPropertiesTemplate {
+    border-bottom: 1px solid var(--color-a1);
+    margin-bottom: 12px;
+}
+
+.drawToolFileTemplate {
+}
+.drawToolFileTemplate > div:first-child {
+}
+.drawToolFileTemplate > div:last-child {
+    display: flex;
+    cursor: pointer;
+}
+.drawToolFileTemplate > div:last-child > div {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}
+
+.drawToolFileTemplate > div:last-child > i {
+    background: var(--color-a6);
+    color: var(--color-a-5);
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    text-align: center;
+    line-height: 16px;
+    margin-left: 4px;
+    margin-top: -2px;
+    transition: background 0.2s ease-in-out;
+}
+.drawToolFileTemplate > div:last-child:hover > i {
+    background: var(--color-c);
+}
+
+#cmExportGeoJSON,
+#cmExportSourceGeoJSON {
+    display: block;
+}
+#cmExportGeoJSON > div:last-child,
+#cmExportSourceGeoJSON > div:last-child {
+    font-size: 12px;
+    text-align: right;
+}
+
+/*FILE INFO TEMPLATE MODAL*/
+#drawToolFileTemplateEditModal {
+    background: var(--color-a-5);
+    min-width: 624px;
+}
+#drawToolFileTemplateEditModalTitle {
+    padding: 0px 0px 0px 10px;
+    height: 40px;
+    line-height: 39px;
+    font-size: 18px;
+    background: var(--color-i);
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    display: flex;
+    justify-content: space-between;
+}
+#drawToolFileTemplateEditModalTitle > div:first-child {
+    display: flex;
+}
+#drawToolFileTemplateEditModalTitle > div:first-child > div {
+    margin-left: 6px;
+    line-height: 40px;
+}
+#drawToolFileTemplateEditModalClose {
+    width: 40px;
+    height: 40px;
+    text-align: center;
+}
+#drawToolFileTemplateEditModalActions {
+    display: flex;
+    padding: 6px 10px;
+    justify-content: space-between;
+    background: var(--color-a1);
+    border-top: 1px solid var(--color-a);
+}
+#drawToolFileTemplateEditModalActions > div {
+    width: 70px;
+    height: 35px;
+    line-height: 30px;
+    margin: 0;
+}
+#drawToolFileTemplateEditModalActionsCancel {
+    background: var(--color-a1);
+}
+
+.drawToolContextMenuPropertiesCollapsible
+    > .drawToolContextMenuPropertiesTitle {
+    display: flex;
+    justify-content: space-between;
+    cursor: pointer;
+}
+.drawToolContextMenuPropertiesCollapsible
+    > .drawToolContextMenuPropertiesTitle
+    > i {
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.drawToolContextMenuPropertiesCollapsible
+    > .drawToolContextMenuPropertiesTitle:hover
+    > i {
+    color: var(--color-c);
+}
+.drawToolContextMenuPropertiesCollapsible.state-collapsed
+    > .drawToolContextMenuPropertiesTitle
+    > i {
+    transform: rotateZ(-90deg);
+}
+.drawToolContextMenuPropertiesCollapsible.state-collapsed > div:last-child {
+    display: none;
+}
+
+/*files loading spinner*/
+#drawToolFilesLoadingSpinner {
+    position: absolute;
+    pointer-events: none;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+#drawToolFilesLoadingSpinner.on {
+    opacity: 1;
+}
+
+#DrawTool_TimeToggle {
+    position: absolute;
+    bottom: 45px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    background: var(--color-a);
+    border-radius: 2px;
+    height: 24px;
+    line-height: 18px;
+    padding: 3px 3px;
+    font-size: 13px;
+    box-shadow: 0px 4px 3px 0px rgba(0,0,0,0.2);
+}
+#DrawTool_TimeToggle > div:first-child {
+    padding: 0px 6px 0px 5px;
+    letter-spacing: 1px;
+}
+#DrawTool_TimeToggle_switch {
+    top: -14px;
 }

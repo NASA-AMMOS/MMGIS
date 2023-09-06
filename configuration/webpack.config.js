@@ -24,12 +24,19 @@ const getClientEnvironment = require("./env");
 const ModuleNotFoundPlugin = require("react-dev-utils/ModuleNotFoundPlugin");
 const ForkTsCheckerWebpackPlugin = require("react-dev-utils/ForkTsCheckerWebpackPlugin");
 const typescriptFormatter = require("react-dev-utils/typescriptFormatter");
-const BundleAnalyzerPlugin =
-  require("webpack-bundle-analyzer").BundleAnalyzerPlugin;
+const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
 
 const postcssNormalize = require("postcss-normalize");
 
 const appPackageJson = require(paths.appPackageJson);
+
+// This is a hack so that node v18+ can run.
+// "md4" hashes are no longer supported so before everything runs, we override them to be "sha256"
+const crypto = require("crypto");
+const crypto_orig_createHash = crypto.createHash;
+crypto.createHash = (algorithm) =>
+  crypto_orig_createHash(algorithm === "md4" ? "sha256" : algorithm);
+// end hack
 
 // Source maps are resource heavy and can cause out of memory issue for large source files.
 const shouldUseSourceMap = process.env.GENERATE_SOURCEMAP !== "false";
@@ -86,11 +93,11 @@ module.exports = function (webpackEnv) {
           : { publicPath: paths.publicUrlOrPath },
       },
       isEnvProduction &&
-        process.env.PUBLIC_URL && {
+         {
           loader: "string-replace-loader",
           options: {
             search: /url\(\/public\//g,
-            replace: `url(${process.env.PUBLIC_URL}/`,
+            replace: `url(../../../public/`,
           },
         },
       {

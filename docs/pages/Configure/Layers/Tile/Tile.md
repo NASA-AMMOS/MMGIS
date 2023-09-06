@@ -37,7 +37,7 @@ The format of the tiles.
 
 - TMS: Tile Map Service tiles are 256x256 sized images hierarchically organized by zoom level and referenced with x and y coordinates. These are the standard format for web tiles and are the format that MMGIS's auxiliary tiling scripts output. Append `/{z}/{x}/{y}.png` to your `URL`.
 - WMTS: Web Map Tile Service is the same exact concept as TMS but it has an inverted Y-axis. Just like TMS, append `/{z}/{x}/{y}.png` to your `URL`.
-- WMS: Web Map Service tiles are a popular way of publishing maps by professional GIS software. This format is similar to the previous two formats, but more generic and not so well optimized for use in web maps. A WMS image is defined by the coordinates of its corners. A layer (or list of layers) should be provided as an options by appending `?layers=<your_layer_name><,another_if_you _want>` to your `URL`. To override WMS parameters append `&<wms_param>=<value>` again to the `URL` after the "layers" parameters.
+- WMS: Web Map Service tiles are a popular way of publishing maps by professional GIS software. This format is similar to the previous two formats, but more generic and not so well optimized for use in web maps. A WMS image is defined by the coordinates of its corners. A layer (or list of layers) should be provided as an options by appending `?layers=<your_layer_name><,another_if_you _want>` to your `URL`. To override WMS parameters append `&<wms_param>=<value>` again to the `URL` after the "layers" parameters. If desired, use `&TILESIZE=` to change the tile size of the request and layer away from the default of 256.
   _Example URL: `http://ows.mundialis.de/services/service?layers=TOPO-WMS,OSM-Overlay-WMS`_
 
 #### Initial Visibility
@@ -87,3 +87,9 @@ Whether the layer should use global time values or function independently with i
 
 _type:_ string _optional_  
 The string format to be used in the URL for `{time}`. Defaults to `%Y-%m-%dT%H:%M:%SZ`.
+
+#### Composited Time Tile
+
+_type:_ boolean
+
+When using MMGIS-served time tiles (time enabled, `{t}` in the url, tiles served under /Missions in the format described in Time_Tiles), whether to composite/merge each tile with with the other tiles are the same location across the time query. This is useful when Time Tile data is sparse. It is a more expensive operation. If your Time Tiles are complete (no alpha in a tile), leave this False as merging tiles historically would have no effect.

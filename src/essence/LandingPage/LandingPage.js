@@ -24,6 +24,18 @@ export default {
             if (missions.length == 1 && !forceLanding) missionUrl = missions[0]
         }
 
+        if (
+            missionUrl == false &&
+            !forceLanding &&
+            mmgisglobal.MAIN_MISSION != null &&
+            mmgisglobal.MAIN_MISSION != '' &&
+            mmgisglobal.MAIN_MISSION != 'undefined' &&
+            typeof mmgisglobal.MAIN_MISSION === 'string' &&
+            mmgisglobal.MAIN_MISSION.length > 0
+        ) {
+            missionUrl = mmgisglobal.MAIN_MISSION
+        }
+
         if (missionUrl == false && !forceConfig) {
             var background = d3
                 .select('body')

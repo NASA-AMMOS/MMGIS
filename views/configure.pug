@@ -32,13 +32,19 @@ script.
     mmgisglobal.SHOW_AUTH_TIMEOUT = true;
     mmgisglobal.user = '#{user}';
     mmgisglobal.NODE_ENV = '#{NODE_ENV}';
+    mmgisglobal.ROOT_PATH = '#{ROOT_PATH}';
+    mmgisglobal.WEBSOCKET_ROOT_PATH = '#{WEBSOCKET_ROOT_PATH}';
+    mmgisglobal.PORT = '#{PORT}'
+    mmgisglobal.ENABLE_CONFIG_WEBSOCKETS = '#{ENABLE_CONFIG_WEBSOCKETS}'
+    mmgisglobal.ENABLE_CONFIG_OVERRIDE = '#{ENABLE_CONFIG_OVERRIDE}'
 script(type='text/javascript' src='config/js/calls.js')
 script(type='text/javascript' src='config/js/keys.js')
 script(type='text/javascript' src='config/js/datasets.js')
 script(type='text/javascript' src='config/js/geodatasets.js')
 script(type='text/javascript' src='config/js/webhooks.js')
 script(type='text/javascript' src='config/js/config.js')
-script(type='text/javascript' src='src/pre/RefreshAuth.js')
+script(type='text/javascript' src='config/js/websocket.js')
+script(type='text/javascript' src='config/pre/RefreshAuth.js')
 
 #leftPanel
   #tbtitle
@@ -119,7 +125,7 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
           li.tab.col.s1
             a(href='#tab_time') Time
       #tab_overall.col.s12
-        a.helpFromDocs(href='docs/?page=Overall_Tab' target='__blank' rel='noopener')
+        a.helpFromDocs(href='https://nasa-ammos.github.io/MMGIS/configure/tabs/overall' target='__blank' rel='noopener')
           i.mdi.mdi-help.mdi-14px
         ul#tab_overall_rows
           li.row
@@ -136,8 +142,12 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
           a#delete_mission.modal-trigger.btn.waves-effect.waves-light.red.darken-3.col.s2.push-s2(href='#delete_modal' style='border-radius: 0px; padding: 1px 0.5rem 0 0.5rem; font-size: 12px; line-height: 35px;')
             | Delete Mission
             i.mdi.mdi-delete.mdi-18px(style='float: right; margin-top: -1px;')
+          li.row(style='margin-top: 64px;')
+            a#download_working_config.btn.waves-effect.waves-light.brown.darken-3.col.s2.push-s5(style='border-radius: 0px; padding: 1px 0.5rem 0 0.5rem; font-size: 12px; line-height: 35px;')
+              | Export unsaved config.json
+              i.mdi.mdi-download.mdi-18px(style='float: right; margin-top: -1px;')
       #tab_initial.col.s12
-        a.helpFromDocs(href='docs/?page=Initial_Tab' target='__blank' rel='noopener')
+        a.helpFromDocs(href='https://nasa-ammos.github.io/MMGIS/configure/tabs/initial' target='__blank' rel='noopener')
           i.mdi.mdi-help.mdi-14px
         ul#tab_initial_rows
           li.row
@@ -173,7 +183,7 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
               input#imapScale.validate(type='text' value='')
               label(for='imapScale') Zoom Level of Map Scale
       #tab_projection.col.s12(style='padding-bottom: 15px;')
-        a.helpFromDocs(href='docs/?page=Projection_Tab' target='__blank' rel='noopener')
+        a.helpFromDocs(href='https://nasa-ammos.github.io/MMGIS/configure/tabs/projection' target='__blank' rel='noopener')
           i.mdi.mdi-help.mdi-14px
         ul#tab_projection_rows
           li.row
@@ -222,7 +232,7 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
                 label(for='projection_res') the units per pixel are
 
       #tab_coordinates.col.s12
-        a.helpFromDocs(href='docs/?page=Coordinates_Tab' target='__blank' rel='noopener')
+        a.helpFromDocs(href='https://nasa-ammos.github.io/MMGIS/configure/tabs/coordinates' target='__blank' rel='noopener')
           i.mdi.mdi-help.mdi-14px
         ul#tab_coordinates_rows
           li.row.title
@@ -325,9 +335,18 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
             #coordinates_coordelevurlEl.input-field.col.s7.push-s1
               input#coordinates_coordelevurl.validate(type='text' value='')
               label(for='coordinates_coordelevurl') DEM URL
+          li.row.title(style='margin-top: 45px;')
+            .col.s2.push-s1 Raw Variables
+            .col.s6.push-s3(style='text-align: center; background-color: rgba(0,0,0,0.06); position: relative; padding: 0;')
+              a.waves-effect.waves-light.modal-trigger(href='#coordinatesVariables_modal' style='color: #111; width: 100%;') Click for configuration documentation 
+              i.mdi.mdi-information.mdi-18px(style='position: absolute; right: 2px; top: -2px; color: #444;')
+
+          li.row(style='padding-bottom: 0px;') 
+            #coordinates_variablseEl.input-field.col.s10.push-s1
+              textarea#coordinatesVariables
 
       #tab_look.col.s12
-        a.helpFromDocs(href='docs/?page=Look_Tab' target='__blank' rel='noopener')
+        a.helpFromDocs(href='https://nasa-ammos.github.io/MMGIS/configure/tabs/look' target='__blank' rel='noopener')
           i.mdi.mdi-help.mdi-14px
         ul#tab_look_rows
           li.row.title
@@ -342,15 +361,34 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
           li.row.title
             .col.s2.push-s2 User Interface 
           li.row.checkboxRow
-            #look_minimalistEl.input-field.col.s2.push-s2
+            #look_minimalistEl.input-field.col.s2.push-s2(style='display:none')
               input#look_minimalist.filled-in.checkbox-color(type='checkbox')
               label(for='look_minimalist' style='color: black;') Minimalist UI
+            #look_topbarEl.input-field.col.s2.push-s2
+              input#look_topbar.filled-in.checkbox-color(type='checkbox')
+              label(for='look_topbar' style='color: black;') Top Bar
+            #look_toolbarEl.input-field.col.s2.push-s2
+              input#look_toolbar.filled-in.checkbox-color(type='checkbox')
+              label(for='look_toolbar' style='color: black;') Tool Bar
+            #look_scalebarEl.input-field.col.s2.push-s2
+              input#look_scalebar.filled-in.checkbox-color(type='checkbox')
+              label(for='look_scalebar' style='color: black;') Scale Bar
+            #look_coordinatesEl.input-field.col.s2.push-s2
+              input#look_coordinates.filled-in.checkbox-color(type='checkbox')
+              label(for='look_coordinates' style='color: black;') Coordinates
+          li.row.checkboxRow
             #look_zoomcontrolEl.input-field.col.s2.push-s2
               input#look_zoomcontrol.filled-in.checkbox-color(type='checkbox')
               label(for='look_zoomcontrol' style='color: black;') Map Zoom Control
             #look_graticuleEl.input-field.col.s2.push-s2
               input#look_graticule.filled-in.checkbox-color(type='checkbox')
               label(for='look_graticule' style='color: black;') Map Graticule
+            #look_miscellaneousEl.input-field.col.s2.push-s2
+              input#look_miscellaneous.filled-in.checkbox-color(type='checkbox')
+              label(for='look_miscellaneous' style='color: black;') Miscellaneous
+            #look_settingsEl.input-field.col.s2.push-s2
+              input#look_settings.filled-in.checkbox-color(type='checkbox')
+              label(for='look_settings' style='color: black;') Settings
 
           li.row.title
             .col.s2.push-s2 Colors 
@@ -398,6 +436,15 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
               input#look_fullscreen.filled-in.checkbox-color(type='checkbox')
               label(for='look_fullscreen' style='color: black;') Fullscreen
           li.row.title
+            .col.s2.push-s2 User Info
+          li.row.checkboxRow
+            #look_helpEl.input-field.col.s2.push-s2
+              input#look_info.filled-in.checkbox-color(type='checkbox')
+              label(for='look_info' style='color: black;') Info
+            #look_helpurlEl.input-field.col.s6.push-s2
+              input#look_infourl.validate(type='text' value='')
+              label(for='look_infourl') Info URL
+          li.row.title
             .col.s2.push-s2 User Help
           li.row.checkboxRow
             #look_helpEl.input-field.col.s2.push-s2
@@ -408,7 +455,7 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
               label(for='look_helpurl') Help URL
             
       #tab_panels.col.s8.push-s2
-        a.helpFromDocs(href='docs/?page=Panels_Tab' target='__blank' rel='noopener')
+        a.helpFromDocs(href='https://nasa-ammos.github.io/MMGIS/configure/tabs/panels' target='__blank' rel='noopener')
           i.mdi.mdi-help.mdi-14px
         p
           input#panels_viewer.filled-in.checkbox-color(type='checkbox')
@@ -437,29 +484,48 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
                 label(for='panels_globeDemFallbackType') Fallback Type
 
       #tab_time.col.s12
-        a.helpFromDocs(href='docs/?page=Time_Tab' target='__blank' rel='noopener')
+        a.helpFromDocs(href='https://nasa-ammos.github.io/MMGIS/configure/tabs/time' target='__blank' rel='noopener')
           i.mdi.mdi-help.mdi-14px
         ul#tab_time_rows
           li.row.title
             .col.s2.push-s2 User Interface 
-          li.row.checkboxRow.col.s2.push-s2
-            p
+          li.row
+            #time_enabledEl.input-field.col.s2.push-s2
               input#time_enabled.filled-in.checkbox-color(type='checkbox')
               label(for='time_enabled' style='color: black;') Enabled
-            p
+            #time_visibledEl.input-field.col.s2.push-s2
               input#time_visible.filled-in.checkbox-color(type='checkbox')
               label(for='time_visible' style='color: black;') Visible
+            #time_initiallyOpendEl.input-field.col.s2.push-s2
+              input#time_initiallyOpen.filled-in.checkbox-color(type='checkbox')
+              label(for='time_initiallyOpen' style='color: black;') Initially Open
+          li.row.title
+            .col.s2.push-s2 Settings 
           li.row
-            #time_format_row.input-field.col.s4.push-s2
+            #time_format_row.input-field.col.s3.push-s2
               input#time_format.validate(type='text' value='%Y-%m-%dT%H:%M:%SZ')
               label(for='time_format') Time Format
+          li.row
+            #time_initialstartEl.input-field.col.s3.push-s2
+              input#time_initialstart.validate(type='text' value='' title="Parsable time (defaults to a month before the end time)")
+              label(for='time_initialstart') Initial Start Time
+            #time_initialendEl.input-field.col.s3.push-s2
+              input#time_initialend.validate(type='text' value='now' title="Parsable time (default to 'now')")
+              label(for='time_initialend') Initial End Time
+          li.row   
+            #time_initialwindowstartEl.input-field.col.s3.push-s2
+              input#time_initialwindowstart.validate(type='text' value='' title="Parsable time (defaults to the Initial Start Time)")
+              label(for='time_initialwindowstart') Initial Timeline Window Start Time
+            #time_initialwindowendEl.input-field.col.s3.push-s2
+              input#time_initialwindowend.validate(type='text' value='now' title="Parsable time (default to the Initial End TIme)")
+              label(for='time_initialwindowend') Initial Timeline Window End Time
 
       #tab_tools.col.s12
-        a.helpFromDocs(href='docs/?page=Tools_Tab' target='__blank' rel='noopener')
+        a.helpFromDocs(href='https://nasa-ammos.github.io/MMGIS/configure/tabs/tools' target='__blank' rel='noopener')
           i.mdi.mdi-help.mdi-14px
         ul#tab_tools_rows
       #tab_layers.col.s12
-        a.helpFromDocs(href='docs/?page=Layers_Tab' target='__blank' rel='noopener')
+        a.helpFromDocs(href='https://nasa-ammos.github.io/MMGIS/configure/tabs/layers' target='__blank' rel='noopener')
           i.mdi.mdi-help.mdi-14px
         ul#tab_layers_rows(style='margin-top: 20px;')
         #add_new_layer.row
@@ -497,6 +563,17 @@ script(type='text/javascript' src='src/pre/RefreshAuth.js')
         a#delete_mission_delete.modal-action.modal-close.btn-flat.waves-effect.waves-light.col.s12(style='border-radius: 0px; color: white;')
           | Delete Mission
           i.mdi.mdi-delete.mdi-24px(style='float: right; margin-top: 1px; padding-left: 5px;')
+    #coordinatesVariables_modal.modal
+      .modal-content(style='padding-bottom: 0;')
+        h4 Coordinates Raw Variables
+        #coordinatesVariables_info(style='margin-bottom: 0;')
+          #coordinatesVariables_title
+          hr
+          #coordinatesVariables_content
+            pre#coordinatesVariables_example
+      .modal-footer
+        a.modal-action.modal-close.waves-effect.waves-green.btn-flat(href='#!') Done
+    .row
     #info_modal.modal
       .modal-content(style='padding-bottom: 0;')
         h4 Modal Header

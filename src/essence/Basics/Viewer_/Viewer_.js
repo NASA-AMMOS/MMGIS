@@ -19,6 +19,7 @@ var Viewer_ = {
     viewer: $('#viewer'),
     images: [],
     feature: null,
+    layer: null,
     imageDiv: null,
     url: null,
     ext: null,
@@ -136,10 +137,11 @@ var Viewer_ = {
     },
     //images is [ { 'url': '', 'name': '', 'isPanoramic': false },{...}, ... ]
     //Shows the first image too
-    changeImages: function (images, feature) {
+    changeImages: function (images, feature, layer) {
         images = images || []
         Viewer_.images = images
         Viewer_.feature = feature
+        Viewer_.layer = layer
 
         var imageI = 0
         var setLocAfter = false
@@ -261,20 +263,30 @@ var Viewer_ = {
             window.onresize = this.photosphere.resize
 
             Viewer_.toolBarLoading.style('opacity', '1')
-            this.photosphere.changeImage(o, Viewer_.feature, function (err) {
-                if (err) {
-                    console.log(err)
-                    Viewer_.toolBarLoading.html(err)
-                } else {
-                    Viewer_.toolBarLoading.style('opacity', '0')
-                    if (setLocAfter) {
-                        var l = L_.FUTURES.viewerLoc
-                        Viewer_.photosphere.setTarget(l[0], l[1], l[2], l[3])
-                        L_.FUTURES.viewerLoc = null
+            this.photosphere.changeImage(
+                o,
+                Viewer_.feature,
+                Viewer_.layer,
+                function (err) {
+                    if (err) {
+                        console.log(err)
+                        Viewer_.toolBarLoading.html(err)
+                    } else {
+                        Viewer_.toolBarLoading.style('opacity', '0')
+                        if (setLocAfter) {
+                            var l = L_.FUTURES.viewerLoc
+                            Viewer_.photosphere.setTarget(
+                                l[0],
+                                l[1],
+                                l[2],
+                                l[3]
+                            )
+                            L_.FUTURES.viewerLoc = null
+                        }
+                        Viewer_.photosphere.resize()
                     }
-                    Viewer_.photosphere.resize()
                 }
-            })
+            )
         } else {
             this.imageViewer.style('display', 'inherit')
             this.imagePanorama.style('display', 'none')
@@ -395,6 +407,7 @@ var Viewer_ = {
 
 function buildToolBar() {
     d3.select('#viewerToolBar').html('')
+
     Viewer_.toolBar = d3
         .select('#viewerToolBar')
         .append('div')
@@ -403,6 +416,7 @@ function buildToolBar() {
         .style('display', 'flex')
         .style('justify-content', 'space-between')
         .style('padding', '0px 5px')
+    //.style()
 
     let left = Viewer_.toolBar.append('div')
 

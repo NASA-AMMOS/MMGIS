@@ -1,10 +1,11 @@
 //Holds a bunch of reusable mathy formulas and variables
-import turf from '@turf/turf'
+import { bbox, simplify } from '@turf/turf'
 import { saveAs } from 'file-saver'
 import $ from 'jquery'
 import calls from '../../../pre/calls'
 
-// often referred to as F_
+import azElDistBetween from './subformulae/azElDistBetween'
+
 var temp = new Float32Array(1)
 
 // eslint-disable-next-line no-extend-native
@@ -17,6 +18,7 @@ Object.defineProperty(Object.prototype, 'getFirst', {
     enumerable: false,
 })
 
+// often referred to as F_
 var Formulae_ = {
     radiusOfPlanetMajor: 3396190, //(m) Defaults to Mars
     radiusOfPlanetMinor: 3396190,
@@ -59,6 +61,13 @@ var Formulae_ = {
             range[0]
         )
     },
+    isStringNumeric: function (str) {
+        if (typeof str != 'string') return false
+        return !isNaN(str) && !isNaN(parseFloat(str))
+    },
+    getBase64Transparent256Tile: function () {
+        return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAABFUlEQVR42u3BMQEAAADCoPVP7WsIoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAeAMBPAAB2ClDBAAAAABJRU5ErkJggg=='
+    },
     monthNumberToName: function (monthNumber) {
         switch (monthNumber) {
             case 0:
@@ -89,6 +98,20 @@ var Formulae_ = {
                 return ''
         }
     },
+    addTimeZoneOffset(timestamp) {
+        const date = new Date(timestamp)
+        const addedOffset = new Date(
+            date.getTime() + date.getTimezoneOffset() * 60000
+        )
+        return addedOffset
+    },
+    removeTimeZoneOffset(timestamp) {
+        const date = new Date(timestamp)
+        const removedOffset = new Date(
+            date.getTime() - date.getTimezoneOffset() * 60000
+        )
+        return removedOffset
+    },
     // Returns an array of timestamps between startTime and endTime timestamps that fall along the unit
     getTimeStartsBetweenTimestamps: function (startTime, endTime, unit) {
         const timeStarts = []
@@ -100,6 +123,23 @@ var Formulae_ = {
 
         let currentDate
         switch (unit) {
+            case 'decade':
+                currentDate = new Date(
+                    Date.UTC(Math.floor(startDate.getFullYear() / 10) * 10)
+                )
+                while (currentDate < endDate) {
+                    currentDate.setUTCFullYear(
+                        Math.floor(currentDate.getUTCFullYear() / 10) * 10 + 10
+                    )
+                    timeStarts.push({
+                        ts: Date.parse(currentDate),
+                        label:
+                            Math.floor(currentDate.getUTCFullYear() / 10) * 10 +
+                            's',
+                    })
+                }
+
+                break
             case 'year':
                 currentDate = new Date(Date.UTC(startDate.getFullYear()))
                 while (currentDate < endDate) {
@@ -121,7 +161,7 @@ var Formulae_ = {
                         ts: Date.parse(currentDate),
                         label: Formulae_.monthNumberToName(
                             currentDate.getUTCMonth()
-                        ),
+                        ).toUpperCase(),
                     })
                 }
                 break
@@ -216,16 +256,14 @@ var Formulae_ = {
 
         return R * c
     },
-    bearingFromGreatArcDistance: function (distance) {
-        return (
-            -1 * ((distance / this.radiusOfPlanetMajor) * (180 / Math.PI) + 90)
-        )
-    },
     metersToDegrees: function (meters) {
         return (meters / this.radiusOfPlanetMajor) * (180 / Math.PI)
     },
     degreesToMeters: function (degrees) {
         return degrees * (Math.PI / 180) * this.radiusOfPlanetMajor
+    },
+    simplifyGeometry: function (geometry, tolerance) {
+        return simplify(geometry, { tolerance: tolerance })
     },
     //2D
     distanceFormula: function (x1, y1, x2, y2) {
@@ -260,8 +298,9 @@ var Formulae_ = {
         return [closestI, closestJ]
     },
     //a mod that works with negatives. a true modulo and not remainder
-    mod: function (n, m) {
-        var remain = n % m
+    mod: function (n, m, dontFloor) {
+        const remain = n % m
+        if (dontFloor) return remain >= 0 ? remain : remain + m
         return Math.floor(remain >= 0 ? remain : remain + m)
     },
     //2D rotate a point about another point a certain angle
@@ -308,11 +347,6 @@ var Formulae_ = {
             dz * (cx * cy)
 
         return { x: x, y: y, z: z }
-    },
-    round: function (number, decimals = 0) {
-        if (decimals == 0) return Math.round(number)
-        var multiplier = Math.pow(10, decimals)
-        return Math.round(number * multiplier) / multiplier
     },
     // From: https://github.com/nuclearsecrecy/Leaflet.greatCircle/blob/master/Leaflet.greatCircle.js#L160
     // returns destination lat/lon from a start point lat/lon of a giving bearing (degrees) and distance (km).
@@ -492,7 +526,6 @@ var Formulae_ = {
      * @returns {String} - color in hex color code - '#ae6204'
      */
     stringToColor2: function (stringInput) {
-        console.log(stringInput)
         const h = [...stringInput].reduce((acc, char) => {
             return char.charCodeAt(0) + ((acc << 5) - acc)
         }, 0)
@@ -511,7 +544,7 @@ var Formulae_ = {
     intToRGB: function (i) {
         var c = (i & 0x00ffffff).toString(16).toUpperCase()
 
-        return '#00000'.substring(0, 6 - c.length) + c
+        return '#000000'.substring(0, 7 - c.length) + c
     },
     rgbObjToStr: function (rgb, hasAlpha) {
         if (hasAlpha && rgb.a != null)
@@ -581,30 +614,8 @@ var Formulae_ = {
 
         return { x: x, y: y, z: z }
     },
-    //From: https://github.com/mrdoob/three.js/issues/758 mrdoob
-    getImageData: function (image) {
-        if (image.width == 0) return
-        var canvas = document.createElement('canvas')
-        canvas.width = image.width
-        canvas.height = image.height
-
-        var context = canvas.getContext('2d')
-        context.drawImage(image, 0, 0)
-
-        return context.getImageData(0, 0, image.width, image.height)
-    },
-    getPixel: function (imagedata, x, y) {
-        var position = (x + imagedata.width * y) * 4,
-            data = imagedata.data
-        return {
-            r: data[position],
-            g: data[position + 1],
-            b: data[position + 2],
-            a: data[position + 3],
-        }
-    },
     getSafeName: function (name) {
-        return (name || '').replace(/\s/g, '')
+        return ('UUID' + (name || '').replace(/\s/g, '')).toLowerCase()
     },
     /**
      * Traverses an object with an array of keys
@@ -656,8 +667,8 @@ var Formulae_ = {
         return uniqueArr
     },
     removeDuplicatesInArray(arr) {
-        arr.filter((c, index) => {
-            return arr.indexOf(c) !== index
+        arr = arr.filter((c, index) => {
+            return arr.indexOf(c) === index
         })
 
         return arr
@@ -712,15 +723,6 @@ var Formulae_ = {
             }
         }
         return subdividedLine
-    },
-    //Helper to make an array or object an enumerated array
-    enumerate: function (obj) {
-        var arr = []
-        var keys = Object.keys(obj)
-        for (var k = 0; k < keys.length; k++) {
-            arr[k] = obj[keys[k]]
-        }
-        return arr
     },
     //Return a clone of the object to avoid pass by reference issues
     clone: function (obj) {
@@ -804,15 +806,6 @@ var Formulae_ = {
     isUrlAbsolute: function (url) {
         const r = new RegExp('^(?:[a-z]+:)?//', 'i')
         return r.test(url)
-    },
-    populateUrl: function (url, xyz, invertY) {
-        url = url.replace('{x}', xyz.x)
-        url = url.replace(
-            '{y}',
-            invertY === true ? Math.pow(2, xyz.z) - 1 - xyz.y : xyz.y
-        )
-        url = url.replace('{z}', xyz.z)
-        return url
     },
     csvToJSON: function (csv) {
         var lines = csv.split('\n')
@@ -898,6 +891,113 @@ var Formulae_ = {
                 return '#ffffff'
             default:
                 return '#ffffff'
+        }
+    },
+    getIn4Layers: function (obj, keyArray, notSetValue, assumeLayerHierarchy) {
+        if (obj == null) return notSetValue != null ? notSetValue : null
+        if (keyArray == null) return notSetValue != null ? notSetValue : null
+        if (typeof keyArray === 'string') keyArray = keyArray.split('.')
+        let object = Object.assign({}, obj)
+        console.log(object, keyArray)
+        for (let i = 0; i < keyArray.length; i++) {
+            if (object && object.hasOwnProperty(keyArray[i]))
+                object = object[keyArray[i]]
+            else if (
+                assumeLayerHierarchy &&
+                object &&
+                Formulae_.objectArrayIndexOfKeyWithValue(
+                    object,
+                    'name',
+                    keyArray[i]
+                ) >= 0
+            )
+                object =
+                    object[
+                        Formulae_.objectArrayIndexOfKeyWithValue(
+                            object,
+                            'name',
+                            keyArray[i]
+                        )
+                    ]
+            else return notSetValue != null ? notSetValue : null
+        }
+        return object
+    },
+    objectArrayIndexOfKeyWithValue: function (objectArray, key, value) {
+        var index = -1
+        for (let i in objectArray) {
+            if (objectArray[i]) {
+                if (
+                    objectArray[i].hasOwnProperty(key) &&
+                    objectArray[i][key] === value
+                ) {
+                    index = i
+                    break
+                }
+            }
+        }
+        return index
+    },
+    setIn4Layers: function (
+        obj,
+        keyArray,
+        value,
+        splice,
+        assumeLayerHierarchy
+    ) {
+        if (keyArray == null || keyArray === []) return false
+        if (typeof keyArray === 'string') keyArray = keyArray.split('.')
+        let object = obj
+        for (let i = 0; i < keyArray.length - 1; i++) {
+            if (object.hasOwnProperty(keyArray[i])) object = object[keyArray[i]]
+            else if (
+                assumeLayerHierarchy &&
+                Formulae_.objectArrayIndexOfKeyWithValue(
+                    object,
+                    'name',
+                    keyArray[i]
+                ) >= 0
+            )
+                object =
+                    object[
+                        Formulae_.objectArrayIndexOfKeyWithValue(
+                            object,
+                            'name',
+                            keyArray[i]
+                        )
+                    ]
+            else return false
+        }
+        const finalKey = keyArray[keyArray.length - 1]
+
+        if (splice && !isNaN(finalKey) && typeof object.splice === 'function')
+            object.splice(parseInt(finalKey), 0, value)
+        else object[keyArray[keyArray.length - 1]] = value
+        return true
+    },
+    traverseLayers: function (layers, onLayer) {
+        depthTraversal(layers, 0, [])
+        function depthTraversal(node, depth, path) {
+            for (var i = 0; i < node.length; i++) {
+                const ret = onLayer(node[i], path, i)
+
+                if (ret === 'remove') {
+                    node.splice(i, 1)
+                    i--
+                }
+                //Add other feature information while we're at it
+                else if (
+                    node[i] &&
+                    node[i].sublayers != null &&
+                    node[i].sublayers.length > 0
+                ) {
+                    depthTraversal(
+                        node[i].sublayers,
+                        depth + 1,
+                        `${path.length > 0 ? path + '.' : ''}${node[i].name}`
+                    )
+                }
+            }
         }
     },
     invertGeoJSONLatLngs(feature) {
@@ -1313,21 +1413,6 @@ var Formulae_ = {
             return (_ * Math.PI) / 180
         }
     },
-    calcPolygonArea(vertices) {
-        var total = 0
-
-        for (var i = 0, l = vertices.length; i < l; i++) {
-            var addX = vertices[i][0]
-            var addY = vertices[i == vertices.length - 1 ? 0 : i + 1][1]
-            var subX = vertices[i == vertices.length - 1 ? 0 : i + 1][0]
-            var subY = vertices[i][1]
-
-            total += addX * addY * 0.5
-            total -= subX * subY * 0.5
-        }
-
-        return Math.abs(total)
-    },
     //if array is an array of objects,
     // the optional key can be set to say which key to average
     arrayAverage(array, key) {
@@ -1337,19 +1422,6 @@ var Formulae_ = {
             else total += array[i]
         }
         return total / array.length
-    },
-    doubleToTwoFloats(double) {
-        if (double >= 0) {
-            var high = Math.floor(double / 65536) * 65536
-            return [this.f32round(high), this.f32round(double - high)]
-        } else {
-            var high = Math.floor(-double / 65536) * 65536
-            return [this.f32round(-high), this.f32round(double + high)]
-        }
-    },
-    f32round(x) {
-        temp[0] = +x
-        return temp[0]
     },
     toEllipsisString(str, length) {
         return str.length > length ? str.substr(0, length - 3) + '...' : str
@@ -1367,7 +1439,7 @@ var Formulae_ = {
         for (var i = 0; i < savedFeatures.length; i++) {
             if (i != 0) {
                 featuresString += '\n,'
-                savedFeatures[i].properties['boundingbox'] = turf.bbox(
+                savedFeatures[i].properties['boundingbox'] = bbox(
                     savedFeatures[i]
                 )
             }
@@ -1555,10 +1627,6 @@ var Formulae_ = {
         var cvd = document.body.appendChild(cv)
         return cv.toDataURL()
     },
-    //A out of little place
-    download: function (filepath) {
-        window.open(filepath + '?nocache=' + new Date().getTime())
-    },
     downloadObject(exportObj, exportName, exportExt) {
         var strung
         if (typeof exportObj === 'string') {
@@ -1667,19 +1735,56 @@ var Formulae_ = {
             },
         }
     },
-    pointsInPoint(point, layers) {
-        var points = []
+    // searchRadiusInDegrees = [lng, lng, lat, lat] bbox
+    pointsInPoint(point, layers, searchRadiusInDegrees) {
+        let points = []
 
-        var l = layers._layers
+        if (Array.isArray(layers)) {
+            layers.forEach((l) => {
+                points = points.concat(
+                    Formulae_.pointsInPoint(point, l, searchRadiusInDegrees)
+                )
+            })
+        } else {
+            let l
+            if (layers.feature && layers.feature.geometry?.type === 'Point') {
+                l = [layers]
+            } else l = layers._layers
 
-        if (l == null) return points
-
-        for (var i in l) {
-            if (
-                l[i].feature.geometry.coordinates[0] == point[0] &&
-                l[i].feature.geometry.coordinates[1] == point[1]
-            )
-                points.push(l[i])
+            if (l == null) return points
+            for (let i in l) {
+                if (l[i].feature == null) continue
+                if (searchRadiusInDegrees != null) {
+                    if (
+                        l[i].feature.geometry.coordinates[0] >
+                            Math.min(
+                                searchRadiusInDegrees[0],
+                                searchRadiusInDegrees[1]
+                            ) &&
+                        l[i].feature.geometry.coordinates[0] <
+                            Math.max(
+                                searchRadiusInDegrees[0],
+                                searchRadiusInDegrees[1]
+                            ) &&
+                        l[i].feature.geometry.coordinates[1] >
+                            Math.min(
+                                searchRadiusInDegrees[2],
+                                searchRadiusInDegrees[3]
+                            ) &&
+                        l[i].feature.geometry.coordinates[1] <
+                            Math.max(
+                                searchRadiusInDegrees[2],
+                                searchRadiusInDegrees[3]
+                            )
+                    ) {
+                        points.push(l[i])
+                    }
+                } else if (
+                    l[i].feature.geometry.coordinates[0] == point[0] &&
+                    l[i].feature.geometry.coordinates[1] == point[1]
+                )
+                    points.push(l[i])
+            }
         }
 
         return points
@@ -1706,7 +1811,7 @@ var Formulae_ = {
         image.style.color = stringToTest
         return image.style.color !== 'rgb(255, 255, 255)'
     },
-    timestampToDate(timestamp) {
+    timestampToDate(timestamp, small) {
         var a = new Date(timestamp * 1000)
         var months = [
             'Jan',
@@ -1733,6 +1838,19 @@ var Formulae_ = {
         var sec =
             a.getUTCSeconds() < 10 ? '0' + a.getUTCSeconds() : a.getUTCSeconds()
 
+        if (small) {
+            return (
+                month +
+                '/' +
+                date +
+                '/' +
+                (year + '').slice(-2) +
+                ' ' +
+                hour +
+                ':' +
+                min
+            )
+        }
         return (
             monthName +
             ' ' +
@@ -1746,6 +1864,11 @@ var Formulae_ = {
             ':' +
             sec
         )
+    },
+    isValidUrl(str) {
+        const a = document.createElement('a')
+        a.href = str
+        return a.host && a.host !== window.location.host
     },
     /**
      * Returns an array of only the matching elements between two arrays
@@ -1981,17 +2104,6 @@ var Formulae_ = {
         //prettier-ignore
         return 'hsl(' + colorScaleA[i % colorScaleA.length] + ', ' + s + ', ' + l + ')'
     },
-    ASCIIProduct(str) {
-        if (str == null) return 0
-        let product = 1
-        for (let i = 0; i < str.length; i++) product += str.charCodeAt(i)
-        return product
-    },
-    everyOtherChar(str) {
-        let newStr = ''
-        for (let i = 0; i < str.length; i += 2) newStr += str[i]
-        return newStr
-    },
     cloneCanvas(oldCanvas) {
         //create a new canvas
         var newCanvas = document.createElement('canvas')
@@ -2083,6 +2195,8 @@ var Formulae_ = {
 
         let xAxis = axes.x || 0
         let yAxis = axes.y || 0
+
+        if (xAxis === 0 || yAxis === 0) return null
         // Optional params
         options = options || {}
         let steps = options.steps || 32
@@ -2203,6 +2317,39 @@ var Formulae_ = {
         if (data == 1010101 || data > 35000 || data < -35000) return true
         return false
     },
+    azElDistBetween(latLngEl_A, latLngEl_B) {
+        //Formulae_.azElBetween2(latLngEl_A, latLngEl_B)
+
+        const b = azElDistBetween(
+            latLngEl_A,
+            latLngEl_B,
+            Formulae_.radiusOfPlanetMajor,
+            Formulae_.radiusOfPlanetMinor
+        )
+        return b
+    },
+    azElBetween2(latLngEl_A, latLngEl_B) {
+        const crs = window.mmgisglobal.customCRS
+        const a = crs.project(latLngEl_A)
+        const b = crs.project(latLngEl_B)
+
+        const dist = Math.sqrt(
+            Math.pow(b.x - a.x, 2) +
+                Math.pow(b.y - a.y, 2) +
+                Math.pow(latLngEl_B.el - latLngEl_A.el, 2)
+        )
+
+        const el =
+            Math.asin((latLngEl_B.el - latLngEl_A.el) / dist) * (180 / Math.PI)
+
+        let az = Math.atan2(b.x - a.x, b.y - a.y) * (180 / Math.PI)
+        if (az < 0) az += 360
+        console.log({
+            az: az,
+            el: el,
+            dist: dist,
+        })
+    },
     // Breaks an array in multiple arrays of some size
     chunkArray(arr, size) {
         return arr.length > size
@@ -2212,9 +2359,24 @@ var Formulae_ = {
               ]
             : [arr]
     },
-    getCookieValue(a) {
-        let b = document.cookie.match('(^|[^;]+)\\s*' + a + '\\s*=\\s*([^;]+)')
-        return b ? b.pop() : ''
+    /**
+     * From https://stackoverflow.com/questions/10420352/converting-file-size-in-bytes-to-human-readable-string
+     */
+    humanFileSize(bytes, si) {
+        if (bytes == null) return null
+        var thresh = si ? 1000 : 1024
+        if (Math.abs(bytes) < thresh) {
+            return bytes + ' B'
+        }
+        var units = si
+            ? ['kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+            : ['KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
+        var u = -1
+        do {
+            bytes /= thresh
+            ++u
+        } while (Math.abs(bytes) >= thresh && u < units.length - 1)
+        return bytes.toFixed(1) + ' ' + units[u]
     },
     getBrowser() {
         //Check if browser is IE

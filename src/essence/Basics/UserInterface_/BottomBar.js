@@ -245,12 +245,39 @@ let BottomBar = {
             theme: 'blue',
         })
 
+        // Info
+        bottomBar
+            .append('i')
+            .attr('id', 'topBarInfo')
+            .attr('title', 'Info')
+            .attr('tabindex', 105)
+            .attr('class', 'mmgisHoverBlue mdi mdi-information-outline mdi-18px')
+            .style('padding', '5px 10px')
+            .style('width', '40px')
+            .style('height', '36px')
+            .style('line-height', '26px')
+            .style('cursor', 'pointer')
+            .on('click', function () {
+                this.infoOn = !this.infoOn
+                if (this.infoOn) {
+                    d3.select('#viewer_Info').style('display', 'inherit')
+                } else {
+                    d3.select('#viewer_Info').style('display', 'none')
+                }
+            })
+
+        tippy(`#topBarInfo`, {
+            content: `Info`,
+            placement: 'right',
+            theme: 'blue',
+        })
+
         // Help
         bottomBar
             .append('i')
             .attr('id', 'topBarHelp')
             .attr('title', 'Help')
-            .attr('tabindex', 105)
+            .attr('tabindex', 106)
             .attr('class', 'mmgisHoverBlue mdi mdi-help mdi-18px')
             .style('padding', '5px 10px')
             .style('width', '40px')
@@ -275,12 +302,12 @@ let BottomBar = {
     toggleSettings: function (on) {
         if (on) {
             BottomBar.settings.visibility = BottomBar.settings.visibility || {
-                topbar: true,
-                toolbars: true,
-                scalebar: true,
-                coordinates: true,
+                topbar: L_.configData.look.topbar != false,
+                toolbars: L_.configData.look.toolbar != false,
+                scalebar: L_.configData.look.scalebar != false,
+                coordinates: L_.configData.look.coorindates != false,
                 graticule: this.UI_.Map_.graticule != null,
-                miscellaneous: true,
+                miscellaneous: L_.configData.look.miscellaneous != false,
             }
             // prettier-ignore
             const modalContent = [
@@ -297,12 +324,11 @@ let BottomBar = {
                                     `<div class="mmgis-checkbox"><input type="checkbox" ${BottomBar.settings.visibility.topbar ? 'checked ' : ''}id="checkbox_msmsUIV1" value='topbar'/><label for="checkbox_msmsUIV1"></label></div>`,
                                     `<div>Top Bar</div>`,
                                 `</li>`,
-                                /* For now because then we need a way to open the settings modal again
+                                /* For now because then we need a way to open the settings modal again */
                                 `<li>`,
                                     `<div class="mmgis-checkbox"><input type="checkbox" ${BottomBar.settings.visibility.toolbars ? 'checked ' : ''}id="checkbox_msmsUIV2" value='toolbars'/><label for="checkbox_msmsUIV2"></label></div>`,
                                     `<div>Toolbars</div>`,
                                 `</li>`,
-                                */
                                 `<li>`,
                                     `<div class="mmgis-checkbox"><input type="checkbox" ${BottomBar.settings.visibility.scalebar ? 'checked ' : ''}id="checkbox_msmsUIV3" value='scalebar'/><label for="checkbox_msmsUIV3"></label></div>`,
                                     `<div>Scale Bar</div>`,
@@ -353,112 +379,7 @@ let BottomBar = {
 
                         BottomBar.settings.visibility[value] = checked
 
-                        if (!checked) {
-                            // now on
-                            switch (value) {
-                                case 'topbar':
-                                    $('#topBar').css('display', 'none')
-                                    break
-                                case 'toolbars':
-                                    $('#mmgislogo').css('display', 'none')
-                                    $('#barBottom').css('display', 'none')
-                                    $('#toolbar').css({
-                                        display: 'none',
-                                        width: '0px',
-                                    })
-                                    $('#viewerToolBar').css('display', 'none')
-                                    $('#_lithosphere_controls').css(
-                                        'display',
-                                        'none'
-                                    )
-                                    $('#splitscreens').css({
-                                        left: '0px',
-                                        width: '100%',
-                                    })
-                                    $('#mapScreen').css(
-                                        'width',
-                                        $('#mapScreen').width() + 40 + 'px'
-                                    )
-                                    BottomBar.UI_.topSize = 0
-                                    window.dispatchEvent(new Event('resize'))
-                                    break
-                                case 'scalebar':
-                                    $('#scaleBarBounds').css('display', 'none')
-                                    break
-                                case 'coordinates':
-                                    $('#CoordinatesDiv').css('display', 'none')
-                                    break
-                                case 'graticule':
-                                    BottomBar.UI_.Map_.toggleGraticule(false)
-                                    break
-                                case 'miscellaneous':
-                                    $('.leaflet-control-container').css(
-                                        'display',
-                                        'none'
-                                    )
-                                    $('.splitterVInner').css('display', 'none')
-                                    break
-                                default:
-                                    break
-                            }
-                        } else {
-                            // now off
-                            switch (value) {
-                                case 'topbar':
-                                    $('#topBar').css('display', 'flex')
-                                    break
-                                case 'toolbars':
-                                    $('#mmgislogo').css('display', 'inherit')
-                                    $('#barBottom').css('display', 'flex')
-                                    $('#toolbar').css({
-                                        display: 'inherit',
-                                        width: '40px',
-                                    })
-                                    $('#viewerToolBar').css(
-                                        'display',
-                                        'inherit'
-                                    )
-                                    $('#_lithosphere_controls').css(
-                                        'display',
-                                        'inherit'
-                                    )
-                                    $('#splitscreens').css({
-                                        left: '40px',
-                                        width: 'calc(100% - 40px)',
-                                    })
-                                    $('#mapScreen').css(
-                                        'width',
-                                        $('#mapScreen').width() - 40 + 'px'
-                                    )
-                                    BottomBar.UI_.topSize = 40
-                                    window.dispatchEvent(new Event('resize'))
-                                    break
-                                case 'scalebar':
-                                    $('#scaleBarBounds').css(
-                                        'display',
-                                        'inherit'
-                                    )
-                                    break
-                                case 'coordinates':
-                                    $('#CoordinatesDiv').css('display', 'flex')
-                                    break
-                                case 'graticule':
-                                    BottomBar.UI_.Map_.toggleGraticule(true)
-                                    break
-                                case 'miscellaneous':
-                                    $('.leaflet-control-container').css(
-                                        'display',
-                                        'block'
-                                    )
-                                    $('.splitterVInner').css(
-                                        'display',
-                                        'inline-flex'
-                                    )
-                                    break
-                                default:
-                                    break
-                            }
-                        }
+                        BottomBar.changeUIVisibility(value, checked)
                     })
 
                     // 3d Globe
@@ -481,6 +402,94 @@ let BottomBar = {
         } else {
         }
     },
+    changeUIVisibility: function (value, checked) {
+        if (!checked) {
+            // now off
+            switch (value) {
+                case 'topbar':
+                    $('#topBar').css('display', 'none')
+                    break
+                case 'toolbars':
+                    $('#mmgislogo').css('display', 'none')
+                    $('#barBottom').css('display', 'none')
+                    $('#toolbar').css({
+                        display: 'none',
+                        width: '0px',
+                    })
+                    $('#viewerToolBar').css('display', 'none')
+                    $('#_lithosphere_controls').css('display', 'none')
+                    $('#splitscreens').css({
+                        left: '0px',
+                        width: '100%',
+                    })
+                    $('#mapScreen').css(
+                        'width',
+                        $('#mapScreen').width() + 40 + 'px'
+                    )
+                    BottomBar.UI_.topSize = 0
+                    window.dispatchEvent(new Event('resize'))
+                    break
+                case 'scalebar':
+                    $('#scaleBarBounds').css('display', 'none')
+                    break
+                case 'coordinates':
+                    $('#CoordinatesDiv').css('display', 'none')
+                    break
+                case 'graticule':
+                    BottomBar.UI_.Map_.toggleGraticule(false)
+                    break
+                case 'miscellaneous':
+                    $('.leaflet-control-container').css('display', 'none')
+                    $('.splitterVInner').css('display', 'none')
+                    break
+                default:
+                    break
+            }
+        } else {
+            // now on
+            switch (value) {
+                case 'topbar':
+                    $('#topBar').css('display', 'flex')
+                    break
+                case 'toolbars':
+                    $('#mmgislogo').css('display', 'inherit')
+                    $('#barBottom').css('display', 'flex')
+                    $('#toolbar').css({
+                        display: 'inherit',
+                        width: '40px',
+                    })
+                    $('#viewerToolBar').css('display', 'inherit')
+                    $('#_lithosphere_controls').css('display', 'inherit')
+                    $('#splitscreens').css({
+                        left: '40px',
+                        width: 'calc(100% - 40px)',
+                    })
+                    $('#mapScreen').css(
+                        'width',
+                        $('#mapScreen').width() - 40 + 'px'
+                    )
+                    BottomBar.UI_.topSize = 40
+                    window.dispatchEvent(new Event('resize'))
+                    break
+                case 'scalebar':
+                    $('#scaleBarBounds').css('display', 'inherit')
+                    break
+                case 'coordinates':
+                    $('#CoordinatesDiv').css('display', 'flex')
+                    break
+                case 'graticule':
+                    BottomBar.UI_.Map_.toggleGraticule(true)
+                    break
+                case 'miscellaneous':
+                    $('.leaflet-control-container').css('display', 'block')
+                    $('.splitterVInner').css('display', 'inline-flex')
+                    break
+                default:
+                    break
+            }
+        }
+    },
+    toggleInfo: function () {},
     toggleHelp: function () {},
     fullscreen: function () {
         var isInFullScreen =

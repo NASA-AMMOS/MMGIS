@@ -205,8 +205,8 @@ var SketchTool = {
 
         if (L_.site == '') this.siteDrawings = 'Drawings'
 
-        if (Map_.map.hasLayer(L_.layersGroup[SketchTool.siteDrawings])) {
-            Map_.map.removeLayer(L_.layersGroup[SketchTool.siteDrawings])
+        if (Map_.map.hasLayer(L_.layers.layer[SketchTool.siteDrawings])) {
+            Map_.map.removeLayer(L_.layers.layer[SketchTool.siteDrawings])
         }
 
         this.MMWebGISInterface = new interfaceWithMMWebGIS(domId)
@@ -326,8 +326,8 @@ function interfaceWithMMWebGIS(domId) {
     })
 
     //Turn site drawing layer on if it's off
-    if (L_.toggledArray[SketchTool.siteDrawings] == false) {
-        L_.toggleLayer(L_.layersNamed[SketchTool.siteDrawings])
+    if (L_.layers.on[SketchTool.siteDrawings] == false) {
+        L_.toggleLayer(L_.layers.data[SketchTool.siteDrawings])
     }
     //Intializations
     var optionValue
@@ -481,9 +481,8 @@ function interfaceWithMMWebGIS(domId) {
                                             )
                                         }
                                         $('#sketchToolEditColor').css({
-                                            'background-color': $(this).css(
-                                                'background-color'
-                                            ),
+                                            'background-color':
+                                                $(this).css('background-color'),
                                         })
                                         $('#sketchToolEditName').val(
                                             SketchTool.drawVarColorLegend[i]
@@ -960,7 +959,8 @@ function reloadSPEPolys(geojsonFile, noPointerEvents, useOpacity) {
                                         color: '#26d962',
                                     })
                                 }
-                                SketchTool.lastEditedGeometry = layer.toGeoJSON().geometry
+                                SketchTool.lastEditedGeometry =
+                                    layer.toGeoJSON().geometry
                                 SketchTool.lastClickedFeature = feature
                                 if (SketchTool.lastClickedLayer)
                                     SketchTool.lastClickedLayer.disableEdit()
@@ -968,10 +968,10 @@ function reloadSPEPolys(geojsonFile, noPointerEvents, useOpacity) {
                                 SketchTool.lastClickedLayer.enableEdit()
                                 SketchTool.updateEditPanel()
 
-                                L_.layersGroup[
+                                L_.layers.layer[
                                     SketchTool.siteDrawings
                                 ].eachLayer(function (l) {
-                                    L_.layersGroup[
+                                    L_.layers.layer[
                                         SketchTool.siteDrawings
                                     ].resetStyle(l)
                                     if (l.hasBeenEdited) {
@@ -993,7 +993,8 @@ function reloadSPEPolys(geojsonFile, noPointerEvents, useOpacity) {
                                     'border-color': '#33cc66',
                                     color: '#26d962',
                                 })
-                                SketchTool.lastEditedGeometry = layer.toGeoJSON().geometry
+                                SketchTool.lastEditedGeometry =
+                                    layer.toGeoJSON().geometry
                                 layer.setStyle({ color: 'blue', weight: 4 })
                             })
                             layer.on('mouseover', function (e) {
@@ -1050,15 +1051,15 @@ function reloadSPEPolys(geojsonFile, noPointerEvents, useOpacity) {
         })
     } else {
         $.getJSON(geojsonFile, { _: new Date().getTime() }, function (data) {
-            if (Map_.map.hasLayer(L_.layersGroup[SketchTool.siteDrawings])) {
-                Map_.map.removeLayer(L_.layersGroup[SketchTool.siteDrawings])
+            if (Map_.map.hasLayer(L_.layers.layer[SketchTool.siteDrawings])) {
+                Map_.map.removeLayer(L_.layers.layer[SketchTool.siteDrawings])
             }
             //sort data so point features are always on top of lines and lines always on top of polygons
             F_.sortGeoJSONFeatures(data)
 
             SketchTool.speGeoJSONPolys = data.features
             //var pointerEvents = null; if(noPointerEvents) pointerEvents = "none";
-            L_.layersGroup[SketchTool.siteDrawings] = L.geoJson(data, {
+            L_.layers.layer[SketchTool.siteDrawings] = L.geoJson(data, {
                 style: function (feature) {
                     return {
                         color: 'black',
@@ -1107,7 +1108,8 @@ function reloadSPEPolys(geojsonFile, noPointerEvents, useOpacity) {
                                     color: '#26d962',
                                 })
                             }
-                            SketchTool.lastEditedGeometry = layer.toGeoJSON().geometry
+                            SketchTool.lastEditedGeometry =
+                                layer.toGeoJSON().geometry
                             SketchTool.lastClickedFeature = feature
                             if (SketchTool.lastClickedLayer)
                                 SketchTool.lastClickedLayer.disableEdit()
@@ -1115,9 +1117,9 @@ function reloadSPEPolys(geojsonFile, noPointerEvents, useOpacity) {
                             SketchTool.lastClickedLayer.enableEdit()
                             SketchTool.updateEditPanel()
 
-                            L_.layersGroup[SketchTool.siteDrawings].eachLayer(
+                            L_.layers.layer[SketchTool.siteDrawings].eachLayer(
                                 function (l) {
-                                    L_.layersGroup[
+                                    L_.layers.layer[
                                         SketchTool.siteDrawings
                                     ].resetStyle(l)
                                     if (l.hasBeenEdited) {
@@ -1137,16 +1139,17 @@ function reloadSPEPolys(geojsonFile, noPointerEvents, useOpacity) {
                                 'border-color': '#33cc66',
                                 color: '#26d962',
                             })
-                            SketchTool.lastEditedGeometry = layer.toGeoJSON().geometry
+                            SketchTool.lastEditedGeometry =
+                                layer.toGeoJSON().geometry
                             layer.setStyle({ color: 'blue', weight: 4 })
                         })
                         layer.on('mouseover', function (e) {
                             this.setStyle({ color: 'white', weight: 6 })
                         })
                         layer.on('mouseout', function (e) {
-                            L_.layersGroup[SketchTool.siteDrawings].eachLayer(
+                            L_.layers.layer[SketchTool.siteDrawings].eachLayer(
                                 function (l) {
-                                    L_.layersGroup[
+                                    L_.layers.layer[
                                         SketchTool.siteDrawings
                                     ].resetStyle(l)
                                     if (l.hasBeenEdited) {
@@ -1175,13 +1178,14 @@ function reloadSPEPolys(geojsonFile, noPointerEvents, useOpacity) {
                 },
             })
 
-            if (L_.toggledArray[SketchTool.siteDrawings] == true) {
-                L_.layersGroup[SketchTool.siteDrawings].addTo(Map_.map)
+            if (L_.layers.on[SketchTool.siteDrawings] == true) {
+                L_.layers.layer[SketchTool.siteDrawings].addTo(Map_.map)
                 if (!SketchTool.removed) {
                     Globe_.removeVectorTileLayer('drawtool_sitedrawings')
                     Globe_.addVectorTileLayer({
                         id: 'drawtool_sitedrawings',
-                        layers: L_.layersGroup[SketchTool.siteDrawings]._layers,
+                        layers: L_.layers.layer[SketchTool.siteDrawings]
+                            ._layers,
                     })
                 }
             }

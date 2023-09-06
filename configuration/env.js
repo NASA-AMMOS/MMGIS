@@ -78,6 +78,14 @@ function getClientEnvironment(publicUrl) {
         // This should only be used as an escape hatch. Normally you would put
         // images into the `src` and `import` them in code to get their paths.
         PUBLIC_URL: publicUrl,
+        ROOT_PATH:
+          (process.env.NODE_ENV || "development") === "development"
+            ? ""
+            : process.env.ROOT_PATH || "",
+        WEBSOCKET_ROOT_PATH:
+          (process.env.NODE_ENV || "development") === "development"
+            ? ""
+            : process.env.WEBSOCKET_ROOT_PATH || "",
         // We support configuring the sockjs pathname during development.
         // These settings let a developer run multiple simultaneous projects.
         // They are used as the connection `hostname`, `pathname` and `port`
@@ -95,6 +103,9 @@ function getClientEnvironment(publicUrl) {
         }),
         PORT: process.env.PORT,
         ENABLE_MMGIS_WEBSOCKETS: process.env.ENABLE_MMGIS_WEBSOCKETS,
+        MAIN_MISSION: process.env.MAIN_MISSION,
+        THIRD_PARTY_COOKIES: process.env.THIRD_PARTY_COOKIES || "",
+        SKIP_CLIENT_INITIAL_LOGIN: process.env.SKIP_CLIENT_INITIAL_LOGIN || "",
       }
     );
   // Stringify all values so we can feed into webpack DefinePlugin

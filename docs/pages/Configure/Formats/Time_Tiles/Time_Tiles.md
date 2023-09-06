@@ -16,17 +16,25 @@ A `{t}` parameter is added to the full tileset path. `.../layer/{t}/{z}/{x}/{y}.
 
 Examples:
 
-- /Missions/MSL/Layers/ExampleTimeTiles/2022-09-07T00_00_00/16/57776/31916.png
-- /Missions/MSL/Layers/ExampleTimeTiles/2022-10-07T00_00_00/16/57776/31916.png
-- /Missions/MSL/Layers/ExampleTimeTiles/2022-11-07T00_00_00/16/57776/31916.png
+- /Missions/MSL/Layers/ExampleTimeTiles/2022-09-07T00_00_00Z/16/57776/31916.png
+- /Missions/MSL/Layers/ExampleTimeTiles/2022-10-07T00_00_00Z/16/57776/31916.png
+- /Missions/MSL/Layers/ExampleTimeTiles/2022-11-07T00_00_00Z/16/57776/31916.png
 
 Additionally `{t}` may be appended with a name. The `time` is accessed by splitting on the new delimiter `Z-` and taking the first element.
 
-Example:
+Examples:
 
-- /Missions/MSL/Layers/ExampleTimeTiles/2022-09-07T00_00_00Z-LosAngeles/16/57776/31916.png
-- /Missions/MSL/Layers/ExampleTimeTiles/2022-10-07T00_00_00Z-NewYork/16/57776/31916.png
-- /Missions/MSL/Layers/ExampleTimeTiles/2022-11-07T00_00_00Z-London/16/57776/31916.png
+- /Missions/MSL/Layers/ExampleTimeTiles/2022-09-07T00_00_00Z--LosAngeles/16/57776/31916.png
+- /Missions/MSL/Layers/ExampleTimeTiles/2022-10-07T00_00_00Z--NewYork/16/57776/31916.png
+- /Missions/MSL/Layers/ExampleTimeTiles/2022-11-07T00_00_00Z--London/16/57776/31916.png
+
+Time ranges are supported as well. Join start and ending times with `-to-`.
+
+Examples:
+
+- /Missions/MSL/Layers/ExampleTimeTiles/2022-09-07T00_00_00Z-to-2022-10-01T00_00_00Z/16/57776/31916.png
+- /Missions/MSL/Layers/ExampleTimeTiles/2022-10-07T00_00_00Z-to-2022-11-01T00_00_00Z/16/57776/31916.png
+- /Missions/MSL/Layers/ExampleTimeTiles/2022-11-07T00_00_00Z-to-2022-12-01T00_00_00Z--London/16/57776/31916.png
 
 ## Configuration
 

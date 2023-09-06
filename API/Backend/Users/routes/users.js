@@ -85,51 +85,56 @@ router.post("/signup", function (req, res, next) {
       if (!user) {
         User.create(newUser)
           .then((created) => {
-            // Save the user's info in the session
-            req.session.user = created.username;
-            req.session.uid = created.id;
-            req.session.token = crypto.randomBytes(128).toString("hex");
+            clearLoginSession(req);
+            req.session.regenerate((err) => {
+              // Save the user's info in the session
+              req.session.user = created.username;
+              req.session.uid = created.id;
+              req.session.token = crypto.randomBytes(128).toString("hex");
+              req.session.permission = created.permission;
 
-            User.update(
-              {
-                token: req.session.token,
-              },
-              {
-                where: {
-                  id: created.id,
-                  username: created.username,
-                },
-              }
-            )
-              .then(() => {
-                logger(
-                  "info",
-                  req.body.username + " signed up.",
-                  req.originalUrl,
-                  req
-                );
-                res.send({
-                  status: "success",
-                  username: created.username,
+              User.update(
+                {
                   token: req.session.token,
-                  groups: getUserGroups(created.username, req.leadGroupName),
+                },
+                {
+                  where: {
+                    id: created.id,
+                    username: created.username,
+                  },
+                }
+              )
+                .then(() => {
+                  logger(
+                    "info",
+                    req.body.username + " signed up.",
+                    req.originalUrl,
+                    req
+                  );
+                  res.send({
+                    status: "success",
+                    username: created.username,
+                    token: req.session.token,
+                    groups: getUserGroups(created.username, req.leadGroupName),
+                  });
+                  return null;
+                })
+                .catch((err) => {
+                  logger(
+                    "error",
+                    "Only partially signed up.",
+                    req.originalUrl,
+                    req,
+                    err
+                  );
+                  res.send({
+                    status: "failure",
+                    message: "Only partially signed up. Try logging in.",
+                  });
+                  return null;
                 });
-                return null;
-              })
-              .catch((err) => {
-                logger(
-                  "error",
-                  "Only partially signed up.",
-                  req.originalUrl,
-                  req,
-                  err
-                );
-                res.send({
-                  status: "failure",
-                  message: "Only partially signed up. Try logging in.",
-                });
-                return null;
-              });
+              return null;
+            });
             return null;
           })
           .catch((err) => {
@@ -153,104 +158,118 @@ router.post("/signup", function (req, res, next) {
  * User login
  */
 router.post("/login", function (req, res) {
-  let MMGISUser = req.cookies.MMGISUser
-    ? JSON.parse(req.cookies.MMGISUser)
-    : false;
-  let username = req.body.username || (MMGISUser ? MMGISUser.username : null);
+  clearLoginSession(req);
 
-  if (username == null) {
-    res.send({ status: "failure", message: "No username provided." });
-    return;
-  }
+  req.session.regenerate((err) => {
+    let MMGISUser = req.cookies.MMGISUser
+      ? JSON.parse(req.cookies.MMGISUser)
+      : false;
+    let username = req.body.username || (MMGISUser ? MMGISUser.username : null);
 
-  User.findOne({
-    where: {
-      username: username,
-    },
-    attributes: ["id", "username", "email", "password", "permission"],
-  })
-    .then((user) => {
-      if (!user) {
-        res.send({
-          status: "failure",
-          message: "Invalid username or password.",
-        });
-      } else {
-        function pass(err, result, again) {
-          if (result) {
-            // Save the user's info in the session
-            req.session.user = user.username;
-            req.session.uid = user.id;
-            req.session.token = crypto.randomBytes(128).toString("hex");
-            req.session.permission = user.permission;
+    if (username == null) {
+      res.send({ status: "failure", message: "No username provided." });
+      return;
+    }
 
-            User.update(
-              {
-                token: req.session.token,
-              },
-              {
-                where: {
-                  id: user.id,
-                  username: user.username,
-                },
-              }
-            )
-              .then(() => {
-                res.send({
-                  status: "success",
-                  username: user.username,
+    User.findOne({
+      where: {
+        username: username,
+      },
+      attributes: ["id", "username", "email", "password", "permission"],
+    })
+      .then((user) => {
+        if (!user) {
+          res.send({
+            status: "failure",
+            message: "Invalid username or password.",
+          });
+        } else {
+          function pass(err, result, again) {
+            if (result) {
+              // Save the user's info in the session
+              req.session.user = user.username;
+              req.session.uid = user.id;
+              req.session.token = crypto.randomBytes(128).toString("hex");
+              req.session.permission = user.permission;
+
+              User.update(
+                {
                   token: req.session.token,
-                  groups: getUserGroups(user.username, req.leadGroupName),
+                },
+                {
+                  where: {
+                    id: user.id,
+                    username: user.username,
+                  },
+                }
+              )
+                .then(() => {
+                  req.session.save(() => {
+                    res.send({
+                      status: "success",
+                      username: user.username,
+                      token: req.session.token,
+                      groups: getUserGroups(user.username, req.leadGroupName),
+                      additional:
+                        process.env.THIRD_PARTY_COOKIES === "true"
+                          ? `; SameSite=None;${
+                              process.env.NODE_ENV === "production"
+                                ? " Secure"
+                                : ""
+                            }`
+                          : "",
+                    });
+                  });
+                  return null;
+                })
+                .catch((err) => {
+                  res.send({ status: "failure", message: "Login failed." });
+                  return null;
                 });
+              return null;
+            } else {
+              res.send({
+                status: "failure",
+                message: "Invalid username or password.",
+              });
+              return null;
+            }
+          }
+
+          if (req.body.useToken && MMGISUser) {
+            if (MMGISUser.token == null) {
+              res.send({ status: "failure", message: "Bad token." });
+              return null;
+            }
+            User.findOne({
+              where: {
+                username: MMGISUser.username,
+                token: MMGISUser.token,
+              },
+            })
+              .then((user) => {
+                if (!user) {
+                  res.send({ status: "failure", message: "Bad token." });
+                } else {
+                  pass(null, true, true);
+                }
                 return null;
               })
               .catch((err) => {
-                res.send({ status: "failure", message: "Login failed." });
-                return null;
+                res.send({ status: "failure", message: "Bad token." });
               });
             return null;
           } else {
-            res.send({
-              status: "failure",
-              message: "Invalid username or password.",
-            });
-            return null;
+            bcrypt.compare(req.body.password, user.password, pass);
           }
-        }
-
-        if (req.body.useToken && MMGISUser) {
-          if (MMGISUser.token == null) {
-            res.send({ status: "failure", message: "Bad token." });
-            return null;
-          }
-          User.findOne({
-            where: {
-              username: MMGISUser.username,
-              token: MMGISUser.token,
-            },
-          })
-            .then((user) => {
-              if (!user) {
-                res.send({ status: "failure", message: "Bad token." });
-              } else {
-                pass(null, true, true);
-              }
-              return null;
-            })
-            .catch((err) => {
-              res.send({ status: "failure", message: "Bad token." });
-            });
           return null;
-        } else {
-          bcrypt.compare(req.body.password, user.password, pass);
         }
         return null;
-      }
-      return null;
-    })
-    .catch((err) => {
-      res.send({ status: "failure", message: "Bad token." });
-    });
+      })
+      .catch((err) => {
+        res.send({ status: "failure", message: "Bad token." });
+      });
+  });
   return null;
 });
 
@@ -259,10 +278,7 @@ router.post("/logout", function (req, res) {
     ? JSON.parse(req.cookies.MMGISUser)
     : false;
 
-  req.session.user = "guest";
-  req.session.uid = null;
-  req.session.token = null;
-  req.session.permission = null;
+  clearLoginSession(req);
 
   if (MMGISUser == false) {
     res.send({ status: "failure", message: "No user." });
@@ -279,7 +295,11 @@ router.post("/logout", function (req, res) {
       }
     )
       .then(() => {
-        res.send({ status: "success" });
+        req.session.save(() => {
+          req.session.regenerate((err) => {
+            res.send({ status: "success" });
+          });
+        });
         return null;
       })
       .catch((err) => {
@@ -290,6 +310,30 @@ router.post("/logout", function (req, res) {
   }
 });
 
+router.get("/logged_in", function (req, res) {
+  if (
+    typeof req.session.permission === "string" &&
+    req.session.permission[req.session.permission.length - 1] === "1"
+  )
+    res.send({
+      status: "success",
+      message: `'${req.session.user}' is logged in to this session.`,
+      body: {
+        loggedIn: true,
+        user: req.session.user,
+      },
+    });
+  else
+    res.send({
+      status: "failure",
+      message: `No user is logged in to this session.`,
+      body: {
+        loggedIn: false,
+        user: null,
+      },
+    });
+});
+
 function getUserGroups(user, leadGroupName) {
   let leads = process.env.LEADS ? JSON.parse(process.env.LEADS) : [];
   let groups = {};
@@ -297,6 +341,13 @@ function getUserGroups(user, leadGroupName) {
     groups[leadGroupName] = true;
   }
   return Object.keys(groups);
+}
+
+function clearLoginSession(req) {
+  req.session.user = "guest";
+  req.session.uid = null;
+  req.session.token = null;
+  req.session.permission = null;
 }
 
 module.exports = router;

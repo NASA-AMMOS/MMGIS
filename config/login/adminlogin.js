@@ -98,14 +98,6 @@ function setupLogin() {
   });
 }
 
-// Is used in views/configure.pug
-function back() {
-  window.location = window.location.substring(
-    0,
-    window.location.lastIndexOf("/")
-  );
-}
-
 $(document).ready(function () {
   $(document).on("keypress", function (e) {
     if (e.which == 13) {
@@ -132,6 +124,8 @@ $(document).ready(function () {
   });
 
   $("#backIcon").on("click", function () {
-    window.location.href = "/";
+    // Remove last directory from pathname
+    const path = window.location.pathname.split("/");
+    window.location.href = path.slice(0, path.length - 1).join("/") || "/";
   });
 });

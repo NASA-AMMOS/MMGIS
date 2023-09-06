@@ -9,6 +9,8 @@ import L_ from '../Layers_/Layers_'
 import LayerGeologic from './LayerGeologic/LayerGeologic'
 import { parseExtendedGeoJSON, getCoordProperties } from './ExtendedGeoJSON'
 
+import { centroid } from '@turf/turf'
+
 let L = window.L
 
 const tooltipProto = L.Tooltip.prototype
@@ -65,10 +67,12 @@ export const constructVectorLayer = (
             if (feature.properties.hasOwnProperty('style')) {
                 let className = layerObj.style.className
                 let layerName = layerObj.style.layerName
+                layerObj.style = Object.assign({}, layerObj.style)
                 layerObj.style = {
-                    ...JSON.parse(JSON.stringify(layerObj.style)),
+                    ...layerObj.style,
                     ...JSON.parse(JSON.stringify(feature.properties.style)),
                 }
+
                 if (className) layerObj.style.className = className
                 if (layerName) layerObj.style.layerName = layerName
             } else {
@@ -219,6 +223,22 @@ export const constructVectorLayer = (
                     }
                     layerObj.shape = 'directional_circle'
                 }
+
+                const markerXY = Map_.map.latLngToLayerPoint(latlong)
+                const markerLatLong = Map_.map.containerPointToLatLng([
+                    markerXY.x,
+                    markerXY.y,
+                ])
+                const pixelBelowMarkerLatLong = Map_.map.containerPointToLatLng(
+                    [markerXY.x, markerXY.y + 1]
+                )
+                yaw -= F_.bearingBetweenTwoLatLngs(
+                    pixelBelowMarkerLatLong.lat,
+                    pixelBelowMarkerLatLong.lng,
+                    markerLatLong.lat,
+                    markerLatLong.lng
+                )
+                yaw = -((360 - yaw) % 360)
             }
 
             switch (layerObj.shape) {
@@ -331,11 +351,9 @@ export const constructVectorLayer = (
             } else if (layer == null && svg != null) {
                 layer = L.marker(latlong, {
                     icon: L.divIcon({
-                        className: `leafletMarkerShape leafletMarkerShape_${layerObj.name
-                            .replace(/\s/g, '')
-                            .toLowerCase()} ${layerObj.name
-                            .replace(/\s/g, '')
-                            .toLowerCase()} leafletDivIcon`,
+                        className: `leafletMarkerShape leafletMarkerShape_${F_.getSafeName(
+                            layerObj.name
+                        )} ${F_.getSafeName(layerObj.name)} leafletDivIcon`,
                         iconSize: [
                             (featureStyle.radius + pixelBuffer) * 2,
                             (featureStyle.radius + pixelBuffer) * 2,
@@ -491,6 +509,7 @@ export const constructSublayers = (
     // note: sublayer ordering here does denote render order (bottom on top).
     const sublayers = {
         labels: false,
+        pairings: pairings(geojson, layerObj, leafletLayerObject),
         uncertainty_ellipses: uncertaintyEllipses(
             geojson,
             layerObj,
@@ -612,7 +631,7 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
         layer.dropdown = mainDropdownProps.dropdown
         layer.dropdownValue = mainDropdownProps.dropdownValue
         layer.dropdownFunc = (layerName, subName, Map_, prop) => {
-            const sublayer = L_.layersGroupSublayers[layerName][subName]
+            const sublayer = L_.layers.attachments[layerName][subName]
             layer.dropdownValue = prop
             if (sublayer.on) layer.on()
         }
@@ -736,12 +755,12 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
 
         layer.addDataEnhanced = function (geojson, layerName, subName) {
             this.addData(geojson)
-            if (L_.layersGroupSublayers[layerName][subName].on) this.on()
+            if (L_.layers.attachments[layerName][subName].on) this.on()
         }
 
         return {
-            on: L_.layersGroupSublayers[layerObj.name]?.labels
-                ? L_.layersGroupSublayers[layerObj.name]?.labels.on
+            on: L_.layers.attachments[layerObj.name]?.labels
+                ? L_.layers.attachments[layerObj.name]?.labels.on
                 : labelsVar.initialVisibility != null
                 ? labelsVar.initialVisibility
                 : true,
@@ -753,6 +772,184 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
             maxZoom: 100,
         }
     } else return false
+}
+
+// Draws a thin faint line to the center of features from other layers that are connected to this layer
+const pairings = (geojson, layerObj, leafletLayerObject) => {
+    //PAIRINGS
+    const pairingsVar = F_.getIn(
+        layerObj,
+        'variables.layerAttachments.pairings'
+    )
+
+    if (pairingsVar) {
+        const layers = (pairingsVar.layers || []).map((l) => L_.asLayerUUID(l))
+
+        const pairProp = pairingsVar.pairProp
+        const layersAzProp = pairingsVar.layersAzProp
+        const layersElProp = pairingsVar.layersElProp
+        const style = pairingsVar.style || {}
+        const styleObject = {
+            style: {
+                ...{
+                    weight: 2,
+                    color: 'yellow',
+                    opacity: 0.35,
+                },
+                ...style,
+            },
+        }
+
+        if (layers.length === 0 || pairProp == null) {
+            console.warn(
+                `Layer '${layerObj.name}' has badly formed 'pairings' attachments object. Missing 'layers' or 'pairProp'.`
+            )
+            return
+        }
+
+        const getPairingLayer = (dontCalculate, forceGeojson) => {
+            const pairingLineFeatures = []
+            if (forceGeojson) geojson = forceGeojson
+            if (!dontCalculate)
+                geojson.features.forEach((f) => {
+                    const featureCenter = centroid(f).geometry.coordinates
+                    const pairValue = F_.getIn(
+                        f.properties,
+                        pairProp,
+                        '___null'
+                    )
+
+                    layers.forEach((layerName) => {
+                        if (
+                            L_.layers.layer[layerName] &&
+                            L_.layers.layer[layerName]._sourceGeoJSON &&
+                            L_.layers.on[layerName] === true
+                        ) {
+                            L_.layers.layer[
+                                layerName
+                            ]._sourceGeoJSON.features.forEach((pairFeature) => {
+                                if (
+                                    F_.getIn(
+                                        pairFeature.properties,
+                                        pairProp,
+                                        null
+                                    ) === pairValue
+                                ) {
+                                    const pairFeatureCenter =
+                                        centroid(pairFeature).geometry
+                                            .coordinates
+
+                                    pairingLineFeatures.push({
+                                        type: 'Feature',
+                                        properties: {},
+                                        geometry: {
+                                            type: 'LineString',
+                                            coordinates: [
+                                                featureCenter,
+                                                pairFeatureCenter,
+                                            ],
+                                        },
+                                    })
+                                }
+                            })
+                        }
+                    })
+                })
+
+            let layer = L.geoJson(pairingLineFeatures, styleObject)
+
+            layer.on = (firstTime, sublayerLayer) => {
+                const layerMain =
+                    L_.layers.attachments?.[layerObj.name]?.pairings?.layer
+                if (layerMain == null) return
+
+                layerMain.off()
+                // For checking whether we can use the previous layer instead of recreating
+                const constructedFromLayers = []
+                layers.forEach((layerName) => {
+                    if (
+                        L_.layers.layer[layerName] &&
+                        L_.layers.layer[layerName]._sourceGeoJSON &&
+                        L_.layers.on[layerName] === true
+                    ) {
+                        constructedFromLayers.push(layerName)
+                    }
+                })
+                const constructedTag = constructedFromLayers.join('__')
+
+                // Check if "", since if it is, no need to add anything
+                if (constructedTag.length > 0) {
+                    if (
+                        sublayerLayer == null ||
+                        constructedTag !== layerMain.constructedTag
+                    ) {
+                        L_.layers.attachments[layerObj.name].pairings.layer =
+                            getPairingLayer()
+                        L_.layers.attachments[
+                            layerObj.name
+                        ].pairings.layer.constructedTag = constructedTag
+                        if (sublayerLayer)
+                            sublayerLayer =
+                                L_.layers.attachments[layerObj.name].pairings
+                                    .layer
+                    }
+                    L_.Map_.map.addLayer(layerMain)
+                    layerMain.setZIndex(
+                        L_._layersOrdered.length +
+                            1 -
+                            L_._layersOrdered.indexOf(layerObj.name)
+                    )
+                }
+            }
+            layer.off = () => {
+                const layerMain =
+                    L_.layers.attachments?.[layerObj.name]?.pairings?.layer
+                if (layerMain == null) return
+
+                L_.Map_.rmNotNull(layerMain)
+            }
+            return layer
+        }
+
+        // Doesn't matter if Map isn't attached to Layers for the first time
+        if (L_.Map_) {
+            L_.Map_.rmNotNull(
+                L_.layers.attachments?.[layerObj.name]?.pairings?.layer
+            )
+        }
+        const layer = getPairingLayer(true)
+
+        layer.addDataEnhanced = function (geojson, layerName, subName, Map_) {
+            Map_.rmNotNull(L_.layers.attachments[layerName][subName].layer)
+            L_.layers.attachments[layerName][subName].geojson = geojson
+            L_.layers.attachments[layerName][subName].layer = getPairingLayer(
+                false,
+                geojson
+            )
+            Map_.map.addLayer(L_.layers.attachments[layerName][subName].layer) //
+        }
+
+        return {
+            on: L_.layers.attachments[layerObj.name]?.pairings
+                ? L_.layers.attachments[layerObj.name]?.pairings.on
+                : pairingsVar.initialVisibility != null
+                ? pairingsVar.initialVisibility
+                : true,
+            pairedLayers: layers,
+            pairProp: pairProp,
+            layersAzProp: layersAzProp,
+            layersElProp: layersElProp,
+            originOffsetOrder: pairingsVar.originOffsetOrder,
+            type: 'pairings',
+            geojson: geojson,
+            layer: layer,
+            title: 'Feature Pairings',
+            minZoom: 0,
+            maxZoom: 100,
+        }
+    } else {
+        return false
+    }
 }
 
 const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {
@@ -802,15 +999,17 @@ const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {
                         angle: uncertaintyAngle,
                     }
                 )
-                for (
-                    let i = 0;
-                    i < feature.geometry.coordinates[0].length;
-                    i++
-                ) {
-                    feature.geometry.coordinates[0][i][2] =
-                        f.geometry.coordinates[2] + depth3d
+                if (feature) {
+                    for (
+                        let i = 0;
+                        i < feature.geometry.coordinates[0].length;
+                        i++
+                    ) {
+                        feature.geometry.coordinates[0][i][2] =
+                            f.geometry.coordinates[2] + depth3d
+                    }
+                    uncertaintyEllipseFeatures.push(feature)
                 }
-                uncertaintyEllipseFeatures.push(feature)
             }
         })
 
@@ -853,20 +1052,23 @@ const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {
                 if (uncertaintyVar.angleUnit === 'rad')
                     uncertaintyAngle = uncertaintyAngle * (180 / Math.PI)
 
+                const xy = {
+                    x: F_.getIn(
+                        feature.properties,
+                        uncertaintyVar.xAxisProp,
+                        false
+                    ),
+                    y: F_.getIn(
+                        feature.properties,
+                        uncertaintyVar.yAxisProp,
+                        false
+                    ),
+                }
+                if (xy.x === false && xy.y === false) return null
+
                 uncertaintyEllipse = F_.toEllipse(
                     latlong,
-                    {
-                        x: F_.getIn(
-                            feature.properties,
-                            uncertaintyVar.xAxisProp,
-                            1
-                        ),
-                        y: F_.getIn(
-                            feature.properties,
-                            uncertaintyVar.yAxisProp,
-                            1
-                        ),
-                    },
+                    xy,
                     window.mmgisglobal.customCRS,
                     {
                         units: uncertaintyVar.axisUnits || 'meters',
@@ -881,6 +1083,7 @@ const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {
                 return uncertaintyEllipse
             },
         }
+
         return curtainUncertaintyOptions
             ? {
                   on:
@@ -972,7 +1175,7 @@ const imageOverlays = (geojson, layerObj, leafletLayerObject) => {
                         imageSettings.angleProp,
                         0
                     )
-                    if (imageSettings.angleProp === 'deg')
+                    if (imageSettings.angleUnit === 'deg')
                         angle = angle * (Math.PI / 180)
 
                     const crs = window.mmgisglobal.customCRS
@@ -1397,22 +1600,20 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                 Map_,
                 overrideColorWithProp
             ) {
-                Map_.rmNotNull(
-                    L_.layersGroupSublayers[layerName][subName].layer
-                )
-                L_.layersGroupSublayers[layerName][subName].layer = getLayer(
+                Map_.rmNotNull(L_.layers.attachments[layerName][subName].layer)
+                L_.layers.attachments[layerName][subName].layer = getLayer(
                     geojson,
-                    L_.layersGroupSublayers[layerName][subName].layer.layerObj,
+                    L_.layers.attachments[layerName][subName].layer.layerObj,
                     overrideColorWithProp
                 )
                 Map_.map.addLayer(
-                    L_.layersGroupSublayers[layerName][subName].layer
+                    L_.layers.attachments[layerName][subName].layer
                 )
             }
             layer.dropdown = pathGradientSettings.dropdownColorWithProp
             layer.dropdownValue = pathGradientSettings.colorWithProp
             layer.dropdownFunc = function (layerName, subName, Map_, prop) {
-                const l = L_.layersGroupSublayers[layerName][subName]
+                const l = L_.layers.attachments[layerName][subName]
                 l.layer.addDataEnhanced(
                     l.geojson,
                     layerName,

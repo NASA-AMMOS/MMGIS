@@ -1,11 +1,15 @@
 //So that each layer bar will always have a unique id
 var grandLayerCounter = 0;
 var mission = "";
+var configId = -1;
+var lockConfig = false;
+var lockConfigCount = false;
 //The active mission filepath
 var missionPath = "";
 var tData;
 var editors;
 var layerEditors;
+var tabEditors;
 var usingCustomProjection;
 var availableKinds = [];
 
@@ -27,7 +31,9 @@ function initialize() {
       url: calls.logout.url,
       data: {},
       success: function (data) {
-        window.location = "/";
+        // Remove last directory from pathname
+        const path = window.location.pathname.split("/");
+        window.location.href = path.slice(0, path.length - 1).join("/") || "/";
       },
     });
   });
@@ -130,6 +136,7 @@ function initialize() {
 
         editors = {};
         layerEditors = {};
+        tabEditors = {};
 
         for (var i = 0; i < tData.length; i++) {
           // prettier-ignore
@@ -197,6 +204,39 @@ function initialize() {
           }
         }
 
+        // Setup tabEditors
+        tabEditors["coordinatesVariables"] = CodeMirror.fromTextArea(
+          document.getElementById("coordinatesVariables"),
+          {
+            path: "js/codemirror/codemirror-5.19.0/",
+            mode: "javascript",
+            theme: "elegant",
+            viewportMargin: Infinity,
+            lineNumbers: true,
+            autoRefresh: true,
+            matchBrackets: true,
+          }
+        );
+        $("#coordinatesVariables_example").html(
+          JSON.stringify(
+            {
+              rightClickMenuActions: [
+                {
+                  name: "The text for this menu entry when users right-click",
+                  link: "https://domain?I={ll[0]}&will={ll[1]}&replace={ll[2]}&these={en[0]}&brackets={en[1]}&for={cproj[0]}&you={sproj[0]}&with={rxy[0]}&coordinates={site[2]}",
+                },
+                {
+                  name: "WKT text insertions. Do so only for polygons.",
+                  link: "https://domain?regularWKT={wkt}&wkt_where_commas_are_replaced_with_underscores={wkt_}",
+                  for: "polygon",
+                },
+              ],
+            },
+            null,
+            4
+          ) || ""
+        );
+
         //Make materialize initialize tabs
         $("ul.tabs#missions").tabs();
 
@@ -228,6 +268,7 @@ function initialize() {
 
           mission = $(this).find("a").html();
           missionPath = calls.missionPath + mission + "/config.json";
+          configId = parseInt(Math.random() * 100000);
 
           $.ajax({
             type: calls.get.type,
@@ -239,6 +280,12 @@ function initialize() {
             success: function (data) {
               if (data.status == "success") {
                 var cData = data.config;
+
+                clearLockConfig();
+
+                for (var e in tabEditors) {
+                  tabEditors[e].setValue("");
+                }
 
                 //overall
                 $("#overall_mission_name").text(mission);
@@ -492,6 +539,11 @@ function initialize() {
                   $(
                     `.coordinates_coordMain[value="${cData.coordinates?.coordmain}"]`
                   ).prop("checked", true);
+                tabEditors["coordinatesVariables"].setValue(
+                  cData.coordinates?.variables
+                    ? JSON.stringify(cData.coordinates?.variables, null, 4)
+                    : ""
+                );
 
                 //look
                 $("#tab_look #look_pagename").val("MMGIS");
@@ -499,14 +551,32 @@ function initialize() {
                   $("#tab_look #look_pagename").val(cData.look.pagename);
                 }
                 $("#tab_look input").prop("checked", false);
-                if (cData.look && cData.look.minimalist == true) {
+                if (cData.look && cData.look.minimalist != false) {
                   $("#tab_look #look_minimalist").prop("checked", true);
                 }
-                if (cData.look && cData.look.zoomcontrol == true) {
+                if (cData.look && cData.look.topbar != false) {
+                  $("#tab_look #look_topbar").prop("checked", true);
+                }
+                if (cData.look && cData.look.toolbar != false) {
+                  $("#tab_look #look_toolbar").prop("checked", true);
+                }
+                if (cData.look && cData.look.scalebar != false) {
+                  $("#tab_look #look_scalebar").prop("checked", true);
+                }
+                if (cData.look && cData.look.coordinates != false) {
+                  $("#tab_look #look_coordinates").prop("checked", true);
+                }
+                if (cData.look && cData.look.zoomcontrol != false) {
                   $("#tab_look #look_zoomcontrol").prop("checked", true);
                 }
-                if (cData.look && cData.look.graticule == true) {
+                if (cData.look && cData.look.graticule != false) {
                   $("#tab_look #look_graticule").prop("checked", true);
+                }
+                if (cData.look && cData.look.miscellaneous != false) {
+                  $("#tab_look #look_miscellaneous").prop("checked", true);
+                }
+                if (cData.look && cData.look.settings != false) {
+                  $("#tab_look #look_settings").prop("checked", true);
                 }
 
                 //look colors
@@ -558,6 +628,12 @@ function initialize() {
                 ) {
                   $("#tab_look #look_fullscreen").prop("checked", true);
                 }
+                if (cData.look && cData.look.info == true) {
+                  $("#tab_look #look_info").prop("checked", true);
+                }
+                $("#tab_look #look_infourl").val(
+                  cData.look ? cData.look.infourl : ""
+                );
                 if (
                   cData.look &&
                   (cData.look.help == true || cData.look.help == null)
@@ -601,9 +677,25 @@ function initialize() {
                     "checked",
                     cData.time.visible ? true : false
                   );
+                  $("#tab_time #time_initiallyOpen").prop(
+                    "checked",
+                    cData.time.initiallyOpen ? true : false
+                  );
                 }
                 $("#tab_time #time_format").val(
                   cData.time ? cData.time.format : "%Y-%m-%dT%H:%M:%SZ"
+                );
+                $("#tab_time #time_initialstart").val(
+                  cData.time ? cData.time.initialstart : ""
+                );
+                $("#tab_time #time_initialend").val(
+                  cData.time ? cData.time.initialend : "now"
+                );
+                $("#tab_time #time_initialwindowstart").val(
+                  cData.time ? cData.time.initialwindowstart : ""
+                );
+                $("#tab_time #time_initialwindowend").val(
+                  cData.time ? cData.time.initialwindowend : "now"
                 );
 
                 //tools
@@ -786,6 +878,17 @@ function initialize() {
     $("#deleteMissionName").val("");
   });
 
+  //Download working config button
+  $("#download_working_config").on("click", function () {
+    downloadObject(
+      save("returnJSON"),
+      mission + "_config_WORKING",
+      ".json",
+      true
+    );
+    toast("success", "Download Successful.");
+  });
+
   //Save changes button
   $("#save_changes").on("click", save);
 }
@@ -870,7 +973,10 @@ function makeLayerBarAndModal(d, level, options) {
       vtLayerSetStylesEl = "block",
       timeEl = "block",
       timeTypeEl = "block",
+      timeStartPropEl = "block",
+      timeEndPropEl = "block",
       timeFormatEl = "block",
+      timeCompositeTileEl = "block",
       timeRefreshEl = "none",
       timeIncrementEl = "none",
       shapeEl = "none",
@@ -889,11 +995,11 @@ function makeLayerBarAndModal(d, level, options) {
         maxnzEl = "none"; maxzEl = "none"; strcolEl = "none"; filcolEl = "none";
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
-        timeEl = "none"; timeTypeEl = "none"; timeFormatEl = "none"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
+        timeEl = "none"; timeTypeEl = "none"; timeStartPropEl = "none"; timeEndPropEl = "none"; timeFormatEl = "none"; timeCompositeTileEl = "none"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
         queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "tile":
-        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "none";
+        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "block";
         descriptionEl = "block"; tagsEl = "block"; legendEl = "block";
         visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "block"; layer3dEl = "none";
         tileformatEl = "block";
@@ -902,7 +1008,7 @@ function makeLayerBarAndModal(d, level, options) {
         maxnzEl = "block"; maxzEl = "block"; strcolEl = "none"; filcolEl = "none";
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
-        timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
+        timeEl = "block"; timeTypeEl = "block"; timeStartPropEl = "none"; timeEndPropEl = "none"; timeFormatEl = "block"; timeCompositeTileEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
         queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "vectortile":
@@ -915,7 +1021,7 @@ function makeLayerBarAndModal(d, level, options) {
         maxnzEl = "block"; maxzEl = "block"; strcolEl = "none"; filcolEl = "none";
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "block"; vtIdEl = "block"; vtKeyEl = "block"; vtLayerSetStylesEl = "block";
-        timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "block";
+        timeEl = "block"; timeTypeEl = "block"; timeStartPropEl = "none"; timeEndPropEl = "none"; timeFormatEl = "block"; timeCompositeTileEl = "none"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "block";
         queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "data":
@@ -928,7 +1034,7 @@ function makeLayerBarAndModal(d, level, options) {
         maxnzEl = "block"; maxzEl = "block"; strcolEl = "none"; filcolEl = "none";
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none"; 
-        timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
+        timeEl = "block"; timeTypeEl = "block"; timeStartPropEl = "none"; timeEndPropEl = "none"; timeFormatEl = "block"; timeCompositeTileEl = "none"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
         queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "query":
@@ -941,7 +1047,7 @@ function makeLayerBarAndModal(d, level, options) {
         maxnzEl = "none"; maxzEl = "none"; strcolEl = "block"; filcolEl = "block";
         weightEl = "block"; opacityEl = "block"; radiusEl = "block"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none"; 
-        timeEl = "none"; timeTypeEl = "none"; timeFormatEl = "none"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
+        timeEl = "none"; timeTypeEl = "none"; timeStartPropEl = "none"; timeEndPropEl = "none"; timeFormatEl = "none"; timeCompositeTileEl = "none"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
         queryEndpointEl = "block"; queryTypeEl = "block";
       break;
     case "vector":
@@ -954,7 +1060,7 @@ function makeLayerBarAndModal(d, level, options) {
         maxnzEl = "none"; maxzEl = "block"; strcolEl = "block"; filcolEl = "block";
         weightEl = "block"; opacityEl = "block"; radiusEl = "block"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
-        timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "block";
+        timeEl = "block"; timeTypeEl = "block"; timeStartPropEl = "block"; timeEndPropEl = "block"; timeFormatEl = "block"; timeCompositeTileEl = "none"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "block";
       break;
     case "model":
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; demparserEl = "none"; controlledEl = "none";
@@ -966,7 +1072,7 @@ function makeLayerBarAndModal(d, level, options) {
         maxnzEl = "none"; maxzEl = "none"; strcolEl = "none"; filcolEl = "none";
         weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
-        timeEl = "block"; timeTypeEl = "block"; timeFormatEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
+        timeEl = "block"; timeTypeEl = "block"; timeStartPropEl = "none"; timeEndPropEl = "none"; timeFormatEl = "block"; timeCompositeTileEl = "none"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
         queryEndpointEl = "none"; queryTypeEl = "none";
       break; 
     default:
@@ -1097,20 +1203,36 @@ function makeLayerBarAndModal(d, level, options) {
     timeFalseSel = "selected";
   }
 
-  var timeGlobalSel = "",
-    timeIndividualSel = "";
+  var timeRequerySel = "",
+    timeLocalSel = "";
   if (typeof d.time != "undefined") {
     switch (d.time.type) {
-      case "global":
-        timeGlobalSel = "selected";
+      case "requery":
+        timeRequerySel = "selected";
         break;
-      case "individual":
-        timeIndividualSel = "selected";
+      case "local":
+        timeLocalSel = "selected";
         break;
       default:
     }
   } else {
-    timeGlobalSel = "selected";
+    timeRequerySel = "selected";
+  }
+
+  var timeCompositeTileTrueSel = "",
+    timeCompositeTileFalseSel = "";
+  if (typeof d.time != "undefined") {
+    switch (d.time.compositeTile) {
+      case true:
+      case "true":
+        timeCompositeTileTrueSel = "selected";
+        break;
+      default:
+        timeCompositeTileFalseSel = "selected";
+        break;
+    }
+  } else {
+    timeCompositeTileFalseSel = "selected";
   }
 
   var togwheadTrueSel = "",
@@ -1219,23 +1341,26 @@ function makeLayerBarAndModal(d, level, options) {
       "<div class='modal-content' style='padding-bottom: 0; margin-bottom: " + ((d.type === 'header') ? '260px' : '0') + ";'>" +
         "<div class='modal-title'>" +
           "<h4 id='modal_name'>" + d.name + "</h4>" +
+          "<div style='display: flex;'>" +
+          "<div class='layerHelp'><a href='https://nasa-ammos.github.io/MMGIS/configure/layers' target='__blank' rel='noopener'><i class='mdi mdi-help mdi-24px' title='Layer Configuration Docs'></i></a></div>" +
           "<div class='clone'><i class='mdi mdi-content-duplicate mdi-24px' title='Clone Layer'></i></div>" +
+          "</div>" +
         "</div>" +
         "<p>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='nameEl' class='input-field col s" + (kindEl == 'none' ? 8 : 6) + " push-s1' style='display: " + nameEl + "'>" +
+            "<div id='nameEl' class='input-field col s" + (kindEl == 'none' ? 8 : 6) + " push-s0' style='display: " + nameEl + "'>" +
               "<input id='Name" + n + "' type='text' class='validate' value='" + unescape(d.name) + "'>" +
               "<label for='Name" + n + "'>Layer Name</label>" +
             "</div>" +
-            "<div id='kindEl' class='input-field col s2 push-s1' style='display: " + kindEl + "'>" +
+            "<div id='kindEl' class='input-field col s2 push-s0' style='display: " + kindEl + "'>" +
               "<select>" +
                 "<option value='none' " + (d.kind == 'none' || d.kind == null ? 'selected' : '') + ">None</option>" +
                 kindsOptions.join('') +
               "</select>" +
               "<label>Kind of Layer</label>" +
             "</div>" +
-            "<div id='typeEl' class='input-field col s2 push-s1' style='display: " + typeEl + "'>" +
+            "<div id='typeEl' class='input-field col s2 push-s0' style='display: " + typeEl + "'>" +
               "<select>" +
                 "<optgroup label='Pseudo Layers'>" +
                   "<option value='header' " + headerSel + ">Header</option>" +
@@ -1251,14 +1376,21 @@ function makeLayerBarAndModal(d, level, options) {
               "</select>" +
               "<label>Layer Type</label>" +
             "</div>" +
+            "<div id='visEl' class='input-field col s2 push-s0' style='display: " + visEl + "'>" +
+              "<select>" +
+                "<option value='true' " + visTrueSel + ">True</option>" +
+                "<option value='false' " + visFalseSel + ">False</option>" +
+              "</select>" +
+              "<label>Initial Visibility</label>" +
+            "</div>" +
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='urlEl' class='input-field col s8 push-s1' style='display: " + urlEl + "'>" +
+            `<div id='urlEl' class='input-field col s${tileformatEl != 'none' ? 8 : 10} push-s0' style='display: ` + urlEl + "'>" +
               "<input id='Url" + n + "' type='text' class='validate' value='" + d.url + "'>" +
               "<label for='Url" + n + "'>URL</label>" +
             "</div>" +
-            "<div id='tileformatEl' class='input-field col s2 push-s1' style='display: " + tileformatEl + "'>" +
+            "<div id='tileformatEl' class='input-field col s2 push-s0' style='display: " + tileformatEl + "'>" +
               "<select>" +
                 "<option value='tms' " + tileformatTMSSel + ">TMS</option>" +
                 "<option value='wmts' " + tileformatWMTSSel + ">WMTS</option>" +
@@ -1266,7 +1398,7 @@ function makeLayerBarAndModal(d, level, options) {
               "</select>" +
               "<label style='cursor: default;' title='TMS and WMTS: Append \"/{z}/{x}/{y}.png\" to URL\n\nWMS: After service, append \"?layer=<your_layer_name><,another_if_you _want>\" to the URL\nTo override WMS parameters append \"&<wms_param>=<value>\" again to the URL after the layers list.\n\nAll brackets included, quotes are not and <> require custom input.'>Tile Format <i class='mdi mdi-information mdi-14px'></i></label>" +
             "</div>" +
-            "<div id='controlledEl' class='input-field col s3 push-s1' style='display: " + controlledEl + "'>" +
+            "<div id='controlledEl' class='input-field col s2 push-s0' style='display: " + controlledEl + "'>" +
               "<input id='Controlled" + n + "' type='checkbox' class='filled-in checkbox-color'" +  (d.controlled ? 'checked' : '') + "/>" +
               "<label for='Controlled" + n + "' style='color: black;'>" + "Controlled" + "</label>" +
             "</div>" +
@@ -1274,11 +1406,11 @@ function makeLayerBarAndModal(d, level, options) {
 
           // Query Core
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='queryEndpointEl' class='input-field col s8 push-s1' style='display: " + queryEndpointEl + "'>" +
+            "<div id='queryEndpointEl' class='input-field col s10 push-s0' style='display: " + queryEndpointEl + "'>" +
               "<input id='QueryEndpoint" + n + "' type='text' class='validate' value='" + (d.query != null ? unescape(d.query.endpoint) : '') + "'>" +
               "<label for='QueryEndpoint" + n + "'>Endpoint</label>" +
             "</div>" +
-            "<div id='queryTypeEl' class='input-field col s2 push-s1' style='display: " + queryTypeEl + "'>" +
+            "<div id='queryTypeEl' class='input-field col s2 push-s0' style='display: " + queryTypeEl + "'>" +
               "<select>" +
                 "<option value='elasticsearch' " + queryTypeESSel + ">ElasticSearch</option>" +
               "</select>" +
@@ -1288,48 +1420,48 @@ function makeLayerBarAndModal(d, level, options) {
 
           //Model Position
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='modelLonEl' class='input-field col s3 push-s1' style='display: " + modelLonEl + "'>" +
+            "<div id='modelLonEl' class='input-field col s4 push-s0' style='display: " + modelLonEl + "'>" +
               "<input id='Longitude" + n + "' type='text' class='validate' value='" + d.position.longitude + "'>" +
               "<label for='Longitude" + n + "'>Longitude</label>" +
             "</div>" +
-            "<div id='modelLatEl' class='input-field col s3 push-s1' style='display: " + modelLatEl + "'>" +
+            "<div id='modelLatEl' class='input-field col s4 push-s0' style='display: " + modelLatEl + "'>" +
               "<input id='Latitude" + n + "' type='text' class='validate' value='" + d.position.latitude + "'>" +
               "<label for='Latitude" + n + "'>Latitude</label>" +
             "</div>" +
-            "<div id='modelElevEl' class='input-field col s4 push-s1' style='display: " + modelElevEl + "'>" +
+            "<div id='modelElevEl' class='input-field col s4 push-s0' style='display: " + modelElevEl + "'>" +
               "<input id='Elevation" + n + "' type='text' class='validate' value='" + d.position.elevation + "'>" +
               "<label for='Elevation" + n + "'>Elevation (meters)</label>" +
             "</div>" +
           "</div>" +
           //Model Rotation
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='modelRotXEl' class='input-field col s4 push-s1' style='display: " + modelRotXEl + "'>" +
+            "<div id='modelRotXEl' class='input-field col s4 push-s0' style='display: " + modelRotXEl + "'>" +
               "<input id='RotationX" + n + "' type='text' class='validate' value='" + d.rotation.x + "'>" +
               "<label for='RotationX" + n + "'>Rotation X (radians)</label>" +
             "</div>" +
-            "<div id='modelRotYEl' class='input-field col s3 push-s1' style='display: " + modelRotYEl + "'>" +
+            "<div id='modelRotYEl' class='input-field col s4 push-s0' style='display: " + modelRotYEl + "'>" +
               "<input id='RotationY" + n + "' type='text' class='validate' value='" + d.rotation.y + "'>" +
               "<label for='RotationY" + n + "'>Rotation Y</label>" +
             "</div>" +
-            "<div id='modelRotZEl' class='input-field col s3 push-s1' style='display: " + modelRotZEl + "'>" +
+            "<div id='modelRotZEl' class='input-field col s4 push-s0' style='display: " + modelRotZEl + "'>" +
               "<input id='RotationZ" + n + "' type='text' class='validate' value='" + d.rotation.z + "'>" +
               "<label for='RotationZ" + n + "'>Rotation Z</label>" +
             "</div>" +
           "</div>" +
           //Model Scale
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='modelScaleEl' class='input-field col s3 push-s1' style='display: " + modelScaleEl + "'>" +
+            "<div id='modelScaleEl' class='input-field col s4 push-s0' style='display: " + modelScaleEl + "'>" +
               "<input id='Scale" + n + "' type='text' class='validate' value='" + d.scale + "'>" +
               "<label for='Scale" + n + "'>Scale</label>" +
             "</div>" +
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='demtileurlEl' class='input-field col s8 push-s1' style='display: " + demtileurlEl + "'>" +
+            "<div id='demtileurlEl' class='input-field col s10 push-s0' style='display: " + demtileurlEl + "'>" +
               "<input id='DemTileUrl" + n + "' type='text' class='validate' value='" + d.demtileurl + "'>" +
               "<label for='DemTileUrl" + n + "'>DEM Tile URL</label>" +
             "</div>" +
-            "<div id='demparserEl' class='input-field col s2 push-s1' style='display: " + demparserEl + "'>" +
+            "<div id='demparserEl' class='input-field col s2 push-s0' style='display: " + demparserEl + "'>" +
               "<select>" +
                 "<option value='' " + demparserRGBASel + ">RGBA</option>" +
                 "<option value='tif' " + demparserTifSel + ">Tif</option>" +
@@ -1339,59 +1471,52 @@ function makeLayerBarAndModal(d, level, options) {
           "</div>" +
 
           "<div class='row' style='margin-bottom: 12px;'>" +
-            "<div id='descriptionEl' class='input-field col s10 push-s1' style='display: " + descriptionEl + "'>" +
+            "<div id='descriptionEl' class='input-field col s12 push-s0' style='display: " + descriptionEl + "'>" +
               "<span>Description: (markdown)</span>" + 
               "<textarea id='LayerDescription" + n + "'></textarea>" +
             "</div>" +
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='tagsEl' class='input-field col s9 push-s1' style='display: " + tagsEl + "'>" +
+            "<div id='tagsEl' class='input-field col s11 push-s0' style='display: " + tagsEl + "'>" +
               "<input id='LayerTags" + n + "' type='text' class='validate' value='" + (d.tags ? d.tags.join(',') : '') + "'>" +
               "<label for='LayerTags" + n + "'>Tags (comma-separated, &lt;cat&gt;:&lt;tag&gt; for category)</label>" +
             "</div>" +
-            `<div class='col s1 push-s1' style='display: ${tagsEl}; text-align: center; margin-top: 39px; color: #333; background: #ddd; cursor: pointer;' onclick='alert("Existing Tags:\\n\\n${options?.tagList ? Object.keys(options.tagList).map((t) => `${t} (${options.tagList[t]})`).join('\\n') : ''}");'>Existing Tags<i class='mdi mdi-tags mdi-18px'></i></div>` +
+            `<div class='col s1 push-s0' style='display: ${tagsEl}; text-align: center; margin-top: 39px; color: #333; background: #ddd; cursor: pointer;' onclick='alert("Existing Tags:\\n\\n${options?.tagList ? Object.keys(options.tagList).map((t) => `${t} (${options.tagList[t]})`).join('\\n') : ''}");'>Existing Tags<i class='mdi mdi-tags mdi-18px'></i></div>` +
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='legendEl' class='input-field col s10 push-s1' style='display: " + legendEl + "'>" +
+            "<div id='legendEl' class='input-field col s12 push-s0' style='display: " + legendEl + "'>" +
               "<input id='Legend" + n + "' type='text' class='validate' value='" + d.legend + "'>" +
               "<label for='Legend" + n + "'>Legend URL</label>" +
             "</div>" +
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='togwheadEl' class='input-field col s2 push-s1' style='display: " + /*togwheadEl*/ 'none' + "'>" +
+            "<div id='togwheadEl' class='input-field col s2 push-s0' style='display: " + /*togwheadEl*/ 'none' + "'>" +
               "<select>" +
                 "<option value='true' " + togwheadTrueSel + ">True</option>" +
                 "<option value='false' " + togwheadFalseSel + ">False</option>" +
               "</select>" +
               "<label>Toggles with Header</label>" +
             "</div>" +
-            "<div id='minzEl' class='input-field col s2 push-s1' style='display: " + minzEl + "'>" +
+            "<div id='minzEl' class='input-field col s2 push-s0' style='display: " + minzEl + "'>" +
               "<input id='Minz" + n + "' type='text' class='validate' value='" + d.minZoom + "'>" +
               "<label for='Minz" + n + "'>Minimum Zoom</label>" +
             "</div>" +
-            "<div id='maxnzEl' class='input-field col s2 push-s1' style='display: " + maxnzEl + "'>" +
+            "<div id='maxnzEl' class='input-field col s2 push-s0' style='display: " + maxnzEl + "'>" +
               "<input id='Maxnz" + n + "' type='text' class='validate' value='" + d.maxNativeZoom + "'>" +
               "<label for='Maxnz" + n + "'>Maximum Native Zoom</label>" +
             "</div>" +
-            "<div id='maxzEl' class='input-field col s2 push-s1' style='display: " + maxzEl + "'>" +
+            "<div id='maxzEl' class='input-field col s2 push-s0' style='display: " + maxzEl + "'>" +
               "<input id='Maxz" + n + "' type='text' class='validate' value='" + d.maxZoom + "'>" +
               "<label for='Maxz" + n + "'>Maximum Zoom</label>" +
             "</div>" +
-            "<div id='visEl' class='input-field col s2 push-s1' style='display: " + visEl + "'>" +
-              "<select>" +
-                "<option value='true' " + visTrueSel + ">True</option>" +
-                "<option value='false' " + visFalseSel + ">False</option>" +
-              "</select>" +
-              "<label>Initial Visibility</label>" +
-            "</div>" +
-            "<div id='initOpacEl' class='input-field col s2 push-s1' style='display: " + initOpacEl + "'>" +
+            "<div id='initOpacEl' class='input-field col s2 push-s0' style='display: " + initOpacEl + "'>" +
               "<input id='InitialOpacity" + n + "' type='text' class='validate' value='" + ( d.initialOpacity == null ? 1 : d.initialOpacity ) + "'>" +
               "<label for='InitialOpacity" + n + "'>Initial Opacity [0 - 1]</label>" +
             "</div>" +
-            "<div id='layer3dEl' class='input-field col s2 push-s1' style='display: " + layer3dEl + "'>" +
+            "<div id='layer3dEl' class='input-field col s2 push-s0' style='display: " + layer3dEl + "'>" +
               "<select>" +
                   "<option value='clamped' " + layer3dClampedSel + ">Clamped</option>" +
                   "<option value='vector' " + layer3dVectorSel + ">Vector</option>" +
@@ -1401,7 +1526,7 @@ function makeLayerBarAndModal(d, level, options) {
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='bbEl' class='input-field col s10 push-s1' style='display: " + bbEl + "'>" +
+            "<div id='bbEl' class='input-field col s12 push-s0' style='display: " + bbEl + "'>" +
               "<input id='bb" + n + "' type='text' class='validate' value='" + d.boundingBox + "'>" +
               "<label for='bb" + n + "'>Bounding Box [minx, miny, maxx, maxy]</label>" +
             "</div>" +
@@ -1409,29 +1534,44 @@ function makeLayerBarAndModal(d, level, options) {
 
           // Time options
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='timeEl' class='input-field col s2 push-s1' style='display: " + timeEl + "'>" +
+            "<div id='timeEl' class='input-field col s2 push-s0' style='display: " + timeEl + "'>" +
               "<select>" +
                 "<option value='true' " + timeTrueSel + ">True</option>" +
                 "<option value='false' " + timeFalseSel + ">False</option>" +
               "</select>" +
               "<label>Time Enabled</label>" +
             "</div>" +
-            "<div id='timeTypeEl' class='input-field col s2 push-s1' style='display: " + timeTypeEl + "'>" +
+            "<div id='timeTypeEl' class='input-field col s2 push-s0' style='display: " + timeTypeEl + "'>" +
               "<select>" +
-                "<option value='global' " + timeGlobalSel + ">Global</option>" +
-                "<option value='individual' " + timeIndividualSel + ">Individual</option>" +
+                "<option value='requery' " + timeRequerySel + ">Requery</option>" +
+                "<option value='local' " + timeLocalSel + ">Local</option>" +
               "</select>" +
-              "<label>Time Type</label>" +
+              "<label style='cursor: default;' title='Requery: Will rerequest the entire layer with updated {time-like} parameters.\nLocal: Just filter the existing features based on the specified time properties.'>Time Type <i class='mdi mdi-information mdi-14px'></i></label>" +
             "</div>" +
-            "<div id='timeFormatEl' class='input-field col s5 push-s1' style='display: " + timeFormatEl + "'>" +
+            "<div id='timeStartPropEl' class='input-field col s3 push-s0' style='display: " + timeStartPropEl + "'>" +
+              "<input id='TimeStartProp" + n + "' type='text' class='validate' value='" + ((typeof d.time != "undefined") ? d.time.startProp || "" : "") + "'>" +
+              "<label for='TimeStartProp" + n + "'>Start Time Property Name</label>" +
+            "</div>" +
+            "<div id='timeEndPropEl' class='input-field col s3 push-s0' style='display: " + timeEndPropEl + "'>" +
+              "<input id='TimeEndProp" + n + "' type='text' class='validate' value='" + ((typeof d.time != "undefined") ? d.time.endProp || "" : "") + "'>" +
+              "<label for='TimeEndProp" + n + "'>Main Time Property Name (End)</label>" +
+            "</div>" +
+            "<div id='timeFormatEl' class='input-field col s2 push-s0' style='display: " + timeFormatEl + "'>" +
               "<input id='TimeFormat" + n + "' type='text' class='validate' value='" + ((typeof d.time != "undefined") ? d.time.format : "%Y-%m-%dT%H:%M:%SZ") + "'>" +
               "<label for='TimeFormat" + n + "'>Time Format</label>" +
             "</div>" +
-            "<div id='timeRefreshEl' class='input-field col s2 push-s1' style='display: " + timeRefreshEl + "'>" +
+            "<div id='timeCompositeTileEl' class='input-field col s2 push-s0' style='display: " + timeCompositeTileEl + "'>" +
+              "<select>" +
+                "<option value='true' " + timeCompositeTileTrueSel + ">True</option>" +
+                "<option value='false' " + timeCompositeTileFalseSel + ">False</option>" +
+              "</select>" +
+              "<label style='cursor: default;' title='True: MMGIS-served TMS Time Tiles will be merged/collapsed together historically before being served.\nFalse: MMGIS-served Time Tiles just pull the single, latest, best-matched tile.'>Composited Time Tile <i class='mdi mdi-information mdi-14px'></i></label>" +
+            "</div>" +
+            "<div id='timeRefreshEl' class='input-field col s2 push-s0' style='display: " + timeRefreshEl + "'>" +
               "<input id='TimeRefresh" + n + "' type='text' class='validate' value='" + ((typeof d.time != "undefined") ? d.time.refresh : "") + "'>" +
               "<label for='TimeRefresh" + n + "'>Time Refresh</label>" +
             "</div>" +
-            "<div id='timeIncrementEl' class='input-field col s2 push-s1' style='display: " + timeIncrementEl + "'>" +
+            "<div id='timeIncrementEl' class='input-field col s2 push-s0' style='display: " + timeIncrementEl + "'>" +
               "<input id='TimeIncrement" + n + "' type='text' class='validate' value='" + ((typeof d.time != "undefined") ? d.time.increment : "") + "'>" +
               "<label for='TimeIncrement" + n + "'>Time Increment</label>" +
             "</div>" +
@@ -1439,18 +1579,18 @@ function makeLayerBarAndModal(d, level, options) {
 
           //Vector tile options
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='vtIdEl' class='input-field col s5 push-s1' style='display: " + vtIdEl + "'>" +
+            "<div id='vtIdEl' class='input-field col s6 push-s0' style='display: " + vtIdEl + "'>" +
               "<input id='vtId" + n + "' type='text' class='validate' value='" + dStyle.vtId + "'>" +
               "<label for='vtId" + n + "'>Vector Tile Feature Unique Id Key</label>" +
             "</div>" +
-            "<div id='vtKeyEl' class='input-field col s5 push-s1' style='display: " + vtKeyEl + "'>" +
+            "<div id='vtKeyEl' class='input-field col s6 push-s0' style='display: " + vtKeyEl + "'>" +
               "<input id='vtKey" + n + "' type='text' class='validate' value='" + dStyle.vtKey + "'>" +
               "<label for='vtKey" + n + "'>Use Key as Name</label>" +
             "</div>" +
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='vtLayerEl' class='input-field col s10 push-s1' style='display: " + vtLayerEl + "'>" +
+            "<div id='vtLayerEl' class='input-field col s12 push-s0' style='display: " + vtLayerEl + "'>" +
               "<span>Vector Tile Stylings:</span>" +
               "<textarea id='t" + n + "_var'></textarea>" +
             "</div>" +
@@ -1458,30 +1598,30 @@ function makeLayerBarAndModal(d, level, options) {
 
           //Style
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='strcolEl' class='input-field col s2 push-s1' style='display: " + strcolEl + "'>" +
+            "<div id='strcolEl' class='input-field col s3 push-s0' style='display: " + strcolEl + "'>" +
               "<input id='Strcol" + n + "' type='text' class='validate' value='" + dStyle.color + "'>" +
               "<label for='Strcol" + n + "'>Stroke Color</label>" +
             "</div>" +
-            "<div id='filcolEl' class='input-field col s2 push-s1' style='display: " + filcolEl + "'>" +
+            "<div id='filcolEl' class='input-field col s3 push-s0' style='display: " + filcolEl + "'>" +
               "<input id='Filcol" + n + "' type='text' class='validate' value='" + dStyle.fillColor + "'>" +
               "<label for='Filcol" + n + "'>Fill Color</label>" +
             "</div>" +
-            "<div id='weightEl' class='input-field col s2 push-s1' style='display: " + weightEl + "'>" +
+            "<div id='weightEl' class='input-field col s2 push-s0' style='display: " + weightEl + "'>" +
               "<input id='Weight" + n + "' type='text' class='validate' value='" + dStyle.weight + "'>" +
               "<label for='Weight" + n + "'>Stroke Weight</label>" +
             "</div>" +
-            "<div id='opacityEl' class='input-field col s2 push-s1' style='display: " + opacityEl + "'>" +
+            "<div id='opacityEl' class='input-field col s2 push-s0' style='display: " + opacityEl + "'>" +
               "<input id='Opacity" + n + "' type='text' class='validate' value='" + dStyle.fillOpacity + "'>" +
               "<label for='Opacity" + n + "'>Fill Opacity</label>" +
             "</div>" +
-            "<div id='radiusEl' class='input-field col s2 push-s1' style='display: " + radiusEl + "'>" +
+            "<div id='radiusEl' class='input-field col s2 push-s0' style='display: " + radiusEl + "'>" +
               "<input id='Radius" + n + "' type='text' class='validate' value='" + ( d.radius || "" ) + "'>" +
               "<label for='Radius" + n + "'>Radius</label>" +
             "</div>" +
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='shapeEl' class='input-field col s2 push-s1' style='display: " + shapeEl + "'>" +
+            "<div id='shapeEl' class='input-field col s3 push-s0' style='display: " + shapeEl + "'>" +
               "<select>" +
                 "<option value='none' " + shapNoneSel + ">Default</option>" +
                 "<option value='circle' " + shapCircleSel + ">Circle</option>" +
@@ -1499,13 +1639,14 @@ function makeLayerBarAndModal(d, level, options) {
           "</div>" +
 
           "<div class='row' style='margin-bottom: 0px;'>" +
-            "<div id='variableEl' class='input-field col s10 push-s1' style='display: " + variableEl + "'>" +
+            "<div id='variableEl' class='input-field col s12 push-s0' style='display: " + variableEl + "'>" +
               "<span>Raw Variables:</span>" + 
               "<textarea id='Variable" + n + "'></textarea>" +
             "</div>" +
           "</div>" +
 
         "</p>" +
+        `<div id='modal_uuid' value='${d.uuid}'>Layer UUID: ` + d.uuid + "</div>" + 
       "</div>" +
 
       "<div class='modal-footer' style='background-color: " + barColor + "; display: flex; justify-content: space-between;'>" +
@@ -1645,7 +1786,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
       maxnzEl = "block", maxzEl = "block", strcolEl = "block", filcolEl = "block",
       weightEl = "block", opacityEl = "block", radiusEl = "block", variableEl = "block",
       vtLayerEl = "none", vtIdEl = "none", vtKeyEl = "none", vtLayerSetStylesEl = "none",
-      timeEl = 'block', timeTypeEl = 'block', timeFormatEl = 'block', timeRefreshEl = 'none', timeIncrementEl = 'none', 
+      timeEl = 'block', timeTypeEl = 'block', timeStartPropEl = 'block', timeEndPropEl = 'block', timeFormatEl = 'block', timeCompositeTileEl = 'block', timeRefreshEl = 'none', timeIncrementEl = 'none', 
       shapeEl = 'block', queryEndpointEl = "none", queryTypeEl = "none";
   //Kind of a repeat of above =\
 
@@ -1660,11 +1801,11 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         maxzEl = "none"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
         opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none"; 
-        timeEl = 'none'; timeTypeEl = 'none'; timeFormatEl = 'none'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
+        timeEl = 'none'; timeTypeEl = 'none'; timeStartPropEl = 'none'; timeEndPropEl = 'none'; timeFormatEl = 'none'; timeCompositeTileEl = 'none'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
         shapeEl = 'none'; queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "tile": barColor = "rgb(119, 15, 189)";
-        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "none";
+        nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "block"; demparserEl = "block"; controlledEl = "block";
         descriptionEl = "block"; tagsEl = "block"; legendEl = "block";
         tileformatEl = "block"; visEl = "block"; viscutEl = "none"; initOpacEl = "block"; togwheadEl = "block"; minzEl = "block"; maxnzEl = "block"; layer3dEl = "none";
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
@@ -1672,7 +1813,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         maxzEl = "block"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
         opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
-        timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
+        timeEl = 'block'; timeTypeEl = 'block'; timeStartPropEl = 'none'; timeEndPropEl = 'none'; timeFormatEl = 'block'; timeCompositeTileEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
         shapeEl = 'none'; queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "vectortile": barColor = "#bd0f8e";
@@ -1684,7 +1825,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         maxzEl = "block"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
         opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "block"; vtIdEl = "block"; vtKeyEl = "block"; vtLayerSetStylesEl = "block";  
-        timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
+        timeEl = 'block'; timeTypeEl = 'block'; timeStartPropEl = 'none'; timeEndPropEl = 'none'; timeFormatEl = 'block'; timeCompositeTileEl = 'none'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
         shapeEl = 'block'; queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "data": barColor = "rgb(189, 15, 50)";
@@ -1696,7 +1837,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         maxzEl = "block"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
         opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
-        timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
+        timeEl = 'block'; timeTypeEl = 'block'; timeStartPropEl = 'none'; timeEndPropEl = 'none'; timeFormatEl = 'block'; timeCompositeTileEl = 'none'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
         shapeEl = 'none'; queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "query": barColor = "#0fbd4d";
@@ -1708,7 +1849,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         maxzEl = "none"; strcolEl = "block"; filcolEl = "block"; weightEl = "block";
         opacityEl = "block"; radiusEl = "block"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
-        timeEl = 'none'; timeTypeEl = 'none'; timeFormatEl = 'none'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
+        timeEl = 'none'; timeTypeEl = 'none'; timeStartPropEl = 'none'; timeEndPropEl = 'none'; timeFormatEl = 'none'; timeCompositeTileEl = 'none'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
         shapeEl = 'none'; queryEndpointEl = "block"; queryTypeEl = "block";
       break;
     case "vector": barColor = "rgb(15, 119, 189)";
@@ -1720,7 +1861,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         maxzEl = "block"; strcolEl = "block"; filcolEl = "block"; weightEl = "block";
         opacityEl = "block"; radiusEl = "block"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
-        timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
+        timeEl = 'block'; timeTypeEl = 'block'; timeStartPropEl = 'block'; timeEndPropEl = 'block'; timeFormatEl = 'block'; timeCompositeTileEl = 'none'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
         shapeEl = 'block'; queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     case "model": barColor = "rgb(189, 189, 15)";
@@ -1732,7 +1873,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         maxzEl = "none"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
         opacityEl = "none"; radiusEl = "none"; variableEl = "none";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
-        timeEl = 'block'; timeTypeEl = 'block'; timeFormatEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
+        timeEl = 'block'; timeTypeEl = 'block'; timeStartPropEl = 'none'; timeEndPropEl = 'none'; timeFormatEl = 'block'; timeCompositeTileEl = 'none'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
         shapeEl = 'none'; queryEndpointEl = "none"; queryTypeEl = "none";
       break;
     default:
@@ -1787,7 +1928,10 @@ function mmgisLinkModalsToLayersTypeChange(e) {
   mainThis.find("#vtLayerSetStylesEl").css("display", vtLayerSetStylesEl);
   mainThis.find("#timeEl").css("display", timeEl);
   mainThis.find("#timeTypeEl").css("display", timeTypeEl);
+  mainThis.find("#timeStartPropEl").css("display", timeStartPropEl);
+  mainThis.find("#timeEndPropEl").css("display", timeEndPropEl);
   mainThis.find("#timeFormatEl").css("display", timeFormatEl);
+  mainThis.find("#timeCompositeTileEl").css("display", timeCompositeTileEl);
   mainThis.find("#timeRefreshEl").css("display", timeRefreshEl);
   mainThis.find("#timeIncrementEl").css("display", timeIncrementEl);
   mainThis.find("#shapeEl").css("display", shapeEl);
@@ -1818,13 +1962,12 @@ function mmgisLinkModalsToLayersDeleteClick(e) {
 }
 
 function mmgisLinkModalsToLayersCloneClick(e) {
-  var mainThis = $(this).parent().parent().parent();
+  var mainThis = $(this).parent().parent().parent().parent();
   var mainId = mainThis.attr("id");
   mainId = mainId.substring(mainId.indexOf("_") + 1);
-  makeLayerBarAndModal(
-    dataOfLastUsedLayerSlot[mainId],
-    dataOfLastUsedLayerSlot[mainId].__level
-  );
+  const cloned = JSON.parse(JSON.stringify(dataOfLastUsedLayerSlot[mainId]));
+  delete cloned.uuid;
+  makeLayerBarAndModal(cloned, cloned.__level);
 
   refresh();
 }
@@ -1852,7 +1995,7 @@ function materializeDraggableMouseUp(e) {
 
 //Save Changes
 //Reconstructs JSON from html (doesn't modify the initial json directly)
-function save() {
+function save(returnJSON) {
   if (missionPath.length > 0) {
     var json = {
       msv: {},
@@ -1983,12 +2126,23 @@ function save() {
     ).val();
     json.coordinates["coordmain"] =
       $(`.coordinates_coordMain:checked`).val() || "ll";
+    json.coordinates["variables"] = JSON.parse(
+      tabEditors["coordinatesVariables"].getValue() || "{}"
+    );
 
     //Look
     json.look["pagename"] = $("#tab_look #look_pagename").val();
     json.look["minimalist"] = $("#tab_look #look_minimalist").prop("checked");
+    json.look["topbar"] = $("#tab_look #look_topbar").prop("checked");
+    json.look["toolbar"] = $("#tab_look #look_toolbar").prop("checked");
+    json.look["scalebar"] = $("#tab_look #look_scalebar").prop("checked");
+    json.look["coordinates"] = $("#tab_look #look_coordinates").prop("checked");
     json.look["zoomcontrol"] = $("#tab_look #look_zoomcontrol").prop("checked");
     json.look["graticule"] = $("#tab_look #look_graticule").prop("checked");
+    json.look["miscellaneous"] = $("#tab_look #look_miscellaneous").prop(
+      "checked"
+    );
+    json.look["settings"] = $("#tab_look #look_settings").prop("checked");
     //look colors
     json.look["primarycolor"] = $("#tab_look #look_primarycolor").val();
     json.look["secondarycolor"] = $("#tab_look #look_secondarycolor").val();
@@ -2003,6 +2157,8 @@ function save() {
     json.look["copylink"] = $("#tab_look #look_copylink").prop("checked");
     json.look["screenshot"] = $("#tab_look #look_screenshot").prop("checked");
     json.look["fullscreen"] = $("#tab_look #look_fullscreen").prop("checked");
+    json.look["info"] = $("#tab_look #look_info").prop("checked");
+    json.look["infourl"] = $("#tab_look #look_infourl").val();
     json.look["help"] = $("#tab_look #look_help").prop("checked");
     json.look["logourl"] = $("#tab_look #look_logourl").val();
     json.look["helpurl"] = $("#tab_look #look_helpurl").val();
@@ -2036,11 +2192,29 @@ function save() {
     } else {
       json.time.visible = false;
     }
+    if ($("#tab_time #time_initiallyOpen").prop("checked")) {
+      json.time.initiallyOpen = true;
+    } else {
+      json.time.initiallyOpen = false;
+    }
     json.time.format = $("#tab_time #time_format").val();
+    json.time.initialstart = $("#tab_time #time_initialstart").val();
+    json.time.initialend = $("#tab_time #time_initialend").val();
+    json.time.initialwindowstart = $(
+      "#tab_time #time_initialwindowstart"
+    ).val();
+    json.time.initialwindowend = $("#tab_time #time_initialwindowend").val();
+
     //Tools
     for (var i = 0; i < tData.length; i++) {
       if ($("#tab_tools #tools_" + tData[i].name).prop("checked")) {
-        var toolsjson = { name: "", icon: "", js: "" };
+        var toolsjson = {
+          name: "",
+          icon: "",
+          js: "",
+        };
+        if (tData[i].separatedTool === true) toolsjson.separatedTool = true;
+
         toolsjson.name = tData[i].name;
         toolsjson.icon = $("#t" + tData[i].name + "icon input").val();
         toolsjson.js = tData[i].name + "Tool";
@@ -2056,9 +2230,18 @@ function save() {
               );
               return;
             }
-            toolsjson["variables"] = JSON.parse(
-              editors[tData[i].name].getValue()
-            );
+            try {
+              toolsjson["variables"] = JSON.parse(
+                editors[tData[i].name].getValue()
+              );
+            } catch (err) {
+              toast(
+                "error",
+                `Error: ${tData[i].name} tool json is badly formed.`,
+                5000
+              );
+              return;
+            }
           }
         }
         json.tools.push(toolsjson);
@@ -2163,7 +2346,12 @@ function save() {
           .find("#timeTypeEl select option:selected")
           .text()
           .toLowerCase();
+        var modalTimeStartProp = modal.find("#timeStartPropEl input").val();
+        var modalTimeEndProp = modal.find("#timeEndPropEl input").val();
         var modalTimeFormat = modal.find("#timeFormatEl input").val();
+        var modalTimeCompositeTile = modal
+          .find("#timeCompositeTileEl select option:selected")
+          .val();
         var modalShape = modal.find("#shapeEl select option:selected").val();
 
         const modalQueryEndpoint = modal.find("#queryEndpointEl input").val();
@@ -2172,6 +2360,10 @@ function save() {
           .val();
 
         layerObject.name = modalName;
+        layerObject.uuid = modal.find("#modal_uuid").attr("value");
+        if (layerObject.uuid === "" || layerObject.uuid === "undefined")
+          layerObject.uuid = null;
+
         if (
           modalType == "vectortile" ||
           modalType == "vector" ||
@@ -2306,13 +2498,16 @@ function save() {
           // time properties
           layerObject.time = {};
           layerObject.time.enabled = modalTime; // static or timed
-          layerObject.time.type = modalTimeType; // 'global or individual'
+          layerObject.time.type = modalTimeType; // 'requery or local'
           layerObject.time.isRelative = true; // absolute or relative
           layerObject.time.current =
             new Date().toISOString().split(".")[0] + "Z"; // initial time
           layerObject.time.start = ""; // initial start
           layerObject.time.end = ""; // initial end
+          layerObject.time.startProp = modalTimeStartProp;
+          layerObject.time.endProp = modalTimeEndProp;
           layerObject.time.format = modalTimeFormat; // time string format
+          layerObject.time.compositeTile = modalTimeCompositeTile == "true";
           layerObject.time.refresh = "1 hours"; // refresh when the layer becomes stale
           layerObject.time.increment = "5 minutes"; // time bar steps
         }
@@ -2350,7 +2545,8 @@ function save() {
       });
 
     //SAVE HERE
-    saveConfig(json);
+    if (returnJSON === "returnJSON") return json;
+    else saveConfig(json);
   } else {
     toast("warning", "No Mission selected.", 5000);
   }
@@ -2394,12 +2590,35 @@ function addMission() {
 }
 
 function saveConfig(json) {
+  if (lockConfig === true) {
+    if (lockConfigCount != false) {
+      toast(
+        "error",
+        `This configuartion changed while you were working on it. Cannot save without refresh or ${lockConfigCount} more attempt${
+          lockConfigCount != 1 ? "s" : ""
+        } at saving to force it.`,
+        5000
+      );
+      lockConfigCount--;
+      if (lockConfigCount <= 0) {
+        clearLockConfig();
+      }
+    } else {
+      toast(
+        "error",
+        `This configuartion changed while you were working on it. Cannot save without refresh.`,
+        5000
+      );
+    }
+    return;
+  }
   $.ajax({
     type: calls.upsert.type,
     url: calls.upsert.url,
     data: {
       mission: mission,
       config: JSON.stringify(json),
+      id: configId,
     },
     success: function (data) {
       if (data.status == "success") {
@@ -2546,6 +2765,15 @@ function layerPopulateVariable(modalId, layerType) {
   if (layerEditors[modalId]) {
     var currentLayerVars = JSON.parse(layerEditors[modalId].getValue() || "{}");
 
+    currentLayerVars.legend = currentLayerVars.legend || [
+      {
+        color: "#999",
+        strokecolor: "black",
+        shape: "circle",
+        value: "Example",
+      },
+    ];
+
     if (layerType == "data") {
       currentLayerVars = currentLayerVars.shader
         ? { shader: currentLayerVars.shader }
@@ -2558,7 +2786,8 @@ function layerPopulateVariable(modalId, layerType) {
             },
           };
     } else if (layerType == "query") {
-      currentLayerVars.useKeyAsName = currentLayerVars.useKeyAsName || "prop";
+      currentLayerVars.useKeyAsName =
+        currentLayerVars.useKeyAsName || "prop || [prop1, prop2, ...]";
       currentLayerVars.links = currentLayerVars.links || [
         {
           name: "example",
@@ -2592,7 +2821,8 @@ function layerPopulateVariable(modalId, layerType) {
         size: 1000,
       };
     } else {
-      currentLayerVars.useKeyAsName = currentLayerVars.useKeyAsName || "prop";
+      currentLayerVars.useKeyAsName =
+        currentLayerVars.useKeyAsName || "prop || [prop1, prop2, ...]";
       currentLayerVars.hideMainFeature =
         currentLayerVars.hideMainFeature || false;
 
@@ -2601,6 +2831,15 @@ function layerPopulateVariable(modalId, layerType) {
           initialVisibility: false,
           theme: "default || solid",
           size: "default || large",
+        },
+        pairings: {
+          initialVisibility: false,
+          layers: ["Array of layer names to pair"],
+          pairProp:
+            "path.to.pair.prop.for.this.layer.and.all.paired.layers.to.link.on",
+          style: {
+            any_normal_style_field: "to_style_connective_lines",
+          },
         },
       };
       currentLayerVars.coordinateAttachments =
@@ -2801,6 +3040,7 @@ function populateVersions(versions) {
       data: {
         mission: $(this).attr("mission"),
         version: $(this).attr("version"),
+        id: configId,
       },
       success: function (data) {
         if (data.status == "success") {
@@ -2919,7 +3159,7 @@ function getDuplicatedNames(json) {
 }
 
 let toastId = 0;
-function toast(type, message, duration) {
+function toast(type, message, duration, className) {
   let color = "#000000";
   switch (type) {
     case "success":
@@ -2935,8 +3175,47 @@ function toast(type, message, duration) {
       return;
   }
   const id = `toast_${type}_${toastId}`;
-  Materialize.toast(`<span id='${id}'>${message}</span>`, duration || 4000);
+  Materialize.toast(
+    `<span id='${id}'${
+      className != null ? ` class='${className}'` : ""
+    }>${message}</span>`,
+    duration || 4000
+  );
   $(`#${id}`).parent().css("background-color", color);
 
   toastId++;
+}
+
+const lockConfigTypes = {
+  main: null,
+  disconnect: null,
+};
+function setLockConfig(type) {
+  clearLockConfig(type);
+  lockConfig = true;
+  lockConfigTypes[type || "main"] = false;
+  lockConfigCount = mmgisglobal.ENABLE_CONFIG_OVERRIDE === "true" ? 4 : false;
+
+  toast(
+    "warning",
+    type === "disconnect"
+      ? "Websocket disconnected. You will not be able to save until it reconnects."
+      : "This configuration changed while you were working on it. You must refresh.",
+    100000000000,
+    "lockConfigToast"
+  );
+}
+function clearLockConfig(type) {
+  lockConfigTypes[type || "main"] = false;
+
+  let canUnlock = true;
+  Object.keys(lockConfigTypes).forEach((k) => {
+    if (lockConfigTypes[k] === true) canUnlock = false;
+  });
+  if (canUnlock) {
+    lockConfig = false;
+    document
+      .querySelectorAll(".lockConfigToast")
+      .forEach((el) => el.parentNode.remove());
+  }
 }

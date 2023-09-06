@@ -34,12 +34,12 @@ var Shapes = {
 
         //Populate shapes
         $('#drawToolShapesFeaturesList *').remove()
-        for (var l in L_.layersGroup) {
+        for (var l in L_.layers.layer) {
             var s = l.split('_')
             var onId = s[1] != 'master' ? parseInt(s[1]) : s[1]
             if (s[0] == 'DrawTool' && DrawTool.filesOn.indexOf(onId) != -1) {
                 var file = DrawTool.getFileObjectWithId(s[1])
-                if (L_.layersGroup[l].length > 0)
+                if (L_.layers.layer[l].length > 0)
                     d3.select('#drawToolShapesFeaturesList')
                         .append('li')
                         .attr('class', 'drawToolShapesFeaturesListFileHeader')
@@ -57,8 +57,8 @@ var Shapes = {
                                 : 'white'
                         )
                         .html(file.file_name)
-                for (var i = 0; i < L_.layersGroup[l].length; i++) {
-                    addShapeToList(L_.layersGroup[l][i], file, l, i, s[1])
+                for (var i = 0; i < L_.layers.layer[l].length; i++) {
+                    addShapeToList(L_.layers.layer[l][i], file, l, i, s[1])
                 }
             }
         }
@@ -88,7 +88,9 @@ var Shapes = {
 
             $('.drawToolShapeLi').each(function () {
                 var l =
-                    L_.layersGroup[$(this).attr('layer')][$(this).attr('index')]
+                    L_.layers.layer[$(this).attr('layer')][
+                        $(this).attr('index')
+                    ]
                 if (l.feature == null && l.hasOwnProperty('_layers'))
                     l = l._layers[Object.keys(l._layers)[0]]
 
@@ -277,7 +279,7 @@ var Shapes = {
                                 DrawTool.contextMenuLayer.dragging
                             )
                                 return
-                            var l = L_.layersGroup[layer][index]
+                            var l = L_.layers.layer[layer][index]
                             if (
                                 !l.hasOwnProperty('feature') &&
                                 l.hasOwnProperty('_layers')
@@ -487,11 +489,11 @@ var Shapes = {
             var layer = $(this).find('.drawToolShapeLiItem').attr('layer')
             var index = $(this).find('.drawToolShapeLiItem').attr('index')
 
-            if (typeof L_.layersGroup[layer][index].setStyle === 'function')
-                L_.layersGroup[layer][index].setStyle({ color: '#7fff00' })
-            else if (L_.layersGroup[layer][index].hasOwnProperty('_layers')) {
+            if (typeof L_.layers.layer[layer][index].setStyle === 'function')
+                L_.layers.layer[layer][index].setStyle({ color: '#7fff00' })
+            else if (L_.layers.layer[layer][index].hasOwnProperty('_layers')) {
                 //Arrow
-                var layers = L_.layersGroup[layer][index]._layers
+                var layers = L_.layers.layer[layer][index]._layers
                 layers[Object.keys(layers)[0]].setStyle({
                     color: '#7fff00',
                 })
@@ -512,7 +514,7 @@ var Shapes = {
             var layer = $(this).find('.drawToolShapeLiItem').attr('layer')
             var index = $(this).find('.drawToolShapeLiItem').attr('index')
             var shapeId = $(this).attr('shape_id')
-            var shape = L_.layersGroup[layer][index]
+            var shape = L_.layers.layer[layer][index]
 
             var style
             if (
@@ -581,7 +583,7 @@ var Shapes = {
         $('.drawToolShapeLiItem').on('click', function (e) {
             var layer = $(this).attr('layer')
             var index = $(this).attr('index')
-            var shape = L_.layersGroup[layer][index]
+            var shape = L_.layers.layer[layer][index]
             if (!mmgisglobal.shiftDown) {
                 if (typeof shape.getBounds === 'function')
                     Map_.map.panTo(shape.getBounds().getCenter())
@@ -622,7 +624,7 @@ var Shapes = {
                 )
                 if (item.length > 0) {
                     var shape =
-                        L_.layersGroup[item.attr('layer')][item.attr('index')]
+                        L_.layers.layer[item.attr('layer')][item.attr('index')]
                     if (shape.hasOwnProperty('_layers'))
                         shape._layers[Object.keys(shape._layers)[0]].fireEvent(
                             'click'
@@ -658,6 +660,23 @@ var Shapes = {
             })
 
             for (var i = 0; i < DrawTool.files.length; i++) {
+                const file = DrawTool.files[i]
+                let ownedByUser = false
+                if (
+                    mmgisglobal.user == file.file_owner ||
+                    (file.file_owner_group &&
+                        F_.diff(file.file_owner_group, DrawTool.userGroups)
+                            .length > 0)
+                )
+                    ownedByUser = true
+                const isListEdit =
+                    file.public == '1' &&
+                    file.publicity_type == 'list_edit' &&
+                    typeof file.public_editors?.includes === 'function' &&
+                    (file.public_editors.includes(mmgisglobal.user) ||
+                        ownedByUser)
+                const isAllEdit =
+                    file.public == '1' && file.publicity_type == 'all_edit'
                 //Lead Files
                 if (
                     DrawTool.userGroups.indexOf('mmgis-group') != -1 &&
@@ -682,7 +701,9 @@ var Shapes = {
                         .attr('value', DrawTool.files[i].id)
                         .text(DrawTool.files[i].file_name + ' [Lead]')
                 } else if (
-                    mmgisglobal.user == DrawTool.files[i].file_owner &&
+                    (mmgisglobal.user == DrawTool.files[i].file_owner ||
+                        isListEdit ||
+                        isAllEdit) &&
                     filenames.indexOf(DrawTool.files[i].file_name) == -1 &&
                     intent == DrawTool.files[i].intent &&
                     DrawTool.files[i].hidden == '0'

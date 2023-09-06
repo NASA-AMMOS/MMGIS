@@ -87,7 +87,8 @@ router.get("/queryTilesetTimes", function (req, res, next) {
               const split = name.split("Z-");
               let t = split.shift();
               const n = split.join("");
-              t = t.replace(/_/g, ":") + "Z";
+              t = t.replace(/_/g, ":");
+              if (t[t.length - 1] !== "Z") t += "Z";
               dirStore[relUrlSplit[0]].dirs.push({ t: t, n: n });
             });
 

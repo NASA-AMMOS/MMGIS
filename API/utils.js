@@ -59,13 +59,18 @@ const Utils = {
     return true;
   },
   traverseLayers: function (layers, onLayer) {
+    let removedUUIDs = [];
     depthTraversal(layers, 0, []);
     function depthTraversal(node, depth, path) {
       for (var i = 0; i < node.length; i++) {
         const ret = onLayer(node[i], path, i);
-
         if (ret === "remove") {
-          node.splice(i, 1);
+          const removed = node.splice(i, 1);
+          if (removed.length > 0) {
+            // Find and store the UUIDs of the sublayers of the removed layer
+            const removedSubLayerUUIDs = Utils.findSubLayerUUIDs(removed);
+            removedUUIDs = removedUUIDs.concat(removedSubLayerUUIDs);
+          }
           i--;
         }
         //Add other feature information while we're at it
@@ -81,6 +86,41 @@ const Utils = {
           );
         }
       }
+    }
+
+    // Returns array of removed layer UUIDs, including all removed sublayer UUIDs
+    return removedUUIDs;
+  },
+  findSubLayerUUIDs: function (layers) {
+    const UUIDs = [];
+    Utils.traverseLayers(layers, (layer) => {
+      UUIDs.push({ name: layer.name, uuid: layer.uuid });
+      return;
+    });
+    return UUIDs;
+  },
+  // From https://javascript.plainenglish.io/4-ways-to-compare-objects-in-javascript-97fe9b2a949c
+  isEqual(obj1, obj2, isSimple) {
+    if (isSimple) {
+      return JSON.stringify(obj1) === JSON.stringify(obj2);
+    } else {
+      let props1 = Object.getOwnPropertyNames(obj1);
+      let props2 = Object.getOwnPropertyNames(obj2);
+      if (props1.length != props2.length) {
+        return false;
+      }
+      for (let i = 0; i < props1.length; i++) {
+        let prop = props1[i];
+        let bothAreObjects =
+          typeof obj1[prop] === "object" && typeof obj2[prop] === "object";
+        if (
+          (!bothAreObjects && obj1[prop] !== obj2[prop]) ||
+          (bothAreObjects && !Utils.isEqual(obj1[prop], obj2[prop]))
+        ) {
+          return false;
+        }
+      }
+      return true;
     }
   },
 };

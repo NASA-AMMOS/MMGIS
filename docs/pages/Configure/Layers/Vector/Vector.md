@@ -30,6 +30,8 @@ A file path that points to a geojson. If the path is relative, it will be relati
 _type:_ bool
 Whether the layer can be dynamically updated or not. If true, the layer can be dynamically updated and the URL is not required.
 
+If true and a URL is set and Time Enabled is true, the initial url query will be performed.
+
 #### Legend
 
 _type:_ string  
@@ -55,10 +57,22 @@ A value from 0 to 1 of the layer's initial opacity. 1 is fully opaque.
 _type:_ bool  
 True if the layer is time enabled. URLs that contain `{starttime}` or `{endtime}` will be dynamically replaced by their set values when the layer is fetched.
 
+If true and a URL is set and Controlled is true, only the initial url query will be performed.
+
 #### Time Type
 
-_type:_ enum [Global, Individual]  
-Whether the layer should use global time values or function independently with its own time values.
+_type:_ enum [Requery, Local]  
+When the time changes, whether the layer should Requery the source or filter the layer Locally (based on feature properties. Note that)
+
+#### Start Time Property Name
+
+_type:_ string _optional_  
+Optional and only in use if `Time Enabled = true` and `Time Type = Local`. The starting time property path. Setting this is addition to `Main Time Property Name` casts the feature's time over a range instead of as a single point in time. Can use dot-notation for nested path. Can be a unix timestamp or an ISO time (end the ISO with a `Z` to designate that it should be treated as a UTC time).
+
+#### Main Time Property Name
+
+_type:_ string  
+Required in `Time Enabled = true` and `Time Type = Local`. The main time property path. Can use dot-notation for nested path. Can be a unix timestamp or an ISO time (end the ISO with a `Z` to designate that it should be treated as a UTC time).
 
 #### Time Format
 
@@ -112,7 +126,7 @@ Example:
 
 ```javascript
 {
-    "useKeyAsName": "name",
+    "useKeyAsName": "propKey || [propKey1, propKey2, ...]",
     "hideMainFeature": false,
     "datasetLinks": [
         {
@@ -140,6 +154,22 @@ Example:
           "initialVisibility": false,
           "theme": "default || solid",
           "size": "default || large"
+        },
+        "pairings": {
+          "initialVisibility": false,
+          "layers": ["Array of layer names to pair"],
+          "originOffsetOrder": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "pairProp":
+            "path.to.pair.prop.for.this.layer.and.all.paired.layers.to.link.on",
+          "layersAzProp": "optional.prop.path.to.azimuth.value.in.all.paired.layers",
+          "layersElProp": "optional.prop.path.to.elevation.value.in.all.paired.layers",
+          "style": {
+            "any_normal_style_field": "to_style_connective_lines",
+          }
         }
     },
     "coordinateAttachments": {
@@ -221,7 +251,7 @@ Example:
 }
 ```
 
-- `useNameAsKey`: The property key whose value should be the hover text of each feature. If left unset, the hover key and value will be the first one listed in the feature's properties.
+- `useKeyAsName`: The property key whose value should be the hover text of each feature. If left unset, the hover key and value will be the first one listed in the feature's properties. This may also be an array of keys.
 - `hideMainFeature`: If true, hides all typically rendered features. This is useful if showing only `*Attachments` sublayers is desired. Default false
 - `datasetLinks`: Datasets are csvs uploaded from the "Manage Datasets" page accessible on the lower left. Every time a feature from this layer is clicked with datasetLinks configured, it will request the data from the server and include it with it's regular geojson properties. This is especially useful when single features need a lot of metadata to perform a task as it loads it only as needed.
   - `prop`: This is a property key already within the features properties. It's value will be searched for in the specified dataset column.
@@ -240,6 +270,14 @@ Example:
     - `initialVisibility`: Whether the label sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.
     - `theme`: Label theme. Either `default` or `solid`. Default is white text with a black border. Solid is white text with a dark-grey background box.
     - `size`: Label size. Either `default` or `large`. Default is 14px, large is 16px.
+  - `pairings`: Links cross-layer features together. Features paired to this layer will attempt to compute the azimuth-elevation relationship between the two to draw in the Viewer's PhotoSphere. Additionally, on the Map, a line will be drawn between the two features.
+    - `initialVisibility`: Whether the pairing line sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.
+    - `layers`: An array of names of other layers. Note: Do not use css shorthand color names ("blue", "maroon", ...) in the paired layers styles as they won't parse properly when drawing in the PhotoSphere.
+    - `originOffsetOrder`: In many cases, a marker's center is not the camera's center. Within a feature's `properties.images` objects, `originOffset` can be defined. `originOffsetOrder` describes the XYZ order and signage that `originOffset` should be read in. Possible values are `X, -X, Y, -Y, Z, -Z`.
+    - `pairProp`: The dot notated path to the feature properties that contains the property to pair on. This layer and all paired layers need this property to properly pair up. A feature in this layer is said to be paired with a feature of one of the other specified layers, if and only if the values of this property in both features matches.
+    - `layersAzProp`: The dot notated path to the feature properties that contains the features' azimuth. If unset, the azimuth will be calculated through the feature's longitude, latitude, elevation coordinates.
+    - `layersElProp`:The dot notated path to the feature properties that contains the features' elevation. If unset, the elevation will be calculated through the feature's longitude, latitude, elevation coordinates.
+    - `style`: A style object to change the style of the connective lines on the Map between features. (Ex. { "color": "#00000", "weight": 5})
 - `coordinateAttachments`: Attachment layers for each coordinate of every feature.
   - `marker`: Place a marker at every coordinate of every feature.
     - `initialVisibility`: Whether the coordinate marker sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.
@@ -250,7 +288,7 @@ Example:
     - `fillOpacity`: Opacity of marker fill. Default 1
     - `radius`: Integer for radius of marker.
 - `markerAttachments`: An object for attaching dynamic items to point features.
-  - `bearing`: Sets the bearing direction of this layer's point markers (or markerIcons if set). Overrides the layer's shape dropdown value.
+  - `bearing`: Sets the bearing direction (clockwise from north) of this layer's point markers (or markerIcons if set). Overrides the layer's shape dropdown value.
     - `angleProp`: The dot notated path to the feature properties that contains the desired rotation angle. Ex. `headings.yaw`.
     - `angleUnit`: Unit of the value of `angleProp`. Either `deg` or `rad`.
     - `color`: A css color for the directional arrow for non-markerIcon bearings.

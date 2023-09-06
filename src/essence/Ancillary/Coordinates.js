@@ -120,6 +120,16 @@ const Coordinates = {
             offset: [0, 20],
         })
 
+        if (
+            !(
+                L_.configData.time &&
+                L_.configData.time.enabled === true &&
+                L_.configData.time.visible === true
+            )
+        ) {
+            $('#toggleTimeUI').css({ display: 'none' })
+            $('#CoordinatesDiv').css({ marginRight: '0px' })
+        }
         if (L_.configData.coordinates) {
             // ll
             if (L_.configData.coordinates.coordll == false)
@@ -261,6 +271,15 @@ const Coordinates = {
         $('#toggleTimeUI').on('click', toggleTimeUI)
         Map_.map.on('mousemove', mouseLngLatMove)
         Map_.map.on('click', urlClick)
+
+        if (
+            L_.configData.time &&
+            L_.configData.time.enabled === true &&
+            L_.configData.time.visible === true &&
+            L_.configData.time.initiallyOpen === true
+        ) {
+            toggleTimeUI()
+        }
     },
     refreshDropdown: function () {
         const names = []
@@ -309,12 +328,19 @@ const Coordinates = {
     getLngLat: function () {
         return Coordinates.mouseLngLat
     },
-    getLatLng: function () {
+    getLatLng: function (asObject) {
+        if (asObject)
+            return {
+                lat: Coordinates.mouseLngLat[1],
+                lng: Coordinates.mouseLngLat[0],
+            }
         return [Coordinates.mouseLngLat[1], Coordinates.mouseLngLat[0]]
     },
     getAllCoordinates: function () {
         return {
-            description: d3.select('#mouseDesc').html(),
+            description: d3
+                .select('#changeCoordTypeDropdown .dropy__title > span')
+                .html(),
             coordinates: [
                 ...d3.select('#mouseLngLat').html().split(','),
                 d3.select('#mouseElev').html(),
@@ -422,7 +448,8 @@ const Coordinates = {
                     if (withDropdownChanges) {
                         currentState.title =
                             'Relative to ' +
-                            Map_.activeLayer.options.layerName +
+                            L_.layers.data[Map_.activeLayer.options.layerName]
+                                .display_name +
                             ': ' +
                             keyAsName
                         Coordinates.refreshDropdown()
@@ -468,7 +495,8 @@ const Coordinates = {
                     if (withDropdownChanges) {
                         currentState.title =
                             'Local Level - ' +
-                            Map_.activeLayer.options.layerName +
+                            L_.layers.data[Map_.activeLayer.options.layerName]
+                                .display_name +
                             ': ' +
                             keyAsName
                         Coordinates.refreshDropdown()
@@ -754,11 +782,14 @@ function urlClick(e) {
 }
 
 function toggleTimeUI() {
-    const active = $(this).hasClass('active')
-    $(this).toggleClass('active')
+    const active = $('#toggleTimeUI').hasClass('active')
+    $('#toggleTimeUI').toggleClass('active')
     $('#timeUI').toggleClass('active')
+
     const newBottom = active ? 0 : 40
     const timeBottom = active ? -40 : 0
+
+    Map_.map._fadeAnimated = active
 
     $('#CoordinatesDiv').css({
         bottom: newBottom + (UserInterface.pxIsTools || 0) + 'px',
@@ -779,6 +810,10 @@ function toggleTimeUI() {
     })
     $('#timeUI').css({
         bottom: timeBottom + (UserInterface.pxIsTools || 0) + 'px',
+    })
+
+    Object.keys(L_._onTimeUIToggleSubscriptions).forEach((k) => {
+        L_._onTimeUIToggleSubscriptions[k](!active)
     })
 }
 

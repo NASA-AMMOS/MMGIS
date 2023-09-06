@@ -9,7 +9,7 @@ import { booleanIntersects, booleanContains } from '@turf/turf'
 
 const LocalFilterer = {
     make: function (container, layerName) {
-        const layerObj = L_.layersNamed[layerName]
+        const layerObj = L_.layers.data[layerName]
 
         if (layerObj == null) return
 

@@ -10,7 +10,7 @@ import calls from '../../../pre/calls'
 
 import metricsGraphics from '../../../external/MetricsGraphics/metricsgraphics.min'
 
-import ReactDOM from 'react-dom'
+import {render, unmountComponentAtNode } from 'react-dom'
 import React, { useState, useEffect, useRef } from 'react'
 
 import { Chart } from 'chart.js'
@@ -622,10 +622,10 @@ let MeasureTool = {
         this.dems = MeasureTool.getDems()
         this.activeDemIdx = 0
 
-        ReactDOM.render(<Measure />, document.getElementById('tools'))
+        render(<Measure />, document.getElementById('tools'))
     },
     destroy: function () {
-        ReactDOM.unmountComponentAtNode(document.getElementById('tools'))
+        unmountComponentAtNode(document.getElementById('tools'))
 
         Map_.map
             .off('click', MeasureTool.clickMap)
@@ -678,7 +678,7 @@ let MeasureTool = {
             dems.push({ name: 'Main', path: MeasureTool.vars.dem })
         if (MeasureTool.vars.layerDems)
             for (let name in MeasureTool.vars.layerDems) {
-                if (!onlyShowDemIfLayerOn || L_.toggledArray[name])
+                if (!onlyShowDemIfLayerOn || L_.layers.on[name])
                     dems.push({
                         name: name,
                         path: MeasureTool.vars.layerDems[name],

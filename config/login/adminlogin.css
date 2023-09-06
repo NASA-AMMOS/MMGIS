@@ -1,11 +1,6 @@
-@font-face {
-  font-family: "Source Sans Pro";
-  src: url(/public/fonts/sourcesanspro/SourceSansPro-Regular.ttf);
-}
-
 body,
 html {
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: sans-serif;
   background-color: #1a1a1a;
   padding: 0;
   margin: 0;
@@ -27,7 +22,7 @@ html {
 }
 
 .box h4 {
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: sans-serif;
   color: #08aeea;
   font-size: 18px;
   margin-top: 94px;
@@ -39,7 +34,7 @@ html {
 }
 
 .box h5 {
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: sans-serif;
   font-size: 13px;
   color: #a1a4ad;
   letter-spacing: 1.5px;
@@ -94,7 +89,7 @@ a:hover {
   cursor: pointer;
   text-align: center;
   user-select: none;
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: sans-serif;
   line-height: 49px;
 }
 

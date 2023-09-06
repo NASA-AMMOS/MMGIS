@@ -290,7 +290,7 @@ var UserInterface = {
             .style('width', '30px')
             .style('height', '30px')
             .style('position', 'absolute')
-            .style('left', '22px')
+            .style('left', '23px')
             .style('z-index', '-1')
         this.mapSplitInner
             .append('i')
@@ -925,10 +925,49 @@ var UserInterface = {
                 display: l_.configData.look.fullscreen ? 'inherit' : 'none',
             })
 
-        if (l_.configData.look && l_.configData.look.help != null)
+        if (l_.configData.look && l_.configData.look.settings != null)
+            $('#bottomBarSettings').css({
+                display: l_.configData.look.settings ? 'inherit' : 'none',
+            })
+
+        if (
+            l_.configData.look &&
+            l_.configData.look.info != null &&
+            l_.configData.look.infourl != ''
+        ) {
+            $('#topBarInfo').css({
+                display: l_.configData.look.info ? 'inherit' : 'none',
+            })
+        } else {
+            $('#topBarInfo').css({
+                display: 'none',
+            })
+        }
+
+        if (
+            l_.configData.look &&
+            l_.configData.look.help != null &&
+            l_.configData.look.helpurl != ''
+        ) {
             $('#topBarHelp').css({
                 display: l_.configData.look.help ? 'inherit' : 'none',
             })
+        } else {
+            $('#topBarHelp').css({
+                display: 'none',
+            })
+        }
+
+        if (l_.configData.look && l_.configData.look.topbar === false)
+            BottomBar.changeUIVisibility('topbar', false)
+        if (l_.configData.look && l_.configData.look.toolbar === false)
+            BottomBar.changeUIVisibility('toolbars', false)
+        if (l_.configData.look && l_.configData.look.scalebar === false)
+            BottomBar.changeUIVisibility('scalebar', false)
+        if (l_.configData.look && l_.configData.look.coordinates === false)
+            BottomBar.changeUIVisibility('coordinates', false)
+        if (l_.configData.look && l_.configData.look.miscellaneous === false)
+            BottomBar.changeUIVisibility('miscellaneous', false)
 
         UserInterface.show()
     },
@@ -1339,20 +1378,20 @@ function windowresize() {
     UserInterface.mainHeight = $('#splitscreens').height()
 
     //Resize widest panel so that their sum is the screen width
-    var widest = Math.max(
+    const widest = Math.max(
         UserInterface.pxIsViewer,
         UserInterface.pxIsMap,
         UserInterface.pxIsGlobe
     )
-    if (UserInterface.pxIsViewer == widest)
-        UserInterface.pxIsViewer =
-            UserInterface.mainWidth -
-            UserInterface.pxIsMap -
-            UserInterface.pxIsGlobe
-    else if (UserInterface.pxIsMap == widest)
+    if (UserInterface.pxIsMap == widest)
         UserInterface.pxIsMap =
             UserInterface.mainWidth -
             UserInterface.pxIsViewer -
+            UserInterface.pxIsGlobe
+    else if (UserInterface.pxIsViewer == widest)
+        UserInterface.pxIsViewer =
+            UserInterface.mainWidth -
+            UserInterface.pxIsMap -
             UserInterface.pxIsGlobe
     else if (UserInterface.pxIsGlobe == widest)
         UserInterface.pxIsGlobe =

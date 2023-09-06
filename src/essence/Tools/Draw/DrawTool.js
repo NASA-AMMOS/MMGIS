@@ -4,6 +4,8 @@ import DrawTool_Files from './DrawTool_Files'
 import DrawTool_History from './DrawTool_History'
 import DrawTool_Publish from './DrawTool_Publish'
 import DrawTool_Shapes from './DrawTool_Shapes'
+import DrawTool_FileModal from './DrawTool_FileModal'
+import DrawTool_Templater from './DrawTool_Templater'
 
 import $ from 'jquery'
 import * as d3 from 'd3'
@@ -15,14 +17,15 @@ import Viewer_ from '../../Basics/Viewer_/Viewer_'
 import ToolController_ from '../../Basics/ToolController_/ToolController_'
 import CursorInfo from '../../Ancillary/CursorInfo'
 import Description from '../../Ancillary/Description'
+import TimeControl from '../../Ancillary/TimeControl'
 import { Kinds } from '../../../pre/tools'
 import turf from 'turf'
-import shp from '../../../external/shpjs/shapefile'
-import shpwrite from '../../../external/SHPWrite/shpwrite'
 
 import calls from '../../../pre/calls'
 
 import './DrawTool.css'
+
+import tippy from 'tippy.js'
 
 // Plugins
 import DrawTool_Geologic from './Plugins/Geologic/DrawTool_Geologic'
@@ -58,24 +61,6 @@ var markup = [
         
         "<div id='drawToolDraw'>",
           "<div id='drawToolDrawShapes'>",
-            "<div id='drawToolDrawFilesNewDiv'>",
-                "<div id='drawToolFileUpload'>",
-                    "<i class='mdi mdi-upload mdi-18px'></i>",
-                    "<input title='Upload' type=file accept='.json, .geojson, .shp, .dbf' multiple>",
-                "</div>",
-                "<input id='drawToolDrawFilesNewName' type='text' placeholder='New File' />",
-                "<select>",
-                    "<option id='drawToolNewFileAll' value='all'>Map</option>",
-                    "<option id='drawToolNewFileROI' value='roi'>ROI</option>",
-                    "<option id='drawToolNewFileCampaign' value='campaign'>Campaign</option>",
-                    "<option id='drawToolNewFileCampsite' value='campsite'>Campsite</option>",
-                    "<option id='drawToolNewFileTrail' value='trail'>Trail</option>",
-                    "<option id='drawToolNewFileSignpost' value='signpost'>Signpost</option>",
-                    //"<option value='note'>Note</option>",
-                "</select>",
-                "<i id='drawToolDrawFilesNew' title='Make new file' class='mdi mdi-plus mdi-18px'></i>",
-                "<div id='drawToolDrawFilesNewLoading'><div></div></div>",
-            "</div>",
             //"<div id='drawToolDrawingInIndicator'>Choose a file to draw in</div>",
             "<div id='drawToolDrawingCont'>",
                 "<div id='drawToolDrawingTypeDiv'>",
@@ -96,7 +81,7 @@ var markup = [
                             "<div title='Clip drawing of existing shapes'>Draw Clipping</div>",
                             "<div id='drawToolDrawSettingsTier' class='drawToolRadio'>",
                                 "<div value='over'>Over</div>",
-                                "<div class='active' value='under'>Under</div>",
+                                "<div value='under'>Under</div>",
                                 "<div value='off'>Off</div>",
                             "</div>",
                         "</li>",
@@ -203,14 +188,36 @@ var markup = [
               "</div>",
               "<ul id='drawToolDrawFilesList' class='mmgisScrollbar2'>",
               "</ul>",
+              "<div id='drawToolFilesLoadingSpinner'>",
+                "<svg class='mmgis-spinner1' viewbox='0 0 50 50'>",
+                    "<circle class='path' cx='25' cy='25' r='20' fill='none' stroke-width='5' />",
+                "</svg>",
+            "</div>",
             "</div>",
           "</div>",
+          
+          "<div id='drawToolDrawFilesNewDiv'>",
+                //"<input id='drawToolDrawFilesNewName' type='text' placeholder='New File' />",
+                /*
+                "<select>",
+                    "<option id='drawToolNewFileAll' value='all'>Map</option>",
+                    "<option id='drawToolNewFileROI' value='roi'>ROI</option>",
+                    "<option id='drawToolNewFileCampaign' value='campaign'>Campaign</option>",
+                    "<option id='drawToolNewFileCampsite' value='campsite'>Campsite</option>",
+                    "<option id='drawToolNewFileTrail' value='trail'>Trail</option>",
+                    "<option id='drawToolNewFileSignpost' value='signpost'>Signpost</option>",
+                    //"<option value='note'>Note</option>",
+                "</select>",
+                */
+                "<div id='drawToolDrawFilesNewUpload'><div>UPLOAD</div><div><i class='mdi mdi-upload mdi-18px'></i></div></div>",
+                "<div id='drawToolDrawFilesNew'><div>CREATE</div><div><i class='mdi mdi-plus mdi-18px'></i></div></div>",
+            "</div>",
         "</div>",
 
         "<div id='drawToolShapes'>",
           "<div id='drawToolShapesFilterDiv'>",
             "<input id='drawToolShapesFilter' type='text' placeholder='Filter Shapes' />",
-            "<div id='drawToolShapesFilterClear'><i id='drawToolDrawFilesNew' class='mdi mdi-close mdi-18px'></i></div>",
+            "<div id='drawToolShapesFilterClear'><i class='mdi mdi-close mdi-18px'></i></div>",
             "<div id='drawToolShapesFilterCount'></div>",
           "</div>",
           "<div id='drawToolDrawShapesList' class='mmgisScrollbar2'>",
@@ -269,10 +276,12 @@ var DrawTool = {
     activeContent: 'draw',
     intentType: null,
     currentFileId: null,
+    _firstGetFiles: null,
     filesOn: [],
     allTags: {}, //<tag>: count, ...
     tags: [],
     labelsOn: [],
+    fileGeoJSONFeatures: {},
     palettes: [
         [
             '#26a8ff',
@@ -501,6 +510,7 @@ var DrawTool = {
         DrawTool.activeContent = 'draw'
         DrawTool.intentType = null
         DrawTool.currentFileId = null
+        DrawTool._firstGetFiles = null
         //DrawTool.filesOn = [];
         DrawTool.isEditing = false
 
@@ -569,158 +579,17 @@ var DrawTool = {
             $(this).parent().find('div').removeClass('active')
             $(this).addClass('active')
         })
-        //Upload
-        $('#drawToolFileUpload > input').on('change', function (evt) {
-            $('#drawToolDrawFilesNewLoading').css('opacity', '1')
-            $('#drawToolFileUpload > i').css('color', '#1169d3')
-
-            var files = evt.target.files // FileList object
-
-            // use the 1st file from the list
-            var f = files[0]
-            var ext = F_.getExtension(f.name).toLowerCase()
-            switch (ext) {
-                case 'shp':
-                case 'dbf':
-                    var shpFile
-                    var dbfFile
-                    for (var i = 0; i < files.length; i++) {
-                        if (
-                            F_.getExtension(files[i].name).toLowerCase() ==
-                            'shp'
-                        )
-                            shpFile = files[i]
-                        if (
-                            F_.getExtension(files[i].name).toLowerCase() ==
-                            'dbf'
-                        )
-                            dbfFile = files[i]
-                    }
-                    if (shpFile && dbfFile) {
-                        var shpBuffer
-                        var dbfBuffer
-
-                        var readerSHP = new FileReader()
-                        readerSHP.onload = function (e) {
-                            shpBuffer = e.target.result
-                            var readerDBF = new FileReader()
-                            readerDBF.onload = function (e) {
-                                dbfBuffer = e.target.result
-                                bothLoaded()
-                            }
-                            readerDBF.readAsArrayBuffer(dbfFile)
-                        }
-                        readerSHP.readAsArrayBuffer(shpFile)
-
-                        function bothLoaded() {
-                            var featureArray = []
-                            shp.open(shpBuffer, dbfBuffer)
-                                .then((source) =>
-                                    source.read().then(function log(result) {
-                                        if (result.done) {
-                                            var geojsonResult =
-                                                F_.getBaseGeoJSON()
-                                            geojsonResult.features =
-                                                featureArray
-                                            var body = {
-                                                file_name: f.name,
-                                                intent: 'all',
-                                                geojson:
-                                                    JSON.stringify(
-                                                        geojsonResult
-                                                    ),
-                                            }
-                                            DrawTool.makeFile(
-                                                body,
-                                                function () {
-                                                    DrawTool.populateFiles()
-                                                    endLoad()
-                                                }
-                                            )
-                                            return
-                                        }
-
-                                        featureArray.push(
-                                            F_.geoJSONFeatureMetersToDegrees(
-                                                result.value
-                                            )
-                                        )
-                                        return source.read().then(log)
-                                    })
-                                )
-                                .catch((error) => {
-                                    endLoad()
-                                })
-                        }
-                    } else {
-                        CIU('Warning! FileManager - missing .shp or .dbf')
-                    }
-                    break
-                case 'json':
-                case 'geojson':
-                    var reader = new FileReader()
-                    // Closure to capture the file information.
-
-                    reader.onload = (function (file) {
-                        return function (e) {
-                            var body = {
-                                file_name: file.name,
-                                intent: 'all',
-                                geojson: e.target.result,
-                            }
-                            if (
-                                body.geojson &&
-                                JSON.parse(body.geojson).type !==
-                                    'FeatureCollection'
-                            ) {
-                                CIU(
-                                    'Uploaded object has no type: "FeatureCollection". Are you sure this is geojson?'
-                                )
-                                return
-                            }
-                            DrawTool.makeFile(body, function () {
-                                DrawTool.populateFiles()
-                                endLoad()
-                            })
-                        }
-                    })(f)
-
-                    // Read in the image file as a data URL.
-                    reader.readAsText(f)
-                    break
-                default:
-                    CIU(
-                        'Only .json, .geojson and .shp (with .dbf) files may be uploaded'
-                    )
-            }
-
-            function endLoad() {
-                $('#drawToolDrawFilesNewLoading').css('opacity', '0')
-                $('#drawToolFileUpload > i').css('color', 'unset')
-            }
-            function CIU(message) {
-                CursorInfo.update(
-                    message,
-                    6000,
-                    true,
-                    { x: 305, y: 6 },
-                    '#e9ff26',
-                    'black'
-                )
-                endLoad()
-            }
-        })
     },
     destroy: function () {
         this.MMGISInterface.separateFromMMGIS()
 
-        for (var l in L_.layersGroup) {
+        for (var l in L_.layers.layer) {
             var s = l.split('_')
             var onId = s[1] != 'master' ? parseInt(s[1]) : s[1]
 
             if (s[0] == 'DrawTool' && DrawTool.filesOn.indexOf(onId) != -1) {
-                for (var i = 0; i < L_.layersGroup[l].length; i++) {
-                    var f = L_.layersGroup[l][i]
+                for (var i = 0; i < L_.layers.layer[l].length; i++) {
+                    var f = L_.layers.layer[l][i]
 
                     if (!f) continue
 
@@ -755,13 +624,13 @@ var DrawTool = {
                                     let layer = d.target
                                     let found = false
                                     if (!d.target.hasOwnProperty('feature')) {
-                                        for (var _l in L_.layersGroup) {
+                                        for (var _l in L_.layers.layer) {
                                             if (!_l.startsWith('DrawTool_'))
                                                 continue
 
-                                            for (var x in L_.layersGroup[l]) {
+                                            for (var x in L_.layers.layer[l]) {
                                                 var childLayer =
-                                                    L_.layersGroup[l][x]
+                                                    L_.layers.layer[l][x]
                                                 if ('hasLayer' in childLayer) {
                                                     if (
                                                         childLayer.hasOwnProperty(
@@ -823,13 +692,14 @@ var DrawTool = {
                                     let name
                                     // If the DrawTool layer that is hovered is an arrow, the parent arrow layer knows the name
                                     if (!d.target.hasOwnProperty('feature')) {
-                                        for (var _l in L_.layersGroup) {
+                                        for (var _l in L_.layers.layer) {
                                             if (!_l.startsWith('DrawTool_')) {
                                                 continue
                                             }
 
-                                            for (var x in L_.layersGroup[l]) {
-                                                var layer = L_.layersGroup[l][x]
+                                            for (var x in L_.layers.layer[l]) {
+                                                var layer =
+                                                    L_.layers.layer[l][x]
                                                 if ('hasLayer' in layer) {
                                                     if (
                                                         layer.hasOwnProperty(
@@ -997,20 +867,20 @@ var DrawTool = {
         }
         if (typeof file_description !== 'string') return []
 
-        const tags = file_description.match(/#\w*/g) || []
+        const tags = file_description.match(/~#\w+/g) || []
         const uniqueTags = [...tags]
         // remove '#'s
-        tagFolders.tags = uniqueTags.map((t) => t.substring(1)) || []
+        tagFolders.tags = uniqueTags.map((t) => t.substring(2)) || []
 
-        const folders = file_description.match(/@\w*/g) || []
+        const folders = file_description.match(/~@\w+/g) || []
         const uniqueFolders = [...folders]
         // remove '@'s
-        tagFolders.folders = uniqueFolders.map((t) => t.substring(1)) || []
+        tagFolders.folders = uniqueFolders.map((t) => t.substring(2)) || []
 
-        const efolders = file_description.match(/\^\w*/g) || []
+        const efolders = file_description.match(/~\^\w+/g) || []
         const uniqueEFolders = [...efolders]
         // remove '^'s
-        tagFolders.efolders = uniqueEFolders.map((t) => t.substring(1)) || []
+        tagFolders.efolders = uniqueEFolders.map((t) => t.substring(2)) || []
 
         // At least one folder
         if (noDefaults !== true) {
@@ -1053,13 +923,18 @@ var DrawTool = {
     stripTagsFromDescription(file_description) {
         if (typeof file_description !== 'string') return ''
         return file_description
-            .replaceAll(/#\w*/g, '')
-            .replaceAll(/@\w*/g, '')
-            .replaceAll(/\^\w*/g, '')
+            .replaceAll(/~#\w+/g, '')
+            .replaceAll(/~@\w+/g, '')
+            .replaceAll(/~\^\w+/g, '')
             .trimStart()
             .trimEnd()
     },
     getFiles: function (callback) {
+        // setLoading
+        if (DrawTool._firstGetFiles !== true) {
+            $(`#drawToolFilesLoadingSpinner`).addClass('on')
+            DrawTool._firstGetFiles = true
+        }
         calls.api(
             'files_getfiles',
             {},
@@ -1087,29 +962,44 @@ var DrawTool = {
                                 DrawTool.files[i]
                             )
                     }
-
                     DrawTool.allTags = DrawTool.getAllTags(true)
                     DrawTool.tags = Object.keys(DrawTool.allTags)
                 }
                 if (typeof callback === 'function') callback()
+
+                // endLoading
+                $(`#drawToolFilesLoadingSpinner`).removeClass('on')
             },
             function (data) {
                 if (data && data.message == 'User is not logged in.') {
                     $('#drawToolNotLoggedIn').css('display', 'inherit')
                 }
+                // endLoading
+                $(`#drawToolFilesLoadingSpinner`).removeClass('on')
             }
         )
     },
     makeFile: function (body, callback) {
+        const filename = body.file_name
         calls.api(
             'files_make',
             body,
             function (data) {
-                if (data.status === 'success')
+                if (data.status === 'success') {
                     DrawTool.getFiles(() => {
                         callback(data.body.file_id)
+                        CursorInfo.update(
+                            `Successfully made new file: ${filename}`,
+                            4000,
+                            false,
+                            { x: 305, y: 6 },
+                            '#009eff',
+                            'white',
+                            null,
+                            true
+                        )
                     })
-                else
+                } else
                     CursorInfo.update(
                         'Failed to add file.',
                         6000,
@@ -1190,6 +1080,19 @@ var DrawTool = {
         )
     },
     addDrawing: function (body, callback, failure) {
+        // Add template property defaults
+        const file = DrawTool.getFileObjectWithId(body.file_id)
+        if (file?.template?.template && body?.properties) {
+            let newProps = JSON.parse(body.properties)
+            const templateDefaults = DrawTool_Templater.getTemplateDefaults(
+                file?.template?.template,
+                L_.layers.layer[`DrawTool_${body.file_id}`]
+            )
+
+            newProps = { ...newProps, ...templateDefaults }
+            body.properties = JSON.stringify(newProps)
+        }
+
         if (body.file_id == null) {
             CursorInfo.update(
                 'No file chosen. Please select or make a file for drawings.',
@@ -1300,8 +1203,186 @@ var DrawTool = {
             }
         }
     },
-}
+    enforceTemplate(geojson, templateObj, force) {
+        if (templateObj == null || templateObj.template == null) return geojson
+        const templateEnforcedFeatures = []
+        geojson.features.forEach((f) => {
+            const newF = JSON.parse(JSON.stringify(f))
+            if (force) {
+                newF.properties = newF.properties || {}
+                const forcedTemplateProperties = {}
+                templateObj.template.forEach((t) => {
+                    if (!newF.properties.hasOwnProperty([t.field]))
+                        forcedTemplateProperties[t.field] = t.default
+                    else
+                        forcedTemplateProperties[t.field] =
+                            newF.properties[t.field]
+                })
+                newF.properties = forcedTemplateProperties
+            } else {
+                newF.properties = newF.properties || {}
+                templateObj.template.forEach((t) => {
+                    if (!newF.properties.hasOwnProperty([t.field]))
+                        newF.properties[t.field] = t.default
+                })
+            }
+            templateEnforcedFeatures.push(newF)
+        })
+        geojson.features = templateEnforcedFeatures
+        return geojson
+    },
+    _isFeatureTemporallyVisible(feature, startField, endField) {
+        if (DrawTool.timeToggledOn !== true) return true
+        const startTime = F_.removeTimeZoneOffset(
+            new Date(L_.TimeControl_.getStartTime()).getTime()
+        )
+        const endTime = F_.removeTimeZoneOffset(
+            new Date(L_.TimeControl_.getEndTime()).getTime()
+        )
 
+        let startTimeValue = false
+        if (startField)
+            startTimeValue = F_.getIn(feature.properties, startField, 0)
+        let endTimeValue = false
+        if (endField)
+            endTimeValue = F_.getIn(feature.properties, endField, false)
+
+        // No prop, won't show
+        if (endTimeValue === false) return false
+        else if (
+            typeof endTimeValue === 'string' &&
+            endTimeValue.indexOf('T') != -1
+        )
+            endTimeValue += 'Z'
+
+        if (startTimeValue === false) {
+            //Single Point in time, just compare end times
+            let endDate = new Date(endTimeValue)
+            if (endDate === 'Invalid Date') return false
+
+            endDate = endDate.getTime()
+            if (endDate <= endTime && endDate >= startTime) return true
+            return false
+        } else {
+            if (
+                typeof startTimeValue === 'string' &&
+                startTimeValue.indexOf('T') != -1
+            )
+                startTimeValue += 'Z'
+            // Then we have a range
+            let startDate = new Date(startTimeValue)
+            let endDate = new Date(endTimeValue)
+
+            // Bad prop value, won't show
+            if (startDate === 'Invalid Date' || endDate === 'Invalid Date')
+                return false
+
+            startDate = startDate.getTime()
+            endDate = endDate.getTime()
+            if (endTime < startDate) return false
+            if (startTime > endDate) return false
+
+            return true
+        }
+    },
+    timeFilterDrawingLayer(fileId) {
+        if (L_.layers.layer[`DrawTool_${fileId}`]) {
+            const file = DrawTool.getFileObjectWithId(fileId)
+
+            let startField
+            let endField
+            if (file?.template?.template) {
+                file.template.template.forEach((t) => {
+                    if (startField == null && t.isStart === true)
+                        startField = t.field
+                    if (endField == null && t.isEnd === true) endField = t.field
+                })
+            }
+            L_.layers.layer[`DrawTool_${fileId}`].forEach((l, index) => {
+                if (l == null) return
+                if (l.feature == null) {
+                    if (l._layers) {
+                        Object.keys(l._layers).forEach((l2) => {
+                            l2 = l._layers[l2]
+                            if (l2.feature) {
+                                const isVisible =
+                                    DrawTool._isFeatureTemporallyVisible(
+                                        l2.feature,
+                                        startField,
+                                        endField
+                                    )
+                                if (l2.savedOptions == null)
+                                    l2.savedOptions = JSON.parse(
+                                        JSON.stringify(l2.options)
+                                    )
+                                l2.temporallyHidden = !isVisible
+                                if (l2.temporallyHidden)
+                                    $(
+                                        `#drawToolShapeLiItem_DrawTool_${fileId}_${index}`
+                                    ).addClass('temporallyHidden')
+                                else
+                                    $(
+                                        `#drawToolShapeLiItem_DrawTool_${fileId}_${index}`
+                                    ).removeClass('temporallyHidden')
+                                if (l2.temporallyHidden) {
+                                    l2.setStyle({
+                                        opacity: 0,
+                                        fillOpacity: 0,
+                                    })
+                                    if (l2._path?.style)
+                                        l2._path.style.pointerEvents = 'none'
+                                } else if (l2.savedOptions) {
+                                    l2.setStyle({
+                                        opacity: l2.savedOptions.opacity,
+                                        fillOpacity:
+                                            l2.savedOptions.fillOpacity,
+                                    })
+                                    if (l2._path?.style)
+                                        l2._path.style.pointerEvents = 'all'
+                                }
+                            }
+                        })
+                    }
+                } else {
+                    const isVisible = DrawTool._isFeatureTemporallyVisible(
+                        l.feature,
+                        startField,
+                        endField
+                    )
+                    if (l.savedOptions == null)
+                        l.savedOptions = JSON.parse(JSON.stringify(l.options))
+
+                    l.temporallyHidden = !isVisible
+                    if (l.temporallyHidden)
+                        $(
+                            `#drawToolShapeLiItem_DrawTool_${fileId}_${index}`
+                        ).addClass('temporallyHidden')
+                    else
+                        $(
+                            `#drawToolShapeLiItem_DrawTool_${fileId}_${index}`
+                        ).removeClass('temporallyHidden')
+                    if (l.setStyle) {
+                        if (l.temporallyHidden) {
+                            l.setStyle({
+                                opacity: 0,
+                                fillOpacity: 0,
+                            })
+                            if (l._path?.style)
+                                l._path.style.pointerEvents = 'none'
+                        } else if (l.savedOptions) {
+                            l.setStyle({
+                                opacity: l.savedOptions.opacity,
+                                fillOpacity: l.savedOptions.fillOpacity,
+                            })
+                            if (l._path?.style)
+                                l._path.style.pointerEvents = 'all'
+                        }
+                    }
+                }
+            })
+        }
+    },
+}
 //
 function interfaceWithMMGIS() {
     this.separateFromMMGIS = function () {
@@ -1315,8 +1396,66 @@ function interfaceWithMMGIS() {
     tools.selectAll('*').remove()
     //Add a semantic container
     tools = tools.append('div').style('height', '100%')
+
     //Add the markup to tools or do it manually
     tools.html(markup)
+
+    // Set defaultDrawClipping if any
+    $(
+        `#drawToolDrawSettingsTier > [value="${
+            ['over', 'under', 'off'].includes(DrawTool.vars.defaultDrawClipping)
+                ? DrawTool.vars.defaultDrawClipping
+                : 'under'
+        }"]`
+    ).addClass('active')
+
+    // Add time indicator
+    if (L_.configData?.time?.enabled === true) {
+        // prettier-ignore
+        $('body').append([
+            `<div id="DrawTool_TimeToggle">`,
+                `<div>Temporal Drawings</div>`,
+                `<div class="mmgisToggleSwitch">`,
+                    `<input type="checkbox" id="DrawTool_TimeToggle_switch"/>`,
+                    `<label for="DrawTool_TimeToggle_switch">Toggle</label>`,
+                `</div>`,
+            `</div>`
+        ].join('\n'))
+        $('#DrawTool_TimeToggle').css(
+            'display',
+            $('#toggleTimeUI.active').length > 0 ? 'flex' : 'none'
+        )
+
+        $('#DrawTool_TimeToggle_switch').on('input', function (e) {
+            // Toggle edit panel off
+            $('.drawToolContextMenuHeaderClose').click()
+            DrawTool.timeToggledOn = $(this).is(':checked')
+            DrawTool.filesOn.forEach((fileId) => {
+                DrawTool.timeFilterDrawingLayer(fileId)
+            })
+        })
+        L_.subscribeTimeChange('DrawTool', (times) => {
+            DrawTool.filesOn.forEach((fileId) => {
+                DrawTool.timeFilterDrawingLayer(fileId)
+            })
+        })
+        L_.subscribeOnTimeUIToggle('DrawTool', (active) => {
+            $('#DrawTool_TimeToggle').css('display', active ? 'flex' : 'none')
+        })
+        tippy('#DrawTool_TimeToggle', {
+            content:
+                'Only display drawings whose templated dates fall within the current time window.',
+            placement: 'bottom',
+            theme: 'blue',
+            maxWidth: 700,
+        })
+    }
+
+    tippy('#drawToolDrawFilesNew', {
+        content: 'New File',
+        placement: 'right',
+        theme: 'blue',
+    })
     //Force intent mappings
     $('#drawToolNewFileAll').html(DrawTool.intentNameMapping.all)
     $('#drawToolNewFileROI').html(DrawTool.intentNameMapping.roi)
@@ -1338,9 +1477,6 @@ function interfaceWithMMGIS() {
     $('#drawToolFilterDropdownSignpost').html(
         DrawTool.intentNameMapping.signpost + 's'
     )
-
-    if (F_.getBrowser() == 'firefox')
-        $('#drawToolDrawFiles').css('max-height', 'calc(100vh - 313px)')
 
     $('#drawToolDrawingSettingsToggle').on('click', function () {
         $('#drawToolDrawingSettingsToggle').toggleClass('active')
@@ -1420,41 +1556,14 @@ function interfaceWithMMGIS() {
         } else return true
     })
 
+    $('#drawToolDrawFilesNewUpload').on('click', function () {
+        DrawTool_FileModal.newFileModal(DrawTool, function () {
+            $('#drawToolFileUpload > input').click()
+        })
+    })
     //Adding a new file
     $('#drawToolDrawFilesNew').on('click', function () {
-        var val = $('#drawToolDrawFilesNewName').val()
-        var intent = $('#drawToolDrawFilesNewDiv > select').val()
-        if (val == null || val == '') {
-            CursorInfo.update(
-                'Please enter a file name.',
-                6000,
-                true,
-                { x: 305, y: 6 },
-                '#e9ff26',
-                'black'
-            )
-            return
-        }
-        if (/[&\'\"<>]/g.test(val)) {
-            CursorInfo.update(
-                'Invalid file name.',
-                6000,
-                true,
-                { x: 305, y: 6 },
-                '#e9ff26',
-                'black'
-            )
-            return
-        }
-        var body = {
-            file_name: val || 'New File',
-            intent: intent,
-        }
-        DrawTool.makeFile(body, function (file_id) {
-            DrawTool.populateFiles(file_id)
-
-            $('#drawToolDrawFilesNewName').val('')
-        })
+        DrawTool_FileModal.newFileModal(DrawTool)
     })
 
     //Copy shapes
@@ -1506,7 +1615,7 @@ function interfaceWithMMGIS() {
                 if ($(elm).hasClass('active')) {
                     var layer = $(elm).attr('layer')
                     var index = $(elm).attr('index')
-                    var shape = L_.layersGroup[layer][index]
+                    var shape = L_.layers.layer[layer][index]
 
                     let fromFileId = $(elm).attr('file_id')
                     let fromFile = DrawTool.getFileObjectWithId(fromFileId)
@@ -1706,6 +1815,8 @@ function interfaceWithMMGIS() {
     function separateFromMMGIS() {
         DrawTool.endDrawing()
         $('.drawToolContextMenuHeaderClose').click()
+        L_.unsubscribeTimeChange('DrawTool')
+        L_.unsubscribeOnTimeUIToggle('DrawTool')
         DrawTool.open = false
     }
 }
