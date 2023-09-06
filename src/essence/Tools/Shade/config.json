@@ -2,16 +2,32 @@
     "defaultIcon": "sun-angle-outline",
     "description": "Realtime user generated sun and orbiter masks.",
     "descriptionFull": {
-        "title": "Renders dynamic tilesets based on line-of-sight visibilities from user defined source points. DEM tiles are used to generate these. At least one DEM tileset must be configured. curvature is optional and can be set to false to disable using the Major Radius to account for curvature during generations.",
+        "title": "Shades the ground when line-of-sights to an orbiting target are occluded.",
         "example": {
+            "dem": "Data/missionDEM.tif",
             "data": [
                 {
-                    "name": "Unique Name 1",
-                    "demtileurl": "Layers/Example/demtileset/{z}/{x}/{y}.png",
+                    "name": "User-friendly name for DEM",
+                    "demtileurl": "pathToDEMTiles/{z}/{x}/{y}.png",
                     "minZoom": 8,
                     "maxNativeZoom": 18
+                }
+            ],
+            "sources": [
+                {
+                    "name": "User-friendly name for orbiter or body that 'casts shadows'",
+                    "value": "SPICE Spacecraft name or ID"
                 },
-                { "...": "..." }
+                {
+                    "name": "...",
+                    "value": "..."
+                }
+            ],
+            "observers": [
+                {
+                    "name": "User-friendly name for observer for spacecraft time computations",
+                    "value": "SPICE Spacecraft name or ID"
+                }
             ]
         }
     },

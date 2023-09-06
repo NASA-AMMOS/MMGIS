@@ -194,7 +194,6 @@ let ShadeTool_Algorithm = {
     },
     processUp: function (d, g) {
         const o = d.dataSource //observer
-        console.log(d)
 
         const observerHeight = d.targetSource.altitude
         let dataH

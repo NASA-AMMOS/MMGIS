@@ -13,6 +13,8 @@ import json
 import os
 import subprocess
 import shlex
+import platform 
+
 
 try:
     from urllib.parse import unquote
@@ -22,9 +24,15 @@ except ImportError:
 def chronos(target, fromFormat, fromtype, to, totype, time):
     package_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\','/')
 
-    cmd = os.path.join(package_dir + '/', 'chronos.exe')
+    plt = platform.system()
+
+    if plt == "Windows":
+        cmd = os.path.join(package_dir + '/', 'chronos.exe')
+    else:
+        cmd = os.path.join(package_dir + '/', 'chronos')
+        
     target = target.replace('\\','').replace('/','')
-    setup = os.path.join(package_dir + '/', f'chronos/chronos-{target}.setup')
+    setup = os.path.join(package_dir + '/', f'chronosSetups/chronos-{target}.setup')
     fullCmd = shlex.split(f'{cmd} -setup {setup} -from {fromFormat} -fromtype {fromtype} -to {to} -totype {totype} -time {time} -NOLABEL')
 
     result = subprocess.run(fullCmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)

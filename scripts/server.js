@@ -699,10 +699,20 @@ setups.getBackendSetups(function (setups) {
       const time = encodeURIComponent(req.body.time)
         .replace(/%20/g, " ")
         .replace(/%3A/g, ":");
+      const includeSunEarth =
+        encodeURIComponent(req.body.includeSunEarth) || "False";
 
       execFile(
         "python",
-        ["private/api/spice/ll2aerll.py", lng, lat, height, target, time],
+        [
+          "private/api/spice/ll2aerll.py",
+          lng,
+          lat,
+          height,
+          target,
+          time,
+          includeSunEarth,
+        ],
         function (error, stdout, stderr) {
           if (error)
             logger("error", "ll2aerll failure:", "server", null, error);

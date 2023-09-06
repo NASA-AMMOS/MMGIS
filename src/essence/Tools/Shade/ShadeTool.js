@@ -45,6 +45,8 @@ let ShadeTool = {
     dynamicUpdatePanCutoff: 2,
     MMGISInterface: null,
     tempSheet: null,
+    sunColor: '#d2db58',
+    earthColor: '#58dbb8',
     initialize: function () {
         this.vars = L_.getToolVars('shade')
 
@@ -165,11 +167,11 @@ let ShadeTool = {
             ShadeTool.updateObserverSpecificTime(id)
             // prettier-ignore
             if (
-                    ShadeTool.tags[id] != null && // already generated
-                    $('#vstShades #vstId_' + id + ' .vstOptionResolution select').val() <= ShadeTool.dynamicUpdatePanCutoff
-                ) {
-                    ShadeTool.setSource(null, null, id)
-                }
+                ShadeTool.tags[id] != null && // already generated
+                $('#vstShades #vstId_' + id + ' .vstOptionResolution select').val() <= ShadeTool.dynamicUpdatePanCutoff
+            ) {
+                ShadeTool.setSource(null, null, id)
+            }
         })
     },
     panEnd: function () {
@@ -178,11 +180,11 @@ let ShadeTool = {
             const id = $(elm).attr('shadeId')
             // prettier-ignore
             if (
-                    ShadeTool.tags[id] != null && // already generated
-                    $('#vstShades #vstId_' + id + ' .vstOptionResolution select').val() <= ShadeTool.dynamicUpdatePanCutoff
-                ) {
-                    ShadeTool.setSource(null, null, id)
-                }
+                ShadeTool.tags[id] != null && // already generated
+                $('#vstShades #vstId_' + id + ' .vstOptionResolution select').val() <= ShadeTool.dynamicUpdatePanCutoff
+            ) {
+                ShadeTool.setSource(null, null, id)
+            }
         })
     },
     toggleAll: function () {
@@ -228,6 +230,10 @@ let ShadeTool = {
                     ? initObj.color
                     : ShadeTool.shedColors[id % ShadeTool.shedColors.length],
             opacity: initObj.opacity != null ? initObj.opacity : 0.75,
+            includeSunEarth:
+                initObj.includeSunEarth != null
+                    ? initObj.includeSunEarth
+                    : 'false',
             resolution: initObj.resolution != null ? initObj.resolution : 1,
             target: initObj.target != null ? initObj.target : 0,
             height: initObj.height != null ? initObj.height : 0,
@@ -300,9 +306,16 @@ let ShadeTool = {
                         "<div class='vstLoading'></div>",
                         `<div class='vstOptionHeading'>Source</div>`,
                         "<div class='vstOptionTarget'>",
-                            `<div title='Orbiter or body that is the source of "light".'>Entity</div>`,
+                            `<div title='Orbiter or body that is the source of "light".'><span style='color: var(--color-p0);'>Entity</span></div>`,
                             "<select class='dropdown'>",
                                 allSources,
+                            "</select>",
+                        "</div>",
+                        "<div class='vstOptionIncludeSunEarth'>",
+                            `<div title='Query for and show Sun and Earth az/el directional arrows'>Include <span style='color: ${ShadeTool.sunColor};'>Sun</span> + <span style='color: ${ShadeTool.earthColor};'>Earth</span></div>`,
+                            "<select class='dropdown'>",
+                                "<option value='false' " + (initObj.includeSunEarth == 'false' ? 'selected' : '') + ">False</option>",
+                                "<option value='true' " + (initObj.includeSunEarth != 'false' ? 'selected' : '') + ">True</option>",
                             "</select>",
                         "</div>",
                         `<div class='vstOptionHeading'>Observer</div>`,
@@ -315,7 +328,8 @@ let ShadeTool = {
                         "<div class='vstOptionTimeSpecific'>",
                             `<div title='Ground observer time'>Time</div>`,
                             "<div class='flexbetween'>",
-                                `<input type='text' value='${TimeControl.getEndTime()}'>`,
+                                `<div class='vstClockIcon2'><i class='mdi mdi-clock-outline mdi-18px'></i></div>`,
+                                `<input type='text' placeholder='YYYY mmm DD HH:MM:SS' value='${TimeControl.getEndTime()}'>`,
                             "</div>",
                         "</div>",
                         "<div class='vstOptionHeight'>",
@@ -325,7 +339,7 @@ let ShadeTool = {
                                 "<div class='vstUnit smallFont'>m</div>",
                             "</div>",
                         "</div>",
-                        `<div class='vstOptionHeading'>Rendering</div>`,
+                        `<div class='vstOptionHeading'>Shaded Region Options</div>`,
                         "<div class='vstOptionColor'>",
                             "<div>Color</div>",
                             "<div id='vstId_" + id + "_color'></div>",
@@ -475,11 +489,28 @@ let ShadeTool = {
             'change',
             (function (id) {
                 return function () {
-                    TimeControl.setTime(
-                        TimeControl.getStartTime(),
-                        $(this).val().replace(' TDB', '') + 'Z'
-                    )
-                    ShadeTool.updateObserverSpecificTime(id)
+                    const time = $(this).val() + 'Z'
+                    let isValid = false
+                    try {
+                        new Date(time).toISOString()
+                        isValid = true
+                    } catch {}
+                    if (isValid) {
+                        TimeControl.setTime(
+                            TimeControl.getStartTime(),
+                            $(this).val() + 'Z'
+                        )
+                        ShadeTool.updateObserverSpecificTime(id)
+                    } else {
+                        CursorInfo.update(
+                            'Invalid Time Entered',
+                            6000,
+                            true,
+                            { x: 296, y: -5 },
+                            '#e9ff26',
+                            'black'
+                        )
+                    }
                 }
             })(id)
         )
@@ -492,6 +523,24 @@ let ShadeTool = {
             })(id)
         )
         $('#vstShades #vstId_' + id + ' .vstOptionOpacity input').on(
+            'change',
+            (function (id) {
+                return function () {
+                    $('#vstShades #vstId_' + id + ' .vstRegen').addClass(
+                        'changed'
+                    )
+                    if (
+                        $(
+                            `#vstShades #vstId_${id} .vstOptionResolution select`
+                        ).val() <= ShadeTool.dynamicUpdateResCutoff
+                    ) {
+                        ShadeTool.setActiveElmId(id)
+                        ShadeTool.setSource()
+                    }
+                }
+            })(id)
+        )
+        $('#vstShades #vstId_' + id + ' .vstOptionIncludeSunEarth select').on(
             'change',
             (function (id) {
                 return function () {
@@ -544,12 +593,16 @@ let ShadeTool = {
                     $('#vstShades #vstId_' + id + ' .vstRegen').addClass(
                         'changed'
                     )
-                    // prettier-ignore
-                    if(
-                            $('#vstShades #vstId_' + id + ' .vstOptionResolution select').val() <= ShadeTool.dynamicUpdateResCutoff) {
-                            ShadeTool.setActiveElmId(id)
-                            ShadeTool.setSource()
-                        }
+                    if (
+                        $(
+                            '#vstShades #vstId_' +
+                                id +
+                                ' .vstOptionResolution select'
+                        ).val() <= ShadeTool.dynamicUpdateResCutoff
+                    ) {
+                        ShadeTool.setActiveElmId(id)
+                        ShadeTool.setSource()
+                    }
                 }
             })(id)
         )
@@ -639,7 +692,19 @@ let ShadeTool = {
                 time: TimeControl.getEndTime(),
             },
             function (s) {
-                s = JSON.parse(s)
+                try {
+                    s = JSON.parse(s)
+                } catch {
+                    CursorInfo.update(
+                        "Failure Converting to Observer's Time",
+                        6000,
+                        true,
+                        { x: 296, y: -5 },
+                        '#e9ff26',
+                        'black'
+                    )
+                    return
+                }
                 if (s.error) {
                     CursorInfo.update(
                         "Cannot Convert to Observer's Time",
@@ -678,7 +743,19 @@ let ShadeTool = {
                 ).val(),
             },
             function (s) {
-                s = JSON.parse(s)
+                try {
+                    s = JSON.parse(s)
+                } catch {
+                    CursorInfo.update(
+                        'Failure Processing Inputted Time',
+                        6000,
+                        true,
+                        { x: 296, y: -5 },
+                        '#e9ff26',
+                        'black'
+                    )
+                    return
+                }
                 if (s.error) {
                     CursorInfo.update(
                         'Cannot Process Inputted Time',
@@ -749,6 +826,8 @@ let ShadeTool = {
             b._southWest.lat +
             'w' +
             b._southWest.lng +
+            'g' +
+            options.target +
             't' +
             options.time.replace(/ /g, '_')
 
@@ -777,10 +856,36 @@ let ShadeTool = {
                                 lat: source.lat,
                                 height: data[0][1],
                                 target: options.target,
-                                time: options.time,
+                                time: options.time + ' UTC',
+                                includeSunEarth: options.includeSunEarth,
                             },
                             function (s) {
-                                s = JSON.parse(s)
+                                Map_.rmNotNull(ShadeTool.tempIndicatorPoint)
+                                ShadeTool.tempIndicatorPoint =
+                                    new L.circleMarker(
+                                        [source.lat, source.lng],
+                                        {
+                                            fillColor: '#000',
+                                            fillOpacity: 0,
+                                            color: 'lime',
+                                            weight: 2,
+                                        }
+                                    )
+                                        .setRadius(4)
+                                        .addTo(Map_.map)
+                                try {
+                                    s = JSON.parse(s)
+                                } catch {
+                                    CursorInfo.update(
+                                        'LatLng to AzEl Error',
+                                        6000,
+                                        true,
+                                        { x: 296, y: -5 },
+                                        '#e9ff26',
+                                        'black'
+                                    )
+                                    return
+                                }
 
                                 ShadeTool.updateRAEIndicators(s, activeElmId)
                                 // CLear result outputs
@@ -791,6 +896,12 @@ let ShadeTool = {
                                 $('#shadeTool_results_outputs_lat').text('--')
                                 $('#shadeTool_results_outputs_alt').text('--')
 
+                                if (
+                                    s.message &&
+                                    s.message.indexOf('INSUFFDATA')
+                                )
+                                    s.message =
+                                        'Insufficient SPICE kernels for this source entity and time period.'
                                 if (s.error) {
                                     CursorInfo.update(
                                         s.message || 'LatLng to AzEl Error',
@@ -1055,6 +1166,11 @@ let ShadeTool = {
             opacity: $(
                 '#vstShades #vstId_' + elmId + ' .vstOptionOpacity input'
             ).val(),
+            includeSunEarth: $(
+                '#vstShades #vstId_' +
+                    elmId +
+                    ' .vstOptionIncludeSunEarth select'
+            ).val(),
             resolution: $(
                 '#vstShades #vstId_' + elmId + ' .vstOptionResolution select'
             ).val(),
@@ -1119,60 +1235,66 @@ let ShadeTool = {
         ctxAz.stroke()
 
         let azGreaterThan180
+        let sunAzGreaterThan180
+        let earthAzGreaterThan180
         if (rae.error != true) {
-            // Angle guide
-            ctxAz.beginPath()
-            ctxAz.moveTo(origin.x, origin.y)
-            let azim = rae.azimuth
-            if (azim < 0) azim += 360
-            azGreaterThan180 = azim > 180
-            azim = azim * (Math.PI / 180)
-            ctxAz.arc(
-                origin.x,
-                origin.y,
-                sizeInner / 8,
-                -90 * (Math.PI / 180),
-                azim - 90 * (Math.PI / 180)
-            )
-            ctxAz.lineWidth = 2
-            ctxAz.strokeStyle = '#08ea58'
-            ctxAz.stroke()
-
             // North indicator
             ctxAz.font = '20px Arial'
             ctxAz.fillStyle = 'rgba(255,255,255,0.7)'
             ctxAz.textAlign = 'center'
             ctxAz.fillText('N', size / 2, (size - sizeInner) * 1.5)
 
-            // Angle line
-            const endAzPt = F_.rotatePoint(
-                { x: origin.x, y: origin.y - sizeInner / 2 + 10 },
-                [origin.x, origin.y],
-                rae.azimuth * (Math.PI / 180)
-            )
-
-            ctxAz.beginPath()
-            ctxAz.beginPath()
-            ctxAz.moveTo(origin.x, origin.y)
-            ctxAz.lineTo(endAzPt.x, endAzPt.y)
-            ctxAz.lineWidth = 6
-            ctxAz.strokeStyle = 'yellow'
-            ctxAz.stroke()
-
-            // Angle Arrow
-            const endAzPtInner = F_.rotatePoint(
-                { x: origin.x, y: origin.y - sizeInner / 2 + 20 },
-                [origin.x, origin.y],
-                rae.azimuth * (Math.PI / 180)
-            )
-            F_.canvasDrawArrow(
+            if (rae.ancillary?.sun_az) {
+                let azim = rae.ancillary.sun_az
+                if (azim < 0) azim += 360
+                sunAzGreaterThan180 = azim > 180
+                azim = azim * (Math.PI / 180)
+                ShadeTool.drawAzAngleGuideOnCanvas(
+                    ctxAz,
+                    origin,
+                    sizeInner,
+                    rae.ancillary.sun_az,
+                    azim,
+                    {
+                        color: ShadeTool.sunColor,
+                        shortenPx: 40,
+                    }
+                )
+            }
+            if (rae.ancillary?.earth_az) {
+                let azim = rae.ancillary.earth_az
+                if (azim < 0) azim += 360
+                earthAzGreaterThan180 = azim > 180
+                azim = azim * (Math.PI / 180)
+                ShadeTool.drawAzAngleGuideOnCanvas(
+                    ctxAz,
+                    origin,
+                    sizeInner,
+                    rae.ancillary.earth_az,
+                    azim,
+                    {
+                        color: ShadeTool.earthColor,
+                        shortenPx: 60,
+                    }
+                )
+            }
+            let azim = rae.azimuth
+            if (azim < 0) azim += 360
+            azGreaterThan180 = azim > 180
+            azim = azim * (Math.PI / 180)
+            ShadeTool.drawAzAngleGuideOnCanvas(
                 ctxAz,
-                endAzPtInner.x,
-                endAzPtInner.y,
-                endAzPt.x,
-                endAzPt.y,
-                4,
-                'yellow'
+                origin,
+                sizeInner,
+                rae.azimuth,
+                azim,
+                {
+                    angleGuide: true,
+                    color:
+                        rae.ancillary?.sun_el || rae.ancillary?.earth_el
+                            ? '#dbb658'
+                            : 'yellow',
+                }
             )
         }
 
@@ -1222,67 +1344,175 @@ let ShadeTool = {
         ctxEl.stroke()
 
         if (rae.error != true) {
-            // Angle guide
-            ctxEl.beginPath()
-            ctxEl.moveTo(origin.x, origin.y)
-            let elev = rae.elevation
+            if (rae.ancillary?.sun_el) {
+                ShadeTool.drawElAngleGuideOnCanvas(
+                    ctxEl,
+                    origin,
+                    sizeInner,
+                    rae.ancillary.sun_el,
+                    {
+                        azGreaterThan180: sunAzGreaterThan180,
+                        color: ShadeTool.sunColor,
+                        shortenPx: 40,
+                    }
+                )
+            }
+            if (rae.ancillary?.earth_el) {
+                ShadeTool.drawElAngleGuideOnCanvas(
+                    ctxEl,
+                    origin,
+                    sizeInner,
+                    rae.ancillary.earth_el,
+                    {
+                        azGreaterThan180: earthAzGreaterThan180,
+                        color: ShadeTool.earthColor,
+                        shortenPx: 60,
+                    }
+                )
+            }
+
+            ShadeTool.drawElAngleGuideOnCanvas(
+                ctxEl,
+                origin,
+                sizeInner,
+                rae.elevation,
+                {
+                    azGreaterThan180: azGreaterThan180,
+                    angleGuide: true,
+                    color:
+                        rae.ancillary?.sun_el || rae.ancillary?.earth_el
+                            ? '#dbb658'
+                            : 'yellow',
+                }
+            )
+        }
+    },
+    drawAzAngleGuideOnCanvas(ctx, origin, sizeInner, angle, angle2, options) {
+        options = options || {}
+        // Angle guide
+        if (options.angleGuide) {
+            ctx.beginPath()
+            ctx.moveTo(origin.x, origin.y)
+
+            ctx.arc(
+                origin.x,
+                origin.y,
+                sizeInner / 8,
+                -90 * (Math.PI / 180),
+                angle2 - 90 * (Math.PI / 180)
+            )
+            ctx.lineWidth = 2
+            ctx.strokeStyle = '#eeeeee'
+            ctx.stroke()
+        }
+
+        // Angle line
+        const endAzPt = F_.rotatePoint(
+            {
+                x: origin.x,
+                y: origin.y - sizeInner / 2 + 10 + (options.shortenPx || 0),
+            },
+            [origin.x, origin.y],
+            angle * (Math.PI / 180)
+        )
+
+        ctx.beginPath()
+        ctx.beginPath()
+        ctx.moveTo(origin.x, origin.y)
+        ctx.lineTo(endAzPt.x, endAzPt.y)
+        ctx.lineWidth = 6
+        ctx.strokeStyle = options.color || 'yellow'
+        ctx.stroke()
+
+        // Angle Arrow
+        const endAzPtInner = F_.rotatePoint(
+            {
+                x: origin.x,
+                y: origin.y - sizeInner / 2 + 20 + (options.shortenPx || 0),
+            },
+            [origin.x, origin.y],
+            angle * (Math.PI / 180)
+        )
+        F_.canvasDrawArrow(
+            ctx,
+            endAzPtInner.x,
+            endAzPtInner.y,
+            endAzPt.x,
+            endAzPt.y,
+            4,
+            options.color || 'yellow'
+        )
+    },
+    drawElAngleGuideOnCanvas(ctx, origin, sizeInner, angle, options) {
+        options = options || {}
+        // Angle guide
+        if (options.angleGuide) {
+            ctx.beginPath()
+            ctx.moveTo(origin.x, origin.y)
+            let elev = angle
             let ccw = true
             if (elev < 0) {
                 ccw = false
             }
             let startAngle = 0
-            if (azGreaterThan180) {
+            if (options.azGreaterThan180) {
                 startAngle = Math.PI
                 ccw = !ccw
                 elev = -elev - 180
             }
             elev = -elev * (Math.PI / 180)
-            ctxEl.arc(origin.x, origin.y, sizeInner / 4, startAngle, elev, ccw)
-            ctxEl.lineWidth = 2
-            ctxEl.strokeStyle = '#08ea58'
-            ctxEl.stroke()
-
-            let sign = -1
-            let offset = 0
-            if (azGreaterThan180) {
-                sign = 1
-                offset = 180
-            }
-
-            // Angle line
-            const endElPt = F_.rotatePoint(
-                { x: origin.x + sizeInner / 2 - 10, y: origin.y },
-                [origin.x, origin.y],
-                sign * (offset + rae.elevation) * (Math.PI / 180)
-            )
-
-            ctxEl.beginPath()
-            ctxEl.beginPath()
-            ctxEl.moveTo(origin.x, origin.y)
-            ctxEl.lineTo(endElPt.x, endElPt.y)
-            ctxEl.lineWidth = 6
-            ctxEl.strokeStyle = 'yellow'
-            ctxEl.stroke()
-
-            // Angle Arrow
-            const endElPtInner = F_.rotatePoint(
-                { x: origin.x + sizeInner / 2 - 20, y: origin.y },
-                [origin.x, origin.y],
-                sign * (offset + rae.elevation) * (Math.PI / 180)
-            )
-            F_.canvasDrawArrow(
-                ctxEl,
-                endElPtInner.x,
-                endElPtInner.y,
-                endElPt.x,
-                endElPt.y,
-                4,
-                'yellow'
-            )
+            ctx.arc(origin.x, origin.y, sizeInner / 4, startAngle, elev, ccw)
+            ctx.lineWidth = 2
+            ctx.strokeStyle = '#eeeeee'
+            ctx.stroke()
         }
+
+        let sign = -1
+        let offset = 0
+        if (options.azGreaterThan180) {
+            sign = 1
+            offset = 180
+        }
+
+        // Angle line
+        const endElPt = F_.rotatePoint(
+            {
+                x: origin.x + sizeInner / 2 - 10 - (options.shortenPx || 0),
+                y: origin.y,
+            },
+            [origin.x, origin.y],
+            sign * (offset + angle) * (Math.PI / 180)
+        )
+
+        ctx.beginPath()
+        ctx.beginPath()
+        ctx.moveTo(origin.x, origin.y)
+        ctx.lineTo(endElPt.x, endElPt.y)
+        ctx.lineWidth = 6
+        ctx.strokeStyle = options.color || 'yellow'
+        ctx.stroke()
+
+        // Angle Arrow
+        const endElPtInner = F_.rotatePoint(
+            {
+                x: origin.x + sizeInner / 2 - 20 - (options.shortenPx || 0),
+                y: origin.y,
+            },
+            [origin.x, origin.y],
+            sign * (offset + angle) * (Math.PI / 180)
+        )
+        F_.canvasDrawArrow(
+            ctx,
+            endElPtInner.x,
+            endElPtInner.y,
+            endElPt.x,
+            endElPt.y,
+            4,
+            options.color || 'yellow'
+        )
     },
-    parseToTDBTime(time) {
-        //'2023-06-28T03:15:20.883Z' -> '2023 JUL 16 03:56:00 TDB'
+    parseToUTCTime(time) {
+        //'2023-06-28T03:15:20.883Z' -> '2023 JUL 16 03:56:00'
         return (
             time.substring(0, 4) +
             ' ' +
@@ -1292,9 +1522,13 @@ let ShadeTool = {
             ' ' +
             time.substring(8, 10) +
             ' ' +
-            time.substring(11, 19) +
-            ' TDB'
+            time.substring(11, 19)
         )
+    },
+    delete: function (activeElmId) {
+        Map_.rmNotNull(L_.layers.layer['shade' + activeElmId])
+        L_.layers.layer['shade' + activeElmId] = null
+        ShadeTool.canvases[activeElmId] = null
     },
 }
 
@@ -1322,7 +1556,8 @@ function interfaceWithMMGIS() {
                 "</div>",
                 "<div class='vstOptionTime'>",
                     "<div class='flexbetween'>",
-                        `<input type='text' value='${ShadeTool.parseToTDBTime(TimeControl.getEndTime())}'>`,
+                        `<div class='vstClockIcon'><i class='mdi mdi-clock-outline mdi-18px'></i></div>`,
+                        `<input type='text' value='${ShadeTool.parseToUTCTime(TimeControl.getEndTime())}'>`,
                     "</div>",
                 "</div>",
                 /*
@@ -1363,7 +1598,7 @@ function interfaceWithMMGIS() {
     Map_.map.on('moveend', ShadeTool.panEnd)
 
     TimeControl.subscribe('ShadeTool', (t) => {
-        ShadeTool.timeChange(ShadeTool.parseToTDBTime(t.currentTime))
+        ShadeTool.timeChange(ShadeTool.parseToUTCTime(t.currentTime))
     })
 
     //Add event functions and whatnot
@@ -1371,6 +1606,8 @@ function interfaceWithMMGIS() {
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
     function separateFromMMGIS() {
+        Map_.rmNotNull(ShadeTool.tempIndicatorPoint)
+        ShadeTool.delete(0)
         ShadeTool.lastShadesUl = {}
         $('#vstShades > li').each((i, elm) => {
             const id = $(elm).attr('shadeId')

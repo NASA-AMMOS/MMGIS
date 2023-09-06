@@ -39,7 +39,6 @@
     line-height: 18px;
     color: #ccc;
     background: var(--color-a);
-    border-bottom: 1px solid var(--color-i);
     justify-content: space-between;
 }
 #shadeTool #vstHeader > div:first-child > div {
@@ -85,6 +84,7 @@
 #shadeTool #vstContent {
     height: calc(100% - 48px);
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
 #shadeTool #vstShades {
@@ -103,9 +103,9 @@
 #shadeTool #vstShades > li > .vstShadeHeader {
     display: flex;
     justify-content: space-between;
-    height: 30px;
+    height: 28px;
     padding-right: 6px;
-    line-height: 30px;
+    line-height: 28px;
     background: var(--color-a2);
 }
 #shadeTool #vstShades > li > .vstShadeHeader > div {
@@ -141,9 +141,9 @@
 
 #shadeTool #vstShades > li > .vstShadeContents > div {
     justify-content: space-between;
-    height: 30px;
+    height: 28px;
     display: flex;
-    line-height: 30px;
+    line-height: 28px;
     padding-left: 15px;
     border-bottom: 1px solid var(--color-a1-5);
 }
@@ -163,13 +163,13 @@
 
 #shadeTool .vstLoading {
     width: 0%;
-    height: 30px;
+    height: 28px;
     pointer-events: none;
     opacity: 0;
     position: absolute;
     top: 0;
     box-sizing: border-box;
-    border-bottom: 2px solid lime;
+    border-bottom: 2px solid var(--color-r6);
     transition: opacity 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
 }
 #shadeTool .vstLoading.on {
@@ -270,7 +270,7 @@
 }
 #shadeTool .vstRegen.changed {
     pointer-events: inherit;
-    background: white;
+    background: var(--color-f);
     color: #000000;
     cursor: pointer;
 }
@@ -280,7 +280,7 @@
     height: 100%;
     left: 0;
     top: 0;
-    background: lime;
+    background: var(--color-r6);
     mix-blend-mode: multiply;
 }
 
@@ -301,7 +301,7 @@
     color: #ededed;
     border: none;
     width: 111px;
-    height: 29px;
+    height: 27px;
     font-size: 14px;
     padding: 0px 3px;
     border-left: 1px solid var(--color-a1-5);
@@ -342,7 +342,7 @@
     border: none;
     border-bottom: 1px solid rgba(0, 0, 0, 0.3);
     padding: 0px 6px;
-    height: 30px;
+    height: 28px;
     width: 90px;
     background: var(--color-a1);
     text-align: right;
@@ -352,7 +352,7 @@
 
 #shadeTool .vstShadeHeader input {
     border: none;
-    height: 30px;
+    height: 28px;
     background: none;
     color: white;
     width: 136px;
@@ -416,7 +416,7 @@
     text-transform: uppercase;
     font-size: 11px !important;
     padding-left: 7px !important;
-    color: var(--color-r7) !important;
+    color: var(--color-a7) !important;
     letter-spacing: 1px;
     border-bottom: none !important;
     padding-top: 4px !important;
@@ -424,12 +424,16 @@
 #shadeTool .vstOptionTime input {
     width: 100%;
     text-align: center;
-    background: var(--color-r4);
-    color: var(--color-f);
+    background: var(--color-p0);
+    color: var(--color-a1-5);
     font-weight: bold;
     font-size: 14px;
     padding: 5px 0px;
     border: none;
+    border-bottom: 1px solid transparent;
+}
+#shadeTool .vstOptionTime input:focus {
+    border-bottom: 1px solid var(--color-c);
 }
 #shadeTool .vstOptionTimeSpecific {
     width: 100%;
@@ -459,18 +463,16 @@
 #shadeTool #shadeTool_results {
     display: flex;
     flex-flow: column;
-    border-top: 1px solid var(--color-a1-5);
 }
 #shadeTool #shadeTool_results #shadeTool_results_title {
-    height: 30px;
+    height: 28px;
     width: 100%;
-    line-height: 30px;
-    margin-top: 4px;
+    line-height: 28px;
     padding-left: 7px;
     text-transform: uppercase;
     font-size: 11px;
     letter-spacing: 1px;
-    color: var(--color-r6);
+    color: var(--color-p0);
 }
 #shadeTool #shadeTool_results #shadeTool_results_outputs ul {
     list-style-type: none;
@@ -491,4 +493,18 @@
     font-size: 13px;
 }
 #shadeTool #shadeTool_results #shadeTool_results_outputs ul li div:last-child {
+    font-size: 13px;
+}
+#shadeTool .vstClockIcon {
+    position: absolute;
+    right: 0;
+    padding: 4px 8px;
+    color: var(--color-a1-5);
+    pointer-events: none;
+}
+#shadeTool .vstClockIcon2 {
+    position: absolute;
+    right: 0;
+    padding: 0px 8px;
+    pointer-events: none;
 }

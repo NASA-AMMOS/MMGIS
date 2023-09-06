@@ -1,6 +1,83 @@
-## Tool: Shade
+---
+layout: page
+title: Shade
+permalink: /tools/shade
+parent: Tools
+---
+
+# Shade
 
 _Shades the ground when line-of-sights to an orbiting target are occluded._
+
+## SPICE
+
+Site administrators are responsible for keeping SPICE kernels up-to-date in `/private/api/spice/kernels` and CHRONOS setup files relevant in `/private/api/spice/chronosSetups`.
+
+There are two SPICE python scripts that require these backend kernel setups:
+
+- `/private/api/spice/chronos.py`
+  - Converts between time systems.
+  - Looks for `/private/api/spice/chronosSetups/chronos-{target}.setup` where `{target}` here is filled in as a lowercased ShadeTool variables `"observers"`s `"value"`.
+- `/private/api/spice/ll2aer11.py`
+  - Turns a lnglat and target into a directional azimuth, elevation, range, and lntlat
+  - Reads in all kernels `/private/api/spice/kernels`.
+  - `/private/api/spice/getKernelUtils` has some wget scripts as examples for downloadign new kernels (however these resources will quickly become outdated)
+
+## Tool Configuration
+
+### Example
+
+```javascript
+{
+    "dem": "Data/missionDEM.tif",
+    "data": [
+        {
+            "name": "MSL_DEM",
+            "demtileurl": "pathToDEMTiles/MSL_Gale_DEM_Mosaic_1m_v3/{z}/{x}/{y}.png",
+            "minZoom": 8,
+            "maxNativeZoom": 18
+        }
+    ],
+    "sources": [
+        {
+            "name": "MRO",
+            "value": "MRO"
+        },
+        {
+            "name": "ODY",
+            "value": "-53"
+        },
+        {
+            "name": "TGO",
+            "value": "TGO"
+        },
+        {
+            "name": "MVN",
+            "value": "MAVEN"
+        },
+        {
+            "name": "The Sun",
+            "value": "SUN"
+        }
+    ],
+    "observers": [
+        {
+            "name": "MSL",
+            "value": "MSL"
+        }
+    ]
+}
+```
+
+_**dem**_ - A path to a DEM.tif. This is used to get the current center elevation. This can/should be the same file used for the Measure Tool and the Coordinate's elevation.
+
+_**data**_ - At minimum, the Shade tool requires at least one "data" source. A data source describes a DEM tileset (see /auxiliary/gdal2customtiles or /auxiliary/1bto4b) and allows users to select it by name to generate shade maps over.
+
+_**source**_ - An array of objects with the properties "name" and "value". "name" is the display name for the Source Entity dropdown. "value" is the SPICE spacecraft ID that gets passed to the backend `ll2aerll.py` script. Ensure the right kernels for the configured source entities/targets exist in `/private/api/spice/kernels`.
+
+_**observers**_ - An array of objects with the properties "name" and "value". "name" is the display name for the Source Entity dropdown. "value" is the SPICE spacecraft ID that gets passed to the backend `chronos.py` scripts. Ensure the right kernels for the configured observers exist in `/private/api/spice/kernels` and that there is a proper chronos setup file for each observer's value `private/api/spice/chronosSetups/chronos-{lowercased_observer_value}.setup`.
+
+## Tool Use
 
 **Note:** Terrain beyond the screen's current extent is **not** factored into the displayed visiblity map — only observer-target direction and on-screen terrain is considered. A distant off-screen mountain will **not** cast shadows.
 
