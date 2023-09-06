@@ -252,6 +252,10 @@ router.post("/make", function (req, res, next) {
                       id: created.id,
                       res,
                     });
+                    triggerWebhooks("drawFileAdd", {
+                      id: created.id,
+                      res,
+                    });
                     return null;
                   })
                   .catch((err) => {
@@ -295,6 +299,10 @@ router.post("/make", function (req, res, next) {
           body: {
             file_id: created.id,
           },
+        });
+        triggerWebhooks("drawFileAdd", {
+          id: created.id,
+          res,
         });
         triggerWebhooks("drawFileAdd", {
           id: created.id,

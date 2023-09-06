@@ -2582,6 +2582,8 @@ const L_ = {
                 )
                 return
             }
+            L_.syncSublayerData(layerName)
+            L_.globeLithoLayerHelper(L_.layersNamed[layerName])
         } else {
             console.warn(
                 'Warning: Unable to update vector layer as it does not exist: ' +
