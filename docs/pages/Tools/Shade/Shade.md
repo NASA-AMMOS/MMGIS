@@ -65,7 +65,8 @@ There are two SPICE python scripts that require these backend kernel setups:
             "name": "MSL",
             "value": "MSL"
         }
-    ]
+    ],
+    "defaultHeight": 0
 }
 ```
 
@@ -76,6 +77,8 @@ _**data**_ - At minimum, the Shade tool requires at least one "data" source. A d
 _**source**_ - An array of objects with the properties "name" and "value". "name" is the display name for the Source Entity dropdown. "value" is the SPICE spacecraft ID that gets passed to the backend `ll2aerll.py` script. Ensure the right kernels for the configured source entities/targets exist in `/private/api/spice/kernels`.
 
 _**observers**_ - An array of objects with the properties "name" and "value". "name" is the display name for the Source Entity dropdown. "value" is the SPICE spacecraft ID that gets passed to the backend `chronos.py` scripts. Ensure the right kernels for the configured observers exist in `/private/api/spice/kernels` and that there is a proper chronos setup file for each observer's value `private/api/spice/chronosSetups/chronos-{lowercased_observer_value}.setup`.
+
+_**defaultHeight**_ - Sets a default for the 'Height' parameter (see below). The regular default is 0 meters.
 
 ## Tool Use
 

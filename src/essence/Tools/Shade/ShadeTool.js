@@ -236,7 +236,10 @@ let ShadeTool = {
                     : 'false',
             resolution: initObj.resolution != null ? initObj.resolution : 1,
             target: initObj.target != null ? initObj.target : 0,
-            height: initObj.height != null ? initObj.height : 0,
+            height:
+                initObj.height != null
+                    ? initObj.height
+                    : ShadeTool.vars.defaultHeight || 0,
         }
 
         let allData = ''
@@ -393,10 +396,6 @@ let ShadeTool = {
                                 "<li>",
                                     "<div>Latitude</div>",
                                     "<div id='shadeTool_results_outputs_lat'></div>",
-                                "</li>",
-                                "<li>",
-                                    "<div>Altitude</div>",
-                                    "<div id='shadeTool_results_outputs_alt'></div>",
                                 "</li>",
                             "</ul>",
                         "</div>",
@@ -894,7 +893,6 @@ let ShadeTool = {
                                 $('#shadeTool_results_outputs_range').text('--')
                                 $('#shadeTool_results_outputs_lng').text('--')
                                 $('#shadeTool_results_outputs_lat').text('--')
-                                $('#shadeTool_results_outputs_alt').text('--')
 
                                 if (
                                     s.message &&
@@ -927,9 +925,6 @@ let ShadeTool = {
                                     )
                                     $('#shadeTool_results_outputs_lat').text(
                                         s.latitude.toFixed(8) + '°'
-                                    )
-                                    $('#shadeTool_results_outputs_alt').text(
-                                        (s.altitude / 1000).toFixed(3) + 'km'
                                     )
 
                                     keepGoing({

@@ -28,7 +28,8 @@
                     "name": "User-friendly name for observer for spacecraft time computations",
                     "value": "SPICE Spacecraft name or ID"
                 }
-            ]
+            ],
+            "defaultHeight": 0
         }
     },
     "hasVars": true,
