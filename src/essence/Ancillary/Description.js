@@ -69,18 +69,23 @@ const Description = {
         this.inited = true
         if (this.waitingOnUpdate) this.updateInfo()
     },
-    updateInfo() {
-        this.waitingOnUpdate = false
-        if (!this.inited) {
-            this.waitingOnUpdate = true
-            return
+    updateInfo(force) {
+        if (force !== true) {
+            this.waitingOnUpdate = false
+            if (!this.inited) {
+                this.waitingOnUpdate = true
+                return
+            }
         }
+
+        this.descInfoCont.html('')
 
         let infos = []
 
         for (let layer in this.L_.layers.data) {
             let l = this.L_.layers.data[layer]
             if (
+                this.L_.layers.on[layer] === true &&
                 this.L_.layers.layer[layer] &&
                 l.hasOwnProperty('variables') &&
                 l.variables.hasOwnProperty('info') &&

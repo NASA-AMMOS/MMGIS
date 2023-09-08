@@ -60,7 +60,7 @@ var UserInterface = {
         // prettier-ignore
         const topBarMarkup = [
             "<div id='topBar'>",
-                "<div id='topBarLeft'>",
+                "<div id='topBarLeft' class='hideScrollbar'>",
                     "<div id='topBarMain'>",
                         "<div id='topBarTitle'>",
                             `<div id='topBarTitleName' tabindex='200'>`,
@@ -83,6 +83,11 @@ var UserInterface = {
         ].join('\n')
         //TopBar
         $('#main-container').append(topBarMarkup)
+
+        $('#topBarLeft').on('wheel', function (e) {
+            e.preventDefault()
+            this.scrollLeft += e.originalEvent.deltaY
+        })
 
         this.rightPanel = d3
             .select('body')

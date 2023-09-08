@@ -228,6 +228,14 @@ const L_ = {
         Object.keys(L_._onLayerToggleSubscriptions).forEach((k) => {
             L_._onLayerToggleSubscriptions[k](s.name, !on)
         })
+
+        // Always reupdate layer infos at the end to keep them in sync
+        Description.updateInfo()
+
+        // Deselect active feature if its layer is being turned off
+        if (L_.activeFeature && L_.activeFeature.layerName === s.name && on) {
+            L_.setActiveFeature(null)
+        }
     },
     toggleLayerHelper: async function (
         s,
