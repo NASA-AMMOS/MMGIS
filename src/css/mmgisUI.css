@@ -769,6 +769,19 @@
     background-color: var(--color-a2);
 }
 
+.hideScrollbar::-webkit-scrollbar-track {
+    background-color: Transparent;
+}
+
+.hideScrollbar::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+}
+
+.hideScrollbar::-webkit-scrollbar-thumb {
+    border-radius: 0px;
+}
+
 ::-webkit-scrollbar {
     width: 14px;
     height: 14px;
