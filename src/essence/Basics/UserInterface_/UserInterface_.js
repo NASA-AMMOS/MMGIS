@@ -86,7 +86,6 @@ var UserInterface = {
 
         $('#topBarLeft').on('wheel', function (e) {
             e.preventDefault()
-            //The "30" represents speed. preventDefault ensures the page won't scroll down.
             this.scrollLeft += e.originalEvent.deltaY
         })
 
