@@ -193,6 +193,19 @@
     text-transform: uppercase;
     letter-spacing: 1px;
     font-size: 12px;
+    pointer-events: none;
+    transition: all 0.2s ease-in-out;
+}
+#shadeTool #vstShades > li .vstShadeBar .vstRegen.changed {
+    pointer-events: all;
+}
+#shadeTool #vstShades > li .vstShadeBar .vstRegen.regening {
+    pointer-events: none !important;
+}
+#shadeTool #vstShades > li .vstShadeBar .vstRegen:hover {
+    background: var(--color-p3);
+    font-weight: bold;
+    color: black;
 }
 
 #shadeTool .vstDelete {

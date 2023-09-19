@@ -10,8 +10,6 @@ import os
 
 import math
 import spiceypy
-import pymap3d as pm
-
 
 # chronos.exe -setup ./chronos/chronos-msl.setup -from utc -fromtype scet -to lst -totype lst -time "2023-07-27 23:16:05.644"
 # chronos.exe -setup ./chronos/chronos-msl.setup -to utc -totype scet -from lst -fromtype lst -time "SOL 3901 03:46:54"
@@ -84,31 +82,28 @@ def ll2aerll(lng, lat, height, target, time, includeSunEarth):
         earth_az_output = earth_razel[1] * spiceypy.dpr()
         earth_el_output = earth_razel[2] * spiceypy.dpr()
 
-    try:
-        visibilities = [] #lltarg2vistimes(1,2,3,4,5)
-    except:
-        visibilities = []
+
+    state, light = spiceypy.spkezr(target, et, "IAU_MARS", abcorr, "MARS")
+    ll = spiceypy.recgeo( state[0:3], radii[0], flattening)
+    target_lng = ll[0] * spiceypy.dpr()
+    target_lat = ll[1] * spiceypy.dpr()
+    target_alt = ll[2]
 
     # Unload kernels
     for k in kernels_to_load:
         spiceypy.unload( os.path.join(package_dir + '/kernels/', k) )
 
-
-    # Compute ll position on surface directly under target/orbiter
-    target_ll = pm.aer2geodetic(az_output, el_output, range_output * 1000, lat, lng, height, None, True)
-
     # Altitude above the tangential plane of the surface observer latlng
-    horizontal_altitude = range_output * math.sin(razel[2])
+    horizontal_altitude = (range_output * 1000) * math.sin(razel[2])
 
 
     return json.dumps({
-        "visibilities": visibilities,
         "azimuth": az_output,
         "elevation": el_output,
         "range": range_output,
-        "longitude": target_ll[1],
-        "latitude": target_ll[0],
-        "altitude": target_ll[2],
+        "longitude": target_lng,
+        "latitude": target_lat,
+        "altitude": target_alt,
         "horizontal_altitude": horizontal_altitude,
         "ancillary": {
             "sun_az": sun_az_output,
