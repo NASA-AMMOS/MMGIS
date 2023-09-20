@@ -16,6 +16,7 @@ const UrlShortener_s = us.sequelize;
  * @param text *optional*
  */
 router.post("/shorten", function (req, res, next) {
+  console.log("Received Body from Webhook:", req.body);
   if (process.env.DISABLE_LINK_SHORTENER == "true") {
     res.send({
       status: "failure",

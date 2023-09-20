@@ -290,17 +290,6 @@ body {
 #manage_webhooks:hover {
   color: #08aeea;
 }
-#manage_webhooks {
-  height: 30px;
-  width: calc(100% - 16px);
-  line-height: 30px;
-  margin: 4px 8px;
-  font-size: 12px;
-  color: #ddd;
-}
-#manage_webhooks:hover {
-  color: #5ea1ed;
-}
 
 textarea {
   resize: vertical;

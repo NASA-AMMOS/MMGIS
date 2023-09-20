@@ -240,7 +240,7 @@ router.post("/make", function (req, res, next) {
                 };
                 // Insert new entry into the history table
                 Filehistories.create(newHistoryEntry)
-                  .then((created) => {
+                  .then((createdHistory) => {
                     res.send({
                       status: "success",
                       message: "Successfully made a new file from geojson.",
