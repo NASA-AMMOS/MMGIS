@@ -1256,7 +1256,8 @@ var Files = {
                         $('.drawToolFileEditOnTagClose').off('click')
                         $('.drawToolFileEditOnTagClose').on(
                             'click',
-                            function () {
+                            function (e) {
+                                e.stopPropagation()
                                 if (
                                     $(this).parent().parent().children()
                                         .length === 1
@@ -1310,7 +1311,8 @@ var Files = {
                         }
                     )
 
-                    $('.drawToolFileEditOnTagClose').on('click', function () {
+                    $('.drawToolFileEditOnTagClose').on('click', function (e) {
+                        e.stopPropagation()
                         const removedTag = $(this).parent().attr('tag')
                         const removedType = $(this).parent().attr('type')
                         $(this).parent().remove()
