@@ -1953,8 +1953,9 @@ var Files = {
             (forceToggle != 'on' && DrawTool.filesOn.indexOf(id) != -1)
         ) {
             //OFF
-            // Don't allow turning files off that are being drawn in
-            if (DrawTool.currentFileId == id) return
+            if (DrawTool.currentFileId == id) {
+                $(`.drawToolFileSelector[file_id=${id}]`).click()
+            }
 
             DrawTool.filesOn = DrawTool.filesOn.filter(function (v) {
                 return v !== id
