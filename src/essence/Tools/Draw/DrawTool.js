@@ -1817,6 +1817,7 @@ function interfaceWithMMGIS() {
         $('.drawToolContextMenuHeaderClose').click()
         L_.unsubscribeTimeChange('DrawTool')
         L_.unsubscribeOnTimeUIToggle('DrawTool')
+        $('#DrawTool_TimeToggle').remove()
         DrawTool.open = false
     }
 }

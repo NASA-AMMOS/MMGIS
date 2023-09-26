@@ -845,7 +845,7 @@
     height: 14px;
     background: #fff;
     border-radius: 2px;
-    transition: 0.3s;
+    transition: all 0.3s ease-in-out;
 }
 
 .mmgisToggleSwitch input:checked + label {
@@ -853,12 +853,11 @@
 }
 
 .mmgisToggleSwitch input:checked + label:after {
-    left: calc(100% - 2px);
-    transform: translateX(-100%);
+    left: calc(100% - 16px);
 }
 
 .mmgisToggleSwitch label:active:after {
-    width: 20px;
+    width: 14px;
 }
 
 /*vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv switch slider vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
