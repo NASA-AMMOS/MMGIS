@@ -17,6 +17,10 @@
 #infoToolHeader > div {
     display: flex;
 }
+#infoToolHeader > .right {
+    display: flex;
+    margin-right: 24px;
+}
 
 #infoToolTitle {
     height: 40px;
@@ -43,11 +47,9 @@
 }
 
 #infoToolUnhideAll {
-    position: absolute;
-    right: 90px;
     cursor: pointer;
     transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
-    width: 40px;
+    width: 30px;
     height: 40px;
     line-height: 40px;
     text-align: center;
@@ -58,12 +60,10 @@
 }
 
 #infoToolHide {
-    position: absolute;
-    right: 60px;
     cursor: pointer;
     color: #999;
     transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
-    width: 40px;
+    width: 30px;
     height: 40px;
     line-height: 40px;
     text-align: center;
@@ -72,23 +72,19 @@
     color: var(--color-red2);
 }
 #infoToolDownload {
-    position: absolute;
-    right: 30px;
     cursor: pointer;
     color: #999;
     transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
-    width: 40px;
+    width: 30px;
     height: 40px;
     line-height: 40px;
     text-align: center;
 }
 #infoToolLocate {
-    position: absolute;
-    right: 00px;
     cursor: pointer;
     color: #999;
     transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
-    width: 40px;
+    width: 30px;
     height: 40px;
     line-height: 40px;
     text-align: center;
@@ -129,7 +125,7 @@
 }
 #infoToolFilter input {
     background: var(--color-a1);
-    width: 266px;
+    width: calc(100% - 68px);
     color: #ccc;
     padding-left: 9px;
     border: none;

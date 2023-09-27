@@ -57,6 +57,7 @@
 #drawToolNav {
     padding: 0px 10px;
     height: 41px;
+    margin-right: 15px;
     display: flex;
     justify-content: space-between;
     text-align: center;
@@ -72,7 +73,7 @@
     line-height: 30px;
     vertical-align: middle;
     cursor: pointer;
-    padding: 6px 6px 5px 4px;
+    padding: 5px 6px 6px 4px;
     color: rgba(255, 255, 255, 0.5);
     transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
 }
@@ -385,7 +386,7 @@
 }
 #drawToolDrawFilter {
     border: none;
-    width: 230px;
+    width: 100%;
     padding: 0px 4px;
     height: 30px;
     background: var(--color-a1);
