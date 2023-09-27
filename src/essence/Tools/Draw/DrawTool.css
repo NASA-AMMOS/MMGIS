@@ -658,6 +658,9 @@
 #drawToolDrawFilesListMaster .drawToolIntentColor {
     width: 14px !important;
 }
+.drawToolFileSelector {
+    width: calc(100% - 77px);
+}
 .drawToolIntentColor {
     display: none;
     transition: width 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
@@ -713,10 +716,14 @@
     margin-left: 6px;
     line-height: 32px;
     text-transform: capitalize;
-    max-width: 185px;
+    flex: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+.drawToolDrawFilesGroupElemUn {
+    flex: 1;
+    max-width: calc(100% - 32px);
 }
 .drawToolDrawFilesGroupElemUn > div {
     color: var(--color-a4);
@@ -996,6 +1003,13 @@
     height: 30px;
     line-height: 30px;
 }
+.drawToolShapeLiItem > div:first-child {
+    width: calc(100% - 55px);
+    justify-content: start;
+}
+.drawToolShapeLiItem > div:first-child > div.flexbetween {
+    width: calc(100% - 7px);
+}
 .drawToolShapeLiItemContent {
     width: 100%;
     padding: 3px 0px;
@@ -1021,7 +1035,6 @@
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
-    max-width: 160px;
 }
 .drawToolShapeLiItemC {
     color: white;
@@ -1284,7 +1297,7 @@
 }
 
 .drawToolFileInfo {
-    width: 180px;
+    width: 100%;
     cursor: pointer;
     padding-left: 7px;
     white-space: nowrap;
