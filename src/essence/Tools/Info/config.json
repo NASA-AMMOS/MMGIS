@@ -12,5 +12,6 @@
     "toolbarPriority": 3,
     "paths": {
         "InfoTool": "essence/Tools/Info/InfoTool"
-    }
+    },
+    "expandable": true
 }

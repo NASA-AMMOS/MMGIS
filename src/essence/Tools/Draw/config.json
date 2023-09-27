@@ -84,5 +84,6 @@
     },
     "tests": {
         "DrawToolTest": "essence/Tools/Draw/DrawTool.test"
-    }
+    },
+    "expandable": true
 }
