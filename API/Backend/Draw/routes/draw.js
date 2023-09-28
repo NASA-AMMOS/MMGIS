@@ -1754,7 +1754,7 @@ const makeMasterFilesTEST = (leadGroupName, callback) => {
         public: "1",
         hidden: "0",
       },
-    }).spread(function (userResult, created) {
+    }).then(function ([userResult, created]) {
       makeMasterFileTEST(i + 1, Table);
       return null;
     });
