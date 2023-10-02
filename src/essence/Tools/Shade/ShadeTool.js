@@ -41,8 +41,8 @@ let ShadeTool = {
     shedColors: [{ r: 0, g: 0, b: 0, a: 192 }],
     shedMarkers: {},
     canvases: {},
-    dynamicUpdateResCutoff: 2,
-    dynamicUpdatePanCutoff: 2,
+    dynamicUpdateResCutoff: 0,
+    dynamicUpdatePanCutoff: 0,
     MMGISInterface: null,
     tempSheet: null,
     sunColor: '#d2db58',
@@ -163,7 +163,9 @@ let ShadeTool = {
         $('#shadeTool .vstRegen').addClass('changed')
         $('#vstShades > li').each((i, elm) => {
             const id = $(elm).attr('shadeId')
-            $('.vstOptionTime input').val(time)
+            $('.vstOptionTime input').val(
+                ShadeTool.parseToUTCTime(TimeControl.getEndTime())
+            )
             ShadeTool.updateObserverSpecificTime(id)
             // prettier-ignore
             if (
@@ -939,6 +941,11 @@ let ShadeTool = {
                             },
                             function (e) {
                                 console.log('e', e)
+                                $(
+                                    '#vstShades #vstId_' +
+                                        activeElmId +
+                                        ' .vstRegen'
+                                ).removeClass('regening')
                             }
                         )
                     }
@@ -962,6 +969,9 @@ let ShadeTool = {
                     $('#vstShades #vstId_' + activeElmId + ' .vstLoading')
                         .css({ width: progress + '%' })
                         .addClass('on')
+                    $(
+                        '#vstShades #vstId_' + activeElmId + ' .vstRegen'
+                    ).addClass('regening')
                     $(
                         '#vstShades #vstId_' + activeElmId + ' .vstRegen span'
                     ).css({
@@ -1094,6 +1104,9 @@ let ShadeTool = {
                     }
                     ShadeTool.canvases[activeElmId] = dlc
                     makeDataLayer(dl, activeElmId, dlc)
+                    $(
+                        '#vstShades #vstId_' + activeElmId + ' .vstRegen'
+                    ).removeClass('regening')
 
                     $(
                         '#vstShades #vstId_' + activeElmId + ' .vstRegen'
