@@ -7,3 +7,4 @@ wget -nc -P ../kernels https://naif.jpl.nasa.gov/pub/naif/MSL/kernels/spk/msl_at
 wget -nc -P ../kernels https://naif.jpl.nasa.gov/pub/naif/MSL/kernels/spk/msl_ls_ops120808_iau2000_v1.bsp
 wget -nc -P ../kernels https://naif.jpl.nasa.gov/pub/naif/MSL/kernels/sclk/MSL_76_SCLKSCET.00019.tsc
 wget -nc -P ../kernels https://naif.jpl.nasa.gov/pub/naif/MSL/kernels/sclk/msl_lmst_ops120808_v1.tsc
+wget -nc -P ../kernels https://naif.jpl.nasa.gov/pub/naif/MSL/kernels/fk/msl_v08.tf

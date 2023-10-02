@@ -98,7 +98,7 @@ def ll2aerll(lng, lat, height, target, time, includeSunEarth):
     target_ll = pm.aer2geodetic(az_output, el_output, range_output * 1000, lat, lng, height, None, True)
 
     # Altitude above the tangential plane of the surface observer latlng
-    horizontal_altitude = range_output * math.sin(razel[2])
+    horizontal_altitude = (range_output * 1000) * math.sin(razel[2])
 
 
     return json.dumps({
