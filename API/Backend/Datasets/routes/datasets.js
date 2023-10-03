@@ -54,7 +54,7 @@ function get(req, res, next) {
                 },
               }
             )
-            .spread((r) => {
+            .then(([r]) => {
               results.push({
                 ...queries[i],
                 table: result.dataValues.table,
@@ -130,7 +130,7 @@ router.post("/search", function (req, res, next) {
               },
             }
           )
-          .spread((results) => {
+          .then(([results]) => {
             let r = [];
             for (let i = 0; i < results.length; i++) {
               let feature = JSON.parse(results[i].st_asgeojson);

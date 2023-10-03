@@ -242,7 +242,7 @@ const clipOver = function (
             added_id: added_id,
           },
         })
-        .spread((results) => {
+        .then(([results]) => {
           let oldIds = [];
           let newIds = [added_id];
 
@@ -383,7 +383,7 @@ const clipUnder = function (
             geom: JSON.stringify(newFeature.geom),
           },
         })
-        .spread((results) => {
+        .then(([results]) => {
           let oldIds = [];
           let newIds = [];
 
@@ -1351,7 +1351,7 @@ router.post("/merge", function (req, res, next) {
               file_id: req.body.file_id,
             },
           })
-          .spread((results) => {
+          .then(([results]) => {
             let oldIds = req.body.ids.map(function (id) {
               return parseInt(id, 10);
             });
@@ -1511,7 +1511,7 @@ router.post("/split", function (req, res, next) {
               geom: JSON.stringify(geom),
             },
           })
-          .spread((results) => {
+          .then(([results]) => {
             //reformat results
             let r = [];
             for (var i = 0; i < results.length; i++) {
@@ -1754,7 +1754,7 @@ const makeMasterFilesTEST = (leadGroupName, callback) => {
         public: "1",
         hidden: "0",
       },
-    }).spread(function (userResult, created) {
+    }).then(function ([userResult, created]) {
       makeMasterFileTEST(i + 1, Table);
       return null;
     });

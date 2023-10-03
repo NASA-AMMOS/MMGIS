@@ -348,8 +348,8 @@ function makeChemistryChart(chems, chemLayerVar, divId) {
                                 chemChartH
                                     .append('text')
                                     .attr('class', 'chem_hover_focus')
-                                    .attr('x', d3.mouse(this)[0] + 16)
-                                    .attr('y', d3.mouse(this)[1] + y(i0) + 25)
+                                    .attr('x', d3.pointer(d2)[0] + 16)
+                                    .attr('y', d3.pointer(d2)[1] + y(i0) + 25)
                                     .attr('font-size', 26)
                                     .attr('fill', 'black')
                                     .style('fill', 'black')
@@ -363,8 +363,8 @@ function makeChemistryChart(chems, chemLayerVar, divId) {
                                 chemChartH
                                     .append('text')
                                     .attr('class', 'chem_hover_focus')
-                                    .attr('x', d3.mouse(this)[0] + 14)
-                                    .attr('y', d3.mouse(this)[1] + y(i0) + 25)
+                                    .attr('x', d3.pointer(d2)[0] + 14)
+                                    .attr('y', d3.pointer(d2)[1] + y(i0) + 25)
                                     .attr('font-size', 26)
                                     .attr('fill', 'black')
                                     .style('fill', 'black')
@@ -378,8 +378,8 @@ function makeChemistryChart(chems, chemLayerVar, divId) {
                                 chemChartH
                                     .append('text')
                                     .attr('class', 'chem_hover_focus')
-                                    .attr('x', d3.mouse(this)[0] + 15)
-                                    .attr('y', d3.mouse(this)[1] + y(i0) + 26)
+                                    .attr('x', d3.pointer(d2)[0] + 15)
+                                    .attr('y', d3.pointer(d2)[1] + y(i0) + 26)
                                     .attr('font-size', 26)
                                     .attr('fill', 'black')
                                     .style('fill', 'black')
@@ -393,8 +393,8 @@ function makeChemistryChart(chems, chemLayerVar, divId) {
                                 chemChartH
                                     .append('text')
                                     .attr('class', 'chem_hover_focus')
-                                    .attr('x', d3.mouse(this)[0] + 15)
-                                    .attr('y', d3.mouse(this)[1] + y(i0) + 24)
+                                    .attr('x', d3.pointer(d2)[0] + 15)
+                                    .attr('y', d3.pointer(d2)[1] + y(i0) + 24)
                                     .attr('font-size', 26)
                                     .attr('fill', 'black')
                                     .style('fill', 'black')
@@ -408,8 +408,8 @@ function makeChemistryChart(chems, chemLayerVar, divId) {
                                 chemChartH
                                     .append('text')
                                     .attr('class', 'chem_hover_focus')
-                                    .attr('x', d3.mouse(this)[0] + 15)
-                                    .attr('y', d3.mouse(this)[1] + y(i0) + 25)
+                                    .attr('x', d3.pointer(d2)[0] + 15)
+                                    .attr('y', d3.pointer(d2)[1] + y(i0) + 25)
                                     .attr('font-size', 26)
                                     .style('font-weight', 'bold')
                                     .html(
