@@ -573,7 +573,7 @@ var Editing = {
                 "<span>x" + DrawTool.contextMenuLayers.length + "</span>", 
             "</div>",
             "</div>",
-            "<div class='drawToolContextMenuHeaderClose'>",
+            `<div class='drawToolContextMenuHeaderClose' file_id='${fileid}'>`,
             "<i class='mdi mdi-close mdi-24px'></i>",
             "</div>",
         "</div>",

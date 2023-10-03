@@ -1,5 +1,6 @@
 import $ from 'jquery'
 import * as d3 from 'd3'
+import hotkeys from 'hotkeys-js'
 
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
@@ -222,6 +223,28 @@ let BottomBar = {
             theme: 'blue',
         })
 
+        // Hotkeys
+        bottomBar
+            .append('i')
+            .attr('id', 'bottomBarHotkeys')
+            .attr('tabindex', 104)
+            .attr('class', 'mmgisHoverBlue mdi mdi-keyboard mdi-18px')
+            .style('padding', '5px 10px')
+            .style('width', '40px')
+            .style('height', '36px')
+            .style('line-height', '26px')
+            .style('cursor', 'pointer')
+            .on('click', function () {
+                const that = $('#bottomBarHotkeys')
+                const wasOn = that.hasClass('active')
+                BottomBar.toggleHotkeys(!wasOn)
+            })
+        tippy(`#bottomBarHotkeys`, {
+            content: `Hotkeys`,
+            placement: 'right',
+            theme: 'blue',
+        })
+
         // Settings
         bottomBar
             .append('i')
@@ -251,7 +274,10 @@ let BottomBar = {
             .attr('id', 'topBarInfo')
             .attr('title', 'Info')
             .attr('tabindex', 105)
-            .attr('class', 'mmgisHoverBlue mdi mdi-information-outline mdi-18px')
+            .attr(
+                'class',
+                'mmgisHoverBlue mdi mdi-information-outline mdi-18px'
+            )
             .style('padding', '5px 10px')
             .style('width', '40px')
             .style('height', '36px')
@@ -297,6 +323,148 @@ let BottomBar = {
             content: `Help`,
             placement: 'right',
             theme: 'blue',
+        })
+    },
+    toggleHotkeys: function (on) {
+        if (on) {
+            // Layer toggles
+            let layerToggles = []
+            Object.keys(L_.layers.data).forEach((layerId, i) => {
+                const l = L_.layers.data[layerId]
+                if (
+                    l.variables?.shortcutSuffix != null &&
+                    l.variables.shortcutSuffix.length == 1 &&
+                    l.variables.shortcutSuffix.toLowerCase() !=
+                        l.variables.shortcutSuffix.toUpperCase()
+                )
+                    layerToggles.push(
+                        [
+                            `<li>`,
+                            `<div>${l.display_name}</div>`,
+                            `<div>ALT + ${l.variables.shortcutSuffix.toUpperCase()}</div>`,
+                            `</li>`,
+                        ].join('\n')
+                    )
+            })
+
+            // prettier-ignore
+            const modalContent = [
+                `<div id='mainHotkeysModal'>`,
+                    `<div id='mainHotkeysModalTitle'>`,
+                        `<div><i class='mdi mdi-keyboard mdi-18px'></i><div>Hotkeys</div></div>`,
+                        `<div id='mainHotkeysModalClose'><i class='mmgisHoverBlue mdi mdi-close mdi-18px'></i></div>`,
+                    `</div>`,
+                    `<div id='mainHotkeysModalContent'>`,
+                        layerToggles.length > 0 ? [
+                            `<div class='mainHotkeysModalSection'>`,
+                                `<div class='mainHotkeysModalSectionTitle'>Layers</div>`,
+                                `<ul class='mainHotkeysModalSectionOptions'>`,
+                                    `<li class='mainHotkeysModalSectionSubtitle'>Toggle</li>`,
+                                    layerToggles.join('\n'),
+                                `</ul>`,
+                            `</div>`
+                        ].join('\n') : '',
+                        `<div class='mainHotkeysModalSection'>`,
+                            `<div class='mainHotkeysModalSectionTitle'>Draw</div>`,
+                            `<ul class='mainHotkeysModalSectionOptions'>`,
+                                `<li class='mainHotkeysModalSectionSubtitle'>Toggle</li>`,
+                                `<li>`,
+                                    `<div>Last File</div>`,
+                                    `<div>ALT + 1</div>`,
+                                `</li>`,
+                                `<li class='mainHotkeysModalSectionSubtitle'>Shapes Tab</li>`,
+                                `<li>`,
+                                    `<div>Next Feature</div>`,
+                                    `<div>Arrow-Right</div>`,
+                                `</li>`,
+                                `<li>`,
+                                    `<div>Previous Feature</div>`,
+                                    `<div>Arrow-Left</div>`,
+                                `</li>`,
+                                `<li>`,
+                                    `<div>Add to Group</div>`,
+                                    `<div>CTRL + Click</div>`,
+                                `</li>`,
+                                `<li>`,
+                                    `<div>Group Range Select</div>`,
+                                    `<div>SHIFT + Click</div>`,
+                                `</li>`,
+                            `</ul>`,
+                        `</div>`,
+                        `<div class='mainHotkeysModalSection'>`,
+                            `<div class='mainHotkeysModalSectionTitle'>Map</div>`,
+                            `<ul class='mainHotkeysModalSectionOptions'>`,
+                                `<li>`,
+                                    `<div>Zoom out</div>`,
+                                    `<div>-</div>`,
+                                `</li>`,
+                                `<li>`,
+                                    `<div>Zoom In</div>`,
+                                    `<div>+</div>`,
+                                `</li>`,
+                                `<li>`,
+                                    `<div>Zoom to Area</div>`,
+                                    `<div>SHIFT + Click-and-Drag</div>`,
+                                `</li>`,
+                            `</ul>`,
+                        `</div>`,
+                        `<div class='mainHotkeysModalSection'>`,
+                            `<div class='mainHotkeysModalSectionTitle'>3D Globe</div>`,
+                            `<ul class='mainHotkeysModalSectionOptions'>`,
+                                `<li>`,
+                                    `<div>Pan Up</div>`,
+                                    `<div>Arrow-Up</div>`,
+                                `</li>`,
+                                `<li>`,
+                                    `<div>Pan Right</div>`,
+                                    `<div>Arrow-Right</div>`,
+                                `</li>`,
+                                `<li>`,
+                                    `<div>Pan Down</div>`,
+                                    `<div>Arrow-Down</div>`,
+                                `</li>`,
+                                `<li>`,
+                                    `<div>Pan Left</div>`,
+                                    `<div>Arrow-Left</div>`,
+                                `</li>`,
+                            `</ul>`,
+                        `</div>`,
+                    `</div>`,
+                `</div>`
+            ].join('\n')
+
+            Modal.set(
+                modalContent,
+                function () {
+                    $('#mainHotkeysModalClose').on('click', function () {
+                        Modal.remove()
+                    })
+                },
+                function () {}
+            )
+        } else {
+        }
+    },
+    attachHotkeys: function () {
+        Object.keys(L_.layers.data).forEach((layerId, i) => {
+            const l = L_.layers.data[layerId]
+            if (
+                l.variables?.shortcutSuffix != null &&
+                l.variables.shortcutSuffix.length == 1 &&
+                l.variables.shortcutSuffix.toLowerCase() !=
+                    l.variables.shortcutSuffix.toUpperCase()
+            ) {
+                hotkeys(
+                    `alt+${l.variables.shortcutSuffix
+                        .toLowerCase()
+                        .split('+')}`,
+                    { keyUp: true, keyDown: false },
+                    (e, handler) => {
+                        if (e.repeat) return
+                        window.mmgisAPI.toggleLayer(l.name)
+                    }
+                )
+            }
         })
     },
     toggleSettings: function (on) {
@@ -524,6 +692,9 @@ let BottomBar = {
                 document.msExitFullscreen()
             }
         }
+    },
+    fina: function () {
+        BottomBar.attachHotkeys()
     },
 }
 

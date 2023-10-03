@@ -1060,6 +1060,7 @@ var UserInterface = {
         if (l_.configData.look && l_.configData.look.miscellaneous === false)
             BottomBar.changeUIVisibility('miscellaneous', false)
 
+        BottomBar.fina()
         UserInterface.show()
     },
     updateLayerUpdateButton: function (type) {

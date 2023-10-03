@@ -26,6 +26,7 @@ import calls from '../../../pre/calls'
 import './DrawTool.css'
 
 import tippy from 'tippy.js'
+import hotkeys from 'hotkeys-js'
 
 // Plugins
 import DrawTool_Geologic from './Plugins/Geologic/DrawTool_Geologic'
@@ -1810,9 +1811,36 @@ function interfaceWithMMGIS() {
         )
     })
 
+    // Toggle on and off last file
+    hotkeys(`alt+1`, { keyUp: true, keyDown: false }, (e, handler) => {
+        if (e.repeat) return
+        if (DrawTool.lastToggledFileId != null) {
+            if (DrawTool.filesOn.indexOf(DrawTool.lastToggledFileId) != -1)
+                $(
+                    '.drawToolFileCheckbox[file_id="' +
+                        DrawTool.lastToggledFileId +
+                        '" ]'
+                ).removeClass('on')
+            else
+                $(
+                    '.drawToolFileCheckbox[file_id="' +
+                        DrawTool.lastToggledFileId +
+                        '" ]'
+                ).addClass('on')
+            DrawTool.toggleFile(
+                DrawTool.lastToggledFileId,
+                null,
+                true,
+                null,
+                true
+            )
+        }
+    })
+
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
     function separateFromMMGIS() {
+        hotkeys.unbind(`alt+1`)
         DrawTool.endDrawing()
         $('.drawToolContextMenuHeaderClose').click()
         L_.unsubscribeTimeChange('DrawTool')

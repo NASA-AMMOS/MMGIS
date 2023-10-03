@@ -127,6 +127,7 @@ Example:
 ```javascript
 {
     "useKeyAsName": "propKey || [propKey1, propKey2, ...]",
+    "shortcutSuffix": "single letter to 'ATL + {letter}' toggle the layer on and off",
     "hideMainFeature": false,
     "datasetLinks": [
         {
@@ -252,6 +253,7 @@ Example:
 ```
 
 - `useKeyAsName`: The property key whose value should be the hover text of each feature. If left unset, the hover key and value will be the first one listed in the feature's properties. This may also be an array of keys.
+- `shortcutSuffix`: A single letter to 'ALT + {letter}' toggle the layer on and off. Please verify that your chosen shortcut does not conflict with other system or browser-level keyboard shortcuts.
 - `hideMainFeature`: If true, hides all typically rendered features. This is useful if showing only `*Attachments` sublayers is desired. Default false
 - `datasetLinks`: Datasets are csvs uploaded from the "Manage Datasets" page accessible on the lower left. Every time a feature from this layer is clicked with datasetLinks configured, it will request the data from the server and include it with it's regular geojson properties. This is especially useful when single features need a lot of metadata to perform a task as it loads it only as needed.
   - `prop`: This is a property key already within the features properties. It's value will be searched for in the specified dataset column.
