@@ -480,6 +480,8 @@ var Shapes = {
                         }
                     })(layer, index, file.id)
                 )
+                $('body').off('keydown', Shapes.prevNext)
+                $('body').on('keydown', Shapes.prevNext)
             }
         }
 
@@ -725,6 +727,25 @@ var Shapes = {
         })
 
         //$( '#drawToolShapesCopySelect' ).dropdown( 'set selected', DrawTool.copyFilename || defaultOpt );
+    },
+    prevNext: function (e) {
+        let activeI = null
+        let shapes = []
+        $('.drawToolShapeLi').each(function (i) {
+            if ($(this).hasClass('active')) activeI = i
+            shapes.push($(this))
+        })
+        if (activeI != null) {
+            if (e.which === 37) {
+                // Up arrow
+                if (shapes[activeI - 1])
+                    shapes[activeI - 1].find('.drawToolShapeLiItem').click()
+            } else if (e.which === 39) {
+                // Down Arrow
+                if (shapes[activeI + 1])
+                    shapes[activeI + 1].find('.drawToolShapeLiItem').click()
+            }
+        }
     },
 }
 
