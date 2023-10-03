@@ -1939,7 +1939,8 @@ var Files = {
         fileId,
         forceToggle,
         populateShapesAfter,
-        asPublished
+        asPublished,
+        forcePopulateShapes
     ) {
         var argumented = typeof fileId === 'number' || fileId === 'master'
 
@@ -1981,6 +1982,11 @@ var Files = {
             }
 
             DrawTool.refreshMasterCheckbox()
+
+            if (forcePopulateShapes) {
+                $(`.drawToolContextMenuHeaderClose[file_id=${id}]`).click()
+                DrawTool.populateShapes()
+            }
         } else {
             //ON
             DrawTool.filesOn.push(id)
@@ -2004,6 +2010,7 @@ var Files = {
                 asPublished
             )
         }
+        DrawTool.lastToggledFileId = id
     },
     toggleLabels: function (file_id) {
         var l = L_.layers.layer['DrawTool_' + file_id]

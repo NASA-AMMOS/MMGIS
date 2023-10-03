@@ -2773,6 +2773,7 @@ function layerPopulateVariable(modalId, layerType) {
         value: "Example",
       },
     ];
+    currentLayerVars.shortcutSuffix = null;
 
     if (layerType == "data") {
       currentLayerVars = currentLayerVars.shader
