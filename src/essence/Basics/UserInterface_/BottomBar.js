@@ -331,7 +331,12 @@ let BottomBar = {
             let layerToggles = []
             Object.keys(L_.layers.data).forEach((layerId, i) => {
                 const l = L_.layers.data[layerId]
-                if (l.variables?.shortcutSuffix != null)
+                if (
+                    l.variables?.shortcutSuffix != null &&
+                    l.variables.shortcutSuffix.length == 1 &&
+                    l.variables.shortcutSuffix.toLowerCase() !=
+                        l.variables.shortcutSuffix.toUpperCase()
+                )
                     layerToggles.push(
                         [
                             `<li>`,
@@ -443,7 +448,12 @@ let BottomBar = {
     attachHotkeys: function () {
         Object.keys(L_.layers.data).forEach((layerId, i) => {
             const l = L_.layers.data[layerId]
-            if (l.variables?.shortcutSuffix != null) {
+            if (
+                l.variables?.shortcutSuffix != null &&
+                l.variables.shortcutSuffix.length == 1 &&
+                l.variables.shortcutSuffix.toLowerCase() !=
+                    l.variables.shortcutSuffix.toUpperCase()
+            ) {
                 hotkeys(
                     `alt+${l.variables.shortcutSuffix
                         .toLowerCase()

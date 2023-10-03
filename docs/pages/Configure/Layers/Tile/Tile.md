@@ -93,3 +93,17 @@ The string format to be used in the URL for `{time}`. Defaults to `%Y-%m-%dT%H:%
 _type:_ boolean
 
 When using MMGIS-served time tiles (time enabled, `{t}` in the url, tiles served under /Missions in the format described in Time_Tiles), whether to composite/merge each tile with with the other tiles are the same location across the time query. This is useful when Time Tile data is sparse. It is a more expensive operation. If your Time Tiles are complete (no alpha in a tile), leave this False as merging tiles historically would have no effect.
+
+#### Raw Variables
+
+Clicking "Set Default Variables" will add a template of all possible raw variables (without overwriting ones that are already set). All raw variables are optional.
+
+Example:
+
+```javascript
+{
+    "shortcutSuffix": "single letter to 'ATL + {letter}' toggle the layer on and off"
+}
+```
+
+- `shortcutSuffix`: A single letter to 'ALT + {letter}' toggle the layer on and off. Please verify that your chosen shortcut does not conflict with other system or browser-level keyboard shortcuts.
