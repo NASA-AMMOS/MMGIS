@@ -25,6 +25,15 @@ const postcssNormalize = require("postcss-normalize");
 
 const appPackageJson = require(paths.appPackageJson);
 
+const babelRuntimeEntry = require.resolve("babel-preset-react-app");
+const babelRuntimeEntryHelpers = require.resolve(
+  "@babel/runtime/helpers/esm/assertThisInitialized",
+  { paths: [babelRuntimeEntry] }
+);
+const babelRuntimeRegenerator = require.resolve("@babel/runtime/regenerator", {
+  paths: [babelRuntimeEntry],
+});
+
 // This is a hack so that node v18+ can run.
 // "md4" hashes are no longer supported so before everything runs, we override them to be "sha256"
 const crypto = require("crypto");
@@ -285,7 +294,12 @@ module.exports = function (webpackEnv) {
         // To fix this, we prevent you from importing files out of src/ -- if you'd like to,
         // please link the files into your node_modules/ and let module-resolution kick in.
         // Make sure your source files are compiled, as they will not be processed in any way.
-        new ModuleScopePlugin(paths.appSrc, [paths.appPackageJson]),
+        new ModuleScopePlugin(paths.appSrc, [
+          paths.appPackageJson,
+          babelRuntimeEntry,
+          babelRuntimeEntryHelpers,
+          babelRuntimeRegenerator,
+        ]),
       ],
       fallback: {
         fs: false,
