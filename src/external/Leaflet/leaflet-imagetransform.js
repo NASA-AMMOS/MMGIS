@@ -5,6 +5,7 @@
         factory(window.L)
     }
 })(function (L) {
+    const LImageTransformCache = {}
     L.ImageTransform = L.ImageOverlay.extend({
         initialize: function (url, anchors, options) {
             // (String, LatLngBounds, Object)
@@ -70,44 +71,62 @@
 
         _imgLoaded: false,
         _initImage: function () {
-            this._image = L.DomUtil.create('div', 'leaflet-image-layer')
-
-            if (this._map.options.zoomAnimation && L.Browser.any3d) {
-                L.DomUtil.addClass(this._image, 'leaflet-zoom-animated')
+            const cache = LImageTransformCache[this.options.id]
+            if (cache) {
+                this._image = cache._image
+                this._imgNode = cache._imgNode
+                this._canvas = cache._canvas
+                this._onImageLoad()
             } else {
-                L.DomUtil.addClass(this._image, 'leaflet-zoom-hide')
+                this._image = L.DomUtil.create('div', 'leaflet-image-layer')
+
+                if (this._map.options.zoomAnimation && L.Browser.any3d) {
+                    L.DomUtil.addClass(this._image, 'leaflet-zoom-animated')
+                } else {
+                    L.DomUtil.addClass(this._image, 'leaflet-zoom-hide')
+                }
+
+                this._imgNode = L.DomUtil.create('img')
+                if (this.options.clip) {
+                    this._canvas = L.DomUtil.create(
+                        'canvas',
+                        'leaflet-canvas-transform'
+                    )
+                    this._image.appendChild(this._canvas)
+                    this._canvas.style[L.DomUtil.TRANSFORM_ORIGIN] = '0 0'
+                    this._clipDone = false
+                } else {
+                    this._image.appendChild(this._imgNode)
+                    this._imgNode.style[L.DomUtil.TRANSFORM_ORIGIN] = '0 0'
+
+                    // Hide imgNode until image has loaded
+                    this._imgNode.style.display = 'none'
+                }
+
+                if (this.options.id != null) {
+                    LImageTransformCache[this.options.id] = {
+                        _image: this._image,
+                        _imgNode: this._imgNode,
+                        _canvas: this._canvas,
+                    }
+                }
+
+                this._updateOpacity()
+
+                //TODO createImage util method to remove duplication
+                this._imgLoaded = false
+                L.extend(this._imgNode, {
+                    galleryimg: 'no',
+                    onselectstart: L.Util.falseFn,
+                    onmousemove: L.Util.falseFn,
+                    onload: L.bind(this._onImageLoad, this),
+                    onerror: L.bind(this._onImageError, this),
+                    src: this._url,
+                })
             }
-
-            this._imgNode = L.DomUtil.create('img')
-            if (this.options.clip) {
-                this._canvas = L.DomUtil.create(
-                    'canvas',
-                    'leaflet-canvas-transform'
-                )
-                this._image.appendChild(this._canvas)
-                this._canvas.style[L.DomUtil.TRANSFORM_ORIGIN] = '0 0'
-                this._clipDone = false
-            } else {
-                this._image.appendChild(this._imgNode)
-                this._imgNode.style[L.DomUtil.TRANSFORM_ORIGIN] = '0 0'
-
-                // Hide imgNode until image has loaded
-                this._imgNode.style.display = 'none'
-            }
-
-            this._updateOpacity()
-
-            //TODO createImage util method to remove duplication
-            this._imgLoaded = false
-            L.extend(this._imgNode, {
-                galleryimg: 'no',
-                onselectstart: L.Util.falseFn,
-                onmousemove: L.Util.falseFn,
-                onload: L.bind(this._onImageLoad, this),
-                onerror: L.bind(this._onImageError, this),
-                src: this._url,
-            })
         },
+
+        createImage: function () {},
 
         _onImageError: function () {
             this.fire('error')
