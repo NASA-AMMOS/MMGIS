@@ -456,7 +456,7 @@ router.get("/missions", function (req, res, next) {
       .query(
         "SELECT DISTINCT ON (mission) mission, version, config FROM configs ORDER BY mission ASC"
       )
-      .spread((results) => {
+      .then(([results]) => {
         res.send({ status: "success", missions: results });
         return null;
       })

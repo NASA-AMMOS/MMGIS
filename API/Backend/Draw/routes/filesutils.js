@@ -42,7 +42,7 @@ function getfile(req, res, next) {
           },
         }
       )
-      .spread((results) => {
+      .then(([results]) => {
         let geojson = { type: "FeatureCollection", features: [] };
         for (let i = 0; i < results.length; i++) {
           let properties = results[i].properties;
@@ -146,7 +146,7 @@ function getfile(req, res, next) {
                 },
               }
             )
-            .spread((results) => {
+            .then(([results]) => {
               let bestHistory = [];
               for (let i = 0; i < results.length; i++) {
                 bestHistory = bestHistory.concat(results[i].history);
@@ -176,7 +176,7 @@ function getfile(req, res, next) {
                     },
                   }
                 )
-                .spread((results) => {
+                .then(([results]) => {
                   let geojson = { type: "FeatureCollection", features: [] };
                   for (let i = 0; i < results.length; i++) {
                     let properties = JSON.parse(results[i].properties);
