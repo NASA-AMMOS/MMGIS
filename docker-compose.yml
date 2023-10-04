@@ -1,22 +1,30 @@
 version: "3"
 services:
   mmgis:
-    build: .
+    build: 
+      context: .
+      target: prod
+    entrypoint: [ "npm", "run", "start" ]
     depends_on:
       - db
     env_file: .env
     ports:
       - 8888:8888
+      - 8889:8889
     restart: on-failure
     volumes:
       - ./Missions:/usr/src/app/Missions
+      - ./scripts:/usr/src/app/scripts
+      - ./src:/usr/src/app/src
+
   db:
     image: postgis/postgis:10-2.5-alpine
     env_file: .env
     ports:
-      - 5432:5432
+      - 5433:5432
     restart: on-failure
     volumes:
       - mmgis-db:/var/lib/postgresql/data
+      - ./Database:/usr/src/app/Database
 volumes:
   mmgis-db:
