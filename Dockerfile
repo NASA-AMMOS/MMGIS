@@ -19,6 +19,14 @@ COPY package*.json ./
 RUN npm install
 
 
+# 
+FROM base as dev
+
+COPY . .
+
+EXPOSE 8888
+
+#
 FROM base as prod
 
 # Bundle app source

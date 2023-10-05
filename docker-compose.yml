@@ -3,7 +3,7 @@ services:
   mmgis:
     build: 
       context: .
-      target: prod
+      target: dev
     entrypoint: [ "npm", "run", "start" ]
     depends_on:
       - db
@@ -26,5 +26,6 @@ services:
     volumes:
       - mmgis-db:/var/lib/postgresql/data
       - ./Database:/usr/src/app/Database
+      - ./Database/PgSQL_queries/mmgisDB_queries.sql:/docker-entrypoint-initdb.d/mmgisDB_queries.sql
 volumes:
   mmgis-db:
