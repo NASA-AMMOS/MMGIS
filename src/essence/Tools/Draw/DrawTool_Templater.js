@@ -8,6 +8,7 @@ import * as moment from 'moment'
 import { TempusDominus, Namespace } from '@eonasdan/tempus-dominus'
 import '@eonasdan/tempus-dominus/dist/css/tempus-dominus.css'
 import tippy from 'tippy.js'
+import Sortable from 'sortablejs'
 
 import './DrawTool_Templater.css'
 
@@ -665,7 +666,7 @@ const DrawTool_Templater = {
                 `<li class='drawToolTemplaterLi' id='drawToolTemplaterLi_${idx}'>`,
                     "<div class='drawToolTemplaterLiHead'>",
                         "<div class='drawToolTemplaterLiField'>",
-                            `<div class='drawToolTemplaterLiIdx'>${idx + 1}</div>`,
+                            `<div class='drawToolTemplaterLiIdx'><i class="mdi mdi-drag-vertical mdi-18px"></i></div>`,
                             `<input id='drawToolTemplaterLiFieldInput_${idx}' placeholder='Field Name' type='text' value='${options.field || ''}'></input>`,
                         "</div>",
                         "<div class='drawToolTemplaterLiType'>",
@@ -933,6 +934,18 @@ const DrawTool_Templater = {
                 add(t)
             })
         }
+
+        const listToSort = document.getElementById(
+            'drawToolTemplaterDesignContent'
+        )
+        Sortable.create(listToSort, {
+            animation: 150,
+            easing: 'cubic-bezier(0.39, 0.575, 0.565, 1)',
+            handle: '.drawToolTemplaterLiIdx',
+            onStart: () => {},
+            onChange: () => {},
+            onEnd: () => {},
+        })
     },
     getDesignedTemplate: function (containerId, reservedTemplates) {
         // For if no template is being designed

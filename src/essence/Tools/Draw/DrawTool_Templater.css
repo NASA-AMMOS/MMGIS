@@ -226,7 +226,14 @@
     min-width: 30px;
     text-align: center;
     font-size: 14px;
-    background: var(--color-a2);
+    background: var(--color-a1-5);
+    border-right: 1px solid var(--color-a);
+    color: var(--color-a3);
+    cursor: row-resize;
+    transition: color 0.2s ease-in-out;
+}
+.drawToolTemplaterLiIdx:hover {
+    color: var(--color-a6);
 }
 .drawToolTemplaterLiField {
     display: flex;
