@@ -30,7 +30,7 @@
 -- ALTER TABLE Targets ENABLE TRIGGER ALL;
 -- DELETE FROM Targets;
 COPY targets(geom,TARGET_PLAN,SOL,RMC,EASTING_M,NORTHING_M,ELEV_M,LON_DD,LAT_DD,X,Y,Z,U,V,W,I,J,IMAGE_ID,NOTES)
-FROM '/tmp/new_data_for_targets.csv' DELIMITER ',' CSV HEADER;
+FROM '/usr/src/app/Database/datasets/Final_data_for_database_07_18_2018/new_data_for_targets.csv' DELIMITER ',' CSV HEADER;
 
 -- SELECT * FROM targets as tar, Observations AS obs 
 -- WHERE tar.target_plan = obs.target_plan 
@@ -73,13 +73,13 @@ FROM '/tmp/new_data_for_targets.csv' DELIMITER ',' CSV HEADER;
 -- SELECT * FROM science_products;
 -- SELECT * FROM Science_Products WHERE target_plan = 'Mesabi'; -- Badger_Mine, Voyageurs_2
 COPY Science_Products(SCLK, Inst_Type, Sequence, Target_Plan, Sol, File_Name, Geom, Notes) 
-FROM '/tmp/new_data_for_science_products.csv' DELIMITER ',' CSV HEADER;
+FROM '/usr/src/app/Database/datasets/Final_data_for_database_07_18_2018/new_data_for_science_products.csv' DELIMITER ',' CSV HEADER;
 
 
 -- ALTER TABLE inst_ccam DISABLE TRIGGER ALL;
 -- DELETE FROM inst_ccam;
 COPY Inst_CCAM(SCLK, Inst_Type, Type_of_Product, EDR_Type, Autofocus, Distance_m, RSM_Az_rad, RSM_El_rad, Nbr_of_Shots, Shots_Ignored, Shots_Averaged, LIBS_Exposure_ms, RMI_Exposure_Seed_ms, RMI_Exposure_Real_ms, Laser_Energy, Temperature, LMST, Laplacian_score, Mean_Total_Vnir, Flight_Version, RMC_Site, RMC_Drive, RMC_POSE, Type_of_Observation, Notes) 
-FROM '/tmp/new_data_for_inst_ccam.csv' DELIMITER ',' CSV HEADER; 
+FROM '/usr/src/app/Database/datasets/Final_data_for_database_07_18_2018/new_data_for_inst_ccam.csv' DELIMITER ',' CSV HEADER; 
 
 -- ALTER TABLE inst_ccam ENABLE TRIGGER ALL;
 

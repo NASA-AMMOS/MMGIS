@@ -1,4 +1,4 @@
-FROM node:16
+FROM node:16.13.2@sha256:7c49a64aba86dd483aa874bc0230c07f282e20741a7c66e426970ecafc149a38 as base
 
 ARG PUBLIC_URL_ARG=
 ENV PUBLIC_URL=$PUBLIC_URL_ARG
@@ -18,6 +18,17 @@ COPY package*.json ./
 
 RUN npm install
 
+
+# 
+FROM base as dev
+
+COPY . .
+
+EXPOSE 8888
+
+#
+FROM base as prod
+
 # Bundle app source
 COPY . .
 
@@ -25,4 +36,3 @@ COPY . .
 RUN npm run build
 
 EXPOSE 8888
-CMD [ "npm", "run", "start:prod" ]

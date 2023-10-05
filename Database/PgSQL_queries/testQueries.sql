@@ -11,7 +11,7 @@ ALTER TABLE TARGETS_test
 
 -- Copy values from a csv file into the TARGETS_test table	
 COPY TARGETS_test(geom, TARGET_PLAN) 
-FROM '/Users/bsamani/Documents/Targets_export_test.csv' DELIMITER ',' CSV HEADER;
+FROM '/usr/src/app/Database/datasets/export/Targets_export_test.csv' DELIMITER ',' CSV HEADER;
 
 -- Getting geometry from TARGETS_test table as GeoJSON objects 
 SELECT ST_AsGeoJSON(TT.geom)::json As geometry, target_plan FROM TARGETS_test AS TT WHERE target_plan='test';
@@ -63,11 +63,11 @@ ORDER BY O.target_plan ASC;
 -- Export values from result of a query into a CSV file
 COPY (SELECT Tar.target_plan, I.sclk, I.inst_type
 FROM Instruments AS I, Targets AS Tar WHERE Tar.target_plan = I.target_plan ORDER BY target_plan ASC) 
-TO '/Users/bsamani/Desktop/Inserting_Data_into_Database_python_CSV/Targets_Instruments.csv' DELIMITER ',' CSV HEADER;
+TO '/usr/src/app/Database/datasets/export/Targets_Instruments.csv' DELIMITER ',' CSV HEADER;
 
 -- Copy values from a csv file into the Targets_Instruments table
 COPY Targets_Instruments(target_plan, SCLK, INST_TYPE)
-FROM '/Users/bsamani/Desktop/Inserting_Data_into_Database_python_CSV/Final_Database_MarsDB/Targets_Instruments.csv' DELIMITER ',' CSV HEADER;
+FROM '/usr/src/app/Database/datasets/export/Final_Database_MarsDB/Targets_Instruments.csv' DELIMITER ',' CSV HEADER;
 
 -- Select query
 SELECT O.target_plan, O.id AS OID, I.inst_type, I.sclk
@@ -82,19 +82,19 @@ WHERE (SELECT COUNT(O2.Target_plan) FROM Observations AS O2  WHERE O1.TARGET_PLA
 
 -- Export into a CSV file
 COPY (SELECT chc.* FROM public."CHEMCAM_Chemistry" AS chc, targets AS tar WHERE tar.target_plan = chc."TARGET_PLAN") 
-TO '/Users/bsamani/Desktop/Inserting_Data_into_Database_python_CSV/Final_Database_MarsDB/chemcam_chemistry_export.csv' DELIMITER ',' CSV HEADER;
+TO '/usr/src/app/Database/datasets/export/Final_Database_MarsDB/chemcam_chemistry_export.csv' DELIMITER ',' CSV HEADER;
 
 -- Import from a CSV file
 COPY CHEMCAM_Chemistry(file_name, Target_Plan, shotnumber, sio2, tio2, al2o3, feot, mgo, cao, na2o, k2o, total) 
-FROM '/Users/bsamani/Desktop/Inserting_Data_into_Database_python_CSV/Final_Database_MarsDB/CHEMCAM_Chemistry_export.csv' DELIMITER ',' CSV HEADER;
+FROM '/usr/src/app/Database/datasets/export/Final_Database_MarsDB/CHEMCAM_Chemistry_export.csv' DELIMITER ',' CSV HEADER;
 
 -- Import
 COPY APXS_Chemistry(sol,Target_Plan, fit_type, start_time, gnorm, sh_tavg, lifetime, fe_fwhm, na2o, na2o_err, mgo, mgo_err, al2o3, al2o3_err, sio2, sio2_err, p2o5, p2o5_err, so3, so3_err, cl, cl_err, k2o, k2o_err, cao, cao_err, tio2, tio2_err, cr2o3, cr2o3_err, mno, mno_err, feo, feo_err, ni, ni_err, zn, zn_err, br, br_err) 
-FROM '/Users/bsamani/Desktop/Inserting_Data_into_Database_python_CSV/Final_Database_MarsDB/APXS_Chemistry_export.csv' DELIMITER ',' CSV HEADER;
+FROM '/usr/src/app/Database/datasets/export/Final_Database_MarsDB/APXS_Chemistry_export.csv' DELIMITER ',' CSV HEADER;
 
 -- Export
 COPY (SELECT apct.* FROM APXS_Chemistry_test AS apct, targets AS tar WHERE tar.target_plan = apct.TARGET_PLAN) 
-TO '/Users/bsamani/Desktop/Inserting_Data_into_Database_python_CSV/Final_Database_MarsDB/APXS_chemistry_export.csv' DELIMITER ',' CSV HEADER;
+TO '/usr/src/app/Database/datasets/export/Final_Database_MarsDB/APXS_chemistry_export.csv' DELIMITER ',' CSV HEADER;
 
 -- Delete repeated records
 DELETE FROM Instruments

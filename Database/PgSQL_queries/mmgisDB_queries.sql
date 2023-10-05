@@ -1,4 +1,4 @@
-CREATE DATABASE "MMGISDB"
+CREATE DATABASE "mmgis"
     WITH 
     OWNER = postgres
     ENCODING = 'UTF8'
@@ -72,7 +72,7 @@ CREATE INDEX "sidx_Targets_geom"
 ---------------------------------------------------------------------
 
 COPY Targets(geom,TARGET_PLAN,SOL,RMC,EASTING_M,NORTHING_M,ELEV_M,LON_DD,LAT_DD,X,Y,Z,U,V,W,I,J,IMAGE_ID,NOTES)
-FROM '/home/bsamani/Targets.csv' DELIMITER ',' CSV HEADER;
+FROM '/usr/src/app/Database/datasets/Final_data_for_database_07_18_2018/new_data_for_targets.csv' DELIMITER ',' CSV HEADER;
 
 --*****************************************************************************************************************************************************
 --*****************************************************************************************************************************************************
@@ -107,7 +107,7 @@ ALTER TABLE Observations
 ---------------------------------------------------------------------
 ALTER TABLE Observations DISABLE TRIGGER ALL;
 COPY Observations(Target_Plan, Sequence, INST_TYPE, Notes) 
-FROM 'C:\MAMP\htdocs\MMGIS\Database\datasets\Final_data_for_database_07_18_2018\new_data_for_observations.csv' DELIMITER ',' CSV HEADER;
+FROM '/usr/src/app/Database/datasets/Final_data_for_database_07_18_2018/new_data_for_observations.csv' DELIMITER ',' CSV HEADER;
 ALTER TABLE Observations ENABLE TRIGGER ALL;
 --*****************************************************************************************************************************************************
 --*****************************************************************************************************************************************************
@@ -146,7 +146,7 @@ ALTER TABLE Science_Products
 ---------------------------------------------------------------------
 ALTER TABLE Science_Products DISABLE TRIGGER ALL;
 COPY Science_Products(SCLK, Inst_Type, Sequence, Target_Plan, Sol, File_Name, Geom, Notes) 
-FROM 'C:\MAMP\htdocs\MMGIS\Database\datasets\Final_data_for_database_07_18_2018\new_data_for_science_products.csv' DELIMITER ',' CSV HEADER;
+FROM '/usr/src/app/Database/datasets/Final_data_for_database_07_18_2018/new_data_for_science_products.csv' DELIMITER ',' CSV HEADER;
 ALTER TABLE Science_Products ENABLE TRIGGER ALL;
 --*****************************************************************************************************************************************************
 --*****************************************************************************************************************************************************
@@ -203,7 +203,7 @@ ALTER TABLE Inst_CCAM DISABLE TRIGGER ALL;
 COPY Inst_CCAM(SCLK, Inst_Type, Type_of_Product, EDR_Type, Autofocus, Distance_m, RSM_Az_rad, RSM_El_rad, Nbr_of_Shots, Shots_Ignored, Shots_Averaged, 
 	LIBS_Exposure_ms, RMI_Exposure_Seed_ms, RMI_Exposure_Real_ms, Laser_Energy, Temperature, LMST, Laplacian_score, Mean_Total_Vnir, Flight_Version, 
 	RMC_Site, RMC_Drive, RMC_POSE, Type_of_Observation, Notes) 
-FROM 'C:\MAMP\htdocs\MMGIS\Database\datasets\Final_data_for_database_07_18_2018\new_data_for_inst_ccam.csv' DELIMITER ',' CSV HEADER;
+FROM '/usr/src/app/Database/datasets/Final_data_for_database_07_18_2018/new_data_for_inst_ccam.csv' DELIMITER ',' CSV HEADER;
 ALTER TABLE Inst_CCAM ENABLE TRIGGER ALL;
 --*****************************************************************************************************************************************************
 --*****************************************************************************************************************************************************
@@ -264,7 +264,7 @@ ALTER TABLE Data_CCAM DISABLE TRIGGER ALL;
 COPY Data_CCAM(SCLK, File_name, Target_plan, SiO2, SiO2_RMSEP, SiO2_shots_stdev, TiO2, TiO2_RMSEP, TiO2_shots_stdev, Al2O3, Al2O3_RMSEP, 
 	Al2O3_shots_stdev, FeOT, FeOT_RMSEP, FeOT_shots_stdev, MgO, MgO_RMSEP, MgO_shots_stdev, CaO, CaO_RMSEP, CaO_shots_stdev, Na2O, Na2O_RMSEP, 
 	Na2O_shots_stdev, K2O, K2O_RMSEP, K2O_shots_stdev, Sum_of_Oxides, Spectrum_Total) 
-FROM 'C:\MAMP\htdocs\MMGIS\Database\datasets\Final_data_for_database_07_18_2018\new_data_for_data_ccam.csv' DELIMITER ',' CSV HEADER;
+FROM '/usr/src/app/Database/datasets/Final_data_for_database_07_18_2018/new_data_for_data_ccam.csv' DELIMITER ',' CSV HEADER;
 ALTER TABLE Data_CCAM ENABLE TRIGGER ALL;
 --*****************************************************************************************************************************************************
 --*****************************************************************************************************************************************************
@@ -370,7 +370,7 @@ ALTER TABLE Waypoints
 COPY Waypoints(geom, SOL, SITE, POS, Ls, SCLK_START, SCLK_END, LAT_DD, LON_DD, easting_m, northing_m, elev_m, straightli, straight_1, traverse_d, 
 	total_dist, dist_bradb, azimuth_br, pitch_rad, roll_rad, tilt_rad, yaw_rad, pitch_deg, roll_deg, tilt_deg, yaw_deg, mobtrav_id, mobtrav_to, 
 	drive_type, site_pos, five_drive_av, sol_site_p, ORIG_FID) 
-FROM 'C:\MAMP\htdocs\MMGIS\Database\datasets\Final_data_for_database_07_18_2018\Waypoints.csv' DELIMITER ',' CSV HEADER;
+FROM '/usr/src/app/Database/datasets/Final_data_for_database_07_18_2018/Waypoints.csv' DELIMITER ',' CSV HEADER;
 
 --*****************************************************************************************************************************************************
 --*****************************************************************************************************************************************************
@@ -665,7 +665,7 @@ ALTER TABLE Traverse
 CREATE INDEX traverse_gix ON Traverse USING GIST (geom);
 
 COPY Traverse(geom, From_SCLK, To_SCLK, Length_m, SOL, Site, Position, COLOR, route, length) 
-FROM 'C:\MAMP\htdocs\MMGIS\Database\datasets\Final_data_for_database_07_18_2018\traverse.csv' DELIMITER ',' CSV HEADER;
+FROM '/usr/src/app/Database/datasets/Final_data_for_database_07_18_2018/traverse.csv' DELIMITER ',' CSV HEADER;
 
 --*****************************************************************************************************************************************************
 --*****************************************************************************************************************************************************
@@ -697,7 +697,7 @@ ALTER TABLE Terrain
 CREATE INDEX terrain_gix ON Terrain USING GIST (geom);
 
 COPY Terrain(geom, name, TerrainMIN, TerrainMAX, Color) 
-FROM 'C:\MAMP\htdocs\MMGIS\Database\datasets\Final_data_for_database_07_18_2018\terrain.csv' DELIMITER ',' CSV HEADER;
+FROM '/usr/src/app/Database/datasets/Final_data_for_database_07_18_2018/terrain.csv' DELIMITER ',' CSV HEADER;
 
 
 

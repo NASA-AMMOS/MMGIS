@@ -345,7 +345,7 @@ function validateLongTermToken(token, successCallback, failureCallback) {
         result.token == token &&
         (result.period == "never" ||
           Date.now() - new Date(result.createdAt).getTime() <
-            parseInt(result.period))
+          parseInt(result.period))
       ) {
         successCallback(result);
       } else {
@@ -400,8 +400,8 @@ var swaggerOptions = {
 
 const useSwaggerSchema =
   (schema) =>
-  (...args) =>
-    swaggerUi.setup(schema, swaggerOptions)(...args);
+    (...args) =>
+      swaggerUi.setup(schema, swaggerOptions)(...args);
 
 let s = {
   app: app,
@@ -683,7 +683,7 @@ setups.getBackendSetups(function (setups) {
     }
   );
 
-  /*
+  
   //http://localhost:8888/test/timeLayer?start=2022-05-12T16:10:11.648750Z&end=2022-05-12T16:25:25.084933Z
   app.get("/test/timeLayer", (req, res) => {
     res.send({
@@ -707,7 +707,7 @@ setups.getBackendSetups(function (setups) {
       ],
     });
   });
-  */
+  
 
   // Validate envs
   if (process.env.NODE_ENV === "development") {
@@ -717,11 +717,11 @@ setups.getBackendSetups(function (setups) {
 
   // Attach any tool plugins to the application
   // We're only doing this for dev because we're assuming
-  // build will also call this.
-  if (process.env.NODE_ENV === "development") {
-    console.log(chalk.cyan("Updating Tools...\n"));
-    updateTools();
-  }
+  // // build will also call this.
+  // if (process.env.NODE_ENV === "development") {
+  //   console.log(chalk.cyan("Updating Tools...\n"));
+  //   updateTools();
+  // }
 
   //////Setups Init//////
   setups.init(s);
@@ -730,12 +730,12 @@ setups.getBackendSetups(function (setups) {
 
   // Start listening for requests.
   httpServer.listen(port, (err) => {
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === "development") 
       setTimeout(setupDevServer, 2000);
-      app.get("/", ensureUser(), (req, res) => {
-        res.redirect(`http://localhost:${port + 1}`);
-      });
-    } else {
+    //   app.get("/", ensureUser(), (req, res) => {
+    //     res.redirect(`http://localhost:${port + 1}`);
+    //   });
+    // } else {
       // Each calls the ensureGroup middleware,
       // passing to it an array of LDAP group names (which were loaded
       // from the permissions.json file at the top of the file).
@@ -775,7 +775,7 @@ setups.getBackendSetups(function (setups) {
           });
         }
       );
-    }
+    
     if (err) {
       logger("infrastructure_error", "MMGIS did not start!", "server");
       return err;
