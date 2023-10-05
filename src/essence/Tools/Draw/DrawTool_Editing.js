@@ -646,7 +646,7 @@ var Editing = {
                     "<div class='drawToolContextMenuPropertiesCollapsible'>",
                         "<div class='drawToolContextMenuPropertiesTitle'><div>Properties</div><i class='mdi mdi-chevron-down mdi-24px'></i></div>",
                         "<div class='drawToolContextMenuPropertiesExtended'>",
-                            Object.keys(DrawTool.contextMenuLayer.feature.properties).map((p) => {
+                            Object.keys(DrawTool.contextMenuLayer.feature.properties).sort().map((p) => {
                                 const pv = DrawTool.contextMenuLayer.feature.properties[p]
                                 if(p === 'uuid') return ''
                                 if( typeof pv === 'number' || typeof pv === 'string' || typeof pv === 'boolean')
