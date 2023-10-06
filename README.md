@@ -114,7 +114,7 @@ _Note:_ The development environment (`npm start`) and only the development envir
 ### Test
 
 1. Run `npm run test`  
-   _Note:_ Jest has just been added in v2.0.0 and test suites are still very limited
+   _Note:_ Jest has just been added in v2.0.0 and test suites are still very limited. There is strong interest to move to Playwright.
 
 ---
 
@@ -123,6 +123,18 @@ _Note:_ The development environment (`npm start`) and only the development envir
 ### [The latest online documentation can be found here.](https://nasa-ammos.github.io/MMGIS/)
 
 Additionally, documentation pages are served at `http://localhost:8888/docs` or immediately within the [`docs/pages/markdowns`](/docs/pages/markdowns) directory.
+
+---
+
+## Contributing
+
+Check out our contributing guide [here.](CONTRIBUTING.md)
+
+---
+
+## Code of Conduct
+
+Check out our code of conduct [here.](CODE_OF_CONDUCT.md)
 
 ---
 
