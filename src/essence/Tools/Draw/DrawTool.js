@@ -73,7 +73,7 @@ var markup = [
                     "<div class='drawToolDrawingTypeText' draw='text' title='Text'><i class='mdi mdi-format-text mdi-18px'></i></div>",
                     "<div class='drawToolDrawingTypeArrow' draw='arrow' title='Arrow'><i class='mdi mdi-arrow-top-right mdi-18px'></i></div>",
                 "</div>",
-                "<div id='drawToolDrawingSettingsToggle' title='Draw Settings'><i class='mdi mdi-settings mdi-18px'></i></div>",
+                "<div id='drawToolDrawingSettingsToggle' title='Draw Settings'><i class='mdi mdi-cog mdi-18px'></i></div>",
             "</div>",
             "<div id='drawToolDrawSettings'>",
                 "<div id='drawToolDrawSettingsBody'>",
@@ -217,9 +217,29 @@ var markup = [
 
         "<div id='drawToolShapes'>",
           "<div id='drawToolShapesFilterDiv'>",
+            "<div id='drawToolShapesFilterAdvanced'><i class='mdi mdi-filter mdi-18px'></i></div>",
             "<input id='drawToolShapesFilter' type='text' placeholder='Filter Shapes' />",
             "<div id='drawToolShapesFilterClear'><i class='mdi mdi-close mdi-18px'></i></div>",
             "<div id='drawToolShapesFilterCount'></div>",
+          "</div>",
+          "<div id='drawToolShapesFilterAdvancedDiv'>",
+            "<div id='drawToolShapes_filtering'>",
+                "<div id='drawToolShapes_filtering_header'>",
+                    "<div id='drawToolShapes_filtering_title_left'>",
+                        "<div id='drawToolShapes_filtering_title'>Advanced Filter</div>",
+                    "</div>",
+                    "<div id='drawToolShapes_filtering_adds'>",
+                        "<div id='drawToolShapes_filtering_add_value' class='mmgisButton5' title='Add New Key-Value Filter'><div>Add</div><i class='mdi mdi-plus mdi-18px'></i></div>",
+                    "</div>",
+                "</div>",
+                "<div id='drawToolShapes_filtering_filters'>",
+                    "<ul id='drawToolShapes_filtering_filters_list'></ul>",
+                "</div>",
+                `<div id='drawToolShapes_filtering_footer'>`,
+                    "<div id='drawToolShapes_filtering_clear' class='mmgisButton5'><div>Clear Filter</div></div>",
+                    "<div id='drawToolShapes_filtering_submit' class='mmgisButton5'><div id='drawToolShapes_filtering_submit_loading'><div></div></div><div id='drawToolShapes_filtering_submit_text'>Submit</div><i class='mdi mdi-arrow-right mdi-18px'></i></div>",
+                "</div>",
+            "</div>",
           "</div>",
           "<div id='drawToolDrawShapesList' class='mmgisScrollbar2'>",
             "<ul id='drawToolShapesFeaturesList' class='unselectable'>",
@@ -785,7 +805,8 @@ var DrawTool = {
                 $('#drawToolShapesCopyDropdown *').remove()
                 DrawTool.endDrawing()
                 DrawTool.populateShapes()
-                $('#drawToolShapes').css('display', 'inherit')
+                $('#drawToolShapes').css('display', 'flex')
+                DrawTool.setSubmitButtonState(true)
                 break
             case 'history':
                 $('.drawToolContextMenuHeaderClose').click()
@@ -1288,6 +1309,7 @@ var DrawTool = {
     },
     timeFilterDrawingLayer(fileId) {
         if (L_.layers.layer[`DrawTool_${fileId}`]) {
+            DrawTool.setSubmitButtonState(true)
             const file = DrawTool.getFileObjectWithId(fileId)
 
             let startField
@@ -1312,10 +1334,13 @@ var DrawTool = {
                                         startField,
                                         endField
                                     )
+
                                 if (l2.savedOptions == null)
-                                    l2.savedOptions = JSON.parse(
-                                        JSON.stringify(l2.options)
-                                    )
+                                    l2.savedOptions = {
+                                        opacity: l2.options.opacity,
+                                        fillOpacity: l2.options.fillOpacity,
+                                    }
+
                                 l2.temporallyHidden = !isVisible
                                 if (l2.temporallyHidden)
                                     $(
@@ -1351,7 +1376,10 @@ var DrawTool = {
                         endField
                     )
                     if (l.savedOptions == null)
-                        l.savedOptions = JSON.parse(JSON.stringify(l.options))
+                        l.savedOptions = {
+                            opacity: l.options.opacity,
+                            fillOpacity: l.options.fillOpacity,
+                        }
 
                     l.temporallyHidden = !isVisible
                     if (l.temporallyHidden)

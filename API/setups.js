@@ -112,8 +112,9 @@ let getBackendSetups = (cb) => {
 
       cb({
         init: (s) => {
-          for (let f in setups)
+          for (let f in setups) {
             if (typeof setups[f].onceInit === "function") setups[f].onceInit(s);
+          }
         },
         started: (s) => {
           for (let f in setups)
