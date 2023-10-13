@@ -5,7 +5,7 @@ import F_ from '../../../Basics/Formulae_/Formulae_'
 import L_ from '../../../Basics/Layers_/Layers_'
 import Map_ from '../../../Basics/Map_/Map_'
 
-import LocalFilterer from './LocalFilterer'
+import LocalFilterer from '../../../Ancillary/LocalFilterer'
 import ESFilterer from './ESFilterer'
 
 import Help from '../../../Ancillary/Help'
