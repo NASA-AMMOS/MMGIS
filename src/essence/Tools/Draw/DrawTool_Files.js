@@ -1705,7 +1705,9 @@ var Files = {
         populateShapesAfter,
         selectedFeatureIds,
         asPublished,
-        cb
+        cb,
+        forceGeoJSON,
+        dontUpdateSourceGeoJSON
     ) {
         let parsedId =
             typeof parseInt(id) === 'number' && !Array.isArray(id)
@@ -1724,210 +1726,214 @@ var Files = {
         }
         if (asPublished == true) body.published = true
 
-        DrawTool.getFile(
-            body,
-            (function (index, selectedFeatureIds) {
-                return function (data) {
-                    var layerId = 'DrawTool_' + index
-                    //Remove it first
-                    if (L_.layers.layer.hasOwnProperty(layerId)) {
-                        for (
-                            var i = 0;
-                            i < L_.layers.layer[layerId].length;
-                            i++
-                        ) {
-                            //Close any popups/labels
-                            var popupLayer = L_.layers.layer[layerId][i]
-                            DrawTool.removePopupsFromLayer(popupLayer)
-
-                            Map_.rmNotNull(L_.layers.layer[layerId][i])
-                            L_.layers.layer[layerId][i] = null
-                        }
-                        //And from the Globe
-                        Globe_.litho.removeLayer('camptool_' + layerId)
+        if (forceGeoJSON) {
+            keepGoing(
+                {
+                    geojson: forceGeoJSON,
+                },
+                parsedId,
+                selectedFeatureIds,
+                dontUpdateSourceGeoJSON
+            )
+        } else {
+            DrawTool.getFile(
+                body,
+                (function (index, selectedFeatureIds) {
+                    return function (data) {
+                        keepGoing(data, index, selectedFeatureIds)
                     }
+                })(parsedId, selectedFeatureIds)
+            )
+        }
 
-                    let features = data.geojson.features
-                    DrawTool.fileGeoJSONFeatures[index] = features
-
-                    let coreFeatures = JSON.parse(JSON.stringify(data.geojson))
-                    coreFeatures.features = []
-
-                    for (var i = 0; i < features.length; i++) {
-                        if (!features[i].properties.hasOwnProperty('style')) {
-                            features[i].properties.style = F_.clone(
-                                DrawTool.defaultStyle
-                            )
-                            if (
-                                features[i].geometry.type.toLowerCase() ==
-                                'point'
-                            )
-                                features[i].properties.style.fillOpacity = 1
-                        }
-                        const style = features[i].properties.style
-
-                        if (features[i].properties.arrow === true) {
-                            const c = features[i].geometry.coordinates
-                            const start = new L.LatLng(c[0][1], c[0][0])
-                            const end = new L.LatLng(c[1][1], c[1][0])
-
-                            L_.addArrowToMap(
-                                layerId,
-                                start,
-                                end,
-                                features[i].properties.style,
-                                features[i]
-                            )
-                        } else if (features[i].properties.annotation === true) {
-                            L_.createAnnotation(
-                                features[i],
-                                'DrawToolAnnotation',
-                                layerId,
-                                id,
-                                features[i].properties._.id,
-                                true
-                            )
-
-                            DrawTool.refreshNoteEvents()
-                        } else if (features[i].geometry.type === 'Point') {
-                            L_.layers.layer[layerId].push(
-                                LayerGeologic.createSymbolMarker(
-                                    features[i].geometry.coordinates[1],
-                                    features[i].geometry.coordinates[0],
-                                    features[i].properties.style
-                                ).addTo(Map_.map)
-                            )
-                            L_.layers.layer[layerId][
-                                L_.layers.layer[layerId].length - 1
-                            ].feature = features[i]
-                        } else if (features[i].geometry.type === 'LineString') {
-                            L_.layers.layer[layerId].push(
-                                LayerGeologic.createLinework(
-                                    features[i],
-                                    style
-                                ).addTo(Map_.map)
-                            )
-                        } else {
-                            L_.layers.layer[layerId].push(
-                                L.geoJson(
-                                    {
-                                        type: 'FeatureCollection',
-                                        features: [features[i]],
-                                    },
-                                    {
-                                        // eslint-disable-next-line
-                                        style: function (feature) {
-                                            if (
-                                                feature.properties.style
-                                                    ?.geologic &&
-                                                typeof LayerGeologic.getUrl ===
-                                                    'function'
-                                            ) {
-                                                const style =
-                                                    feature.properties.style
-                                                const g = style.geologic
-
-                                                const fillImage =
-                                                    LayerGeologic.getFillPattern(
-                                                        LayerGeologic.getUrl(
-                                                            g.type,
-                                                            LayerGeologic.getTag(
-                                                                g.tag,
-                                                                g.color
-                                                            )
-                                                        ),
-                                                        g.size,
-                                                        g.fillColor
-                                                            ? g.fillColor[0] ===
-                                                              '#'
-                                                                ? F_.hexToRGBA(
-                                                                      g.fillColor,
-                                                                      g.fillOpacity ==
-                                                                          null
-                                                                          ? 1
-                                                                          : g.fillOpacity
-                                                                  )
-                                                                : g.fillColor ||
-                                                                  'none'
-                                                            : 'none',
-                                                        L_.Map_.map
-                                                    )
-
-                                                return {
-                                                    ...feature.properties.style,
-                                                    fillPattern: fillImage,
-                                                }
-                                            }
-                                            return feature.properties.style
-                                        },
-                                    }
-                                ).addTo(Map_.map)
-                            )
-                        }
-
-                        if (features[i].properties.arrow !== true) {
-                            var last = L_.layers.layer[layerId].length - 1
-                            var llast = L_.layers.layer[layerId][last]
-                            var layer
-
-                            if (llast.hasOwnProperty('_layers'))
-                                layer =
-                                    llast._layers[Object.keys(llast._layers)[0]]
-                            else {
-                                layer = Object.assign({}, llast)
-                            }
-                            coreFeatures.features.push(layer.feature)
-                        }
-                    }
-
-                    if (coreFeatures.features.length > 0) {
-                        // 3D doesn't support patterns yet so we'll reset their polygon fills to 0
-                        const coreFeaturesNormalized = []
-                        coreFeatures.features.forEach((f) => {
-                            const feat = JSON.parse(JSON.stringify(f))
-                            if (
-                                feat.properties?.style?.geologic?.type ===
-                                'pattern'
-                            )
-                                feat.properties.style.fillOpacity = 0
-                            coreFeaturesNormalized.push(feat)
-                        })
-                        Globe_.litho.addLayer('clamped', {
-                            name: 'camptool_' + layerId,
-                            on: true,
-                            geojson: F_.getBaseGeoJSON(coreFeaturesNormalized),
-                            opacity: 1,
-                            minZoom: 0,
-                            maxZoom: 30,
-                            style: {
-                                // Prefer feature[f].properties.style values
-                                letPropertiesStyleOverride: true,
-                            },
-                        })
-                    }
-
-                    if (populateShapesAfter)
-                        DrawTool.populateShapes(id, selectedFeatureIds)
-
-                    L_.enforceVisibilityCutoffs([layerId])
-                    DrawTool.maintainLayerOrder()
-                    DrawTool.timeFilterDrawingLayer(index)
-
-                    DrawTool.refreshMasterCheckbox()
-
-                    //Keep labels on if they were on before
-                    let indexOf = DrawTool.labelsOn.indexOf(index + '')
-                    if (indexOf != -1) {
-                        DrawTool.labelsOn.splice(indexOf, 1)
-                        DrawTool.toggleLabels(index + '')
-                    }
-
-                    if (typeof cb === 'function') {
-                        cb()
-                    }
+        function keepGoing(
+            data,
+            index,
+            selectedFeatureIds,
+            dontUpdateSourceGeoJSON
+        ) {
+            var layerId = 'DrawTool_' + index
+            //Remove it first
+            if (L_.layers.layer.hasOwnProperty(layerId)) {
+                for (var i = 0; i < L_.layers.layer[layerId].length; i++) {
+                    //Close any popups/labels
+                    var popupLayer = L_.layers.layer[layerId][i]
+                    DrawTool.removePopupsFromLayer(popupLayer)
+                    Map_.rmNotNull(L_.layers.layer[layerId][i])
+                    L_.layers.layer[layerId][i] = null
                 }
-            })(parsedId, selectedFeatureIds)
-        )
+                //And from the Globe
+                Globe_.litho.removeLayer('camptool_' + layerId)
+            }
+
+            let features = data.geojson.features
+            if (dontUpdateSourceGeoJSON != true)
+                DrawTool.fileGeoJSONFeatures[index] = features
+
+            let coreFeatures = JSON.parse(JSON.stringify(data.geojson))
+            coreFeatures.features = []
+
+            for (var i = 0; i < features.length; i++) {
+                if (!features[i].properties.hasOwnProperty('style')) {
+                    features[i].properties.style = F_.clone(
+                        DrawTool.defaultStyle
+                    )
+                    if (features[i].geometry.type.toLowerCase() == 'point')
+                        features[i].properties.style.fillOpacity = 1
+                }
+                const style = features[i].properties.style
+
+                if (features[i].properties.arrow === true) {
+                    const c = features[i].geometry.coordinates
+                    const start = new L.LatLng(c[0][1], c[0][0])
+                    const end = new L.LatLng(c[1][1], c[1][0])
+
+                    L_.addArrowToMap(
+                        layerId,
+                        start,
+                        end,
+                        features[i].properties.style,
+                        features[i]
+                    )
+                } else if (features[i].properties.annotation === true) {
+                    L_.createAnnotation(
+                        features[i],
+                        'DrawToolAnnotation',
+                        layerId,
+                        id,
+                        features[i].properties._.id,
+                        true
+                    )
+
+                    DrawTool.refreshNoteEvents()
+                } else if (features[i].geometry.type === 'Point') {
+                    L_.layers.layer[layerId].push(
+                        LayerGeologic.createSymbolMarker(
+                            features[i].geometry.coordinates[1],
+                            features[i].geometry.coordinates[0],
+                            features[i].properties.style
+                        ).addTo(Map_.map)
+                    )
+                    L_.layers.layer[layerId][
+                        L_.layers.layer[layerId].length - 1
+                    ].feature = features[i]
+                } else if (features[i].geometry.type === 'LineString') {
+                    L_.layers.layer[layerId].push(
+                        LayerGeologic.createLinework(features[i], style).addTo(
+                            Map_.map
+                        )
+                    )
+                } else {
+                    L_.layers.layer[layerId].push(
+                        L.geoJson(
+                            {
+                                type: 'FeatureCollection',
+                                features: [features[i]],
+                            },
+                            {
+                                // eslint-disable-next-line
+                                style: function (feature) {
+                                    if (
+                                        feature.properties.style?.geologic &&
+                                        typeof LayerGeologic.getUrl ===
+                                            'function'
+                                    ) {
+                                        const style = feature.properties.style
+                                        const g = style.geologic
+
+                                        const fillImage =
+                                            LayerGeologic.getFillPattern(
+                                                LayerGeologic.getUrl(
+                                                    g.type,
+                                                    LayerGeologic.getTag(
+                                                        g.tag,
+                                                        g.color
+                                                    )
+                                                ),
+                                                g.size,
+                                                g.fillColor
+                                                    ? g.fillColor[0] === '#'
+                                                        ? F_.hexToRGBA(
+                                                              g.fillColor,
+                                                              g.fillOpacity ==
+                                                                  null
+                                                                  ? 1
+                                                                  : g.fillOpacity
+                                                          )
+                                                        : g.fillColor || 'none'
+                                                    : 'none',
+                                                L_.Map_.map
+                                            )
+
+                                        return {
+                                            ...feature.properties.style,
+                                            fillPattern: fillImage,
+                                        }
+                                    }
+                                    return feature.properties.style
+                                },
+                            }
+                        ).addTo(Map_.map)
+                    )
+                }
+
+                if (features[i].properties.arrow !== true) {
+                    var last = L_.layers.layer[layerId].length - 1
+                    var llast = L_.layers.layer[layerId][last]
+                    var layer
+
+                    if (llast.hasOwnProperty('_layers'))
+                        layer = llast._layers[Object.keys(llast._layers)[0]]
+                    else {
+                        layer = Object.assign({}, llast)
+                    }
+                    coreFeatures.features.push(layer.feature)
+                }
+            }
+
+            if (coreFeatures.features.length > 0) {
+                // 3D doesn't support patterns yet so we'll reset their polygon fills to 0
+                const coreFeaturesNormalized = []
+                coreFeatures.features.forEach((f) => {
+                    const feat = JSON.parse(JSON.stringify(f))
+                    if (feat.properties?.style?.geologic?.type === 'pattern')
+                        feat.properties.style.fillOpacity = 0
+                    coreFeaturesNormalized.push(feat)
+                })
+                Globe_.litho.addLayer('clamped', {
+                    name: 'camptool_' + layerId,
+                    on: true,
+                    geojson: F_.getBaseGeoJSON(coreFeaturesNormalized),
+                    opacity: 1,
+                    minZoom: 0,
+                    maxZoom: 30,
+                    style: {
+                        // Prefer feature[f].properties.style values
+                        letPropertiesStyleOverride: true,
+                    },
+                })
+            }
+
+            if (populateShapesAfter)
+                DrawTool.populateShapes(id, selectedFeatureIds)
+
+            L_.enforceVisibilityCutoffs([layerId])
+            DrawTool.maintainLayerOrder()
+            DrawTool.timeFilterDrawingLayer(index)
+
+            DrawTool.refreshMasterCheckbox()
+
+            //Keep labels on if they were on before
+            let indexOf = DrawTool.labelsOn.indexOf(index + '')
+            if (indexOf != -1) {
+                DrawTool.labelsOn.splice(indexOf, 1)
+                DrawTool.toggleLabels(index + '')
+            }
+
+            if (typeof cb === 'function') {
+                cb()
+            }
+        }
     },
     /**
      * Adds or removes a file

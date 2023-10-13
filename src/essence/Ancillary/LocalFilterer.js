@@ -50,6 +50,19 @@ const LocalFilterer = {
                 aggs['geometry.type'].aggs[feature.geometry.type] || 0
             aggs['geometry.type'].aggs[feature.geometry.type]++
         })
+
+        // sort values
+        Object.keys(aggs).forEach((agg) => {
+            const sortedAggs = {}
+            Object.keys(aggs[agg].aggs)
+                .sort()
+                .reverse()
+                .forEach((agg2) => {
+                    sortedAggs[agg2] = aggs[agg].aggs[agg2]
+                })
+            aggs[agg].aggs = sortedAggs
+        })
+
         return aggs
     },
     filter: function (layerName, filter, refreshFunction) {

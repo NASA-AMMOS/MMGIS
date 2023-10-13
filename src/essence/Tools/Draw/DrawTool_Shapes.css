@@ -1,0 +1,448 @@
+#drawToolShapesCopyDiv {
+    background: var(--color-a);
+    display: flex;
+    width: 100%;
+    height: 34px;
+    border-top: 1px solid var(--color-d);
+    padding: 4px 4px 1px 4px;
+    justify-content: space-between;
+}
+#drawToolShapesCopyDiv > div:first-child {
+    line-height: 27px;
+    font-weight: bold;
+    width: 48px;
+    color: var(--color-f);
+    font-size: 13px;
+}
+#drawToolShapesCopyDiv > div:last-child {
+    width: 48px;
+    color: white;
+    background: var(--color-a2);
+    font-size: 13px;
+    padding: 7px;
+    position: relative;
+    height: 25px;
+    line-height: 11px;
+    text-align: center;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+#drawToolShapesCopyDiv > div:last-child:hover {
+    background: var(--color-c);
+}
+
+#drawToolShapesCopyDiv select {
+    height: 24px !important;
+    padding: unset !important;
+}
+
+#drawToolShapesCopyDropdown {
+    border: 1px solid var(--color-e);
+    flex: 1;
+    height: 25px;
+    margin: 0px 5px;
+    cursor: not-allowed;
+}
+#drawToolShapesCopyDropdown > .dropdown {
+    min-width: 144px !important;
+    max-width: 144px !important;
+    background: var(--color-a2);
+    color: var(--color-a6);
+    border: none;
+    height: 25px;
+}
+#drawToolShapesCopyMessageDiv {
+    position: absolute;
+    bottom: 43px;
+    background: linear-gradient(to right, #26ff67, rgba(127, 255, 0, 1));
+    width: 100%;
+    height: 31px;
+    padding: 6px 7px 7px 7px;
+    text-align: center;
+    color: black;
+    font-weight: bold;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+
+#drawToolShapesFilterDiv {
+    background: var(--color-a);
+    display: flex;
+    width: 100%;
+}
+#drawToolShapesFilter {
+    border: none;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+    flex: 1;
+    padding: 0px 8px;
+    height: 30px;
+    background: var(--color-a1);
+    color: var(--color-a7);
+}
+#drawToolShapesFilterAdvanced,
+#drawToolShapesFilterClear {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+    width: 30px;
+    line-height: 28px;
+    color: var(--color-a7);
+    text-align: center;
+    background: var(--color-a1);
+    height: 30px;
+    cursor: pointer;
+    transition: color 0.2s ease-in-out;
+}
+
+#drawToolShapesFilterAdvanced > i,
+#drawToolShapesFilterClear > i {
+    background: none !important;
+    color: var(--color-a5) !important;
+    border-bottom: none !important;
+    margin: 0 !important;
+}
+
+#drawToolShapesFilterAdvanced:hover > i,
+#drawToolShapesFilterClear:hover > i {
+    color: var(--color-a7) !important;
+}
+#drawToolShapesFilterAdvanced {
+    border-right: 1px solid var(--color-a-5);
+}
+#drawToolShapesFilterAdvanced.on {
+    background: var(--color-a2) !important;
+}
+#drawToolShapesFilterAdvanced.on > i {
+    color: var(--color-a7) !important;
+}
+
+#drawToolShapesFilterCount {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+    line-height: 30px;
+    color: var(--color-a5);
+    text-align: center;
+    background: var(--color-a1);
+    height: 30px;
+    font-size: 12px;
+}
+
+#drawToolShapesFilterAdvancedDiv {
+    overflow: hidden;
+    width: 100%;
+    max-height: 0px;
+    transition: height 0.2s ease-in-out;
+}
+#drawToolShapesFilterAdvancedDiv.on {
+    max-height: 50vh;
+}
+
+#drawToolShapes {
+    height: 100%;
+    display: flex;
+    flex-flow: column;
+}
+#drawToolDrawShapesList {
+    overflow-y: auto;
+    flex: 1;
+    transition: height 0.2s ease-in-out;
+}
+#drawToolShapesFeaturesList {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+.drawToolShapesFeaturesListFileHeader {
+    border-bottom: 1px solid var(--color-m3);
+    font-size: 13px;
+    width: max-content;
+    padding: 4px 8px;
+}
+.drawToolShapeLi {
+    border-bottom: 1px solid var(--color-a1-5);
+    color: var(--color-f);
+    background: rgba(255, 255, 255, 0);
+    transition: background 0.4s cubic-bezier(0.39, 0.575, 0.565, 1),
+        padding 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+.drawToolShapeLi:hover,
+.drawToolShapeLi.hovered {
+    background: var(--color-e);
+}
+.drawToolShapeLi.active {
+    background: var(--color-h);
+    color: black;
+    font-weight: bold;
+}
+.drawToolShapeLi.temporallyHidden {
+    display: none !important;
+}
+
+.drawToolShapeLiItem {
+    cursor: pointer;
+    display: flex;
+    height: 30px;
+    line-height: 30px;
+}
+.drawToolShapeLiItem > div:first-child {
+    width: calc(100% - 55px);
+    justify-content: start;
+}
+.drawToolShapeLiItem > div:first-child > div.flexbetween {
+    width: calc(100% - 7px);
+}
+.drawToolShapeLiItemContent {
+    width: 100%;
+    padding: 3px 0px;
+}
+
+.drawToolShapeLiItemCheck {
+    width: 16px;
+    height: 15px;
+    border-radius: 8px;
+    margin: 5px 5px 0px 5px;
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    transition: border 0.2s ease-out;
+}
+.drawToolShapeLiItemCheck.checked {
+    border: 2px solid black;
+}
+
+.drawToolShapeLiItemA {
+    width: 4px;
+    height: 100%;
+}
+.drawToolShapeLiItemB {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+.drawToolShapeLiItemC {
+    color: white;
+    padding: 0px 4px;
+    margin-right: 3px;
+    width: 36px;
+    font-family: monospace;
+    text-align: center;
+}
+
+/*Filter*/
+#drawToolShapes_filtering {
+    background: var(--color-a2);
+    display: flex;
+    flex-flow: column;
+    height: 100%;
+}
+.gears_on #drawToolShapes_filtering {
+    display: block;
+}
+#drawToolShapes_filtering_header {
+    display: flex;
+    justify-content: space-between;
+    height: 30px;
+    line-height: 30px;
+}
+#drawToolShapes_filtering_title_left {
+    display: flex;
+}
+#drawToolShapes_filtering_title {
+    font-size: 14px;
+    padding-left: 8px;
+    line-height: 31px;
+    color: var(--color-a6);
+}
+#drawToolShapes_filtering_count {
+    font-size: 12px;
+    padding: 0px 4px;
+    color: #d6d6d6;
+}
+#drawToolShapes_filtering_add_value {
+    padding: 0px 6px;
+    color: var(--color-a6);
+}
+#drawToolShapes_filtering_add_value:hover {
+    background: var(--color-c);
+    color: var(--color-a7);
+}
+#drawToolShapes_filtering_add_value > div {
+    font-size: 11px;
+    margin-right: 2px;
+    line-height: 32px;
+    text-transform: uppercase;
+}
+
+#drawToolShapes_filtering_filters {
+    border-left: 1px solid var(--color-a2);
+    background: var(--color-a1-5);
+    overflow: auto;
+    flex: 1;
+}
+#drawToolShapes_filtering_filters_list {
+    border-right: 1px solid var(--color-a2);
+}
+.drawToolShapes_filtering_filters_clear {
+    width: 30px;
+    background: var(--color-a1-5);
+    padding: 0px 6px;
+    color: #888;
+}
+.drawToolShapes_filtering_filters_clear:hover {
+    background: var(--color-a1);
+    color: #fff;
+}
+
+#drawToolShapes_filtering_footer {
+    display: flex;
+    justify-content: space-between;
+    height: 30px;
+    line-height: 30px;
+}
+#drawToolShapes_filtering_adds {
+    display: flex;
+    justify-content: space-between;
+}
+#drawToolShapes_filtering_adds > div > div {
+    padding-left: 2px;
+}
+
+.drawToolShapes_filtering_value {
+    display: flex;
+    height: 33px;
+    border-bottom: 1px solid var(--color-a2);
+}
+.drawToolShapes_filtering_value .drawToolShapes_filtering_value_key {
+    flex: 1;
+}
+.drawToolShapes_filtering_value_operator {
+    box-sizing: border-box;
+    border-left: 1px solid var(--color-a2);
+    border-right: 1px solid var(--color-a2);
+}
+.drawToolShapes_filtering_value .drawToolShapes_filtering_value_value {
+    flex: 1;
+    position: relative;
+}
+
+.drawToolShapes_filtering_value_value_type {
+    position: absolute;
+    right: 0;
+    top: 0;
+    pointer-events: none;
+    height: 30px;
+    line-height: 30px;
+    width: 30px;
+    text-align: center;
+    color: #999;
+    opacity: 0;
+    transition: opacity 0.2s ease-out;
+}
+.drawToolShapes_filtering_value_value_type > i:first-child {
+    color: var(--color-yellow);
+}
+.drawToolShapes_filtering_value_value_type > i:last-child {
+    color: var(--color-green);
+}
+
+.drawToolShapes_filtering_value_value_input:hover
+    + .drawToolShapes_filtering_value_value_type {
+    opacity: 1;
+}
+
+#drawToolShapes_filtering input {
+    background: var(--color-a1-5);
+    color: #ccc;
+    width: 100%;
+    box-sizing: border-box;
+    border-left: 6px solid var(--color-a);
+    height: 30px;
+    padding-left: 8px;
+    border: none;
+    font-size: 14px;
+    transition: background 0.2s cubic-bezier(0.785, 0.135, 0.15, 0.86);
+}
+#drawToolShapes_filtering input:hover {
+    background: var(--color-a1);
+}
+.drawToolShapes_filtering_value_value_input {
+    border-right: 1px solid var(--color-a2) !important;
+}
+#drawToolShapes_filtering select {
+    background: #111;
+    color: #ccc;
+    height: 30px;
+}
+.drawToolShapes_filtering_value_operator_select {
+    background: var(--color-a1);
+    color: var(--color-f);
+    border: none;
+    cursor: pointer;
+    height: 30px;
+    transition: background 0.2s cubic-bezier(0.785, 0.135, 0.15, 0.86);
+}
+.drawToolShapes_filtering_value_operator_select:hover {
+    background: var(--color-a2);
+}
+
+.drawToolShapes_filtering_value_remove .mmgisButton5 {
+    width: 22px;
+}
+#drawToolShapes_filtering_clear {
+    padding: 0px 8px;
+    font-size: 13px;
+}
+#drawToolShapes_filtering_clear:hover {
+    background: var(--color-red2);
+}
+#drawToolShapes_filtering_submit {
+    padding: 0px 8px;
+    font-size: 13px;
+    transition: background 0.2s cubic-bezier(0.785, 0.135, 0.15, 0.86);
+}
+#drawToolShapes_filtering_submit.active {
+    background: var(--color-h);
+    color: black;
+}
+#drawToolShapes_filtering_submit.active:hover {
+    background: #fffb80;
+}
+
+#drawToolShapes_filtering .dropy,
+#drawToolShapes_filtering .dropy__title {
+    height: 30px;
+    border: none;
+}
+#drawToolShapes_filtering .dropy__title span {
+    padding: 6px;
+}
+#drawToolShapes_filtering .dropy .dropy__content li a {
+    padding: 6px;
+    border-top: 1px solid var(--color-m);
+    margin-bottom: 0px;
+    height: 30px;
+}
+#drawToolShapes_filtering .dropy__content .dropy__header {
+    display: none;
+}
+#drawToolShapes_filtering .dropy__content ul {
+    transition: none;
+}
+
+#drawToolShapes_filtering_submit_loading {
+    display: none;
+    padding: 6px 6px 6px 0px;
+}
+#drawToolShapes_filtering_submit_loading.active {
+    display: block;
+}
+#drawToolShapes_filtering_submit_loading.active > div {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 3px solid black;
+    border-top: 3px solid transparent;
+    animation: submitLoadingSpin 1s ease-in-out infinite;
+}
+@keyframes submitLoadingSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
