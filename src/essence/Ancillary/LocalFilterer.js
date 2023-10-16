@@ -34,6 +34,7 @@ const LocalFilterer = {
                 if (!isNaN(value) && !isNaN(parseFloat(value))) type = 'number'
                 else if (typeof value === 'string') type = 'string'
                 else if (typeof value === 'number') type = 'number'
+                else if (typeof value === 'boolean') type = 'boolean'
 
                 if (type != null) {
                     // First type will be from index 0
@@ -124,13 +125,18 @@ const LocalFilterer = {
         for (let i = 0; i < filter.values.length; i++) {
             const v = filter.values[i]
             if (v && v.key != null) {
-                const featureValue =
+                let featureValue =
                     v.key === 'geometry.type'
                         ? feature.geometry.type
                         : F_.getIn(feature.properties, v.key)
                 let filterValue = v.value
                 if (v.type === 'number' && v.op != ',')
                     filterValue = parseFloat(filterValue)
+                else if (v.type === 'boolean') {
+                    if (featureValue == null) featureValue = false
+                    filterValue = filterValue == 'true'
+                }
+
                 if (featureValue != null) {
                     switch (v.op) {
                         case '=':
