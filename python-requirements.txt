@@ -1,2 +1,2 @@
-spiceypy==5.1.2
 numpy==1.25.1
+spiceypy==5.1.2
