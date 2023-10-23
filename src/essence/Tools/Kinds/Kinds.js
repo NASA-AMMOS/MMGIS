@@ -370,7 +370,8 @@ var Kinds = {
                 if (e.latlng && e.latlng.lng != null && e.latlng.lat != null) {
                     if (
                         typeof L_.layers.layer[layerName].eachLayer !==
-                        'function'
+                            'function' &&
+                        layerName.indexOf('DrawTool_') != 0
                     ) {
                         L_.layers.layer[layerName].eachLayer = function (cb) {
                             for (var v in this._vectorTiles) {
@@ -416,9 +417,12 @@ var Kinds = {
                     // Find all the intersected points and polygons of the click
                     Object.keys(L_.layers.layer).forEach((lName) => {
                         if (
-                            L_.layers.on[lName] &&
-                            L_.layers.data[lName].type === 'vector' &&
-                            L_.layers.layer[lName]
+                            (L_.layers.on[lName] &&
+                                (L_.layers.data[lName].type === 'vector' ||
+                                    L_.layers.data[lName].type === 'query') &&
+                                L_.layers.layer[lName]) ||
+                            (lName.indexOf('DrawTool_') === 0 &&
+                                L_.layers.layer[lName]?.[0]?._map != null)
                         ) {
                             features = features.concat(
                                 L.leafletPip

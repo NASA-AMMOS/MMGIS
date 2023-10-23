@@ -84,8 +84,8 @@ function drawFileUpdate(webhook, payload) {
   response.send = function (res) {
     const webhookHeader = JSON.parse(webhook.header);
     const webhookBody = JSON.parse(webhook.body);
-    const file_name = res.body?.file[0]?.file_name || null;
-    const file_owner = res.body?.file[0]?.file_owner || null;
+    const file_name = res.body?.file?.[0]?.file_name || null;
+    const file_owner = res.body?.file?.[0]?.file_owner || null;
     const geojson = res.body.geojson;
 
     const injectableVariables = {
@@ -148,8 +148,8 @@ function drawFileDelete(webhook, payload) {
     const webhookHeader = JSON.parse(webhook.header);
     const webhookBody = JSON.parse(webhook.body);
     const geojson = res.body.geojson;
-    const file_name = res.body?.file[0]?.file_name || null;
-    const file_owner = res.body?.file[0]?.file_owner || null;
+    const file_name = res.body?.file?.[0]?.file_name || null;
+    const file_owner = res.body?.file?.[0]?.file_owner || null;
 
     const injectableVariables = {
       file_id,

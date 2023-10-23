@@ -12,6 +12,7 @@
                 "Point_Alias",
                 "All_Alias"
             ],
+            "defaultDrawClipping": "over || under || off",
             "leadsCanEditFileInfo": false,
             "hoverLengthOnLines": false,
             "templates": {
@@ -83,5 +84,6 @@
     },
     "tests": {
         "DrawToolTest": "essence/Tools/Draw/DrawTool.test"
-    }
+    },
+    "expandable": true
 }

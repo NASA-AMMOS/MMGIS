@@ -225,6 +225,11 @@ function initialize() {
                   name: "The text for this menu entry when users right-click",
                   link: "https://domain?I={ll[0]}&will={ll[1]}&replace={ll[2]}&these={en[0]}&brackets={en[1]}&for={cproj[0]}&you={sproj[0]}&with={rxy[0]}&coordinates={site[2]}",
                 },
+                {
+                  name: "WKT text insertions. Do so only for polygons.",
+                  link: "https://domain?regularWKT={wkt}&wkt_where_commas_are_replaced_with_underscores={wkt_}",
+                  for: "polygon",
+                },
               ],
             },
             null,
@@ -690,6 +695,12 @@ function initialize() {
                 $("#tab_time #time_initialend").val(
                   cData.time ? cData.time.initialend : "now"
                 );
+                $("#tab_time #time_initialwindowstart").val(
+                  cData.time ? cData.time.initialwindowstart : ""
+                );
+                $("#tab_time #time_initialwindowend").val(
+                  cData.time ? cData.time.initialwindowend : "now"
+                );
 
                 //tools
                 //uncheck all tools
@@ -999,7 +1010,7 @@ function makeLayerBarAndModal(d, level, options) {
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxnzEl = "block"; maxzEl = "block"; strcolEl = "none"; filcolEl = "none";
-        weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "none";
+        weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
         timeEl = "block"; timeTypeEl = "block"; timeStartPropEl = "none"; timeEndPropEl = "none"; timeFormatEl = "block"; timeCompositeTileEl = "block"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
         queryEndpointEl = "none"; queryTypeEl = "none";
@@ -1063,7 +1074,7 @@ function makeLayerBarAndModal(d, level, options) {
         modelLonEl = "block"; modelLatEl = "block"; modelElevEl = "block";
         modelRotXEl = "block"; modelRotYEl = "block"; modelRotZEl = "block"; modelScaleEl = "block";
         maxnzEl = "none"; maxzEl = "none"; strcolEl = "none"; filcolEl = "none";
-        weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "none";
+        weightEl = "none"; opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
         timeEl = "block"; timeTypeEl = "block"; timeStartPropEl = "none"; timeEndPropEl = "none"; timeFormatEl = "block"; timeCompositeTileEl = "none"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "none";
         queryEndpointEl = "none"; queryTypeEl = "none";
@@ -1804,7 +1815,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
         modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
         maxzEl = "block"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
-        opacityEl = "none"; radiusEl = "none"; variableEl = "none";
+        opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "block"; bbEl = "block"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
         timeEl = 'block'; timeTypeEl = 'block'; timeStartPropEl = 'none'; timeEndPropEl = 'none'; timeFormatEl = 'block'; timeCompositeTileEl = 'block'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
         shapeEl = 'none'; queryEndpointEl = "none"; queryTypeEl = "none";
@@ -1864,7 +1875,7 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         modelLonEl = "block"; modelLatEl = "block"; modelElevEl = "block";
         modelRotXEl = "block"; modelRotYEl = "block"; modelRotZEl = "block"; modelScaleEl = "block";
         maxzEl = "none"; strcolEl = "none"; filcolEl = "none"; weightEl = "none";
-        opacityEl = "none"; radiusEl = "none"; variableEl = "none";
+        opacityEl = "none"; radiusEl = "none"; variableEl = "block";
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
         timeEl = 'block'; timeTypeEl = 'block'; timeStartPropEl = 'none'; timeEndPropEl = 'none'; timeFormatEl = 'block'; timeCompositeTileEl = 'none'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
         shapeEl = 'none'; queryEndpointEl = "none"; queryTypeEl = "none";
@@ -2198,6 +2209,10 @@ function save(returnJSON) {
     json.time.format = $("#tab_time #time_format").val();
     json.time.initialstart = $("#tab_time #time_initialstart").val();
     json.time.initialend = $("#tab_time #time_initialend").val();
+    json.time.initialwindowstart = $(
+      "#tab_time #time_initialwindowstart"
+    ).val();
+    json.time.initialwindowend = $("#tab_time #time_initialwindowend").val();
 
     //Tools
     for (var i = 0; i < tData.length; i++) {
@@ -2456,6 +2471,17 @@ function save(returnJSON) {
           }
         }
         if (modalType == "tile" || modalType == "data") {
+          if (modalVariable != "undefined") {
+            try {
+              layerObject.variables = JSON.parse(modalVariable);
+            } catch (e) {
+              toast(
+                "warning",
+                `Skipping badly formed raw variable JSON of '${modalName}'`,
+                5000
+              );
+            }
+          }
           if (modalTileFormat != "undefined")
             layerObject.tileformat = modalTileFormat;
         }
@@ -2756,6 +2782,7 @@ function tilelayerPopulateFromXML(modalId) {
 
 function layerPopulateVariable(modalId, layerType) {
   modalId = "Variable" + modalId;
+
   if (layerEditors[modalId]) {
     var currentLayerVars = JSON.parse(layerEditors[modalId].getValue() || "{}");
 
@@ -2767,8 +2794,10 @@ function layerPopulateVariable(modalId, layerType) {
         value: "Example",
       },
     ];
+    currentLayerVars.shortcutSuffix = currentLayerVars.shortcutSuffix || null;
 
-    if (layerType == "data") {
+    if (layerType == "tile") {
+    } else if (layerType == "data") {
       currentLayerVars = currentLayerVars.shader
         ? { shader: currentLayerVars.shader }
         : {

@@ -16,15 +16,15 @@ export default {
         options = options || {}
         // prettier-ignore
         return [
-            `<dl class="dropy${options.openUp === true ? ' openUp' : ''}${options.dark === true ? ' dark' : ''}">`,
+            `<dl class="dropy${options.openUp === true ? ' openUp' : ''}${options.openHorizontal === true ? ' openHorizontal' : ''}${options.dark === true ? ' dark' : ''}">`,
                 `<dt class="dropy__title">`,
                     `<span>${options.forcePlaceholder ? placeholder : items[selectedIndex] != null ? items[selectedIndex] : placeholder}</span>`,
                     `${options.hideChevron === true ? '' : `<i class='mdi mdi-chevron-down mdi-18px'></i>`}`,    
                 `</dt>`,
                 '<dd class="dropy__content">',
-                    '<ul>',
+                    `<ul${options.openHorizontal === true && options.fixedItemWidth != null ? ` style="width: ${items.length * options.fixedItemWidth}px; transform: translateX(${(-items.length * options.fixedItemWidth / 2) + (options.fixedItemWidth / 2)}px) ;"`: ''}>`,
                         placeholder ? `<li><a class="dropy__header" style="pointer-events: none;">${placeholder}</a></li>` : '',
-                        items.map((item, i) => `<li><a${i === selectedIndex ? ' class="selected"' : ""} idx=${i} title="${typeof item === 'string' && item.includes('<') ? '' : item}">${item}</a></li>`).join('\n'),
+                        items.map((item, i) => `<li${options.fixedItemWidth != null ? ` style="width: ${options.fixedItemWidth}px;"`: ''}><a${i === selectedIndex ? ' class="selected"' : ""} idx=${i} title="${typeof item === 'string' && item.includes('<') ? '' : item}">${item}</a></li>`).join('\n'),
                     '</ul>',
                 '</dd>',
                 '<input type="hidden" name="first">',

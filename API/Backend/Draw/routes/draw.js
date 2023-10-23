@@ -12,6 +12,10 @@ const UserfilesTEST = ufiles.UserfilesTEST;
 const uf = require("../models/userfeatures");
 const Userfeatures = uf.Userfeatures;
 const UserfeaturesTEST = uf.UserfeaturesTEST;
+
+const filesutils = require("./filesutils");
+const getfile = filesutils.getfile;
+
 const { sequelize } = require("../../../connection");
 
 const router = express.Router();
@@ -238,7 +242,7 @@ const clipOver = function (
             added_id: added_id,
           },
         })
-        .spread((results) => {
+        .then(([results]) => {
           let oldIds = [];
           let newIds = [added_id];
 
@@ -379,7 +383,7 @@ const clipUnder = function (
             geom: JSON.stringify(newFeature.geom),
           },
         })
-        .spread((results) => {
+        .then(([results]) => {
           let oldIds = [];
           let newIds = [];
 
@@ -444,6 +448,137 @@ const clipUnder = function (
       failureCallback(err);
     });
 };
+
+const _templateConform = (req, from) => {
+  return new Promise((resolve, reject) => {
+    req.body.id = req.body.file_id;
+
+    getfile(req, {
+      send: (r) => {
+        if (r.status === "success") {
+          const geojson = r.body.geojson;
+          const template =
+            r.body.file?.[0]?.dataValues?.template?.template || [];
+          const existingProperties = JSON.parse(req.body.properties || "{}");
+          const templaterProperties = {};
+
+          template.forEach((t, idx) => {
+            switch (t.type) {
+              case "incrementer":
+                const nextIncrement = _getNextIncrement(
+                  existingProperties[t.field],
+                  t,
+                  geojson.features,
+                  existingProperties,
+                  from
+                );
+                if (nextIncrement.error != null) {
+                  reject(nextIncrement.error);
+                  return;
+                } else templaterProperties[t.field] = nextIncrement.newValue;
+                break;
+              default:
+            }
+          });
+
+          req.body.properties = JSON.stringify({
+            ...existingProperties,
+            ...templaterProperties,
+          });
+        }
+        resolve();
+        return;
+      },
+    });
+
+    function _getNextIncrement(value, t, layer, existingProperties) {
+      const response = {
+        newValue: value,
+        error: null,
+      };
+
+      let usedValues = [];
+      const split = (t._default || t.default).split("#");
+      const start = split[0];
+      const end = split[1];
+
+      for (let i = 0; i < layer.length; i++) {
+        if (layer[i] == null) continue;
+        let geojson = layer[i];
+        if (geojson?.properties?.[t.field] != null) {
+          let featuresVal = geojson?.properties?.[t.field];
+
+          featuresVal = featuresVal.replace(start, "").replace(end, "");
+
+          if (featuresVal !== "#") {
+            featuresVal = parseInt(featuresVal);
+            usedValues.push(featuresVal);
+          }
+        }
+      }
+
+      if ((response.newValue || "").indexOf("#") !== -1) {
+        // Actually increment the incrementer for the first time
+        let bestVal = 0;
+        usedValues.sort(function (a, b) {
+          return a - b;
+        });
+        usedValues = [...new Set(usedValues)]; // makes it unique
+        usedValues.forEach((v) => {
+          if (bestVal === v) bestVal++;
+        });
+        response.newValue = response.newValue.replace("#", bestVal);
+      } else if (existingProperties) {
+        let numVal = response.newValue.replace(start, "").replace(end, "");
+        if (numVal != "#") {
+          numVal = parseInt(numVal);
+          if (existingProperties[t.field] === response.newValue) {
+            // In case of a resave, make sure the id exists only once
+            let count = 0;
+            usedValues.forEach((v) => {
+              if (numVal === v) count++;
+            });
+            if (count > 1)
+              response.error = `Incrementing field: '${t.field}' is not unique`;
+          } else {
+            // In case a manual change, make sure the id is unique
+            if (usedValues.indexOf(numVal) !== -1)
+              response.error = `Incrementing field: '${t.field}' is not unique`;
+          }
+        }
+      }
+
+      // Check that the field still matches the surrounding string
+      const incRegex = new RegExp(`^${start}\\d+${end}$`);
+      if (incRegex.test(response.newValue) == false) {
+        response.error = `Incrementing field: '${t.field}' must follow syntax: '${start}{#}${end}'`;
+      }
+
+      // Check that incrementer is unique
+      let numMatches = 0;
+      for (let i = 0; i < layer.length; i++) {
+        if (layer[i] == null) continue;
+        let geojson = layer[i];
+        if (geojson?.properties?.[t.field] != null) {
+          let featuresVal = geojson?.properties?.[t.field];
+          if (
+            (value || "").indexOf("#") == -1 &&
+            response.newValue === featuresVal &&
+            geojson?.properties?.uuid != existingProperties.uuid
+          ) {
+            numMatches++;
+          }
+        }
+      }
+      // If we're are editing and the value did not change, allow a single match
+      if (numMatches > 0) {
+        response.error = `Incrementing field: '${t.field}' is not unique`;
+      }
+
+      return response;
+    }
+  });
+};
 /**
  * Adds a feature
  * {
@@ -457,13 +592,23 @@ const clipUnder = function (
  * 	geometry: <geometry> (required)
  * }
  */
-const add = function (
+const add = async function (
   req,
   res,
   successCallback,
   failureCallback1,
   failureCallback2
 ) {
+  let failedTemplate = false;
+  await _templateConform(req, "add").catch((err) => {
+    failedTemplate = err;
+  });
+  if (failedTemplate !== false) {
+    if (typeof failureCallback2 === "function")
+      failureCallback2(failedTemplate);
+    return;
+  }
+
   let Files = req.body.test === "true" ? UserfilesTEST : Userfiles;
   let Features = req.body.test === "true" ? UserfeaturesTEST : Userfeatures;
   let Histories = req.body.test === "true" ? FilehistoriesTEST : Filehistories;
@@ -670,7 +815,16 @@ router.post("/add", function (req, res, next) {
  * 	geometry: <geometry> (optional)
  * }
  */
-const edit = function (req, res, successCallback, failureCallback) {
+const edit = async function (req, res, successCallback, failureCallback) {
+  let failedTemplate = false;
+  await _templateConform(req, "edit").catch((err) => {
+    failedTemplate = err;
+  });
+  if (failedTemplate !== false) {
+    if (typeof failureCallback === "function") failureCallback(failedTemplate);
+    return;
+  }
+
   let Files = req.body.test === "true" ? UserfilesTEST : Userfiles;
   let Features = req.body.test === "true" ? UserfeaturesTEST : Userfeatures;
   let Histories = req.body.test === "true" ? FilehistoriesTEST : Filehistories;
@@ -832,7 +986,9 @@ router.post("/edit", function (req, res) {
       res.send({
         status: "failure",
         message: "Failed to edit feature.",
-        body: {},
+        body: {
+          error: err,
+        },
       });
     }
   );
@@ -1195,7 +1351,7 @@ router.post("/merge", function (req, res, next) {
               file_id: req.body.file_id,
             },
           })
-          .spread((results) => {
+          .then(([results]) => {
             let oldIds = req.body.ids.map(function (id) {
               return parseInt(id, 10);
             });
@@ -1355,7 +1511,7 @@ router.post("/split", function (req, res, next) {
               geom: JSON.stringify(geom),
             },
           })
-          .spread((results) => {
+          .then(([results]) => {
             //reformat results
             let r = [];
             for (var i = 0; i < results.length; i++) {
@@ -1598,7 +1754,7 @@ const makeMasterFilesTEST = (leadGroupName, callback) => {
         public: "1",
         hidden: "0",
       },
-    }).spread(function (userResult, created) {
+    }).then(function ([userResult, created]) {
       makeMasterFileTEST(i + 1, Table);
       return null;
     });
