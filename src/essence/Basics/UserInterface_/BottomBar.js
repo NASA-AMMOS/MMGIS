@@ -250,7 +250,7 @@ let BottomBar = {
             .append('i')
             .attr('id', 'bottomBarSettings')
             .attr('tabindex', 104)
-            .attr('class', 'mmgisHoverBlue mdi mdi-settings mdi-18px')
+            .attr('class', 'mmgisHoverBlue mdi mdi-cog mdi-18px')
             .style('padding', '5px 10px')
             .style('width', '40px')
             .style('height', '36px')
@@ -481,7 +481,7 @@ let BottomBar = {
             const modalContent = [
                 `<div id='mainSettingsModal'>`,
                     `<div id='mainSettingsModalTitle'>`,
-                        `<div><i class='mdi mdi-settings mdi-18px'></i><div>Settings</div></div>`,
+                        `<div><i class='mdi mdi-cog mdi-18px'></i><div>Settings</div></div>`,
                         `<div id='mainSettingsModalClose'><i class='mmgisHoverBlue mdi mdi-close mdi-18px'></i></div>`,
                     `</div>`,
                     `<div id='mainSettingsModalContent'>`,

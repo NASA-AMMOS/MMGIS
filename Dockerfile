@@ -14,9 +14,12 @@ RUN rm /usr/bin/python && ln -s /usr/bin/python3 /usr/bin/python
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY package*.json ./
+COPY python-requirements.txt ./
+RUN python -m pip install --upgrade pip && python -m pip install -r ./python-requirements.txt
 
+COPY package*.json ./
 RUN npm install
+
 
 # Bundle app source
 COPY . .

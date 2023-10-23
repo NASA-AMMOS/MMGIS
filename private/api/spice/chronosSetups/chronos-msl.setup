@@ -1,0 +1,29 @@
+\begindata
+    PATH_VALUES       = (
+                        './private/api/spice/kernels'
+                        )
+    PATH_SYMBOLS      = (
+                        'KERNELS'
+                        )
+    KERNELS_TO_LOAD   = (
+                        '$KERNELS/naif0012.tls'
+                        '$KERNELS/mar097s.bsp'
+
+                        '$KERNELS/MSL_76_SCLKSCET.00019.tsc'
+                        '$KERNELS/msl_lmst_ops120808_v1.tsc'
+
+                        '$KERNELS/pck00011.tpc'
+
+                        '$KERNELS/de440.bsp'
+                        
+                        '$KERNELS/msl_ls_ops120808_iau2000_v1.bsp'
+                        '$KERNELS/msl_atls_ops120808_v1.bsp'
+
+                        '$KERNELS/msl_v08.tf'
+                        )
+   SPACECRAFT_ID      = -76
+   CENTER_ID          = 499
+   LANDING_TIME       = '2012-08-06T05:17:57'
+   LANDING_SOL_INDEX  = 0
+   BODY10_GM          = 132712440035.0199
+\begintext

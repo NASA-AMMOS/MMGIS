@@ -65,6 +65,7 @@ const TimeUI = {
     init: function (timeChange, enabled) {
         TimeUI.timeChange = timeChange
         TimeUI.enabled = enabled
+
         // prettier-ignore
         const markup = [
             `<div id="mmgisTimeUI">`,
@@ -326,6 +327,8 @@ const TimeUI = {
             theme: 'blue',
         })
 
+        if (L_.configData.time?.startInPointMode == true)
+            TimeUI.modeIndex = TimeUI.modes.indexOf('Point')
         // Mode dropdown
         $('#mmgisTimeUIModeDropdown').html(
             Dropy.construct(TimeUI.modes, 'Mode', TimeUI.modeIndex, {
@@ -334,33 +337,9 @@ const TimeUI = {
             })
         )
         Dropy.init($('#mmgisTimeUIModeDropdown'), function (idx) {
-            TimeUI.modeIndex = idx
-            if (TimeUI.modes[TimeUI.modeIndex] === 'Point') {
-                $('#mmgisTimeUIStartWrapper').css({ display: 'none' })
-                // Remove end date enforcement
-                TimeUI.endTempus.updateOptions({
-                    restrictions: {
-                        minDate: new Date(0).toISOString(),
-                    },
-                })
-            } else {
-                $('#mmgisTimeUIStartWrapper').css({ display: 'inherit' })
-                // Reinforce min date
-                TimeUI.endTempus.updateOptions({
-                    restrictions: {
-                        minDate: TimeUI.startTempusSavedLastDate,
-                    },
-                })
-                if (TimeUI._startTimestamp >= TimeUI._endTimestamp) {
-                    const offsetStartDate = new Date(TimeUI._endTimestamp)
-                    const parsedStart = TimeUI.startTempus.dates.parseInput(
-                        new Date(offsetStartDate)
-                    )
-                    TimeUI.startTempus.dates.setValue(parsedStart)
-                }
-            }
-            TimeUI._remakeTimeSlider(true)
+            TimeUI.changeMode(idx)
         })
+
         // Step dropdown
         $('#mmgisTimeUIStepDropdown').html(
             Dropy.construct(
@@ -475,6 +454,9 @@ const TimeUI = {
             null,
             true
         )
+
+        if (L_.configData.time?.startInPointMode == true)
+            TimeUI.changeMode(TimeUI.modes.indexOf('Point'))
     },
     fina() {
         let date
@@ -527,6 +509,34 @@ const TimeUI = {
         if (TimeUI.enabled) {
             TimeUI._makeHistogram()
         }
+    },
+    changeMode(idx) {
+        TimeUI.modeIndex = idx
+        if (TimeUI.modes[TimeUI.modeIndex] === 'Point') {
+            $('#mmgisTimeUIStartWrapper').css({ display: 'none' })
+            // Remove end date enforcement
+            TimeUI.endTempus.updateOptions({
+                restrictions: {
+                    minDate: new Date(0).toISOString(),
+                },
+            })
+        } else {
+            $('#mmgisTimeUIStartWrapper').css({ display: 'inherit' })
+            // Reinforce min date
+            TimeUI.endTempus.updateOptions({
+                restrictions: {
+                    minDate: TimeUI.startTempusSavedLastDate,
+                },
+            })
+            if (TimeUI._startTimestamp >= TimeUI._endTimestamp) {
+                const offsetStartDate = new Date(TimeUI._endTimestamp)
+                const parsedStart = TimeUI.startTempus.dates.parseInput(
+                    new Date(offsetStartDate)
+                )
+                TimeUI.startTempus.dates.setValue(parsedStart)
+            }
+        }
+        TimeUI._remakeTimeSlider(true)
     },
     togglePlay(force) {
         const mode = TimeUI.modes[TimeUI.modeIndex]
