@@ -15,7 +15,7 @@ WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY python-requirements.txt ./
-RUN python -m pip install --upgrade pip && python -m pip -r ./python-requirements.txt
+RUN python -m pip install --upgrade pip && python -m pip install -r ./python-requirements.txt
 
 COPY package*.json ./
 RUN npm install
