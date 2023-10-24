@@ -325,7 +325,7 @@ function ensureAdmin(toLoginPage, denyLongTermTokens) {
 }
 
 function validateLongTermToken(token, successCallback, failureCallback) {
-  token = token.replace("Bearer ", "");
+  token = token.replace(/Bearer:?\s+/g, "");
 
   sequelize
     .query('SELECT * FROM "long_term_tokens" WHERE "token"=:token', {
