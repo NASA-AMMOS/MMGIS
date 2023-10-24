@@ -655,7 +655,13 @@ setups.getBackendSetups(function (setups) {
           1,
         ],
         function (error, stdout, stderr) {
-          res.send(stdout);
+          if (error) {
+            logger("warn", error)
+            res.status(400).send();
+          }
+          else {
+            res.send(stdout);
+          }
         }
       );
     }
@@ -677,7 +683,13 @@ setups.getBackendSetups(function (setups) {
         "python",
         ["private/api/BandsToProfile.py", path, x, y, xyorll, bands],
         function (error, stdout, stderr) {
-          res.send(stdout);
+          if (error) {
+            logger("warn", error)
+            res.status(400).send();
+          }
+          else {
+            res.send(stdout);
+          }
         }
       );
     }
