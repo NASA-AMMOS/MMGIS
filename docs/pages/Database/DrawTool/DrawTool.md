@@ -22,10 +22,13 @@ The `user_files` table stores an entry for each file a user created via the Draw
 - `file_owner_group`: In special cases, a group of users can be the owner of a file. This is currently hardcoded only for Lead users.
 - `file_name`: The name of the drawing file.
 - `file_description`: The description of the file. File tags also get encoded into this description field based on the following:
-  - ` ~^{str}`: denotes that this file is in a '{tag}' elevated(/prioritized) folder of the Draw Tool.
-  - ` ~@{str}`: denotes that this file is in a '{tag}' folder of the Draw Tool.
-  - ` ~#{str}`: denotes that this file has a tag of the name '{str}'
-    Ex. `This is the visible description. ~^elevFolder1 ~@normalFolder ~#tag1 ~#tag2`
+  - `~^{str}`: denotes that this file is in a `{tag}` elevated(/prioritized) folder of the Draw Tool.
+  - `~@{str}`: denotes that this file is in a `{tag}` folder of the Draw Tool.
+  - `~#{str}`: denotes that this file has a tag of the name `{str}`.
+
+  Ex. `This is the visible description. ~^elevFolder1 ~@normalFolder ~#tag1 ~#tag2`  
+   _Note: Each pattern must begin with a space_
+
 - `is_master`: Is this file one of the default Lead files.
 - `intent`: States the purpose of the file. While being deprecated, Lead Maps still uses this to differentiate between ROIs, Campaigns, etc. This field is important when uses the review/publish functionality.
 - `public`: Is the file visible to all users or just its owner.
