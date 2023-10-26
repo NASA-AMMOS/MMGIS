@@ -291,11 +291,6 @@ var QueryURL = {
         var viewerImg = L_.Viewer_.getLastImageId()
         var viewerLoc = L_.Viewer_.getLocation()
 
-        const timeEnabled =
-            L_.configData.time && L_.configData.time.enabled === true
-        var startTime = timeEnabled ? TimeControl.getStartTime() : null
-        var endTime = timeEnabled ? TimeControl.getEndTime() : null
-
         //mission
         var urlAppendage = '?mission=' + L_.mission
 
@@ -378,8 +373,14 @@ var QueryURL = {
         if (urlTools !== false) urlAppendage += '&tools=' + urlTools
 
         //time
-        if (L_.FUTURES.startTime) urlAppendage += '&startTime=' + startTime
-        if (L_.FUTURES.endTime) urlAppendage += '&endTime=' + endTime
+        if (L_.configData.time && L_.configData.time.enabled === true) {
+            // If the time UI is in the Range mode, then we have a start time
+            if (TimeControl.timeUI.modeIndex === 0)
+                if (TimeControl.startTime)
+                    urlAppendage += '&startTime=' + TimeControl.startTime
+            if (TimeControl.endTime)
+                urlAppendage += '&endTime=' + TimeControl.endTime
+        }
 
         var url = encodeURI(urlAppendage)
 

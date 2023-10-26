@@ -65,6 +65,7 @@ const TimeUI = {
     init: function (timeChange, enabled) {
         TimeUI.timeChange = timeChange
         TimeUI.enabled = enabled
+
         // prettier-ignore
         const markup = [
             `<div id="mmgisTimeUI">`,
@@ -133,6 +134,11 @@ const TimeUI = {
     },
     getElement: function () {},
     attachEvents: function (timeChange) {
+        let startingModeIndex = TimeUI.modeIndex
+        // Set modeIndex to 1/Point if a deeplink had an endtime but no starttime
+        if (L_.FUTURES.startTime == null && L_.FUTURES.endTime != null)
+            startingModeIndex = 1
+
         // Timeline pan and zoom
         // zoom
         $('#mmgisTimeUITimelineInner').on('mousewheel', function (e) {
@@ -328,39 +334,12 @@ const TimeUI = {
 
         // Mode dropdown
         $('#mmgisTimeUIModeDropdown').html(
-            Dropy.construct(TimeUI.modes, 'Mode', TimeUI.modeIndex, {
+            Dropy.construct(TimeUI.modes, 'Mode', startingModeIndex, {
                 openUp: true,
                 dark: true,
             })
         )
-        Dropy.init($('#mmgisTimeUIModeDropdown'), function (idx) {
-            TimeUI.modeIndex = idx
-            if (TimeUI.modes[TimeUI.modeIndex] === 'Point') {
-                $('#mmgisTimeUIStartWrapper').css({ display: 'none' })
-                // Remove end date enforcement
-                TimeUI.endTempus.updateOptions({
-                    restrictions: {
-                        minDate: new Date(0).toISOString(),
-                    },
-                })
-            } else {
-                $('#mmgisTimeUIStartWrapper').css({ display: 'inherit' })
-                // Reinforce min date
-                TimeUI.endTempus.updateOptions({
-                    restrictions: {
-                        minDate: TimeUI.startTempusSavedLastDate,
-                    },
-                })
-                if (TimeUI._startTimestamp >= TimeUI._endTimestamp) {
-                    const offsetStartDate = new Date(TimeUI._endTimestamp)
-                    const parsedStart = TimeUI.startTempus.dates.parseInput(
-                        new Date(offsetStartDate)
-                    )
-                    TimeUI.startTempus.dates.setValue(parsedStart)
-                }
-            }
-            TimeUI._remakeTimeSlider(true)
-        })
+        Dropy.init($('#mmgisTimeUIModeDropdown'), TimeUI.changeMode)
         // Step dropdown
         $('#mmgisTimeUIStepDropdown').html(
             Dropy.construct(
@@ -475,6 +454,10 @@ const TimeUI = {
             null,
             true
         )
+
+        // Set modeIndex to 1/Point if a deeplink had an endtime but no starttime
+        if (TimeUI.modeIndex != startingModeIndex)
+            TimeUI.changeMode(startingModeIndex)
     },
     fina() {
         let date
@@ -527,6 +510,35 @@ const TimeUI = {
         if (TimeUI.enabled) {
             TimeUI._makeHistogram()
         }
+    },
+    changeMode(idx) {
+        TimeUI.modeIndex = idx
+        if (TimeUI.modes[TimeUI.modeIndex] === 'Point') {
+            $('#mmgisTimeUIStartWrapper').css({ display: 'none' })
+
+            // Remove end date enforcement
+            TimeUI.endTempus.updateOptions({
+                restrictions: {
+                    minDate: new Date(0),
+                },
+            })
+        } else {
+            $('#mmgisTimeUIStartWrapper').css({ display: 'inherit' })
+            // Reinforce min date
+            TimeUI.endTempus.updateOptions({
+                restrictions: {
+                    minDate: TimeUI.startTempusSavedLastDate,
+                },
+            })
+            if (TimeUI._startTimestamp >= TimeUI._endTimestamp) {
+                const offsetStartDate = new Date(TimeUI._endTimestamp)
+                const parsedStart = TimeUI.startTempus.dates.parseInput(
+                    new Date(offsetStartDate)
+                )
+                TimeUI.startTempus.dates.setValue(parsedStart)
+            }
+        }
+        TimeUI._remakeTimeSlider(true)
     },
     togglePlay(force) {
         const mode = TimeUI.modes[TimeUI.modeIndex]
