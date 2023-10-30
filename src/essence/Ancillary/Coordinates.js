@@ -328,7 +328,12 @@ const Coordinates = {
     getLngLat: function () {
         return Coordinates.mouseLngLat
     },
-    getLatLng: function () {
+    getLatLng: function (asObject) {
+        if (asObject)
+            return {
+                lat: Coordinates.mouseLngLat[1],
+                lng: Coordinates.mouseLngLat[0],
+            }
         return [Coordinates.mouseLngLat[1], Coordinates.mouseLngLat[0]]
     },
     getAllCoordinates: function () {
@@ -805,6 +810,10 @@ function toggleTimeUI() {
     })
     $('#timeUI').css({
         bottom: timeBottom + (UserInterface.pxIsTools || 0) + 'px',
+    })
+
+    Object.keys(L_._onTimeUIToggleSubscriptions).forEach((k) => {
+        L_._onTimeUIToggleSubscriptions[k](!active)
     })
 }
 

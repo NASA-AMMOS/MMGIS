@@ -14,9 +14,20 @@ var LegendTool = {
     targetId: null,
     made: false,
     displayOnStart: false,
+    justification: 'left',
     initialize: function () {
         //Get tool variables
         this.displayOnStart = L_.getToolVars('legend')['displayOnStart']
+        this.justification = L_.getToolVars('legend')['justification']
+        if (this.justification == 'right') {
+            var toolController = d3.select('#toolcontroller_sepdiv')
+            var toolContent = d3.select('#toolContentSeparated_Legend')
+            toolController.style('top', '110px')
+            toolController.style('left', null)
+            toolController.style('right', '5px')
+            toolContent.style('left', null)
+            toolContent.style('right', '0px')
+        }        
     },
     make: function (targetId) {
         this.targetId = targetId

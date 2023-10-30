@@ -131,7 +131,7 @@ const makeMasterFiles = (intents) => {
         public: "1",
         hidden: "0",
       },
-    }).spread(function (userResult, created) {
+    }).then(function ([userResult, created]) {
       // userResult is the user instance
 
       if (created) {

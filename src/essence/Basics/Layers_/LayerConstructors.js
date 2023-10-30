@@ -67,10 +67,12 @@ export const constructVectorLayer = (
             if (feature.properties.hasOwnProperty('style')) {
                 let className = layerObj.style.className
                 let layerName = layerObj.style.layerName
+                layerObj.style = Object.assign({}, layerObj.style)
                 layerObj.style = {
-                    ...JSON.parse(JSON.stringify(layerObj.style)),
+                    ...layerObj.style,
                     ...JSON.parse(JSON.stringify(feature.properties.style)),
                 }
+
                 if (className) layerObj.style.className = className
                 if (layerName) layerObj.style.layerName = layerName
             } else {
@@ -1236,16 +1238,28 @@ const imageOverlays = (geojson, layerObj, leafletLayerObject) => {
                         L.imageTransform(imageSettings.image, anchors, {
                             opacity: 1,
                             clip: anchors,
+                            id: `${layerObj.name}${
+                                imageSettings.image
+                            }${angle}${JSON.stringify(center)}`,
                         }),
                     ])
                 },
             }
+        let existingOn = null
+        if (L_.layers.attachments[L_.asLayerUUID(layerObj.name)])
+            existingOn =
+                L_.layers.attachments[L_.asLayerUUID(layerObj.name)]
+                    .image_overlays.on
+
+        const isOn =
+            existingOn != null
+                ? existingOn
+                : imageVar.initialVisibility != null
+                ? imageVar.initialVisibility
+                : true
         return imageShow === 'always'
             ? {
-                  on:
-                      imageVar.initialVisibility != null
-                          ? imageVar.initialVisibility
-                          : true,
+                  on: isOn,
                   layer: L.geoJson(geojson, leafletLayerObjectImageOverlay),
                   title: 'Map rendered image overlays.',
               }

@@ -12,5 +12,6 @@
     "toolbarPriority": 1,
     "paths": {
         "LayersTool": "essence/Tools/Layers/LayersTool"
-    }
+    },
+    "expandable": true
 }

@@ -55,7 +55,7 @@ function get(reqtype, req, res, next) {
             .query(
               "SELECT properties, ST_AsGeoJSON(geom)" + " " + "FROM " + table
             )
-            .spread((results) => {
+            .then(([results]) => {
               let geojson = { type: "FeatureCollection", features: [] };
               for (let i = 0; i < results.length; i++) {
                 let properties = results[i].properties;
@@ -155,7 +155,7 @@ function get(reqtype, req, res, next) {
                 },
               }
             )
-            .spread((results) => {
+            .then(([results]) => {
               res.setHeader("Content-Type", "application/x-protobuf");
               res.setHeader("Access-Control-Allow-Origin", "*");
 
@@ -254,7 +254,7 @@ router.post("/search", function (req, res, next) {
               },
             }
           )
-          .spread((results) => {
+          .then(([results]) => {
             let r = [];
             for (let i = 0; i < results.length; i++) {
               let feature = JSON.parse(results[i].st_asgeojson);

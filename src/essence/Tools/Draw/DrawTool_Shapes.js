@@ -4,6 +4,10 @@ import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
 import CursorInfo from '../../Ancillary/CursorInfo'
+import LocalFilterer from '../../Ancillary/LocalFilterer'
+import Dropy from '../../../external/Dropy/dropy'
+
+import './DrawTool_Shapes.css'
 
 var DrawTool = null
 var Shapes = {
@@ -11,6 +15,7 @@ var Shapes = {
         DrawTool = tool
         DrawTool.populateShapes = Shapes.populateShapes
         DrawTool.updateCopyTo = Shapes.updateCopyTo
+        DrawTool.setSubmitButtonState = Shapes.setSubmitButtonState
     },
     populateShapes: function (fileId, selectedFeatureIds) {
         //If we get an array of fileIds, split them
@@ -20,7 +25,7 @@ var Shapes = {
                     DrawTool.populateShapes(fileId[i], selectedFeatureIds)
                 }
                 return
-                */
+            */
             fileId = 'master'
         }
 
@@ -33,12 +38,14 @@ var Shapes = {
         )
 
         //Populate shapes
+        const fileIds = []
         $('#drawToolShapesFeaturesList *').remove()
         for (var l in L_.layers.layer) {
             var s = l.split('_')
             var onId = s[1] != 'master' ? parseInt(s[1]) : s[1]
             if (s[0] == 'DrawTool' && DrawTool.filesOn.indexOf(onId) != -1) {
                 var file = DrawTool.getFileObjectWithId(s[1])
+                fileIds.push(onId)
                 if (L_.layers.layer[l].length > 0)
                     d3.select('#drawToolShapesFeaturesList')
                         .append('li')
@@ -62,7 +69,45 @@ var Shapes = {
                 }
             }
         }
+        Shapes.filters = Shapes.filters || {
+            values: [],
+            geojson: null,
+        }
+        try {
+            const mergedGeoJSON = F_.getBaseGeoJSON()
+            fileIds.forEach((fileId) => {
+                mergedGeoJSON.features = mergedGeoJSON.features.concat(
+                    DrawTool.fileGeoJSONFeatures[fileId]
+                )
+            })
+            Shapes.filters.geojson = mergedGeoJSON
+        } catch (err) {
+            console.log(err)
+            console.warn(
+                `Shapes Filtering - Cannot find GeoJSON to filter on for file ids: ${fileIds}`
+            )
+            return
+        }
+        Shapes.filters.aggs = LocalFilterer.getAggregations(
+            Shapes.filters.geojson
+        )
+        Shapes.attachEvents(fileIds)
+        // Start with one empty row added
+        if (
+            $(
+                '#drawToolShapes_filtering_filters_list .drawToolShapes_filtering_value'
+            ).length === 0
+        )
+            Shapes.addValue()
 
+        $('#drawToolShapesFilterAdvanced').off('click')
+        $('#drawToolShapesFilterAdvanced').on('click', function () {
+            $('#drawToolShapesFilterAdvanced').toggleClass('on')
+            $('#drawToolShapesFilterAdvancedDiv').toggleClass('on')
+            if (!$('#drawToolShapesFilterAdvanced').hasClass('on')) {
+                $(`#drawToolShapes_filtering_clear`).click()
+            }
+        })
         $('#drawToolShapesFilterClear').off('click')
         $('#drawToolShapesFilterClear').on('click', function () {
             $('#drawToolShapesFilter').val('')
@@ -480,6 +525,8 @@ var Shapes = {
                         }
                     })(layer, index, file.id)
                 )
+                $('body').off('keydown', Shapes.prevNext)
+                $('body').on('keydown', Shapes.prevNext)
             }
         }
 
@@ -725,6 +772,369 @@ var Shapes = {
         })
 
         //$( '#drawToolShapesCopySelect' ).dropdown( 'set selected', DrawTool.copyFilename || defaultOpt );
+    },
+    prevNext: function (e) {
+        let activeI = null
+        let shapes = []
+        $('.drawToolShapeLi').each(function (i) {
+            if ($(this).hasClass('active')) activeI = i
+            shapes.push($(this))
+        })
+        if (activeI != null) {
+            if (e.which === 37) {
+                // Up arrow
+                if (shapes[activeI - 1])
+                    shapes[activeI - 1].find('.drawToolShapeLiItem').click()
+            } else if (e.which === 39) {
+                // Down Arrow
+                if (shapes[activeI + 1])
+                    shapes[activeI + 1].find('.drawToolShapeLiItem').click()
+            }
+        }
+    },
+    //Shapes
+    addValue: function (value) {
+        let id, key, op, val
+        if (value) {
+            id = value.id
+            key = value.key != null ? ` value='${value.key}'` : ''
+            op = value.op
+            val = value.value != null ? ` value='${value.value}'` : ''
+        } else id = Shapes.filters.values.length
+
+        // prettier-ignore
+        const valueMarkup = [
+            `<div class='drawToolShapes_filtering_value' id='drawToolShapes_filtering_value_${id}'>`,
+                "<div class='drawToolShapes_filtering_value_key'>",
+                    `<input id='drawToolShapes_filtering_value_key_input_${id}' class='drawToolShapes_filtering_value_key_input' spellcheck='false' type='text'${key} placeholder='Property...'></input>`,
+                "</div>",
+                "<div class='drawToolShapes_filtering_value_operator'>",
+                    `<div id='drawToolShapes_filtering_value_operator_${id}' class='drawToolShapes_filtering_value_operator_select'></div>`,
+                "</div>",
+                "<div class='drawToolShapes_filtering_value_value'>",
+                    `<input id='drawToolShapes_filtering_value_value_input_${id}' class='drawToolShapes_filtering_value_value_input' spellcheck='false' type='text'${val} placeholder='Value...'></input>`,
+                    `<div class='drawToolShapes_filtering_value_value_type'>`,
+                        `<i id='drawToolShapes_filtering_value_value_type_number_${id}' style='display: none;' class='mdi mdi-numeric mdi-18px'></i>`,
+                        `<i id='drawToolShapes_filtering_value_value_type_string_${id}' style='display: none;'class='mdi mdi-alphabetical-variant mdi-18px'></i>`,
+                    `</div>`,
+                "</div>",
+                `<div id='drawToolShapes_filtering_value_clear_${id}' class='mmgisButton5 drawToolShapes_filtering_filters_clear'><i class='mdi mdi-close mdi-18px'></i></div>`,
+            "</div>",
+        ].join('\n')
+
+        $('#drawToolShapes_filtering_filters_list').append(valueMarkup)
+
+        if (value == null) {
+            Shapes.filters.values.push({
+                id: id,
+                type: null,
+                key: null,
+                op: '=',
+                value: null,
+            })
+        }
+
+        Shapes.attachValueEvents(id, { op: op })
+
+        // Show footer iff value rows exist
+        $('#drawToolShapes_filtering_footer').css(
+            'display',
+            Shapes.filters.values.length === 0 ? 'none' : 'flex'
+        )
+    },
+    // To highlight the submit button to indicate a change's been made in the form
+    setSubmitButtonState: function (active) {
+        if (active) {
+            $('#drawToolShapes_filtering_submit_text').text('Submit')
+            $('#drawToolShapes_filtering_submit').addClass('active')
+        } else if ($('#drawToolShapes_filtering_submit').hasClass('active')) {
+            $('#drawToolShapes_filtering_submit_text').text('Submitted')
+            $('#drawToolShapes_filtering_submit').removeClass('active')
+        }
+    },
+    attachEvents: function (fileIds) {
+        // Add Value
+        $('#drawToolShapes_filtering_add_value').off('click')
+        $('#drawToolShapes_filtering_add_value').on('click', function () {
+            Shapes.addValue()
+        })
+
+        // Submit
+        $(`#drawToolShapes_filtering_submit`).off('click')
+        $(`#drawToolShapes_filtering_submit`).on('click', async () => {
+            Shapes.setSubmitButtonState(true)
+            $(`#drawToolShapes_filtering_submit_loading`).addClass('active')
+            $(`.drawToolContextMenuHeaderClose`).click()
+
+            fileIds.forEach((fileId) => {
+                // Refilter to show all
+                const filter = {
+                    values: JSON.parse(JSON.stringify(Shapes.filters.values)),
+                    geojson: {
+                        type: 'FeatureCollection',
+                        features: DrawTool.fileGeoJSONFeatures[fileId],
+                    },
+                    aggs: JSON.parse(JSON.stringify(Shapes.filters.aggs)),
+                }
+                LocalFilterer.filter(
+                    `DrawTool_${fileId}`,
+                    filter,
+                    (filteredGeoJSON) => {
+                        DrawTool.refreshFile(
+                            fileId,
+                            null,
+                            true,
+                            null,
+                            null,
+                            null,
+                            filteredGeoJSON,
+                            true
+                        )
+                    }
+                )
+            })
+            $(`#drawToolShapes_filtering_submit_loading`).removeClass('active')
+            Shapes.setSubmitButtonState(false)
+        })
+
+        // Clear
+        $(`#drawToolShapes_filtering_clear`).off('click')
+        $(`#drawToolShapes_filtering_clear`).on('click', async () => {
+            $(`#drawToolShapes_filtering_submit_loading`).addClass('active')
+            Shapes.setSubmitButtonState(true)
+
+            // Clear value filter elements
+            Shapes.filters.values = Shapes.filters.values.filter((v) => {
+                if (v) $(`#drawToolShapes_filtering_value_${v.id}`).remove()
+                return false
+            })
+
+            $(`.drawToolContextMenuHeaderClose`).click()
+            fileIds.forEach((fileId) => {
+                // Refilter to show all
+                const filter = {
+                    values: JSON.parse(JSON.stringify(Shapes.filters.values)),
+                    geojson: {
+                        type: 'FeatureCollection',
+                        features: DrawTool.fileGeoJSONFeatures[fileId],
+                    },
+                    aggs: JSON.parse(JSON.stringify(Shapes.filters.aggs)),
+                }
+                LocalFilterer.filter(
+                    `DrawTool_${fileId}`,
+                    filter,
+                    (filteredGeoJSON) => {
+                        DrawTool.refreshFile(
+                            fileId,
+                            null,
+                            true,
+                            null,
+                            null,
+                            null,
+                            filteredGeoJSON,
+                            true
+                        )
+                    }
+                )
+            })
+            // Reset count
+            $('#drawToolShapes_filtering_count').text('')
+
+            Shapes.setSubmitButtonState(false)
+
+            $(`#drawToolShapes_filtering_submit_loading`).removeClass('active')
+        })
+    },
+    attachValueEvents: function (id, options) {
+        options = options || {}
+
+        let elmId
+
+        // Expand input boxes on focus
+        // Contract input boxes on blur
+        elmId = `#drawToolShapes_filtering_value_key_input_${id}`
+        $(elmId).on('focus', function () {
+            $(this).parent().css('flex', '4 1')
+        })
+        $(elmId).on('blur', function () {
+            $(this).parent().css('flex', '1 1')
+        })
+        elmId = `#drawToolShapes_filtering_value_value_input_${id}`
+        $(elmId).on('focus', function () {
+            $(this).parent().css('flex', '4 1')
+        })
+        $(elmId).on('blur', function () {
+            $(this).parent().css('flex', '1 1')
+        })
+        // Clear
+        elmId = `#drawToolShapes_filtering_value_clear_${id}`
+
+        $(elmId).on('click', () => {
+            // Clear value filter element
+            for (let i = 0; i < Shapes.filters.values.length; i++) {
+                const vId = Shapes.filters.values[i]?.id
+                if (vId != null && vId === id) {
+                    $(`#drawToolShapes_filtering_value_${vId}`).remove()
+                    Shapes.filters.values[i] = null
+                }
+            }
+            Shapes.setSubmitButtonState(true)
+        })
+
+        // Property Autocomplete
+        elmId = `#drawToolShapes_filtering_value_key_input_${id}`
+
+        let arrayToSearch = Object.keys(Shapes.filters.aggs)
+        arrayToSearch = arrayToSearch.sort((a, b) => b.localeCompare(a))
+
+        $(elmId).autocomplete({
+            lookup: arrayToSearch,
+            lookupLimit: 100,
+            minChars: 0,
+            transformResult: function (response, originalQuery) {
+                let resultSuggestions = []
+                $.map(response, function (jsonItem) {
+                    if (typeof jsonItem != 'string') {
+                        $.map(jsonItem, function (suggestionItem) {
+                            resultSuggestions.push(suggestionItem)
+                        })
+                    }
+                })
+                resultSuggestions.sort(function (a, b) {
+                    const aStart = String(a.value).match(
+                            new RegExp(originalQuery, 'i')
+                        ) || { index: -1 },
+                        bStart = String(b.value).match(
+                            new RegExp(originalQuery, 'i')
+                        ) || { index: -1 }
+                    if (aStart.index != bStart.index)
+                        return aStart.index - bStart.index
+                    else return a > b ? 1 : -1
+                })
+                response.suggestions = resultSuggestions
+                return response
+            },
+            onSelect: function (event) {
+                const property = Shapes.filters.aggs[event.value]
+                Shapes.filters.values[id].type = property.type
+                Shapes.filters.values[id].key = event.value
+                Shapes.updateValuesAutoComplete(id)
+                Shapes.setSubmitButtonState(true)
+                $(this).css('border', 'none')
+            },
+        })
+
+        $(elmId).on('blur', function (event) {
+            const property = Shapes.filters.aggs[event.value || $(this).val()]
+            if (property) {
+                if (
+                    Shapes.filters.values[id] &&
+                    Shapes.filters.values[id].key !== event.value
+                ) {
+                    Shapes.filters.values[id].key = event.value
+                    Shapes.filters.values[id].type = property.type
+                    Shapes.updateValuesAutoComplete(id)
+                    Shapes.setSubmitButtonState(true)
+                }
+                $(this).css('border', 'none')
+            } else $(this).css('border', '1px solid red')
+        })
+
+        // Operator Dropdown
+        elmId = `#drawToolShapes_filtering_value_operator_${id}`
+
+        const ops = ['=', ',', '<', '>']
+        const opId = Math.max(ops.indexOf(options.op), 0)
+        $(elmId).html(
+            Dropy.construct(
+                [
+                    `<i class='mdi mdi-equal mdi-18px' title='Equals'></i>`,
+                    `<div title='Comma-separated list' style='font-family: monospace;'>in</div>`,
+                    `<i class='mdi mdi-less-than mdi-18px' title='Less than'></i>`,
+                    `<i class='mdi mdi-greater-than mdi-18px' title='Greater than'></i>`,
+                ],
+                'op',
+                opId,
+                { openHorizontal: true, fixedItemWidth: 30, hideChevron: true }
+            )
+        )
+        Dropy.init($(elmId), function (idx) {
+            Shapes.filters.values[id].op = ops[idx]
+            Shapes.setSubmitButtonState(true)
+        })
+
+        // Value AutoComplete
+        Shapes.updateValuesAutoComplete(id)
+    },
+    updateValuesAutoComplete: function (id) {
+        let elmId = `#drawToolShapes_filtering_value_value_input_${id}`
+        let arrayToSearch = []
+        if (
+            Shapes.filters.values[id].key &&
+            Shapes.filters.aggs[Shapes.filters.values[id].key]
+        )
+            arrayToSearch = Object.keys(
+                Shapes.filters.aggs[Shapes.filters.values[id].key].aggs || {}
+            )
+        $(elmId).autocomplete({
+            lookup: arrayToSearch,
+            lookupLimit: 150,
+            minChars: 0,
+            transformResult: function (response, originalQuery) {
+                let resultSuggestions = []
+                $.map(response, function (jsonItem) {
+                    if (typeof jsonItem != 'string') {
+                        $.map(jsonItem, function (suggestionItem) {
+                            resultSuggestions.push(suggestionItem)
+                        })
+                    }
+                })
+                resultSuggestions.sort(function (a, b) {
+                    const aStart = String(a.value).match(
+                            new RegExp(originalQuery, 'i')
+                        ) || { index: -1 },
+                        bStart = String(b.value).match(
+                            new RegExp(originalQuery, 'i')
+                        ) || { index: -1 }
+                    if (aStart.index != bStart.index)
+                        return aStart.index - bStart.index
+                    else return a > b ? 1 : -1
+                })
+                response.suggestions = resultSuggestions
+                return response
+            },
+            onSelect: function (event) {
+                Shapes.filters.values[id].value = event.value
+                Shapes.setSubmitButtonState(true)
+            },
+        })
+        $(elmId).on('keyup', function (e) {
+            Shapes.filters.values[id].value = $(this).val()
+            Shapes.setSubmitButtonState(true)
+        })
+
+        $('.autocomplete-suggestions').css({
+            'max-height': '300px',
+            'border-top': 'none',
+        })
+
+        // Change type indicator icons too
+        const numberElmId = `#drawToolShapes_filtering_value_value_type_number_${id}`
+        const stringElmId = `#drawToolShapes_filtering_value_value_type_string_${id}`
+        switch (Shapes.filters.values[id].type) {
+            case 'number':
+                $(numberElmId).css('display', 'inherit')
+                $(stringElmId).css('display', 'none')
+                break
+            case 'string':
+                $(stringElmId).css('display', 'inherit')
+                $(numberElmId).css('display', 'none')
+                break
+            default:
+                $(numberElmId).css('display', 'none')
+                $(stringElmId).css('display', 'none')
+                break
+        }
     },
 }
 

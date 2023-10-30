@@ -1,63 +1,55 @@
-// ! OUTDATED
-// ! Just copy from existing tools
-
 //New Tool Template
-//In the very least, each tool needs to be defined through require.js and return
-// an object with 'make' and 'destroy' functions
-define([
-    'jquery',
-    'd3',
-    'Formulae_',
-    'Layers_',
-    'Globe_',
-    'Map_',
-    'Viewer_',
-], function ($, d3, F_, L_, Globe_, Map_, Viewer_) {
-    //Add the tool markup if you want to do it this way
-    // prettier-ignore
-    var markup = [].join('\n');
+import $ from 'jquery'
+import F_ from '../../Basics/Formulae_/Formulae_'
+import L_ from '../../Basics/Layers_/Layers_'
+import Map_ from '../../Basics/Map_/Map_'
 
-    var NewToolTemplate = {
-        height: 48,
-        width: 200,
-        MMGISInterface: null,
-        make: function () {
-            this.MMGISInterface = new interfaceWithMMGIS()
-        },
-        destroy: function () {
-            this.MMGISInterface.separateFromMMGIS()
-        },
-        getUrlString: function () {
-            return ''
-        },
+//Add the tool markup if you want to do it this way
+
+// prettier-ignore
+const markup = [
+    `<div id='newTool'>`,
+    `</div>`
+].join('\n');
+
+const NewToolTemplate = {
+    height: 0,
+    width: 300,
+    MMGISInterface: null,
+    make: function () {
+        this.MMGISInterface = new interfaceWithMMGIS()
+    },
+    destroy: function () {
+        this.MMGISInterface.separateFromMMGIS()
+    },
+    getUrlString: function () {
+        return ''
+    },
+}
+
+//
+function interfaceWithMMGIS() {
+    this.separateFromMMGIS = function () {
+        separateFromMMGIS()
     }
 
-    //
-    function interfaceWithMMGIS() {
-        this.separateFromMMGIS = function () {
-            separateFromMMGIS()
-        }
+    //MMGIS should always have a div with id 'toolPanel'
+    let tools = d3.select('#toolPanel')
+    tools.style('background', 'var(--color-k)')
+    //Clear it
+    tools.selectAll('*').remove()
 
-        //MMGIS should always have a div with id 'tools'
-        var tools = d3.select('#tools')
-        //Clear it
-        tools.selectAll('*').remove()
-        //Add a semantic container
-        tools = tools
-            .append('div')
-            .attr('class', 'center aligned ui padded grid')
-            .style('height', '100%')
-        //Add the markup to tools or do it manually
-        //tools.html( markup );
+    tools = tools.append('div').style('height', '100%')
+    //Add the markup to tools or do it manually
+    tools.html(markup)
 
-        //Add event functions and whatnot
+    //Add event functions and whatnot
 
-        //Share everything. Don't take things that aren't yours.
-        // Put things back where you found them.
-        function separateFromMMGIS() {}
-    }
+    //Share everything. Don't take things that aren't yours.
+    // Put things back where you found them.
+    function separateFromMMGIS() {}
+}
 
-    //Other functions
+//Other functions
 
-    return NewToolTemplate
-})
+export default NewToolTemplate

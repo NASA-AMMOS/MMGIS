@@ -79,7 +79,7 @@ function makeNewDatasetTable(name, columns, success, failure) {
       } else {
         sequelize
           .query("SELECT COUNT(*) FROM datasets")
-          .spread((results) => {
+          .then(([results]) => {
             let newTable = "d" + (parseInt(results[0].count) + 1) + "_datasets";
             Datasets.create({
               name: name,

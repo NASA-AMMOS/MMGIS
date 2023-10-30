@@ -1,7 +1,13 @@
 {
     "defaultIcon": "map-legend",
     "description": "Show a chart mapping colors and symbols to meaning.",
-    "descriptionFull": "",
+    "descriptionFull": {
+        "title": "Show a chart legend that maps colors and symbols to meaning.",
+        "example": {
+            "displayOnStart": true,
+            "justification": "right"
+        }
+    },
     "hasVars": true,
     "name": "Legend",
     "toolbarPriority": 2,

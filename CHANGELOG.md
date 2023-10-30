@@ -1,5 +1,60 @@
 # MMGIS Changelog
 
+## 2.9.0
+
+_Sept 5, 2023_
+
+#### Summary
+
+This release makes Layer IDs based on UUIDs instead of their layer names, greatly improves support for the dimension of time, adds property templates and group editing to DrawTool files, adds ability to link features together, upgrades our tiling scripts, and streamlines installations among other things.
+
+#### Added
+
+- Examples of wrapping MMGIS in an IFrame under `/examples`
+- A full features TimeUI/Timeline Scrubber
+- The InfoTool scans for and makes clickable url links
+- Support for Composite Time Tiles that merge tiles across a time range on-the-fly on the backend
+- Configurable Context Menu actions
+- Polygons can have right-click context menu actions and form links with their WKT strings
+- A GitHub workflow now builds [MMGIS docker images](https://github.com/NASA-AMMOS/MMGIS/pkgs/container/mmgis)
+- The ability to pair features from one layer to another and render those paired targets in the Photosphere view.
+- Optional Websocket verification to the configure page to notify of concurrent users.
+- Ability to export the "working" configuration JSON from the configure page
+- GET `/api/configure/missions` now supports the `full` parameter to return all configuration objects as well
+- DrawTool users can enforce property template on their files
+- Adds a `MAIN_MISSION` ENV that skips the landing page even if there are many missions
+- Grouping editing for DrawTool files
+- All endpoints can use longtermtokens
+- The LegendTool can optionally be exposed as a togglable popup as well as other improvements
+- Various additions to the `mmgisAPI`
+- Upgraded gdal2customtiles to use gdal 3.5.2 and to support tiling in any projection
+- GeoJSON validation on layers.
+- GeoJSON data can be an empty []
+- Clicking intersects all features making impossible-to-reach features accessible through the InfoTool
+- The DrawTool is integrated with time.
+
+#### Changed
+
+- Layers use UUIDs and identifiers instead of their layer names (backwards-compatibility still maintained)
+- The ENV `PUBLIC_URL` is deprecated in fovar of the new `ROOT_PATH`. Unlike `PUBLIC_URL`, `ROOT_PATH` can fully be changed at runtime
+- Database and POSTGIS extension are automatically created if they don't exist
+- Upgraded the configure page's jquery from `1.11.1` to `3.6.1`
+
+#### Fixed
+
+- `ENABLE_MMGIS_WEBSOCKETS` name in sample.env
+- Websockets try to reconnect and with exponential backoff
+- Various issues regarding time layers
+- Various issues regarding WMS layers
+- MMGIS can now work with NodeJS 18+
+- Bug where initially on annotations features have no click events
+- Bug where having the cursor over an annotation on the Map prevented pans and zooms
+- Fixed the `angleUnit` property for image layer attachments
+- Cloning a layer in the configure page
+- Issue where logging in with AUTH=local would infinitely reload
+
+---
+
 ## 2.8.0
 
 _Nov 14, 2022_

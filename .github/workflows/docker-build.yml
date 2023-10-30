@@ -111,7 +111,7 @@ jobs:
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login -u ${{ github.actor }} --password-stdin ghcr.io
 
       - name: Docker build
-        run: docker build ${{ steps.generate.outputs.REGISTRY_TAGS }} .
+        run: docker build --no-cache ${{ steps.generate.outputs.REGISTRY_TAGS }} .
 
       - name: Docker push
         run: docker push ${{ steps.generate.outputs.IMAGE_ID }} --all-tags

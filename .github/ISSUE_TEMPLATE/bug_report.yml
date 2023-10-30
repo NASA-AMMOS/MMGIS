@@ -1,0 +1,59 @@
+name: Bug Report Form
+description: Report a bug to help us improve
+title: "[Bug]: "
+labels: "bug"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > _Thanks for filing a bug ticket. We appreciate your time and effort. Please answer a few questions._
+  - type: dropdown
+    id: checked-for-duplicates
+    attributes:
+      label: Checked for duplicates
+      description: Have you checked for duplicate issue tickets?
+      multiple: false
+      options:
+        - "Yes - I've already checked"
+        - "No - I haven't checked"
+    validations:
+      required: yes
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is. Plain-text snippets preferred but screenshots welcome.
+      placeholder: Tell us what you saw
+      value: "When I did [...] action, I noticed [...]"
+    validations:
+      required: true
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: What did you expect?
+      description: A clear and concise description of what you expect to happen
+      placeholder: Tell us what you expected
+      value: "I expected [...]"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproducible steps
+      description: "How would we reproduce this bug? Please walk us through it step by step. Plain-text snippets preferred but screenshots welcome."
+      value: |
+        1.
+        2.
+        3.
+        ...
+      render: bash
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: "What is your environment? Include any computer hardware, operating system, framework, browser, time-of-day or other contextual information related to your issue"
+      value: |
+        - Version of this software [e.g. vX.Y.Z]
+        - Operating System: [e.g. MacOSX with Docker Desktop vX.Y]
+        ...
+      render: bash

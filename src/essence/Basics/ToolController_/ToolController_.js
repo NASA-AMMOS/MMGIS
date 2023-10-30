@@ -1,7 +1,7 @@
 import $ from 'jquery'
 import * as d3 from 'd3'
 import L_ from '../Layers_/Layers_'
-import { toolModules } from '../../../pre/tools'
+import { toolModules, toolConfigs } from '../../../pre/tools'
 
 import tippy from 'tippy.js'
 
@@ -98,12 +98,16 @@ let ToolController_ = {
                                     else tM.destroy()
 
                                     // Dispatch `toggleSeparatedTool` event
-                                    let _event = new CustomEvent('toggleSeparatedTool', {
-                                        detail: {
-                                            toggledToolName: ToolController_.tools[i].js,
-                                            visible: tM.made,
-                                        },
-                                    })
+                                    let _event = new CustomEvent(
+                                        'toggleSeparatedTool',
+                                        {
+                                            detail: {
+                                                toggledToolName:
+                                                    ToolController_.tools[i].js,
+                                                visible: tM.made,
+                                            },
+                                        }
+                                    )
                                     document.dispatchEvent(_event)
                                 }
                             }
@@ -165,6 +169,16 @@ let ToolController_ = {
                                         background: ToolController_.activeBG,
                                     })
                                 }
+
+                                // Toggle drag handle
+                                $('#toolPanelDrag').css(
+                                    'display',
+                                    toolConfigs[tools[i].name]?.expandable ===
+                                        true
+                                        ? 'block'
+                                        : 'none'
+                                )
+
                                 ToolController_.makeTool(
                                     ToolController_.toolModuleNames[i]
                                 )
@@ -256,11 +270,11 @@ let ToolController_ = {
                         this.UserInterface.closeToolPanel()
                     }
                     /*
-              if( this.prevHeight != this.activeTool.height && this.UserInterface != null ) {
-                this.UserInterface.setToolHeight( this.activeTool.height );
-              }
-              this.prevHeight = this.activeTool.height;
-              */
+                    if( this.prevHeight != this.activeTool.height && this.UserInterface != null ) {
+                        this.UserInterface.setToolHeight( this.activeTool.height );
+                    }
+                    this.prevHeight = this.activeTool.height;
+                    */
 
                     this.activeTool.make(this)
                 } else {

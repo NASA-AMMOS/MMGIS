@@ -45,6 +45,9 @@
 #layersTool #filterLayers > div {
     display: flex;
 }
+#layersTool #filterLayers > .right {
+    margin-right: 24px;
+}
 #layersTool #filterLayers > .right > div {
     width: 24px;
     height: 28px;
@@ -86,7 +89,8 @@
 }
 #layersTool #searchLayers input {
     background: var(--color-a1);
-    width: 279px;
+    flex: 1;
+    margin-right: 62px;
     color: #ccc;
     padding-left: 28px;
     border: none;

@@ -164,3 +164,13 @@ dd {
 .dropy.openUp .dropy__content > ul {
     transform: translateY(-100%);
 }
+
+.dropy.openUp .dropy__content {
+    top: unset;
+}
+.dropy.openUp .dropy__content > ul {
+    transform: translateY(-100%);
+}
+.dropy.openHorizontal .dropy__content > ul {
+    display: flex;
+}

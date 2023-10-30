@@ -17,6 +17,7 @@ import Viewer_ from '../../Basics/Viewer_/Viewer_'
 import ToolController_ from '../../Basics/ToolController_/ToolController_'
 import CursorInfo from '../../Ancillary/CursorInfo'
 import Description from '../../Ancillary/Description'
+import TimeControl from '../../Ancillary/TimeControl'
 import { Kinds } from '../../../pre/tools'
 import turf from 'turf'
 
@@ -25,6 +26,7 @@ import calls from '../../../pre/calls'
 import './DrawTool.css'
 
 import tippy from 'tippy.js'
+import hotkeys from 'hotkeys-js'
 
 // Plugins
 import DrawTool_Geologic from './Plugins/Geologic/DrawTool_Geologic'
@@ -80,7 +82,7 @@ var markup = [
                             "<div title='Clip drawing of existing shapes'>Draw Clipping</div>",
                             "<div id='drawToolDrawSettingsTier' class='drawToolRadio'>",
                                 "<div value='over'>Over</div>",
-                                "<div class='active' value='under'>Under</div>",
+                                "<div value='under'>Under</div>",
                                 "<div value='off'>Off</div>",
                             "</div>",
                         "</li>",
@@ -215,9 +217,29 @@ var markup = [
 
         "<div id='drawToolShapes'>",
           "<div id='drawToolShapesFilterDiv'>",
+            "<div id='drawToolShapesFilterAdvanced'><i class='mdi mdi-filter mdi-18px'></i></div>",
             "<input id='drawToolShapesFilter' type='text' placeholder='Filter Shapes' />",
             "<div id='drawToolShapesFilterClear'><i class='mdi mdi-close mdi-18px'></i></div>",
             "<div id='drawToolShapesFilterCount'></div>",
+          "</div>",
+          "<div id='drawToolShapesFilterAdvancedDiv'>",
+            "<div id='drawToolShapes_filtering'>",
+                "<div id='drawToolShapes_filtering_header'>",
+                    "<div id='drawToolShapes_filtering_title_left'>",
+                        "<div id='drawToolShapes_filtering_title'>Advanced Filter</div>",
+                    "</div>",
+                    "<div id='drawToolShapes_filtering_adds'>",
+                        "<div id='drawToolShapes_filtering_add_value' class='mmgisButton5' title='Add New Key-Value Filter'><div>Add</div><i class='mdi mdi-plus mdi-18px'></i></div>",
+                    "</div>",
+                "</div>",
+                "<div id='drawToolShapes_filtering_filters'>",
+                    "<ul id='drawToolShapes_filtering_filters_list'></ul>",
+                "</div>",
+                `<div id='drawToolShapes_filtering_footer'>`,
+                    "<div id='drawToolShapes_filtering_clear' class='mmgisButton5'><div>Clear Filter</div></div>",
+                    "<div id='drawToolShapes_filtering_submit' class='mmgisButton5'><div id='drawToolShapes_filtering_submit_loading'><div></div></div><div id='drawToolShapes_filtering_submit_text'>Submit</div><i class='mdi mdi-arrow-right mdi-18px'></i></div>",
+                "</div>",
+            "</div>",
           "</div>",
           "<div id='drawToolDrawShapesList' class='mmgisScrollbar2'>",
             "<ul id='drawToolShapesFeaturesList' class='unselectable'>",
@@ -280,6 +302,7 @@ var DrawTool = {
     allTags: {}, //<tag>: count, ...
     tags: [],
     labelsOn: [],
+    fileGeoJSONFeatures: {},
     palettes: [
         [
             '#26a8ff',
@@ -782,7 +805,8 @@ var DrawTool = {
                 $('#drawToolShapesCopyDropdown *').remove()
                 DrawTool.endDrawing()
                 DrawTool.populateShapes()
-                $('#drawToolShapes').css('display', 'inherit')
+                $('#drawToolShapes').css('display', 'flex')
+                DrawTool.setSubmitButtonState(true)
                 break
             case 'history':
                 $('.drawToolContextMenuHeaderClose').click()
@@ -1229,8 +1253,165 @@ var DrawTool = {
         geojson.features = templateEnforcedFeatures
         return geojson
     },
-}
+    _isFeatureTemporallyVisible(feature, startField, endField) {
+        if (DrawTool.timeToggledOn !== true) return true
+        const startTime = F_.removeTimeZoneOffset(
+            new Date(L_.TimeControl_.getStartTime()).getTime()
+        )
+        const endTime = F_.removeTimeZoneOffset(
+            new Date(L_.TimeControl_.getEndTime()).getTime()
+        )
 
+        let startTimeValue = false
+        if (startField)
+            startTimeValue = F_.getIn(feature.properties, startField, 0)
+        let endTimeValue = false
+        if (endField)
+            endTimeValue = F_.getIn(feature.properties, endField, false)
+
+        // No prop, won't show
+        if (endTimeValue === false) return false
+        else if (
+            typeof endTimeValue === 'string' &&
+            endTimeValue.indexOf('T') != -1
+        )
+            endTimeValue += 'Z'
+
+        if (startTimeValue === false) {
+            //Single Point in time, just compare end times
+            let endDate = new Date(endTimeValue)
+            if (endDate === 'Invalid Date') return false
+
+            endDate = endDate.getTime()
+            if (endDate <= endTime && endDate >= startTime) return true
+            return false
+        } else {
+            if (
+                typeof startTimeValue === 'string' &&
+                startTimeValue.indexOf('T') != -1
+            )
+                startTimeValue += 'Z'
+            // Then we have a range
+            let startDate = new Date(startTimeValue)
+            let endDate = new Date(endTimeValue)
+
+            // Bad prop value, won't show
+            if (startDate === 'Invalid Date' || endDate === 'Invalid Date')
+                return false
+
+            startDate = startDate.getTime()
+            endDate = endDate.getTime()
+            if (endTime < startDate) return false
+            if (startTime > endDate) return false
+
+            return true
+        }
+    },
+    timeFilterDrawingLayer(fileId) {
+        if (L_.layers.layer[`DrawTool_${fileId}`]) {
+            DrawTool.setSubmitButtonState(true)
+            const file = DrawTool.getFileObjectWithId(fileId)
+
+            let startField
+            let endField
+            if (file?.template?.template) {
+                file.template.template.forEach((t) => {
+                    if (startField == null && t.isStart === true)
+                        startField = t.field
+                    if (endField == null && t.isEnd === true) endField = t.field
+                })
+            }
+            L_.layers.layer[`DrawTool_${fileId}`].forEach((l, index) => {
+                if (l == null) return
+                if (l.feature == null) {
+                    if (l._layers) {
+                        Object.keys(l._layers).forEach((l2) => {
+                            l2 = l._layers[l2]
+                            if (l2.feature) {
+                                const isVisible =
+                                    DrawTool._isFeatureTemporallyVisible(
+                                        l2.feature,
+                                        startField,
+                                        endField
+                                    )
+
+                                if (l2.savedOptions == null)
+                                    l2.savedOptions = {
+                                        opacity: l2.options.opacity,
+                                        fillOpacity: l2.options.fillOpacity,
+                                    }
+
+                                l2.temporallyHidden = !isVisible
+                                if (l2.temporallyHidden)
+                                    $(
+                                        `#drawToolShapeLiItem_DrawTool_${fileId}_${index}`
+                                    ).addClass('temporallyHidden')
+                                else
+                                    $(
+                                        `#drawToolShapeLiItem_DrawTool_${fileId}_${index}`
+                                    ).removeClass('temporallyHidden')
+                                if (l2.temporallyHidden) {
+                                    l2.setStyle({
+                                        opacity: 0,
+                                        fillOpacity: 0,
+                                    })
+                                    if (l2._path?.style)
+                                        l2._path.style.pointerEvents = 'none'
+                                } else if (l2.savedOptions) {
+                                    l2.setStyle({
+                                        opacity: l2.savedOptions.opacity,
+                                        fillOpacity:
+                                            l2.savedOptions.fillOpacity,
+                                    })
+                                    if (l2._path?.style)
+                                        l2._path.style.pointerEvents = 'all'
+                                }
+                            }
+                        })
+                    }
+                } else {
+                    const isVisible = DrawTool._isFeatureTemporallyVisible(
+                        l.feature,
+                        startField,
+                        endField
+                    )
+                    if (l.savedOptions == null)
+                        l.savedOptions = {
+                            opacity: l.options.opacity,
+                            fillOpacity: l.options.fillOpacity,
+                        }
+
+                    l.temporallyHidden = !isVisible
+                    if (l.temporallyHidden)
+                        $(
+                            `#drawToolShapeLiItem_DrawTool_${fileId}_${index}`
+                        ).addClass('temporallyHidden')
+                    else
+                        $(
+                            `#drawToolShapeLiItem_DrawTool_${fileId}_${index}`
+                        ).removeClass('temporallyHidden')
+                    if (l.setStyle) {
+                        if (l.temporallyHidden) {
+                            l.setStyle({
+                                opacity: 0,
+                                fillOpacity: 0,
+                            })
+                            if (l._path?.style)
+                                l._path.style.pointerEvents = 'none'
+                        } else if (l.savedOptions) {
+                            l.setStyle({
+                                opacity: l.savedOptions.opacity,
+                                fillOpacity: l.savedOptions.fillOpacity,
+                            })
+                            if (l._path?.style)
+                                l._path.style.pointerEvents = 'all'
+                        }
+                    }
+                }
+            })
+        }
+    },
+}
 //
 function interfaceWithMMGIS() {
     this.separateFromMMGIS = function () {
@@ -1244,8 +1425,60 @@ function interfaceWithMMGIS() {
     tools.selectAll('*').remove()
     //Add a semantic container
     tools = tools.append('div').style('height', '100%')
+
     //Add the markup to tools or do it manually
     tools.html(markup)
+
+    // Set defaultDrawClipping if any
+    $(
+        `#drawToolDrawSettingsTier > [value="${
+            ['over', 'under', 'off'].includes(DrawTool.vars.defaultDrawClipping)
+                ? DrawTool.vars.defaultDrawClipping
+                : 'under'
+        }"]`
+    ).addClass('active')
+
+    // Add time indicator
+    if (L_.configData?.time?.enabled === true) {
+        // prettier-ignore
+        $('body').append([
+            `<div id="DrawTool_TimeToggle">`,
+                `<div>Temporal Drawings</div>`,
+                `<div class="mmgisToggleSwitch">`,
+                    `<input type="checkbox" id="DrawTool_TimeToggle_switch"/>`,
+                    `<label for="DrawTool_TimeToggle_switch">Toggle</label>`,
+                `</div>`,
+            `</div>`
+        ].join('\n'))
+        $('#DrawTool_TimeToggle').css(
+            'display',
+            $('#toggleTimeUI.active').length > 0 ? 'flex' : 'none'
+        )
+
+        $('#DrawTool_TimeToggle_switch').on('input', function (e) {
+            // Toggle edit panel off
+            $('.drawToolContextMenuHeaderClose').click()
+            DrawTool.timeToggledOn = $(this).is(':checked')
+            DrawTool.filesOn.forEach((fileId) => {
+                DrawTool.timeFilterDrawingLayer(fileId)
+            })
+        })
+        L_.subscribeTimeChange('DrawTool', (times) => {
+            DrawTool.filesOn.forEach((fileId) => {
+                DrawTool.timeFilterDrawingLayer(fileId)
+            })
+        })
+        L_.subscribeOnTimeUIToggle('DrawTool', (active) => {
+            $('#DrawTool_TimeToggle').css('display', active ? 'flex' : 'none')
+        })
+        tippy('#DrawTool_TimeToggle', {
+            content:
+                'Only display drawings whose templated dates fall within the current time window.',
+            placement: 'bottom',
+            theme: 'blue',
+            maxWidth: 700,
+        })
+    }
 
     tippy('#drawToolDrawFilesNew', {
         content: 'New File',
@@ -1606,11 +1839,41 @@ function interfaceWithMMGIS() {
         )
     })
 
+    // Toggle on and off last file
+    hotkeys(`alt+1`, { keyUp: true, keyDown: false }, (e, handler) => {
+        if (e.repeat) return
+        if (DrawTool.lastToggledFileId != null) {
+            if (DrawTool.filesOn.indexOf(DrawTool.lastToggledFileId) != -1)
+                $(
+                    '.drawToolFileCheckbox[file_id="' +
+                        DrawTool.lastToggledFileId +
+                        '" ]'
+                ).removeClass('on')
+            else
+                $(
+                    '.drawToolFileCheckbox[file_id="' +
+                        DrawTool.lastToggledFileId +
+                        '" ]'
+                ).addClass('on')
+            DrawTool.toggleFile(
+                DrawTool.lastToggledFileId,
+                null,
+                true,
+                null,
+                true
+            )
+        }
+    })
+
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
     function separateFromMMGIS() {
+        hotkeys.unbind(`alt+1`)
         DrawTool.endDrawing()
         $('.drawToolContextMenuHeaderClose').click()
+        L_.unsubscribeTimeChange('DrawTool')
+        L_.unsubscribeOnTimeUIToggle('DrawTool')
+        $('#DrawTool_TimeToggle').remove()
         DrawTool.open = false
     }
 }

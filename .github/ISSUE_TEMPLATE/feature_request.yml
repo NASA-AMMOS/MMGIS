@@ -1,0 +1,48 @@
+name: New Feature Form
+description: Suggest a new feature for us to implement
+title: "[New Feature]: "
+labels: "enhancement"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > _Thanks for filing a new feature request. We appreciate your time and effort. Please answer a few questions._
+  - type: dropdown
+    id: checked-for-duplicates
+    attributes:
+      label: Checked for duplicates
+      description: Have you checked for duplicate issue tickets?
+      multiple: false
+      options:
+        - "Yes - I've already checked"
+        - "No - I haven't checked"
+    validations:
+      required: yes
+  - type: dropdown
+    id: checked-alternatives
+    attributes:
+      label: Alternatives considered
+      description: Have you considered alternative solutions to your feature request?
+      options:
+        - "Yes - and alternatives don't suffice"
+        - "No - I haven't considered"
+    validations:
+      required: yes
+  - type: textarea
+    id: related-problems
+    attributes:
+      label: Related problems
+      description: Is your feature request related to any problems? Please help us understand if so, including linking to any other issue tickets.
+      placeholder: Tell us the problems
+      value: "I'm frustrated when [...] happens as documented in issue-XYZ"
+    validations:
+      required: false
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the feature request
+      description: A clear and concise description of your request. 
+      placeholder: Tell us what you want
+      value: "I need or want [...]"
+    validations:
+      required: true

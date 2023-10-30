@@ -57,6 +57,7 @@
 #drawToolNav {
     padding: 0px 10px;
     height: 41px;
+    margin-right: 15px;
     display: flex;
     justify-content: space-between;
     text-align: center;
@@ -72,7 +73,7 @@
     line-height: 30px;
     vertical-align: middle;
     cursor: pointer;
-    padding: 6px 6px 5px 4px;
+    padding: 5px 6px 6px 4px;
     color: rgba(255, 255, 255, 0.5);
     transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
 }
@@ -309,74 +310,6 @@
     height: 30px;
 }
 
-#drawToolShapesCopyDiv {
-    background: var(--color-a);
-    display: flex;
-    width: 100%;
-    height: 34px;
-    border-top: 1px solid var(--color-d);
-    padding: 4px 4px 1px 4px;
-    justify-content: space-between;
-}
-#drawToolShapesCopyDiv > div:first-child {
-    line-height: 27px;
-    font-weight: bold;
-    width: 48px;
-    color: var(--color-f);
-    font-size: 13px;
-}
-#drawToolShapesCopyDiv > div:last-child {
-    width: 48px;
-    color: white;
-    background: var(--color-a2);
-    font-size: 13px;
-    padding: 7px;
-    position: relative;
-    height: 25px;
-    line-height: 11px;
-    text-align: center;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-}
-#drawToolShapesCopyDiv > div:last-child:hover {
-    background: var(--color-c);
-}
-
-#drawToolShapesCopyDiv select {
-    height: 24px !important;
-    padding: unset !important;
-}
-
-#drawToolShapesCopyDropdown {
-    border: 1px solid var(--color-e);
-    flex: 1;
-    height: 25px;
-    margin: 0px 5px;
-    cursor: not-allowed;
-}
-#drawToolShapesCopyDropdown > .dropdown {
-    min-width: 144px !important;
-    max-width: 144px !important;
-    background: var(--color-a2);
-    color: var(--color-a6);
-    border: none;
-    height: 25px;
-}
-#drawToolShapesCopyMessageDiv {
-    position: absolute;
-    bottom: 43px;
-    background: linear-gradient(to right, #26ff67, rgba(127, 255, 0, 1));
-    width: 100%;
-    height: 31px;
-    padding: 6px 7px 7px 7px;
-    text-align: center;
-    color: black;
-    font-weight: bold;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
-}
 
 #drawToolDrawFilterDiv {
     background: var(--color-b);
@@ -385,7 +318,7 @@
 }
 #drawToolDrawFilter {
     border: none;
-    width: 230px;
+    width: 100%;
     padding: 0px 4px;
     height: 30px;
     background: var(--color-a1);
@@ -526,50 +459,6 @@
     border-bottom: 3px solid var(--color-c);
 }
 
-#drawToolShapesFilterDiv {
-    background: var(--color-a);
-    display: flex;
-    width: 100%;
-}
-#drawToolShapesFilter {
-    border: none;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
-    flex: 1;
-    padding: 0px 8px;
-    height: 30px;
-    background: var(--color-a1);
-    color: var(--color-a7);
-}
-#drawToolShapesFilterClear {
-    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
-    width: 30px;
-    line-height: 28px;
-    color: var(--color-a7);
-    text-align: center;
-    background: var(--color-a1);
-    height: 30px;
-    transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
-}
-
-#drawToolShapesFilterClear > i {
-    background: none !important;
-    color: var(--color-a5) !important;
-    border-bottom: none !important;
-    margin: 0 !important;
-}
-#drawToolShapesFilterClear:hover > i {
-    color: var(--color-a7) !important;
-}
-#drawToolShapesFilterCount {
-    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
-    line-height: 30px;
-    color: var(--color-a5);
-    text-align: center;
-    background: var(--color-a1);
-    height: 30px;
-    font-size: 12px;
-}
-
 #drawToolDrawFiles {
     flex: 1;
     height: 1px;
@@ -657,6 +546,9 @@
 #drawToolDrawFilesListMaster .drawToolIntentColor {
     width: 14px !important;
 }
+.drawToolFileSelector {
+    width: calc(100% - 77px);
+}
 .drawToolIntentColor {
     display: none;
     transition: width 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
@@ -712,10 +604,14 @@
     margin-left: 6px;
     line-height: 32px;
     text-transform: capitalize;
-    max-width: 185px;
+    flex: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+.drawToolDrawFilesGroupElemUn {
+    flex: 1;
+    max-width: calc(100% - 32px);
 }
 .drawToolDrawFilesGroupElemUn > div {
     color: var(--color-a4);
@@ -949,83 +845,6 @@
     width: 30px;
     background: transparent;
     border: 1px solid #989898;
-}
-
-#drawToolShapes {
-    height: 100%;
-}
-#drawToolDrawShapesList {
-    overflow-y: auto;
-    height: calc(100% - 65px);
-}
-#drawToolShapesFeaturesList {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
-}
-.drawToolShapesFeaturesListFileHeader {
-    border-bottom: 1px solid var(--color-m3);
-    font-size: 13px;
-    width: max-content;
-    padding: 4px 8px;
-}
-.drawToolShapeLi {
-    border-bottom: 1px solid var(--color-a1-5);
-    color: var(--color-f);
-    background: rgba(255, 255, 255, 0);
-    transition: background 0.4s cubic-bezier(0.39, 0.575, 0.565, 1),
-        padding 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
-}
-.drawToolShapeLi:hover,
-.drawToolShapeLi.hovered {
-    background: var(--color-e);
-}
-.drawToolShapeLi.active {
-    background: var(--color-h);
-    color: black;
-    font-weight: bold;
-}
-
-.drawToolShapeLiItem {
-    cursor: pointer;
-    display: flex;
-    height: 30px;
-    line-height: 30px;
-}
-.drawToolShapeLiItemContent {
-    width: 100%;
-    padding: 3px 0px;
-}
-
-.drawToolShapeLiItemCheck {
-    width: 16px;
-    height: 15px;
-    border-radius: 8px;
-    margin: 5px 5px 0px 5px;
-    border: 2px solid rgba(0, 0, 0, 0.2);
-    transition: border 0.2s ease-out;
-}
-.drawToolShapeLiItemCheck.checked {
-    border: 2px solid black;
-}
-
-.drawToolShapeLiItemA {
-    width: 4px;
-    height: 100%;
-}
-.drawToolShapeLiItemB {
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
-    max-width: 160px;
-}
-.drawToolShapeLiItemC {
-    color: white;
-    padding: 0px 4px;
-    margin-right: 3px;
-    width: 36px;
-    font-family: monospace;
-    text-align: center;
 }
 
 .drawToolContextMenu {
@@ -1280,7 +1099,7 @@
 }
 
 .drawToolFileInfo {
-    width: 180px;
+    width: 100%;
     cursor: pointer;
     padding-left: 7px;
     white-space: nowrap;
@@ -2602,11 +2421,11 @@
     background: var(--color-c);
 }
 
-#cmExportGeoJSON, 
+#cmExportGeoJSON,
 #cmExportSourceGeoJSON {
     display: block;
 }
-#cmExportGeoJSON > div:last-child, 
+#cmExportGeoJSON > div:last-child,
 #cmExportSourceGeoJSON > div:last-child {
     font-size: 12px;
     text-align: right;
@@ -2693,4 +2512,26 @@
 }
 #drawToolFilesLoadingSpinner.on {
     opacity: 1;
+}
+
+#DrawTool_TimeToggle {
+    position: absolute;
+    bottom: 45px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    background: var(--color-a);
+    border-radius: 2px;
+    height: 24px;
+    line-height: 18px;
+    padding: 3px 3px;
+    font-size: 13px;
+    box-shadow: 0px 4px 3px 0px rgba(0,0,0,0.2);
+}
+#DrawTool_TimeToggle > div:first-child {
+    padding: 0px 6px 0px 5px;
+    letter-spacing: 1px;
+}
+#DrawTool_TimeToggle_switch {
+    top: -14px;
 }

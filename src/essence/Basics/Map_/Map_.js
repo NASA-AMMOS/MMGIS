@@ -17,6 +17,9 @@ import { Kinds } from '../../../pre/tools'
 import DataShaders from '../../Ancillary/DataShaders'
 import calls from '../../../pre/calls'
 import TimeControl from '../../Ancillary/TimeControl'
+
+import gjv from 'geojson-validation'
+
 let L = window.L
 
 let essenceFina = function () {}
@@ -510,53 +513,6 @@ let Map_ = {
     allLayersLoaded: allLayersLoaded,
 }
 
-//Specific internal functions likely only to be used once
-function getLayersChosenNamePropVal(feature, layer) {
-    //These are what you'd think they'd be (Name could be thought of as key)
-    let propertyNames, propertyValues
-    let foundThroughVariables = false
-    if (
-        layer.hasOwnProperty('options') &&
-        layer.options.hasOwnProperty('layerName')
-    ) {
-        const l = L_.layers.data[layer.options.layerName]
-        if (
-            l.hasOwnProperty('variables') &&
-            l.variables.hasOwnProperty('useKeyAsName')
-        ) {
-            propertyNames = l.variables['useKeyAsName']
-            if (typeof propertyNames === 'string')
-                propertyNames = [propertyNames]
-            propertyValues = Array(propertyNames.length).fill(null)
-            propertyNames.forEach((propertyName, idx) => {
-                if (feature.properties.hasOwnProperty(propertyName)) {
-                    propertyValues[idx] = F_.getIn(
-                        feature.properties,
-                        propertyName
-                    )
-                    if (propertyValues[idx] != null)
-                        foundThroughVariables = true
-                }
-            })
-        }
-    }
-    // Use first key
-    if (!foundThroughVariables) {
-        for (let key in feature.properties) {
-            //Store the current feature's key
-            propertyNames = [key]
-            //Be certain we have that key in the feature
-            if (feature.properties.hasOwnProperty(key)) {
-                //Store the current feature's value
-                propertyValues = [feature.properties[key]]
-                //Break out of for loop since we're done
-                break
-            }
-        }
-    }
-    return F_.stitchArrays(propertyNames, propertyValues)
-}
-
 //Takes an array of layer objects and makes them map layers
 function makeLayers(layersObj) {
     //Make each layer (backwards to maintain draw order)
@@ -598,7 +554,7 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
     //Default is onclick show full properties and onhover show 1st property
     Map_.onEachFeatureDefault = onEachFeatureDefault
     function onEachFeatureDefault(feature, layer) {
-        const pv = getLayersChosenNamePropVal(feature, layer)
+        const pv = L_.getLayersChosenNamePropVal(feature, layer)
 
         layer['useKeyAsName'] = Object.keys(pv)[0]
         if (
@@ -796,7 +752,47 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
                 )
 
             function add(data) {
-                if (data == null || data === 'off') {
+                // []
+                if (Array.isArray(data) && data.length === 0) {
+                    data = { type: 'FeatureCollection', features: [] }
+                }
+                // [<FeatureCollection>]
+                else if (
+                    Array.isArray(data) &&
+                    data[0] &&
+                    data[0].type === 'FeatureCollection'
+                ) {
+                    const nextData = { type: 'FeatureCollection', features: [] }
+                    data.forEach((fc) => {
+                        if (fc.type === 'FeatureCollection')
+                            nextData.features = nextData.features.concat(
+                                fc.features
+                            )
+                    })
+                    data = nextData
+                }
+
+                let invalidGeoJSONTrace = gjv.valid(data, true)
+                const allowableErrors = [`position must only contain numbers`]
+                invalidGeoJSONTrace = invalidGeoJSONTrace.filter((t) => {
+                    if (typeof t !== 'string') return false
+                    for (let i = 0; i < allowableErrors.length; i++) {
+                        if (t.toLowerCase().indexOf(allowableErrors[i]) != -1)
+                            return false
+                    }
+                    return true
+                })
+                if (
+                    data == null ||
+                    data === 'off' ||
+                    invalidGeoJSONTrace.length > 0
+                ) {
+                    if (data != null && data != 'off') {
+                        data = null
+                        console.warn(
+                            `ERROR: ${layerObj.display_name} has invalid GeoJSON!`
+                        )
+                    }
                     L_._layersLoaded[
                         L_._layersOrdered.indexOf(layerObj.name)
                     ] = true
@@ -1134,8 +1130,12 @@ function allLayersLoaded() {
 
         // Turn on legend if displayOnStart is true
         if ('LegendTool' in ToolController_.toolModules) {
-            if (ToolController_.toolModules['LegendTool'].displayOnStart == true) {
-                ToolController_.toolModules['LegendTool'].make('toolContentSeparated_Legend')
+            if (
+                ToolController_.toolModules['LegendTool'].displayOnStart == true
+            ) {
+                ToolController_.toolModules['LegendTool'].make(
+                    'toolContentSeparated_Legend'
+                )
                 let _event = new CustomEvent('toggleSeparatedTool', {
                     detail: {
                         toggledToolName: 'LegendTool',

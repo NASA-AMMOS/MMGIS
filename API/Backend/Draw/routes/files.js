@@ -240,7 +240,7 @@ router.post("/make", function (req, res, next) {
                 };
                 // Insert new entry into the history table
                 Filehistories.create(newHistoryEntry)
-                  .then((created) => {
+                  .then((createdHistory) => {
                     res.send({
                       status: "success",
                       message: "Successfully made a new file from geojson.",
@@ -641,7 +641,7 @@ const compile = function (req, res, callback) {
             " " +
             "FETCH first 1 rows only"
         )
-        .spread((results) => {
+        .then(([results]) => {
           let bestHistory = results.length > 0 ? results[0].history : [];
           featureIds = featureIds.concat(bestHistory);
           finished++;
@@ -664,7 +664,7 @@ const compile = function (req, res, callback) {
               featureIds +
               ")"
           )
-          .spread((features) => {
+          .then(([features]) => {
             processFeatures(features);
           });
       }
@@ -726,7 +726,7 @@ const compile = function (req, res, callback) {
             " " +
             "AND ST_Contains(a.geom, b.geom)"
         )
-        .spread((results) => {
+        .then(([results]) => {
           let hierarchy = [];
           let intentOrder = ["roi", "campaign", "campsite", "signpost"];
           let excludeIntents = ["polygon", "line", "point", "text", "arrow"];
@@ -1236,7 +1236,7 @@ const compile = function (req, res, callback) {
                   },
                 }
               )
-              .spread((published_family_tree) => {
+              .then(([published_family_tree]) => {
                 if (
                   !published_family_tree ||
                   !published_family_tree[0] ||

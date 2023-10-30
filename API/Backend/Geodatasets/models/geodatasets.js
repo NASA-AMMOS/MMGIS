@@ -9,17 +9,17 @@ const attributes = {
   name: {
     type: Sequelize.STRING,
     unique: true,
-    allowNull: false
+    allowNull: false,
   },
   table: {
     type: Sequelize.STRING,
     unique: true,
-    allowNull: false
-  }
+    allowNull: false,
+  },
 };
 
 const options = {
-  timestamps: true
+  timestamps: true,
 };
 
 // setup User model and its fields.
@@ -32,25 +32,25 @@ function makeNewGeodatasetTable(name, success, failure) {
     properties: {
       type: Sequelize.JSON,
       allowNull: true,
-      defaultValue: {}
+      defaultValue: {},
     },
     geometry_type: {
       type: Sequelize.STRING,
       unique: false,
-      allowNull: false
+      allowNull: false,
     },
     geom: {
       type: Sequelize.GEOMETRY,
-      allowNull: true
-    }
+      allowNull: true,
+    },
   };
 
   const options = {
-    timestamps: false
+    timestamps: false,
   };
 
   Geodatasets.findOne({ where: { name: name } })
-    .then(result => {
+    .then((result) => {
       if (result) {
         let GeodatasetTable = sequelize.define(
           result.dataValues.table,
@@ -61,16 +61,16 @@ function makeNewGeodatasetTable(name, success, failure) {
           { updatedAt: new Date().toISOString() },
           { where: { name: name }, silent: true }
         )
-          .then(r => {
+          .then((r) => {
             success({
               name: result.dataValues.name,
               table: result.dataValues.table,
-              tableObj: GeodatasetTable
+              tableObj: GeodatasetTable,
             });
 
             return null;
           })
-          .catch(err => {
+          .catch((err) => {
             logger(
               "error",
               "Failed to update geodatasets.",
@@ -80,20 +80,20 @@ function makeNewGeodatasetTable(name, success, failure) {
             );
             failure({
               status: "failure",
-              message: "Failed to update geodatasets"
+              message: "Failed to update geodatasets",
             });
           });
       } else {
         sequelize
           .query("SELECT COUNT(*) FROM geodatasets")
-          .spread(results => {
+          .then(([results]) => {
             let newTable =
               "g" + (parseInt(results[0].count) + 1) + "_geodatasets";
             Geodatasets.create({
               name: name,
-              table: newTable
+              table: newTable,
             })
-              .then(created => {
+              .then((created) => {
                 let GeodatasetTable = sequelize.define(
                   newTable,
                   attributes,
@@ -105,11 +105,11 @@ function makeNewGeodatasetTable(name, success, failure) {
                     success({
                       name: name,
                       table: newTable,
-                      tableObj: GeodatasetTable
+                      tableObj: GeodatasetTable,
                     });
                     return null;
                   })
-                  .catch(err => {
+                  .catch((err) => {
                     logger(
                       "error",
                       "Failed to sync geodataset table.",
@@ -119,13 +119,13 @@ function makeNewGeodatasetTable(name, success, failure) {
                     );
                     failure({
                       status: "failure",
-                      message: "Failed to sync"
+                      message: "Failed to sync",
                     });
                   });
 
                 return null;
               })
-              .catch(err => {
+              .catch((err) => {
                 logger(
                   "error",
                   "Failed to create geodataset table.",
@@ -135,12 +135,12 @@ function makeNewGeodatasetTable(name, success, failure) {
                 );
                 failure({
                   status: "failure",
-                  message: "Failed to create"
+                  message: "Failed to create",
                 });
               });
             return null;
           })
-          .catch(err => {
+          .catch((err) => {
             logger(
               "error",
               "Failed to count existing geodatasets.",
@@ -150,14 +150,14 @@ function makeNewGeodatasetTable(name, success, failure) {
             );
             failure({
               status: "failure",
-              message: "Failed to count existing geodatasets"
+              message: "Failed to count existing geodatasets",
             });
           });
       }
 
       return null;
     })
-    .catch(err => {
+    .catch((err) => {
       logger(
         "error",
         "Failed to find existing geodatasets.",
@@ -169,7 +169,7 @@ function makeNewGeodatasetTable(name, success, failure) {
         status: "failure",
         message: "Failed to find existing geodatasets",
         error: error,
-        name: name
+        name: name,
       });
     });
 }
@@ -177,5 +177,5 @@ function makeNewGeodatasetTable(name, success, failure) {
 // export User model for use in other files.
 module.exports = {
   Geodatasets: Geodatasets,
-  makeNewGeodatasetTable: makeNewGeodatasetTable
+  makeNewGeodatasetTable: makeNewGeodatasetTable,
 };

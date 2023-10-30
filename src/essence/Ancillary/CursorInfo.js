@@ -118,12 +118,12 @@ var CursorInfo = {
 }
 
 //Just match our absolutely positioned div to the bottom left of our cursor
-function cursorInfoMouseMove() {
+function cursorInfoMouseMove(e) {
     if (CursorInfo.forcedPos) return
 
     CursorInfo.cursorInfoDiv
-        .style('left', d3.mouse(this)[0] + 18 + 'px')
-        .style('top', d3.mouse(this)[1] + 10 + 'px')
+        .style('left', d3.pointer(e)[0] + 18 + 'px')
+        .style('top', d3.pointer(e)[1] + 10 + 'px')
 }
 
 export default CursorInfo

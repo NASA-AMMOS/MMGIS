@@ -24,6 +24,52 @@
     font-size: 14px;
 }
 
+#drawToolTemplater_setTime {
+    border-top: 1px solid var(--color-a1);
+    padding-top: 8px;
+    display: flex;
+}
+#drawToolTemplater_setTime > div:first-child {
+    display: flex;
+    margin-right: 4px;
+}
+#drawToolTemplater_setTime > div:last-child {
+    display: flex;
+    margin-left: 4px;
+}
+#drawToolTemplater_setTime > div {
+    display: flex !important;
+    justify-content: center;
+    text-align: center;
+    flex: 1;
+    background: var(--color-a1);
+    line-height: 26px !important;
+    cursor: pointer;
+    opacity: 0.4;
+    pointer-events: none;
+    transition: all 0.2s ease-in-out;
+}
+#drawToolTemplater_setTime > div > div {
+    line-height: 32px;
+    font-size: 13px;
+}
+#drawToolTemplater_setTime > div:hover {
+    color: white;
+    background: var(--color-a2);
+}
+#drawToolTemplater_setTime > div.active {
+    opacity: 1;
+    pointer-events: all;
+}
+#drawToolTemplater_setTime > div:first-child > i {
+    margin-right: 4px;
+    line-height: 30px;
+}
+#drawToolTemplater_setTime > div:last-child > i {
+    margin-left: 4px;
+    line-height: 30px;
+}
+
 .drawToolTemplatercheckbox .mmgis-checkbox {
     margin-right: 5px;
     margin-top: 5px;
@@ -155,6 +201,11 @@
     background: var(--color-a1-5);
     color: var(--color-a7);
 }
+.drawToolTemplaterLiBody_slider_default,
+.drawToolTemplaterLiBody_number_default,
+.drawToolTemplaterLiBody_text_regex {
+    flex: 1;
+}
 
 .drawToolTemplaterLi {
     list-style-type: none;
@@ -175,7 +226,14 @@
     min-width: 30px;
     text-align: center;
     font-size: 14px;
-    background: var(--color-a2);
+    background: var(--color-a1-5);
+    border-right: 1px solid var(--color-a);
+    color: var(--color-a3);
+    cursor: row-resize;
+    transition: color 0.2s ease-in-out;
+}
+.drawToolTemplaterLiIdx:hover {
+    color: var(--color-a6);
 }
 .drawToolTemplaterLiField {
     display: flex;
@@ -192,13 +250,16 @@
     background: var(--color-a2);
 }
 .drawToolTemplaterLiBodyDropdown_format {
-    width: 200px;
+    width: 160px;
 }
 .drawToolTemplaterLiBodyDropdown_format .dropy,
 .drawToolTemplaterLiType > div .dropy {
     margin-bottom: 0;
 }
-.drawToolTemplaterLiBodyDropdown_format .dropy__title,
+.drawToolTemplaterLiBodyDropdown_format .dropy__title {
+    line-height: 21px;
+    font-size: 11px;
+}
 .drawToolTemplaterLiType > div .dropy__title {
     line-height: 13px;
     font-size: 14px;
@@ -206,6 +267,9 @@
 .drawToolTemplaterLiBodyDropdown_format .dropy__title > i,
 .drawToolTemplaterLiType > div .dropy__title > i {
     transform: translateY(30%);
+}
+.drawToolTemplaterLiBody_date_default > input {
+    width: 125px;
 }
 .drawToolTemplaterDesignHeadingRemove {
     width: 30px;

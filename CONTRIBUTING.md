@@ -1,11 +1,3 @@
----
-layout: page
-title: Contributing
-permalink: /contributing/
-has_children: true
-nav_order: 6
----
-
 # Contributing to MMGIS
 
 Thanks for taking the time to consider contributing! We very much appreciate your time and effort. This document outlines the many ways you can contribute to our project, and provides detailed guidance on best practices. We look forward to your help!
@@ -71,6 +63,15 @@ Our communication channels are:
 ## Our Development Process
 
 Our project integrates contributions from many people, and so we'd like to outline a process you can use to visualize how your contributions may be integrated if you provide something.
+
+```mermaid
+flowchart TD
+    repo_proj[(Our Repository)]-->|Fork|repo_fork[(Your Forked Repository)]
+    repo_fork-->|Make|patch(Your Changes)
+    patch-->|Submit|pr(Pull Request)
+    pr==>|Approved|repo_proj
+    pr-->|Changes Requested|repo_fork
+```
 
 ### Fork our Repository
 
@@ -310,6 +311,136 @@ A great way to contribute towards our project goals is to socialize and encourag
 - Schedule in-person or virtual happy-hours to help create a more social atmosphere within the project community
 
 For the above ideas, use our [communication channels](#communication-channels) to propose get-togethers.
+
+---
+
+# Larger Coding Contributions
+
+MMGIS supports pluginable backend APIs and frontend Tools.
+
+## Developing A New Tool
+
+### Setup
+
+New tools are automatically found and included on start.
+
+1. Go to `src/essence/Tools`
+
+   1. Create a new directory here with the name of your new tool
+   1. Copy and paste `New Tool Template.js` into your new directory
+   1. Rename the pasted file to `[Your Tool's Name]Tool.js`
+   1. Add a `config.json` file so that MMGIS can find it. Do look at the existing tools' `config.json` but here's a template:
+
+   ```javascript
+   {
+        "defaultIcon": "a material design icon https://pictogrammers.com/library/mdi/ identifier",
+        "description": "A quick description of the tool's capabilities.",
+        "descriptionFull": {
+            "title": "A longer description of the tool's capabilities.",
+            "example": {
+                "A example object of the configuration variables the tool accepts": "value"
+            }
+        },
+        "hasVars": true,
+        "name": "{toolName}",
+        "toolbarPriority": 3,
+        "paths": {
+            "{toolName}Tool": "essence/Tools/{toolName}/{toolName}Tool"
+        },
+        "expandable": false
+    }
+
+   ```
+
+1. Restart the server with `npm start`
+
+1. Use the `/configure` page to enable the tool in your development environment
+
+### Developing
+
+#### Overview
+
+Ideally all the code for a tool will be in its `[Tool's Name]Tool.js` and built off of the `New Tool Template.js`.
+
+- All tools must return an object with `make` and `destroy` functions.
+  - `make` is called when the user clicks on the tool's icon while `destroy` is called when the user clicks on any other tool's icon.
+- Tools should work independently of one another.
+- Tools should only change the `#tools` div or something in the viewer, map and/or globe.
+- Use `width` or `height` entries to set the tool div's dimensions.
+
+### Notes
+
+- There are private repos with pluginable tools that are not visible to the public. If you would like to include your own private tool, place it in a `/src/essence/MMGIS-Private-Tools` directory.
+
+## Developing A New Backend
+
+### Setup
+
+New backends are automatically found and included on start.
+
+1. Go to `API/Backend`
+   1. Create a new directory here with the name of your new backend
+   1. Copy and paste `setupTemplate.js` into your new directory
+   1. Rename the pasted file to `setup.js`
+   1. Edit `setup.js` based on the development guide below
+1. Restart the server with `npm start`
+
+### Developing
+
+#### Overview
+
+All the code for a backend must stay in its `API/Backend/[name]` directory.
+
+- Backends should work independently of one another.
+- Use the existing backends as a reference point.
+
+#### Template Walkthrough
+
+```javascript
+const router = require("./routes/your_router");
+```
+
+Write scripts within you backend directory and import them. Most backends follow the directory structure:
+
+- API/Backend/[name]
+  - models/
+  - routes/
+  - setup.js
+
+```
+let setup = {
+  //Once the app initializes
+  onceInit: s => {},
+  //Once the server starts
+  onceStarted: s => {},
+  //Once all tables sync
+  onceSynced: s => {},
+  envs: [{ name: "ENV_VAR", description: "", required: false, private: false }]
+};
+```
+
+onceInit() is called immediately on `npm start`
+onceStarted() is called once the http server starts up
+onceSynced() is called once all table are created/has their existence verified.
+
+The s parameter is an object containing the app and middleware. A common form to attach an API within a `setup.js` is to fill onceInit() with:
+
+```javascript
+onceInit: (s) => {
+  s.app.use(
+    "/API/example",
+    s.ensureUser(),
+    s.checkHeadersCodeInjection,
+    s.setContentType,
+    s.stopGuests,
+    importedRouter
+  );
+};
+```
+
+`envs` help document which environment values the backend uses and logs errors if required environment variables aren't set. Variables that end with `_HOST` are for URLs and upon start up they'll be pinged and there status will be logged.
+
+Please refer to the existing backend directories for further examples.
 
 ---
 

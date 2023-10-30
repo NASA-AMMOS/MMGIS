@@ -24,11 +24,20 @@
     pointer-events: auto;
 }
 
+#main-container > #topBar > #topBarLeft {
+    flex: 1;
+    pointer-events: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    margin-right: 8px;
+}
 #main-container > #topBar > #topBarLeft,
 #main-container > #topBar > #topBarRight {
     display: flex;
 }
-
+#main-container > #topBar #topBarSecondary {
+    flex: 1;
+}
 #main-container > #topBar #topBarMain,
 #main-container > #topBar #topBarSecondary {
     display: flex;
