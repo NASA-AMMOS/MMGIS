@@ -354,6 +354,7 @@ function timeInputChange(startTime, endTime, currentTime, skipUpdate) {
         Object.keys(L_._timeChangeSubscriptions).forEach((k) => {
             L_._timeChangeSubscriptions[k]({ startTime, currentTime, endTime })
         })
+
     Object.keys(TimeControl._subscriptions).forEach((k) => {
         TimeControl._subscriptions[k]({
             startTime: TimeControl.startTime,

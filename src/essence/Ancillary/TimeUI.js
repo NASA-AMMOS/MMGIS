@@ -134,6 +134,11 @@ const TimeUI = {
     },
     getElement: function () {},
     attachEvents: function (timeChange) {
+        let startingModeIndex = TimeUI.modeIndex
+        // Set modeIndex to 1/Point if a deeplink had an endtime but no starttime
+        if (L_.FUTURES.startTime == null && L_.FUTURES.endTime != null)
+            startingModeIndex = 1
+
         // Timeline pan and zoom
         // zoom
         $('#mmgisTimeUITimelineInner').on('mousewheel', function (e) {
@@ -331,14 +336,13 @@ const TimeUI = {
             TimeUI.modeIndex = TimeUI.modes.indexOf('Point')
         // Mode dropdown
         $('#mmgisTimeUIModeDropdown').html(
-            Dropy.construct(TimeUI.modes, 'Mode', TimeUI.modeIndex, {
+            Dropy.construct(TimeUI.modes, 'Mode', startingModeIndex, {
                 openUp: true,
                 dark: true,
             })
         )
-        Dropy.init($('#mmgisTimeUIModeDropdown'), function (idx) {
-            TimeUI.changeMode(idx)
-        })
+
+        Dropy.init($('#mmgisTimeUIModeDropdown'), TimeUI.changeMode)
 
         // Step dropdown
         $('#mmgisTimeUIStepDropdown').html(
@@ -457,6 +461,10 @@ const TimeUI = {
 
         if (L_.configData.time?.startInPointMode == true)
             TimeUI.changeMode(TimeUI.modes.indexOf('Point'))
+
+        // Set modeIndex to 1/Point if a deeplink had an endtime but no starttime
+        if (TimeUI.modeIndex != startingModeIndex)
+            TimeUI.changeMode(startingModeIndex)
     },
     fina() {
         let date

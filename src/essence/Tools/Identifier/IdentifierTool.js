@@ -439,6 +439,13 @@ function bestMatchInLegend(rgba, legendData) {
 
 function queryDataValue(url, lng, lat, numBands, callback) {
     numBands = numBands || 1
+    var dataPath
+    if (url.startsWith("/vsicurl/")) {
+        dataPath = url
+    }
+    else {
+        dataPath = 'Missions/' + L_.mission + '/' + url
+    }
     calls.api(
         'getbands',
         {
@@ -447,7 +454,7 @@ function queryDataValue(url, lng, lat, numBands, callback) {
             y: lng,
             xyorll: 'll',
             bands: '[[1,' + numBands + ']]',
-            path: 'Missions/' + L_.mission + '/' + url,
+            path: dataPath,
         },
         function (data) {
             //Convert python's Nones to nulls

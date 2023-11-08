@@ -325,7 +325,7 @@ function ensureAdmin(toLoginPage, denyLongTermTokens) {
 }
 
 function validateLongTermToken(token, successCallback, failureCallback) {
-  token = token.replace("Bearer ", "");
+  token = token.replace(/Bearer:?\s+/g, "");
 
   sequelize
     .query('SELECT * FROM "long_term_tokens" WHERE "token"=:token', {
@@ -656,7 +656,13 @@ setups.getBackendSetups(function (setups) {
           1,
         ],
         function (error, stdout, stderr) {
-          res.send(stdout);
+          if (error) {
+            logger("warn", error)
+            res.status(400).send();
+          }
+          else {
+            res.send(stdout);
+          }
         }
       );
     }
@@ -678,9 +684,13 @@ setups.getBackendSetups(function (setups) {
         "python",
         ["private/api/BandsToProfile.py", path, x, y, xyorll, bands],
         function (error, stdout, stderr) {
-          if (error)
-            logger("error", "getbands failure:", "server", null, error);
-          res.send(stdout);
+          if (error) {
+            logger("warn", error)
+            res.status(400).send();
+          }
+          else {
+            res.send(stdout);
+          }
         }
       );
     }
