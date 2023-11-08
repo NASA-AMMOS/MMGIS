@@ -332,6 +332,8 @@ const TimeUI = {
             theme: 'blue',
         })
 
+        if (L_.configData.time?.startInPointMode == true)
+            TimeUI.modeIndex = TimeUI.modes.indexOf('Point')
         // Mode dropdown
         $('#mmgisTimeUIModeDropdown').html(
             Dropy.construct(TimeUI.modes, 'Mode', startingModeIndex, {
@@ -339,7 +341,9 @@ const TimeUI = {
                 dark: true,
             })
         )
+
         Dropy.init($('#mmgisTimeUIModeDropdown'), TimeUI.changeMode)
+
         // Step dropdown
         $('#mmgisTimeUIStepDropdown').html(
             Dropy.construct(
@@ -455,6 +459,9 @@ const TimeUI = {
             true
         )
 
+        if (L_.configData.time?.startInPointMode == true)
+            TimeUI.changeMode(TimeUI.modes.indexOf('Point'))
+
         // Set modeIndex to 1/Point if a deeplink had an endtime but no starttime
         if (TimeUI.modeIndex != startingModeIndex)
             TimeUI.changeMode(startingModeIndex)
@@ -515,11 +522,10 @@ const TimeUI = {
         TimeUI.modeIndex = idx
         if (TimeUI.modes[TimeUI.modeIndex] === 'Point') {
             $('#mmgisTimeUIStartWrapper').css({ display: 'none' })
-
             // Remove end date enforcement
             TimeUI.endTempus.updateOptions({
                 restrictions: {
-                    minDate: new Date(0),
+                    minDate: new Date(0).toISOString(),
                 },
             })
         } else {

@@ -422,6 +422,7 @@
     }
 
     function tick_spring(ctx, last_value, current_value, target_value) {
+        return target_value
         if (typeof current_value === 'number' || is_date(current_value)) {
             // @ts-ignore
             const delta = target_value - current_value

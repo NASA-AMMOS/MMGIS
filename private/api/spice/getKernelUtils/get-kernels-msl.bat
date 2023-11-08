@@ -1,0 +1,10 @@
+wget -nc -P ../kernels https://naif.jpl.nasa.gov/pub/naif/generic_kernels/lsk/naif0012.tls
+wget -nc -P ../kernels https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/pck00011.tpc
+wget -nc -P ../kernels https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440.bsp
+wget -nc -P ../kernels https://naif.jpl.nasa.gov/pub/naif/MARS2020/kernels/spk/mar097s.bsp
+wget -nc -P ../kernels https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/mars_iau2000_v1.tpc
+wget -nc -P ../kernels https://naif.jpl.nasa.gov/pub/naif/MSL/kernels/spk/msl_atls_ops120808_v1.bsp
+wget -nc -P ../kernels https://naif.jpl.nasa.gov/pub/naif/MSL/kernels/spk/msl_ls_ops120808_iau2000_v1.bsp
+wget -nc -P ../kernels https://naif.jpl.nasa.gov/pub/naif/MSL/kernels/sclk/MSL_76_SCLKSCET.00019.tsc
+wget -nc -P ../kernels https://naif.jpl.nasa.gov/pub/naif/MSL/kernels/sclk/msl_lmst_ops120808_v1.tsc
+wget -nc -P ../kernels https://naif.jpl.nasa.gov/pub/naif/MSL/kernels/fk/msl_v08.tf

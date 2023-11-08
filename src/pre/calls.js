@@ -30,6 +30,14 @@ const c = {
         url: 'api/utils/getprofile',
         pathprefix: '',
     },
+    ll2aerll: {
+        type: 'POST',
+        url: 'api/utils/ll2aerll',
+    },
+    chronos: {
+        type: 'POST',
+        url: 'api/utils/chronos',
+    },
     draw_add: {
         type: 'POST',
         url: 'API/draw/add',

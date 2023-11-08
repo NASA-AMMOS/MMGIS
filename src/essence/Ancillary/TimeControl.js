@@ -49,6 +49,16 @@ var TimeControl = {
         if ((TimeControl.enabled = true && TimeControl.timeUI != null))
             TimeControl.timeUI.fina()
     },
+    subscribe: function () {},
+    unsubscribe: function () {},
+    _subscriptions: {},
+    subscribe: function (fid, func) {
+        if (typeof func === 'function') TimeControl._subscriptions[fid] = func
+    },
+    unsubscribe: function (fid) {
+        if (TimeControl._subscriptions[fid] != null)
+            delete TimeControl._subscriptions[fid]
+    },
     setTime: function (
         startTime,
         endTime,
@@ -96,6 +106,14 @@ var TimeControl = {
             TimeControl.endTime = endTimeD.toISOString().split('.')[0] + 'Z'
         }
 
+        // Then set startTime one month before end
+        if (TimeControl.startTime > TimeControl.endTime) {
+            const endTimeD = new Date(endTime)
+            TimeControl.startTime =
+                new Date(endTimeD.setDate(endTimeD.getDate() - 30))
+                    .toISOString()
+                    .split('.')[0] + 'Z'
+        }
         TimeControl.timeUI.updateTimes(
             TimeControl.startTime,
             TimeControl.endTime,
@@ -336,6 +354,14 @@ function timeInputChange(startTime, endTime, currentTime, skipUpdate) {
         Object.keys(L_._timeChangeSubscriptions).forEach((k) => {
             L_._timeChangeSubscriptions[k]({ startTime, currentTime, endTime })
         })
+
+    Object.keys(TimeControl._subscriptions).forEach((k) => {
+        TimeControl._subscriptions[k]({
+            startTime: TimeControl.startTime,
+            endTime: TimeControl.endTime,
+            currentTime: TimeControl.currentTime,
+        })
+    })
 
     if (skipUpdate !== true) {
         // Update layer times and reload

@@ -1,0 +1,43 @@
+{
+    "defaultIcon": "sun-angle-outline",
+    "description": "Realtime user generated sun and orbiter masks.",
+    "descriptionFull": {
+        "title": "Shades the ground when line-of-sights to an orbiting target are occluded.",
+        "example": {
+            "dem": "Data/missionDEM.tif",
+            "data": [
+                {
+                    "name": "User-friendly name for DEM",
+                    "demtileurl": "pathToDEMTiles/{z}/{x}/{y}.png",
+                    "minZoom": 8,
+                    "maxNativeZoom": 18
+                }
+            ],
+            "sources": [
+                {
+                    "name": "User-friendly name for orbiter or body that 'casts shadows'",
+                    "value": "SPICE Spacecraft name or ID"
+                },
+                {
+                    "name": "...",
+                    "value": "..."
+                }
+            ],
+            "observers": [
+                {
+                    "name": "User-friendly name for observer for spacecraft time computations",
+                    "value": "SPICE Spacecraft name or ID"
+                }
+            ],
+            "defaultHeight": 0
+        }
+    },
+    "hasVars": true,
+    "name": "Shade",
+    "toolbarPriority": 102,
+    "paths": {
+        "ShadeTool": "essence/Tools/Shade/ShadeTool",
+        "ShadeTool_Manager": "essence/Tools/Shade/ShadeTool_Algorithm",
+        "ShadeTool_Algorithm": "essence/Tools/Shade/ShadeTool_Algorithm"
+    }
+}
