@@ -7,7 +7,6 @@ import Globe_ from '../../Basics/Globe_/Globe_'
 import Login from '../../Ancillary/Login/Login'
 import CursorInfo from '../../Ancillary/CursorInfo'
 import shp from '../../../external/shpjs/shapefile'
-import shpwrite from '../../../external/SHPWrite/shpwrite'
 
 var userfiles = {}
 

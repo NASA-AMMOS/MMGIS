@@ -657,10 +657,9 @@ setups.getBackendSetups(function (setups) {
         ],
         function (error, stdout, stderr) {
           if (error) {
-            logger("warn", error)
+            logger("warn", error);
             res.status(400).send();
-          }
-          else {
+          } else {
             res.send(stdout);
           }
         }
@@ -685,10 +684,9 @@ setups.getBackendSetups(function (setups) {
         ["private/api/BandsToProfile.py", path, x, y, xyorll, bands],
         function (error, stdout, stderr) {
           if (error) {
-            logger("warn", error)
+            logger("warn", error);
             res.status(400).send();
-          }
-          else {
+          } else {
             res.send(stdout);
           }
         }
@@ -760,6 +758,26 @@ setups.getBackendSetups(function (setups) {
         ],
         function (error, stdout, stderr) {
           if (error) logger("error", "chronos failure:", "server", null, error);
+          res.send(stdout);
+        }
+      );
+    }
+  );
+
+  //utils chronos (spice time converter)
+  app.get(
+    `${ROOT_PATH}/api/utils/proj42wkt`,
+    ensureUser(),
+    ensureGroup(permissions.users),
+    function (req, res) {
+      const proj4 = encodeURIComponent(req.query.proj4);
+
+      execFile(
+        "python",
+        ["private/api/proj42wkt.py", proj4],
+        function (error, stdout, stderr) {
+          if (error)
+            logger("error", "proj42wkt failure:", "server", null, error);
           res.send(stdout);
         }
       );

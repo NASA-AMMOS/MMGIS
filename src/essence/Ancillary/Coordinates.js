@@ -53,7 +53,7 @@ const Coordinates = {
     stateIndices: [], // Will be like ['ll', 'cproj', 'rxy']
     states: {
         ll: {
-            ancillaryTitle: 'lonlat',
+            ancillaryTitle: 'lon/lat',
             names: ['Longitude', 'Latitude', 'Elevation'],
             units: ['°', '°', 'm'],
             precision: [8, 8, 3],
@@ -61,7 +61,7 @@ const Coordinates = {
             coordOffset: [0, 0],
         },
         en: {
-            ancillaryTitle: 'll',
+            ancillaryTitle: 'east/north',
             names: ['Easting', 'Northing', 'Elevation'],
             units: ['m', 'm', 'm'],
             precision: [3, 3, 3],

@@ -2283,7 +2283,7 @@
     padding: 0;
 }
 #drawToolDrawFilesListElemContextMenu li {
-    padding: 6px 32px;
+    padding: 6px 9px;
     cursor: pointer;
     color: var(--color-a7);
     border-bottom: 1px solid var(--color-a1);
@@ -2421,15 +2421,53 @@
     background: var(--color-c);
 }
 
-#cmExportGeoJSON,
-#cmExportSourceGeoJSON {
+#cmExport {
+    cursor: default;
+}
+#cmExport > div {
+    display: flex;
+    margin-bottom: 2px;
+}
+#cmExport > div:first-child {
+    margin-bottom: 4px;
+}
+#cmExport > div:not(:first-child) {
+    justify-content: space-between;
+    line-height: 27px;
+}
+#cmExport > div:first-child > div {
+    padding-left: 4px;
+}
+#cmExport:hover {
+    background: var(--color-a2) !important;
+}
+#cmExport > div > div:first-child {
+    color: var(--color-f);
+    padding-left: 19px;
+}
+#cmExport .dropdown {
+    background-color: var(--color-a1);
+    color: #ededed;
+    border: none;
+    width: 96px;
+    height: 27px;
+    font-size: 14px;
+    padding: 0px 3px;
+    border-left: 1px solid var(--color-a1-5);
+}
+#cmExportGo {
     display: block;
+    width: 100%;
+    margin-left: 19px;
+    height: 27px;
+    line-height: 27px;
+    margin-top: 2px;
+    background-color: var(--color-a);
 }
-#cmExportGeoJSON > div:last-child,
-#cmExportSourceGeoJSON > div:last-child {
-    font-size: 12px;
-    text-align: right;
+#cmExportGo:hover {
+    background-color: var(--color-a1-5);
 }
+
 
 /*FILE INFO TEMPLATE MODAL*/
 #drawToolFileTemplateEditModal {

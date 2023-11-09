@@ -1451,6 +1451,43 @@ var Formulae_ = {
         string += ']}'
         return string
     },
+    // https://github.com/mapbox/simplestyle-spec
+    geoJSONForceSimpleStyleSpec(geojson, stringifyPropertyObjects) {
+        const g = JSON.parse(JSON.stringify(geojson))
+        g.features.forEach((f) => {
+            if (f.properties.style) {
+                // style.color -> stroke
+                if (f.properties.style.color != null)
+                    f.properties['stroke'] = f.properties.style.color
+                // style.opacity -> stroke-opacity
+                if (f.properties.style.opacity != null)
+                    f.properties['stroke-opacity'] = f.properties.style.opacity
+                // style.weight -> stroke-width
+                if (f.properties.style.weight != null)
+                    f.properties['stroke-width'] = f.properties.style.weight
+                // style.fillColor -> fill
+                if (f.properties.style.fillColor != null)
+                    f.properties['fill'] = f.properties.style.fillColor
+                // style.fillOpacity -> fill-opacity
+                if (f.properties.style.fillOpacity != null)
+                    f.properties['fill-opacity'] =
+                        f.properties.style.fillOpacity
+            }
+            if (stringifyPropertyObjects)
+                Object.keys(f.properties).forEach((p) => {
+                    const val = f.properties[p]
+                    if (
+                        typeof val === 'object' &&
+                        !Array.isArray(val) &&
+                        val !== null
+                    ) {
+                        let str = JSON.stringify(val).replaceAll(`"`, '')
+                        f.properties[p] = str.substring(1, str.length - 1)
+                    }
+                })
+        })
+        return g
+    },
     // Gets all tiles with tile xyz at zoom z
     tilesWithin(xyz, z) {
         let tiles = []
@@ -1628,7 +1665,7 @@ var Formulae_ = {
         var cvd = document.body.appendChild(cv)
         return cv.toDataURL()
     },
-    downloadObject(exportObj, exportName, exportExt) {
+    downloadObject(exportObj, exportName, exportExt, downloadType) {
         var strung
         if (typeof exportObj === 'string') {
             strung = exportObj
@@ -1652,7 +1689,7 @@ var Formulae_ = {
         try {
             // Create a blob of the data
             var fileToSave = new Blob([strung], {
-                type: 'application/json',
+                type: `application/${downloadType || 'json'}`,
                 name: fileName,
             })
             // Save the file //from FileSaver
@@ -1660,7 +1697,8 @@ var Formulae_ = {
         } catch (err) {
             //https://stackoverflow.com/questions/19721439/download-json-object-as-a-file-from-browser#answer-30800715
             var dataStr =
-                'data:text/json;charset=utf-8,' + encodeURIComponent(strung)
+                `data:text/${downloadType || 'json'};charset=utf-8,` +
+                encodeURIComponent(strung)
             var downloadAnchorNode = document.createElement('a')
             downloadAnchorNode.setAttribute('href', dataStr)
             downloadAnchorNode.setAttribute('download', fileName)

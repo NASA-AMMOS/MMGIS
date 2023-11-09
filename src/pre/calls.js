@@ -38,6 +38,10 @@ const c = {
         type: 'POST',
         url: 'api/utils/chronos',
     },
+    proj42wkt: {
+        type: 'GET',
+        url: 'api/utils/proj42wkt',
+    },
     draw_add: {
         type: 'POST',
         url: 'API/draw/add',

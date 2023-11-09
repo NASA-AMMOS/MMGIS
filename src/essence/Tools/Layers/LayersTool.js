@@ -9,9 +9,13 @@ import DataShaders from '../../Ancillary/DataShaders'
 import LayerInfoModal from './LayerInfoModal/LayerInfoModal'
 import Filtering from './Filtering/Filtering'
 import Help from '../../Ancillary/Help'
+import CursorInfo from '../../Ancillary/CursorInfo'
 
 import tippy from 'tippy.js'
 import 'markjs'
+import calls from '../../../pre/calls'
+import * as tokml from '@maphubs/tokml'
+import shpwrite from '@mapbox/shp-write'
 
 import './LayersTool.css'
 
@@ -192,6 +196,7 @@ function interfaceWithMMGIS(fromInit) {
                 case 'query':
                     // prettier-ignore
                     layerExport = [
+                        /*
                         '<ul>',
                             L_.Coordinates.mainType != 'll' ? ['<li>',
                                 '<div class="layersToolExportGeoJSON">',
@@ -203,6 +208,39 @@ function interfaceWithMMGIS(fromInit) {
                                     `<div>Export GeoJSON ${L_.Coordinates.mainType != 'll' ? '(lonlat)' : '' }</div>`,
                                 '</div>',
                             '</li>',
+                            L_.Coordinates.mainType != 'll' ? ['<li>',
+                                '<div class="layersToolExportKML">',
+                                    `<div>Export KML (${L_.Coordinates.getMainTypeName()})</div>`,
+                                '</div>',
+                            '</li>'].join('\n') : '',
+                            '<li>',
+                                '<div class="layersToolExportSourceKML">',
+                                    `<div>Export KML ${L_.Coordinates.mainType != 'll' ? '(lonlat)' : '' }</div>`,
+                                '</div>',
+                            '</li>',
+                        '</ul>',
+                        */
+                        '<ul>',
+                            `<li class="layersToolExport">`,
+                                `<div><i class='mdi mdi-download mdi-14px'></i><div>Export</div></div>`,
+                                '<div>',
+                                    '<div>Format</div>',
+                                    '<select class="layersToolExportFormat dropdown">',
+                                        '<option value="geojson" selected>GeoJSON</option>',
+                                        '<option value="kml">KML</option>',
+                                        '<option value="shp">SHP</option>',
+                                    '</select>',
+                                '</div>',
+                                L_.Coordinates.mainType != 'll' ? [
+                                '<div>',
+                                    '<div>Coords</div>',
+                                    '<select class="layersToolExportCoords dropdown">',
+                                        '<option value="source" selected>Source Coordinates</option>',
+                                        `<option value="${L_.Coordinates.mainType}">Converted (${L_.Coordinates.mainType})</option>`,
+                                    '</select>',
+                                '</div>'] .join('\n') : '',
+                                '<div><div class="layersToolExportGo mmgisButton5">Export</div></div>',
+                            `</li>`,
                         '</ul>',
                     ].join('\n')
                     break
@@ -720,34 +758,93 @@ function interfaceWithMMGIS(fromInit) {
         if (!wasOn) li.addClass('time_on')
     })
 
-    //Export GeoJSON
-    $('.layersToolExportGeoJSON').on('click', function () {
-        const li = $(this).parent().parent().parent().parent()
+    $('.layersToolExportGo').on('click', function () {
+        const li = $(this).parent().parent().parent().parent().parent()
 
         const layerUUID = li.attr('name')
-        const layerDisplayName =
-            L_.layers.data[layerUUID]?.display_name || layerUUID
-        F_.downloadObject(
-            L_.convertGeoJSONLngLatsToPrimaryCoordinates(
-                L_.layers.layer[layerUUID].toGeoJSON(L_.GEOJSON_PRECISION)
-            ),
-            layerDisplayName,
-            '.json'
-        )
-    })
-    //Export Source GeoJSON
-    $('.layersToolExportSourceGeoJSON').on('click', function () {
-        const li = $(this).parent().parent().parent().parent()
+        const layerData = L_.layers.data[layerUUID] || {}
+        const layerDisplayName = layerData.display_name || layerUUID
 
-        const layerUUID = li.attr('name')
-        const layerDisplayName =
-            L_.layers.data[layerUUID]?.display_name || layerUUID
-        F_.downloadObject(
-            L_.layers.layer[layerUUID].toGeoJSON(L_.GEOJSON_PRECISION),
-            layerDisplayName,
-            '.json'
-        )
+        let format = li.find('.layersToolExportFormat')
+        if (format) format = format.val() || 'geojson'
+        else format = 'geojson'
+        let coords = li.find('.layersToolExportCoords')
+        if (coords) coords = coords.val() || 'source'
+        else coords = 'source'
+
+        if (L_.layers.layer[layerUUID] === false) {
+            CursorInfo.update(
+                'Please turn layer on before exporting.',
+                6000,
+                true,
+                { x: 385, y: 6 },
+                '#e9ff26',
+                'black'
+            )
+            return
+        }
+        let geojson = L_.layers.layer[layerUUID].toGeoJSON(L_.GEOJSON_PRECISION)
+
+        let filename = layerDisplayName
+
+        if (coords != 'source')
+            geojson = L_.convertGeoJSONLngLatsToPrimaryCoordinates(geojson)
+
+        switch (format) {
+            case 'geojson':
+                F_.downloadObject(geojson, filename, '.geojson')
+                break
+            case 'kml':
+                const kml = tokml(
+                    F_.geoJSONForceSimpleStyleSpec(geojson, true),
+                    {
+                        name: layerData.useKeyAsName || null,
+                        description: 'description',
+                        timestamp:
+                            layerData.time?.enabled === true
+                                ? layerData.time.endProp || null
+                                : null,
+                        documentName: filename,
+                        documentDescription: 'Generated by MMGIS',
+                        simplestyle: true,
+                    }
+                )
+                F_.downloadObject(kml, filename, '.kml', 'xml')
+                break
+            case 'shp':
+                const folder = filename
+
+                calls.api(
+                    'proj42wkt',
+                    {
+                        proj4: window.mmgisglobal.customCRS.projString,
+                    },
+                    (data) => {
+                        shpwrite
+                            .zip(geojson, {
+                                outputType: 'blob',
+                                prj: data,
+                            })
+                            .then((content) => {
+                                saveAs(content, `${folder}.zip`)
+                            })
+                    },
+                    function (err) {
+                        CursorInfo.update(
+                            `Failed to generate shapefile's .prj.`,
+                            6000,
+                            true,
+                            { x: 385, y: 6 },
+                            '#e9ff26',
+                            'black'
+                        )
+                    }
+                )
+                break
+            default:
+        }
     })
+
     //Refresh settings
     $('.reload').on('click', function () {
         const li = $(this).parent().parent()
