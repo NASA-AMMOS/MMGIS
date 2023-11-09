@@ -47,6 +47,8 @@
   "dependencies": {
     "@babel/runtime": "^7.23.1",
     "@eonasdan/tempus-dominus": "^6.2.6",
+    "@mapbox/shp-write": "^0.4.3",
+    "@maphubs/tokml": "^0.6.1",
     "@popperjs/core": "^2.11.6",
     "@terraformer/wkt": "^2.2.0",
     "@turf/turf": "^6.5.0",

@@ -8,7 +8,6 @@ import Modal from '../../Ancillary/Modal'
 import Dropy from '../../../external/Dropy/dropy'
 import tippy from 'tippy.js'
 import shp from '../../../external/shpjs/shapefile'
-import shpwrite from '../../../external/SHPWrite/shpwrite'
 
 import DrawTool_Templater from './DrawTool_Templater'
 
