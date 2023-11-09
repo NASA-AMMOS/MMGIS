@@ -11,6 +11,10 @@ import Modal from '../../Ancillary/Modal'
 import DrawTool_Templater from './DrawTool_Templater'
 
 import '../../../external/JQuery/jquery.autocomplete'
+import * as tokml from '@maphubs/tokml'
+import shpwrite from '@mapbox/shp-write'
+import { saveAs } from 'file-saver'
+
 import calls from '../../../pre/calls'
 
 var DrawTool = null
@@ -545,24 +549,43 @@ var Files = {
             const hasTemplate = file?.template?.template != null
 
             let rect = $(this).get(0).getBoundingClientRect()
-
             // Export GeoJSON
             // Export GeoJSON [Forced Template]
+            const topStyle = rect.y + rect.height - 1
             // prettier-ignore
             let markup = [
-                "<div id='drawToolDrawFilesListElemContextMenu' style='top: " +
-                    (rect.y + rect.height - 1) +
-                    'px; left: ' +
-                    40 +
-                    'px; width: ' +
-                    rect.width +
-                    "px; z-index: 2000; font-size: 14px;'>",
+                `<div id='drawToolDrawFilesListElemContextMenu' style='top: ${topStyle}px; left: 40px; width: ${rect.width}px; z-index: 2000; font-size: 14px; ${topStyle > window.innerHeight / 1.5 ? 'transform: translateY(calc(-100% - 29px));': ''}'>`,
                     '<ul>',
-                        (!isHead && L_.Coordinates.mainType != 'll') ? `<li id='cmExportGeoJSON' convert='true'><div><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON</div><div>Coords: (${L_.Coordinates.getMainTypeName()})</div></li>` : "",
-                        !isHead ? `<li id='cmExportSourceGeoJSON' convert='true'><div><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON</div><div>${L_.Coordinates.mainType != 'll' ? 'Coords: lonlat' : '' }</div></li>` : "",
-                        (!isHead && hasTemplate && L_.Coordinates.mainType != 'll') ? `<li id='cmExportGeoJSON' convert='true' templateforced='true' title='All feature properties foreign to the template will be removed.'><div><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON</div><div>Restrict to Template</div></li>` : "",
-                        (!isHead && hasTemplate) ? `<li id='cmExportSourceGeoJSON' convert='true' templateforced='true' title='All feature properties foreign to the template will be removed.'><div><i class='mdi mdi-download mdi-14px'></i>Export GeoJSON</div><div>Restrict to Template</div></li>` : "",
-                        //"<li id='cmExportShp'>Export as .shp</li>",
+                        !isHead ? [
+                        `<li id="cmExport">`,
+                            `<div><i class='mdi mdi-download mdi-14px'></i><div>Export</div></div>`,
+                            '<div>',
+                                '<div>Format</div>',
+                                '<select id="cmExportFormat" class="dropdown">',
+                                    '<option value="geojson" selected>GeoJSON</option>',
+                                    '<option value="kml">KML</option>',
+                                    '<option value="shp">SHP</option>',
+                                '</select>',
+                            '</div>',
+                            L_.Coordinates.mainType != 'll' ? [
+                            '<div>',
+                                '<div>Coords</div>',
+                                '<select id="cmExportCoords" class="cmExportCoords dropdown">',
+                                    '<option value="source" selected>Source</option>',
+                                    `<option value="${L_.Coordinates.mainType}">Converted (${L_.Coordinates.mainType})</option>`,
+                                '</select>',
+                            '</div>'] .join('\n') : '',
+                            hasTemplate ? [
+                            '<div>',
+                                '<div>Force Template</div>',
+                                '<select class="cmExportTemplateForced dropdown">',
+                                    '<option value="false" selected>False</option>',
+                                    '<option value="true">True</option>',
+                                '</select>',
+                            '</div>'].join('\n') : '',
+                            '<div><div id="cmExportGo" class="mmgisButton5">Export</div></div>',
+                        `</li>`].join('\n') : '',
+                        // Other
                         (!isHead && !isPub) ? `<li id='cmToggleLabels'><i class='mdi mdi-label-outline mdi-14px'></i>Toggle Labels</li>` : "",
                         isHead ? `<li id='drawToolcmRenameTagFol'><i class='mdi mdi-rename-box mdi-14px'></i>Rename ${activeTagFolType === 'tags' ? "Tag" : "Folder"}</li>` : "",
                         isHead ? `<li id='drawToolcmRemoveTagFol'><i class='mdi mdi-delete-forever mdi-14px'></i>Remove ${activeTagFolType === 'tags' ? "Tag" : "Folder"}</li>` : "",
@@ -581,91 +604,132 @@ var Files = {
                     published: true,
                 }
             }
-            $('#cmExportGeoJSON, #cmExportSourceGeoJSON').on(
-                'click',
-                (function (body, isPub) {
-                    return function () {
-                        const convert = $(this).attr('convert')
-                        const templateForced = $(this).attr('templateforced')
-                        DrawTool.getFile(body, function (d) {
-                            let geojson = d.geojson
-                            let filename = ''
-                            if (isPub) {
-                                filename = 'CAMP_Latest_Map'
-                                geojson._metadata = d.file
-                            } else {
-                                filename =
-                                    d.file[0].file_name +
-                                    '_' +
-                                    d.file[0].id +
-                                    '_' +
-                                    d.file[0].file_owner
-                                geojson._metadata = [d.file[0]]
-                            }
 
-                            //Genericize it to a map/all type
-                            if (geojson._metadata[0].intent != 'all') {
-                                for (
-                                    var i = 0;
-                                    i < geojson.features.length;
-                                    i++
-                                ) {
-                                    var newIntent = null
-                                    var t =
-                                        geojson.features[
-                                            i
-                                        ].geometry.type.toLowerCase()
-                                    if (t == 'polygon' || t == 'multipolygon')
-                                        newIntent = 'polygon'
-                                    else if (
-                                        t == 'linestring' ||
-                                        t == 'multilinestring'
-                                    )
-                                        newIntent = 'line'
-                                    else newIntent = 'point'
-                                    geojson.features[i].properties._.intent =
-                                        newIntent
-                                }
-                                geojson._metadata[0].intent = 'all'
-                            }
+            $('#cmExportGo').on('click', () => {
+                let format = $('#cmExportFormat')
+                if (format) format = format.val() || 'geojson'
+                else format = 'geojson'
+                let coords = $('#cmExportCoords')
+                if (coords) coords = coords.val() || 'source'
+                else coords = 'source'
+                let templateForced = $('#cmExportTemplateForced')
+                if (templateForced)
+                    templateForced = templateForced.val() || 'false'
+                else templateForced = 'false'
 
-                            DrawTool.expandPointprops(geojson)
-                            if (convert == 'true')
-                                geojson =
-                                    L_.convertGeoJSONLngLatsToPrimaryCoordinates(
-                                        geojson
-                                    )
-                            geojson = DrawTool.enforceTemplate(
-                                geojson,
-                                d?.file?.[0]?.template,
-                                templateForced
+                DrawTool.getFile(body, function (d) {
+                    let geojson = d.geojson
+                    let filename = ''
+                    if (isPub) {
+                        filename = 'CAMP_Latest_Map'
+                        geojson._metadata = d.file
+                    } else {
+                        filename =
+                            d.file[0].file_name +
+                            '_' +
+                            d.file[0].id +
+                            '_' +
+                            d.file[0].file_owner
+                        geojson._metadata = [d.file[0]]
+                    }
+
+                    //Genericize it to a map/all type
+                    if (geojson._metadata[0].intent != 'all') {
+                        for (var i = 0; i < geojson.features.length; i++) {
+                            var newIntent = null
+                            var t =
+                                geojson.features[i].geometry.type.toLowerCase()
+                            if (t == 'polygon' || t == 'multipolygon')
+                                newIntent = 'polygon'
+                            else if (
+                                t == 'linestring' ||
+                                t == 'multilinestring'
                             )
-                            F_.downloadObject(geojson, filename, '.geojson')
-                        })
+                                newIntent = 'line'
+                            else newIntent = 'point'
+                            geojson.features[i].properties._.intent = newIntent
+                        }
+                        geojson._metadata[0].intent = 'all'
                     }
-                })(body, isPub)
-            )
 
-            $('#cmExportShp').on(
-                'click',
-                (function (body, isPub) {
-                    return function () {
-                        DrawTool.getFile(body, function (d) {
-                            let geojson = d.geojson
-                            ///geojson._metadata = d.file[0];
-                            shpwrite.download(geojson, {
-                                folder:
-                                    d.file[0].file_name +
-                                    '_' +
-                                    d.file[0].id +
-                                    '_' +
-                                    d.file[0].file_owner,
-                                types: {},
-                            })
-                        })
+                    DrawTool.expandPointprops(geojson)
+                    if (coords != 'source')
+                        geojson =
+                            L_.convertGeoJSONLngLatsToPrimaryCoordinates(
+                                geojson
+                            )
+                    if (templateForced === 'true')
+                        geojson = DrawTool.enforceTemplate(
+                            geojson,
+                            d?.file?.[0]?.template,
+                            templateForced
+                        )
+
+                    switch (format) {
+                        case 'geojson':
+                            F_.downloadObject(geojson, filename, '.geojson')
+                            break
+                        case 'kml':
+                            let kmlTimestampField = null
+                            if (d?.file?.[0]?.template?.template) {
+                                d.file[0].template.template.forEach((f) => {
+                                    if (f.type === 'date' && f.isEnd === true)
+                                        kmlTimestampField = f.field
+                                })
+                            }
+
+                            const kml = tokml(
+                                F_.geoJSONForceSimpleStyleSpec(geojson, true),
+                                {
+                                    name: filename,
+                                    description: 'description',
+                                    timestamp: kmlTimestampField,
+                                    documentName: d.file[0].file_name,
+                                    documentDescription: 'Generated by MMGIS',
+                                    simplestyle: true,
+                                }
+                            )
+                            F_.downloadObject(kml, filename, '.kml', 'xml')
+                            break
+                        case 'shp':
+                            const folder =
+                                d.file[0].file_name +
+                                '_' +
+                                d.file[0].id +
+                                '_' +
+                                d.file[0].file_owner
+                            calls.api(
+                                'proj42wkt',
+                                {
+                                    proj4: window.mmgisglobal.customCRS
+                                        .projString,
+                                },
+                                (data) => {
+                                    shpwrite
+                                        .zip(geojson, {
+                                            outputType: 'blob',
+                                            prj: data,
+                                        })
+                                        .then((content) => {
+                                            saveAs(content, `${folder}.zip`)
+                                        })
+                                },
+                                function (err) {
+                                    CursorInfo.update(
+                                        `Failed to generate shapefile's .prj.`,
+                                        6000,
+                                        true,
+                                        { x: 305, y: 6 },
+                                        '#e9ff26',
+                                        'black'
+                                    )
+                                }
+                            )
+                            break
+                        default:
                     }
-                })(body, isPub)
-            )
+                })
+            })
 
             $('#drawToolDrawFilesListElemContextMenu #cmToggleLabels').on(
                 'click',

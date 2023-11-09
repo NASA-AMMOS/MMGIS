@@ -619,3 +619,59 @@
         transform: rotate(360deg);
     }
 }
+
+
+.layersToolExport {
+    cursor: default;
+    height: unset !important;
+}
+.layersToolExport > div {
+    display: flex;
+    margin-bottom: 0px;
+}
+.layersToolExport > div:first-child {
+    margin-bottom: 0px;
+    color: #fff;
+}
+.layersToolExport > div:not(:first-child) {
+    justify-content: space-between;
+    line-height: 27px;
+}
+.layersToolExport > div:first-child > div {
+    padding-left: 4px;
+    color: #eee;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 12px;
+}
+.layersToolExport:hover {
+    background: var(--color-a2) !important;
+}
+.layersToolExport > div > div:first-child {
+    padding-left: 28px;
+    line-height: 29px;
+}
+#layersTool .layersToolExport > div > select.dropdown {
+    background-color: var(--color-a1);
+    color: #ededed;
+    border: none;
+    width: 220px;
+    height: 27px;
+    font-size: 14px;
+    padding: 0px 3px;
+    border-left: 1px solid var(--color-a1-5);
+}
+.layersToolExportGo {
+    display: block;
+    width: 100%;
+    margin-left: 28px;
+    padding-left: 0px !important;
+    height: 27px;
+    line-height: 27px;
+    margin-top: 2px;
+    margin-bottom: 1px;
+    background-color: var(--color-a);
+}
+.layersToolExportGo:hover {
+    background-color: var(--color-a1-5);
+}

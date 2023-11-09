@@ -587,7 +587,7 @@ var Editing = {
             "<div class='drawToolContextMenuTabTitle'>Properties</div>",
             "<div class='drawToolContextMenuTabButtons'>",
                 "<div class='drawToolContextMenuTabButton' tab='drawToolContextMenuTabProperties' title='Properties'>",
-                    "<i class='mdi mdi-file-document-box mdi-24px'></i>",
+                    "<i class='mdi mdi-list-box mdi-24px'></i>",
                 "</div>",
                 (!displayOnly) ? "<div class='drawToolContextMenuTabButton' tab='drawToolContextMenuTabStyle' title='Style' style='display: " + ( (hideStyle) ? 'none' : 'inherit' ) + "'><i class='mdi mdi-palette mdi-24px'></i></div>" : "",
                 (!displayOnly && DrawTool.plugins?.Geologic) ? "<div class='drawToolContextMenuTabButton'  tab='drawToolContextMenuTabGeologic' title='Geologic'><i class='mdi mdi-earth-box mdi-24px'></i></div>" : "",

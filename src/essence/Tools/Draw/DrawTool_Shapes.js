@@ -15,7 +15,6 @@ var Shapes = {
         DrawTool = tool
         DrawTool.populateShapes = Shapes.populateShapes
         DrawTool.updateCopyTo = Shapes.updateCopyTo
-        DrawTool.setSubmitButtonState = Shapes.setSubmitButtonState
     },
     populateShapes: function (fileId, selectedFeatureIds) {
         //If we get an array of fileIds, split them
@@ -104,9 +103,10 @@ var Shapes = {
         $('#drawToolShapesFilterAdvanced').on('click', function () {
             $('#drawToolShapesFilterAdvanced').toggleClass('on')
             $('#drawToolShapesFilterAdvancedDiv').toggleClass('on')
-            if (!$('#drawToolShapesFilterAdvanced').hasClass('on')) {
-                $(`#drawToolShapes_filtering_clear`).click()
-            }
+            if ($('#drawToolShapesFilterAdvancedDiv').hasClass('on'))
+                $('#drawToolDrawShapesList').css('height', 'calc(100% - 265px)')
+            else $('#drawToolDrawShapesList').css('height', 'calc(100% - 65px)')
+            //shapeFilter()
         })
         $('#drawToolShapesFilterClear').off('click')
         $('#drawToolShapesFilterClear').on('click', function () {
@@ -901,7 +901,6 @@ var Shapes = {
         $(`#drawToolShapes_filtering_clear`).off('click')
         $(`#drawToolShapes_filtering_clear`).on('click', async () => {
             $(`#drawToolShapes_filtering_submit_loading`).addClass('active')
-            Shapes.setSubmitButtonState(true)
 
             // Clear value filter elements
             Shapes.filters.values = Shapes.filters.values.filter((v) => {
@@ -911,6 +910,7 @@ var Shapes = {
 
             $(`.drawToolContextMenuHeaderClose`).click()
             fileIds.forEach((fileId) => {
+                console.log(Shapes.filters)
                 // Refilter to show all
                 const filter = {
                     values: JSON.parse(JSON.stringify(Shapes.filters.values)),

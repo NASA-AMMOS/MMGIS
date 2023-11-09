@@ -226,7 +226,7 @@ var markup = [
             "<div id='drawToolShapes_filtering'>",
                 "<div id='drawToolShapes_filtering_header'>",
                     "<div id='drawToolShapes_filtering_title_left'>",
-                        "<div id='drawToolShapes_filtering_title'>Advanced Filter</div>",
+                        "<div id='drawToolShapes_filtering_title'>Filter</div>",
                     "</div>",
                     "<div id='drawToolShapes_filtering_adds'>",
                         "<div id='drawToolShapes_filtering_add_value' class='mmgisButton5' title='Add New Key-Value Filter'><div>Add</div><i class='mdi mdi-plus mdi-18px'></i></div>",
@@ -806,7 +806,6 @@ var DrawTool = {
                 DrawTool.endDrawing()
                 DrawTool.populateShapes()
                 $('#drawToolShapes').css('display', 'flex')
-                DrawTool.setSubmitButtonState(true)
                 break
             case 'history':
                 $('.drawToolContextMenuHeaderClose').click()
@@ -1309,7 +1308,6 @@ var DrawTool = {
     },
     timeFilterDrawingLayer(fileId) {
         if (L_.layers.layer[`DrawTool_${fileId}`]) {
-            DrawTool.setSubmitButtonState(true)
             const file = DrawTool.getFileObjectWithId(fileId)
 
             let startField
@@ -1334,13 +1332,10 @@ var DrawTool = {
                                         startField,
                                         endField
                                     )
-
                                 if (l2.savedOptions == null)
-                                    l2.savedOptions = {
-                                        opacity: l2.options.opacity,
-                                        fillOpacity: l2.options.fillOpacity,
-                                    }
-
+                                    l2.savedOptions = JSON.parse(
+                                        JSON.stringify(l2.options)
+                                    )
                                 l2.temporallyHidden = !isVisible
                                 if (l2.temporallyHidden)
                                     $(
@@ -1376,10 +1371,7 @@ var DrawTool = {
                         endField
                     )
                     if (l.savedOptions == null)
-                        l.savedOptions = {
-                            opacity: l.options.opacity,
-                            fillOpacity: l.options.fillOpacity,
-                        }
+                        l.savedOptions = JSON.parse(JSON.stringify(l.options))
 
                     l.temporallyHidden = !isVisible
                     if (l.temporallyHidden)
