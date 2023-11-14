@@ -25,9 +25,26 @@ var IdentifierTool = {
     imageData: null,
     MMWebGISInterface: null,
     mousemoveTimeout: null,
+    targetId: null,
+    made: false,
+    justification: 'left',
     vars: {},
-    make: function () {
+    initialize: function () {
+        //Get tool variables and UI adjustments
+        this.justification = L_.getToolVars('identifier')['justification']
+        var toolContent = d3.select('#toolSeparated_Identifier')
+        toolContent.style('bottom', '2px')    
+    },   
+    make: function (targetId) {
         this.MMWebGISInterface = new interfaceWithMMWebGIS()
+        this.targetId = targetId
+        this.activeLayerNames = []
+
+        L_.subscribeOnLayerToggle('IdentifierTool', () => {
+            this.MMWebGISInterface = new interfaceWithMMWebGIS()
+        })
+
+        this.made = true
 
         //Get tool variables
         this.varsRaw = L_.getToolVars('identifier')
@@ -54,6 +71,9 @@ var IdentifierTool = {
     },
     destroy: function () {
         this.MMWebGISInterface.separateFromMMWebGIS()
+        this.targetId = null
+        L_.unsubscribeOnLayerToggle('IdentifierTool')
+        this.made = false
     },
     //From: https://github.com/mrdoob/three.js/issues/758 mrdoob
     getImageData: function (image) {
@@ -385,7 +405,6 @@ function interfaceWithMMWebGIS() {
     //tools.html( markup );
 
     //Add event functions and whatnot
-    var previousCursor = d3.select('#map').style('cursor')
     d3.select('#map').style('cursor', 'crosshair')
 
     Map_.map.on('mousemove', IdentifierTool.idPixelMap)
@@ -397,10 +416,23 @@ function interfaceWithMMWebGIS() {
     Globe_.litho.getContainer().style.cursor = 'crosshair'
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
+
+    var newActive = $(
+        '#toolcontroller_sepdiv #' +
+            'Identifier' +
+            'Tool'
+    )
+    newActive.addClass('active').css({
+        color: ToolController_.activeColor,
+    })
+    newActive.parent().css({
+        background: ToolController_.activeBG,
+    })
+
     function separateFromMMWebGIS() {
         CursorInfo.hide()
 
-        d3.select('#map').style('cursor', previousCursor)
+        d3.select('#map').style('cursor', 'grab')
 
         //Globe_.shouldRaycastSprites = true
         Globe_.litho.getContainer().style.cursor = 'default'
@@ -409,6 +441,26 @@ function interfaceWithMMWebGIS() {
         Globe_.litho
             .getContainer()
             .removeEventListener('mousemove', IdentifierTool.idPixelGlobe)
+
+        let tools = d3.select(
+            IdentifierTool.targetId ? `#${IdentifierTool.targetId}` : '#toolPanel'
+        )
+        tools.style('background', 'var(--color-k)')
+        //Clear it
+        tools.selectAll('*').remove()
+
+        var prevActive = $(
+            '#toolcontroller_sepdiv #' +
+                'Identifier' +
+                'Tool'
+        )
+        prevActive.removeClass('active').css({
+            color: ToolController_.defaultColor,
+            background: 'none',
+        })
+        prevActive.parent().css({
+            background: 'none',
+        })
     }
 }
 
