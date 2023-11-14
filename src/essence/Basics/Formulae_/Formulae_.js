@@ -1452,27 +1452,56 @@ var Formulae_ = {
         return string
     },
     // https://github.com/mapbox/simplestyle-spec
-    geoJSONForceSimpleStyleSpec(geojson, stringifyPropertyObjects) {
+    geoJSONForceSimpleStyleSpec(
+        geojson,
+        stringifyPropertyObjects,
+        defaultStyle,
+        useKeyAsName
+    ) {
+        const defStyle = defaultStyle
+            ? JSON.parse(JSON.stringify(defaultStyle))
+            : {}
+
         const g = JSON.parse(JSON.stringify(geojson))
         g.features.forEach((f) => {
-            if (f.properties.style) {
-                // style.color -> stroke
-                if (f.properties.style.color != null)
-                    f.properties['stroke'] = f.properties.style.color
-                // style.opacity -> stroke-opacity
-                if (f.properties.style.opacity != null)
-                    f.properties['stroke-opacity'] = f.properties.style.opacity
-                // style.weight -> stroke-width
-                if (f.properties.style.weight != null)
-                    f.properties['stroke-width'] = f.properties.style.weight
-                // style.fillColor -> fill
-                if (f.properties.style.fillColor != null)
-                    f.properties['fill'] = f.properties.style.fillColor
-                // style.fillOpacity -> fill-opacity
-                if (f.properties.style.fillOpacity != null)
-                    f.properties['fill-opacity'] =
-                        f.properties.style.fillOpacity
+            let pstyle = f.properties.style || {}
+
+            if (useKeyAsName && f.properties[useKeyAsName] != null) {
+                if (typeof f.properties[useKeyAsName] === 'number')
+                    f.properties[useKeyAsName] = `${f.properties[useKeyAsName]}`
             }
+
+            if (f.geometry.type.toLowerCase() === 'point') {
+                if (pstyle.fillColor != null)
+                    f.properties['marker-color'] = pstyle.fillColor
+                else if (defStyle.fillColor != null)
+                    f.properties['marker-color'] = defStyle.fillColor
+            }
+            // style.color -> stroke
+            if (pstyle.color != null) f.properties['stroke'] = pstyle.color
+            else if (defStyle.color != null)
+                f.properties['stroke'] = defStyle.color
+            // style.opacity -> stroke-opacity
+            if (pstyle.opacity != null)
+                f.properties['stroke-opacity'] = pstyle.opacity
+            if (defStyle.opacity != null)
+                f.properties['stroke-opacity'] = defStyle.opacity
+            // style.weight -> stroke-width
+            if (pstyle.weight != null)
+                f.properties['stroke-width'] = pstyle.weight
+            if (defStyle.weight != null)
+                f.properties['stroke-width'] = defStyle.weight
+            // style.fillColor -> fill
+            if (pstyle.fillColor != null)
+                f.properties['fill'] = pstyle.fillColor
+            if (defStyle.fillColor != null)
+                f.properties['fill'] = defStyle.fillColor
+            // style.fillOpacity -> fill-opacity
+            if (pstyle.fillOpacity != null)
+                f.properties['fill-opacity'] = pstyle.fillOpacity
+            if (defStyle.fillOpacity != null)
+                f.properties['fill-opacity'] = defStyle.fillOpacity
+
             if (stringifyPropertyObjects)
                 Object.keys(f.properties).forEach((p) => {
                     const val = f.properties[p]
