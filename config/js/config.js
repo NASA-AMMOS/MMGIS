@@ -2293,6 +2293,7 @@ function save(returnJSON) {
         var modalDescription = layerEditors["LayerDescription" + modalId]
           ? layerEditors["LayerDescription" + modalId].getValue() || ""
           : "";
+
         var modalTags = modal.find("#tagsEl input").val();
         var modalLegend = modal.find("#legendEl input").val();
         var modalTileFormat = modal
@@ -2373,6 +2374,9 @@ function save(returnJSON) {
         if (layerObject.uuid === "" || layerObject.uuid === "undefined")
           layerObject.uuid = null;
 
+        if (modalDescription != "undefined")
+          layerObject.description = modalDescription;
+
         if (
           modalType == "vectortile" ||
           modalType == "vector" ||
@@ -2395,8 +2399,6 @@ function save(returnJSON) {
             layerObject.controlled = modalControlledEl;
           if (modalType == "vector" && modalLayer3d != "undefined")
             layerObject.layer3dType = modalLayer3d;
-          if (modalDescription != "undefined")
-            layerObject.description = modalDescription;
           if (modalTags != "undefined" && modalTags != "")
             layerObject.tags = modalTags
               .replace(/ /g, "")
