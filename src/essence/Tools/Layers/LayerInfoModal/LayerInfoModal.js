@@ -22,9 +22,6 @@ const LayerInfo = {
                 } Features)`
             } catch (e) {}
 
-        let title = 'Layer'
-        if (layer.type === 'header') title = 'Layer Group'
-
         let type = layer.type
         if (type === 'tile') type = 'raster'
 
@@ -37,7 +34,7 @@ const LayerInfo = {
                         `<div id='LayerInfoModalClose'><i class='mmgisHoverBlue mdi mdi-close mdi-18px'></i></div>`,
                     `</div>`,
                     `<div id='LayerInfoModalContent'>`,
-                        `<div id='LayerInfoModalInnerTitle'>${title}: ${layer.display_name}</div>`,
+                        `<div id='LayerInfoModalInnerTitle'>${layer.display_name}</div>`,
                         `<div id='LayerInfoModalInnerSubtitle'>${type}<span>${numberOfFeatures}</span></div>`,
 
                             layer.tags && layer.tags.length > 0 ? 
