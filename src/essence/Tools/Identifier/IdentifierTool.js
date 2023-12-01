@@ -25,6 +25,7 @@ var IdentifierTool = {
     imageData: null,
     MMWebGISInterface: null,
     mousemoveTimeout: null,
+    mousemoveTimeoutMap: null,
     vars: {},
     make: function () {
         this.MMWebGISInterface = new interfaceWithMMWebGIS()
@@ -78,11 +79,14 @@ var IdentifierTool = {
         }
     },
     idPixelMap: function (e) {
-        IdentifierTool.idPixel(e, [
-            e.latlng.lng,
-            e.latlng.lat,
-            Map_.map.getZoom(),
-        ])
+        clearTimeout(IdentifierTool.mousemoveTimeoutMap)
+        IdentifierTool.mousemoveTimeoutMap = setTimeout(function () {
+            IdentifierTool.idPixel(e, [
+                e.latlng.lng,
+                e.latlng.lat,
+                Map_.map.getZoom(),
+            ])
+        }, 5)
     },
     idPixelGlobe: function (e) {
         IdentifierTool.idPixel(e, [
@@ -115,19 +119,20 @@ var IdentifierTool = {
         IdentifierTool.activeLayerNames = []
         IdentifierTool.activeLayerURLs = []
         IdentifierTool.zoomLevels = []
+        IdentifierTool.tileFormats = []
         for (let n in L_.layers.on) {
             if (L_.layers.on[n] == true) {
                 //We only want the tile layers
                 if (L_.layers.data[n].type == 'tile') {
-                    //Cut the {z}/{x}/{y}.png
-                    var croppedUrl = L_.layers.data[n].url
-                    croppedUrl = croppedUrl.substr(0, croppedUrl.length - 15)
-                    if (!F_.isUrlAbsolute(croppedUrl))
-                        croppedUrl = L_.missionPath + croppedUrl
-                    IdentifierTool.activeLayerURLs.push(croppedUrl)
+                    var url = L_.layers.data[n].url
+                    if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
+                    IdentifierTool.activeLayerURLs.push(url)
                     IdentifierTool.activeLayerNames.push(n)
                     IdentifierTool.zoomLevels.push(
                         L_.layers.data[n].maxNativeZoom
+                    )
+                    IdentifierTool.tileFormats.push(
+                        L_.layers.data[n].tileformat || 'tms'
                     )
                 }
             }
@@ -146,7 +151,8 @@ var IdentifierTool = {
             var tx = Math.floor(ax)
             var ty = Math.floor(ay)
             //Invert y
-            var ty = Math.pow(2, tz) - 1 - ty
+            if (IdentifierTool.tileFormats[i] == 'tms')
+                ty = Math.pow(2, tz) - 1 - ty
 
             IdentifierTool.currentTiles[i] = { x: tx, y: ty, z: tz }
             //Default activeTiles if none;
@@ -193,14 +199,12 @@ var IdentifierTool = {
                 })(i)
                 IdentifierTool.images[i].setAttribute('crossOrigin', '')
 
-                IdentifierTool.images[i].src =
-                    IdentifierTool.activeLayerURLs[i] +
-                    tz +
-                    '/' +
-                    tx +
-                    '/' +
-                    ty +
-                    '.png'
+                IdentifierTool.images[i].src = (
+                    IdentifierTool.activeLayerURLs[i] + ''
+                )
+                    .replaceAll('{z}', tz)
+                    .replaceAll('{x}', tx)
+                    .replaceAll('{y}', ty)
             }
         }
 
@@ -420,10 +424,11 @@ function bestMatchInLegend(rgba, legendData) {
     if (rgba.a == 0) return bestMatch
 
     var bestHeuristic = Infinity
-    var l, h
+    var l, h, r
     for (var i = 0; i < legendData.length; i++) {
         if (legendData[i].color.length > 0) {
-            l = F_.hexToRGB(legendData[i].color)
+            r = F_.rgb2hex(legendData[i].color)
+            l = F_.hexToRGB(r[0] == '#' ? r : legendData[i].color)
             h =
                 Math.abs(rgba.r - l.r) +
                 Math.abs(rgba.g - l.g) +
@@ -440,10 +445,9 @@ function bestMatchInLegend(rgba, legendData) {
 function queryDataValue(url, lng, lat, numBands, callback) {
     numBands = numBands || 1
     var dataPath
-    if (url.startsWith("/vsicurl/")) {
+    if (url.startsWith('/vsicurl/')) {
         dataPath = url
-    }
-    else {
+    } else {
         dataPath = 'Missions/' + L_.mission + '/' + url
     }
     calls.api(
