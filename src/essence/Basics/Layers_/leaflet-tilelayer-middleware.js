@@ -111,14 +111,15 @@ var colorFilterExtension = {
         }
         img.src = url
     },
-    refresh: function () {
+    refresh: function (newUrl) {
+        if (newUrl) this._url = newUrl
         if (this._map == null) return
-
         for (let key in this._tiles) {
             const tile = this._tiles[key]
             if (tile.current && tile.active) {
                 const oldsrc = tile.el.src
                 const newsrc = this.getTileUrl(tile.coords)
+
                 if (oldsrc != newsrc) {
                     //L.DomEvent.off(tile, 'load', this._tileOnLoad); ... this doesnt work!
                     this._refreshTileUrl(tile, newsrc)

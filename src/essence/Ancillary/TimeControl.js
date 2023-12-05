@@ -176,8 +176,14 @@ var TimeControl = {
 
         if (L_.layers.layer[layer.name] === null) return
 
-        var layerTimeFormat = d3.utcFormat(layer.time.format)
+        let layerTimeFormat = d3.utcFormat(layer.time.format)
         layer.time.current = TimeControl.currentTime // keeps track of when layer was refreshed
+
+        let originalUrl = layer.url
+
+        layer.url = await TimeControl.performTimeUrlReplacements(layer)
+        let changedUrl = null
+        if (layer.url !== originalUrl) changedUrl = layer.url
 
         if (layer.type === 'tile') {
             if (layer.time && layer.time.enabled === true) {
@@ -185,12 +191,10 @@ var TimeControl = {
             }
             if (evenIfControlled === true || layer.controlled !== true) {
                 if (L_.layers.on[layer.name] || evenIfOff) {
-                    L_.layers.layer[layer.name].refresh()
+                    L_.layers.layer[layer.name].refresh(changedUrl)
                 }
             }
         } else {
-            var originalUrl = layer.url
-
             // replace start/endtime keywords
             if (layer.time && layer.time.enabled === true) {
                 if (
@@ -225,13 +229,54 @@ var TimeControl = {
                     if (L_.layers.on[layer.name] || evenIfOff) {
                         await Map_.refreshLayer(layer)
                     }
-                // put start/endtime keywords back
-                if (layer.time && layer.time.enabled === true)
-                    layer.url = originalUrl
             }
         }
+        // put start/endtime keywords back
+        if (layer.time && layer.time.enabled === true) layer.url = originalUrl
 
         return true
+    },
+    performTimeUrlReplacements: async function (layer) {
+        return new Promise(async (resolve, reject) => {
+            let layerTimeFormat = d3.utcFormat(layer.time.format)
+
+            let nextUrl = layer.url
+            if (layer.variables?.urlReplacements) {
+                const keys = Object.keys(layer.variables.urlReplacements)
+                for (let i = 0; i < keys.length; i++) {
+                    const r = layer.variables.urlReplacements[keys[i]]
+
+                    if (r.on === 'timeChange') {
+                        const response = await fetch(r.url, {
+                            method: r.type,
+                            headers: {
+                                accept: 'application/json',
+                                'content-type': 'application/json',
+                            },
+                            body: JSON.stringify(r.body)
+                                .replaceAll(
+                                    '{starttime}',
+                                    layerTimeFormat(
+                                        Date.parse(layer.time.start)
+                                    )
+                                )
+                                .replaceAll(
+                                    '{endtime}',
+                                    layerTimeFormat(Date.parse(layer.time.end))
+                                ),
+                        })
+                        const res = await response.json()
+                        const replacement = F_.getIn(res, r.return)
+                        if (replacement)
+                            nextUrl = nextUrl.replace(
+                                `{${keys[i]}}`,
+                                encodeURIComponent(replacement)
+                            )
+                    }
+                }
+            }
+            resolve(nextUrl)
+        })
     },
     reloadTimeLayers: function () {
         // refresh time enabled layers

@@ -102,8 +102,21 @@ Example:
 
 ```javascript
 {
-    "shortcutSuffix": "single letter to 'ATL + {letter}' toggle the layer on and off"
+    "shortcutSuffix": "single letter to 'ATL + {letter}' toggle the layer on and off",
+    "urlReplacements": {
+      "name_of_{}_value_to_replace_in_url": {
+        on: "timeChange",
+        url: "url",
+        type: "GET || POST",
+        body: {
+          some_body: "{starttime} and {endtime} get filled",
+        },
+        return:
+          "value_in_response_to_replace_with.use.dot.notation.to.traverse.objects",
+      },
+    }
 }
 ```
 
 - `shortcutSuffix`: A single letter to 'ALT + {letter}' toggle the layer on and off. Please verify that your chosen shortcut does not conflict with other system or browser-level keyboard shortcuts.
+- `urlReplacements`: For the case where parts or all of a tileset's url comes from intermediary endpoints. For example a service may require sending a query to a server that then returns a uuid and that uuid is required in the tileset's url to query it.

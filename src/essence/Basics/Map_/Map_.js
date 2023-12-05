@@ -830,18 +830,19 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
         })
     }
 
-    function makeTileLayer() {
-        var layerUrl = layerObj.url
+    async function makeTileLayer() {
+        let layerUrl = layerObj.url
         if (!F_.isUrlAbsolute(layerUrl)) layerUrl = L_.missionPath + layerUrl
-        var bb = null
+        let bb = null
         if (layerObj.hasOwnProperty('boundingBox')) {
             bb = L.latLngBounds(
                 L.latLng(layerObj.boundingBox[3], layerObj.boundingBox[2]),
                 L.latLng(layerObj.boundingBox[1], layerObj.boundingBox[0])
             )
         }
+        layerUrl = await TimeControl.performTimeUrlReplacements(layerObj)
 
-        var tileFormat = 'tms'
+        let tileFormat = 'tms'
         // For backward compatibility with the .tms option
         if (typeof layerObj.tileformat === 'undefined') {
             tileFormat =
@@ -870,6 +871,7 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
                 typeof layerObj.time === 'undefined' ? '' : layerObj.time.start,
             endtime:
                 typeof layerObj.time === 'undefined' ? '' : layerObj.time.end,
+            variables: layerObj.variables || {},
         })
 
         L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
