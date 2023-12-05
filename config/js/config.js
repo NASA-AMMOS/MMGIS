@@ -2799,6 +2799,20 @@ function layerPopulateVariable(modalId, layerType) {
     currentLayerVars.shortcutSuffix = currentLayerVars.shortcutSuffix || null;
 
     if (layerType == "tile") {
+      currentLayerVars.urlReplacements = currentLayerVars.urlReplacements
+        ? currentLayerVars.urlReplacements
+        : {
+            "name_of_{}_value_to_replace_in_url": {
+              on: "timeChange",
+              url: "url",
+              type: "GET || POST",
+              body: {
+                some_body: "{starttime} and {endtime} get filled",
+              },
+              return:
+                "value_in_response_to_replace_with.use.dot.notation.to.traverse.objects",
+            },
+          };
     } else if (layerType == "data") {
       currentLayerVars = currentLayerVars.shader
         ? { shader: currentLayerVars.shader }

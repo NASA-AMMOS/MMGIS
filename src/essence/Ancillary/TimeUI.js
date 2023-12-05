@@ -255,7 +255,6 @@ const TimeUI = {
                     e.oldDate != null
                 )
                 TimeUI.startTempusSavedLastDate = e.date
-
                 TimeUI.endTempus.updateOptions({
                     restrictions: {
                         minDate: e.date,
@@ -525,7 +524,7 @@ const TimeUI = {
             // Remove end date enforcement
             TimeUI.endTempus.updateOptions({
                 restrictions: {
-                    minDate: new Date(0).toISOString(),
+                    minDate: new Date(0),
                 },
             })
         } else {
