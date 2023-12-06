@@ -219,6 +219,9 @@ const L_ = {
     //Takes in a config layer object
     toggleLayer: async function (s) {
         if (s == null) return
+
+        const wasNeverOn = L_.layers.layer[s.name] === false
+
         let on //if on -> turn off //if off -> turn on
         if (L_.layers.on[s.name] === true) on = true
         else on = false
@@ -235,6 +238,21 @@ const L_ = {
         // Deselect active feature if its layer is being turned off
         if (L_.activeFeature && L_.activeFeature.layerName === s.name && on) {
             L_.setActiveFeature(null)
+        }
+
+        // Make new vector layer match time constraints
+        if (
+            wasNeverOn &&
+            s.type === 'vector' &&
+            s.time.type === 'local' &&
+            s.time.endProp != null &&
+            s.controlled !== true
+        ) {
+            L_.timeFilterVectorLayer(
+                s.name,
+                new Date(s.time.start).getTime(),
+                new Date(s.time.end).getTime()
+            )
         }
     },
     toggleLayerHelper: async function (
@@ -471,6 +489,7 @@ const L_ = {
                                     L_._layersOrdered.indexOf(s.name)
                             )
                         }
+
                         if (s.type === 'vector') {
                             L_.Globe_.litho.addLayer(
                                 s.layer3dType || 'clamped',
