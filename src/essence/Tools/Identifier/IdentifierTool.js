@@ -56,6 +56,30 @@ var IdentifierTool = {
     destroy: function () {
         this.MMWebGISInterface.separateFromMMWebGIS()
     },
+    fillURLParameters: function (url, layerUUID) {
+        if (IdentifierTool.vars[layerUUID]) {
+            const layerTimeFormat = d3.utcFormat(
+                IdentifierTool.vars[layerUUID].timeFormat
+            )
+
+            let filledURL = url
+            filledURL = filledURL
+                .replace(
+                    /{starttime}/g,
+                    layerTimeFormat(
+                        Date.parse(L_.layers.data[layerUUID].time.start)
+                    )
+                )
+                .replace(
+                    /{endtime}/g,
+                    layerTimeFormat(
+                        Date.parse(L_.layers.data[layerUUID].time.end)
+                    )
+                )
+
+            return filledURL
+        } else return url
+    },
     //From: https://github.com/mrdoob/three.js/issues/758 mrdoob
     getImageData: function (image) {
         if (image.width == 0) return
@@ -240,6 +264,7 @@ var IdentifierTool = {
                         lnglatzoom[1],
                         IdentifierTool.vars[IdentifierTool.activeLayerNames[i]]
                             .bands,
+                        IdentifierTool.activeLayerNames[i],
                         (function (pxRGBA, i) {
                             return function (value) {
                                 var htmlValues = ''
@@ -442,7 +467,7 @@ function bestMatchInLegend(rgba, legendData) {
     return bestMatch
 }
 
-function queryDataValue(url, lng, lat, numBands, callback) {
+function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
     numBands = numBands || 1
     var dataPath
     if (url.startsWith('/vsicurl/')) {
@@ -450,6 +475,9 @@ function queryDataValue(url, lng, lat, numBands, callback) {
     } else {
         dataPath = 'Missions/' + L_.mission + '/' + url
     }
+
+    dataPath = IdentifierTool.fillURLParameters(dataPath, layerUUID)
+
     calls.api(
         'getbands',
         {
