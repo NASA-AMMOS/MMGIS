@@ -8,7 +8,8 @@
                 "url": "(str) path_to_data/data.tif",
                 "bands": "(int) how many bands to query from",
                 "sigfigs": "(int) how many digits after the decimal",
-                "unit": "(str) whatever string unit"
+                "unit": "(str) whatever string unit",
+                "timeFormat": "(str) for injecting '{starttime}' and '{endtime}' in url. See syntax in https://d3js.org/d3-time-format#locale_format"
             },
             "...": {}
         }
