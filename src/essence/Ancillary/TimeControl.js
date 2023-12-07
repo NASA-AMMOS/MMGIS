@@ -181,7 +181,10 @@ var TimeControl = {
 
         let originalUrl = layer.url
 
-        layer.url = await TimeControl.performTimeUrlReplacements(layer)
+        layer.url = await TimeControl.performTimeUrlReplacements(
+            layer.url,
+            layer
+        )
         let changedUrl = null
         if (layer.url !== originalUrl) changedUrl = layer.url
 
@@ -236,11 +239,11 @@ var TimeControl = {
 
         return true
     },
-    performTimeUrlReplacements: async function (layer) {
+    performTimeUrlReplacements: async function (url, layer) {
         return new Promise(async (resolve, reject) => {
             let layerTimeFormat = d3.utcFormat(layer.time.format)
 
-            let nextUrl = layer.url
+            let nextUrl = url
             if (layer.variables?.urlReplacements) {
                 const keys = Object.keys(layer.variables.urlReplacements)
                 for (let i = 0; i < keys.length; i++) {

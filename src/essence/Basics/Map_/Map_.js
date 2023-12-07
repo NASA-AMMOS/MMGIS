@@ -840,7 +840,10 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
                 L.latLng(layerObj.boundingBox[1], layerObj.boundingBox[0])
             )
         }
-        layerUrl = await TimeControl.performTimeUrlReplacements(layerObj)
+        layerUrl = await TimeControl.performTimeUrlReplacements(
+            layerUrl,
+            layerObj
+        )
 
         let tileFormat = 'tms'
         // For backward compatibility with the .tms option
