@@ -761,7 +761,11 @@ const L_ = {
                 let layerUrl = s.url
                 if (!F_.isUrlAbsolute(layerUrl))
                     layerUrl = L_.missionPath + layerUrl
-                if (s.type === 'tile' || s.type === 'data') {
+                if (
+                    s.type === 'tile' ||
+                    s.type === 'data' ||
+                    s.type === 'vectortile'
+                ) {
                     // Make sure all tile layers follow z-index order at start instead of element order
                     L_.layers.layer[s.name].setZIndex(
                         L_._layersOrdered.length +

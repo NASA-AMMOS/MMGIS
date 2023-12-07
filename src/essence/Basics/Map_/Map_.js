@@ -954,7 +954,7 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
 
         var vectorTileOptions = {
             layerName: layerObj.name,
-            rendererFactory: L.canvas.tile,
+            rendererFactory: L.svg.tile,
             vectorTileLayerStyles: layerObj.style.vtLayer || {},
             interactive: true,
             minZoom: layerObj.minZoom,
@@ -975,8 +975,8 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
 
         L_.layers.layer[layerObj.name] = L.vectorGrid
             .protobuf(layerUrl, vectorTileOptions)
-            .on('click', function (e) {
-                let layerName = e.sourceTarget._layerName
+            .on('click', function (e, b, x) {
+                let layerName = e.target.options.layerName
                 let vtId = L_.layers.layer[layerName].vtId
                 clearHighlight()
                 L_.layers.layer[layerName].highlight = e.layer.properties[vtId]
@@ -1001,36 +1001,38 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON) {
                     geometry: {},
                 })
 
-                Map_.activeLayer = e.sourceTarget._layer
+                Map_.activeLayer = e.layer
                 if (Map_.activeLayer) L_.Map_._justSetActiveLayer = true
 
                 let p = e.sourceTarget._point
 
-                for (var i in e.layer._renderer._features) {
-                    if (
-                        e.layer._renderer._features[i].feature._pxBounds.min
-                            .x <= p.x &&
-                        e.layer._renderer._features[i].feature._pxBounds.max
-                            .x >= p.x &&
-                        e.layer._renderer._features[i].feature._pxBounds.min
-                            .y <= p.y &&
-                        e.layer._renderer._features[i].feature._pxBounds.max
-                            .y >= p.y &&
-                        e.layer._renderer._features[i].feature.properties[
-                            vtId
-                        ] != e.layer.properties[vtId]
-                    ) {
-                        L_.layers.layer[layerName].activeFeatures.push({
-                            type: 'Feature',
-                            properties:
-                                e.layer._renderer._features[i].feature
-                                    .properties,
-                            geometry: {},
-                        })
+                if (p) {
+                    for (var i in e.layer._renderer._features) {
+                        if (
+                            e.layer._renderer._features[i].feature._pxBounds.min
+                                .x <= p.x &&
+                            e.layer._renderer._features[i].feature._pxBounds.max
+                                .x >= p.x &&
+                            e.layer._renderer._features[i].feature._pxBounds.min
+                                .y <= p.y &&
+                            e.layer._renderer._features[i].feature._pxBounds.max
+                                .y >= p.y &&
+                            e.layer._renderer._features[i].feature.properties[
+                                vtId
+                            ] != e.layer.properties[vtId]
+                        ) {
+                            L_.layers.layer[layerName].activeFeatures.push({
+                                type: 'Feature',
+                                properties:
+                                    e.layer._renderer._features[i].feature
+                                        .properties,
+                                geometry: {},
+                            })
+                        }
                     }
                 }
 
-                timedSelect(e.sourceTarget._layer, layerName, e)
+                timedSelect(e.layer, layerName, e)
 
                 L.DomEvent.stop(e)
             })
