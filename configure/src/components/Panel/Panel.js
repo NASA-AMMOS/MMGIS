@@ -1,14 +1,24 @@
 import React from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { decrement, increment } from "./PanelSlice";
-import "./Panel.css";
+import { makeStyles } from "@mui/styles";
+
+const useStyles = makeStyles((theme) => ({
+  Panel: {
+    width: "220px",
+    height: "100%",
+    background: theme.palette.secondary.main,
+  },
+}));
 
 export default function Panel() {
+  const c = useStyles();
+
   const count = useSelector((state) => state.panel.value);
   const dispatch = useDispatch();
 
   return (
-    <div className="Panel">
+    <div className={c.Panel}>
       <div>
         <button
           aria-label="Increment value"
