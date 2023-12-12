@@ -318,7 +318,9 @@ var QueryURL = {
         urlAppendage += '&globeZoom=' + globeZoom
 
         //globeCamera
-        var orbit = L_.Globe_.litho.getCameras().orbit
+        const lithoCams = L_.Globe_.litho.getCameras()
+        if( lithoCams != null ) {
+        var orbit = lithoCams.orbit
         var cam = orbit.camera
         var con = orbit.controls
 
@@ -337,6 +339,7 @@ var QueryURL = {
             ',' +
             tar.z
         urlAppendage += '&globeCamera=' + globeCamera
+        }
 
         //panePercents
         var pP = L_.UserInterface_.getPanelPercents()
