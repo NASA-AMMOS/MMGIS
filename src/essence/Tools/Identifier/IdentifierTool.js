@@ -113,11 +113,12 @@ var IdentifierTool = {
         }, 5)
     },
     idPixelGlobe: function (e) {
-        IdentifierTool.idPixel(e, [
-            Globe_.litho.mouse.lng,
-            Globe_.litho.mouse.lat,
-            Globe_.litho.zoom,
-        ])
+        if (Globe_.litho.mouse)
+            IdentifierTool.idPixel(e, [
+                Globe_.litho.mouse.lng,
+                Globe_.litho.mouse.lat,
+                Globe_.litho.zoom,
+            ])
     },
     idValueMap: function (e) {
         IdentifierTool.idPixel(
@@ -127,11 +128,16 @@ var IdentifierTool = {
         )
     },
     idValueGlobe: function (e) {
-        IdentifierTool.idPixel(
-            e,
-            [Globe_.litho.mouse.lng, Globe_.litho.mouse.lat, Globe_.litho.zoom],
-            true
-        )
+        if (Globe_.litho.mouse)
+            IdentifierTool.idPixel(
+                e,
+                [
+                    Globe_.litho.mouse.lng,
+                    Globe_.litho.mouse.lat,
+                    Globe_.litho.zoom,
+                ],
+                true
+            )
     },
     //lnglatzoom is [lng,lat,zoom]
     //if trueValue is true, query the data layer for the value, else us the legend if possible
@@ -418,12 +424,15 @@ function interfaceWithMMWebGIS() {
     d3.select('#map').style('cursor', 'crosshair')
 
     Map_.map.on('mousemove', IdentifierTool.idPixelMap)
-    Globe_.litho
-        .getContainer()
-        .addEventListener('mousemove', IdentifierTool.idPixelGlobe, false)
-    //Globe_.shouldRaycastSprites = false
+    if (L_.hasGlobe) {
+        Globe_.litho
+            .getContainer()
+            .addEventListener('mousemove', IdentifierTool.idPixelGlobe, false)
+        //Globe_.shouldRaycastSprites = false
 
-    Globe_.litho.getContainer().style.cursor = 'crosshair'
+        Globe_.litho.getContainer().style.cursor = 'crosshair'
+    }
+
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
     function separateFromMMWebGIS() {
@@ -431,13 +440,14 @@ function interfaceWithMMWebGIS() {
 
         d3.select('#map').style('cursor', previousCursor)
 
-        //Globe_.shouldRaycastSprites = true
-        Globe_.litho.getContainer().style.cursor = 'default'
-
         Map_.map.off('mousemove', IdentifierTool.idPixelMap)
-        Globe_.litho
-            .getContainer()
-            .removeEventListener('mousemove', IdentifierTool.idPixelGlobe)
+        //Globe_.shouldRaycastSprites = true
+        if (L_.hasGlobe) {
+            Globe_.litho.getContainer().style.cursor = 'default'
+            Globe_.litho
+                .getContainer()
+                .removeEventListener('mousemove', IdentifierTool.idPixelGlobe)
+        }
     }
 }
 

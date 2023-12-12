@@ -284,9 +284,11 @@ var QueryURL = {
         if (mapZoom == undefined) mapZoom = L_.Map_.map.getZoom()
 
         var globeCenter = L_.Globe_.litho.getCenter()
-        if (globeLon == undefined) globeLon = globeCenter.lng
-        if (globeLat == undefined) globeLat = globeCenter.lat
-        if (globeZoom == undefined) globeZoom = L_.Globe_.litho.zoom
+        if (globeCenter) {
+            if (globeLon == undefined) globeLon = globeCenter.lng
+            if (globeLat == undefined) globeLat = globeCenter.lat
+            if (globeZoom == undefined) globeZoom = L_.Globe_.litho.zoom
+        }
 
         var viewerImg = L_.Viewer_.getLastImageId()
         var viewerLoc = L_.Viewer_.getLocation()

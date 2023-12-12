@@ -206,16 +206,18 @@ let Map_ = {
             $('.map-autoset-zoom').text(Map_.map.getZoom())
         })
 
-        this.map.on('move', (e) => {
-            const c = this.map.getCenter()
-            Globe_.controls.link.linkMove(c.lng, c.lat)
-        })
-        this.map.on('mousemove', (e) => {
-            Globe_.controls.link.linkMouseMove(e.latlng.lng, e.latlng.lat)
-        })
-        this.map.on('mouseout', (e) => {
-            Globe_.controls.link.linkMouseOut()
-        })
+        if (Globe_.controls.link) {
+            this.map.on('move', (e) => {
+                const c = this.map.getCenter()
+                Globe_.controls.link.linkMove(c.lng, c.lat)
+            })
+            this.map.on('mousemove', (e) => {
+                Globe_.controls.link.linkMouseMove(e.latlng.lng, e.latlng.lat)
+            })
+            this.map.on('mouseout', (e) => {
+                Globe_.controls.link.linkMouseOut()
+            })
+        }
 
         // Clear the selected feature if clicking on the map where there are no features
         Map_.map.addEventListener('click', clearOnMapClick)

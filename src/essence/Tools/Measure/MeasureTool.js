@@ -10,7 +10,7 @@ import calls from '../../../pre/calls'
 
 import metricsGraphics from '../../../external/MetricsGraphics/metricsgraphics.min'
 
-import {render, unmountComponentAtNode } from 'react-dom'
+import { render, unmountComponentAtNode } from 'react-dom'
 import React, { useState, useEffect, useRef } from 'react'
 
 import { Chart } from 'chart.js'
@@ -64,15 +64,25 @@ const Measure = () => {
             .on('mousemove', MeasureTool.moveMap)
             .on('mouseout', MeasureTool.mouseOutMap)
 
-        const globeCont = Globe_.litho.getContainer()
-        globeCont.addEventListener(
-            'mousedown',
-            MeasureTool.mouseDownGlobe,
-            false
-        )
-        globeCont.addEventListener('mouseup', MeasureTool.clickGlobe, false)
-        globeCont.addEventListener('mousemove', MeasureTool.moveGlobe, false)
-        globeCont.addEventListener('mouseout', MeasureTool.mouseOutMap, false)
+        if (L_.hasGlobe) {
+            const globeCont = Globe_.litho.getContainer()
+            globeCont.addEventListener(
+                'mousedown',
+                MeasureTool.mouseDownGlobe,
+                false
+            )
+            globeCont.addEventListener('mouseup', MeasureTool.clickGlobe, false)
+            globeCont.addEventListener(
+                'mousemove',
+                MeasureTool.moveGlobe,
+                false
+            )
+            globeCont.addEventListener(
+                'mouseout',
+                MeasureTool.mouseOutMap,
+                false
+            )
+        }
 
         Viewer_.imageViewerMap.addHandler(
             'canvas-click',
@@ -632,19 +642,29 @@ let MeasureTool = {
             .off('mousemove', MeasureTool.moveMap)
             .off('mouseout', MeasureTool.mouseOutMap)
 
-        const globeCont = Globe_.litho.getContainer()
-        globeCont.removeEventListener(
-            'mousedown',
-            MeasureTool.mouseDownGlobe,
-            false
-        )
-        globeCont.removeEventListener('mouseup', MeasureTool.clickGlobe, false)
-        globeCont.removeEventListener('mousemove', MeasureTool.moveGlobe, false)
-        globeCont.removeEventListener(
-            'mouseout',
-            MeasureTool.mouseOutMap,
-            false
-        )
+        if (L_.hasGlobe) {
+            const globeCont = Globe_.litho.getContainer()
+            globeCont.removeEventListener(
+                'mousedown',
+                MeasureTool.mouseDownGlobe,
+                false
+            )
+            globeCont.removeEventListener(
+                'mouseup',
+                MeasureTool.clickGlobe,
+                false
+            )
+            globeCont.removeEventListener(
+                'mousemove',
+                MeasureTool.moveGlobe,
+                false
+            )
+            globeCont.removeEventListener(
+                'mouseout',
+                MeasureTool.mouseOutMap,
+                false
+            )
+        }
 
         Viewer_.imageViewerMap.removeHandler(
             'canvas-click',
@@ -1539,28 +1559,30 @@ function makeGlobePolyline(polylinePoints) {
             },
         })
     }
-
-    const globeBCR = Globe_.litho.getContainer()?.getBoundingClientRect() || {}
-    if (globeBCR.width > 0)
-        Globe_.litho.addLayer('clamped', {
-            name: '_measurePolyline',
-            id: '_measurePolyline',
-            on: true,
-            order: 10,
-            opacity: 1,
-            minZoom: 0,
-            maxZoom: 30,
-            style: {
-                default: {
-                    weight: 3,
-                    color: 'prop=color',
+    if (L_.hasGlobe) {
+        const globeBCR =
+            Globe_.litho.getContainer()?.getBoundingClientRect() || {}
+        if (globeBCR.width > 0)
+            Globe_.litho.addLayer('clamped', {
+                name: '_measurePolyline',
+                id: '_measurePolyline',
+                on: true,
+                order: 10,
+                opacity: 1,
+                minZoom: 0,
+                maxZoom: 30,
+                style: {
+                    default: {
+                        weight: 3,
+                        color: 'prop=color',
+                    },
                 },
-            },
-            geojson: {
-                type: 'FeatureCollection',
-                features: features,
-            },
-        })
+                geojson: {
+                    type: 'FeatureCollection',
+                    features: features,
+                },
+            })
+    }
 }
 
 MeasureTool.init()
