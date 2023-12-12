@@ -135,3 +135,7 @@ If the new MAIN_MISSION ENV is set to a valid mission, skip the landing page and
 #### `SKIP_CLIENT_INITIAL_LOGIN=`
 
 If true, MMGIS will not auto-login returning users. This can be useful when login is managed someplace else. The initial login process can be manually triggered with `mmgisAPI.initialLogin()` | boolean | default `false`
+
+#### `GENERATE_SOURCEMAP=`
+
+If true at build-time, JavaScript source maps will also be built | boolean | default `false`
