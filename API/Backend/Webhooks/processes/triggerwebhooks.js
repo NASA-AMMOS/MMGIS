@@ -166,6 +166,8 @@ function getInjectableVariables(type, file, res) {
       injectableVariables.file_id = injectableVariables.id;
 
       if (typeof injectableVariables.file_description === "string") {
+        injectableVariables.raw_file_description =
+          injectableVariables.file_description;
         const tags = injectableVariables.file_description.match(/~#\w+/g) || [];
         const uniqueTags = [...tags];
         // remove '#'s
