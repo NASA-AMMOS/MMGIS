@@ -98,7 +98,6 @@ def ll2aerll(lng, lat, height, target, time, includeSunEarth):
     flat_range = distance_between_points((lng, lat), (target_lng, target_lat), "meters", radii[0])
     # Altitude above the tangential plane of the surface observer latlng
     horizontal_altitude = (flat_range * 1000) * math.tan(razel[2])
-    #horizontal_altitude = (range_output * 1000) * math.sin(razel[2])
 
 
     return json.dumps({
