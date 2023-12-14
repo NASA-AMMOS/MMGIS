@@ -58,3 +58,4 @@ try:
     print(chronos(target, fromFormat, fromtype, to, totype, time))
 except:
     print(json.dumps({"error": True, "message": 'Error: ' + str(sys.exc_info()[0])}))
+    
