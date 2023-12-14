@@ -84,16 +84,9 @@ function drawFileUpdate(webhook, payload) {
   response.send = function (res) {
     const webhookHeader = JSON.parse(webhook.header);
     const webhookBody = JSON.parse(webhook.body);
-    const file_name = res.body?.file?.[0]?.file_name || null;
-    const file_owner = res.body?.file?.[0]?.file_owner || null;
-    const geojson = res.body.geojson;
 
-    const injectableVariables = {
-      file_id,
-      file_name,
-      file_owner,
-      geojson,
-    };
+    const file = res.body?.file?.[0] || {};
+    const injectableVariables = getInjectableVariables("draw", file, res);
 
     // Build the body
     buildBody(webhookBody, injectableVariables);
@@ -106,27 +99,6 @@ function drawFileUpdate(webhook, payload) {
   };
 
   getfile(data, response);
-}
-
-function buildBody(webhookBody, injectableVariables) {
-  // Fill in the body
-  for (var i in webhookBody) {
-    var match = INJECT_REGEX.exec(webhookBody[i]);
-    // Match for curly braces. If the value contains no curly braces, assume the value is hardcoded so leave the value as is
-    if (match) {
-      var variable = match[1];
-      if (!injectableVariables[variable]) {
-        logger(
-          "error",
-          "The variable '" + variable + "' is not an injectable variable",
-          "Webhooks",
-          null,
-          "The variable '" + variable + "' is not an injectable variable"
-        );
-      }
-      webhookBody[i] = injectableVariables[variable];
-    }
-  }
 }
 
 function drawFileDelete(webhook, payload) {
@@ -147,16 +119,9 @@ function drawFileDelete(webhook, payload) {
   response.send = function (res) {
     const webhookHeader = JSON.parse(webhook.header);
     const webhookBody = JSON.parse(webhook.body);
-    const geojson = res.body.geojson;
-    const file_name = res.body?.file?.[0]?.file_name || null;
-    const file_owner = res.body?.file?.[0]?.file_owner || null;
 
-    const injectableVariables = {
-      file_id,
-      file_name,
-      file_owner,
-      geojson,
-    };
+    const file = res.body?.file?.[0] || {};
+    const injectableVariables = getInjectableVariables("draw", file, res);
 
     // Build the body
     buildBody(webhookBody, injectableVariables);
@@ -171,12 +136,97 @@ function drawFileDelete(webhook, payload) {
   getfile(data, response);
 }
 
+function getInjectableVariables(type, file, res) {
+  const injectableVariables = {};
+  switch (type) {
+    case "draw":
+      const injectableNames = [
+        "id",
+        "file_owner",
+        "file_owner_group",
+        "file_name",
+        "file_description",
+        "is_master",
+        "intent",
+        "public",
+        "hidden",
+        "template",
+        "publicity_type",
+        "public_editors",
+        "created_on",
+        "updated_on",
+      ];
+      injectableNames.forEach((name) => {
+        injectableVariables[name] = file[name];
+      });
+
+      const geojson = res.body.geojson;
+
+      injectableVariables.geojson = geojson;
+      injectableVariables.file_id = injectableVariables.id;
+
+      if (typeof injectableVariables.file_description === "string") {
+        const tags = injectableVariables.file_description.match(/~#\w+/g) || [];
+        const uniqueTags = [...tags];
+        // remove '#'s
+        injectableVariables.tags = uniqueTags.map((t) => t.substring(2)) || [];
+
+        const folders =
+          injectableVariables.file_description.match(/~@\w+/g) || [];
+        const uniqueFolders = [...folders];
+        // remove '@'s
+        injectableVariables.folders =
+          uniqueFolders.map((t) => t.substring(2)) || [];
+
+        const efolders =
+          injectableVariables.file_description.match(/~\^\w+/g) || [];
+        const uniqueEFolders = [...efolders];
+        // remove '^'s
+        injectableVariables.efolders =
+          uniqueEFolders.map((t) => t.substring(2)) || [];
+
+        injectableVariables.file_description =
+          injectableVariables.file_description
+            .replaceAll(/~#\w+/g, "")
+            .replaceAll(/~@\w+/g, "")
+            .replaceAll(/~\^\w+/g, "")
+            .trimStart()
+            .trimEnd();
+      }
+      break;
+    default:
+      break;
+  }
+  return injectableVariables;
+}
+
+function buildBody(webhookBody, injectableVariables) {
+  // Fill in the body
+  for (var i in webhookBody) {
+    var match = INJECT_REGEX.exec(webhookBody[i]);
+    // Match for curly braces. If the value contains no curly braces, assume the value is hardcoded so leave the value as is
+    if (match) {
+      var variable = match[1];
+      if (!injectableVariables.hasOwnProperty(variable)) {
+        logger(
+          "error",
+          "The variable '" + variable + "' is not an injectable variable",
+          "Webhooks",
+          null,
+          "The variable '" + variable + "' is not an injectable variable"
+        );
+      }
+      webhookBody[i] = injectableVariables[variable];
+    }
+  }
+}
+
 function buildUrl(url, injectableVariables) {
   var updatedUrl = url;
   var match;
   while (null !== (match = INJECT_REGEX.exec(updatedUrl))) {
     var variable = match[1];
-    if (!injectableVariables[variable]) {
+    if (!injectableVariables.hasOwnProperty(variable)) {
       logger(
         "error",
         "The variable '" + variable + "' is not an injectable variable",

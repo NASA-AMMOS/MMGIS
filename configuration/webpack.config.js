@@ -42,10 +42,6 @@ crypto.createHash = (algorithm) =>
   crypto_orig_createHash(algorithm === "md4" ? "sha256" : algorithm);
 // end hack
 
-console.log(
-  process.env.GENERATE_SOURCEMAP,
-  typeof process.env.GENERATE_SOURCEMAP
-);
 // Source maps are resource heavy and can cause out of memory issue for large source files.
 const shouldUseSourceMap = process.env.GENERATE_SOURCEMAP === "true";
 // Some apps do not need the benefits of saving a web request, so not inlining the chunk

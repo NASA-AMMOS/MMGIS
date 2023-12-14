@@ -126,7 +126,7 @@ function makeWebhookCard(data) {
                 "</li>" +
                 "<li class='row'>" +
                     "<div class='inject-label input-field col s9' id='webhookUrlEl'>" +
-                        "<label style='top: 0px; font-size: 14px;'>Valid injectable variables for URL and Body fields: {created_on}, {file_description}, {file_id}, {file_name}, {file_owner}, {file_owner_group}, {hidden}, {intent}, {is_master}, {public}, {public_editors}, {publicity_type}, {template}, {updated_on}, {geojson}</label>" +
+                        "<label style='top: 0px; font-size: 14px;'>Valid injectable variables for URL and Body fields: {created_on}, {efolders}, {file_description}, {file_id}, {file_name}, {file_owner}, {file_owner_group}, {folders}, {geojson}, {hidden}, {intent}, {is_master}, {public}, {public_editors}, {publicity_type}, {tags}, {template}, {updated_on}</label>" +
                     "</div>" +
                     "<div class='col s3 push-s1' id='deleteWebhook_" + webhooksCounter +"'>" +
                         "<a class='btn waves-effect' style='color: black; background: white;'>Delete<i class='mdi mdi-delete mdi-24px' style='float: right; margin-top: 1px;'></i></a>" +
