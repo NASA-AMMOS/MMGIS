@@ -1782,16 +1782,26 @@ const L_ = {
         }
         return false
     },
-    getToolVars: function (toolName, showWarnings) {
+    getToolVars: function (toolName, withVarsFromLayers, showWarnings) {
+        let vars = {}
         for (var i = 0; i < L_.tools.length; i++) {
             if (
                 L_.tools[i].hasOwnProperty('name') &&
                 L_.tools[i].name.toLowerCase() == toolName &&
                 L_.tools[i].hasOwnProperty('variables')
             ) {
-                return L_.tools[i].variables
+                vars = L_.tools[i].variables
             }
         }
+        if (withVarsFromLayers) {
+            vars.__layers = {}
+            L_.layers.dataFlat.forEach((d) => {
+                if (d.name != null && d?.variables?.tools?.[toolName] != null) {
+                    vars.__layers[d.name] = d.variables.tools[toolName]
+                }
+            })
+        }
+        if (Object.keys(vars).length > 0) return vars
         if (showWarnings)
             console.warn(
                 `WARNING: Tried to get ${toolName} Tool's config variables and failed.`
