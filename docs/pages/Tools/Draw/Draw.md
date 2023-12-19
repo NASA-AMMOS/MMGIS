@@ -33,7 +33,11 @@ There are five files that are group editable with the correct permission. The gr
         "plan2",
         "done"
     ],
-    "hoverLengthOnLines": false
+    "hoverLengthOnLines": false,
+    "defaultDrawClipping": "over || under || off",
+    "defaultPublicFilter": false,
+    "defaultYoursOnlyFilter": true,
+    "defaultOnFilter": false,
     "leadsCanEditFileInfo": false,
     "templates": {
         "example_1": [
@@ -111,6 +115,10 @@ There are five files that are group editable with the correct permission. The gr
 _"intents"_: The names in quotes will be the group file names.  
 _"preferredTags"_: Users can attach tags or keyword to files to organize them. Preferred Tags are curated tags and promoted over user generated ones.  
 _"hoverLengthOnLines"_: If true, the hover text for line features will include the total length of the line in meters.
+_"defaultDrawClipping"_: Default clipping mode for drawing: "over || under || off".
+_"defaultPublicFilter"_: When the DrawTool first opens, filter the file list down to only public files or not. default: false
+_"defaultYoursOnlyFilter"_: When the DrawTool first opens, filter the file list down to only files you own or not. default: true.
+_"defaultOnFilter"_: When the DrawTool first opens, filter the file list down to only files that are on or not. default: false.
 _"leadsCanEditFileInfo"_: If true, lead roles can edit the file info, (name, description, tags, folder, make private) of any user's public file.
 _"templates"_: Templates create forms for feature properties. For instance, all features in a given draw file could, in the feature's edit panel, have the field "Reviewed" be togglable via a checkbox. Users may make their own templates too but the ones configured here are promoted and cannot be delete.
 

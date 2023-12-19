@@ -155,7 +155,7 @@ var markup = [
                 "</div>",
                 "<div id='drawToolDrawSortDiv'>",
                     "<div type='public' title='Public Only'><i class='mdi mdi-shield-outline mdi-14px'></i></div>",
-                    "<div type='owned' title='Yours Only' class='active'><i class='mdi mdi-account mdi-18px'></i></div>",
+                    "<div type='owned' title='Yours Only'><i class='mdi mdi-account mdi-18px'></i></div>",
                     "<div type='on' title='On Only'><i class='mdi mdi-eye mdi-18px'></i></div>",
                 "</div>",
             "</div>",
@@ -226,7 +226,7 @@ var markup = [
             "<div id='drawToolShapes_filtering'>",
                 "<div id='drawToolShapes_filtering_header'>",
                     "<div id='drawToolShapes_filtering_title_left'>",
-                        "<div id='drawToolShapes_filtering_title'>Filter</div>",
+                        "<div id='drawToolShapes_filtering_title'>Advanced Filter</div>",
                     "</div>",
                     "<div id='drawToolShapes_filtering_adds'>",
                         "<div id='drawToolShapes_filtering_add_value' class='mmgisButton5' title='Add New Key-Value Filter'><div>Add</div><i class='mdi mdi-plus mdi-18px'></i></div>",
@@ -513,12 +513,29 @@ var DrawTool = {
 
         //Turn on files from url
         if (L_.FUTURES.tools) {
-            for (var t of L_.FUTURES.tools) {
-                var tUrl = t.split('$')
+            for (let t of L_.FUTURES.tools) {
+                const tUrl = t.split('$')
                 if (tUrl[0] == 'DrawTool') {
-                    var fileIds = tUrl[1].split('.')
-                    for (var f of fileIds) {
+                    const tUrl2 = tUrl[1].split('-')
+                    //fileson
+                    const fileIds = tUrl2[0].split('.')
+                    for (let f of fileIds) {
                         this.toggleFile(parseInt(f))
+                    }
+
+                    // default filters
+                    const filtersOn = tUrl2[1]
+                    if (filtersOn != null) {
+                        window._toolStates = window._toolStates || {}
+                        window._toolStates.draw = window._toolStates.draw || {}
+                        window._toolStates.draw.filter =
+                            window._toolStates.draw.filter || {}
+
+                        window._toolStates.draw.filter.public =
+                            filtersOn[0] == '1'
+                        window._toolStates.draw.filter.owned =
+                            filtersOn[1] == '1'
+                        window._toolStates.draw.filter.on = filtersOn[2] == '1'
                     }
                     break
                 }
@@ -763,7 +780,26 @@ var DrawTool = {
         }
     },
     getUrlString: function () {
-        return this.filesOn.toString().replace(/,/g, '.')
+        // Structure is fileOnId.fileOnId.fileOnId,filtersOnBinary
+        const publicFilterOn = $(
+            `#drawToolDrawSortDiv > [type="public"]`
+        ).hasClass('active')
+            ? 1
+            : 0
+        const yoursOnlyFilterOn = $(
+            `#drawToolDrawSortDiv > [type="owned"]`
+        ).hasClass('active')
+            ? 1
+            : 0
+        const onFilterOn = $(`#drawToolDrawSortDiv > [type="on"]`).hasClass(
+            'active'
+        )
+            ? 1
+            : 0
+        return (
+            this.filesOn.toString().replace(/,/g, '.') +
+            `-${publicFilterOn}${yoursOnlyFilterOn}${onFilterOn}`
+        )
     },
     showContent: function (type) {
         //Go to back to latest history after leaving history
@@ -806,6 +842,7 @@ var DrawTool = {
                 DrawTool.endDrawing()
                 DrawTool.populateShapes()
                 $('#drawToolShapes').css('display', 'flex')
+                DrawTool.setSubmitButtonState(true)
                 break
             case 'history':
                 $('.drawToolContextMenuHeaderClose').click()
@@ -1308,6 +1345,7 @@ var DrawTool = {
     },
     timeFilterDrawingLayer(fileId) {
         if (L_.layers.layer[`DrawTool_${fileId}`]) {
+            DrawTool.setSubmitButtonState(true)
             const file = DrawTool.getFileObjectWithId(fileId)
 
             let startField
@@ -1332,10 +1370,13 @@ var DrawTool = {
                                         startField,
                                         endField
                                     )
+
                                 if (l2.savedOptions == null)
-                                    l2.savedOptions = JSON.parse(
-                                        JSON.stringify(l2.options)
-                                    )
+                                    l2.savedOptions = {
+                                        opacity: l2.options.opacity,
+                                        fillOpacity: l2.options.fillOpacity,
+                                    }
+
                                 l2.temporallyHidden = !isVisible
                                 if (l2.temporallyHidden)
                                     $(
@@ -1371,7 +1412,10 @@ var DrawTool = {
                         endField
                     )
                     if (l.savedOptions == null)
-                        l.savedOptions = JSON.parse(JSON.stringify(l.options))
+                        l.savedOptions = {
+                            opacity: l.options.opacity,
+                            fillOpacity: l.options.fillOpacity,
+                        }
 
                     l.temporallyHidden = !isVisible
                     if (l.temporallyHidden)
@@ -1420,6 +1464,28 @@ function interfaceWithMMGIS() {
 
     //Add the markup to tools or do it manually
     tools.html(markup)
+
+    // Set default Public filter state
+    if (window._toolStates?.draw?.filter?.public != null) {
+        if (window._toolStates.draw.filter.public === true)
+            $(`#drawToolDrawSortDiv > [type="public"]`).addClass('active')
+    } else if (DrawTool.vars.defaultPublicFilter === true) {
+        $(`#drawToolDrawSortDiv > [type="public"]`).addClass('active')
+    }
+    // Set default Yours Only filter state
+    if (window._toolStates?.draw?.filter?.owned != null) {
+        if (window._toolStates.draw.filter.owned === true)
+            $(`#drawToolDrawSortDiv > [type="owned"]`).addClass('active')
+    } else if (DrawTool.vars.defaultYoursOnlyFilter !== false) {
+        $(`#drawToolDrawSortDiv > [type="owned"]`).addClass('active')
+    }
+    // Set default On filter state
+    if (window._toolStates?.draw?.filter?.on != null) {
+        if (window._toolStates.draw.filter.on === true)
+            $(`#drawToolDrawSortDiv > [type="on"]`).addClass('active')
+    } else if (DrawTool.vars.defaultOnFilter === true) {
+        $(`#drawToolDrawSortDiv > [type="on"]`).addClass('active')
+    }
 
     // Set defaultDrawClipping if any
     $(

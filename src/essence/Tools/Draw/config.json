@@ -13,6 +13,9 @@
                 "All_Alias"
             ],
             "defaultDrawClipping": "over || under || off",
+            "defaultPublicFilter": false,
+            "defaultYoursOnlyFilter": true,
+            "defaultOnFilter": false,
             "leadsCanEditFileInfo": false,
             "hoverLengthOnLines": false,
             "templates": {
