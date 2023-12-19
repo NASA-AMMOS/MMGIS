@@ -57,7 +57,8 @@ var CursorInfo = {
         forceColor,
         forceFontColor,
         asHTML,
-        withBorder
+        withBorder,
+        withoutPadding
     ) {
         if (position) {
             CursorInfo.forcedPos = true
@@ -65,6 +66,12 @@ var CursorInfo = {
                 .style('left', position.x + 'px')
                 .style('top', Math.max(40, position.y) + 'px')
         }
+        if (withoutPadding) {
+            CursorInfo.cursorInfoDiv.style('padding', 0)
+        } else {
+            CursorInfo.cursorInfoDiv.style('padding', '5px 9px 4px 9px')
+        }
+
         $('#cursorInfo').stop()
         CursorInfo.cursorInfoDiv.style('display', 'block').style('opacity', 1)
         CursorInfo.cursorInfoDiv

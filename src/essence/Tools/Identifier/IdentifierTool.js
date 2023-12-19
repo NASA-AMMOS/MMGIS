@@ -51,8 +51,6 @@ var IdentifierTool = {
             })
         }
 
-        console.log(this.vars)
-
         //Probably always 256
         this.tileImageWidth = 256
         //x y and zoom of mousedover tile
@@ -288,7 +286,7 @@ var IdentifierTool = {
                                             [
                                                 '<div style="width: 100%; height: 22px; display: flex; justify-content: space-between;">',
                                                 '<div></div>',
-                                                '<div style="width: calc(100% - 4px); margin: 4px 4px 4px 0px; background: var(--color-a1);">&nbsp;</div>',
+                                                '<div style="width: calc(100% - 2px); margin: 4px 2px 4px 0px; background: var(--color-a1);">&nbsp;</div>',
                                                 '</div>',
                                             ].join('')
                                         )
@@ -310,6 +308,7 @@ var IdentifierTool = {
                                                 ) +
                                                 '' +
                                                 unit
+
                                             htmlValues +=
                                                 '<div style="display: flex; justify-content: space-between;"><div style="margin-right: 15px; color: var(--color-a5); font-size: 12px;">' +
                                                 value[v][0] +
@@ -352,7 +351,7 @@ var IdentifierTool = {
 
                     // prettier-ignore
                     liEls.push(
-                        ['<li style="margin: 4px 0px;">',
+                        [`<li style="padding: 4px 9px; border-top: ${liEls.length === 1 ? 'none' : '1px solid var(--color-a2)'};">`,
                             `<div style="display: flex;">`,
                                 `<div style='width: 14px; height: 14px; margin-right: 8px; margin-top: 2px; background: ${colorString};'></div>`,
                                 `<div style="letter-spacing: 0.5px; white-space: nowrap;">`,
@@ -367,7 +366,7 @@ var IdentifierTool = {
                                 (trueValue || value == null || value == '') ? [
                                     '<div style="width: 100%; height: 22px; display: flex; justify-content: space-between;">',
                                         '<div></div>',
-                                        '<div style="width: calc(100% - 4px); margin: 4px 4px 4px 0px; background: var(--color-a1);">&nbsp;</div>',
+                                        '<div style="width: calc(100% - 2px); margin: 4px 2px 4px 0px; background: var(--color-a1);">&nbsp;</div>',
                                     '</div>'].join('') : value,
                                     
                             `</div>`,
@@ -377,13 +376,14 @@ var IdentifierTool = {
                 }
             }
         }
-
         CursorInfo.update(
             htmlInfoString + liEls.join('') + '</ul>',
             null,
             false,
             null,
             null,
+            null,
+            true,
             null,
             true
         )
@@ -395,7 +395,7 @@ var IdentifierTool = {
         }
 
         function parseValue(v, sigfigs) {
-            var ed = 4
+            var ed = 10
             if (typeof v === 'string') {
                 return v
             }
@@ -413,8 +413,9 @@ var IdentifierTool = {
                     if (sigfigs != undefined) v = v.toFixed(sigfigs)
                 }
                 v = parseFloat(v)
-                if (sigfigs != undefined) ed = sigfigs
-                if (decPlacesAfter >= ed) v = v.toExponential(ed)
+                if (decPlacesAfter >= ed) {
+                    v = v.toExponential(ed)
+                }
                 return parseFloat(v)
             }
         }
@@ -518,7 +519,7 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
             bands: '[[1,' + numBands + ']]',
             path: dataPath,
         },
-        function (data) {
+        (data) => {
             //Convert python's Nones to nulls
             data = data.replace(/none/gi, 'null')
             if (data.length > 2) {
