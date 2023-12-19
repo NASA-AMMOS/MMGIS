@@ -190,8 +190,15 @@ var Files = {
         $('#drawToolDrawSortDiv > div').off('click')
         $('#drawToolDrawSortDiv > div').on('click', function (e) {
             $(this).toggleClass('active')
+            window._toolStates = window._toolStates || {}
+            window._toolStates.draw = window._toolStates.draw || {}
+            window._toolStates.draw.filter =
+                window._toolStates.draw.filter || {}
+            window._toolStates.draw.filter[$(this).attr('type')] =
+                $(this).hasClass('active')
             fileFilter()
         })
+
         $('#drawToolDrawFilter').off('keydown')
         $('#drawToolDrawFilter').on('keydown', function (e) {
             if (e.which === 13)

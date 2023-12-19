@@ -477,6 +477,10 @@ textarea {
   margin: 0;
 }
 
+.l_title {
+  text-transform: none;
+}
+
 [type="radio"]:checked + label:after,
 [type="radio"].with-gap:checked + label:after {
   background-color: #1565c0;
