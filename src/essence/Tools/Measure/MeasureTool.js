@@ -620,7 +620,27 @@ let MeasureTool = {
         steps = 100
 
         //Get tool variables
-        this.vars = L_.getToolVars('measure')
+        this.vars = L_.getToolVars('measure', true)
+        this.vars.layerDems = this.vars.layerDems || {}
+
+        const standardLayerDems = {}
+        Object.keys(this.vars.layerDems).forEach((layerName) => {
+            standardLayerDems[L_.asLayerUUID(layerName)] = [
+                this.vars.layerDems[layerName],
+            ]
+        })
+        this.vars.layerDems = standardLayerDems
+
+        if (this.vars.__layers) {
+            Object.keys(this.vars.__layers).forEach((layerName) => {
+                const layer = this.vars.__layers[layerName]
+                if (layer.layerDems) {
+                    this.vars.layerDems[layerName] = (
+                        this.vars.layerDems[layerName] || []
+                    ).concat(layer.layerDems)
+                }
+            })
+        }
 
         if (
             this.vars.defaultMode &&
@@ -698,14 +718,27 @@ let MeasureTool = {
             dems.push({ name: 'Main', path: MeasureTool.vars.dem })
         if (MeasureTool.vars.layerDems)
             for (let name in MeasureTool.vars.layerDems) {
-                if (!onlyShowDemIfLayerOn || L_.layers.on[name])
-                    dems.push({
-                        name: name,
-                        path: MeasureTool.vars.layerDems[name],
-                    })
+                MeasureTool.vars.layerDems[name].forEach((item) => {
+                    if (!onlyShowDemIfLayerOn || L_.layers.on[name]) {
+                        if (typeof item === 'string') {
+                            dems.push({
+                                name: L_.layers.data[name]?.display_name,
+                                path: item,
+                            })
+                        } else {
+                            dems.push({
+                                name:
+                                    item.name ||
+                                    L_.layers.data[name]?.display_name,
+                                path: item.url,
+                            })
+                        }
+                    }
+                })
             }
         if (dems.length === 0)
             dems.push({ name: 'Misconfigured', path: 'none' })
+
         return dems
     },
     clickMap: function (e) {

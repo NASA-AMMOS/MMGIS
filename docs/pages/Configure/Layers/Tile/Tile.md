@@ -114,7 +114,28 @@ Example:
         return:
           "value_in_response_to_replace_with.use.dot.notation.to.traverse.objects",
       },
-    }
+    },
+    "tools": {
+      "measure": {
+        "layerDems": [
+          {
+            "name": "(str) example",
+            "url": "(str) path_to_data/data.tif (required)"
+          }
+        ]
+      },
+      "identifier": {
+        "data": [
+          {
+            "url": "(str) path_to_data/data.tif (required)",
+            "bands": "(int) how many bands to query from",
+            "sigfigs": "(int) how many digits after the decimal",
+            "unit": "(str) whatever string unit",
+            "timeFormat": "(str) for injecting '{starttime}' and '{endtime}' in url. See syntax in https://d3js.org/d3-time-format#locale_format"
+          }
+        ]
+      }
+	  }
 }
 ```
 
