@@ -45,6 +45,14 @@ let ShadeTool = {
     dynamicUpdatePanCutoff: 0,
     MMGISInterface: null,
     tempSheet: null,
+    tempIndicatorPoint: null,
+    indicatorLastDragPoint: null,
+    tempIndicatorPointStyle: {
+        fillColor: '#000',
+        fillOpacity: 0,
+        color: 'lime',
+        weight: 3,
+    },
     sunColor: '#d2db58',
     earthColor: '#58dbb8',
     initialize: function () {
@@ -92,6 +100,8 @@ let ShadeTool = {
     },
     make: function () {
         this.MMGISInterface = new interfaceWithMMGIS()
+
+        ShadeTool.indicatorLastDragPoint = null
 
         if (this.firstOpen) {
             // Turn on files from url if any
@@ -159,13 +169,16 @@ let ShadeTool = {
 
         return urlString
     },
-    timeChange: function (time) {
+    timeChange: function () {
         $('#shadeTool .vstRegen').addClass('changed')
         $('#vstShades > li').each((i, elm) => {
             const id = $(elm).attr('shadeId')
             $('.vstOptionTime input').val(
-                ShadeTool.parseToUTCTime(TimeControl.getEndTime())
+                ShadeTool.parseToUTCTime(TimeControl.getEndTime(), true)
             )
+            const rawTime = ShadeTool.parseToUTCTime(TimeControl.getEndTime())
+            $('.vstOptionTime input').attr('raw', rawTime)
+            $('.vstOptionTime input').attr('title', rawTime)
             ShadeTool.updateObserverSpecificTime(id)
             // prettier-ignore
             if (
@@ -177,6 +190,7 @@ let ShadeTool = {
         })
     },
     panEnd: function () {
+        ShadeTool.indicatorLastDragPoint = null
         $('#shadeTool .vstRegen').addClass('changed')
         $('#vstShades > li').each((i, elm) => {
             const id = $(elm).attr('shadeId')
@@ -334,7 +348,7 @@ let ShadeTool = {
                             `<div title='Ground observer time'>Time</div>`,
                             "<div class='flexbetween'>",
                                 `<div class='vstClockIcon2'><i class='mdi mdi-clock-outline mdi-18px'></i></div>`,
-                                `<input type='text' placeholder='YYYY mmm DD HH:MM:SS' value='${TimeControl.getEndTime()}'>`,
+                                `<input type='text' placeholder='${ShadeTool.vars.observerTimePlaceholder || ''}' value='${TimeControl.getEndTime()}'>`,
                             "</div>",
                         "</div>",
                         "<div class='vstOptionHeight'>",
@@ -490,17 +504,23 @@ let ShadeTool = {
             'change',
             (function (id) {
                 return function () {
-                    const time = $(this).val() + 'Z'
+                    let time = $(this).val()
+                    if (ShadeTool.vars.utcTimeFormat) {
+                        const parseTime = d3.utcParse(
+                            ShadeTool.vars.utcTimeFormat
+                        )
+                        time = parseTime(time).toISOString()
+                    } else {
+                        time += 'Z'
+                    }
+
                     let isValid = false
                     try {
                         new Date(time).toISOString()
                         isValid = true
                     } catch {}
                     if (isValid) {
-                        TimeControl.setTime(
-                            TimeControl.getStartTime(),
-                            $(this).val() + 'Z'
-                        )
+                        TimeControl.setTime(TimeControl.getStartTime(), time)
                         ShadeTool.updateObserverSpecificTime(id)
                     } else {
                         CursorInfo.update(
@@ -679,7 +699,7 @@ let ShadeTool = {
     updateObserverSpecificTime: function (id) {
         id = id || 0
         calls.api(
-            'chronos',
+            'chronice',
             {
                 target: $(
                     '#vstShades #vstId_' + id + ' .vstOptionObserver select'
@@ -687,9 +707,6 @@ let ShadeTool = {
                     .val()
                     .toLowerCase(),
                 from: 'utc',
-                fromtype: 'scet',
-                to: 'lst',
-                totype: 'lst',
                 time: TimeControl.getEndTime(),
             },
             function (s) {
@@ -728,17 +745,14 @@ let ShadeTool = {
     updateFromObserverSpecificTime: function (id) {
         id = id || 0
         calls.api(
-            'chronos',
+            'chronice',
             {
                 target: $(
                     '#vstShades #vstId_' + id + ' .vstOptionObserver select'
                 )
                     .val()
                     .toLowerCase(),
-                from: 'lst',
-                fromtype: 'lst',
-                to: 'utc',
-                totype: 'scet',
+                from: 'lmst',
                 time: $(
                     '#vstShades #vstId_' + id + ' .vstOptionTimeSpecific input'
                 ).val(),
@@ -784,7 +798,10 @@ let ShadeTool = {
         const mapRect = document.getElementById('map').getBoundingClientRect()
         const wOffset = mapRect.width / 2
         const hOffset = mapRect.height / 2
-        const centerLatLng = Map_.map.containerPointToLatLng([wOffset, hOffset])
+        let centerLatLng = Map_.map.containerPointToLatLng([wOffset, hOffset])
+
+        if (ShadeTool.indicatorLastDragPoint)
+            centerLatLng = ShadeTool.indicatorLastDragPoint
 
         source = {
             lng: parseFloat(centerLatLng.lng),
@@ -865,15 +882,14 @@ let ShadeTool = {
                                 ShadeTool.tempIndicatorPoint =
                                     new L.circleMarker(
                                         [source.lat, source.lng],
-                                        {
-                                            fillColor: '#000',
-                                            fillOpacity: 0,
-                                            color: 'lime',
-                                            weight: 2,
-                                        }
+                                        ShadeTool.tempIndicatorPointStyle
                                     )
                                         .setRadius(4)
                                         .addTo(Map_.map)
+                                        .bringToFront()
+
+                                ShadeTool.indicatorDragOn()
+
                                 try {
                                     s = JSON.parse(s)
                                 } catch {
@@ -940,7 +956,6 @@ let ShadeTool = {
                                 }
                             },
                             function (e) {
-                                console.log('e', e)
                                 $(
                                     '#vstShades #vstId_' +
                                         activeElmId +
@@ -1191,8 +1206,10 @@ let ShadeTool = {
                     '#vstShades #vstId_' + elmId + ' .vstOptionHeight input'
                 ).val()
             ),
-            height: 0,
-            time: $('.vstOptionTime input').val(),
+            height: $(
+                '#vstShades #vstId_' + elmId + ' .vstOptionHeight input'
+            ).val(),
+            time: $('.vstOptionTime input').attr('raw'),
         }
     },
     // Update Range Azimuth Elevation indicators
@@ -1519,7 +1536,11 @@ let ShadeTool = {
             options.color || 'yellow'
         )
     },
-    parseToUTCTime(time) {
+    parseToUTCTime(time, formatted) {
+        if (formatted && ShadeTool.vars.utcTimeFormat) {
+            const tF = d3.utcFormat(ShadeTool.vars.utcTimeFormat)
+            return tF(Date.parse(time))
+        }
         //'2023-06-28T03:15:20.883Z' -> '2023 JUL 16 03:56:00'
         return (
             time.substring(0, 4) +
@@ -1538,6 +1559,43 @@ let ShadeTool = {
         L_.layers.layer['shade' + activeElmId] = null
         ShadeTool.canvases[activeElmId] = null
     },
+    indicatorDragOn: function () {
+        ShadeTool.tempIndicatorPoint.on(
+            'mousedown',
+            ShadeTool.indicatorDragDown
+        )
+        Map_.map.on('mouseup', ShadeTool.indicatorDragUp)
+        Map_.map.on('mousemove', ShadeTool.indicatorDragMove)
+    },
+    indicatorDragOff: function () {
+        ShadeTool.tempIndicatorPoint.off('mousedown', DrawTool.cmLayerDown)
+        Map_.map.off('mouseup', DrawTool.cmLayerUp)
+        Map_.map.off('mousemove', DrawTool.cmLayerMove)
+
+        ShadeTool.tempIndicatorPoint.dragging = false
+        Map_.map.dragging.enable()
+    },
+    indicatorDragDown: function () {
+        ShadeTool.tempIndicatorPoint.dragging = true
+        Map_.map.dragging.disable()
+    },
+    indicatorDragUp: function () {
+        if (ShadeTool.tempIndicatorPoint.dragging == true) {
+            ShadeTool.tempIndicatorPoint.dragging = false
+            //So the layer itself can ignore the click to drag
+            ShadeTool.tempIndicatorPoint.justDragged = true
+            Map_.map.dragging.enable()
+            if (DrawTool.indicatorLastDragPoint) {
+                Map_.rmNotNull(ShadeTool.tempIndicatorPoint)
+            }
+        }
+    },
+    indicatorDragMove: function (e) {
+        if (ShadeTool.tempIndicatorPoint.dragging) {
+            ShadeTool.tempIndicatorPoint.setLatLng(e.latlng)
+            ShadeTool.indicatorLastDragPoint = e.latlng
+        }
+    },
 }
 
 //
@@ -1546,6 +1604,7 @@ function interfaceWithMMGIS() {
         separateFromMMGIS()
     }
 
+    const rawTime = ShadeTool.parseToUTCTime(TimeControl.getEndTime())
     // prettier-ignore
     let markup = [
         "<div id='shadeTool'>",
@@ -1555,25 +1614,13 @@ function interfaceWithMMGIS() {
                         "<div id='vstTitle'>Shade</div>",
                         Help.getComponent(helpKey),
                     "</div>",
-                    /*
-                    "<div id='vstNew'>",
-                        "<div>New</div>",
-                        "<i class='mdi mdi-plus mdi-18px'></i>",
-                    "</div>",
-                    */
                 "</div>",
                 "<div class='vstOptionTime'>",
                     "<div class='flexbetween'>",
                         `<div class='vstClockIcon'><i class='mdi mdi-clock-outline mdi-18px'></i></div>`,
-                        `<input type='text' value='${ShadeTool.parseToUTCTime(TimeControl.getEndTime())}'>`,
+                        `<input type='text' value='${ShadeTool.parseToUTCTime(TimeControl.getEndTime(), true)}' raw='${rawTime}' title='${rawTime}'>`,
                     "</div>",
                 "</div>",
-                /*
-                "<div>",
-                    "<div id='vstToggleAll' class='checkbox on'></div>",
-                    "<div class='vstLabel'>Toggle All</div>",
-                "</div>",
-                */
             "</div>",
             "<div id='vstContent'>",
                 "<ul id='vstShades'>",

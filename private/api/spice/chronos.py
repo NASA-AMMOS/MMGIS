@@ -1,4 +1,4 @@
-# SImply wraps commands such as
+# Simply wraps commands such as
 # chronos.exe -setup ./chronos/chronos-msl.setup -from utc -fromtype scet -to lst -totype lst -time "2023-07-27 23:16:05.644" -NOLABEL
 # chronos.exe -setup ./chronos/chronos-msl.setup -to utc -totype scet -from lst -fromtype lst -time "SOL 3901 03:46:54" -NOLABEL
 

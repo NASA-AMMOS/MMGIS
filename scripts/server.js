@@ -765,6 +765,30 @@ setups.getBackendSetups(function (setups) {
   );
 
   //utils chronos (spice time converter)
+  app.post(
+    `${ROOT_PATH}/api/utils/chronice`,
+    ensureUser(),
+    ensureGroup(permissions.users),
+    function (req, res) {
+      const target = encodeURIComponent(req.body.target);
+      const fromFormat = encodeURIComponent(req.body.from);
+      const time = encodeURIComponent(req.body.time)
+        .replace(/%20/g, " ")
+        .replace(/%3A/g, ":");
+
+      execFile(
+        "python",
+        ["private/api/spice/chronice.py", target, fromFormat, time],
+        function (error, stdout, stderr) {
+          if (error)
+            logger("error", "chronice failure:", "server", null, error);
+          res.send(stdout);
+        }
+      );
+    }
+  );
+
+  //utils chronos (spice time converter)
   app.get(
     `${ROOT_PATH}/api/utils/proj42wkt`,
     ensureUser(),
