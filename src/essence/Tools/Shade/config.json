@@ -30,8 +30,8 @@
                 }
             ],
             "defaultHeight": 0,
-            "observerTimePlaceholder": "",
-            "utcTimeFormat": "YYYY MMM DD HH:MM:SS"
+            "observerTimePlaceholder": null,
+            "utcTimeFormat": null
         }
     },
     "hasVars": true,
