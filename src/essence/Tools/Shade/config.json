@@ -29,7 +29,9 @@
                     "value": "SPICE Spacecraft name or ID"
                 }
             ],
-            "defaultHeight": 0
+            "defaultHeight": 0,
+            "observerTimePlaceholder": "",
+            "utcTimeFormat": "YYYY MMM DD HH:MM:SS"
         }
     },
     "hasVars": true,

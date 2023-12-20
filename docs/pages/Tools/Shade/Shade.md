@@ -66,7 +66,9 @@ There are two SPICE python scripts that require these backend kernel setups:
             "value": "MSL"
         }
     ],
-    "defaultHeight": 0
+    "defaultHeight": 0,
+    "observerTimePlaceholder": null,
+    "utcTimeFormat": null
 }
 ```
 
@@ -80,6 +82,10 @@ _**observers**_ - An array of objects with the properties "name" and "value". "n
 
 _**defaultHeight**_ - Sets a default for the 'Height' parameter (see below). The regular default is 0 meters.
 
+_**observerTimePlaceholder**_ - Sets the placeholder information for when the observer time's input box is cleared. Useful for denoting the expected time format to be inputed. For example "SOL DDDD HH:MM:SS". Default null.
+
+_**utcTimeFormat**_ - Sets the placeholder information for when the observer time's input box is cleared. Useful for denoting the expected time format to be inputed. Uses [d3 time syntax](https://d3js.org/d3-time-format#locale_format). Example for day-of-year: `"%Y-%j %H:%M:%S"`. Defaults to times like so: `2023 SEP 06 19:27:05`.
+
 ## Tool Use
 
 **Note:** Terrain beyond the screen's current extent is **not** factored into the displayed visiblity map — only observer-target direction and on-screen terrain is considered. A distant off-screen mountain will **not** cast shadows.
@@ -87,7 +93,7 @@ _**defaultHeight**_ - Sets a default for the 'Height' parameter (see below). The
 ### Interface
 
 - _Time_
-  - The desired datetime to query. Formatted as `YYYY MMM DD HH:MM:SS` and for example `2023 SEP 06 19:27:05`. Updating this time and pressing 'Enter' will set it as the current time for the ShadeTool and for all of MMGIS. It is both connected to the Observer's local time as well as MMGIS' timeline (expandable via the clock icon in the bottom left of the screen).
+  - The desired datetime to query. Formatted as `YYYY MMM DD HH:MM:SS` and for example `2023 SEP 06 19:27:05` (or based on `utcTimeFormat`). Updating this time and pressing 'Enter' will set it as the current time for the ShadeTool and for all of MMGIS. It is both connected to the Observer's local time as well as MMGIS' timeline (expandable via the clock icon in the bottom left of the screen).
 
 #### Source
 
