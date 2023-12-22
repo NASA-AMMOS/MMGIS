@@ -41,8 +41,8 @@ let ShadeTool = {
     shedColors: [{ r: 0, g: 0, b: 0, a: 192 }],
     shedMarkers: {},
     canvases: {},
-    dynamicUpdateResCutoff: 0,
-    dynamicUpdatePanCutoff: 0,
+    dynamicUpdateResCutoff: 1,
+    dynamicUpdatePanCutoff: 1,
     MMGISInterface: null,
     tempSheet: null,
     tempIndicatorPoint: null,
@@ -878,6 +878,7 @@ let ShadeTool = {
                                 includeSunEarth: options.includeSunEarth,
                             },
                             function (s) {
+                                /*
                                 Map_.rmNotNull(ShadeTool.tempIndicatorPoint)
                                 ShadeTool.tempIndicatorPoint =
                                     new L.circleMarker(
@@ -889,6 +890,7 @@ let ShadeTool = {
                                         .bringToFront()
 
                                 ShadeTool.indicatorDragOn()
+                                */
 
                                 try {
                                     s = JSON.parse(s)
