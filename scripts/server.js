@@ -660,7 +660,7 @@ setups.getBackendSetups(function (setups) {
             logger("warn", error);
             res.status(400).send();
           } else {
-            res.send(stdout);
+            res.send(stdout.replace(/None/g, null));
           }
         }
       );

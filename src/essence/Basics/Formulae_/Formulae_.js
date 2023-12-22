@@ -809,8 +809,13 @@ var Formulae_ = {
         return r.test(url)
     },
     csvToJSON: function (csv) {
+        if (csv == null) return {}
+
         var lines = csv.split('\n')
         var result = []
+
+        if (lines == null || lines[0] == null) return {}
+
         var headers = lines[0].split(',')
         for (var i = 1; i < lines.length; i++) {
             var obj = {}

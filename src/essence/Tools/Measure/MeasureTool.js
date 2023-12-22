@@ -315,7 +315,7 @@ const Measure = () => {
                                                 : `rgba(255, 0, 47, ${alpha})`
                                     },
                                 },
-                                spanGaps: true,
+                                spanGaps: false,
                                 borderWidth: 1,
                                 fill: 'start',
                                 pointRadius: 0,
@@ -469,7 +469,11 @@ const Measure = () => {
                                     .css({ opacity: 1 })
 
                                 $('#measureInfoElev > div:last-child')
-                                    .text(`${d[4].toFixed(3)}m`)
+                                    .text(
+                                        d[4] != null
+                                            ? `${d[4].toFixed(3)}m`
+                                            : 'No Data'
+                                    )
                                     .css({ opacity: 1 })
 
                                 const text2d =
