@@ -6,6 +6,8 @@ import store from "./core/store";
 import { Provider } from "react-redux";
 import reportWebVitals from "./core/reportWebVitals";
 
+import "@fontsource/roboto";
+
 import { ThemeProvider } from "@mui/material/styles";
 import muiTheme from "./themes/light.js";
 

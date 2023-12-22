@@ -40,6 +40,28 @@ export const palette = {
     yellow: {},
     orange: {},
     red: {},
+    p: {
+      0: "#dbb658",
+      1: "#c0822f",
+      2: "#ffeaaf",
+      3: "#87b051",
+      4: "#c43541",
+      5: "#edd49e",
+      6: "#e7bdcb",
+      7: "#72d1cb",
+      8: "#11495c",
+      9: "#75351e",
+      10: "#78b1c2",
+    },
+    r: {
+      1: "#b30000",
+      2: "#7c1158",
+      3: "#4421af",
+      4: "#1a53ff",
+      5: "#00b7c7",
+      6: "#8be04e",
+      7: "#ebdc78",
+    },
   },
   layers: {
     vector: "#0792c5",
@@ -64,21 +86,23 @@ export const theme = {
       xl: 1920,
     },
   },
-  overrides: {
+  components: {
     MuiIconButton: {
       root: {
         borderRadius: "0px",
       },
     },
     MuiButton: {
-      contained: {
-        fontSize: "13px",
-        padding: "3px 10px",
-        backgroundColor: palette.primary.light,
-        borderRadius: "2px",
-        color: palette.text.secondary,
-        "&:hover": {
-          backgroundColor: palette.accent.tertiary,
+      styleOverrides: {
+        contained: {
+          fontSize: "13px",
+          padding: "3px 10px",
+          background: palette.swatches.p[0],
+          borderRadius: "0px",
+          color: palette.text.primary,
+          "&:hover": {
+            background: palette.swatches.p[2],
+          },
         },
       },
       startIcon: {
