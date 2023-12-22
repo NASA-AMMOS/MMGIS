@@ -1,8 +1,13 @@
+import { useEffect, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import clsx from "clsx";
 import { makeStyles } from "@mui/styles";
 
 import Main from "../components/Main/Main";
 import Panel from "../components/Panel/Panel";
+
+import { calls } from "../core/calls";
+import { setMissions } from "./ConfigureStore";
 
 const useStyles = makeStyles((theme) => ({
   Configure: {
@@ -22,6 +27,13 @@ const useStyles = makeStyles((theme) => ({
 
 export default function Configure() {
   const c = useStyles();
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    calls.api("missions", null, (res) => {
+      dispatch(setMissions(res.missions));
+    });
+  }, [dispatch]);
 
   return (
     <div className={c.Configure}>

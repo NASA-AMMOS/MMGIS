@@ -4,7 +4,6 @@ import "./index.css";
 import Configure from "./core/Configure";
 import store from "./core/store";
 import { Provider } from "react-redux";
-import reportWebVitals from "./core/reportWebVitals";
 
 import "@fontsource/roboto";
 
