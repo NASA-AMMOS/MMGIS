@@ -176,7 +176,10 @@ var TimeControl = {
 
         if (L_.layers.layer[layer.name] === null) return
 
-        let layerTimeFormat = d3.utcFormat(layer.time.format)
+        let layerTimeFormat =
+            layer.time?.format == null
+                ? d3.utcFormat('%Y-%m-%dT%H:%M:%SZ')
+                : d3.utcFormat(layer.time.format)
         layer.time.current = TimeControl.currentTime // keeps track of when layer was refreshed
 
         let originalUrl = layer.url
@@ -241,7 +244,10 @@ var TimeControl = {
     },
     performTimeUrlReplacements: async function (url, layer) {
         return new Promise(async (resolve, reject) => {
-            let layerTimeFormat = d3.utcFormat(layer.time.format)
+            let layerTimeFormat =
+                layer.time?.format == null
+                    ? d3.utcFormat('%Y-%m-%dT%H:%M:%SZ')
+                    : d3.utcFormat(layer.time.format)
 
             let nextUrl = url
             if (layer.variables?.urlReplacements) {
@@ -344,7 +350,10 @@ var TimeControl = {
         return updatedLayers
     },
     setLayerWmsParams: function (layer) {
-        var layerTimeFormat = d3.utcFormat(layer.time.format)
+        let layerTimeFormat =
+            layer.time?.format == null
+                ? d3.utcFormat('%Y-%m-%dT%H:%M:%SZ')
+                : d3.utcFormat(layer.time.format)
         const l = L_.layers.layer[layer.name]
 
         if (l != null && layer.type === 'tile') {
