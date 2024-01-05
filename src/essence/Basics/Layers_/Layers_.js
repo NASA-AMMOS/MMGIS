@@ -574,6 +574,28 @@ const L_ = {
             })
         })
     },
+    // If opacity is null, reinforces opacities
+    setSublayerOpacity(layerName, sublayerName, opacity) {
+        layerName = L_.asLayerUUID(layerName)
+
+        const sublayers = L_.layers.attachments[layerName] || {}
+        const sublayer = sublayers[sublayerName]
+
+        if (opacity == null) opacity = sublayer?.opacity
+
+        if (sublayer && sublayer.opacity != null) {
+            sublayer.opacity = opacity
+            switch (sublayer.type) {
+                case 'image_overlays':
+                    $(`.${sublayer.type}_${layerName}`).css({
+                        opacity: opacity,
+                    })
+                    break
+                default:
+                    break
+            }
+        }
+    },
     toggleSublayer: function (layerName, sublayerName) {
         layerName = L_.asLayerUUID(layerName)
 
@@ -631,6 +653,7 @@ const L_ = {
                                 1 -
                                 L_._layersOrdered.indexOf(layerName)
                         )
+                        L_.setSublayerOpacity(layerName, sublayerName)
                         break
                 }
                 sublayer.on = true
@@ -869,7 +892,7 @@ const L_ = {
 
         L_._refreshAnnotationEvents()
     },
-    addGeoJSONData: function (layer, geojson) {
+    addGeoJSONData: function (layer, geojson, keepLastN) {
         if (layer._sourceGeoJSON) {
             if (layer._sourceGeoJSON.features)
                 if (geojson.features)
@@ -884,6 +907,10 @@ const L_ = {
                         ? geojson
                         : null
                 )
+            if (keepLastN && keepLastN > 0) {
+                layer._sourceGeoJSON.features =
+                    layer._sourceGeoJSON.features.slice(-1 * keepLastN)
+            }
         }
 
         // Don't add data if hidden
@@ -2607,14 +2634,14 @@ const L_ = {
             )
         }
     },
-    updateVectorLayer: function (layerName, inputData) {
+    updateVectorLayer: function (layerName, inputData, keepLastN) {
         layerName = L_.asLayerUUID(layerName)
 
         if (layerName in L_.layers.layer) {
             const updateLayer = L_.layers.layer[layerName]
 
             try {
-                L_.addGeoJSONData(updateLayer, inputData)
+                L_.addGeoJSONData(updateLayer, inputData, keepLastN)
             } catch (e) {
                 console.log(e)
                 console.warn(
@@ -2670,6 +2697,14 @@ const L_ = {
                                 'function'
                             ) {
                                 subUpdateLayers[sub].layer.addData(geojson)
+                            }
+
+                            if (sub === 'image_overlays') {
+                                subUpdateLayers[sub].layer.setZIndex(
+                                    L_._layersOrdered.length +
+                                        1 -
+                                        L_._layersOrdered.indexOf(layerName)
+                                )
                             }
                         }
                     }

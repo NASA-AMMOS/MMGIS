@@ -1121,6 +1121,24 @@ const imageOverlays = (geojson, layerObj, leafletLayerObject) => {
         )
         let leafletLayerObjectImageOverlay
 
+        let existingOn = null
+        let existingOpacity = 1
+        if (L_.layers.attachments[L_.asLayerUUID(layerObj.name)]) {
+            existingOn =
+                L_.layers.attachments[L_.asLayerUUID(layerObj.name)]
+                    .image_overlays.on
+            existingOpacity =
+                L_.layers.attachments[L_.asLayerUUID(layerObj.name)]
+                    .image_overlays.opacity
+        }
+
+        const isOn =
+            existingOn != null
+                ? existingOn
+                : imageVar.initialVisibility != null
+                ? imageVar.initialVisibility
+                : true
+
         if (imageVar && imageShow === 'always')
             leafletLayerObjectImageOverlay = {
                 pointToLayer: (feature, latlong) => {
@@ -1239,30 +1257,22 @@ const imageOverlays = (geojson, layerObj, leafletLayerObject) => {
 
                     return L.layerGroup([
                         L.imageTransform(imageSettings.image, anchors, {
-                            opacity: 1,
+                            opacity: existingOpacity,
                             clip: anchors,
                             id: `${layerObj.name}${
                                 imageSettings.image
                             }${angle}${JSON.stringify(center)}`,
+                            layerName: layerObj.name,
                         }),
                     ])
                 },
             }
-        let existingOn = null
-        if (L_.layers.attachments[L_.asLayerUUID(layerObj.name)])
-            existingOn =
-                L_.layers.attachments[L_.asLayerUUID(layerObj.name)]
-                    .image_overlays.on
 
-        const isOn =
-            existingOn != null
-                ? existingOn
-                : imageVar.initialVisibility != null
-                ? imageVar.initialVisibility
-                : true
         return imageShow === 'always'
             ? {
                   on: isOn,
+                  type: 'image_overlays',
+                  opacity: existingOpacity,
                   layer: L.geoJson(geojson, leafletLayerObjectImageOverlay),
                   title: 'Map rendered image overlays.',
               }

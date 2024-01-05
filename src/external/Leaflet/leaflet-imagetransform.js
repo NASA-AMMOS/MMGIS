@@ -76,9 +76,14 @@
                 this._image = cache._image
                 this._imgNode = cache._imgNode
                 this._canvas = cache._canvas
-                this._onImageLoad()
+                this._onImageLoad(false)
             } else {
                 this._image = L.DomUtil.create('div', 'leaflet-image-layer')
+
+                L.DomUtil.addClass(
+                    this._image,
+                    `image_overlays_${this.options.layerName}`
+                )
 
                 if (this._map.options.zoomAnimation && L.Browser.any3d) {
                     L.DomUtil.addClass(this._image, 'leaflet-zoom-animated')
@@ -103,14 +108,6 @@
                     this._imgNode.style.display = 'none'
                 }
 
-                if (this.options.id != null) {
-                    LImageTransformCache[this.options.id] = {
-                        _image: this._image,
-                        _imgNode: this._imgNode,
-                        _canvas: this._canvas,
-                    }
-                }
-
                 this._updateOpacity()
 
                 //TODO createImage util method to remove duplication
@@ -132,7 +129,18 @@
             this.fire('error')
         },
 
-        _onImageLoad: function () {
+        _onImageLoad: function (e) {
+            if (e !== false) {
+                // cache it
+                if (this.options.id != null) {
+                    LImageTransformCache[this.options.id] = {
+                        _image: this._image,
+                        _imgNode: this._imgNode,
+                        _canvas: this._canvas,
+                    }
+                }
+            }
+
             if (this.options.clip) {
                 this._canvas.width = this._imgNode.width
                 this._canvas.height = this._imgNode.height
@@ -194,8 +202,11 @@
                     pixels[3].y
                 ))
 
+            //[0, 0, 0,           0,           0, 0, 33.8694085 , 0,           0, 0, 33.87878265, 48.36488876, 0, 0,  0,           48.38488876]
+            //[0, 0, pixels[0].x, pixels[0].y, w, 0, pixels[1].x, pixels[1].y, w, h, pixels[2].x, pixels[2].y, 0, h , pixels[3].x, pixels[3].y]
             //something went wrong (for example, target image size is less then one pixel)
             if (!matrix3d[8]) {
+                console.log('somethingwentwrong')
                 return
             }
 
@@ -209,6 +220,7 @@
             imgNode.style[L.DomUtil.TRANSFORM] = this._getMatrix3dCSS(
                 this._matrix3d
             )
+
             if (this.options.clip) {
                 if (this._pixelClipPoints) {
                     this.options.clip = []
