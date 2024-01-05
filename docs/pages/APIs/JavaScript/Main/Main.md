@@ -197,6 +197,8 @@ This function updates an existing vector layer with a specified name and valid G
 - `inputData` - valid GeoJSON data
 - `keepN` - number of features to keep. A value less than or equal to 0 keeps all previous features
 
+Returns `false` if the layer could not be updated (either some parameters are wrong or that layer is already is the midst of being loaded).
+
 The following is an example of how to call the `updateVectorLayer` function:
 
 ```javascript
@@ -376,6 +378,8 @@ This function will reload the given layer by re-fetching the data and re-drawing
 - `layer` - The layer name string or a layer object
 - `evenIfOff` - _boolean_ | If true, reloads the layer even if the layer is not active
 - `evenIfControlled` - _boolean_ | If true, reloads the layer even if it's a "Controlled" layer
+
+Returns `false` if the layer could not be updated (either some parameters are wrong or that layer is already is the midst of being loaded).
 
 The following is an example of how to call the `reloadLayer` function:
 

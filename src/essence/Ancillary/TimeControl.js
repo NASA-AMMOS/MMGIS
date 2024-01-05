@@ -174,7 +174,7 @@ var TimeControl = {
             layer = L_.layers.data[layer]
         }
 
-        if (L_.layers.layer[layer.name] === null) return
+        if (L_.layers.layer[layer.name] === null) return false
 
         let layerTimeFormat =
             layer.time?.format == null
@@ -233,7 +233,7 @@ var TimeControl = {
                 // refresh map
                 if (evenIfControlled === true || layer.controlled !== true)
                     if (L_.layers.on[layer.name] || evenIfOff) {
-                        await Map_.refreshLayer(layer)
+                        return await Map_.refreshLayer(layer)
                     }
             }
         }

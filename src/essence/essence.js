@@ -507,8 +507,6 @@ var essence = {
             mmgisAPI_.fina(Map_)
 
             stylize()
-
-            //
         }
     },
 }

@@ -70,6 +70,7 @@ const L_ = {
     toggledOffFeatures: [],
     mapAndGlobeLinked: false,
     addLayerQueue: [],
+    _layersBeingMade: {},
     _onLoadCallbacks: [],
     _loaded: false,
     init: function (configData, missionsList, urlOnLayers) {
@@ -2638,6 +2639,14 @@ const L_ = {
         layerName = L_.asLayerUUID(layerName)
 
         if (layerName in L_.layers.layer) {
+            const layerObj = L_.layers.data[layerName]
+            if (L_._layersBeingMade[layerName] === true) {
+                console.error(
+                    `ERROR - updateVectorLayer: Cannot make layer ${layerObj.display_name}/${layerObj.name} as it's already being made!`
+                )
+                return false
+            }
+
             const updateLayer = L_.layers.layer[layerName]
 
             try {
@@ -2648,7 +2657,7 @@ const L_ = {
                     'Warning: Unable to update vector layer as the input data is invalid: ' +
                         layerName
                 )
-                return
+                return false
             }
             L_.syncSublayerData(layerName)
             L_.globeLithoLayerHelper(L_.layers.layer[layerName])
@@ -2657,7 +2666,9 @@ const L_ = {
                 'Warning: Unable to update vector layer as it does not exist: ' +
                     layerName
             )
+            return false
         }
+        return true
     },
     // Make a layer's sublayer match the layers data again
     syncSublayerData: async function (layerName, onlyClear) {
