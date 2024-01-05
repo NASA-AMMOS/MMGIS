@@ -1122,7 +1122,8 @@ const imageOverlays = (geojson, layerObj, leafletLayerObject) => {
         let leafletLayerObjectImageOverlay
 
         let existingOn = null
-        let existingOpacity = 1
+        let existingOpacity =
+            imageVar.initialOpacity != null ? imageVar.initialOpacity : 1
         if (L_.layers.attachments[L_.asLayerUUID(layerObj.name)]) {
             existingOn =
                 L_.layers.attachments[L_.asLayerUUID(layerObj.name)]
