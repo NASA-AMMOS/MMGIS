@@ -202,11 +202,8 @@
                     pixels[3].y
                 ))
 
-            //[0, 0, 0,           0,           0, 0, 33.8694085 , 0,           0, 0, 33.87878265, 48.36488876, 0, 0,  0,           48.38488876]
-            //[0, 0, pixels[0].x, pixels[0].y, w, 0, pixels[1].x, pixels[1].y, w, h, pixels[2].x, pixels[2].y, 0, h , pixels[3].x, pixels[3].y]
             //something went wrong (for example, target image size is less then one pixel)
             if (!matrix3d[8]) {
-                console.log('somethingwentwrong')
                 return
             }
 
