@@ -904,6 +904,17 @@ var Editing = {
                 'editable:editing',
                 updateSelectionLayer
             )
+            DrawTool.contextMenuLayer.off('editable:drag')
+            DrawTool.contextMenuLayer.on('editable:drag', updateSelectionLayer)
+
+            DrawTool.contextMenuLayer.off('editable:dragstart')
+            DrawTool.contextMenuLayer.on('editable:dragstart', () => {
+                $('#drawToolMouseoverText').removeClass('active')
+            })
+            DrawTool.contextMenuLayer.off('editable:dragend')
+            DrawTool.contextMenuLayer.on('editable:dragend', () => {
+                $('#drawToolMouseoverText').removeClass('active')
+            })
         }
 
         function updateSelectionLayer() {
@@ -2776,7 +2787,8 @@ var Editing = {
         Map_.map.off('mouseup', DrawTool.cmLayerUp)
         Map_.map.off('mousemove', DrawTool.cmLayerMove)
 
-        DrawTool.contextMenuLayer.dragging = false
+        if (DrawTool.contextMenuLayer.dragging === true)
+            DrawTool.contextMenuLayer.dragging = false
         Map_.map.dragging.enable()
     },
     cmLayerDown: function () {
