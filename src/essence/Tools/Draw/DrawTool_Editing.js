@@ -50,7 +50,7 @@ var Editing = {
             index: index,
             fileid: fileid,
         }
-        //Don't treat the point drags and context menu clicks
+        // Don't treat the point drags and context menu clicks
         if (
             DrawTool.contextMenuLayer &&
             DrawTool.contextMenuLayer.justDragged
@@ -166,10 +166,10 @@ var Editing = {
                 shape.hasOwnProperty('feature') &&
                 shape.feature.properties.arrow == true
             )
-        )
+        ) {
             DrawTool.contextMenuLayer =
                 shape._layers[Object.keys(shape._layers)[0]]
-        else {
+        } else {
             DrawTool.contextMenuLayer = shape
             currentPointLatLng = Object.assign(
                 {},
@@ -215,6 +215,12 @@ var Editing = {
             hasLineCap = true
             hasLineJoin = true
             hasVisibilityRange = true
+
+            DrawTool.contextMenuLayer.originalStart =
+                DrawTool.contextMenuLayer.start
+
+            DrawTool.contextMenuLayer.originalEnd =
+                DrawTool.contextMenuLayer.end
         } else if (
             DrawTool.contextMenuLayer.feature.properties.annotation === true
         ) {
@@ -959,6 +965,7 @@ var Editing = {
             ]
             DrawTool.contextMenuLayers[0].selectionLayer = sl
         }
+        DrawTool._updateSelectionLayer = updateSelectionLayer
 
         //RESET
         $('.drawToolContextMenuReset').on('click', function () {
@@ -1025,8 +1032,8 @@ var Editing = {
             ) {
                 L_.addArrowToMap(
                     l.l_i_f.layer,
-                    l.shape.start,
-                    l.shape.end,
+                    DrawTool.contextMenuLayer.originalStart,
+                    DrawTool.contextMenuLayer.originalEnd,
                     l.properties.style,
                     l.shape.feature,
                     l.l_i_f.index,
@@ -1034,6 +1041,22 @@ var Editing = {
                         DrawTool.populateShapes()
                     }
                 )
+                DrawTool.contextMenuLayer.start =
+                    DrawTool.contextMenuLayer.originalStart
+
+                DrawTool.contextMenuLayer.end =
+                    DrawTool.contextMenuLayer.originalEnd
+
+                DrawTool.contextMenuLayer.feature.geometry.coordinates = [
+                    [
+                        DrawTool.contextMenuLayer.start.lng,
+                        DrawTool.contextMenuLayer.start.lat,
+                    ],
+                    [
+                        DrawTool.contextMenuLayer.end.lng,
+                        DrawTool.contextMenuLayer.end.lat,
+                    ],
+                ]
             } else {
                 DrawTool.contextMenuLayer.resetGeoJSON()
             }
@@ -2221,11 +2244,16 @@ var Editing = {
                 )
                 $('.drawToolShapeLi').removeClass('active')
                 elm.find('.drawToolShapeLiItemCheck').removeClass('checked')
-                if (typeof DrawTool.contextMenuLayer.disableEdit === 'function')
+                if (
+                    typeof DrawTool.contextMenuLayer.disableEdit === 'function'
+                ) {
                     DrawTool.contextMenuLayer.disableEdit()
+                }
                 if (DrawTool.contextMenuLayer.snapediting) {
                     DrawTool.contextMenuLayer.snapediting.disable()
-                } else DrawTool.cmLayerDragOff()
+                } else {
+                    DrawTool.cmLayerDragOff()
+                }
                 DrawTool.isEditing = false
                 resetShape()
             }
@@ -2436,6 +2464,11 @@ var Editing = {
                     }
                 } else {
                     newGeometry = DrawTool.contextMenuLayer.feature.geometry
+
+                    DrawTool.contextMenuLayer.originalStart =
+                        DrawTool.contextMenuLayer.start
+                    DrawTool.contextMenuLayer.originalEnd =
+                        DrawTool.contextMenuLayer.end
                 }
 
                 if (DrawTool.vars.demtilesets) {
@@ -2746,7 +2779,7 @@ var Editing = {
                     var l = e
                     if (l.hasOwnProperty('_layers'))
                         l = l._layers[Object.keys(l._layers)[0]]
-                    //Ignore the same layer
+                    // Ignore the same layer
                     if (l != layer) guides.push(e)
                 }
         }
@@ -2763,6 +2796,20 @@ var Editing = {
                 'mousedown',
                 DrawTool.cmLayerDown
             )
+        } else if (
+            DrawTool.contextMenuLayer.hasOwnProperty('feature') &&
+            DrawTool.contextMenuLayer.feature.hasOwnProperty('properties') &&
+            DrawTool.contextMenuLayer.feature.properties.arrow == true
+        ) {
+            const arrowSublayerKeys = Object.keys(
+                DrawTool.contextMenuLayer._layers
+            )
+            for (let i = 0; i < arrowSublayerKeys.length; i++) {
+                DrawTool.contextMenuLayer._layers[arrowSublayerKeys[i]].on(
+                    'mousedown',
+                    DrawTool.cmLayerDown
+                )
+            }
         } else DrawTool.contextMenuLayer.on('mousedown', DrawTool.cmLayerDown)
         Map_.map.on('mouseup', DrawTool.cmLayerUp)
         Map_.map.on('mousemove', DrawTool.cmLayerMove)
@@ -2782,6 +2829,20 @@ var Editing = {
                 'mousedown',
                 DrawTool.cmLayerDown
             )
+        } else if (
+            DrawTool.contextMenuLayer.hasOwnProperty('feature') &&
+            DrawTool.contextMenuLayer.feature.hasOwnProperty('properties') &&
+            DrawTool.contextMenuLayer.feature.properties.arrow == true
+        ) {
+            const arrowSublayerKeys = Object.keys(
+                DrawTool.contextMenuLayer._layers
+            )
+            for (let i = 0; i < arrowSublayerKeys.length; i++) {
+                DrawTool.contextMenuLayer._layers[arrowSublayerKeys[i]].on(
+                    'mousedown',
+                    DrawTool.cmLayerDown
+                )
+            }
         } else if (typeof DrawTool.contextMenuLayer.off === 'function')
             DrawTool.contextMenuLayer.off('mousedown', DrawTool.cmLayerDown)
         Map_.map.off('mouseup', DrawTool.cmLayerUp)
@@ -2791,8 +2852,11 @@ var Editing = {
             DrawTool.contextMenuLayer.dragging = false
         Map_.map.dragging.enable()
     },
-    cmLayerDown: function () {
+    cmLayerDown: function (e) {
         DrawTool.contextMenuLayer.dragging = true
+        DrawTool.contextMenuLayer.draggingArrowhead =
+            e.layer?._parts?.[0]?.length === 3
+
         Map_.map.dragging.disable()
         Map_.rmNotNull(DrawTool.contextMenuLayers[0].selectionLayer)
     },
@@ -2802,28 +2866,91 @@ var Editing = {
             //So the layer itself can ignore the click to drag
             DrawTool.contextMenuLayer.justDragged = true
             Map_.map.dragging.enable()
-            var radius =
-                DrawTool.contextMenuLayers[0].selectionLayer.options.radius
-            if (DrawTool.lastDragPoint) {
-                DrawTool.contextMenuLayers[0].selectionLayer = L.circleMarker(
-                    DrawTool.lastDragPoint,
-                    {
-                        color: 'white',
-                        weight: 2,
-                        fillOpacity: 0,
-                        dashArray: '5 5',
-                        radius: radius,
-                    }
-                )
-                    .addTo(Map_.map)
-                    .bringToBack()
+            if (DrawTool.contextMenuLayer.feature?.properties?.arrow === true) {
+                DrawTool.contextMenuLayer.justDragged = false
+                const l =
+                    L_.layers.layer[Editing._draggedContextMenuLayerParams[0]][
+                        Editing._draggedContextMenuLayerParams[5]
+                    ]
+                DrawTool.contextMenuLayer.end = l.end
+                DrawTool.contextMenuLayer.feature = l.feature
+                DrawTool.contextMenuLayer.start = l.start
+                DrawTool.contextMenuLayer._layers = l._layers
+                DrawTool.contextMenuLayer._leaflet_id = l._leaflet_id
+
+                DrawTool._updateSelectionLayer()
+                DrawTool.populateShapes()
+
+                DrawTool.cmLayerDragOn()
+            } else {
+                var radius =
+                    DrawTool.contextMenuLayers[0].selectionLayer.options.radius
+                if (DrawTool.lastDragPoint) {
+                    DrawTool.contextMenuLayers[0].selectionLayer =
+                        L.circleMarker(DrawTool.lastDragPoint, {
+                            color: 'white',
+                            weight: 2,
+                            fillOpacity: 0,
+                            dashArray: '5 5',
+                            radius: radius,
+                        })
+                            .addTo(Map_.map)
+                            .bringToBack()
+                }
             }
         }
     },
     cmLayerMove: function (e) {
         if (DrawTool.contextMenuLayer.dragging) {
-            DrawTool.contextMenuLayer.setLatLng(e.latlng)
-            DrawTool.lastDragPoint = e.latlng
+            if (DrawTool.contextMenuLayer.feature?.properties?.arrow === true) {
+                $('#drawToolMouseoverText').removeClass('active')
+
+                const layerMetadata = DrawTool.contextMenuLayers[0]
+                const lif = layerMetadata.l_i_f
+                let startLatLng
+                let endLatLng
+                if (DrawTool.contextMenuLayer.draggingArrowhead) {
+                    startLatLng = {
+                        lng: DrawTool.contextMenuLayer.feature.geometry
+                            .coordinates[0][0],
+                        lat: DrawTool.contextMenuLayer.feature.geometry
+                            .coordinates[0][1],
+                    }
+                    endLatLng = e.latlng
+                } else {
+                    startLatLng = e.latlng
+                    endLatLng = {
+                        lng: DrawTool.contextMenuLayer.feature.geometry
+                            .coordinates[1][0],
+                        lat: DrawTool.contextMenuLayer.feature.geometry
+                            .coordinates[1][1],
+                    }
+                }
+                Editing._draggedContextMenuLayerParams = [
+                    lif.layer,
+                    startLatLng,
+                    endLatLng,
+                    layerMetadata.style,
+                    DrawTool.contextMenuLayer.feature,
+                    lif.index,
+                ]
+                DrawTool.contextMenuLayer.feature.geometry.coordinates = [
+                    [startLatLng.lng, startLatLng.lat],
+                    [endLatLng.lng, endLatLng.lat],
+                ]
+                L_.addArrowToMap(
+                    lif.layer,
+                    startLatLng,
+                    endLatLng,
+                    layerMetadata.style,
+                    DrawTool.contextMenuLayer.feature,
+                    lif.index,
+                    () => {}
+                )
+            } else {
+                DrawTool.contextMenuLayer.setLatLng(e.latlng)
+                DrawTool.lastDragPoint = e.latlng
+            }
         }
     },
     _addedTabEvents: [],
