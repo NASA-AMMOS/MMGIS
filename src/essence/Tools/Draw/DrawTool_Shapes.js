@@ -198,7 +198,6 @@ var Shapes = {
             )
                 //if it's a non point layer
                 f = shape._layers[Object.keys(shape._layers)[0]]
-
             var properties = f.feature.properties
 
             if (f.hasOwnProperty('_layers')) f = f._layers
