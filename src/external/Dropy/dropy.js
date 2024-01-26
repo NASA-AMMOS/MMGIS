@@ -31,56 +31,144 @@ export default {
             '</dl>'].join('\n')
     },
     // onChange(index, value, element)
-    init: function (dropyElm, onChange, onOpen, onClose) {
+    init: function (dropyElm, onChange, onOpen, onClose, options) {
+        options = options || {}
         var self = this
 
+        const initialDropyElm = dropyElm
         dropyElm = dropyElm.find('.dropy')
+        if (options.globalConstruct != null) {
+            dropyElm.find('ul').css({ display: 'none' })
+            dropyElm = $('body').append(
+                `<div id="${initialDropyElm.attr('id')}_global"></div>`
+            )
+        }
 
         // Opening a dropy
-        dropyElm.find('.dropy__title').click(function () {
+        initialDropyElm.find('.dropy__title').click(function () {
             $('.dropy').removeClass(self.openClass)
             $(this).parents('.dropy').addClass(self.openClass)
+            if (options.globalConstruct != null) {
+                const elm = $(`#${initialDropyElm.attr('id')}_global`)
+                elm.empty()
+                elm.append(options.globalConstruct)
+                elm.find('.dropy').addClass(self.openClass)
+                elm.find('.dropy__title').remove()
+                elm.find('.dropy__header')
+                    .css({ pointerEvents: 'all' })
+                    .click(function () {
+                        $('.dropy').removeClass(self.openClass)
+                        const elm = $(`#${initialDropyElm.attr('id')}_global`)
+                        elm.empty()
+                    })
+                elm.find('ul').css({ width: 'fit-content' })
+                const bcr = initialDropyElm.get(0).getBoundingClientRect()
+                elm.css({
+                    position: 'fixed',
+                    left: bcr.left + 5,
+                    right: bcr.right,
+                    top: bcr.top,
+                    width: bcr.width,
+                })
+                const bcr2 = elm.find('ul').get(0).getBoundingClientRect()
+                if (bcr2.left + bcr2.width > window.innerWidth) {
+                    elm.css({ left: window.innerWidth - bcr2.width - 5 })
+                }
+
+                elm.find('.dropy__content ul li a').click(function () {
+                    var $that = $(this)
+                    var $dropy = $that.parents('.dropy')
+                    var $input = $dropy.find('input')
+                    var $title = $(this)
+                        .parents('.dropy')
+                        .find('.dropy__title span')
+
+                    if (options.dontChange != true) {
+                        // Remove selected class
+                        $dropy.find('.dropy__content a').each(function () {
+                            $(this).removeClass(self.selectClass)
+                        })
+
+                        // Update selected value
+                        $title.html($that.html())
+                        $input.val($that.attr('data-value')).trigger('change')
+
+                        // If back to default, remove selected class else addclass on right element
+                        if ($that.hasClass('dropy__header')) {
+                            $title.removeClass(self.selectClass)
+                            $title.html($title.attr('data-title'))
+                        } else {
+                            $title.addClass(self.selectClass)
+                            $that.addClass(self.selectClass)
+                        }
+                    }
+
+                    // Close dropdown
+                    $dropy.removeClass(self.openClass)
+                    $('.dropy').removeClass(self.openClass)
+                    const elm = $(`#${initialDropyElm.attr('id')}_global`)
+                    elm.empty()
+
+                    if (typeof onClose === 'function') {
+                        onClose()
+                    }
+
+                    if (typeof onChange === 'function') {
+                        onChange(
+                            parseInt($that.attr('idx')),
+                            $that.text(),
+                            $that
+                        )
+                    }
+                })
+            }
             if (typeof onOpen === 'function') {
                 onOpen()
             }
         })
 
-        // Click on a dropy list
-        dropyElm.find('.dropy__content ul li a').click(function () {
-            var $that = $(this)
-            var $dropy = $that.parents('.dropy')
-            var $input = $dropy.find('input')
-            var $title = $(this).parents('.dropy').find('.dropy__title span')
+        if (options.globalConstruct == null) {
+            // Click on a dropy list
+            dropyElm.find('.dropy__content ul li a').click(function () {
+                var $that = $(this)
+                var $dropy = $that.parents('.dropy')
+                var $input = $dropy.find('input')
+                var $title = $(this)
+                    .parents('.dropy')
+                    .find('.dropy__title span')
 
-            // Remove selected class
-            $dropy.find('.dropy__content a').each(function () {
-                $(this).removeClass(self.selectClass)
+                if (options.dontChange != true) {
+                    // Remove selected class
+                    $dropy.find('.dropy__content a').each(function () {
+                        $(this).removeClass(self.selectClass)
+                    })
+
+                    // Update selected value
+                    $title.html($that.html())
+                    $input.val($that.attr('data-value')).trigger('change')
+
+                    // If back to default, remove selected class else addclass on right element
+                    if ($that.hasClass('dropy__header')) {
+                        $title.removeClass(self.selectClass)
+                        $title.html($title.attr('data-title'))
+                    } else {
+                        $title.addClass(self.selectClass)
+                        $that.addClass(self.selectClass)
+                    }
+                }
+
+                // Close dropdown
+                $dropy.removeClass(self.openClass)
+
+                if (typeof onClose === 'function') {
+                    onClose()
+                }
+
+                if (typeof onChange === 'function') {
+                    onChange(parseInt($that.attr('idx')), $that.text(), $that)
+                }
             })
-
-            // Update selected value
-            $title.html($that.html())
-            $input.val($that.attr('data-value')).trigger('change')
-
-            // If back to default, remove selected class else addclass on right element
-            if ($that.hasClass('dropy__header')) {
-                $title.removeClass(self.selectClass)
-                $title.html($title.attr('data-title'))
-            } else {
-                $title.addClass(self.selectClass)
-                $that.addClass(self.selectClass)
-            }
-
-            // Close dropdown
-            $dropy.removeClass(self.openClass)
-
-            if (typeof onClose === 'function') {
-                onClose()
-            }
-
-            if (typeof onChange === 'function') {
-                onChange(parseInt($that.attr('idx')), $that.text(), $that)
-            }
-        })
+        }
 
         // Close all dropdown onclick on another element
         $(document).bind('click', function (e) {
