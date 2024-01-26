@@ -319,26 +319,26 @@ var QueryURL = {
 
         //globeCamera
         const lithoCams = L_.Globe_.litho.getCameras()
-        if( lithoCams != null ) {
-        var orbit = lithoCams.orbit
-        var cam = orbit.camera
-        var con = orbit.controls
+        if (lithoCams != null) {
+            var orbit = lithoCams.orbit
+            var cam = orbit.camera
+            var con = orbit.controls
 
-        var pos = cam.position
-        var tar = con.target
-        var globeCamera =
-            pos.x +
-            ',' +
-            pos.y +
-            ',' +
-            pos.z +
-            ',' +
-            tar.x +
-            ',' +
-            tar.y +
-            ',' +
-            tar.z
-        urlAppendage += '&globeCamera=' + globeCamera
+            var pos = cam.position
+            var tar = con.target
+            var globeCamera =
+                pos.x +
+                ',' +
+                pos.y +
+                ',' +
+                pos.z +
+                ',' +
+                tar.x +
+                ',' +
+                tar.y +
+                ',' +
+                tar.z
+            urlAppendage += '&globeCamera=' + globeCamera
         }
 
         //panePercents

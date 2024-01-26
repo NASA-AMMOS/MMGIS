@@ -984,3 +984,26 @@ mark {
     background: var(--color-c2) !important;
     border-radius: 0px;
 }
+
+
+#mainDescPointLinks ul {
+    width: fit-content;
+}
+#mainDescPointLinks .dropy__title {
+    height: 30px;
+    border: none;
+    margin-left: 9px;
+    width: 60px;
+    background: var(--color-a1);
+}
+#mainDescPointLinks .dropy__title > span {
+    padding-top: 2px;
+}
+#mainDescPointLinks .dropy__title > i {
+    line-height: 15px;
+}
+
+#mainDescPointLinks_global .dropy__content li a {
+    padding: 0.425rem 1.0375em;
+    height: 30px;
+}
