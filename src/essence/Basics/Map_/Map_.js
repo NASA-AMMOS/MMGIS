@@ -855,7 +855,6 @@ async function makeVectorLayer(
             )
             L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
             allLayersLoaded()
-
             resolve()
         }
     })

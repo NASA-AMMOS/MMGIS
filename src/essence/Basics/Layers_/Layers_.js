@@ -562,6 +562,10 @@ const L_ = {
                 })
             }
         }
+        // Refresh opacity
+        if (s.type === 'vector') {
+            L_.setLayerOpacity(s.name, L_.layers.opacity[s.name])
+        }
     },
     _refreshAnnotationEvents() {
         // Add annotation click events since onEachFeatureDefault doesn't apply to popups
@@ -761,16 +765,16 @@ const L_ = {
                         map.addLayer(
                             L_.layers.layer[L_.layers.dataFlat[i].name]
                         )
-                        // Set markerDiv based opacities if any
-                        $(
-                            `.leafletMarkerShape_${F_.getSafeName(
-                                L_.layers.dataFlat[i].name
-                            )}`
-                        ).css({
-                            opacity:
-                                L_.layers.opacity[L_.layers.dataFlat[i].name] ||
-                                0,
-                        })
+                        // Refresh opacity
+                        if (L_.layers.dataFlat[i].type === 'vector') {
+                            const lname = L_.layers.dataFlat[i].name
+                            setTimeout(() => {
+                                L_.setLayerOpacity(
+                                    lname,
+                                    L_.layers.opacity[lname]
+                                )
+                            }, 300)
+                        }
                     } catch (e) {
                         console.log(e)
                         console.warn(
@@ -940,7 +944,6 @@ const L_ = {
             L_.layers.on[layer._layerName] = true
         }
         //L_.syncSublayerData(layer._layerName)
-
         if (initialOn) {
             // Reselect activeFeature
             if (L_.activeFeature) {
@@ -1512,10 +1515,10 @@ const L_ = {
                     opacity: newOpacity,
                     fillOpacity: newOpacity * l.options.initialFillOpacity,
                 })
-                $(`.leafletMarkerShape_${F_.getSafeName(name)}`).css({
-                    opacity: newOpacity,
-                })
             }
+            $(`.leafletMarkerShape_${F_.getSafeName(name)}`).css({
+                opacity: newOpacity,
+            })
 
             const sublayers = L_.layers.attachments[name]
             if (sublayers) {
@@ -1529,11 +1532,16 @@ const L_ = {
                             sublayers[sub].layer.setOpacity(newOpacity)
                         } catch (error) {
                             try {
+                                let opacity = newOpacity
+                                let fillOpacity =
+                                    newOpacity * l.options.initialFillOpacity
+                                if (sub === 'uncertainty_ellipses') {
+                                    opacity = opacity * 0.8
+                                    fillOpacity = fillOpacity * 0.25
+                                }
                                 sublayers[sub].layer.setStyle({
-                                    opacity: newOpacity,
-                                    fillOpacity:
-                                        newOpacity *
-                                        l.options.initialFillOpacity,
+                                    opacity,
+                                    fillOpacity,
                                 })
                             } catch (error2) {
                                 /*
@@ -2661,6 +2669,7 @@ const L_ = {
             }
             L_.syncSublayerData(layerName)
             L_.globeLithoLayerHelper(L_.layers.layer[layerName])
+            L_.setLayerOpacity(layerName, L_.layers.opacity[layerName])
         } else {
             console.warn(
                 'Warning: Unable to update vector layer as it does not exist: ' +
@@ -2691,6 +2700,15 @@ const L_ = {
                         subUpdateLayers[sub].layer != null
                     ) {
                         subUpdateLayers[sub].layer.clearLayers()
+                        if (
+                            typeof subUpdateLayers[sub].layer
+                                .customClearLayers === 'function'
+                        ) {
+                            subUpdateLayers[sub].layer.customClearLayers(
+                                layerName,
+                                sub
+                            )
+                        }
 
                         if (!onlyClear) {
                             if (
