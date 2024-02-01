@@ -2662,7 +2662,7 @@ const L_ = {
             } catch (e) {
                 console.log(e)
                 console.warn(
-                    'Warning: Unable to update vector layer as the input data is invalid: ' +
+                    'Warning: Unable to update vector layer as the layer or input data is invalid: ' +
                         layerName
                 )
                 return false

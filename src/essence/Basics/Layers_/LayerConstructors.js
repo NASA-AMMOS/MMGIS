@@ -1280,9 +1280,7 @@ const imageOverlays = (geojson, layerObj, leafletLayerObject) => {
                         L.imageTransform(imageSettings.image, anchors, {
                             opacity: existingOpacity,
                             clip: anchors,
-                            id: `${layerObj.name}${
-                                imageSettings.image
-                            }${angle}${JSON.stringify(center)}`,
+                            id: `${layerObj.name}_${imageSettings.image}`,
                             layerName: layerObj.name,
                         }),
                     ])
