@@ -507,32 +507,6 @@ var essence = {
             mmgisAPI_.fina(Map_)
 
             stylize()
-
-            let offsetI = 0
-            setInterval(() => {
-                //return
-                window.mmgisAPI.updateVectorLayer(
-                    'Waypoints',
-                    {
-                        type: 'Feature',
-                        properties: {
-                            sol: 0,
-                            site: 0,
-                            pos: 0,
-                            yaw_rad: (90 * Math.PI) / 180,
-                        },
-                        geometry: {
-                            type: 'Point',
-                            coordinates: [
-                                137.35500231 + offsetI * 0.00006,
-                                -4.699734,
-                            ],
-                        },
-                    },
-                    3
-                )
-                offsetI++
-            }, 5000)
         }
     },
 }

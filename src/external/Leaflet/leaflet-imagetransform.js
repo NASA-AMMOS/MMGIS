@@ -89,7 +89,9 @@
             this._imgNode = L.DomUtil.create('img')
             if (this.options.clip) {
                 if (cache?.canvas) {
+                    this._cached = true
                     this._canvas = this._cloneCanvas(cache.canvas)
+                    this._canvas.style['transform-origin'] = '0px 0px'
                     this._imgNode = cache.imgNode
                     this._imgNode.style[L.DomUtil.TRANSFORM_ORIGIN] = '0 0'
                     this._image.appendChild(this._canvas)
@@ -114,25 +116,6 @@
                 // Hide imgNode until image has loaded
                 this._imgNode.style.display = 'none'
             }
-
-            /*
-            if (cacheCanvas) {
-                this._canvas = this._cloneCanvas(cacheCanvas)
-                this._image.appendChild(this._canvas)
-
-                this._onImageLoad(false)
-            } else {
-                this._image.appendChild(this._imgNode)
-                this._imgNode.style[L.DomUtil.TRANSFORM_ORIGIN] = '0 0'
-
-                // Hide imgNode until image has loaded
-                this._imgNode.style.display = 'none'
-
-                this._canvas = L.DomUtil.create(
-                    'canvas',
-                    'leaflet-canvas-transform'
-                )
-                */
 
             this._updateOpacity()
 
@@ -176,7 +159,7 @@
                 ) {
                     LImageTransformCache[this.options.id] = {
                         canvas: this._cloneCanvas(this._drawCanvasCache()),
-                        imgNode: this._imgNode,
+                        imgNode: this._imgNode.cloneNode(),
                     }
                 }
             }
