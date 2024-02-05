@@ -1330,6 +1330,7 @@ function interfaceWithMMGIS(fromInit) {
                                                     ).join('\n'),
                                                 '</select>'
                                             ].join('\n') : null,
+                                            L_.layers.attachments[layerName][s].opacity != null ? `<input class="sublayeropacityslider slider2" layername="${layerName}" sublayername="${s}" type="range" min="0" max="1" step="0.01" value="${L_.layers.attachments[layerName][s].opacity}" style="width: 76px;"></input>` : null,
                                             '<div class="checkboxcont">',
                                                 `<div class="checkbox small ${(L_.layers.attachments[layerName][s].on ? 'on' : 'off')}" layername="${layerName}" sublayername="${s}" style="margin: 7px 0px 7px 10px;"></div>`,
                                             '</div>',
@@ -1347,7 +1348,7 @@ function interfaceWithMMGIS(fromInit) {
         //Applies slider values to map layers
         $('.transparencyslider').off('input')
         $('.transparencyslider').on('input', function () {
-            var texttransp = $(this).val()
+            const texttransp = $(this).val()
             L_.setLayerOpacity($(this).attr('layername'), texttransp)
             $(this)
                 .parent()
@@ -1377,6 +1378,18 @@ function interfaceWithMMGIS(fromInit) {
                 }
             }
         )
+
+        $(
+            '#layersToolList > li > .settings .sublayer .sublayeropacityslider'
+        ).off('input')
+        $(
+            '#layersToolList > li > .settings .sublayer .sublayeropacityslider'
+        ).on('input', function () {
+            const opacity = parseFloat($(this).val())
+            const layerName = $(this).attr('layername')
+            const sublayerName = $(this).attr('sublayername')
+            L_.setSublayerOpacity(layerName, sublayerName, opacity)
+        })
         //Makes sublayers clickable on and off
         $('#layersToolList > li > .settings .sublayer .checkbox').off('click')
         $('#layersToolList > li > .settings .sublayer .checkbox').on(

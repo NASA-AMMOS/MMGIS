@@ -70,6 +70,7 @@ const L_ = {
     toggledOffFeatures: [],
     mapAndGlobeLinked: false,
     addLayerQueue: [],
+    _layersBeingMade: {},
     _onLoadCallbacks: [],
     _loaded: false,
     init: function (configData, missionsList, urlOnLayers) {
@@ -561,6 +562,10 @@ const L_ = {
                 })
             }
         }
+        // Refresh opacity
+        if (s.type === 'vector') {
+            L_.setLayerOpacity(s.name, L_.layers.opacity[s.name])
+        }
     },
     _refreshAnnotationEvents() {
         // Add annotation click events since onEachFeatureDefault doesn't apply to popups
@@ -573,6 +578,28 @@ const L_ = {
                 latlng: layer._latlng,
             })
         })
+    },
+    // If opacity is null, reinforces opacities
+    setSublayerOpacity(layerName, sublayerName, opacity) {
+        layerName = L_.asLayerUUID(layerName)
+
+        const sublayers = L_.layers.attachments[layerName] || {}
+        const sublayer = sublayers[sublayerName]
+
+        if (opacity == null) opacity = sublayer?.opacity
+
+        if (sublayer && sublayer.opacity != null) {
+            sublayer.opacity = opacity
+            switch (sublayer.type) {
+                case 'image_overlays':
+                    $(`.${sublayer.type}_${layerName}`).css({
+                        opacity: opacity,
+                    })
+                    break
+                default:
+                    break
+            }
+        }
     },
     toggleSublayer: function (layerName, sublayerName) {
         layerName = L_.asLayerUUID(layerName)
@@ -631,6 +658,7 @@ const L_ = {
                                 1 -
                                 L_._layersOrdered.indexOf(layerName)
                         )
+                        L_.setSublayerOpacity(layerName, sublayerName)
                         break
                 }
                 sublayer.on = true
@@ -737,16 +765,16 @@ const L_ = {
                         map.addLayer(
                             L_.layers.layer[L_.layers.dataFlat[i].name]
                         )
-                        // Set markerDiv based opacities if any
-                        $(
-                            `.leafletMarkerShape_${F_.getSafeName(
-                                L_.layers.dataFlat[i].name
-                            )}`
-                        ).css({
-                            opacity:
-                                L_.layers.opacity[L_.layers.dataFlat[i].name] ||
-                                0,
-                        })
+                        // Refresh opacity
+                        if (L_.layers.dataFlat[i].type === 'vector') {
+                            const lname = L_.layers.dataFlat[i].name
+                            setTimeout(() => {
+                                L_.setLayerOpacity(
+                                    lname,
+                                    L_.layers.opacity[lname]
+                                )
+                            }, 300)
+                        }
                     } catch (e) {
                         console.log(e)
                         console.warn(
@@ -869,7 +897,7 @@ const L_ = {
 
         L_._refreshAnnotationEvents()
     },
-    addGeoJSONData: function (layer, geojson) {
+    addGeoJSONData: function (layer, geojson, keepLastN) {
         if (layer._sourceGeoJSON) {
             if (layer._sourceGeoJSON.features)
                 if (geojson.features)
@@ -884,6 +912,10 @@ const L_ = {
                         ? geojson
                         : null
                 )
+            if (keepLastN && keepLastN > 0) {
+                layer._sourceGeoJSON.features =
+                    layer._sourceGeoJSON.features.slice(-1 * keepLastN)
+            }
         }
 
         // Don't add data if hidden
@@ -912,7 +944,6 @@ const L_ = {
             L_.layers.on[layer._layerName] = true
         }
         //L_.syncSublayerData(layer._layerName)
-
         if (initialOn) {
             // Reselect activeFeature
             if (L_.activeFeature) {
@@ -1484,10 +1515,10 @@ const L_ = {
                     opacity: newOpacity,
                     fillOpacity: newOpacity * l.options.initialFillOpacity,
                 })
-                $(`.leafletMarkerShape_${F_.getSafeName(name)}`).css({
-                    opacity: newOpacity,
-                })
             }
+            $(`.leafletMarkerShape_${F_.getSafeName(name)}`).css({
+                opacity: newOpacity,
+            })
 
             const sublayers = L_.layers.attachments[name]
             if (sublayers) {
@@ -1501,11 +1532,16 @@ const L_ = {
                             sublayers[sub].layer.setOpacity(newOpacity)
                         } catch (error) {
                             try {
+                                let opacity = newOpacity
+                                let fillOpacity =
+                                    newOpacity * l.options.initialFillOpacity
+                                if (sub === 'uncertainty_ellipses') {
+                                    opacity = opacity * 0.8
+                                    fillOpacity = fillOpacity * 0.25
+                                }
                                 sublayers[sub].layer.setStyle({
-                                    opacity: newOpacity,
-                                    fillOpacity:
-                                        newOpacity *
-                                        l.options.initialFillOpacity,
+                                    opacity,
+                                    fillOpacity,
                                 })
                             } catch (error2) {
                                 /*
@@ -2607,30 +2643,41 @@ const L_ = {
             )
         }
     },
-    updateVectorLayer: function (layerName, inputData) {
+    updateVectorLayer: function (layerName, inputData, keepLastN) {
         layerName = L_.asLayerUUID(layerName)
 
         if (layerName in L_.layers.layer) {
+            const layerObj = L_.layers.data[layerName]
+            if (L_._layersBeingMade[layerName] === true) {
+                console.error(
+                    `ERROR - updateVectorLayer: Cannot make layer ${layerObj.display_name}/${layerObj.name} as it's already being made!`
+                )
+                return false
+            }
+
             const updateLayer = L_.layers.layer[layerName]
 
             try {
-                L_.addGeoJSONData(updateLayer, inputData)
+                L_.addGeoJSONData(updateLayer, inputData, keepLastN)
             } catch (e) {
                 console.log(e)
                 console.warn(
-                    'Warning: Unable to update vector layer as the input data is invalid: ' +
+                    'Warning: Unable to update vector layer as the layer or input data is invalid: ' +
                         layerName
                 )
-                return
+                return false
             }
             L_.syncSublayerData(layerName)
             L_.globeLithoLayerHelper(L_.layers.layer[layerName])
+            L_.setLayerOpacity(layerName, L_.layers.opacity[layerName])
         } else {
             console.warn(
                 'Warning: Unable to update vector layer as it does not exist: ' +
                     layerName
             )
+            return false
         }
+        return true
     },
     // Make a layer's sublayer match the layers data again
     syncSublayerData: async function (layerName, onlyClear) {
@@ -2653,6 +2700,15 @@ const L_ = {
                         subUpdateLayers[sub].layer != null
                     ) {
                         subUpdateLayers[sub].layer.clearLayers()
+                        if (
+                            typeof subUpdateLayers[sub].layer
+                                .customClearLayers === 'function'
+                        ) {
+                            subUpdateLayers[sub].layer.customClearLayers(
+                                layerName,
+                                sub
+                            )
+                        }
 
                         if (!onlyClear) {
                             if (
@@ -2670,6 +2726,14 @@ const L_ = {
                                 'function'
                             ) {
                                 subUpdateLayers[sub].layer.addData(geojson)
+                            }
+
+                            if (sub === 'image_overlays') {
+                                subUpdateLayers[sub].layer.setZIndex(
+                                    L_._layersOrdered.length +
+                                        1 -
+                                        L_._layersOrdered.indexOf(layerName)
+                                )
                             }
                         }
                     }

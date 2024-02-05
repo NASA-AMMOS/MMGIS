@@ -203,6 +203,7 @@ Example:
         },
         "image": {
           "initialVisibility": true,
+          "initialOpacity": 1,
           "path": "url to top-down ortho image. ex. public/images/rovers/PerseveranceTopDown.png",
           "pathProp": "path to image. take priority over path",
           "widthMeters": 2.6924,
@@ -311,6 +312,7 @@ Example:
     - `opacity3d`: 3d curtain ellipse opacity
   - `image`: Places a scaled and orientated image under each marker. A sublayer.
     - `initialVisibility`: Whether the image sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.
+    - `initialOpacity`: The inital image opacity. Users canchange sublayer opacity n the layer settings in the LayersTool. From 0 to 1. Default 1
     - `path`: A url to a (preferably) top-down north-facing orthographic image.
     - `pathProp`: A prop path to an image url. Take priority over path. Useful if the path is feature specific.
     - `widthMeters`: Width of image in meters in order to calculate scale.

@@ -162,36 +162,38 @@ var mmgisAPI_ = {
                 // If layer is a DrawTool array of layers
                 for (let layer in L_.layers.layer[key]) {
                     let foundFeatures
-                    if ('getLayers' in L_.layers.layer[key][layer]) {
-                        if (
-                            L_.layers.layer[key][layer]?.feature?.properties
-                                ?.arrow
-                        ) {
-                            // If the DrawTool sublayer is an arrow
-                            foundFeatures = findFeaturesInLayer(
-                                extent,
-                                L_.layers.layer[key][layer]
-                            )
+                    if (layer && L_.layers.layer[key][layer]) {
+                        if ('getLayers' in L_.layers.layer[key][layer]) {
+                            if (
+                                L_.layers.layer[key][layer]?.feature?.properties
+                                    ?.arrow
+                            ) {
+                                // If the DrawTool sublayer is an arrow
+                                foundFeatures = findFeaturesInLayer(
+                                    extent,
+                                    L_.layers.layer[key][layer]
+                                )
 
-                            // As long as one of the layers of the arrow layer is in the current Map bounds,
-                            // return the parent arrow layer's feature
-                            if (foundFeatures && foundFeatures.length > 0) {
-                                foundFeatures =
-                                    L_.layers.layer[key][layer].feature
+                                // As long as one of the layers of the arrow layer is in the current Map bounds,
+                                // return the parent arrow layer's feature
+                                if (foundFeatures && foundFeatures.length > 0) {
+                                    foundFeatures =
+                                        L_.layers.layer[key][layer].feature
+                                }
+                            } else {
+                                // If the DrawTool sublayer is Polygon or Line
+                                foundFeatures = findFeaturesInLayer(
+                                    extent,
+                                    L_.layers.layer[key][layer]
+                                )
                             }
-                        } else {
-                            // If the DrawTool sublayer is Polygon or Line
-                            foundFeatures = findFeaturesInLayer(
-                                extent,
-                                L_.layers.layer[key][layer]
-                            )
-                        }
-                    } else if ('getLatLng' in L_.layers.layer[key][layer]) {
-                        // If the DrawTool sublayer is a Point
-                        if (isLayerInBounds(L_.layers.layer[key][layer])) {
-                            foundFeatures = [
-                                L_.layers.layer[key][layer].feature,
-                            ]
+                        } else if ('getLatLng' in L_.layers.layer[key][layer]) {
+                            // If the DrawTool sublayer is a Point
+                            if (isLayerInBounds(L_.layers.layer[key][layer])) {
+                                foundFeatures = [
+                                    L_.layers.layer[key][layer].feature,
+                                ]
+                            }
                         }
                     }
 
