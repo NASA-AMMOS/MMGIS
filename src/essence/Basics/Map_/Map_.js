@@ -692,7 +692,7 @@ function featureDefaultClick(feature, layer, e) {
         )
 
         Kinds.use(
-            L_.layers.data[layerObj.name].kind,
+            L_.layers.data[layer.options.layerName].kind,
             Map_,
             feature,
             layer,
