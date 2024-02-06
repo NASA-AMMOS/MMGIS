@@ -925,17 +925,17 @@ var DrawTool = {
         }
         if (typeof file_description !== 'string') return []
 
-        const tags = file_description.match(/~#\w+/g) || []
+        const tags = file_description.match(/~#([^\s])+/g) || []
         const uniqueTags = [...tags]
         // remove '#'s
         tagFolders.tags = uniqueTags.map((t) => t.substring(2)) || []
 
-        const folders = file_description.match(/~@\w+/g) || []
+        const folders = file_description.match(/~@([^\s])+/g) || []
         const uniqueFolders = [...folders]
         // remove '@'s
         tagFolders.folders = uniqueFolders.map((t) => t.substring(2)) || []
 
-        const efolders = file_description.match(/~\^\w+/g) || []
+        const efolders = file_description.match(/~\^([^\s])+/g) || []
         const uniqueEFolders = [...efolders]
         // remove '^'s
         tagFolders.efolders = uniqueEFolders.map((t) => t.substring(2)) || []
@@ -975,15 +975,14 @@ var DrawTool = {
                 .concat(tagFolders.folders)
                 .concat(tagFolders.efolders)
         }
-
         return tagFolders
     },
     stripTagsFromDescription(file_description) {
         if (typeof file_description !== 'string') return ''
         return file_description
-            .replaceAll(/~#\w+/g, '')
-            .replaceAll(/~@\w+/g, '')
-            .replaceAll(/~\^\w+/g, '')
+            .replaceAll(/~#([^\s])+/g, '')
+            .replaceAll(/~@([^\s])+/g, '')
+            .replaceAll(/~\^([^\s])+/g, '')
             .trimStart()
             .trimEnd()
     },
@@ -1015,6 +1014,8 @@ var DrawTool = {
 
                     // Add tags and folders
                     for (let i = 0; i < DrawTool.files.length; i++) {
+                        DrawTool.files[i].file_description =
+                            DrawTool.files[i].file_description || ''
                         DrawTool.files[i]._tagFolders =
                             DrawTool.getTagsFoldersFromFileDescription(
                                 DrawTool.files[i]

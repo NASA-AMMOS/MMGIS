@@ -41,6 +41,7 @@ var Files = {
             'type'
         )
         const filesInGroupOrder = JSON.parse(JSON.stringify(DrawTool.files))
+
         if (groupingType != 'none') {
             filesInGroupOrder.sort((a, b) => {
                 if (
@@ -414,22 +415,23 @@ var Files = {
             } else {
                 if (file._tagFolders[groupingType]) {
                     file._tagFolders[groupingType].forEach((g) => {
+                        const gEnc = encodeURIComponent(g)
+
                         const group = d3.select(
-                            `#drawToolDrawFilesList > .drawToolDrawFilesGroupElem[group_name="${g}"]`
+                            `#drawToolDrawFilesList > .drawToolDrawFilesGroupElem[group_name="${gEnc}"]`
                         )
 
                         let iconClass =
                             Files.getGroupingIcons(groupingType).closed
-
                         if (group.size() === 0) {
                             // prettier-ignore
                             d3.select('#drawToolDrawFilesList')
                             .append('div')
                             .attr('class', `drawToolDrawFilesGroupElem`)
-                            .attr('group_name', g)
+                            .attr('group_name', gEnc)
                             .html(
                                 [
-                                    `<div class='drawToolDrawFilesGroupElemHead' state='off' group_name='${g}' groupingtype='${groupingType}'>`,
+                                    `<div class='drawToolDrawFilesGroupElemHead' state='off' group_name='${gEnc}' groupingtype='${groupingType}'>`,
                                         `<div class='${g === 'unassigned' || g === 'untagged' ? 'drawToolDrawFilesGroupElemUn' : ''}'>`,
                                             `<div class='drawToolDrawFilesGroupElemChevron'><i class='mdi ${iconClass} mdi-18px'></i></div>`,
                                             `<div>${groupingType === 'alphabetical' ? g.substring(1) : g}</div>`,
@@ -442,11 +444,11 @@ var Files = {
                         }
                         if (
                             $(
-                                `.drawToolDrawFilesGroupElem[group_name="${g}"] .drawToolDrawFilesGroupListElem > .drawToolDrawFilesListElem[file_id="${file.id}"]`
+                                `.drawToolDrawFilesGroupElem[group_name="${gEnc}"] .drawToolDrawFilesGroupListElem > .drawToolDrawFilesListElem[file_id="${file.id}"]`
                             ).length === 0
                         ) {
                             d3.select(
-                                `.drawToolDrawFilesGroupElem[group_name="${g}"] .drawToolDrawFilesGroupListElem`
+                                `.drawToolDrawFilesGroupElem[group_name="${gEnc}"] .drawToolDrawFilesGroupListElem`
                             )
                                 .append('li')
                                 .attr(
@@ -515,7 +517,9 @@ var Files = {
 
         if (Files.currentOpenFolderName != null)
             $(
-                `.drawToolDrawFilesGroupElemHead[group_name=${Files.currentOpenFolderName}]`
+                `.drawToolDrawFilesGroupElemHead[group_name="${decodeURIComponent(
+                    Files.currentOpenFolderName
+                )}"]`
             ).trigger('click')
 
         //Li Elem Context Menu
@@ -528,23 +532,25 @@ var Files = {
             e.preventDefault()
             let elm = $(this)
             const isPub = elm.attr('id') === 'drawToolDrawPublished'
-            const activeTagFolType = $(
+            let activeTagFolType = $(
                 '#drawToolDrawGroupingDiv > div.active'
             ).attr('type')
             const isHead = elm.hasClass('drawToolDrawFilesGroupElemHead')
-            const headGroup = elm.attr('group_name')
+            if (isHead) activeTagFolType = elm.attr('groupingtype')
+            const headGroup = decodeURIComponent(elm.attr('group_name'))
 
             const isLead = DrawTool.userGroups.indexOf('mmgis-group') != -1
+
             const leadIsEdit =
                 isLead && DrawTool.vars.leadsCanEditFileInfo === true
 
             if (
                 isHead &&
-                (!(
+                !(
                     activeTagFolType === 'tags' ||
                     activeTagFolType === 'folders'
-                ) ||
-                    !leadIsEdit)
+                ) &&
+                !leadIsEdit
             )
                 return
 
@@ -1271,11 +1277,15 @@ var Files = {
                         if (newTag.length === 0) return
 
                         // not alphanumeric
-                        if (newTag.match(/^[a-z0-9_]+$/i) == null) {
+                        if (
+                            newTag.indexOf(' ') > -1 ||
+                            newTag.indexOf('~') > -1 ||
+                            newTag.indexOf('$') > -1
+                        ) {
                             CursorInfo.update(
                                 `${
                                     type === 'tag' ? 'Tags' : 'Folders'
-                                } may only contain alphanumerics and underscores!`,
+                                } may not contain spaces, dollar-signs or tildes!`,
                                 3500,
                                 true,
                                 {
@@ -1421,7 +1431,6 @@ var Files = {
                         if (!description.replace(/\s/g, '').length) {
                             description = ''
                         }
-
                         var body = {
                             id: fileid,
                             file_name: filename,
