@@ -486,22 +486,64 @@ export default function (domEl, lookupPath, options, Map_) {
                         currentImageObj._center[1],
                         currentImageObj._center[0],
                     ]
+
+                //==== Get bearing to north (in case north isn't up)
+                const contPt = Map_.map.latLngToContainerPoint(start)
+                const wOffset = contPt.x
+                const hOffset = contPt.y
+
+                //Find coordinates at map center and at another point one pixel below the center
+                const centerLatLong = Map_.map.containerPointToLatLng([
+                    wOffset,
+                    hOffset,
+                ])
+                const pixelBelowCenterLatLong = Map_.map.containerPointToLatLng(
+                    [wOffset, hOffset + 1]
+                )
+                let bearing = F_.bearingBetweenTwoLatLngs(
+                    pixelBelowCenterLatLong.lat,
+                    pixelBelowCenterLatLong.lng,
+                    centerLatLong.lat,
+                    centerLatLong.lng
+                )
+                bearing = (360 - bearing) % 360
+
+                //
                 let end
                 let rp
                 let line
-                let lineLength = (parseFloat(currentEl) + 90) * 1.6 + 10
-
-                rp = F_.rotatePoint(
-                    { x: 0, y: 1 },
-                    [0, 0],
-                    -(parseFloat(lastAz) - parseFloat(lastFov) / 2) *
-                        (Math.PI / 180)
+                let lineLength = Math.min(
+                    (parseFloat(currentEl) + 90) * 1.6 + 10,
+                    100
                 )
 
-                end = [
-                    geometry.coordinates[1] + rp.y,
-                    geometry.coordinates[0] + rp.x,
-                ]
+                const crs = window.mmgisglobal.customCRS
+
+                let centerLngLat = { lng: start[1], lat: start[0] }
+                const centerEN = crs.project(centerLngLat)
+                const centerCoordsEN = [centerEN.x, centerEN.y]
+
+                //==== Min-line
+                let angleRad =
+                    -(parseFloat(lastAz) - parseFloat(lastFov) / 2 + bearing) *
+                    (Math.PI / 180)
+
+                rp = F_.rotatePoint(
+                    {
+                        y: 1,
+                        x: 0,
+                    },
+                    [0, 0],
+                    angleRad
+                )
+                if (crs) {
+                    rp = crs.unproject({
+                        x: rp.x + centerCoordsEN[0],
+                        y: rp.y + centerCoordsEN[1],
+                    })
+                    rp = { x: rp.lng, y: rp.lat }
+                }
+                end = [rp.y, rp.x]
 
                 line = new L.Polyline([start, end], {
                     color: 'orange',
@@ -526,17 +568,27 @@ export default function (domEl, lookupPath, options, Map_) {
                     ],
                 })
 
-                rp = F_.rotatePoint(
-                    { x: 0, y: 1 },
-                    [0, 0],
-                    -(parseFloat(lastAz) + parseFloat(lastFov) / 2) *
-                        (Math.PI / 180)
-                )
+                //==== Max-line
+                angleRad =
+                    -(parseFloat(lastAz) + parseFloat(lastFov) / 2 + bearing) *
+                    (Math.PI / 180)
 
-                end = [
-                    geometry.coordinates[1] + rp.y,
-                    geometry.coordinates[0] + rp.x,
-                ]
+                rp = F_.rotatePoint(
+                    {
+                        y: 1,
+                        x: 0,
+                    },
+                    [0, 0],
+                    angleRad
+                )
+                if (crs) {
+                    rp = crs.unproject({
+                        x: rp.x + centerCoordsEN[0],
+                        y: rp.y + centerCoordsEN[1],
+                    })
+                    rp = { x: rp.lng, y: rp.lat }
+                }
+                end = [rp.y, rp.x]
 
                 line = new L.Polyline([start, end], {
                     color: 'orange',
