@@ -138,6 +138,17 @@ var Viewer_ = {
     //images is [ { 'url': '', 'name': '', 'isPanoramic': false },{...}, ... ]
     //Shows the first image too
     changeImages: function (images, feature, layer) {
+        // Don't refresh if the same exact point is clicked,
+        // that's just annoying. So skip over it.
+        if (
+            Viewer_.feature &&
+            JSON.stringify(Viewer_.feature) === JSON.stringify(feature) &&
+            Viewer_.layer &&
+            Viewer_.layer?.options?.layerName === layer?.options?.layerName
+        ) {
+            return
+        }
+
         images = images || []
         Viewer_.images = images
         Viewer_.feature = feature
