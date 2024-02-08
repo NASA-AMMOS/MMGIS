@@ -71,9 +71,9 @@ var IdentifierTool = {
         this.MMWebGISInterface.separateFromMMWebGIS()
     },
     fillURLParameters: function (url, layerUUID) {
-        if (IdentifierTool.vars.data[layerUUID]) {
+        if (IdentifierTool.vars.data?.[layerUUID]?.data?.[0]) {
             const layerTimeFormat = d3.utcFormat(
-                IdentifierTool.vars.data[layerUUID].timeFormat
+                IdentifierTool.vars.data[layerUUID].data[0].timeFormat
             )
 
             let filledURL = url
