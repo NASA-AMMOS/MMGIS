@@ -478,6 +478,8 @@ var DrawTool = {
         },
     },
     initialize: function () {
+        DrawTool._firstGetFiles = null
+
         this.vars = L_.getToolVars('draw')
 
         //Set up intent mapping if any
@@ -512,6 +514,7 @@ var DrawTool = {
         if (DrawTool_SetOperations) DrawTool_SetOperations.init(DrawTool)
 
         //Turn on files from url
+        let hadDrawLayersOn = false
         if (L_.FUTURES.tools) {
             for (let t of L_.FUTURES.tools) {
                 const tUrl = t.split('$')
@@ -522,6 +525,7 @@ var DrawTool = {
                     for (let f of fileIds) {
                         this.toggleFile(parseInt(f))
                     }
+                    hadDrawLayersOn = true
 
                     // default filters
                     const filtersOn = tUrl2[1]
@@ -541,6 +545,19 @@ var DrawTool = {
                 }
             }
         }
+
+        // We want to make sure that users of the javascript api can still hit drawing files if
+        // they were deeplinked to but the tool was never opened/maked
+        if (hadDrawLayersOn) {
+            DrawTool.getFiles(function () {
+                //Populate masterFilesIds
+                DrawTool.masterFileIds = []
+                for (var f in DrawTool.files) {
+                    if (DrawTool.files[f].is_master)
+                        DrawTool.masterFileIds.push(DrawTool.files[f].id)
+                }
+            })
+        }
     },
     make: function () {
         DrawTool.open = true
@@ -548,7 +565,6 @@ var DrawTool = {
         DrawTool.activeContent = 'draw'
         DrawTool.intentType = null
         DrawTool.currentFileId = null
-        DrawTool._firstGetFiles = null
         //DrawTool.filesOn = [];
         DrawTool.isEditing = false
 
