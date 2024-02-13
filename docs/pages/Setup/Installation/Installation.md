@@ -34,7 +34,7 @@ This repo contains a `docker-compose.yml` file that defines a service for the ap
   From the install example:
 
   ```
-  DB_NAME=dv
+  DB_NAME=db
   DB_USER=postgres
   DB_PASS=<POSTGRES_PASSWORD (see below)>
   ```
