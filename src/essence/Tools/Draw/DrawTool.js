@@ -522,8 +522,36 @@ var DrawTool = {
                     const tUrl2 = tUrl[1].split('-')
                     //fileson
                     const fileIds = tUrl2[0].split('.')
+                    let finishedFileIdsCount = 0
                     for (let f of fileIds) {
-                        this.toggleFile(parseInt(f))
+                        this.toggleFile(
+                            parseInt(f),
+                            null,
+                            null,
+                            null,
+                            null,
+                            () => {
+                                finishedFileIdsCount++
+                                if (finishedFileIdsCount >= fileIds.length) {
+                                    // We want to make sure that users of the javascript api can still hit drawing files if
+                                    // they were deeplinked to but the tool was never opened/maked
+                                    if (hadDrawLayersOn) {
+                                        DrawTool.getFiles(function () {
+                                            //Populate masterFilesIds
+                                            DrawTool.masterFileIds = []
+                                            for (var f in DrawTool.files) {
+                                                if (DrawTool.files[f].is_master)
+                                                    DrawTool.masterFileIds.push(
+                                                        DrawTool.files[f].id
+                                                    )
+                                            }
+
+                                            DrawTool.destroy()
+                                        })
+                                    }
+                                }
+                            }
+                        )
                     }
                     hadDrawLayersOn = true
 
@@ -544,19 +572,6 @@ var DrawTool = {
                     break
                 }
             }
-        }
-
-        // We want to make sure that users of the javascript api can still hit drawing files if
-        // they were deeplinked to but the tool was never opened/maked
-        if (hadDrawLayersOn) {
-            DrawTool.getFiles(function () {
-                //Populate masterFilesIds
-                DrawTool.masterFileIds = []
-                for (var f in DrawTool.files) {
-                    if (DrawTool.files[f].is_master)
-                        DrawTool.masterFileIds.push(DrawTool.files[f].id)
-                }
-            })
         }
     },
     make: function () {
@@ -635,7 +650,7 @@ var DrawTool = {
         })
     },
     destroy: function () {
-        this.MMGISInterface.separateFromMMGIS()
+        if (this.MMGISInterface) this.MMGISInterface.separateFromMMGIS()
 
         for (var l in L_.layers.layer) {
             var s = l.split('_')

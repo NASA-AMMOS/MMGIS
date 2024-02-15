@@ -2026,7 +2026,8 @@ var Files = {
         forceToggle,
         populateShapesAfter,
         asPublished,
-        forcePopulateShapes
+        forcePopulateShapes,
+        cb
     ) {
         var argumented = typeof fileId === 'number' || fileId === 'master'
 
@@ -2093,7 +2094,8 @@ var Files = {
                 null,
                 populateShapesAfter != null ? populateShapesAfter : !argumented,
                 null,
-                asPublished
+                asPublished,
+                cb
             )
         }
         DrawTool.lastToggledFileId = id
