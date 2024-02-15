@@ -82,7 +82,7 @@
     "identity-obj-proxy": "3.0.0",
     "isomorphic-ws": "5.0.0",
     "jquery": "^3.5.1",
-    "lithosphere": "^1.5.4",
+    "lithosphere": "^1.5.5",
     "mark.js": "^8.11.1",
     "materialize-css": "^1.0.0",
     "memorystore": "^1.6.2",

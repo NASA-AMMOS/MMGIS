@@ -72,6 +72,7 @@ let Globe_ = {
             majorRadius: F_.radiusOfPlanetMajor,
             minorRadius: F_.radiusOfPlanetMinor,
             radiusOfTiles: 5,
+            blockInitialAnimate: !L_.hasGlobe,
             //renderOnlyWhenOpen: false, //default true
             //wireframeMode: true, // default false
             //useLOD: true, // default true
