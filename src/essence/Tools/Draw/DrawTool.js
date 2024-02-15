@@ -556,7 +556,6 @@ var DrawTool = {
                     if (DrawTool.files[f].is_master)
                         DrawTool.masterFileIds.push(DrawTool.files[f].id)
                 }
-                DrawTool.destroy()
             })
         }
     },
