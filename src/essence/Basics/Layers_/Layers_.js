@@ -2531,7 +2531,7 @@ const L_ = {
                     '` as inputData is invalid: ' +
                     JSON.stringify(inputData, null, 4)
             )
-            return
+            return false
         }
 
         // Make sure the timeProp exists as a property in the updated data
@@ -2544,11 +2544,17 @@ const L_ = {
                     ' and does not exist as a property in inputData: ' +
                     JSON.stringify(lastFeature, null, 4)
             )
-            return
+            return false
         }
 
         if (layerName in L_.layers.layer) {
             const updateLayer = L_.layers.layer[layerName]
+            if (L_._layersBeingMade[layerName] === true) {
+                console.error(
+                    `ERROR - appendLineString: Cannot make layer ${layerObj.display_name}/${layerObj.name} as it's already being made!`
+                )
+                return false
+            }
 
             var layers = updateLayer.getLayers()
             var layersGeoJSON = updateLayer.toGeoJSON(L_.GEOJSON_PRECISION)
@@ -2564,7 +2570,7 @@ const L_ = {
                             '` as the feature is not a LineStringfeature: ' +
                             JSON.stringify(lastFeature, null, 4)
                     )
-                    return
+                    return false
                 }
 
                 // Make sure the timeProp exists as a property in the feature
@@ -2588,7 +2594,7 @@ const L_ = {
                                 "` as inputData has the wrong geometry type (must be of type 'LineString'): " +
                                 JSON.stringify(inputData, null, 4)
                         )
-                        return
+                        return false
                     }
 
                     // Append new data to the end of the last feature
@@ -2607,7 +2613,7 @@ const L_ = {
                             "` as inputData has the wrong type (must be of type 'Feature'): " +
                             JSON.stringify(inputData, null, 4)
                     )
-                    return
+                    return false
                 }
 
                 const initialOn = L_.layers.on[layerName]
@@ -2617,7 +2623,16 @@ const L_ = {
                 }
 
                 L_.clearGeoJSONData(updateLayer)
-                L_.addGeoJSONData(updateLayer, layersGeoJSON)
+                try {
+                    L_.addGeoJSONData(updateLayer, layersGeoJSON)
+                } catch (e) {
+                    console.log(e)
+                    console.warn(
+                        'Warning: Unable to append LineString to layer as the layer or input data is invalid: ' +
+                            layerName
+                    )
+                    return false
+                }
 
                 if (initialOn) {
                     // Reselect activeFeature
@@ -2634,14 +2649,16 @@ const L_ = {
                         layerName +
                         '` as the layer contains no features'
                 )
-                return
+                return false
             }
         } else {
             console.warn(
                 'Warning: Unable to append to vector layer as it does not exist: ' +
                     layerName
             )
+            return false
         }
+        return true
     },
     updateVectorLayer: function (layerName, inputData, keepLastN) {
         layerName = L_.asLayerUUID(layerName)
