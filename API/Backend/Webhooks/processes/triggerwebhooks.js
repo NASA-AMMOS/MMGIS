@@ -168,20 +168,21 @@ function getInjectableVariables(type, file, res) {
       if (typeof injectableVariables.file_description === "string") {
         injectableVariables.raw_file_description =
           injectableVariables.file_description;
-        const tags = injectableVariables.file_description.match(/~#\w+/g) || [];
+        const tags =
+          injectableVariables.file_description.match(/~#([^\s])+/g) || [];
         const uniqueTags = [...tags];
         // remove '#'s
         injectableVariables.tags = uniqueTags.map((t) => t.substring(2)) || [];
 
         const folders =
-          injectableVariables.file_description.match(/~@\w+/g) || [];
+          injectableVariables.file_description.match(/~@([^\s])+/g) || [];
         const uniqueFolders = [...folders];
         // remove '@'s
         injectableVariables.folders =
           uniqueFolders.map((t) => t.substring(2)) || [];
 
         const efolders =
-          injectableVariables.file_description.match(/~\^\w+/g) || [];
+          injectableVariables.file_description.match(/~\^([^\s])+/g) || [];
         const uniqueEFolders = [...efolders];
         // remove '^'s
         injectableVariables.efolders =
