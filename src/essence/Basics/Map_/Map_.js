@@ -530,10 +530,10 @@ function makeLayers(layersObj) {
     }
 }
 //Takes the layer object and makes it a map layer
-async function makeLayer(layerObj, evenIfOff, forceGeoJSON, id) {
+async function makeLayer(layerObj, evenIfOff, forceGeoJSON, id, forceMake) {
     return new Promise(async (resolve, reject) => {
         const layerName = L_.asLayerUUID(layerObj.name)
-        if (L_._layersBeingMade[layerName] === true) {
+        if (forceMake !== true && L_._layersBeingMade[layerName] === true) {
             console.error(
                 `ERROR - makeLayer: Cannot make layer ${layerObj.display_name}/${layerObj.name} as it's already being made!`
             )

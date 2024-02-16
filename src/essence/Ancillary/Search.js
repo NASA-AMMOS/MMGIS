@@ -510,11 +510,11 @@ function getMapZoomCoordinate(layers) {
     var longitudeValidRange = [-180, 180]
 
     for (var i = 0; i < layers.length; i++) {
-        const center = center(layers[i].feature)?.geometry?.coordinates || [
+        const centerPt = center(layers[i].feature)?.geometry?.coordinates || [
             -1001, -1001,
         ]
-        var latitude = center[1]
-        var longitude = center[0]
+        var latitude = centerPt[1]
+        var longitude = centerPt[0]
 
         //make sure latitude and longitude are in [-90, 90] and [-180, 180]
         if (

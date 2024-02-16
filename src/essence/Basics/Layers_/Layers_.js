@@ -457,7 +457,7 @@ const L_ = {
                         L_.layers.layer[s.name] === false &&
                         globeOnly != true
                     ) {
-                        await L_.Map_.makeLayer(s, true)
+                        await L_.Map_.makeLayer(s, true, null, null, true)
                         Description.updateInfo()
                         hadToMake = true
                     }
@@ -1501,13 +1501,13 @@ const L_ = {
         newOpacity = parseFloat(newOpacity)
         if (L_.Globe_) L_.Globe_.litho.setLayerOpacity(name, newOpacity)
         let l = L_.layers.layer[name]
-        if (l.options.initialFillOpacity == null)
-            l.options.initialFillOpacity =
-                L_.layers.data[name]?.style?.fillOpacity != null
-                    ? parseFloat(L_.layers.data[name].style.fillOpacity)
-                    : 1
 
         if (l) {
+            if (l.options.initialFillOpacity == null)
+                l.options.initialFillOpacity =
+                    L_.layers.data[name]?.style?.fillOpacity != null
+                        ? parseFloat(L_.layers.data[name].style.fillOpacity)
+                        : 1
             try {
                 l.setOpacity(newOpacity)
             } catch (error) {
