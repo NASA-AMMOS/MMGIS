@@ -9,7 +9,9 @@ import json
 import os
 
 import math
+import numpy as np
 import spiceypy
+import pymap3d as pm
 
 from great_circle_calculator.great_circle_calculator import distance_between_points
 
@@ -21,7 +23,7 @@ try:
 except ImportError:
     from urllib import unquote
 
-def ll2aerll(lng, lat, height, target, time, includeSunEarth):
+def ll2aerll(lng, lat, height, target, time, includeSunEarth, isCustom, customAz, customEl, customRange):
     # Load kernels
     package_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\','/')
 
@@ -56,40 +58,53 @@ def ll2aerll(lng, lat, height, target, time, includeSunEarth):
     rP = radii[2]
     flattening  = (rE - rP) / rE
 
-    obspos = spiceypy.georec( lng * spiceypy.rpd(), lat * spiceypy.rpd(), height / 1000, radii[0], flattening)
-    output = spiceypy.azlcpo( method, target, et, abcorr, azccw, elplsz, obspos, obsctr, obsref)
+    if isCustom == 'true':
+        az_output = float(customAz)
+        el_output = float(customEl)
+        range_output = float(customRange)
+        razel = [customRange, az_output * spiceypy.rpd(), el_output * spiceypy.rpd()]
+    else:
+        obspos = spiceypy.georec( lng * spiceypy.rpd(), lat * spiceypy.rpd(), height / 1000, radii[0], flattening)
+        output = spiceypy.azlcpo( method, target, et, abcorr, azccw, elplsz, obspos, obsctr, obsref)
 
-    razel = output[0]
-    
-    az_output = razel[1] * spiceypy.dpr()
-    el_output = razel[2] * spiceypy.dpr()
-    range_output = razel[0]
+        razel = output[0]
+        
+        az_output = razel[1] * spiceypy.dpr()
+        el_output = razel[2] * spiceypy.dpr()
+        range_output = razel[0]
 
     sun_az_output = None
     sun_el_output = None
     earth_az_output = None
     earth_el_output = None
     if includeSunEarth == 'true':
-        target = 'SUN'
+        targetSE = 'SUN'
         sun_obspos = spiceypy.georec( lng * spiceypy.rpd(), lat * spiceypy.rpd(), height / 1000, radii[0], flattening)
-        sun_output = spiceypy.azlcpo( method, target, et, abcorr, azccw, elplsz, sun_obspos, obsctr, obsref)
+        sun_output = spiceypy.azlcpo( method, targetSE, et, abcorr, azccw, elplsz, sun_obspos, obsctr, obsref)
         sun_razel = sun_output[0]
         sun_az_output = sun_razel[1] * spiceypy.dpr()
         sun_el_output = sun_razel[2] * spiceypy.dpr()
 
-        target = 'EARTH'
+        targetSE = 'EARTH'
         earth_obspos = spiceypy.georec( lng * spiceypy.rpd(), lat * spiceypy.rpd(), height / 1000, radii[0], flattening)
-        earth_output = spiceypy.azlcpo( method, target, et, abcorr, azccw, elplsz, earth_obspos, obsctr, obsref)
+        earth_output = spiceypy.azlcpo( method, targetSE, et, abcorr, azccw, elplsz, earth_obspos, obsctr, obsref)
         earth_razel = earth_output[0]
         earth_az_output = earth_razel[1] * spiceypy.dpr()
         earth_el_output = earth_razel[2] * spiceypy.dpr()
 
-
-    state, light = spiceypy.spkezr(target, et, "IAU_MARS", abcorr, "MARS")
-    ll = spiceypy.recgeo( state[0:3], radii[0], flattening)
-    target_lng = ll[0] * spiceypy.dpr()
-    target_lat = ll[1] * spiceypy.dpr()
-    target_alt = ll[2]
+    if isCustom == 'true':
+        target_lat, target_lng, target_alt = pm.aer2geodetic(az_output, el_output, range_output * 1000,
+            lat,
+            lng,
+            height,
+            ell=pm.Ellipsoid(radii[0] * 1000, radii[1] * 1000, radii[2] * 1000), deg=True)
+        target_alt = target_alt / 1000
+    else:
+        state, light = spiceypy.spkezr(target, et, "IAU_MARS", abcorr, "MARS")
+        ll = spiceypy.recgeo( state[0:3], radii[0], flattening)
+        target_lng = ll[0] * spiceypy.dpr()
+        target_lat = ll[1] * spiceypy.dpr()
+        target_alt = ll[2]
 
     # Unload kernels
     for k in kernels_to_load:
@@ -122,8 +137,18 @@ height = float(sys.argv[3])
 target = unquote(sys.argv[4])
 time = unquote(sys.argv[5])
 includeSunEarth = sys.argv[6]
+isCustom = False
+customAz = 0
+customEl = 0
+customRange = 0
+if len(sys.argv) > 7:
+    isCustom = sys.argv[7]
+if isCustom == 'true':
+    customAz = float(sys.argv[8])
+    customEl = float(sys.argv[9])
+    customRange = float(sys.argv[10])
 
 try:
-    print(ll2aerll(lng, lat, height, target, time, includeSunEarth))
+    print(ll2aerll(lng, lat, height, target, time, includeSunEarth, isCustom, customAz, customEl, customRange))
 except:
     print(json.dumps({"error": True, "message": 'Error: ' + str(sys.exc_info()[0])}))

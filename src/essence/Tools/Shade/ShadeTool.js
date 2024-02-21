@@ -279,24 +279,31 @@ let ShadeTool = {
         }
 
         let allSources = ''
+        let sourcesList = [
+            {
+                name: 'Custom',
+                value: false,
+            },
+        ]
         if (
             ShadeTool.vars &&
             ShadeTool.vars.sources &&
             ShadeTool.vars.sources.length > 0
         ) {
-            allSources = ShadeTool.vars.sources
-                .map(
-                    (c, i) =>
-                        "<option value='" +
-                        c.value +
-                        "' " +
-                        (i === 0 ? 'selected' : '') +
-                        '>' +
-                        c.name +
-                        '</option>'
-                )
-                .join('\n')
+            sourcesList = ShadeTool.vars.sources.concat(sourcesList)
         }
+        allSources = sourcesList
+            .map(
+                (c, i) =>
+                    "<option value='" +
+                    c.value +
+                    "' " +
+                    (i === 0 ? 'selected' : '') +
+                    '>' +
+                    c.name +
+                    '</option>'
+            )
+            .join('\n')
 
         let allObservers = ''
         if (
@@ -396,14 +403,26 @@ let ShadeTool = {
                                 "<li>",
                                     "<div>Azimuth</div>",
                                     "<div id='shadeTool_results_outputs_az'></div>",
+                                    "<div class='flexbetween' id='shadeTool_results_outputs_az_input_wrap' style='display: none;'>",
+                                        "<input id='shadeTool_results_outputs_az_input' type='number' min='0' max='360'></input>",
+                                        "<div class='vstUnit smallFont'>&deg;</div>",
+                                    "</div>",
                                 "</li>",
                                 "<li>",
                                     "<div>Elevation</div>",
                                     "<div id='shadeTool_results_outputs_el'></div>",
+                                    "<div class='flexbetween' id='shadeTool_results_outputs_el_input_wrap' style='display: none;'>",
+                                        "<input id='shadeTool_results_outputs_el_input' type='number' min='-90' max='90'></input>",
+                                        "<div class='vstUnit smallFont'>&deg;</div>",
+                                    "</div>",
                                 "</li>",
                                 "<li>",
                                     "<div>Range</div>",
                                     "<div id='shadeTool_results_outputs_range'></div>",
+                                    "<div class='flexbetween' id='shadeTool_results_outputs_range_input_wrap' style='display: none;'>",
+                                        "<input id='shadeTool_results_outputs_range_input' type='number'></input>",
+                                        "<div class='vstUnit smallFont'>km</div>",
+                                    "</div>",
                                 "</li>",
                                 "<li>",
                                     "<div>Longitude</div>",
@@ -596,9 +615,126 @@ let ShadeTool = {
                     $('#vstShades #vstId_' + id + ' .vstRegen').addClass(
                         'changed'
                     )
+                    const val = $(
+                        '#vstShades #vstId_' + id + ' .vstOptionTarget select'
+                    ).val()
+                    if (val === 'false') {
+                        $('#shadeTool_results_outputs_az').css({
+                            display: 'none',
+                        })
+                        $('#shadeTool_results_outputs_az_input_wrap').css({
+                            display: 'inherit',
+                        })
+                        $('#shadeTool_results_outputs_az_input').val(
+                            parseFloat(
+                                $('#shadeTool_results_outputs_az').text()
+                            )
+                        )
+                        $('#shadeTool_results_outputs_el').css({
+                            display: 'none',
+                        })
+                        $('#shadeTool_results_outputs_el_input_wrap').css({
+                            display: 'inherit',
+                        })
+                        $('#shadeTool_results_outputs_el_input').val(
+                            parseFloat(
+                                $('#shadeTool_results_outputs_el').text()
+                            )
+                        )
+                        $('#shadeTool_results_outputs_range').css({
+                            display: 'none',
+                        })
+                        $('#shadeTool_results_outputs_range_input_wrap').css({
+                            display: 'inherit',
+                        })
+                        $('#shadeTool_results_outputs_range_input').val(
+                            parseFloat(
+                                $('#shadeTool_results_outputs_range').text()
+                            )
+                        )
+                    } else {
+                        $('#shadeTool_results_outputs_az').css({
+                            display: 'inherit',
+                        })
+                        $('#shadeTool_results_outputs_az_input_wrap').css({
+                            display: 'none',
+                        })
+                        $('#shadeTool_results_outputs_el').css({
+                            display: 'inherit',
+                        })
+                        $('#shadeTool_results_outputs_el_input_wrap').css({
+                            display: 'none',
+                        })
+                        $('#shadeTool_results_outputs_range').css({
+                            display: 'inherit',
+                        })
+                        $('#shadeTool_results_outputs_range_input_wrap').css({
+                            display: 'none',
+                        })
+                    }
                     if (
                         $(
                             `#vstShades #vstId_${id} .vstOptionResolution select`
+                        ).val() <= ShadeTool.dynamicUpdateResCutoff
+                    ) {
+                        ShadeTool.setActiveElmId(id)
+                        ShadeTool.setSource()
+                    }
+                }
+            })(id)
+        )
+        $('#shadeTool_results_outputs_az_input').on(
+            'change',
+            (function (id) {
+                return function () {
+                    $('#vstShades #vstId_' + id + ' .vstRegen').addClass(
+                        'changed'
+                    )
+                    if (
+                        $(
+                            '#vstShades #vstId_' +
+                                id +
+                                ' .vstOptionResolution select'
+                        ).val() <= ShadeTool.dynamicUpdateResCutoff
+                    ) {
+                        ShadeTool.setActiveElmId(id)
+                        ShadeTool.setSource()
+                    }
+                }
+            })(id)
+        )
+        $('#shadeTool_results_outputs_el_input').on(
+            'change',
+            (function (id) {
+                return function () {
+                    $('#vstShades #vstId_' + id + ' .vstRegen').addClass(
+                        'changed'
+                    )
+                    if (
+                        $(
+                            '#vstShades #vstId_' +
+                                id +
+                                ' .vstOptionResolution select'
+                        ).val() <= ShadeTool.dynamicUpdateResCutoff
+                    ) {
+                        ShadeTool.setActiveElmId(id)
+                        ShadeTool.setSource()
+                    }
+                }
+            })(id)
+        )
+        $('#shadeTool_results_outputs_range_input').on(
+            'change',
+            (function (id) {
+                return function () {
+                    $('#vstShades #vstId_' + id + ' .vstRegen').addClass(
+                        'changed'
+                    )
+                    if (
+                        $(
+                            '#vstShades #vstId_' +
+                                id +
+                                ' .vstOptionResolution select'
                         ).val() <= ShadeTool.dynamicUpdateResCutoff
                     ) {
                         ShadeTool.setActiveElmId(id)
@@ -830,6 +966,31 @@ let ShadeTool = {
 
         let dataLayer = ShadeTool.vars.data[options.dataIndex]
 
+        const isCustom = options.target === 'false'
+        let customAz, customEl, customRange
+        if (isCustom) {
+            customAz = parseFloat(
+                $('#shadeTool_results_outputs_az_input').val()
+            )
+            customEl = parseFloat(
+                $('#shadeTool_results_outputs_el_input').val()
+            )
+            customRange = parseFloat(
+                $('#shadeTool_results_outputs_range_input').val()
+            )
+            if (isNaN(customAz) || isNaN(customEl) || isNaN(customRange)) {
+                CursorInfo.update(
+                    'Azimuth, Elevation and Range need to be set when using Custom Az/El source.',
+                    6000,
+                    true,
+                    { x: 296, y: -5 },
+                    '#e9ff26',
+                    'black'
+                )
+                return
+            }
+        }
+
         ShadeTool.tags[activeElmId] =
             activeElmId +
             'd' +
@@ -849,8 +1010,14 @@ let ShadeTool = {
             't' +
             options.time.replace(/ /g, '_')
 
+        if (isCustom)
+            ShadeTool.tags[
+                activeElmId
+            ] += `A${customAz}E${customEl}R${customRange}`
+
         let demUrl = ShadeTool.vars.dem
         if (!F_.isUrlAbsolute(demUrl)) demUrl = L_.missionPath + demUrl
+
         calls.api(
             'getbands',
             {
@@ -876,6 +1043,10 @@ let ShadeTool = {
                                 target: options.target,
                                 time: options.time + ' UTC',
                                 includeSunEarth: options.includeSunEarth,
+                                isCustom: isCustom,
+                                customAz,
+                                customEl,
+                                customRange,
                             },
                             function (s) {
                                 /*

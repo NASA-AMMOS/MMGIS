@@ -710,6 +710,11 @@ setups.getBackendSetups(function (setups) {
       const includeSunEarth =
         encodeURIComponent(req.body.includeSunEarth) || "False";
 
+      const isCustom = encodeURIComponent(req.body.isCustom) || "False";
+      const customAz = encodeURIComponent(req.body.customAz);
+      const customEl = encodeURIComponent(req.body.customEl);
+      const customRange = encodeURIComponent(req.body.customRange);
+
       execFile(
         "python",
         [
@@ -720,6 +725,10 @@ setups.getBackendSetups(function (setups) {
           target,
           time,
           includeSunEarth,
+          isCustom,
+          customAz,
+          customEl,
+          customRange,
         ],
         function (error, stdout, stderr) {
           if (error)

@@ -147,7 +147,12 @@
     padding-left: 15px;
     border-bottom: 1px solid var(--color-a1-5);
 }
-#shadeTool #vstShades > li > .vstShadeContents > div > div:not(.vstRegen):first-child {
+#shadeTool
+    #vstShades
+    > li
+    > .vstShadeContents
+    > div
+    > div:not(.vstRegen):first-child {
     font-size: 13px;
     color: var(--color-a5);
 }
@@ -157,7 +162,7 @@
 }
 
 #shadeTool .vstOptionColor > div:last-child {
-    width: 111px;
+    width: 108px;
     height: 29px;
 }
 
@@ -313,7 +318,7 @@
     background-color: var(--color-a1);
     color: #ededed;
     border: none;
-    width: 111px;
+    width: 108px;
     height: 27px;
     font-size: 14px;
     padding: 0px 3px;
@@ -465,7 +470,7 @@
     border-top: 1px solid Transparent;
     border-bottom: 1px solid Transparent;
 }
-#shadeTool .vstOptionTimeSpecific input:focus { 
+#shadeTool .vstOptionTimeSpecific input:focus {
     border-bottom: 1px solid var(--color-mmgis);
 }
 #shadeTool .vstOptionData {
@@ -508,6 +513,16 @@
 #shadeTool #shadeTool_results #shadeTool_results_outputs ul li div:last-child {
     font-size: 13px;
 }
+
+#shadeTool #shadeTool_results input {
+    width: 120px;
+    height: 25px;
+    color: #ededed;
+    text-align: right;
+    background: var(--color-e);
+    border: none;
+}
+
 #shadeTool .vstClockIcon {
     position: absolute;
     right: 0;
