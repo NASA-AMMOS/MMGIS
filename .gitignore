@@ -17,6 +17,11 @@
 /config/pre/toolConfigs.json
 /src/pre/tools.js
 
+/spice/kernels/*
+!/spice/kernels/.gitkeep
+/Missions/spice-kernels-conf.json
+!/Missions/spice-kernels-conf.example.json
+
 /build/*
 /data/*
 *__pycache__

@@ -3,7 +3,7 @@
 # Returns the az/el/range in the sky as well as the lnglat position directory under the object 
 # !!! Currently only designed for Mars
 
-# example: ll2aerll.py [lng] [lat] [height] [target] [time] 
+# example: python ll2aerll.py [lng] [lat] [height] [target] [time] [obsRefFrame] [obsBody] [includeSunEarth] [isCustom] [customAz] [customEl] [customRange]
 import sys
 import json
 import os
@@ -15,27 +15,50 @@ import pymap3d as pm
 
 from great_circle_calculator.great_circle_calculator import distance_between_points
 
-# chronos.exe -setup ./chronos/chronos-msl.setup -from utc -fromtype scet -to lst -totype lst -time "2023-07-27 23:16:05.644"
-# chronos.exe -setup ./chronos/chronos-msl.setup -to utc -totype scet -from lst -fromtype lst -time "SOL 3901 03:46:54"
-
 try:
     from urllib.parse import unquote
 except ImportError:
     from urllib import unquote
 
-def ll2aerll(lng, lat, height, target, time, includeSunEarth, isCustom, customAz, customEl, customRange):
+def ll2aerll(lng, lat, height, target, time, obsRefFrame, obsBody, includeSunEarth, isCustom, customAz, customEl, customRange):
     # Load kernels
     package_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\','/')
 
+    PATH_TO_KERNELS = '../../spice/kernels/'
+
     kernels_to_load = []
-    # Crawl dir for kernels
-    for x in os.listdir(os.path.join(package_dir + '/kernels')):
-        if x.endswith(('.bsp', '.tpc', '.tsc', '.tf', '.tls')) and not x.startswith('dynamic'):
-            # Prints only text file present in My Folder
-            kernels_to_load.append(x)
+
+    try: 
+        # Crawl main dir for kernels
+        path = PATH_TO_KERNELS
+        for x in os.listdir(os.path.join(package_dir, path )):
+            if x.endswith(('.bsp', '.tpc', '.tsc', '.tf', '.tls')):
+                kernels_to_load.append(path + x)
+    except:
+        pass
+    
+    try: 
+        # Crawl body dir for kernels
+        path = PATH_TO_KERNELS + obsBody + '/'
+        for x in os.listdir(os.path.join(package_dir, path )):
+            if x.endswith(('.bsp', '.tpc', '.tsc', '.tf', '.tls')):
+                kernels_to_load.append(path + x)
+    except:
+        pass
+
+    try:
+        # Crawl body/target dir for kernels
+        if isCustom != 'true':
+            path = PATH_TO_KERNELS + obsBody + '/' + target + '/'
+            for x in os.listdir(os.path.join(package_dir, path)):
+                if x.endswith(('.bsp', '.tpc', '.tsc', '.tf', '.tls')):
+                    kernels_to_load.append(path + x)
+    except:
+        pass
 
     for k in kernels_to_load:
-        spiceypy.furnsh( os.path.join(package_dir + '/kernels/', k) )
+        spiceypy.furnsh( os.path.join(package_dir, k) )
+
 
     # Setup params
     obstim = time
@@ -48,12 +71,12 @@ def ll2aerll(lng, lat, height, target, time, includeSunEarth, isCustom, customAz
     elplsz = True
     # Units always in km
     obspos = [0,0,0]
-    obsctr = "MARS"
-    obsref = "IAU_MARS"
+    obsctr = obsBody # Such as "MARS"
+    obsref = obsRefFrame # Such as "IAU_MARS"
 
     # A
     
-    radii = spiceypy.bodvrd( "MARS", "RADII", 3)[1]
+    radii = spiceypy.bodvrd( obsBody, "RADII", 3)[1]
     rE = radii[0]
     rP = radii[2]
     flattening  = (rE - rP) / rE
@@ -100,7 +123,7 @@ def ll2aerll(lng, lat, height, target, time, includeSunEarth, isCustom, customAz
             ell=pm.Ellipsoid(radii[0] * 1000, radii[1] * 1000, radii[2] * 1000), deg=True)
         target_alt = target_alt / 1000
     else:
-        state, light = spiceypy.spkezr(target, et, "IAU_MARS", abcorr, "MARS")
+        state, light = spiceypy.spkezr(target, et, obsref, abcorr, obsctr)
         ll = spiceypy.recgeo( state[0:3], radii[0], flattening)
         target_lng = ll[0] * spiceypy.dpr()
         target_lat = ll[1] * spiceypy.dpr()
@@ -136,19 +159,21 @@ lat = float(sys.argv[2])
 height = float(sys.argv[3])
 target = unquote(sys.argv[4])
 time = unquote(sys.argv[5])
-includeSunEarth = sys.argv[6]
+obsRefFrame = unquote(sys.argv[6])
+obsBody = unquote(sys.argv[7])
+includeSunEarth = sys.argv[8]
 isCustom = False
 customAz = 0
 customEl = 0
 customRange = 0
-if len(sys.argv) > 7:
-    isCustom = sys.argv[7]
+if len(sys.argv) > 9:
+    isCustom = sys.argv[9]
 if isCustom == 'true':
-    customAz = float(sys.argv[8])
-    customEl = float(sys.argv[9])
-    customRange = float(sys.argv[10])
+    customAz = float(sys.argv[10])
+    customEl = float(sys.argv[11])
+    customRange = float(sys.argv[12])
 
 try:
-    print(ll2aerll(lng, lat, height, target, time, includeSunEarth, isCustom, customAz, customEl, customRange))
+    print(ll2aerll(lng, lat, height, target, time, obsRefFrame, obsBody, includeSunEarth, isCustom, customAz, customEl, customRange))
 except:
     print(json.dumps({"error": True, "message": 'Error: ' + str(sys.exc_info()[0])}))

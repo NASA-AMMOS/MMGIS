@@ -420,10 +420,11 @@ let ShadeTool = {
                                     "<div>Range</div>",
                                     "<div id='shadeTool_results_outputs_range'></div>",
                                     "<div class='flexbetween' id='shadeTool_results_outputs_range_input_wrap' style='display: none;'>",
-                                        "<input id='shadeTool_results_outputs_range_input' type='number'></input>",
+                                        "<input id='shadeTool_results_outputs_range_input' type='number' disabled></input>",
                                         "<div class='vstUnit smallFont'>km</div>",
                                     "</div>",
                                 "</li>",
+                                /*
                                 "<li>",
                                     "<div>Longitude</div>",
                                     "<div id='shadeTool_results_outputs_lng'></div>",
@@ -432,6 +433,7 @@ let ShadeTool = {
                                     "<div>Latitude</div>",
                                     "<div id='shadeTool_results_outputs_lat'></div>",
                                 "</li>",
+                                */
                             "</ul>",
                         "</div>",
                         "<div id='shadeTool_indicators'>",
@@ -649,7 +651,7 @@ let ShadeTool = {
                         })
                         $('#shadeTool_results_outputs_range_input').val(
                             parseFloat(
-                                $('#shadeTool_results_outputs_range').text()
+                                100000 //$('#shadeTool_results_outputs_range').text()
                             )
                         )
                     } else {
@@ -834,14 +836,22 @@ let ShadeTool = {
     },
     updateObserverSpecificTime: function (id) {
         id = id || 0
+
+        const options = ShadeTool.getShadeOptions(id)
+        let body
+        if (ShadeTool.vars?.observers) {
+            for (let i = 0; i < ShadeTool.vars.observers.length; i++) {
+                if ((ShadeTool.vars.observers[i].value = options.observer)) {
+                    body = ShadeTool.vars.observers[i].body
+                }
+            }
+        }
+
         calls.api(
             'chronice',
             {
-                target: $(
-                    '#vstShades #vstId_' + id + ' .vstOptionObserver select'
-                )
-                    .val()
-                    .toLowerCase(),
+                body: body,
+                target: options.observer,
                 from: 'utc',
                 time: TimeControl.getEndTime(),
             },
@@ -880,14 +890,22 @@ let ShadeTool = {
     },
     updateFromObserverSpecificTime: function (id) {
         id = id || 0
+
+        const options = ShadeTool.getShadeOptions(id)
+        let body
+        if (ShadeTool.vars?.observers) {
+            for (let i = 0; i < ShadeTool.vars.observers.length; i++) {
+                if ((ShadeTool.vars.observers[i].value = options.observer)) {
+                    body = ShadeTool.vars.observers[i].body
+                }
+            }
+        }
+
         calls.api(
             'chronice',
             {
-                target: $(
-                    '#vstShades #vstId_' + id + ' .vstOptionObserver select'
-                )
-                    .val()
-                    .toLowerCase(),
+                body: body,
+                target: options.observer,
                 from: 'lmst',
                 time: $(
                     '#vstShades #vstId_' + id + ' .vstOptionTimeSpecific input'
@@ -1010,10 +1028,23 @@ let ShadeTool = {
             't' +
             options.time.replace(/ /g, '_')
 
+        // Custom source needs azimuth, elevation and range part of id to make it unique
         if (isCustom)
             ShadeTool.tags[
                 activeElmId
             ] += `A${customAz}E${customEl}R${customRange}`
+
+        //
+        let obsRefFrame
+        let obsBody
+        if (ShadeTool.vars?.observers) {
+            for (let i = 0; i < ShadeTool.vars.observers.length; i++) {
+                if ((ShadeTool.vars.observers[i].value = options.observer)) {
+                    obsRefFrame = ShadeTool.vars.observers[i].frame
+                    obsBody = ShadeTool.vars.observers[i].body
+                }
+            }
+        }
 
         let demUrl = ShadeTool.vars.dem
         if (!F_.isUrlAbsolute(demUrl)) demUrl = L_.missionPath + demUrl
@@ -1042,6 +1073,8 @@ let ShadeTool = {
                                 height: data[0][1],
                                 target: options.target,
                                 time: options.time + ' UTC',
+                                obsRefFrame: obsRefFrame,
+                                obsBody: obsBody,
                                 includeSunEarth: options.includeSunEarth,
                                 isCustom: isCustom,
                                 customAz,
@@ -1082,8 +1115,8 @@ let ShadeTool = {
                                 $('#shadeTool_results_outputs_az').text('--')
                                 $('#shadeTool_results_outputs_el').text('--')
                                 $('#shadeTool_results_outputs_range').text('--')
-                                $('#shadeTool_results_outputs_lng').text('--')
-                                $('#shadeTool_results_outputs_lat').text('--')
+                                //$('#shadeTool_results_outputs_lng').text('--')
+                                //$('#shadeTool_results_outputs_lat').text('--')
 
                                 if (
                                     s.message &&
@@ -1111,12 +1144,14 @@ let ShadeTool = {
                                     $('#shadeTool_results_outputs_range').text(
                                         s.range.toFixed(3) + 'km'
                                     )
+                                    /*
                                     $('#shadeTool_results_outputs_lng').text(
                                         s.longitude.toFixed(8) + '°'
                                     )
                                     $('#shadeTool_results_outputs_lat').text(
                                         s.latitude.toFixed(8) + '°'
                                     )
+                                    */
 
                                     keepGoing({
                                         lat: s.latitude,
@@ -1379,6 +1414,9 @@ let ShadeTool = {
                     '#vstShades #vstId_' + elmId + ' .vstOptionHeight input'
                 ).val()
             ),
+            observer: $(
+                '#vstShades #vstId_' + elmId + ' .vstOptionObserver select'
+            ).val(),
             height: $(
                 '#vstShades #vstId_' + elmId + ' .vstOptionHeight input'
             ).val(),

@@ -139,3 +139,7 @@ If true, MMGIS will not auto-login returning users. This can be useful when logi
 #### `GENERATE_SOURCEMAP=`
 
 If true at build-time, JavaScript source maps will also be built | boolean | default `false`
+
+#### `SPICE_SCHEDULED_KERNEL_DOWNLOAD=`
+
+If true, then at every other midnight, MMGIS will read /Missions/spice-kernels-conf.json and re/download all the specified kernels. See /Missions/spice-kernels-conf.example.json | boolean | default `false`
