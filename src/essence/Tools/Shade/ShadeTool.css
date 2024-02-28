@@ -524,7 +524,7 @@
 }
 #shadeTool_results_outputs_range_input_wrap input,
 #shadeTool_results_outputs_range_input_wrap .vstUnit {
-    background: none;
+    background: none !important;
     color: #cfcfcf !important;
 }
 
