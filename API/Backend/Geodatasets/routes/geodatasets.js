@@ -16,6 +16,10 @@ const makeNewGeodatasetTable = geodatasets.makeNewGeodatasetTable;
 router.post("/get", function (req, res, next) {
   get("post", req, res, next);
 });
+router.get("/get/:layer", function (req, res, next) {
+  req.query.layer = req.params.layer;
+  get("get", req, res, next);
+});
 router.get("/get", function (req, res, next) {
   get("get", req, res, next);
 });
@@ -51,10 +55,33 @@ function get(reqtype, req, res, next) {
       if (result) {
         let table = result.dataValues.table;
         if (type == "geojson") {
+          let q =
+            "SELECT properties, ST_AsGeoJSON(geom)" + " " + "FROM " + table;
+
+          if (req.body?.bounds) {
+            const bounds = req.body.bounds;
+            if (
+              bounds.southWest &&
+              bounds.southWest.lng != null &&
+              bounds.southWest.lat != null &&
+              bounds.northEast &&
+              bounds.northEast.lng != null &&
+              bounds.northEast.lat != null
+            ) {
+              // ST_MakeEnvelope is (xmin, ymin, xmax, ymax, srid)
+              q += ` WHERE ST_Intersects(ST_MakeEnvelope(${bounds.southWest.lng}, ${bounds.southWest.lat}, ${bounds.northEast.lng}, ${bounds.northEast.lat}, 4326), geom);`;
+            } else {
+              res.send({
+                status: "failure",
+                message:
+                  "If 'bounds' is set, the 'bounds' object must be like {northEast:{lat:,lng:}, southWest:{lat:,lng:}}",
+              });
+              return;
+            }
+          }
+
           sequelize
-            .query(
-              "SELECT properties, ST_AsGeoJSON(geom)" + " " + "FROM " + table
-            )
+            .query(q)
             .then(([results]) => {
               let geojson = { type: "FeatureCollection", features: [] };
               for (let i = 0; i < results.length; i++) {
@@ -299,10 +326,35 @@ router.post("/search", function (req, res, next) {
     });
 });
 
+router.post("/append/:name", function (req, res, next) {
+  req.body = {
+    name: req.params.name,
+    geojson: req.body,
+    action: "append",
+  };
+  recreate(req, res, next);
+});
+
+router.post("/recreate/:name", function (req, res, next) {
+  req.body = {
+    name: req.params.name,
+    geojson: req.body,
+    action: "recreate",
+  };
+  recreate(req, res, next);
+});
+
 router.post("/recreate", function (req, res, next) {
+  recreate(req, res, next);
+});
+
+function recreate(req, res, next) {
   let features = null;
   try {
-    features = JSON.parse(req.body.geojson).features;
+    features =
+      typeof req.body.geojson === "string"
+        ? JSON.parse(req.body.geojson).features
+        : req.body.geojson.features;
   } catch (err) {
     logger("error", "Failure: Malformed file.", req.originalUrl, req, err);
     res.send({
@@ -330,7 +382,7 @@ router.post("/recreate", function (req, res, next) {
       }
 
       let drop_qry = "TRUNCATE TABLE " + result.table + " RESTART IDENTITY";
-      if (req.body.hasOwnProperty("action") && req.body.action=="append") {
+      if (req.body.hasOwnProperty("action") && req.body.action == "append") {
         drop_qry = "";
       }
 
@@ -360,40 +412,40 @@ router.post("/recreate", function (req, res, next) {
       res.send(result);
     }
   );
+}
 
-  function populateGeodatasetTable(Table, features, cb) {
-    let rows = [];
+function populateGeodatasetTable(Table, features, cb) {
+  let rows = [];
 
-    for (var i = 0; i < features.length; i++) {
-      rows.push({
-        properties: features[i].properties,
-        geometry_type: features[i].geometry.type,
-        geom: {
-          crs: { type: "name", properties: { name: "EPSG:4326" } },
-          type: features[i].geometry.type,
-          coordinates: features[i].geometry.coordinates,
-        },
-      });
-    }
-
-    Table.bulkCreate(rows, { returning: true })
-      .then(function (response) {
-        cb(true);
-        return null;
-      })
-      .catch(function (err) {
-        logger(
-          "error",
-          "Geodatasets: Failed to populate a geodataset table!",
-          req.originalUrl,
-          req,
-          err
-        );
-        cb(false);
-        return null;
-      });
+  for (var i = 0; i < features.length; i++) {
+    rows.push({
+      properties: features[i].properties,
+      geometry_type: features[i].geometry.type,
+      geom: {
+        crs: { type: "name", properties: { name: "EPSG:4326" } },
+        type: features[i].geometry.type,
+        coordinates: features[i].geometry.coordinates,
+      },
+    });
   }
-});
+
+  Table.bulkCreate(rows, { returning: true })
+    .then(function (response) {
+      cb(true);
+      return null;
+    })
+    .catch(function (err) {
+      logger(
+        "error",
+        "Geodatasets: Failed to populate a geodataset table!",
+        req.originalUrl,
+        req,
+        err
+      );
+      cb(false);
+      return null;
+    });
+}
 
 function tile2Lng(x, z) {
   return (x / Math.pow(2, z)) * 360 - 180;

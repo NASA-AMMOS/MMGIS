@@ -781,10 +781,13 @@ async function makeVectorLayer(
             captureVector(
                 layerObj,
                 { evenIfOff: evenIfOff, useEmptyGeoJSON: useEmptyGeoJSON },
-                add
+                add,
+                (f) => {
+                    Map_.map.on('moveend zoomend', f)
+                }
             )
 
-        function add(data) {
+        function add(data, allowInvalid) {
             // []
             if (Array.isArray(data) && data.length === 0) {
                 data = { type: 'FeatureCollection', features: [] }
@@ -807,6 +810,7 @@ async function makeVectorLayer(
 
             let invalidGeoJSONTrace = gjv.valid(data, true)
             const allowableErrors = [`position must only contain numbers`]
+
             invalidGeoJSONTrace = invalidGeoJSONTrace.filter((t) => {
                 if (typeof t !== 'string') return false
                 for (let i = 0; i < allowableErrors.length; i++) {
@@ -818,7 +822,7 @@ async function makeVectorLayer(
             if (
                 data == null ||
                 data === 'off' ||
-                invalidGeoJSONTrace.length > 0
+                (invalidGeoJSONTrace.length > 0 && allowInvalid !== true)
             ) {
                 if (data != null && data != 'off') {
                     data = null

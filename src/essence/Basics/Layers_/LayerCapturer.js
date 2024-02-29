@@ -5,7 +5,7 @@ import L_ from '../Layers_/Layers_'
 import calls from '../../../pre/calls'
 import TimeControl from '../../Ancillary/TimeControl'
 
-export const captureVector = (layerObj, options, cb) => {
+export const captureVector = (layerObj, options, cb, dynamicCb) => {
     options = options || {}
     let layerUrl = layerObj.url
     const layerData = L_.layers.data[layerObj.name]
@@ -59,27 +59,80 @@ export const captureVector = (layerObj, options, cb) => {
 
     switch (urlSplit[0]) {
         case 'geodatasets':
-            calls.api(
-                'geodatasets_get',
-                {
-                    layer: urlSplitRaw[1],
-                    type: 'geojson',
-                },
-                function (data) {
-                    cb(data.body)
-                },
-                function (data) {
-                    console.warn(
-                        'ERROR: ' +
-                            data.status +
-                            ' in ' +
-                            layerUrl +
-                            ' /// ' +
-                            data.message
-                    )
-                    cb(null)
-                }
-            )
+            if (layerData?.variables?.dynamicExtent === true) {
+                // Return .on('moveend zoomend') event
+                dynamicCb((e) => {
+                    const zoom = L_.Map_.map.getZoom()
+                    if (
+                        zoom >= (layerData.minZoom || 0) &&
+                        (zoom <= layerData.maxZoom || 100)
+                    ) {
+                        // Then query, delete existing and remake
+                        const bounds = L_.Map_.map.getBounds()
+
+                        calls.api(
+                            'geodatasets_get',
+                            {
+                                layer: urlSplitRaw[1],
+                                type: 'geojson',
+                                bounds: {
+                                    northEast: {
+                                        lat: bounds._northEast.lat,
+                                        lng: bounds._northEast.lng,
+                                    },
+                                    southWest: {
+                                        lat: bounds._southWest.lat,
+                                        lng: bounds._southWest.lng,
+                                    },
+                                },
+                                crsCode: mmgisglobal.customCRS.code.replace(
+                                    'EPSG:',
+                                    ''
+                                ),
+                            },
+                            (data) => {
+                                L_.clearVectorLayer(layerObj.name)
+                                L_.updateVectorLayer(layerObj.name, data.body)
+                            },
+                            (data) => {
+                                console.warn(
+                                    'ERROR: ' +
+                                        data.status +
+                                        ' in geodatasets_get:' +
+                                        layerObj.display_name +
+                                        ' /// ' +
+                                        data.message
+                                )
+                            }
+                        )
+                    } else {
+                        // Just delete existing
+                    }
+                })
+                cb({ type: 'FeatureCollection', features: [] }, true)
+            } else {
+                calls.api(
+                    'geodatasets_get',
+                    {
+                        layer: urlSplitRaw[1],
+                        type: 'geojson',
+                    },
+                    function (data) {
+                        cb(data.body)
+                    },
+                    function (data) {
+                        console.warn(
+                            'ERROR: ' +
+                                data.status +
+                                ' in ' +
+                                layerUrl +
+                                ' /// ' +
+                                data.message
+                        )
+                        cb(null)
+                    }
+                )
+            }
             break
         case 'api':
             switch (urlSplit[1]) {

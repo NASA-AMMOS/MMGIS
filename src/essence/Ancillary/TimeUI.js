@@ -400,6 +400,7 @@ const TimeUI = {
         ) {
             const dateStaged = new Date(L_.configData.time.initialwindowend)
             if (dateStaged == 'Invalid Date') {
+                TimeUI._timelineEndTimestamp = new Date()
                 console.warn(
                     "Invalid 'Initial Window End Time' provided. Defaulting to 'now'."
                 )
