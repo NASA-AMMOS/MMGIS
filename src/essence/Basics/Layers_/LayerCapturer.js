@@ -5,6 +5,10 @@ import L_ from '../Layers_/Layers_'
 import calls from '../../../pre/calls'
 import TimeControl from '../../Ancillary/TimeControl'
 
+// This is so that an eariler and slower dynamic geodataset request
+// does not override an earlier shorter one
+// Object of layerName: timestamp
+const _geodatasetRequestLastTimestamp = {}
 export const captureVector = (layerObj, options, cb, dynamicCb) => {
     options = options || {}
     let layerUrl = layerObj.url
@@ -63,36 +67,71 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                 // Return .on('moveend zoomend') event
                 dynamicCb((e) => {
                     const zoom = L_.Map_.map.getZoom()
+
                     if (
                         zoom >= (layerData.minZoom || 0) &&
                         (zoom <= layerData.maxZoom || 100)
                     ) {
                         // Then query, delete existing and remake
                         const bounds = L_.Map_.map.getBounds()
+                        const body = {
+                            layer: urlSplitRaw[1],
+                            type: 'geojson',
+                            bounds: {
+                                northEast: {
+                                    lat: bounds._northEast.lat,
+                                    lng: bounds._northEast.lng,
+                                },
+                                southWest: {
+                                    lat: bounds._southWest.lat,
+                                    lng: bounds._southWest.lng,
+                                },
+                            },
+                            crsCode: mmgisglobal.customCRS.code.replace(
+                                'EPSG:',
+                                ''
+                            ),
+                        }
 
+                        if (layerData.time?.enabled === true) {
+                            body.time = {
+                                start: layerData.time.start,
+                                startProp: layerData.time.startProp,
+                                end: layerData.time.end,
+                                endProp: layerData.time.endProp,
+                            }
+
+                            if (e.hasOwnProperty('endTime')) {
+                                // Then this function was being called from timeChange
+                                body.time.start = e.startTime
+                                body.time.end = e.endTime
+                            }
+                        }
+
+                        const dateNow = new Date().getTime()
+
+                        _geodatasetRequestLastTimestamp[layerObj.name] =
+                            Math.max(
+                                _geodatasetRequestLastTimestamp[
+                                    layerObj.name
+                                ] || 0,
+                                dateNow
+                            )
                         calls.api(
                             'geodatasets_get',
-                            {
-                                layer: urlSplitRaw[1],
-                                type: 'geojson',
-                                bounds: {
-                                    northEast: {
-                                        lat: bounds._northEast.lat,
-                                        lng: bounds._northEast.lng,
-                                    },
-                                    southWest: {
-                                        lat: bounds._southWest.lat,
-                                        lng: bounds._southWest.lng,
-                                    },
-                                },
-                                crsCode: mmgisglobal.customCRS.code.replace(
-                                    'EPSG:',
-                                    ''
-                                ),
-                            },
+                            body,
                             (data) => {
-                                L_.clearVectorLayer(layerObj.name)
-                                L_.updateVectorLayer(layerObj.name, data.body)
+                                if (
+                                    _geodatasetRequestLastTimestamp[
+                                        layerObj.name
+                                    ] == dateNow
+                                ) {
+                                    L_.clearVectorLayer(layerObj.name)
+                                    L_.updateVectorLayer(
+                                        layerObj.name,
+                                        data.body
+                                    )
+                                }
                             },
                             (data) => {
                                 console.warn(

@@ -783,7 +783,11 @@ async function makeVectorLayer(
                 { evenIfOff: evenIfOff, useEmptyGeoJSON: useEmptyGeoJSON },
                 add,
                 (f) => {
-                    Map_.map.on('moveend zoomend', f)
+                    Map_.map.on('moveend', f)
+                    L_.subscribeTimeChange(
+                        `dynamicgeodataset_${layerObj.name}`,
+                        f
+                    )
                 }
             )
 

@@ -55,9 +55,9 @@ function get(reqtype, req, res, next) {
       if (result) {
         let table = result.dataValues.table;
         if (type == "geojson") {
-          let q =
-            "SELECT properties, ST_AsGeoJSON(geom)" + " " + "FROM " + table;
+          let q = `SELECT properties, ST_AsGeoJSON(geom) FROM ${table}`;
 
+          let hasBounds = false;
           if (req.body?.bounds) {
             const bounds = req.body.bounds;
             if (
@@ -69,7 +69,12 @@ function get(reqtype, req, res, next) {
               bounds.northEast.lat != null
             ) {
               // ST_MakeEnvelope is (xmin, ymin, xmax, ymax, srid)
-              q += ` WHERE ST_Intersects(ST_MakeEnvelope(${bounds.southWest.lng}, ${bounds.southWest.lat}, ${bounds.northEast.lng}, ${bounds.northEast.lat}, 4326), geom);`;
+              q += ` WHERE ST_Intersects(ST_MakeEnvelope(${parseFloat(
+                bounds.southWest.lng
+              )}, ${parseFloat(bounds.southWest.lat)}, ${parseFloat(
+                bounds.northEast.lng
+              )}, ${parseFloat(bounds.northEast.lat)}, 4326), geom)`;
+              hasBounds = true;
             } else {
               res.send({
                 status: "failure",
@@ -79,6 +84,48 @@ function get(reqtype, req, res, next) {
               return;
             }
           }
+          if (req.body?.time) {
+            const time = req.body.time;
+            const format = req.body.time.format || "YYYY-MM-DDTHH:MI:SSZ";
+            let t = ` `;
+            if (!hasBounds) t += `WHERE `;
+            else t += `AND `;
+
+            if (
+              time.startProp == null ||
+              time.startProp.indexOf(`'`) != -1 ||
+              time.endProp == null ||
+              time.endProp.indexOf(`'`) != -1 ||
+              time.start == null ||
+              time.start.indexOf(`'`) != -1 ||
+              time.end == null ||
+              time.end.indexOf(`'`) != -1 ||
+              format.indexOf(`'`) != -1
+            ) {
+              res.send({
+                status: "failure",
+                message: "Missing inner or malformed 'time' parameters.",
+              });
+              return;
+            }
+
+            // prettier-ignore
+            t += [
+              `(`,
+                `properties->>'${time.startProp}' IS NOT NULL AND properties->>'${time.endProp}' IS NOT NULL AND`, 
+                  ` date_part('epoch', to_timestamp(properties->>'${time.startProp}', '${format}'::text)) >= date_part('epoch', to_timestamp('${time.start}'::text, '${format}'::text))`,
+                  ` AND date_part('epoch', to_timestamp(properties->>'${time.endProp}', '${format}'::text)) <= date_part('epoch', to_timestamp('${time.end}'::text, '${format}'::text))`,
+              `)`,
+              ` OR `,
+              `(`,
+                `properties->>'${time.startProp}' IS NULL AND properties->>'${time.endProp}' IS NOT NULL AND`,
+                  ` date_part('epoch', to_timestamp(properties->>'${time.endProp}', '${format}'::text)) >= date_part('epoch', to_timestamp('${time.start}'::text, '${format}'::text))`,
+                  ` AND date_part('epoch', to_timestamp(properties->>'${time.endProp}', '${format}'::text)) >=  date_part('epoch', to_timestamp('${time.end}'::text, '${format}'::text))`,
+              `)`
+            ].join('')
+            q += t;
+          }
+          q += `;`;
 
           sequelize
             .query(q)

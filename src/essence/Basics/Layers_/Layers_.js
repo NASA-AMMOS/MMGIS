@@ -1034,11 +1034,27 @@ const L_ = {
                 )
             } else {
                 const savedOptions = JSON.parse(JSON.stringify(layer.options))
+
                 layer.setStyle({
                     color: color,
                     stroke: color,
                 })
                 layer.options = savedOptions
+
+                // For some odd reason sometimes the first style does not work
+                // This makes sure it does
+                setTimeout(() => {
+                    if (
+                        layer.options.color != color &&
+                        layer.options.stroke != color
+                    ) {
+                        layer.setStyle({
+                            color: color,
+                            stroke: color,
+                        })
+                        layer.options = savedOptions
+                    }
+                }, 1)
             }
         } catch (err) {
             if (layer._icon)
