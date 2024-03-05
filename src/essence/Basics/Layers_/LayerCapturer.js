@@ -9,6 +9,9 @@ import TimeControl from '../../Ancillary/TimeControl'
 // does not override an earlier shorter one
 // Object of layerName: timestamp
 const _geodatasetRequestLastTimestamp = {}
+const _geodatasetRequestLastLoc = {}
+const _layerRequestLastTimestamp = {}
+const _layerRequestLastLoc = {}
 export const captureVector = (layerObj, options, cb, dynamicCb) => {
     options = options || {}
     let layerUrl = layerObj.url
@@ -61,11 +64,15 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
     let urlSplitRaw = layerObj.url.split(':')
     let urlSplit = layerObj.url.toLowerCase().split(':')
 
-    switch (urlSplit[0]) {
-        case 'geodatasets':
-            if (layerData?.variables?.dynamicExtent === true) {
+    if (layerData?.variables?.dynamicExtent === true) {
+        switch (urlSplit[0]) {
+            case 'geodatasets':
                 // Return .on('moveend zoomend') event
                 dynamicCb((e) => {
+                    console.log()
+                    // Don't query if layer is off
+                    if (L_.layers.on[layerObj.name] !== true) return
+
                     const zoom = L_.Map_.map.getZoom()
 
                     if (
@@ -77,34 +84,27 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                         const body = {
                             layer: urlSplitRaw[1],
                             type: 'geojson',
-                            bounds: {
-                                northEast: {
-                                    lat: bounds._northEast.lat,
-                                    lng: bounds._northEast.lng,
-                                },
-                                southWest: {
-                                    lat: bounds._southWest.lat,
-                                    lng: bounds._southWest.lng,
-                                },
-                            },
+                            maxy: bounds._northEast.lat,
+                            maxx: bounds._northEast.lng,
+                            miny: bounds._southWest.lat,
+                            minx: bounds._southWest.lng,
                             crsCode: mmgisglobal.customCRS.code.replace(
                                 'EPSG:',
                                 ''
                             ),
+                            zoom: zoom,
                         }
 
                         if (layerData.time?.enabled === true) {
-                            body.time = {
-                                start: layerData.time.start,
-                                startProp: layerData.time.startProp,
-                                end: layerData.time.end,
-                                endProp: layerData.time.endProp,
-                            }
+                            body.starttime = layerData.time.start
+                            body.startProp = layerData.time.startProp
+                            body.endtime = layerData.time.end
+                            body.endProp = layerData.time.endProp
 
                             if (e.hasOwnProperty('endTime')) {
                                 // Then this function was being called from timeChange
-                                body.time.start = e.startTime
-                                body.time.end = e.endTime
+                                body.starttime = e.startTime
+                                body.endtime = e.endTime
                             }
                         }
 
@@ -121,16 +121,43 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                             'geodatasets_get',
                             body,
                             (data) => {
+                                const lastLoc =
+                                    _geodatasetRequestLastLoc[layerObj.name]
+                                const nowLoc = L_.Map_.map.getCenter()
+
                                 if (
                                     _geodatasetRequestLastTimestamp[
                                         layerObj.name
-                                    ] == dateNow
+                                    ] == dateNow &&
+                                    (lastLoc == null ||
+                                        layerData?.variables
+                                            ?.dynamicExtentMoveThreshold ==
+                                            null ||
+                                        F_.lngLatDistBetween(
+                                            lastLoc.lng,
+                                            lastLoc.lat,
+                                            nowLoc.lng,
+                                            nowLoc.lat
+                                        ) >
+                                            parseFloat(
+                                                layerData?.variables
+                                                    ?.dynamicExtentMoveThreshold
+                                            ) /
+                                                (layerData?.variables
+                                                    ?.dynamicExtentMoveThreshold &&
+                                                layerData?.variables?.dynamicExtentMoveThreshold.indexOf(
+                                                    '/z'
+                                                ) > -1
+                                                    ? Math.pow(
+                                                          2,
+                                                          L_.Map_.map.getZoom()
+                                                      )
+                                                    : 1))
                                 ) {
                                     L_.clearVectorLayer(layerObj.name)
-                                    L_.updateVectorLayer(
-                                        layerObj.name,
-                                        data.body
-                                    )
+                                    L_.updateVectorLayer(layerObj.name, data)
+                                    _geodatasetRequestLastLoc[layerObj.name] =
+                                        nowLoc
                                 }
                             },
                             (data) => {
@@ -146,20 +173,120 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                         )
                     } else {
                         // Just delete existing
+                        L_.clearVectorLayer(layerObj.name)
                     }
                 })
                 cb({ type: 'FeatureCollection', features: [] }, true)
-            } else {
+                break
+            case 'api':
+                break
+            default:
+                // Return .on('moveend zoomend') event
+                dynamicCb((e) => {
+                    // Don't query if layer is off
+                    if (L_.layers.on[layerObj.name] !== true) return
+
+                    const zoom = L_.Map_.map.getZoom()
+
+                    if (
+                        zoom >= (layerData.minZoom || 0) &&
+                        (zoom <= layerData.maxZoom || 100)
+                    ) {
+                        // Then query, delete existing and remake
+                        const bounds = L_.Map_.map.getBounds()
+                        const body = {
+                            type: 'geojson',
+                            maxy: bounds._northEast.lat,
+                            maxx: bounds._northEast.lng,
+                            miny: bounds._southWest.lat,
+                            minx: bounds._southWest.lng,
+                            crsCode: mmgisglobal.customCRS.code.replace(
+                                'EPSG:',
+                                ''
+                            ),
+                            zoom: zoom,
+                        }
+
+                        if (layerData.time?.enabled === true) {
+                            body.starttime = layerData.time.start
+                            body.startProp = layerData.time.startProp
+                            body.endtime = layerData.time.end
+                            body.endProp = layerData.time.endProp
+
+                            if (e.hasOwnProperty('endTime')) {
+                                // Then this function was being called from timeChange
+                                body.starttime = e.startTime
+                                body.endtime = e.endTime
+                            }
+                        }
+
+                        const dateNow = new Date().getTime()
+
+                        _layerRequestLastTimestamp[layerObj.name] = Math.max(
+                            _layerRequestLastTimestamp[layerObj.name] || 0,
+                            dateNow
+                        )
+
+                        let dynamicLayerUrl = layerObj.url
+                            .replace(/{starttime}/g, body.starttime)
+                            .replace(/{endtime}/g, body.endtime)
+                            .replace(/{time}/g, body.endtime)
+                            .replace(/{startprop}/g, body.startProp)
+                            .replace(/{endprop}/g, body.endProp)
+                            .replace(/{crscode}/g, body.crsCode)
+                            .replace(/{zoom}/g, body.zoom)
+                            .replace(/{minx}/g, body.minx)
+                            .replace(/{miny}/g, body.miny)
+                            .replace(/{maxx}/g, body.maxx)
+                            .replace(/{maxy}/g, body.maxy)
+
+                        if (!F_.isUrlAbsolute(dynamicLayerUrl))
+                            dynamicLayerUrl = L_.missionPath + dynamicLayerUrl
+
+                        $.getJSON(dynamicLayerUrl, function (data) {
+                            if (data.hasOwnProperty('Features')) {
+                                data.features = data.Features
+                                delete data.Features
+                            }
+
+                            if (
+                                _layerRequestLastTimestamp[layerObj.name] ==
+                                dateNow
+                            ) {
+                                L_.clearVectorLayer(layerObj.name)
+                                L_.updateVectorLayer(layerObj.name, data)
+                            }
+                        }).fail(function (jqXHR, textStatus, errorThrown) {
+                            //Tell the console council about what happened
+                            console.warn(
+                                'ERROR! ' +
+                                    textStatus +
+                                    ' in ' +
+                                    layerUrl +
+                                    ' /// ' +
+                                    errorThrown
+                            )
+                        })
+                    } else {
+                        // Just delete existing
+                        L_.clearVectorLayer(layerObj.name)
+                    }
+                })
+                cb({ type: 'FeatureCollection', features: [] }, true)
+        }
+    } else {
+        switch (urlSplit[0]) {
+            case 'geodatasets':
                 calls.api(
                     'geodatasets_get',
                     {
                         layer: urlSplitRaw[1],
                         type: 'geojson',
                     },
-                    function (data) {
-                        cb(data.body)
+                    (data) => {
+                        cb(data)
                     },
-                    function (data) {
+                    (data) => {
                         console.warn(
                             'ERROR: ' +
                                 data.status +
@@ -171,88 +298,43 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                         cb(null)
                     }
                 )
-            }
-            break
-        case 'api':
-            switch (urlSplit[1]) {
-                case 'publishedall':
-                    calls.api(
-                        'files_getfile',
-                        {
-                            quick_published: true,
-                        },
-                        function (data) {
-                            data.body.features.sort((a, b) => {
-                                let intentOrder = [
-                                    'polygon',
-                                    'roi',
-                                    'campaign',
-                                    'campsite',
-                                    'all',
-                                    'line',
-                                    'trail',
-                                    'point',
-                                    'signpost',
-                                    'arrow',
-                                    'text',
-                                    'note',
-                                    'master',
-                                ]
-                                let ai = intentOrder.indexOf(
-                                    a.properties._.intent
-                                )
-                                let bi = intentOrder.indexOf(
-                                    b.properties._.intent
-                                )
-                                return ai - bi
-                            })
-                            cb(data.body)
-                        },
-                        function (data) {
-                            console.warn(
-                                'ERROR! ' +
-                                    data.status +
-                                    ' in ' +
-                                    layerUrl +
-                                    ' /// ' +
-                                    data.message
-                            )
-                            cb(null)
-                        }
-                    )
-                    break
-                case 'published':
-                    calls.api(
-                        'files_getfile',
-                        {
-                            intent: urlSplit[2],
-                            quick_published: true,
-                        },
-                        function (data) {
-                            cb(data.body)
-                        },
-                        function (data) {
-                            console.warn(
-                                'ERROR! ' +
-                                    data.status +
-                                    ' in ' +
-                                    layerUrl +
-                                    ' /// ' +
-                                    data.message
-                            )
-                            cb(null)
-                        }
-                    )
-                    break
-                case 'tacticaltargets':
-                    calls.api(
-                        'tactical_targets',
-                        {},
-                        function (data) {
-                            cb(data.body)
-                        },
-                        function (data) {
-                            if (data) {
+                break
+            case 'api':
+                switch (urlSplit[1]) {
+                    case 'publishedall':
+                        calls.api(
+                            'files_getfile',
+                            {
+                                quick_published: true,
+                            },
+                            function (data) {
+                                data.body.features.sort((a, b) => {
+                                    let intentOrder = [
+                                        'polygon',
+                                        'roi',
+                                        'campaign',
+                                        'campsite',
+                                        'all',
+                                        'line',
+                                        'trail',
+                                        'point',
+                                        'signpost',
+                                        'arrow',
+                                        'text',
+                                        'note',
+                                        'master',
+                                    ]
+                                    let ai = intentOrder.indexOf(
+                                        a.properties._.intent
+                                    )
+                                    let bi = intentOrder.indexOf(
+                                        b.properties._.intent
+                                    )
+                                    return ai - bi
+                                })
+                                cb(data.body)
+                            },
+                            function (data) {
                                 console.warn(
                                     'ERROR! ' +
                                         data.status +
@@ -261,22 +343,21 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                         ' /// ' +
                                         data.message
                                 )
+                                cb(null)
                             }
-                            cb(null)
-                        }
-                    )
-                    break
-                case 'drawn':
-                    calls.api(
-                        'files_getfile',
-                        {
-                            id: urlSplit[2],
-                        },
-                        function (data) {
-                            cb(data.body.geojson)
-                        },
-                        function (data) {
-                            if (data) {
+                        )
+                        break
+                    case 'published':
+                        calls.api(
+                            'files_getfile',
+                            {
+                                intent: urlSplit[2],
+                                quick_published: true,
+                            },
+                            function (data) {
+                                cb(data.body)
+                            },
+                            function (data) {
                                 console.warn(
                                     'ERROR! ' +
                                         data.status +
@@ -285,31 +366,77 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                         ' /// ' +
                                         data.message
                                 )
+                                cb(null)
                             }
-                            cb(null)
-                        }
-                    )
-                    break
-                default:
-                    console.warn(
-                        `Unknown layer URL ${layerUrl} in layer ${layerObj.name}`
-                    )
-                    cb(null)
-                    break
-            }
-            break
-        default:
-            done = false
+                        )
+                        break
+                    case 'tacticaltargets':
+                        calls.api(
+                            'tactical_targets',
+                            {},
+                            function (data) {
+                                cb(data.body)
+                            },
+                            function (data) {
+                                if (data) {
+                                    console.warn(
+                                        'ERROR! ' +
+                                            data.status +
+                                            ' in ' +
+                                            layerUrl +
+                                            ' /// ' +
+                                            data.message
+                                    )
+                                }
+                                cb(null)
+                            }
+                        )
+                        break
+                    case 'drawn':
+                        calls.api(
+                            'files_getfile',
+                            {
+                                id: urlSplit[2],
+                            },
+                            function (data) {
+                                cb(data.body.geojson)
+                            },
+                            function (data) {
+                                if (data) {
+                                    console.warn(
+                                        'ERROR! ' +
+                                            data.status +
+                                            ' in ' +
+                                            layerUrl +
+                                            ' /// ' +
+                                            data.message
+                                    )
+                                }
+                                cb(null)
+                            }
+                        )
+                        break
+                    default:
+                        console.warn(
+                            `Unknown layer URL ${layerUrl} in layer ${layerObj.name}`
+                        )
+                        cb(null)
+                        break
+                }
+                break
+            default:
+                done = false
+        }
     }
 
     if (!done) {
-        $.getJSON(layerUrl, function (data) {
+        $.getJSON(layerUrl, (data) => {
             if (data.hasOwnProperty('Features')) {
                 data.features = data.Features
                 delete data.Features
             }
             cb(data)
-        }).fail(function (jqXHR, textStatus, errorThrown) {
+        }).fail((jqXHR, textStatus, errorThrown) => {
             //Tell the console council about what happened
             console.warn(
                 'ERROR! ' +

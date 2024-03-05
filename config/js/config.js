@@ -2796,6 +2796,9 @@ function layerPopulateVariable(modalId, layerType) {
         value: "Example",
       },
     ];
+    currentLayerVars.dynamicExtent = currentLayerVars.dynamicExtent || false;
+    currentLayerVars.dynamicExtentMoveThreshold =
+      currentLayerVars.dynamicExtentMoveThreshold || null;
     currentLayerVars.shortcutSuffix = currentLayerVars.shortcutSuffix || null;
 
     if (layerType == "tile") {

@@ -131,7 +131,7 @@ const c = {
         url: 'API/datasets/get',
     },
     geodatasets_get: {
-        type: 'POST',
+        type: 'GET',
         url: 'API/geodatasets/get',
     },
     geodatasets_search: {

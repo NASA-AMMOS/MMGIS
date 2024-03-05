@@ -788,6 +788,11 @@ async function makeVectorLayer(
                         `dynamicgeodataset_${layerObj.name}`,
                         f
                     )
+                    L_.subscribeOnSpecificLayerToggle(
+                        `dynamicgeodataset_${layerObj.name}`,
+                        layerObj.name,
+                        f
+                    )
                 }
             )
 

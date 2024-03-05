@@ -13,9 +13,6 @@ const Geodatasets = geodatasets.Geodatasets;
 const makeNewGeodatasetTable = geodatasets.makeNewGeodatasetTable;
 
 //Returns a geodataset table as a geojson
-router.post("/get", function (req, res, next) {
-  get("post", req, res, next);
-});
 router.get("/get/:layer", function (req, res, next) {
   req.query.layer = req.params.layer;
   get("get", req, res, next);
@@ -58,48 +55,34 @@ function get(reqtype, req, res, next) {
           let q = `SELECT properties, ST_AsGeoJSON(geom) FROM ${table}`;
 
           let hasBounds = false;
-          if (req.body?.bounds) {
-            const bounds = req.body.bounds;
-            if (
-              bounds.southWest &&
-              bounds.southWest.lng != null &&
-              bounds.southWest.lat != null &&
-              bounds.northEast &&
-              bounds.northEast.lng != null &&
-              bounds.northEast.lat != null
-            ) {
-              // ST_MakeEnvelope is (xmin, ymin, xmax, ymax, srid)
-              q += ` WHERE ST_Intersects(ST_MakeEnvelope(${parseFloat(
-                bounds.southWest.lng
-              )}, ${parseFloat(bounds.southWest.lat)}, ${parseFloat(
-                bounds.northEast.lng
-              )}, ${parseFloat(bounds.northEast.lat)}, 4326), geom)`;
-              hasBounds = true;
-            } else {
-              res.send({
-                status: "failure",
-                message:
-                  "If 'bounds' is set, the 'bounds' object must be like {northEast:{lat:,lng:}, southWest:{lat:,lng:}}",
-              });
-              return;
-            }
+          let minx = req.query?.minx;
+          let miny = req.query?.miny;
+          let maxx = req.query?.maxx;
+          let maxy = req.query?.maxy;
+          if (minx != null && miny != null && maxx != null && maxy != null) {
+            // ST_MakeEnvelope is (xmin, ymin, xmax, ymax, srid)
+            q += ` WHERE ST_Intersects(ST_MakeEnvelope(${parseFloat(
+              minx
+            )}, ${parseFloat(miny)}, ${parseFloat(maxx)}, ${parseFloat(
+              maxy
+            )}, 4326), geom)`;
+            hasBounds = true;
           }
-          if (req.body?.time) {
-            const time = req.body.time;
-            const format = req.body.time.format || "YYYY-MM-DDTHH:MI:SSZ";
+          if (req.query?.endtime != null) {
+            const format = req.query?.format || "YYYY-MM-DDTHH:MI:SSZ";
             let t = ` `;
             if (!hasBounds) t += `WHERE `;
             else t += `AND `;
 
             if (
-              time.startProp == null ||
-              time.startProp.indexOf(`'`) != -1 ||
-              time.endProp == null ||
-              time.endProp.indexOf(`'`) != -1 ||
-              time.start == null ||
-              time.start.indexOf(`'`) != -1 ||
-              time.end == null ||
-              time.end.indexOf(`'`) != -1 ||
+              req.query?.startProp == null ||
+              req.query?.startProp.indexOf(`'`) != -1 ||
+              req.query?.endProp == null ||
+              req.query?.endProp.indexOf(`'`) != -1 ||
+              req.query?.starttime == null ||
+              req.query?.starttime.indexOf(`'`) != -1 ||
+              req.query?.endtime == null ||
+              req.query?.endtime.indexOf(`'`) != -1 ||
               format.indexOf(`'`) != -1
             ) {
               res.send({
@@ -112,15 +95,15 @@ function get(reqtype, req, res, next) {
             // prettier-ignore
             t += [
               `(`,
-                `properties->>'${time.startProp}' IS NOT NULL AND properties->>'${time.endProp}' IS NOT NULL AND`, 
-                  ` date_part('epoch', to_timestamp(properties->>'${time.startProp}', '${format}'::text)) >= date_part('epoch', to_timestamp('${time.start}'::text, '${format}'::text))`,
-                  ` AND date_part('epoch', to_timestamp(properties->>'${time.endProp}', '${format}'::text)) <= date_part('epoch', to_timestamp('${time.end}'::text, '${format}'::text))`,
+                `properties->>'${req.query.startProp}' IS NOT NULL AND properties->>'${req.query.endProp}' IS NOT NULL AND`, 
+                  ` date_part('epoch', to_timestamp(properties->>'${req.query.startProp}', '${format}'::text)) >= date_part('epoch', to_timestamp('${req.query.starttime}'::text, '${format}'::text))`,
+                  ` AND date_part('epoch', to_timestamp(properties->>'${req.query.endProp}', '${format}'::text)) <= date_part('epoch', to_timestamp('${req.query.endtime}'::text, '${format}'::text))`,
               `)`,
               ` OR `,
               `(`,
-                `properties->>'${time.startProp}' IS NULL AND properties->>'${time.endProp}' IS NOT NULL AND`,
-                  ` date_part('epoch', to_timestamp(properties->>'${time.endProp}', '${format}'::text)) >= date_part('epoch', to_timestamp('${time.start}'::text, '${format}'::text))`,
-                  ` AND date_part('epoch', to_timestamp(properties->>'${time.endProp}', '${format}'::text)) >=  date_part('epoch', to_timestamp('${time.end}'::text, '${format}'::text))`,
+                `properties->>'${req.query.startProp}' IS NULL AND properties->>'${req.query.endProp}' IS NOT NULL AND`,
+                  ` date_part('epoch', to_timestamp(properties->>'${req.query.endProp}', '${format}'::text)) >= date_part('epoch', to_timestamp('${req.query.starttime}'::text, '${format}'::text))`,
+                  ` AND date_part('epoch', to_timestamp(properties->>'${req.query.endProp}', '${format}'::text)) >=  date_part('epoch', to_timestamp('${req.query.endtime}'::text, '${format}'::text))`,
               `)`
             ].join('')
             q += t;

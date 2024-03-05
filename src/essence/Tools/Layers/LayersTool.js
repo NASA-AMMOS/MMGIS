@@ -859,37 +859,62 @@ function interfaceWithMMGIS(fromInit) {
 
         const urlSplitRaw = (layerData.url || '').split(':')
         const urlSplit = (layerData.url || '').toLowerCase().split(':')
-        // Only geodatasets work like this so far
-        if (extent === 'raw' && urlSplit[0] === 'geodatasets') {
-            calls.api(
-                'geodatasets_get',
-                {
-                    layer: urlSplitRaw[1],
-                    type: 'geojson',
-                },
-                (data) => {
-                    download(data.body)
-                },
-                (data) => {
-                    CursorInfo.update(
-                        `Failed to download ${layerObj.display_name}.`,
-                        6000,
-                        true,
-                        { x: 385, y: 6 },
-                        '#e9ff26',
-                        'black'
-                    )
+
+        if (extent === 'raw') {
+            if (urlSplit[0] === 'geodatasets') {
+                calls.api(
+                    'geodatasets_get',
+                    {
+                        layer: urlSplitRaw[1],
+                        type: 'geojson',
+                    },
+                    (data) => {
+                        download(data.body)
+                    },
+                    (data) => {
+                        CursorInfo.update(
+                            `Failed to download ${layerDisplayName}.`,
+                            6000,
+                            true,
+                            { x: 385, y: 6 },
+                            '#e9ff26',
+                            'black'
+                        )
+                        console.warn(
+                            'ERROR: ' +
+                                data.status +
+                                ' in LayersTool geodatasets_get:' +
+                                layerDisplayName +
+                                ' /// ' +
+                                data.message
+                        )
+                        return
+                    }
+                )
+            } else {
+                let layerUrl = layerData.url
+
+                if (!F_.isUrlAbsolute(layerUrl))
+                    layerUrl = L_.missionPath + layerUrl
+                $.getJSON(layerUrl, function (data) {
+                    if (data.hasOwnProperty('Features')) {
+                        data.features = data.Features
+                        delete data.Features
+                    }
+
+                    download(data)
+                }).fail(function (jqXHR, textStatus, errorThrown) {
+                    //Tell the console council about what happened
                     console.warn(
-                        'ERROR: ' +
-                            data.status +
-                            ' in LayersTool geodatasets_get:' +
-                            layerObj.display_name +
+                        'ERROR! ' +
+                            textStatus +
+                            ' in ' +
+                            layerUrl +
                             ' /// ' +
-                            data.message
+                            errorThrown
                     )
-                    return
-                }
-            )
+                })
+            }
         } else {
             let geojson = L_.layers.layer[layerUUID].toGeoJSON(
                 L_.GEOJSON_PRECISION

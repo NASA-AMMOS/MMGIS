@@ -215,6 +215,18 @@ const L_ = {
         if (L_._onLayerToggleSubscriptions[fid] != null)
             delete L_._onLayerToggleSubscriptions[fid]
     },
+    _onSpecificLayerToggleSubscriptions: {},
+    subscribeOnSpecificLayerToggle: function (fid, layerId, func) {
+        if (typeof func === 'function')
+            L_._onSpecificLayerToggleSubscriptions[fid] = {
+                layer: layerId,
+                func: func,
+            }
+    },
+    unsubscribeOnSpecificLayerToggle: function (fid) {
+        if (L_._onSpecificLayerToggleSubscriptions[fid] != null)
+            delete L_._onSpecificLayerToggleSubscriptions[fid]
+    },
     //Takes in config layer obj
     //Toggles a layer on and off and accounts for sublayers
     //Takes in a config layer object
@@ -231,6 +243,11 @@ const L_ = {
 
         Object.keys(L_._onLayerToggleSubscriptions).forEach((k) => {
             L_._onLayerToggleSubscriptions[k](s.name, !on)
+        })
+
+        Object.keys(L_._onSpecificLayerToggleSubscriptions).forEach((k) => {
+            const subs = L_._onSpecificLayerToggleSubscriptions[k]
+            if (subs.layer === s.name) subs.func(s.name, !on)
         })
 
         // Always reupdate layer infos at the end to keep them in sync
