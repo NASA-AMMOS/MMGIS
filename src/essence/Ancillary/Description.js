@@ -70,6 +70,11 @@ const Description = {
 
         this.inited = true
         if (this.waitingOnUpdate) this.updateInfo()
+
+        $(window).on('resize', () => {
+            $('#mainDescPointLinks > dl.dropy').removeClass('open')
+            $(`#mainDescPointLinks_global`).empty()
+        })
     },
     updateInfo(force) {
         if (force !== true) {

@@ -292,7 +292,11 @@ var TimeControl = {
         var reloadedLayers = []
         for (let layerName in L_.layers.data) {
             const layer = L_.layers.data[layerName]
-            if (layer.time && layer.time.enabled === true) {
+            if (
+                layer.time &&
+                layer.time.enabled === true &&
+                layer.variables?.dynamicExtent != true
+            ) {
                 TimeControl.reloadLayer(layer)
                 reloadedLayers.push(layer.name)
             }
