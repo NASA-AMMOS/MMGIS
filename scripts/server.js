@@ -121,7 +121,10 @@ app.use(
 );
 
 if (process.env.SPICE_SCHEDULED_KERNEL_DOWNLOAD === "true")
-  setSPICEKernelDownloadSchedule();
+  setSPICEKernelDownloadSchedule(
+    process.env.SPICE_SCHEDULED_KERNEL_DOWNLOAD_ON_START,
+    process.env.SPICE_SCHEDULED_KERNEL_CRON_EXPR
+  );
 
 ///////////////////////////
 

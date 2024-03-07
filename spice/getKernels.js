@@ -3,15 +3,17 @@ const fs = require("fs");
 const path = require("path");
 const schedule = require("node-schedule");
 
+const logger = require("../API/logger");
+
 const OUTPUT_DIR = "./kernels";
 const SHOULD_LOG = false;
 
-function setSPICEKernelDownloadSchedule() {
+function setSPICEKernelDownloadSchedule(runImmeditately, cronExpression) {
   // Run immediately
-  getKernelsFromConf();
+  if (runImmeditately === "true") getKernelsFromConf();
 
   schedule.scheduleJob(
-    "0 0 */2 * *", // Every other day
+    cronExpression || "0 0 */2 * *", // Every other day
     function () {
       getKernelsFromConf();
     }
@@ -19,32 +21,38 @@ function setSPICEKernelDownloadSchedule() {
 }
 
 async function getKernelsFromConf() {
-  //Look at latest kernels.json file
-  const kernelsFile = path.join(
-    __dirname,
-    `../Missions/spice-kernels-conf.json`
-  );
-  const kernels = JSON.parse(fs.readFileSync(kernelsFile, "utf8"));
+  logger(`info`, `Starting scheduled download of SPICE kernels.`);
 
-  Object.keys(kernels.body).forEach(async (b) => {
-    const body = kernels.body[b];
-    if (body.kernels) {
-      await getKernels(body.kernels, `${OUTPUT_DIR}/${b}`, true, SHOULD_LOG);
-    }
-    if (body.targets) {
-      Object.keys(body.targets).forEach(async (t) => {
-        const target = kernels.body[b].targets[t];
-        if (target.kernels) {
-          await getKernels(
-            target.kernels,
-            `${OUTPUT_DIR}/${b}/${t}`,
-            true,
-            SHOULD_LOG
-          );
-        }
-      });
-    }
-  });
+  try {
+    //Look at latest kernels.json file
+    const kernelsFile = path.join(
+      __dirname,
+      `../Missions/spice-kernels-conf.json`
+    );
+    const kernels = JSON.parse(fs.readFileSync(kernelsFile, "utf8"));
+
+    Object.keys(kernels.body).forEach(async (b) => {
+      const body = kernels.body[b];
+      if (body.kernels) {
+        await getKernels(body.kernels, `${OUTPUT_DIR}/${b}`, true, SHOULD_LOG);
+      }
+      if (body.targets) {
+        Object.keys(body.targets).forEach(async (t) => {
+          const target = kernels.body[b].targets[t];
+          if (target.kernels) {
+            await getKernels(
+              target.kernels,
+              `${OUTPUT_DIR}/${b}/${t}`,
+              true,
+              SHOULD_LOG
+            );
+          }
+        });
+      }
+    });
+  } catch (err) {
+    logger(`error`, `getKernelsFromConf: ${err}`);
+  }
 }
 
 /*
@@ -63,8 +71,6 @@ async function getKernels(
   includeMetaKernels,
   shouldLog
 ) {
-  if (shouldLog)
-    console.log(`Starting downloaded of ${kernelUrls.length} kernels.`);
   const outputPath = path.join(__dirname, `/${outputDir}`);
 
   // Make outputPath directories if they don't already exist
@@ -78,43 +84,52 @@ async function getKernels(
   });
 
   const fileMap = {};
+
   // Get all immediate kernels
-  kernelUrls.map((file) => {
+  for (let i = 0; i < kernelUrls.length; i++) {
+    const file = kernelUrls[i];
+
     const filename = file.url || file;
     const basename = path.basename(filename);
 
+    if (shouldLog)
+      logger(`info`, `Starting downloaded of SPICE kernel: ${filename}`);
+
     // Ignore duplicates
-    if (fileMap[basename] != null) return true;
+    if (fileMap[basename] != null) continue;
 
     fileMap[basename] = file;
-    return fetch(filename).then(
-      async (response) =>
-        new Promise((resolve, reject) => {
-          const ws = fs.createWriteStream(`${outputPath}/${basename}`);
-          response.body.pipe(ws);
-          response.body.on("close", () => {
-            if (shouldLog) console.log(`Successfully downloaded ${filename}`);
-            loaded[basename] = true;
-            proceed();
-            resolve();
-          });
-          ws.on("error", (err) => {
-            if (shouldLog)
-              console.log(`WARN: Failed to downloaded ${filename}`, err);
-            loaded[basename] = true;
-            proceed();
-            reject();
-          });
-        })
-    );
-  });
+    await fetch(filename)
+      .then(
+        async (response) =>
+          new Promise((resolve, reject) => {
+            const ws = fs.createWriteStream(`${outputPath}/${basename}`);
+            response.body.pipe(ws);
+            response.body.on("close", () => {
+              if (shouldLog)
+                logger(`success`, `Successfully downloaded ${filename}`);
+              loaded[basename] = true;
+              proceed();
+              resolve();
+            });
+            ws.on("error", (err) => {
+              if (shouldLog)
+                logger(`warn`, `Failed to downloaded ${filename}`, err);
+              loaded[basename] = true;
+              proceed();
+              reject();
+            });
+          })
+      )
+      .catch((err) => {
+        logger(`warn`, `Failed to download kernel: ${filename} - ${err}`);
+      });
+  }
 
   function proceed() {
     if (Object.values(loaded).every((item) => item === true)) {
       try {
         if (includeMetaKernels === true) {
-          if (shouldLog)
-            console.log("Finished downloading all first-level kernels.");
           const regex = /'\$KERNELS\/.*\..*'\n/g;
           // Next any meta-kernels (mk) (.tm) need to be read and have their inner-kernels downloaded
           setTimeout(() => {
@@ -143,10 +158,16 @@ async function getKernels(
             });
           }, 1000);
         } else {
-          if (shouldLog) console.log("Finished downloading all kernels.");
+          logger(
+            `success`,
+            `Finished downloading immediate kernels (meta-kernels may still be downloading).`
+          );
         }
       } catch (err) {
-        console.error(err);
+        logger(
+          `warn`,
+          `Failed to proceed through meta-kernel download: ${err}`
+        );
       }
     }
   }

@@ -312,16 +312,18 @@ let ShadeTool = {
             ShadeTool.vars.observers.length > 0
         ) {
             allObservers = ShadeTool.vars.observers
-                .map(
-                    (c, i) =>
-                        "<option value='" +
-                        c.value +
-                        "' " +
-                        (i === 0 ? 'selected' : '') +
-                        '>' +
-                        c.name +
-                        '</option>'
-                )
+                .map((c, i) => {
+                    if (c.value != null && c.name != null)
+                        return (
+                            "<option value='" +
+                            c.value +
+                            "' " +
+                            (i === 0 ? 'selected' : '') +
+                            '>' +
+                            c.name +
+                            '</option>'
+                        )
+                })
                 .join('\n')
         }
 
@@ -345,19 +347,21 @@ let ShadeTool = {
                             "</select>",
                         "</div>",
                         `<div class='vstOptionHeading'>Observer</div>`,
-                        "<div class='vstOptionObserver'>",
-                            `<div title='Ground observer for time conversions'>Entity</div>`,
-                            "<select class='dropdown'>",
-                                allObservers,
-                            "</select>",
-                        "</div>",
-                        "<div class='vstOptionTimeSpecific'>",
-                            `<div title='Ground observer time'>Time</div>`,
-                            "<div class='flexbetween'>",
-                                `<div class='vstClockIcon2'><i class='mdi mdi-clock-outline mdi-18px'></i></div>`,
-                                `<input type='text' placeholder='${ShadeTool.vars.observerTimePlaceholder || ''}' value='${TimeControl.getEndTime()}'>`,
+                        allObservers.length != 0 ? [
+                            "<div class='vstOptionObserver'>",
+                                `<div title='Ground observer for time conversions'>Entity</div>`,
+                                "<select class='dropdown'>",
+                                    allObservers,
+                                "</select>",
                             "</div>",
-                        "</div>",
+                            "<div class='vstOptionTimeSpecific'>",
+                                `<div title='Ground observer time'>Time</div>`,
+                                "<div class='flexbetween'>",
+                                    `<div class='vstClockIcon2'><i class='mdi mdi-clock-outline mdi-18px'></i></div>`,
+                                    `<input type='text' placeholder='${ShadeTool.vars.observerTimePlaceholder || ''}' value='${TimeControl.getEndTime()}'>`,
+                                "</div>",
+                            "</div>",
+                        ].join('\n') : null,
                         "<div class='vstOptionHeight'>",
                             "<div title='Height above surface of source point.'>Height</div>",
                             "<div class='flexbetween'>",
@@ -847,6 +851,8 @@ let ShadeTool = {
             }
         }
 
+        if (body == null || options.observer == null) return
+
         calls.api(
             'chronice',
             {
@@ -900,6 +906,8 @@ let ShadeTool = {
                 }
             }
         }
+
+        if (body == null || options.observer == null) return
 
         calls.api(
             'chronice',
@@ -1042,6 +1050,11 @@ let ShadeTool = {
                 if ((ShadeTool.vars.observers[i].value = options.observer)) {
                     obsRefFrame = ShadeTool.vars.observers[i].frame
                     obsBody = ShadeTool.vars.observers[i].body
+                } else if (options.observer == null) {
+                    // If no observer, pick first
+                    obsRefFrame = ShadeTool.vars.observers[0].frame
+                    obsBody = ShadeTool.vars.observers[0].body
+                    break
                 }
             }
         }

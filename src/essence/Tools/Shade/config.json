@@ -25,8 +25,10 @@
             ],
             "observers": [
                 {
-                    "name": "User-friendly name for observer for spacecraft time computations",
-                    "value": "SPICE Spacecraft name or ID"
+                    "name": "User-friendly name for observer for spacecraft time computations. Set to null to turn off time converting.",
+                    "value": "SPICE Spacecraft name or ID",
+                    "frame": "SPICE reference frame. i.e. IAU_MARS",
+                    "body": "SPICE planet body. i.e. MARS"
                 }
             ],
             "defaultHeight": 0,

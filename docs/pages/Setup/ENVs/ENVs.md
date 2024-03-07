@@ -143,3 +143,11 @@ If true at build-time, JavaScript source maps will also be built | boolean | def
 #### `SPICE_SCHEDULED_KERNEL_DOWNLOAD=`
 
 If true, then at every other midnight, MMGIS will read /Missions/spice-kernels-conf.json and re/download all the specified kernels. See /Missions/spice-kernels-conf.example.json | boolean | default `false`
+
+#### `SPICE_SCHEDULED_KERNEL_DOWNLOAD_ON_START=`
+
+If true, then also triggers the kernel download when MMGIS starts | boolean | default `false`
+
+#### `SPICE_SCHEDULED_KERNEL_CRON_EXPR=`
+
+A cron schedule expression for use in the [node-schedule npm library](https://www.npmjs.com/package/node-schedule) | string | default `"0 0 */2 * *"` (every other day)
