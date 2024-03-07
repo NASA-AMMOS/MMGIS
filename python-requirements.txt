@@ -1,2 +1,3 @@
 numpy==1.21.6
 spiceypy==5.1.2
+pymap3d==3.0.1

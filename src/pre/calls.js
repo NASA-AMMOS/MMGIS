@@ -34,10 +34,6 @@ const c = {
         type: 'POST',
         url: 'api/utils/ll2aerll',
     },
-    chronos: {
-        type: 'POST',
-        url: 'api/utils/chronos',
-    },
     chronice: {
         type: 'POST',
         url: 'api/utils/chronice',

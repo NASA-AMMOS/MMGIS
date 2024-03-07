@@ -32,6 +32,8 @@ const { updateTools } = require("../API/updateTools");
 
 const { websocket } = require("../API/websocket");
 
+const { setSPICEKernelDownloadSchedule } = require("../spice/getKernels");
+
 const WebSocket = require("isomorphic-ws");
 
 const chalk = require("chalk");
@@ -117,6 +119,12 @@ app.use(
     }),
   })
 );
+
+if (process.env.SPICE_SCHEDULED_KERNEL_DOWNLOAD === "true")
+  setSPICEKernelDownloadSchedule(
+    process.env.SPICE_SCHEDULED_KERNEL_DOWNLOAD_ON_START,
+    process.env.SPICE_SCHEDULED_KERNEL_CRON_EXPR
+  );
 
 ///////////////////////////
 
@@ -707,19 +715,33 @@ setups.getBackendSetups(function (setups) {
       const time = encodeURIComponent(req.body.time)
         .replace(/%20/g, " ")
         .replace(/%3A/g, ":");
+      const obsRefFrame =
+        encodeURIComponent(req.body.obsRefFrame) || "IAU_MARS";
+      const obsBody = encodeURIComponent(req.body.obsBody) || "MARS";
       const includeSunEarth =
         encodeURIComponent(req.body.includeSunEarth) || "False";
+
+      const isCustom = encodeURIComponent(req.body.isCustom) || "False";
+      const customAz = encodeURIComponent(req.body.customAz);
+      const customEl = encodeURIComponent(req.body.customEl);
+      const customRange = encodeURIComponent(req.body.customRange);
 
       execFile(
         "python",
         [
-          "private/api/spice/ll2aerll.py",
+          "private/api/ll2aerll.py",
           lng,
           lat,
           height,
           target,
           time,
+          obsRefFrame,
+          obsBody,
           includeSunEarth,
+          isCustom,
+          customAz,
+          customEl,
+          customRange,
         ],
         function (error, stdout, stderr) {
           if (error)
@@ -732,44 +754,11 @@ setups.getBackendSetups(function (setups) {
 
   //utils chronos (spice time converter)
   app.post(
-    `${ROOT_PATH}/api/utils/chronos`,
-    ensureUser(),
-    ensureGroup(permissions.users),
-    function (req, res) {
-      const target = encodeURIComponent(req.body.target);
-      const fromFormat = encodeURIComponent(req.body.from);
-      const fromtype = encodeURIComponent(req.body.fromtype);
-      const to = encodeURIComponent(req.body.to);
-      const totype = encodeURIComponent(req.body.totype);
-      const time = encodeURIComponent(req.body.time)
-        .replace(/%20/g, " ")
-        .replace(/%3A/g, ":");
-
-      execFile(
-        "python",
-        [
-          "private/api/spice/chronos.py",
-          target,
-          fromFormat,
-          fromtype,
-          to,
-          totype,
-          time,
-        ],
-        function (error, stdout, stderr) {
-          if (error) logger("error", "chronos failure:", "server", null, error);
-          res.send(stdout);
-        }
-      );
-    }
-  );
-
-  //utils chronos (spice time converter)
-  app.post(
     `${ROOT_PATH}/api/utils/chronice`,
     ensureUser(),
     ensureGroup(permissions.users),
     function (req, res) {
+      const body = encodeURIComponent(req.body.body);
       const target = encodeURIComponent(req.body.target);
       const fromFormat = encodeURIComponent(req.body.from);
       const time = encodeURIComponent(req.body.time)
@@ -778,7 +767,7 @@ setups.getBackendSetups(function (setups) {
 
       execFile(
         "python",
-        ["private/api/spice/chronice.py", target, fromFormat, time],
+        ["private/api/chronice.py", body, target, fromFormat, time],
         function (error, stdout, stderr) {
           if (error)
             logger("error", "chronice failure:", "server", null, error);
