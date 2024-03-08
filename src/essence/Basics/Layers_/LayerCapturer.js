@@ -249,12 +249,39 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                 delete data.Features
                             }
 
+                            const lastLoc = _layerRequestLastLoc[layerObj.name]
+                            const nowLoc = L_.Map_.map.getCenter()
+
                             if (
                                 _layerRequestLastTimestamp[layerObj.name] ==
-                                dateNow
+                                    dateNow &&
+                                (lastLoc == null ||
+                                    layerData?.variables
+                                        ?.dynamicExtentMoveThreshold == null ||
+                                    F_.lngLatDistBetween(
+                                        lastLoc.lng,
+                                        lastLoc.lat,
+                                        nowLoc.lng,
+                                        nowLoc.lat
+                                    ) >
+                                        parseFloat(
+                                            layerData?.variables
+                                                ?.dynamicExtentMoveThreshold
+                                        ) /
+                                            (layerData?.variables
+                                                ?.dynamicExtentMoveThreshold &&
+                                            layerData?.variables?.dynamicExtentMoveThreshold.indexOf(
+                                                '/z'
+                                            ) > -1
+                                                ? Math.pow(
+                                                      2,
+                                                      L_.Map_.map.getZoom()
+                                                  )
+                                                : 1))
                             ) {
                                 L_.clearVectorLayer(layerObj.name)
                                 L_.updateVectorLayer(layerObj.name, data)
+                                _layerRequestLastLoc[layerObj.name] = nowLoc
                             }
                         }).fail(function (jqXHR, textStatus, errorThrown) {
                             //Tell the console council about what happened
