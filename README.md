@@ -94,12 +94,12 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
 
 ### System Requirements
 
-1. Install the latest version of [Node.js v16.13.2+](https://nodejs.org/en/download/).
+1. Install the latest version of [Node.js v20.11.1+](https://nodejs.org/en/download/).
 
 1. Install [PostgreSQL v10.14+](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads). Detailed [install instructions](https://www.postgresqltutorial.com/postgresql-getting-started/) for all platforms.
 1. Install [PostGIS 2.5+](https://postgis.net/install/). From the above install, you can use the 'Application Stack Builder' to install PostGIS or the default [PostGIS install instructions](https://postgis.net/install/) for all platforms.
 1. Make a new PostgreSQL database and remember the user, password and database name.
-   Use 'pgsl' or the 'SQL Shell' to log into Postgres. It will prompt you for the username and password made during the install.
+   Use 'psql' or the 'SQL Shell' to log into Postgres. It will prompt you for the username and password made during the install.
 
 1. GDAL and Python are weaker dependencies (desirable but, without them, not everything will work)
 
