@@ -461,15 +461,30 @@ function populateGeodatasetTable(Table, features, cb) {
 
   Table.bulkCreate(rows, { returning: true })
     .then(function (response) {
-      cb(true);
-      return null;
+      sequelize
+        .query(`VACUUM ANALYZE ${Table.tableName};`)
+        .then(() => {
+          cb(true);
+          return null;
+        })
+        .catch((err) => {
+          logger(
+            "error",
+            "Geodatasets: Failed to vacuum a geodataset spatial index!",
+            null,
+            null,
+            err
+          );
+          cb(false);
+          return null;
+        });
     })
     .catch(function (err) {
       logger(
         "error",
         "Geodatasets: Failed to populate a geodataset table!",
-        req.originalUrl,
-        req,
+        null,
+        null,
         err
       );
       cb(false);

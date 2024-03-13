@@ -58,6 +58,18 @@ User of Postgres database | string | default `null`
 
 Password of Postgres database | string | default `null`
 
+#### `DB_POOL_MAX=`
+
+Max number connections in the database's pool. CPUs \* 4 is a good number | integer | default `10`
+
+#### `DB_POOL_TIMEOUT=`
+
+How many milliseconds until a DB connection times out | integer | default `30000` (30 sec)
+
+#### `DB_POOL_IDLE=`
+
+How many milliseconds for an incoming connection to wait for a DB connection before getting kicked away | integer | default `10000` (10 sec)
+
 #### `CSSO_GROUPS=`
 
 A list of CSSO LDAP groups that have access | string[] | default `[]`

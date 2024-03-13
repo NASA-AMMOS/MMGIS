@@ -62,13 +62,32 @@ function makeNewGeodatasetTable(name, success, failure) {
           { where: { name: name }, silent: true }
         )
           .then((r) => {
-            success({
-              name: result.dataValues.name,
-              table: result.dataValues.table,
-              tableObj: GeodatasetTable,
-            });
+            sequelize
+              .query(
+                `CREATE INDEX IF NOT EXISTS ${result.dataValues.table}_geom_idx on ${result.dataValues.table} USING gist (geom);`
+              )
+              .then(() => {
+                success({
+                  name: result.dataValues.name,
+                  table: result.dataValues.table,
+                  tableObj: GeodatasetTable,
+                });
 
-            return null;
+                return null;
+              })
+              .catch((err) => {
+                logger(
+                  "error",
+                  "Failed to recreate spatial index for geodataset table.",
+                  "geodatasets",
+                  null,
+                  err
+                );
+                failure({
+                  status: "failure",
+                  message: "Failed to recreate spatial index",
+                });
+              });
           })
           .catch((err) => {
             logger(
@@ -89,6 +108,7 @@ function makeNewGeodatasetTable(name, success, failure) {
           .then(([results]) => {
             let newTable =
               "g" + (parseInt(results[0].count) + 1) + "_geodatasets";
+
             Geodatasets.create({
               name: name,
               table: newTable,
@@ -102,12 +122,31 @@ function makeNewGeodatasetTable(name, success, failure) {
                 sequelize
                   .sync()
                   .then(() => {
-                    success({
-                      name: name,
-                      table: newTable,
-                      tableObj: GeodatasetTable,
-                    });
-                    return null;
+                    sequelize
+                      .query(
+                        `CREATE INDEX ${newTable}_geom_idx on ${newTable} USING gist (geom);`
+                      )
+                      .then(() => {
+                        success({
+                          name: name,
+                          table: newTable,
+                          tableObj: GeodatasetTable,
+                        });
+                        return null;
+                      })
+                      .catch((err) => {
+                        logger(
+                          "error",
+                          "Failed to create spatial index for geodataset table.",
+                          "geodatasets",
+                          null,
+                          err
+                        );
+                        failure({
+                          status: "failure",
+                          message: "Failed to create spatial index",
+                        });
+                      });
                   })
                   .catch((err) => {
                     logger(
