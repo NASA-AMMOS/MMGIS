@@ -89,6 +89,23 @@ async function initializeDatabase() {
 
               return null;
             });
+
+          await sequelize
+            .query(`CREATE EXTENSION btree_gist;`)
+            .then(() => {
+              logger("info", `Created BTREE_GIST extension.`, "connection");
+              resolve();
+              return null;
+            })
+            .catch((err) => {
+              logger(
+                "info",
+                `BTREE_GIST extension already exists. Nothing to do...`,
+                "connection"
+              );
+
+              return null;
+            });
           await sequelize
             .query(
               `

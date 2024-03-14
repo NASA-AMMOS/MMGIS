@@ -69,7 +69,6 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
             case 'geodatasets':
                 // Return .on('moveend zoomend') event
                 dynamicCb((e) => {
-                    console.log()
                     // Don't query if layer is off
                     if (L_.layers.on[layerObj.name] !== true) return
 
@@ -117,6 +116,7 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                 ] || 0,
                                 dateNow
                             )
+
                         calls.api(
                             'geodatasets_get',
                             body,
