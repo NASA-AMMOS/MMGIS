@@ -1,7 +1,7 @@
 ---
 layout: page
 title: GeoDatasets API
-permalink: /apis/configure
+permalink: /apis/geodatasets
 parent: APIs
 ---
 
