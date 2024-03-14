@@ -8,6 +8,7 @@ const router = express.Router();
 const { sequelize } = require("../../../connection");
 
 const logger = require("../../../logger");
+const Utils = require("../../../utils.js");
 const geodatasets = require("../models/geodatasets");
 const Geodatasets = geodatasets.Geodatasets;
 const makeNewGeodatasetTable = geodatasets.makeNewGeodatasetTable;
@@ -92,19 +93,22 @@ function get(reqtype, req, res, next) {
               return;
             }
 
+            const start_time = new Date(req.query.starttime).getTime();
+            const end_time = new Date(req.query.endtime).getTime();
+
             // prettier-ignore
             t += [
-              `(`,
-                `properties->>'${req.query.startProp}' IS NOT NULL AND properties->>'${req.query.endProp}' IS NOT NULL AND`, 
-                  ` date_part('epoch', to_timestamp(properties->>'${req.query.startProp}', '${format}'::text)) >= date_part('epoch', to_timestamp('${req.query.starttime}'::text, '${format}'::text))`,
-                  ` AND date_part('epoch', to_timestamp(properties->>'${req.query.endProp}', '${format}'::text)) <= date_part('epoch', to_timestamp('${req.query.endtime}'::text, '${format}'::text))`,
-              `)`,
-              ` OR `,
-              `(`,
-                `properties->>'${req.query.startProp}' IS NULL AND properties->>'${req.query.endProp}' IS NOT NULL AND`,
-                  ` date_part('epoch', to_timestamp(properties->>'${req.query.endProp}', '${format}'::text)) >= date_part('epoch', to_timestamp('${req.query.starttime}'::text, '${format}'::text))`,
-                  ` AND date_part('epoch', to_timestamp(properties->>'${req.query.endProp}', '${format}'::text)) >=  date_part('epoch', to_timestamp('${req.query.endtime}'::text, '${format}'::text))`,
-              `)`
+                `(`,
+                  `${req.query.startProp} IS NOT NULL AND ${req.query.endProp} IS NOT NULL AND`, 
+                    ` ${req.query.startProp} >= ${start_time}`,
+                    ` AND ${req.query.endProp} <= ${end_time}`,
+                `)`,
+                ` OR `,
+                `(`,
+                  `${req.query.startProp} IS NULL AND ${req.query.endProp} IS NOT NULL AND`,
+                    ` ${req.query.endProp} >= ${start_time}`,
+                    ` AND ${req.query.endProp} >= ${end_time}`,
+                `)`
             ].join('')
             q += t;
           }
@@ -135,8 +139,18 @@ function get(reqtype, req, res, next) {
               }
               return null;
             })
-            .catch((error) => {
-              res.send({ status: "failure", message: "a" });
+            .catch((err) => {
+              logger(
+                "error",
+                "Geodataset query SQL error.",
+                req.originalUrl,
+                req,
+                err
+              );
+              res.send({
+                status: "failure",
+                message: "Failed to query Geodataset.",
+              });
             });
         } else if (
           type == "mvt" &&
@@ -359,6 +373,19 @@ router.post("/search", function (req, res, next) {
 router.post("/append/:name", function (req, res, next) {
   req.body = {
     name: req.params.name,
+    startProp: null,
+    endProp: null,
+    geojson: req.body,
+    action: "append",
+  };
+  recreate(req, res, next);
+});
+
+router.post("/append/:name/:start_end_prop", function (req, res, next) {
+  req.body = {
+    name: req.params.name,
+    startProp: req.params.start_end_prop.split(",")[0] || null,
+    endProp: req.params.start_end_prop.split(",")[1] || null,
     geojson: req.body,
     action: "append",
   };
@@ -368,6 +395,19 @@ router.post("/append/:name", function (req, res, next) {
 router.post("/recreate/:name", function (req, res, next) {
   req.body = {
     name: req.params.name,
+    startProp: null,
+    endProp: null,
+    geojson: req.body,
+    action: "recreate",
+  };
+  recreate(req, res, next);
+});
+
+router.post("/recreate/:name/:start_end_prop", function (req, res, next) {
+  req.body = {
+    name: req.params.name,
+    startProp: req.params.start_end_prop.split(",")[0] || null,
+    endProp: req.params.start_end_prop.split(",")[1] || null,
     geojson: req.body,
     action: "recreate",
   };
@@ -379,6 +419,9 @@ router.post("/recreate", function (req, res, next) {
 });
 
 function recreate(req, res, next) {
+  let startProp = req.body.startProp;
+  let endProp = req.body.endProp;
+
   let features = null;
   try {
     features =
@@ -396,6 +439,9 @@ function recreate(req, res, next) {
   if (!features) {
     //Must be a single feature from an append.  Make an array
     features = [JSON.parse(req.body.geojson)];
+  } else {
+    startProp = req?.body?.geojson?.startProp || startProp;
+    endProp = req?.body?.geojson?.endProp || endProp;
   }
 
   makeNewGeodatasetTable(
@@ -422,6 +468,8 @@ function recreate(req, res, next) {
           populateGeodatasetTable(
             result.tableObj,
             features,
+            startProp,
+            endProp,
             function (success) {
               res.send({
                 status: success == true ? "success" : "failure",
@@ -444,13 +492,32 @@ function recreate(req, res, next) {
   );
 }
 
-function populateGeodatasetTable(Table, features, cb) {
+function populateGeodatasetTable(Table, features, startProp, endProp, cb) {
   let rows = [];
 
   for (var i = 0; i < features.length; i++) {
+    let start_time =
+      startProp != null
+        ? Utils.getIn(features[i].properties, startProp, null)
+        : null;
+    if (start_time != null) {
+      start_time = new Date(start_time).getTime();
+      start_time = isNaN(start_time) ? null : start_time;
+    }
+    let end_time =
+      endProp != null
+        ? Utils.getIn(features[i].properties, endProp, null)
+        : null;
+    if (end_time != null) {
+      end_time = new Date(end_time).getTime();
+      end_time = isNaN(end_time) ? null : end_time;
+    }
+
     rows.push({
       properties: features[i].properties,
       geometry_type: features[i].geometry.type,
+      start_time,
+      end_time,
       geom: {
         crs: { type: "name", properties: { name: "EPSG:4326" } },
         type: features[i].geometry.type,
@@ -491,6 +558,90 @@ function populateGeodatasetTable(Table, features, cb) {
       return null;
     });
 }
+
+router.delete("/remove/:name", function (req, res, next) {
+  Geodatasets.findOne({ where: { name: req.params.name } })
+    .then((result) => {
+      if (result) {
+        sequelize
+          .query(`DROP TABLE IF EXISTS ${result.dataValues.table};`)
+          .then(() => {
+            Geodatasets.update(
+              { name: "__deleted__" },
+              { where: { name: req.params.name } }
+            )
+              .then(() => {
+                logger(
+                  "info",
+                  `Successfully deleted geodataset '${req.params.name}'.`
+                );
+                res.send({
+                  status: "success",
+                  message: `Successfully deleted geodataset '${req.params.name}'.`,
+                });
+              })
+              .catch((err) => {
+                logger(
+                  "error",
+                  `Failed to delete geodataset table entry '${req.params.name}'.`,
+                  "geodatasets",
+                  null,
+                  err
+                );
+                res.send({
+                  status: "failure",
+                  message: `Failed to delete geodataset entry '${req.params.name}'.`,
+                });
+                return null;
+              });
+            return null;
+          })
+          .catch((err) => {
+            logger(
+              "error",
+              `Failed to delete geodataset table '${req.params.name}'.`,
+              "geodatasets",
+              null,
+              err
+            );
+            res.send({
+              status: "failure",
+              message: `Failed to delete geodataset '${req.params.name}'.`,
+            });
+            return null;
+          });
+      } else {
+        logger(
+          "info",
+          `Tried to delete nonexistent geodataset table: ${req.params.name}`,
+          "geodatasets",
+          null,
+          err
+        );
+        res.send({
+          status: "failure",
+          message: `No geodataset named '${req.params.name}' to delete.`,
+        });
+        return null;
+      }
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        "Failed to find existing geodatasets.",
+        "geodatasets",
+        null,
+        err
+      );
+      res.send({
+        status: "failure",
+        message: "Failed to find existing geodatasets",
+        error: err,
+        name: req.params.name,
+      });
+      return null;
+    });
+});
 
 function tile2Lng(x, z) {
   return (x / Math.pow(2, z)) * 360 - 180;

@@ -34,6 +34,14 @@ function makeNewGeodatasetTable(name, success, failure) {
       allowNull: true,
       defaultValue: {},
     },
+    start_time: {
+      type: Sequelize.BIGINT,
+      allowNull: true,
+    },
+    end_time: {
+      type: Sequelize.BIGINT,
+      allowNull: true,
+    },
     geometry_type: {
       type: Sequelize.STRING,
       unique: false,
@@ -67,13 +75,32 @@ function makeNewGeodatasetTable(name, success, failure) {
                 `CREATE INDEX IF NOT EXISTS ${result.dataValues.table}_geom_idx on ${result.dataValues.table} USING gist (geom);`
               )
               .then(() => {
-                success({
-                  name: result.dataValues.name,
-                  table: result.dataValues.table,
-                  tableObj: GeodatasetTable,
-                });
+                sequelize
+                  .query(
+                    `CREATE INDEX IF NOT EXISTS ${result.dataValues.table}_time_idx on ${result.dataValues.table} USING gist (start_time, end_time);`
+                  )
+                  .then(() => {
+                    success({
+                      name: result.dataValues.name,
+                      table: result.dataValues.table,
+                      tableObj: GeodatasetTable,
+                    });
 
-                return null;
+                    return null;
+                  })
+                  .catch((err) => {
+                    logger(
+                      "error",
+                      "Failed to recreate temporal index for geodataset table.",
+                      "geodatasets",
+                      null,
+                      err
+                    );
+                    failure({
+                      status: "failure",
+                      message: "Failed to recreate temporal index",
+                    });
+                  });
               })
               .catch((err) => {
                 logger(
@@ -127,12 +154,31 @@ function makeNewGeodatasetTable(name, success, failure) {
                         `CREATE INDEX ${newTable}_geom_idx on ${newTable} USING gist (geom);`
                       )
                       .then(() => {
-                        success({
-                          name: name,
-                          table: newTable,
-                          tableObj: GeodatasetTable,
-                        });
-                        return null;
+                        sequelize
+                          .query(
+                            `CREATE INDEX ${newTable}_time_idx on ${newTable} USING gist (start_time, end_time);`
+                          )
+                          .then(() => {
+                            success({
+                              name: name,
+                              table: newTable,
+                              tableObj: GeodatasetTable,
+                            });
+                            return null;
+                          })
+                          .catch((err) => {
+                            logger(
+                              "error",
+                              "Failed to create temporal index for geodataset table.",
+                              "geodatasets",
+                              null,
+                              err
+                            );
+                            failure({
+                              status: "failure",
+                              message: "Failed to create temporal index",
+                            });
+                          });
                       })
                       .catch((err) => {
                         logger(
@@ -207,7 +253,7 @@ function makeNewGeodatasetTable(name, success, failure) {
       failure({
         status: "failure",
         message: "Failed to find existing geodatasets",
-        error: error,
+        error: err,
         name: name,
       });
     });
