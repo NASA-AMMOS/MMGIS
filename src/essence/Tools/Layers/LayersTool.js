@@ -600,6 +600,13 @@ function interfaceWithMMGIS(fromInit) {
     }
 
     async function toggleLayer(checkbox) {
+        if (checkbox.hasClass('loading')) {
+            console.warn(
+                'LayersTool - Cannot toggle layer that is still loading.'
+            )
+            return
+        }
+
         let li = checkbox.parent().parent().parent()
         if (li.attr('type') !== 'header') {
             const layerName = li.attr('name')
