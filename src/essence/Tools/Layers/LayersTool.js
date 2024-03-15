@@ -118,40 +118,79 @@ var LayersTool = {
     toggleHeader: function (elmIndex) {
         var found = false
         var done = false
-        var elmDepth = 0
-        var wasOn = false
+        var elmDepth = [0]
+        var wasOn = [false]
+        var currentHeaderIdx = 0
+
         $('#layersToolList > li').each(function () {
             if (done) return
             var t = $(this)
             if (t.attr('id') == elmIndex) {
                 found = true
-                elmDepth = t.attr('depth')
-                wasOn = t.attr('childrenon') == 'true'
-                t.attr('childrenon', wasOn ? 'false' : 'true')
+                elmDepth = [t.attr('depth')]
+                wasOn = [t.attr('childrenon') == 'true']
+                currentHeaderIdx = 0
+                t.attr('childrenon', wasOn[currentHeaderIdx] ? 'false' : 'true')
                 t.find('.headerChevron').toggleClass('mdi-chevron-right')
                 t.find('.headerChevron').toggleClass('mdi-chevron-down')
             } else if (found) {
-                if (t.attr('type') == 'header' && t.attr('depth') <= elmDepth) {
-                    done = true
-                } else if (t.attr('depth') <= elmDepth) {
-                    done = true
-                } else {
+                if (t.attr('depth') <= elmDepth[currentHeaderIdx]) {
+                    if (currentHeaderIdx <= 0) done = true
+                    else {
+                        elmDepth.pop()
+                        wasOn.pop()
+                        currentHeaderIdx--
+                    }
+                }
+                if (!done) {
                     const nextDepth =
-                        parseInt(t.attr('depth')) > parseInt(elmDepth)
+                        parseInt(t.attr('depth')) >
+                        parseInt(elmDepth[currentHeaderIdx])
 
-                    if (wasOn) {
+                    // Hide if collapsing whole group or not every header up to the point was false
+                    if (
+                        currentHeaderIdx === 0
+                            ? wasOn[0] === true
+                            : !wasOn.every((w) => w === false)
+                    ) {
+                        // hide
                         if (nextDepth) t.attr('on', 'false')
                         t.css('overflow', 'hidden')
-                        t.css('height', wasOn ? '0' : 'auto')
-                        t.css('margin-top', wasOn ? '0px' : '1px')
-                        t.css('margin-bottom', wasOn ? '0px' : '1px')
+                        t.css('height', '0')
+                        t.css('margin-top', '0px')
+                        t.css('margin-bottom', '0px')
                     } else {
+                        // show
                         if (t.attr('on') == 'true' || nextDepth) {
                             t.css('height', 'auto')
                             t.css('margin-top', '1px')
                             t.css('margin-bottom', '1px')
                         }
                         if (nextDepth) t.attr('on', 'true')
+                    }
+
+                    if (t.attr('type') == 'header') {
+                        const childrenon = t.attr('childrenon') == 'true'
+
+                        // Only expand subheader if we're opening
+                        elmDepth.push(t.attr('depth'))
+                        wasOn.push(!childrenon)
+                        currentHeaderIdx++
+
+                        const chevron = t.find('.headerChevron')
+                        if (childrenon) {
+                            // arrow down
+                            if (chevron.hasClass('mdi-chevron-right'))
+                                chevron.removeClass('mdi-chevron-right')
+                            if (!chevron.hasClass('mdi-chevron-down'))
+                                chevron.addClass('mdi-chevron-down')
+                        } else {
+                            // arrow right
+                            if (chevron.hasClass('mdi-chevron-down'))
+                                chevron.removeClass('mdi-chevron-down')
+                            if (!chevron.hasClass('mdi-chevron-right'))
+                                chevron.addClass('mdi-chevron-right')
+                        }
                     }
                 }
             }
