@@ -7,7 +7,7 @@ import Main from "../components/Main/Main";
 import Panel from "../components/Panel/Panel";
 
 import { calls } from "../core/calls";
-import { setMissions } from "./ConfigureStore";
+import { setMissions, setSnackBarText } from "./ConfigureStore";
 
 const useStyles = makeStyles((theme) => ({
   Configure: {
@@ -28,11 +28,22 @@ const useStyles = makeStyles((theme) => ({
 export default function Configure() {
   const c = useStyles();
   const dispatch = useDispatch();
-
   useEffect(() => {
-    calls.api("missions", null, (res) => {
-      dispatch(setMissions(res.missions));
-    });
+    calls.api(
+      "missions",
+      null,
+      (res) => {
+        dispatch(setMissions(res.missions));
+      },
+      (res) => {
+        dispatch(
+          setSnackBarText({
+            text: res?.message || "Failed to get available missions.",
+            severity: "error",
+          })
+        );
+      }
+    );
   }, [dispatch]);
 
   return (

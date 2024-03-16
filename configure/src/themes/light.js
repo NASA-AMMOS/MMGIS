@@ -3,19 +3,20 @@ import { createTheme } from "@mui/material/styles";
 export const palette = {
   type: "light",
   primary: {
-    main: "#FFFFFF",
+    main: "#000000",
   },
   secondary: {
     main: "#1a1a1a",
   },
   accent: {
     main: "#08aeea",
-    secondary: "ffdd5c",
+    secondary: "#ffdd5c",
     tertiary: "#d26100",
   },
   text: {
     primary: "#000000",
-    secondary: "#f4f5f5",
+    secondary: "#000000",
+    tertiary: "#04f5f5",
   },
   active: {},
   swatches: {
@@ -76,7 +77,7 @@ export const palette = {
 export const theme = {
   palette,
   spacing: 4,
-  headHeights: [56, 40, 40, 32, 24],
+  headHeights: [56, 46, 46, 32, 24],
   breakpoints: {
     values: {
       xs: 0,
@@ -119,6 +120,21 @@ export const theme = {
       underline: {
         "&:after": {
           borderBottom: `2px solid ${palette.accent.main}`,
+        },
+      },
+    },
+    MuiFilledInput: {
+      styleOverrides: {
+        root: {
+          "&::before, &::after": {
+            borderBottom: `2px solid ${palette.primary.main}`,
+          },
+          "&:hover:not(.Mui-disabled, .Mui-error):before": {
+            borderBottom: `2px solid ${palette.accent.main}`,
+          },
+          "&.Mui-focused:after": {
+            borderBottom: `2px solid ${palette.accent.main}`,
+          },
         },
       },
     },
@@ -224,11 +240,6 @@ export const theme = {
     MuiSnackbar: {
       anchorOriginTopCenter: {
         top: "16px !important",
-      },
-    },
-    MuiInputLabel: {
-      outlined: {
-        color: palette.text.primary,
       },
     },
     MuiSelect: {

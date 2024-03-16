@@ -6,6 +6,10 @@ export const ConfigureStore = createSlice({
     missions: [],
     mission: null,
     configuration: {},
+    modal: {
+      newMission: false,
+    },
+    snackBarText: false,
   },
   reducers: {
     setMissions: (state, action) => {
@@ -17,11 +21,38 @@ export const ConfigureStore = createSlice({
     setConfiguration: (state, action) => {
       state.configuration = action.payload;
     },
+    /**
+     * Controls all modal open/close states
+     * @param {string} name - Name of modal to toggle
+     * @param {boolean} on - Whether to turn this modal on or off. If null, toggles on
+     * @returns null
+     */
+    setModal: (state, action) => {
+      const name = action.payload.name;
+      if (state.modal[name] != null) {
+        let on = action.payload.on;
+        if (on == null) on = !state.modal[name];
+        state.modal[name] = on === true;
+      }
+    },
+    setSnackBarText: (state, action) => {
+      if (action.payload === false) state.snackBarText = false;
+      else
+        state.snackBarText = {
+          text: String(action.payload.text),
+          severity: action.payload.severity,
+        };
+    },
   },
 });
 
 // Action creators are generated for each case reducer function
-export const { setMissions, setMission, setConfiguration } =
-  ConfigureStore.actions;
+export const {
+  setMissions,
+  setMission,
+  setConfiguration,
+  setModal,
+  setSnackBarText,
+} = ConfigureStore.actions;
 
 export default ConfigureStore.reducer;

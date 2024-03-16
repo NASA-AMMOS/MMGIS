@@ -14,7 +14,7 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import ViewQuiltIcon from "@mui/icons-material/ViewQuilt";
 
 import { calls } from "../../core/calls";
-import { setConfiguration } from "../../core/ConfigureStore";
+import { setConfiguration, setSnackBarText } from "../../core/ConfigureStore";
 
 const useStyles = makeStyles((theme) => ({
   Main: {
@@ -25,8 +25,8 @@ const useStyles = makeStyles((theme) => ({
   },
   tabs: {
     width: "100%",
-    height: "40px",
-    minHeight: "40px",
+    height: "48px",
+    minHeight: "48px",
     display: "flex",
     justifyContent: "center",
     background: theme.palette.swatches.grey[900],
@@ -34,14 +34,14 @@ const useStyles = makeStyles((theme) => ({
     borderBottom: `1px solid ${theme.palette.swatches.grey[700]} !important`,
     "& > div": {
       borderRight: "none",
-      height: "40px",
-      minHeight: "40px",
+      height: "48px",
+      minHeight: "48px",
     },
     "& .MuiTab-root": {
       color: theme.palette.swatches.grey[500],
-      height: "40px",
-      minHeight: "40px",
-      padding: "0px 16px",
+      height: "48px",
+      minHeight: "48px",
+      padding: "0px 24px",
       fontSize: "13px",
       textTransform: "none",
       borderBottom: `none !important`,
@@ -65,9 +65,22 @@ export default function Main() {
   const mission = useSelector((state) => state.core.mission);
 
   useEffect(() => {
-    calls.api("get", { mission: mission }, (res) => {
-      dispatch(setConfiguration(res));
-    });
+    if (mission != null)
+      calls.api(
+        "get",
+        { mission: mission },
+        (res) => {
+          dispatch(setConfiguration(res));
+        },
+        (res) => {
+          dispatch(
+            setSnackBarText({
+              text: res?.message || "Failed to get configuration for mission.",
+              severity: "error",
+            })
+          );
+        }
+      );
   }, [dispatch, mission]);
 
   const [tabValue, setTabValue] = useState(0);

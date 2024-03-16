@@ -1,38 +1,29 @@
-import React, { useEffect } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
-import { BrowserRouter as Router, Switch, Route, Link } from 'react-router-dom'
+import React, { useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
-import Topbar from '../../components/Topbar'
-import Toolbar from '../../components/Toolbar/Toolbar'
-import SnackBar from '../../components/SnackBar/SnackBar'
+import SnackBar from "../../components/SnackBar/SnackBar";
+import Configure from "../Configure";
 
-import Search from '../../pages/Search/Search'
-import Record from '../../pages/Record/Record'
-import FileExplorer from '../../pages/FileExplorer/FileExplorer'
-import Cart from '../../pages/Cart/Cart'
+import { HASH_PATHS } from "../constants";
 
-import InformationModal from '../../pages/Search/Modals/InformationModal/InformationModal'
-import FeedbackModal from '../../pages/Search/Modals/FeedbackModal/FeedbackModal'
+import "./routes.css";
 
-import { HASH_PATHS } from '../constants'
-import { loadMappings } from '../redux/actions/actions.js'
-
-import './routes.css'
-
-export const Routes = () => {
-    const dispatch = useDispatch()
-    // On first load, grab all the atlas index mappings
-    useEffect(() => {
-        dispatch(loadMappings('atlas'))
-    }, [])
-
-    return (
-        <div className="Routes">
-            <Router>
-                <Toolbar />
-                <div className="routeMain">
-                    <Topbar />
-                    <Switch location={location}>
+export const Routings = () => {
+  return (
+    <div className="Routes">
+      <Router>
+        <div className="routeMain">
+          <Routes>
+            <Route
+              exact
+              path={HASH_PATHS.home}
+              element={
+                <div className="routeContent">
+                  <Configure />
+                </div>
+              }
+            />
+            {/*
                         <Route
                             exact
                             path={HASH_PATHS.search}
@@ -76,12 +67,11 @@ export const Routes = () => {
                                 )
                             }}
                         />
-                    </Switch>
-                </div>
-            </Router>
-            <InformationModal />
-            <FeedbackModal />
-            <SnackBar />
+                        */}
+          </Routes>
         </div>
-    )
-}
+      </Router>
+      <SnackBar />
+    </div>
+  );
+};

@@ -95,13 +95,17 @@ const c = {
 function api(call, data, success, error) {
   if (c[call] == null) {
     console.warn("Unknown api call: " + call);
-    if (typeof error === "function") error();
+    if (typeof error === "function") error({ message: "Unknown API call." });
     return;
   }
 
   fetch(
     `${domain}${c[call].url}${
-      c[call].type === "GET" ? `?${new URLSearchParams(data)}` : ""
+      c[call].type === "GET"
+        ? data != null
+          ? `?${new URLSearchParams(data)}`
+          : ""
+        : ""
     }`,
     {
       method: c[call].type,
