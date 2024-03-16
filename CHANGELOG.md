@@ -1,5 +1,73 @@
 # MMGIS Changelog
 
+## 2.11.0
+
+_Mar 15, 2024_
+
+#### Summary
+
+The release adds a new tool called the ShadeTool, capable of showing visibility maps of various celestial object and craft with the aid of SPICE. The ShadeTool can reveal answers to questions like: "At this time and on my current map, what are all the locations I can view the ISS from?"
+
+Also added are dynamic vector layers that query only for the features immediately within the map's viewport and within time ranges and zoom ranges. This enables much larger vector files to be loaded and rendered without sacrificing performance.
+
+Additionally some new features have been added to the DrawTool, along with new layer export options and various bugfixes and improvements.
+
+#### Added
+
+ShadeTool
+SPICE integration and scheduled kernel downloads
+Dynamic vector layers (query only vectors in screen)
+DrawTool - Folders and tags can contain symbols
+DrawTool - turning a file off also deselects it now
+DrawTool - template fields can be reordered
+DrawTool - Advanced filter in Features tab
+DrawTool - Filter state management
+DrawTool - Move
+Export .shp and .kml LayersTool and DrawTool
+MeasureTool and IdentifierTool Layer Vars (configure them in the layer instead of in the tool)
+Identifier tool vsicurl support
+IdentifierTool - Query Datasets with Time
+Tools can be expanded horizontally
+Hotkeys
+Local vector layer filtering now supports booleans
+Add Database docs
+Geodatasets now use spatial and temporal db indices
+Geodatasets now support dedicated time fields
+Add Geodatasets API docs
+Add geodatasets/remove endpoints
+Add file_description tagging schemes to DB docs
+Deep Link shall also deep link to start and end times
+urlReplacements layer raw variables to inject parameters
+GENERATE_SOURCEMAP ENV
+
+#### Changed
+
+Image Overlay improvements
+Description topbar improvements
+Minor updates for API calls
+Improve KML Export Styles
+Remove 'Layer Group' and 'Layer' titles from LayerInfoModal
+Disable Globe more thoroughly when off
+Additional Body Metadata for Draw Webhooks
+Remove restriction on Layer names
+Check for empty time configs in TimeControl
+Dropdown in the topbar for a selected feature’s properties links
+
+#### Fixed
+
+LayersTool - fix nested header expansion
+Viewer panorama map view angles works for polar projections
+DrawTool - fix deleting tag also closing modal
+Fix IdentifierTool tile queries
+Fix: Header Layer Descriptions Don't Save
+Fix Time Vector Layer first turn on
+Fix click on vectortile
+Fix missing Missions/mission path on tile layers
+Fix Tool Drag Handle Remains on Screen
+MeasureTool Fix nodata issue
+
+---
+
 ## 2.9.0
 
 _Sept 5, 2023_
