@@ -9,7 +9,7 @@ import Snackbar from "@mui/material/Snackbar";
 import MuiAlert from "@mui/material/Alert";
 
 const useStyles = makeStyles((theme) => ({
-  main: {},
+  main: { top: "74px !important" },
   snackbar: {
     fontSize: 14,
     fontWeight: "bold",

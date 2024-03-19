@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
-import { calls } from "../../../../core/calls";
+import { calls } from "../../../../../core/calls";
 
 import {
   setMissions,
   setModal,
   setSnackBarText,
-} from "../../../../core/ConfigureStore";
+} from "../../../../../core/ConfigureStore";
 
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
@@ -18,7 +18,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 
 import CloseSharpIcon from "@mui/icons-material/CloseSharp";
-import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
+import LayersIcon from "@mui/icons-material/Layers";
 
 import TextField from "@mui/material/TextField";
 import FormGroup from "@mui/material/FormGroup";
@@ -97,12 +97,14 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const MODAL_NAME = "newMission";
-const NewMissionModal = (props) => {
+const MODAL_NAME = "layer";
+const LayerModal = (props) => {
   const {} = props;
   const c = useStyles();
 
   const modal = useSelector((state) => state.core.modal[MODAL_NAME]);
+
+  const layer = modal && modal.layer ? JSON.parse(modal.layer) : {};
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -192,8 +194,8 @@ const NewMissionModal = (props) => {
       <DialogTitle className={c.heading}>
         <div className={c.flexBetween}>
           <div className={c.flexBetween}>
-            <RocketLaunchIcon className={c.backgroundIcon} />
-            <div className={c.title}>Make a New Mission</div>
+            <LayersIcon className={c.backgroundIcon} />
+            <div className={c.title}>{layer.name}</div>
           </div>
           <IconButton
             className={c.closeIcon}
@@ -252,4 +254,4 @@ const NewMissionModal = (props) => {
   );
 };
 
-export default NewMissionModal;
+export default LayerModal;

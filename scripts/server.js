@@ -577,6 +577,11 @@ setups.getBackendSetups(function (setups) {
     ensureUser(),
     express.static(path.join(rootDir, "/config/fonts"))
   );
+  app.use(
+    `${ROOT_PATH}/configure/build`,
+    ensureUser(),
+    express.static(path.join(rootDir, "/configure/build"))
+  );
 
   if (process.argv.includes("--with_examples"))
     app.use(

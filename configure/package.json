@@ -1,6 +1,7 @@
 {
   "name": "configure",
   "version": "0.1.0",
+  "homepage": "./configure",
   "private": true,
   "dependencies": {
     "@emotion/react": "^11.11.1",
@@ -14,6 +15,7 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "clsx": "^2.0.0",
+    "html2pug": "^4.0.0",
     "immutable": "^5.0.0-beta.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -24,7 +26,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "react-scripts build && node scripts/make-pug-index.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -47,6 +49,7 @@
     ]
   },
   "devDependencies": {
-    "@babel/plugin-proposal-private-property-in-object": "^7.21.11"
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "cross-env": "^7.0.3"
   }
 }

@@ -14,7 +14,7 @@ let setup = {
         s.ensureAdmin(true),
         (req, res) => {
           const user = process.env.AUTH === "csso" ? req.user : null;
-          res.render("configure", {
+          res.render("../configure/build/index.pug", {
             user: user,
             AUTH: process.env.AUTH,
             NODE_ENV: process.env.NODE_ENV,
@@ -33,10 +33,12 @@ let setup = {
         }
       );
     }
-
+    console.log(
+      "ERROR - ensureAdmin off!!!!!!!!!!!!!!!!!!!!!! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+    );
     s.app.use(
       s.ROOT_PATH + "/API/configure",
-      s.ensureAdmin(),
+      //s.ensureAdmin(),
       s.checkHeadersCodeInjection,
       s.setContentType,
       router
