@@ -141,7 +141,7 @@ const TimeUI = {
 
         // Timeline pan and zoom
         // zoom
-        $('#mmgisTimeUITimelineInner').on('mousewheel', function (e) {
+        $('#mmgisTimeUITimelineInner').on('wheel', function (e) {
             if (TimeUI.play) return
             const x = e.originalEvent.offsetX
             const width = document
