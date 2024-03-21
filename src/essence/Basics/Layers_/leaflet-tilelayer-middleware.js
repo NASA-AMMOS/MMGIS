@@ -293,7 +293,10 @@ L.tileLayer.colorFilter = function (url, options) {
                 `WARNING: WMS layer has no "layers" parameter in the url - ${url}`
             )
 
-        return new L.TileLayer.WMSColorFilter(urlBaseString, wmsOptions)
+        return new L.TileLayer.WMSColorFilter(urlBaseString, {
+            ...options,
+            ...wmsOptions,
+        })
     }
 
     url = url.replace(/{t}/g, '_time_')
