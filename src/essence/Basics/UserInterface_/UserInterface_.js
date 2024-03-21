@@ -337,7 +337,8 @@ var UserInterface = {
             .attr('id', 'mapSplitInnerLeft')
             .attr('tabindex', 500)
             .attr('class', 'mdi mdi-chevron-double-left mdi-24px')
-            .style('margin-right', '9px')
+            .style('position', 'absolute')
+            .style('left', '-28px')
             .on('click touchstart', function () {
                 var pp = UserInterface.getPanelPercents()
                 if (pp.map == 0) {
@@ -365,7 +366,8 @@ var UserInterface = {
             .attr('id', 'mapSplitInnerRight')
             .attr('tabindex', 501)
             .attr('class', 'mdi mdi-chevron-double-right mdi-24px')
-            .style('margin-left', '9px')
+            .style('position', 'absolute')
+            .style('right', '-29px')
             .on('click touchstart', function () {
                 var pp = UserInterface.getPanelPercents()
                 if (pp.map == 0) {
@@ -451,7 +453,8 @@ var UserInterface = {
             .attr('id', 'globeSplitInnerLeft')
             .attr('tabindex', 502)
             .attr('class', 'mdi mdi-chevron-double-left mdi-24px')
-            .style('margin-right', '8px')
+            .style('position', 'absolute')
+            .style('left', '-27px')
             .on('click touchstart', function () {
                 var pp = UserInterface.getPanelPercents()
                 if (pp.map == 0) {
@@ -483,7 +486,8 @@ var UserInterface = {
             .attr('id', 'globeSplitInnerRight')
             .attr('tabindex', 503)
             .attr('class', 'mdi mdi-chevron-double-right mdi-24px')
-            .style('margin-left', '8px')
+            .style('position', 'absolute')
+            .style('right', '-28px')
             .on('click touchstart', function () {
                 var pp = UserInterface.getPanelPercents()
                 if (pp.map == 0) {
