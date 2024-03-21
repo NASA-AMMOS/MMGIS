@@ -175,6 +175,7 @@ var wmsExtension = {
     initialize: function (url, options) {
         this._url = url
 
+        console.log(url, options)
         var wmsParams = L.extend({}, this.defaultWmsParams)
 
         // all keys that are not TileLayer options go to WMS params
@@ -293,7 +294,10 @@ L.tileLayer.colorFilter = function (url, options) {
                 `WARNING: WMS layer has no "layers" parameter in the url - ${url}`
             )
 
-        return new L.TileLayer.WMSColorFilter(urlBaseString, wmsOptions)
+        return new L.TileLayer.WMSColorFilter(urlBaseString, {
+            ...options,
+            ...wmsOptions,
+        })
     }
 
     url = url.replace(/{t}/g, '_time_')
