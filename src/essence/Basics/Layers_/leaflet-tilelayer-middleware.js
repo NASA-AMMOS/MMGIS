@@ -175,7 +175,6 @@ var wmsExtension = {
     initialize: function (url, options) {
         this._url = url
 
-        console.log(url, options)
         var wmsParams = L.extend({}, this.defaultWmsParams)
 
         // all keys that are not TileLayer options go to WMS params
