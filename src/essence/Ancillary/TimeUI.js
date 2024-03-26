@@ -866,25 +866,57 @@ const TimeUI = {
         let date
 
         // Start
+        let offsetStartDate = null
+        let parsedStart = null
         if (start != null) {
             date = new Date(start)
-            const offsetStartDate = TimeUI.addOffset(date)
-            const parsedStart = TimeUI.startTempus.dates.parseInput(
+            offsetStartDate = TimeUI.addOffset(date)
+            parsedStart = TimeUI.startTempus.dates.parseInput(
                 new Date(offsetStartDate)
             )
+        }
+        // End
+        let offsetEndDate = null
+        let parsedEnd = null
+        if (end != null) {
+            date = new Date(end)
+            offsetEndDate = new Date(
+                date.getTime() + date.getTimezoneOffset() * 60000
+            )
+            parsedEnd = TimeUI.endTempus.dates.parseInput(
+                new Date(offsetEndDate)
+            )
+        }
+
+        if (parsedStart != null && parsedEnd != null) {
+            if (offsetStartDate.getTime() > offsetEndDate.getTime()) {
+                console.warn(
+                    `updateTimes: Cannot set start time after end time. ${parsedStart} > ${parseEnd}`
+                )
+                return false
+            }
+        }
+
+        if (parsedStart != null) {
+            TimeUI.endTempus.updateOptions({
+                restrictions: {
+                    minDate: parsedStart,
+                },
+            })
+        }
+        if (parsedEnd != null) {
+            TimeUI.startTempus.updateOptions({
+                restrictions: {
+                    maxDate: parsedEnd,
+                },
+            })
+        }
+
+        if (parsedStart) {
             TimeUI.startTempus.dontChangeNext = true
             TimeUI.startTempus.dates.setValue(parsedStart)
         }
-
-        // End
-        if (end != null) {
-            date = new Date(end)
-            const offsetEndDate = new Date(
-                date.getTime() + date.getTimezoneOffset() * 60000
-            )
-            const parsedEnd = TimeUI.endTempus.dates.parseInput(
-                new Date(offsetEndDate)
-            )
+        if (parsedEnd) {
             TimeUI.endTempus.dontChangeNext = true
             TimeUI.endTempus.dates.setValue(parsedEnd)
         }
@@ -896,6 +928,7 @@ const TimeUI = {
         }
 
         TimeUI.change()
+        return true
     },
     setStartTime(
         ISOString,
