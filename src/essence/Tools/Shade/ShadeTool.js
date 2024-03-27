@@ -55,6 +55,7 @@ let ShadeTool = {
     },
     sunColor: '#d2db58',
     earthColor: '#58dbb8',
+    _lastConvertedMs: '000',
     initialize: function () {
         this.vars = L_.getToolVars('shade')
 
@@ -859,7 +860,10 @@ let ShadeTool = {
                 body: body,
                 target: options.observer,
                 from: 'utc',
-                time: TimeControl.getEndTime(),
+                time: TimeControl.getEndTime().replace(
+                    '.000Z',
+                    `.${ShadeTool._lastConvertedMs}Z`
+                ),
             },
             function (s) {
                 try {
@@ -943,6 +947,7 @@ let ShadeTool = {
                         'black'
                     )
                 } else {
+                    ShadeTool._lastConvertedMs = s.result.split('.')[1] || '000'
                     TimeControl.setTime(
                         TimeControl.getStartTime(),
                         s.result.replace(' ', 'T') + 'Z'
