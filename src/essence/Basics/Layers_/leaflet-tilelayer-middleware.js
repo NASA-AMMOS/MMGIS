@@ -26,23 +26,23 @@ var colorFilterExtension = {
             .replace(/{endtime}/g, this.options.endtime)
         if (this.options.time && this.options.tileFormat === 'tms') {
             let paramDelimiter = '?'
-            let urlParams = {}
+            let urlParams = false
             if (url.indexOf('?') !== -1) {
                 urlParams = new URLSearchParams(url.split('?')[1])
                 paramDelimiter = '&'
             }
 
-            if (!urlParams.has('starttime')) {
+            if (urlParams == false || !urlParams.has('starttime')) {
                 url += `${paramDelimiter}starttime=${this.options.starttime}`
                 paramDelimiter = '&'
             }
-            if (!urlParams.has('time')) {
+            if (urlParams == false || !urlParams.has('time')) {
                 url += `${paramDelimiter}time=${this.options.endtime}`
                 paramDelimiter = '&'
             }
-            if (!urlParams.has('composite')) {
+            if (urlParams == false || !urlParams.has('composite')) {
                 if (this.options.compositeTile === true)
-                    url += `&${paramDelimiter}omposite=true`
+                    url += `${paramDelimiter}composite=true`
             }
         }
         return url
@@ -189,15 +189,15 @@ var wmsExtension = {
         uppercase: true,
     },
 
-    initialize: function (url, options) {
+    initialize: function (url, options, wmsOptions) {
         this._url = url
 
         var wmsParams = L.extend({}, this.defaultWmsParams)
 
         // all keys that are not TileLayer options go to WMS params
-        for (var i in options) {
+        for (var i in wmsOptions) {
             if (!(i in this.extensionOptions)) {
-                wmsParams[i] = options[i]
+                wmsParams[i] = wmsOptions[i]
             }
         }
         options = L.setOptions(this, options)
@@ -310,10 +310,11 @@ L.tileLayer.colorFilter = function (url, options) {
                 `WARNING: WMS layer has no "layers" parameter in the url - ${url}`
             )
 
-        return new L.TileLayer.WMSColorFilter(urlBaseString, {
-            ...options,
-            ...wmsOptions,
-        })
+        return new L.TileLayer.WMSColorFilter(
+            urlBaseString,
+            options,
+            wmsOptions
+        )
     }
 
     url = url.replace(/{t}/g, '_time_')
