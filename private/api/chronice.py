@@ -80,7 +80,8 @@ def chronice(body, target, fromFormat, time):
 def sclk2lmst(sclk, target):
     if target == 'msl':
         s = sclk.split('/')[1].split(':')
-        return f'SOL-{s[0]}M{s[1]}:{s[2]}:{s[3]}'
+        seconds = str(round(float(s[3] + '.' + s[4]))).zfill(2)
+        return f'SOL-{s[0]}M{s[1]}:{s[2]}:{seconds}'
 def lmst2sclk(lmst, target, partition = 1):
     if target == 'msl':
         s = lmst.replace(' ', ':').replace('-', ':').replace('M', ':').split(':')
