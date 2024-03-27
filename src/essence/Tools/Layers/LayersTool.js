@@ -68,6 +68,7 @@ var LayersTool = {
     vars: {},
     MMGISInterface: null,
     orderingHistory: [],
+    _maxDepth: 0,
     initialize: function () {
         //Get tool variables
         this.vars = L_.getToolVars('layers')
@@ -217,10 +218,13 @@ function interfaceWithMMGIS(fromInit) {
 
     let headerI = 0
 
+    LayersTool._maxDepth = 0
+
     //This is where the layers list is created in the tool panel.
     depthTraversal(L_.configData.layers, {}, 0)
 
     function depthTraversal(node, parent, depth) {
+        LayersTool._maxDepth = Math.max(LayersTool._maxDepth, depth)
         for (var i = 0; i < node.length; i++) {
             let currentOpacity
             let currentBrightness
@@ -1170,14 +1174,19 @@ function interfaceWithMMGIS(fromInit) {
     })
 
     $('#searchLayers > #collapse').on('click', function () {
-        $('#layersToolList > li').each(function () {
-            if (
-                $(this).attr('type') == 'header' &&
-                $(this).attr('childrenon') == 'true'
-            ) {
-                LayersTool.toggleHeader($(this).attr('id'))
-            }
-        })
+        // Collapse deepest first
+        for (let depth = LayersTool._maxDepth; depth >= 0; depth--) {
+            $(`#layersToolList > li[type="header"][depth="${depth}"]`).each(
+                function () {
+                    if (
+                        $(this).attr('type') == 'header' &&
+                        $(this).attr('childrenon') == 'true'
+                    ) {
+                        LayersTool.toggleHeader($(this).attr('id'))
+                    }
+                }
+            )
+        }
     })
 
     $('#filterLayers .right > div').on('click', function () {
