@@ -25,8 +25,25 @@ var colorFilterExtension = {
             .replace(/{starttime}/g, this.options.starttime)
             .replace(/{endtime}/g, this.options.endtime)
         if (this.options.time && this.options.tileFormat === 'tms') {
-            url += `?starttime=${this.options.starttime}&time=${this.options.endtime}`
-            if (this.options.compositeTile === true) url += `&composite=true`
+            let paramDelimiter = '?'
+            let urlParams = {}
+            if (url.indexOf('?') !== -1) {
+                urlParams = new URLSearchParams(url.split('?')[1])
+                paramDelimiter = '&'
+            }
+
+            if (!urlParams.has('starttime')) {
+                url += `${paramDelimiter}starttime=${this.options.starttime}`
+                paramDelimiter = '&'
+            }
+            if (!urlParams.has('time')) {
+                url += `${paramDelimiter}time=${this.options.endtime}`
+                paramDelimiter = '&'
+            }
+            if (!urlParams.has('composite')) {
+                if (this.options.compositeTile === true)
+                    url += `&${paramDelimiter}omposite=true`
+            }
         }
         return url
     },
