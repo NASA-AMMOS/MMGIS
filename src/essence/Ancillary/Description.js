@@ -14,6 +14,7 @@ const Description = {
     descPoint: null,
     tippyDesc: null,
     L_: null,
+    _infoAlreadyGone: false,
     init: function (mission, site, Map_, L_) {
         this.L_ = L_
         this.Map_ = Map_
@@ -140,6 +141,20 @@ const Description = {
                             l.variables.info[i].icon +
                             " mdi-18px'></i>"
                     newInfo += '<div>' + infoText + '</div></div>'
+
+                    // Go initially
+                    if (Description._infoAlreadyGone == false) {
+                        if (l.variables.info[i].go == true) {
+                            if (lat != null && lng != null) {
+                                Description.Map_.map.setView(
+                                    [lat, lng],
+                                    Description.Map_.mapScaleZoom ||
+                                        Description.Map_.map.getZoom()
+                                )
+                            }
+                            Description._infoAlreadyGone = true
+                        }
+                    }
                 }
                 if (newInfo.length > 0) infos.push(newInfo)
             }
@@ -166,6 +181,7 @@ const Description = {
                 )
             }
         })
+        Description._infoAlreadyGone = true
     },
     updatePoint: function (activeLayer) {
         if (

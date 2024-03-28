@@ -149,7 +149,8 @@ Example:
         {
             "which": "last",
             "icon": "material design icon",
-            "value": "Prop: {prop}"
+            "value": "Prop: {prop}",
+            "go": false
         }
     ],
     "layerAttachments": {
@@ -272,6 +273,7 @@ Example:
   - `which`: This only supports the value `last` at this point.
   - `icon`: Any [Material Design Icon](http://materialdesignicons.com/) name
   - `value`: A name to display. All `{prop}`s will be replaced by their corresponding `features[which].properties[prop]` value.
+  - `go`: Boolean that, if true, pans and zooms to the feature of `which` on intial load. The zoom used is Map Scale Zoom or the current zoom. Only the first feature with info.go is gone to.
 - `layerAttachments`: Attachments that may apply to the entire layer.
   - `labels`: Place a label beside each feature. Also applies to `coordinateAttachments.marker` features.
     - `initialVisibility`: Whether the label sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.
