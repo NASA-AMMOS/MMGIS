@@ -138,9 +138,16 @@ var LayersTool = {
                 if (t.attr('depth') <= elmDepth[currentHeaderIdx]) {
                     if (currentHeaderIdx <= 0) done = true
                     else {
-                        elmDepth.pop()
-                        wasOn.pop()
-                        currentHeaderIdx--
+                        while (t.attr('depth') <= elmDepth[currentHeaderIdx]) {
+                            elmDepth.pop()
+                            wasOn.pop()
+                            currentHeaderIdx--
+
+                            if (currentHeaderIdx < 0) {
+                                done = true
+                                break
+                            }
+                        }
                     }
                 }
                 if (!done) {
