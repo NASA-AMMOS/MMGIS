@@ -331,8 +331,10 @@ const TimeUI = {
             theme: 'blue',
         })
 
-        if (L_.configData.time?.startInPointMode == true)
+        if (L_.configData.time?.startInPointMode == true) {
             TimeUI.modeIndex = TimeUI.modes.indexOf('Point')
+            startingModeIndex = TimeUI.modeIndex
+        }
         // Mode dropdown
         $('#mmgisTimeUIModeDropdown').html(
             Dropy.construct(TimeUI.modes, 'Mode', startingModeIndex, {
@@ -461,9 +463,8 @@ const TimeUI = {
 
         if (L_.configData.time?.startInPointMode == true)
             TimeUI.changeMode(TimeUI.modes.indexOf('Point'))
-
         // Set modeIndex to 1/Point if a deeplink had an endtime but no starttime
-        if (TimeUI.modeIndex != startingModeIndex)
+        else if (TimeUI.modeIndex != startingModeIndex)
             TimeUI.changeMode(startingModeIndex)
     },
     fina() {
