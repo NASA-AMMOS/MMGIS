@@ -784,10 +784,14 @@ async function makeVectorLayer(
                 add,
                 (f) => {
                     Map_.map.on('moveend', f)
-                    L_.subscribeTimeChange(
-                        `dynamicgeodataset_${layerObj.name}`,
-                        f
+                    if (
+                        layerObj.time?.enabled === true &&
+                        layerObj.controlled !== true
                     )
+                        L_.subscribeTimeChange(
+                            `dynamicgeodataset_${layerObj.name}`,
+                            f
+                        )
                     L_.subscribeOnSpecificLayerToggle(
                         `dynamicgeodataset_${layerObj.name}`,
                         layerObj.name,
