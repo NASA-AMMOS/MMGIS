@@ -4,7 +4,10 @@ import { setVersions } from "./HomeSlice";
 import { makeStyles } from "@mui/styles";
 
 import { calls } from "../../../core/calls";
+import Maker from "../../../core/Maker";
 import { setSnackBarText } from "../../../core/ConfigureStore";
+
+import config from "../../../metaconfigs/tab-home-config.json";
 
 const useStyles = makeStyles((theme) => ({
   Home: {
@@ -43,7 +46,7 @@ export default function Home() {
 
   return (
     <div className={c.Home}>
-      <ul>
+      <ul style={{ display: "none" }}>
         {versions.map((v) => {
           return (
             <li>
@@ -52,6 +55,7 @@ export default function Home() {
           );
         })}
       </ul>
+      <Maker config={config} />
     </div>
   );
 }

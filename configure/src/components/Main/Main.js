@@ -18,6 +18,7 @@ import { setConfiguration, setSnackBarText } from "../../core/ConfigureStore";
 
 import Home from "../Tabs/Home/Home";
 import Layers from "../Tabs/Layers/Layers";
+import UserInterface from "../Tabs/UserInterface/UserInterface";
 
 const useStyles = makeStyles((theme) => ({
   Main: {
@@ -115,12 +116,14 @@ export default function Main() {
     case 2:
     case 3:
     case 4:
-    case 5:
       TabPage = (
         <div>
           {mission} {tabValue}
         </div>
       );
+      break;
+    case 5:
+      TabPage = <UserInterface />;
       break;
     default:
   }

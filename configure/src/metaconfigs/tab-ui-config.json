@@ -1,0 +1,152 @@
+{
+  "rows": [
+    {
+      "name": "Rebranding",
+      "components": [
+        {
+          "field": "msv.view.[0]",
+          "name": "Page Name",
+          "description": "",
+          "type": "text",
+          "width": 3,
+          "default": "MMGIS"
+        },
+        {
+          "field": "msv.view.[1]",
+          "name": "Square Logo Image URL",
+          "description": "",
+          "type": "text",
+          "width": 9
+        }
+      ]
+    },
+    {
+      "name": "Viewer Panel",
+      "components": [
+        {
+          "field": "msv.radius.major",
+          "name": "Enabled",
+          "description": "",
+          "type": "checkbox",
+          "width": 4,
+          "defaultChecked": true
+        }
+      ]
+    },
+    {
+      "name": "Globe Panel",
+      "components": [
+        {
+          "field": "msv.radius.major",
+          "name": "Enabled",
+          "description": "",
+          "type": "checkbox",
+          "width": 4,
+          "defaultChecked": true
+        }
+      ]
+    },
+    {
+      "components": [
+        {
+          "field": "panelSettings.demFallbackPath",
+          "name": "DEM Fallback URL",
+          "description": "",
+          "type": "text",
+          "width": 8
+        },
+
+        {
+          "field": "panelSettings.demFallbackFormat",
+          "name": "DEM Fallback Format",
+          "description": "",
+          "type": "dropdown",
+          "width": 2,
+          "options": ["tms", "wmts", "wms"]
+        },
+
+        {
+          "field": "panelSettings.demFallbackType",
+          "name": "DEM Fallback Type",
+          "description": "",
+          "type": "dropdown",
+          "width": 2,
+          "options": ["rgba", "tif"]
+        }
+      ]
+    },
+    {
+      "name": "Interface",
+      "components": [
+        {
+          "field": "msv.radius.major",
+          "name": "Top Bar",
+          "description": "",
+          "type": "checkbox",
+          "width": 3,
+          "defaultChecked": true
+        },
+        {
+          "field": "msv.radius.major",
+          "name": "Tool Bar",
+          "description": "",
+          "type": "checkbox",
+          "width": 3,
+          "defaultChecked": true
+        },
+        {
+          "field": "msv.radius.major",
+          "name": "Scale Bar",
+          "description": "",
+          "type": "checkbox",
+          "width": 3,
+          "defaultChecked": true
+        },
+        {
+          "field": "msv.radius.major",
+          "name": "Coordinates",
+          "description": "",
+          "type": "checkbox",
+          "width": 3,
+          "defaultChecked": true
+        }
+      ]
+    },
+    {
+      "components": [
+        {
+          "field": "msv.radius.major",
+          "name": "Map Zoom Control",
+          "description": "",
+          "type": "checkbox",
+          "width": 3,
+          "defaultChecked": true
+        },
+        {
+          "field": "msv.radius.major",
+          "name": "Map Graticule",
+          "description": "",
+          "type": "checkbox",
+          "width": 3,
+          "defaultChecked": false
+        },
+        {
+          "field": "msv.radius.major",
+          "name": "Miscellaneous",
+          "description": "",
+          "type": "checkbox",
+          "width": 3,
+          "defaultChecked": true
+        },
+        {
+          "field": "msv.radius.major",
+          "name": "Settings",
+          "description": "",
+          "type": "checkbox",
+          "width": 3,
+          "defaultChecked": true
+        }
+      ]
+    }
+  ]
+}

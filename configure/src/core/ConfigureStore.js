@@ -32,7 +32,7 @@ export const ConfigureStore = createSlice({
       const name = action.payload.name;
       if (state.modal[name] != null) {
         let on = action.payload.on;
-        if (on == null) on = !(state.modal[name] === false);
+        if (on == null) on = state.modal[name] === false;
         if (on) state.modal[name] = action.payload;
         else state.modal[name] = false;
       }
