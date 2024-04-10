@@ -15,7 +15,7 @@ Environment variables are set within `MMGIS/.env`. A sample file `MMGIS/sample.e
 
 The kind of server running (apache is deprecated) | string enum | default `''`
 
-- _node:_ A node express server running NodeJS > 10.10
+- _node:_ A node express server running NodeJS v20.11.1+
 - _apache (deprecated):_ Served through Apache. Some or all functionality may not work
 
 #### `AUTH=`
@@ -58,6 +58,12 @@ User of Postgres database | string | default `null`
 
 Password of Postgres database | string | default `null`
 
+## Optional Variables
+
+#### `PORT=`
+
+Port to run on | positive integer | default `3000`
+
 #### `DB_POOL_MAX=`
 
 Max number connections in the database's pool. CPUs \* 4 is a good number | integer | default `10`
@@ -73,12 +79,6 @@ How many milliseconds for an incoming connection to wait for a DB connection bef
 #### `CSSO_GROUPS=`
 
 A list of CSSO LDAP groups that have access | string[] | default `[]`
-
-## Optional Variables
-
-#### `PORT=`
-
-Port to run on | positive integer | default `3000`
 
 #### `VERBOSE_LOGGING=`
 

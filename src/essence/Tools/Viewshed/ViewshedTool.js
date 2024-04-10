@@ -263,8 +263,17 @@ let ViewshedTool = {
             resolution: initObj.resolution != null ? initObj.resolution : 1,
             invert: initObj.invert != null ? initObj.invert : 0,
             targetHeight:
-                initObj.targetHeight != null ? initObj.targetHeight : 0,
-            height: initObj.height != null ? initObj.height : 2,
+                initObj.targetHeight != null
+                    ? initObj.targetHeight
+                    : ViewshedTool?.vars?.defaultTargetHeight != null
+                    ? ViewshedTool.vars.defaultTargetHeight
+                    : 0,
+            height:
+                initObj.height != null
+                    ? initObj.height
+                    : ViewshedTool?.vars?.defaultObserverHeight != null
+                    ? ViewshedTool.vars.defaultObserverHeight
+                    : 2,
             centerAzimuth: initObj.centerAzimuth || 0,
             FOVAzimuth: initObj.FOVAzimuth != null ? initObj.FOVAzimuth : 360,
             centerElevation: initObj.centerElevation || 0,
