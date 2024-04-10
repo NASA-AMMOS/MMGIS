@@ -24,7 +24,7 @@ export default function UserInterface() {
 
   return (
     <div className={c.UserInterface}>
-      <Maker config={config} />
+      <Maker config={config} shadowed={true} />
     </div>
   );
 }

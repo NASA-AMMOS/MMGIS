@@ -24,7 +24,7 @@ const useStyles = makeStyles((theme) => ({
   Main: {
     width: "100%",
     height: "100%",
-    background: theme.palette.swatches.grey[1000],
+    background: theme.palette.swatches.grey[900],
     boxShadow: `inset 10px 0px 10px -5px rgba(0,0,0,0.3)`,
   },
   tabPage: {
@@ -37,19 +37,10 @@ const useStyles = makeStyles((theme) => ({
     height: "48px",
     minHeight: "48px",
     display: "flex",
-    justifyContent: "space-between",
-    background: theme.palette.swatches.grey[150],
+    justifyContent: "center",
+    background: theme.palette.swatches.grey[1000],
     boxShadow: `inset 10px 0px 10px -5px rgba(0,0,0,0.3)`,
-    borderBottom: `1px solid ${theme.palette.swatches.grey[700]} !important`,
-  },
-  activeMission: {
-    lineHeight: "28px",
-    fontSize: "18px",
-    margin: "10px 10px 10px 10px",
-    color: theme.palette.swatches.p[3],
-    letterSpacing: "1.5px",
-    padding: "0px 8px",
-    background: theme.palette.swatches.grey[50],
+    borderBottom: `1px solid ${theme.palette.swatches.grey[900]} !important`,
   },
   tabs: {
     "& > div": {
@@ -131,7 +122,6 @@ export default function Main() {
   return (
     <div className={c.Main}>
       <div className={c.topbar}>
-        <div className={c.activeMission}>{mission}</div>
         <div className={c.tabs}>
           <Tabs
             variant="scrollable"

@@ -1,5 +1,5 @@
 import React from "react";
-import ReactDOM from "react-dom/client";
+import ReactDOM from "react-dom";
 import "./index.css";
 import store from "./core/store";
 import { Provider } from "react-redux";
@@ -11,13 +11,11 @@ import muiTheme from "./themes/light.js";
 
 import { Routings } from "./core/routes/routes";
 
-// As of React 18
-const root = ReactDOM.createRoot(document.getElementById("root"));
-
-root.render(
+ReactDOM.render(
   <Provider store={store}>
     <ThemeProvider theme={muiTheme}>
       <Routings />
     </ThemeProvider>
-  </Provider>
+  </Provider>,
+  document.getElementById("root")
 );

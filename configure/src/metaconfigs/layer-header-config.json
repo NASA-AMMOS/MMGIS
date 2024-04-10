@@ -1,0 +1,61 @@
+{
+  "rows": [
+    {
+      "components": [
+        {
+          "field": "msv.view.[0]",
+          "name": "Layer Name",
+          "description": "",
+          "type": "text",
+          "width": 8
+        },
+        {
+          "field": "msv.view.[1]",
+          "name": "Layer Type",
+          "description": "",
+          "type": "dropdown",
+          "width": 2,
+          "options": [
+            "data",
+            "header",
+            "model",
+            "query",
+            "tile",
+            "vector",
+            "vectortile"
+          ]
+        },
+        {
+          "field": "msv.view.[2]",
+          "name": "Initially On",
+          "description": "",
+          "type": "dropdown",
+          "width": 2,
+          "options": [false, true]
+        }
+      ]
+    },
+    {
+      "components": [
+        {
+          "field": "msv.radius.major",
+          "name": "Description",
+          "description": "Supports markdown",
+          "type": "textfield",
+          "width": 12
+        }
+      ]
+    },
+    {
+      "components": [
+        {
+          "field": "msv.radius.major",
+          "name": "Tags",
+          "description": "Comma-separate, <cat>:<tag> for category",
+          "type": "textfield",
+          "width": 12
+        }
+      ]
+    }
+  ]
+}

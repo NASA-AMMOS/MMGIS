@@ -28,6 +28,16 @@ import Checkbox from "@mui/material/Checkbox";
 import { makeStyles, useTheme } from "@mui/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 
+import Maker from "../../../../../core/Maker";
+
+import dataConfig from "../../../../../metaconfigs/layer-data-config.json";
+import headerConfig from "../../../../../metaconfigs/layer-header-config.json";
+import modelConfig from "../../../../../metaconfigs/layer-model-config.json";
+import queryConfig from "../../../../../metaconfigs/layer-query-config.json";
+import tileConfig from "../../../../../metaconfigs/layer-tile-config.json";
+import vectorConfig from "../../../../../metaconfigs/layer-vector-config.json";
+import vectortileConfig from "../../../../../metaconfigs/layer-vectortile-config.json";
+
 const useStyles = makeStyles((theme) => ({
   Modal: {
     margin: theme.headHeights[1],
@@ -35,17 +45,18 @@ const useStyles = makeStyles((theme) => ({
       margin: "6px",
     },
     "& .MuiDialog-container": {
-      height: "unset !important",
+      width: "100%",
       transform: "translateX(-50%) translateY(-50%)",
       left: "50%",
       top: "50%",
       position: "absolute",
+      marginLeft: "111px",
     },
   },
   contents: {
-    background: theme.palette.primary.main,
     height: "100%",
-    width: "500px",
+    width: "calc(100% - 350px)",
+    maxWidth: "1200px !important",
   },
   heading: {
     height: theme.headHeights[2],
@@ -61,8 +72,9 @@ const useStyles = makeStyles((theme) => ({
     textTransform: "uppercase",
   },
   content: {
-    padding: "8px 16px 16px 16px !important",
+    padding: "0px !important",
     height: `calc(100% - ${theme.headHeights[2]}px)`,
+    overflowY: "auto",
   },
   closeIcon: {
     padding: theme.spacing(1.5),
@@ -102,7 +114,7 @@ const LayerModal = (props) => {
   const {} = props;
   const c = useStyles();
 
-  const modal = useSelector((state) => state.core.modal[MODAL_NAME]);
+  const modal = { layer: JSON.stringify({ type: "tile" }) }; //useSelector((state) => state.core.modal[MODAL_NAME]);
 
   const layer = modal && modal.layer ? JSON.parse(modal.layer) : {};
 
@@ -111,74 +123,44 @@ const LayerModal = (props) => {
 
   const dispatch = useDispatch();
 
-  const [missionName, setMissionName] = useState("");
-  const [createDir, setCreateDir] = useState(true);
-
   const handleClose = () => {
     // close modal
     dispatch(setModal({ name: MODAL_NAME, on: false }));
   };
-  const handleSubmit = () => {
-    if (missionName == null || missionName === "") {
-      dispatch(
-        setSnackBarText({
-          text: "Please enter a mission name.",
-          severity: "error",
-        })
-      );
-      return;
-    }
 
-    calls.api(
-      "add",
-      null,
-      (res) => {
-        calls.api(
-          "missions",
-          null,
-          (res) => {
-            dispatch(setMissions(res.missions));
+  let config = {};
+  switch (layer.type) {
+    case "data":
+      config = dataConfig;
+      break;
 
-            dispatch(
-              setSnackBarText({
-                text: res.message,
-                severity: "success",
-              })
-            );
-            // reset fields
-            setMissionName("");
-            setCreateDir(true);
+    case "header":
+      config = headerConfig;
+      break;
 
-            // and then close
-            handleClose();
-          },
-          (res) => {
-            dispatch(
-              setSnackBarText({
-                text: res?.message || "Failed to requery missions.",
-                severity: "error",
-              })
-            );
+    case "model":
+      config = modelConfig;
+      break;
 
-            // reset fields
-            setMissionName("");
-            setCreateDir(true);
+    case "query":
+      config = queryConfig;
+      break;
 
-            // and then close
-            handleClose();
-          }
-        );
-      },
-      (res) => {
-        dispatch(
-          setSnackBarText({
-            text: res?.message || "Failed to make new mission.",
-            severity: "error",
-          })
-        );
-      }
-    );
-  };
+    case "tile":
+      config = tileConfig;
+      break;
+
+    case "vector":
+      config = vectorConfig;
+      break;
+
+    case "vectortile":
+      config = vectortileConfig;
+      break;
+
+    default:
+      break;
+  }
 
   return (
     <Dialog
@@ -208,46 +190,11 @@ const LayerModal = (props) => {
         </div>
       </DialogTitle>
       <DialogContent className={c.content}>
-        <Typography className={c.subtitle}>
-          Missions are separately configurable MMGIS map interfaces.
-        </Typography>
-        <TextField
-          className={c.missionNameInput}
-          label="Mission Name"
-          variant="filled"
-          value={missionName}
-          onChange={(e) => {
-            setMissionName(e.target.value);
-          }}
-        />
-        <Typography className={c.subtitle2}>
-          {`A new and unique name for a mission. No special characters allowed and it should not start with a number.`}
-        </Typography>
-        <FormGroup>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={createDir}
-                onChange={(e) => {
-                  setCreateDir(!createDir);
-                }}
-              />
-            }
-            label="Create a /Missions/{Mission Name} directory"
-          />
-        </FormGroup>
-        <Typography className={c.subtitle2}>
-          {`Layer, Tiles and Data for this mission can be stored in /Missions/{Mission Name} directory.
-            Whenever a non-absolute URL is found in this mission's configuration, it will be treated as relative to this folder regardless of whether this folder exists.`}
-        </Typography>
+        <Maker config={config} />
       </DialogContent>
       <DialogActions>
-        <Button
-          className={c.addSelected}
-          variant="contained"
-          onClick={handleSubmit}
-        >
-          Make Mission
+        <Button variant="contained" onClick={() => {}}>
+          Done
         </Button>
       </DialogActions>
     </Dialog>

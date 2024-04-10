@@ -55,7 +55,7 @@ export default function Home() {
           );
         })}
       </ul>
-      <Maker config={config} />
+      <Maker config={config} shadowed={true} />
     </div>
   );
 }
