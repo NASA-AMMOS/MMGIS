@@ -1219,9 +1219,11 @@ const L_ = {
         ) {
             if (l._path) l._path.style.display = 'inherit'
             if (l._container) l._container.style.display = 'inherit'
+            if (l._icon) l._icon.style.display = 'inherit'
         } else {
             if (l._path) l._path.style.display = 'none'
             if (l._container) l._container.style.display = 'none'
+            if (l._icon) l._icon.style.display = 'none'
         }
     },
     addArrowToMap: function (
