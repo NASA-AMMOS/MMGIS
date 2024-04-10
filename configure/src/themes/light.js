@@ -118,8 +118,11 @@ export const theme = {
     },
     MuiInput: {
       underline: {
+        "&:before": {
+          borderBottom: `1px solid ${palette.swatches.grey[700]}`,
+        },
         "&:after": {
-          borderBottom: `2px solid ${palette.accent.main}`,
+          borderBottom: `1px solid ${palette.accent.main}`,
         },
       },
     },
@@ -127,13 +130,13 @@ export const theme = {
       styleOverrides: {
         root: {
           "&::before, &::after": {
-            borderBottom: `2px solid ${palette.primary.main}`,
+            borderBottom: `1px solid ${palette.swatches.grey[700]}`,
           },
           "&:hover:not(.Mui-disabled, .Mui-error):before": {
-            borderBottom: `2px solid ${palette.accent.main}`,
+            borderBottom: `1px solid ${palette.accent.main}`,
           },
           "&.Mui-focused:after": {
-            borderBottom: `2px solid ${palette.accent.main}`,
+            borderBottom: `1px solid ${palette.accent.main}`,
           },
         },
       },

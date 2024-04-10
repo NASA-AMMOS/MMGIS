@@ -23,12 +23,11 @@ import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
 
-import { MapContainer } from "react-leaflet/MapContainer";
-import { TileLayer } from "react-leaflet/TileLayer";
-import { useMap } from "react-leaflet/hooks";
-
 import { calls } from "./calls";
 import { setConfiguration, setSnackBarText } from "./ConfigureStore";
+import { getIn, setIn } from "./utils";
+
+import Map from "../components/Map/Map";
 
 const useStyles = makeStyles((theme) => ({
   Maker: {
@@ -64,29 +63,10 @@ const useStyles = makeStyles((theme) => ({
   checkbox: {
     paddingTop: "4px",
   },
-  map: {
-    height: "200px",
-  },
+  map: {},
 }));
 
-function Map(props) {
-  //const {} = props
-  const [map, setMap] = useState(null);
-
-  return (
-    <MapContainer
-      center={[51.505, -0.09]}
-      zoom={13}
-      scrollWheelZoom={true}
-      whenCreated={(map) => setMap(map)}
-      style={{ height: 200, width: "100%", padding: 0 }}
-    >
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-    </MapContainer>
-  );
-}
-
-const getComponent = (com, c) => {
+const getComponent = (com, configuration, layer, updateConfiguration, c) => {
   switch (com.type) {
     case "text":
       return (
@@ -97,8 +77,10 @@ const getComponent = (com, c) => {
               label={com.name}
               variant="filled"
               size="small"
-              value={""}
-              onChange={(e) => {}}
+              value={getIn(configuration, com.field, "")}
+              onChange={(e) => {
+                updateConfiguration(com.field, e.target.value);
+              }}
             />
           </Tooltip>
         </div>
@@ -112,7 +94,10 @@ const getComponent = (com, c) => {
               label={com.name}
               variant="filled"
               size="small"
-              value={0}
+              value={getIn(configuration, com.field, "")}
+              onChange={(e) => {
+                updateConfiguration(com.field, e.target.value);
+              }}
               type="number"
               min={com.min != null ? com.min : 0}
               step={com.step != null ? com.step : 1}
@@ -129,7 +114,16 @@ const getComponent = (com, c) => {
             <FormGroup className={c.checkbox}>
               <FormControlLabel
                 control={
-                  <Checkbox checked={com.defaultChecked} onChange={(e) => {}} />
+                  <Checkbox
+                    checked={getIn(
+                      configuration,
+                      com.field,
+                      com.defaultChecked
+                    )}
+                    onChange={(e) => {
+                      updateConfiguration(com.field, e.target.checked);
+                    }}
+                  />
                 }
                 label={com.name}
               />
@@ -143,7 +137,12 @@ const getComponent = (com, c) => {
           <Tooltip title={com.description || ""} placement="top" arrow>
             <FormControl className={c.dropdown} variant="filled" size="small">
               <InputLabel>{com.name}</InputLabel>
-              <Select value={com.options?.[0]} onChange={(e) => {}}>
+              <Select
+                value={getIn(configuration, com.field, com.options?.[0])}
+                onChange={(e) => {
+                  updateConfiguration(com.field, e.target.value);
+                }}
+              >
                 {com.options.map((o) => {
                   return <MenuItem value={o}>{o.toUpperCase()}</MenuItem>;
                 })}
@@ -154,8 +153,8 @@ const getComponent = (com, c) => {
       );
     case "map":
       return (
-        <div className={c.map}>
-          <Map />
+        <div className={c.map} style={{ height: com.height || "200px" }}>
+          <Map layer={layer} configuration={configuration} />
         </div>
       );
     default:
@@ -163,7 +162,14 @@ const getComponent = (com, c) => {
   }
 };
 
-const makeConfig = (config, c, shadowed) => {
+const makeConfig = (
+  updateConfiguration,
+  config,
+  configuration,
+  layer,
+  c,
+  shadowed
+) => {
   const made = [];
   if (config.rows == null) return made;
 
@@ -191,6 +197,7 @@ const makeConfig = (config, c, shadowed) => {
             direction="row"
             justifyContent="left"
             alignItems="left"
+            style={row.forceHeight ? { height: row.forceHeight } : null}
           >
             {row.components.map((com, idx2) => {
               return (
@@ -202,7 +209,13 @@ const makeConfig = (config, c, shadowed) => {
                   xl={com.width || 4}
                   key={`${idx}-${idx2}`}
                 >
-                  {getComponent(com, c)}
+                  {getComponent(
+                    com,
+                    configuration,
+                    layer,
+                    updateConfiguration,
+                    c
+                  )}
                 </Grid>
               );
             })}
@@ -216,14 +229,29 @@ const makeConfig = (config, c, shadowed) => {
 };
 
 export default function Maker(props) {
-  const { config, shadowed } = props;
+  const { config, layer, shadowed } = props;
   const c = useStyles();
 
   const dispatch = useDispatch();
 
+  const configuration = useSelector((state) => state.core.configuration);
+
+  const updateConfiguration = (keyPath, value) => {
+    const nextConfiguration = JSON.parse(JSON.stringify(configuration));
+    setIn(nextConfiguration, keyPath.split("."), value);
+    dispatch(setConfiguration(nextConfiguration));
+  };
+
   return (
     <div className={clsx(c.Maker, { [c.shadowed]: shadowed })}>
-      {makeConfig(config, c, shadowed)}
+      {makeConfig(
+        updateConfiguration,
+        config,
+        configuration,
+        layer,
+        c,
+        shadowed
+      )}
     </div>
   );
 }

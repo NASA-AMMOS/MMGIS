@@ -16,7 +16,7 @@ export const getIn = (obj, keyArray, notSetValue) => {
   return object;
 };
 export const setIn = (obj, keyArray, value) => {
-  if (keyArray == null || keyArray === []) return null;
+  if (keyArray == null || keyArray.length === 0) return null;
   let object = obj;
   for (let i = 0; i < keyArray.length - 1; i++) {
     if (object.hasOwnProperty(keyArray[i])) object = object[keyArray[i]];

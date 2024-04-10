@@ -56,7 +56,7 @@ const useStyles = makeStyles((theme) => ({
   contents: {
     height: "100%",
     width: "calc(100% - 350px)",
-    maxWidth: "1200px !important",
+    maxWidth: "1400px !important",
   },
   heading: {
     height: theme.headHeights[2],
@@ -114,7 +114,7 @@ const LayerModal = (props) => {
   const {} = props;
   const c = useStyles();
 
-  const modal = { layer: JSON.stringify({ type: "tile" }) }; //useSelector((state) => state.core.modal[MODAL_NAME]);
+  const modal = useSelector((state) => state.core.modal[MODAL_NAME]);
 
   const layer = modal && modal.layer ? JSON.parse(modal.layer) : {};
 
@@ -190,7 +190,7 @@ const LayerModal = (props) => {
         </div>
       </DialogTitle>
       <DialogContent className={c.content}>
-        <Maker config={config} />
+        <Maker config={config} layer={layer} />
       </DialogContent>
       <DialogActions>
         <Button variant="contained" onClick={() => {}}>

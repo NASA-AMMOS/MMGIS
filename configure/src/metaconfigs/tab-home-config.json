@@ -4,21 +4,21 @@
       "name": "Initial View",
       "components": [
         {
-          "field": "msv.view.[0]",
+          "field": "msv.view.0",
           "name": "Initial Latitude",
           "description": "",
           "type": "text",
           "width": 4
         },
         {
-          "field": "msv.view.[1]",
+          "field": "msv.view.1",
           "name": "Initial Longitude",
           "description": "",
           "type": "text",
           "width": 4
         },
         {
-          "field": "msv.view.[2]",
+          "field": "msv.view.2",
           "name": "Initial Zoom Level",
           "description": "",
           "type": "text",

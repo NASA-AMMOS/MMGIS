@@ -3,7 +3,7 @@ import * as L from "leaflet";
 
 import clsx from "clsx";
 
-import { makeStyles } from "@material-ui/core/styles";
+import { makeStyles } from "@mui/styles";
 
 const useStyles = makeStyles((theme) => ({
   Map: {
@@ -15,71 +15,43 @@ const useStyles = makeStyles((theme) => ({
   mapContainer: {
     width: "100%",
     height: "100%",
+    background: "#0f1010",
   },
 }));
 
-const Map = ({ image, settings, features, onLayers }) => {
+const Map = ({ configuration, layer }) => {
   const [map, setMap] = useState(null);
-  const [openFailed, setOpenFailed] = useState(false);
-  const [svgOverlay, setSvgOverlay] = useState(null);
 
   const c = useStyles();
 
-  settings = settings || {};
-
   const InitMap = () => {
-    map && map.destroy();
-    const map = L.map("map");
+    if (map && map.remove) {
+      map.off();
+      map.remove();
+    }
+    const m = L.map("map", { attributionControl: false }).setView(
+      [
+        parseFloat(configuration?.msv?.view?.[0] || 0),
+        parseFloat(configuration?.msv?.view?.[1] || 0),
+      ],
+      parseFloat(configuration?.msv?.view?.[2] || 0)
+    );
+    L.tileLayer(layer.url, {
+      maxZoom: 19,
+      tms: true,
+    }).addTo(m);
+    setMap(m);
   };
   // Make viewer
   useEffect(() => {
     InitMap();
     return () => {
-      map && map.destroy();
+      if (map && map.remove) {
+        map.off();
+        map.remove();
+      }
     };
   }, []);
-
-  // Update image when changed
-  useEffect(() => {
-    if (image && image.src && viewer) {
-      setOpenFailed(false);
-      viewer.removeHandler("open");
-      viewer.addHandler("open", function (e) {
-        const so = viewer.svgOverlay();
-        setSvgOverlay(so);
-        drawFeatures(so, features);
-      });
-      viewer.open({
-        type: "image",
-        url: image.src,
-        buildPyramid: false,
-      });
-    }
-  }, [image.src, viewer]);
-
-  useEffect(() => {
-    if (viewer && svgOverlay) {
-      drawFeatures(viewer.svgOverlay(), features);
-    }
-  }, [features]);
-
-  useEffect(() => {
-    // Make all the canvases pixelated
-    if (viewer && viewer.canvas && viewer.canvas.childNodes) {
-      viewer.canvas.childNodes.forEach((canvas) => {
-        if (typeof canvas.getContext === "function") {
-          const ctx = canvas.getContext("2d");
-          ctx.imageSmoothingEnabled = false;
-        }
-      });
-    }
-    // Set open failed event
-    if (viewer) {
-      viewer.addHandler("open-failed", () => {
-        setOpenFailed(true);
-      });
-    }
-  }, [viewer]);
 
   return (
     <div className={c.Map}>
@@ -87,7 +59,5 @@ const Map = ({ image, settings, features, onLayers }) => {
     </div>
   );
 };
-
-Map.propTypes = {};
 
 export default Map;

@@ -1,7 +1,7 @@
 {
   "rows": [
     {
-      "name": "Core",
+      "forceHeight": "64px",
       "components": [
         {
           "field": "",
@@ -24,7 +24,35 @@
           "name": "Layer Name",
           "description": "",
           "type": "text",
+          "width": 4
+        },
+        {
+          "type": "map",
+          "width": 6,
+          "height": "321px"
+        }
+      ]
+    },
+    {
+      "components": [
+        {
+          "field": "",
+          "name": "URL",
+          "description": "",
+          "type": "text",
           "width": 6
+        }
+      ]
+    },
+    {
+      "components": [
+        {
+          "field": "",
+          "name": "Tile Format",
+          "description": "",
+          "type": "dropdown",
+          "width": 2,
+          "options": ["tms", "wmts", "wms"]
         },
         {
           "field": "",
@@ -48,32 +76,12 @@
       "components": [
         {
           "field": "",
-          "name": "URL",
-          "description": "",
-          "type": "text",
-          "width": 10
-        },
-        {
-          "field": "",
-          "name": "Tile Format",
-          "description": "",
-          "type": "dropdown",
-          "width": 2,
-          "options": ["tms", "wmts", "wms"]
-        }
-      ]
-    },
-    {
-      "name": "Tile Extents",
-      "components": [
-        {
-          "field": "",
           "name": "Minimum Zoom",
           "description": "",
           "type": "number",
           "min": 0,
           "step": 1,
-          "width": 4
+          "width": 2
         },
         {
           "field": "",
@@ -82,7 +90,7 @@
           "type": "number",
           "min": 0,
           "step": 1,
-          "width": 4
+          "width": 2
         },
         {
           "field": "",
@@ -91,14 +99,7 @@
           "type": "number",
           "min": 0,
           "step": 1,
-          "width": 4
-        }
-      ]
-    },
-    {
-      "components": [
-        {
-          "type": "map"
+          "width": 2
         }
       ]
     },
