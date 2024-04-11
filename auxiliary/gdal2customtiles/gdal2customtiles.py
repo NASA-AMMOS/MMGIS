@@ -3193,10 +3193,6 @@ class GDAL2Tiles(object):
                     ry = float(self.warped_input_dataset.RasterYSize) * (float(ry) / self.warped_input_dataset.fRasterYSizeWorld)
                     rxsize = float(self.warped_input_dataset.RasterXSize) * (float(rxsize) / self.warped_input_dataset.fRasterXSizeWorld)
                     rysize = float(self.warped_input_dataset.RasterYSize) * (float(rysize) / self.warped_input_dataset.fRasterYSizeWorld)
-                    
-                    if self.isDEMtile:
-                        wxsize -= 1  # 1bto4b
-                        wysize -= 1  # 1bto4b
 
                     rx = round(rx)
                     ry = round(ry)
