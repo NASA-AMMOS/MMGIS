@@ -33,10 +33,13 @@ _Shades the ground when line-of-sights to an orbiting target are occluded._
   - The opaqueness to shade the shadowed regions on the map. A value of 0 is fully transparent and a value of 1 is fully opaque.
 - _Resolution_
   - MMGIS downloads terrain data needed for the shading alogrithm. Increasing the resolution improves the quality of the shade map and the cost of download and render speed. Each higher option is 4x the resolution of the previous one (i.e. 'ultra' is 4x more terrain data than 'high' and 16x more data than 'medium'). To save on performance, if the resolution is 'high' or 'ultra', the Shade Tool will no longer regenerate the shaded map whenever any parameter changes and instead 'Generate/Regenerate' must manually be pressed.
+  - The generated viewshed is zoom-dependent. If you are zoomed in far enough, all resolutions will behave the same. If you are zoomed out far enough, all resolutions will behave differently. For instance assuming a 50m data resolution, we'd have:
+    1. At ≤ 50m zoom scale, all four resolutions are the same.
+    2. At 100m zoom scale, Ultra, High, and Medium are all the same.
+    3. At 200m zoom scale, Ultra amd High are the same.
+    4. At ≥ 400m zoom scale, all four resolutions result in different maps.
 - _Elevation Map_
-
   - Specifies the terrain dataset to use.
-
 - _Generate/Regenerate_
   - Submits a request to generate a shade map with the provided parameters. Note that if the resolution is 'high' or 'ultra', the Shade Tool will not regenerate the shaded map whenever any parameter changes and instead 'Generate/Regenerate' must manually be pressed.
 
