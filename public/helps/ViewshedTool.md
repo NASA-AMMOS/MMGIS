@@ -27,53 +27,49 @@ _Real-time line-of-sight visibility maps_
 #### Options
 
 - _Data_
-  - Which observing spacecraft/orbiter to use. This is only used for formatting and converting the upcoming 'Time' parameter. The true observer position is always the visible map's center longitude and latitude value (represented by a green circle) and always facing north with zero tilt.
+  - The underlying Digital Elevation Model (DEM) on which to run the viewshed.
 - _Color_
-  - Offers the ability to set the current working time using a mission/spacecraft's custom date type.
+  - The color to render the viewshed on the map. Colored regions indicate visibility.
 - _Opacity_
-  - Height in meters above the surface to use when calculating line-of-sight shading. For instance, a point on the surface (0m) may not be visible to a 'Source Entity', say the Mars Reconnaissance Orbiter (MRO), but 2m above that point may be. This value does not _only_ apply to the center longtitude and latitude but to all points on the visible terrain. Gradually increaing this value shows the shade map n-meters above the surface.
+  - The opacity/transparency to render the viewshed on the map.
 - _Resolution_
-  - Offers the ability to set the current working time using a mission/spacecraft's custom date type.
+  - MMGIS downloads terrain data needed for the shading alogrithm. Increasing the resolution improves the quality of the shade map and the cost of download and render speed. Each higher option is 4x the resolution of the previous one (i.e. 'ultra' is 4x more terrain data than 'high' and 16x more data than 'medium'). To save on performance, if the resolution is 'high' or 'ultra', the Shade Tool will no longer regenerate the shaded map whenever any parameter changes and instead 'Generate/Regenerate' must manually be pressed.
+  - The generated viewshed is zoom-dependent. If you are zoomed in far enough, all resolutions will behave the same. If you are zoomed out far enough, all resolutions will behave differently. For instance assuming a 50m data resolution, we'd have:
+    1. At ≤ 50m zoom scale, all four resolutions are the same.
+    2. At 100m zoom scale, Ultra, High, and Medium are all the same.
+    3. At 200m zoom scale, Ultra amd High are the same.
+    4. At ≥ 400m zoom scale, all four resolutions result in different maps.
 - _Reverse_
-  - Offers the ability to set the current working time using a mission/spacecraft's custom date type.
+  - Whether to invert the viewshedded region. If true, then all the colored regions are **not** visible.
 - _Camera Presets_
-  - Offers the ability to set the current working time using a mission/spacecraft's custom date type.
+  - Selecting a camera preset prefills the 'Observer Height', 'FOV (Az)', 'FOV (El)', 'Center Azimuth' and 'Center Elevation' fields.
 - _Observer Height_
-  - Offers the ability to set the current working time using a mission/spacecraft's custom date type.
+  - Height in meters from which the observer sees. For instance the viewshed of a person whose eye-level is 1.8 meters above the ground would have an Observer Height of 1.8.
 - _Target Height_
-  - Offers the ability to set the current working time using a mission/spacecraft's custom date type.
+  - Height above the surface which counts as visibility of the surface. For instance, a person wishes to know whether they can see their car from their location. The do not need to see the ground beneath their car to see their car. Here, the Target Height would be roughly the height of their car.
 - _FOV (Az)_
-  - Offers the ability to set the current working time using a mission/spacecraft's custom date type.
+  - Angle in degrees of the observer's horizontal field of view.
 - _FOV (El)_
-  - Offers the ability to set the current working time using a mission/spacecraft's custom date type.
+  - Angle in degrees of the observer's vertical field of view.
 - _Center Azimuth_
-  - Offers the ability to set the current working time using a mission/spacecraft's custom date type.
+  - Angle in degrees in which the observer is looking. Clockwise from north.
 - _Center Elevation_
-  - Offers the ability to set the current working time using a mission/spacecraft's custom date type.
+  - Tilt angle in degrees in which the observer is looking. 0 is level with the horizon, 90 is looking straight up and -90 is straight down.
 - _Latitude_
-  - Offers the ability to set the current working time using a mission/spacecraft's custom date type.
+  - Latitude position of the observer. Clicking on the map or draggin the observer marker will also prefill this.
 - _Longitude_
-  - Offers the ability to set the current working time using a mission/spacecraft's custom date type.
+  - Longitude position of the observer. Clicking on the map or draggin the observer marker will also prefill this.
 
 #### Footer
 
 - _Delete_
-  - Offers the ability to set the current working time using a mission/spacecraft's custom date type.
+  - Deletes this viewshed.
 - _Save_
-  - Offers the ability to set the current working time using a mission/spacecraft's custom date type.
+  - Exports this viewshed as an ASCII file that contains a numerical grid of visible pixels along with metadata.
 - _Clone_
-  - Offers the ability to set the current working time using a mission/spacecraft's custom date type.
+  - Duplicates this viewshed into a new viewshed.
 - _Regenerate_
-  - Offers the ability to set the current working time using a mission/spacecraft's custom date type.
-
-### Results
-
-- _Azimuth_: The compass-angle in (0 -> 360) degrees clockwise from north of the direction of the 'Source Entity' as seen from the map's center longitude and latitude. 0 = North, 90 = East, 180 = South, 270 = West.
-- _Elevation_: The angular height (-90 -> 90) between the horizon and the 'Source Entity'. -90 = Straight Down, 0 = Level with the Horizon, 90 = Straight Overhead.
-- _Range_: The straight-line distance in kilometers between the map's center longitude, latitude and terrain elevation and the 'Source Entity'.
-- _Longitude_: The map's center longitude value used in the computation.
-- _Latitude_: The map's center latitude value used in the computation.
-- _Altitude_: The distance in kilometers above the map's center position's tangential plane and the 'Source Entity'. In other words, in a 3D cartesian coordinate-system where the Z-axis goes through both the center of the visible map and the center of the planet, this 'Altitude' is the Z distance between that center and the 'Source Entity'.
+  - Submits the viewshed for generation. This happens automatically if the 'Resolution' is 'medium' or 'low.
 
 ### Algorithm
 
