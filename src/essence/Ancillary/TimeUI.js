@@ -411,13 +411,11 @@ const TimeUI = {
         dateAddSec = TimeUI.getDateAdditionalSeconds(
             L_.configData.time.initialend
         )
-        L_.configData.time.initialend = dateAddSec.dateString
-
         if (
             L_.configData.time.initialend != null &&
             L_.configData.time.initialend != 'now'
         ) {
-            const dateStaged = new Date(L_.configData.time.initialend)
+            const dateStaged = new Date(dateAddSec.dateString)
             if (dateStaged == 'Invalid Date') {
                 TimeUI._initialEnd = new Date()
                 console.warn(
