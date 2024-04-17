@@ -7,6 +7,7 @@ import {
     constructVectorLayer,
     constructSublayers,
 } from '../Layers_/LayerConstructors'
+import Filtering from '../Layers_/Filtering/Filtering'
 import Viewer_ from '../Viewer_/Viewer_'
 import Globe_ from '../Globe_/Globe_'
 import ToolController_ from '../ToolController_/ToolController_'
@@ -530,7 +531,14 @@ function makeLayers(layersObj) {
     }
 }
 //Takes the layer object and makes it a map layer
-async function makeLayer(layerObj, evenIfOff, forceGeoJSON, id, forceMake) {
+async function makeLayer(
+    layerObj,
+    evenIfOff,
+    forceGeoJSON,
+    id,
+    forceMake,
+    stopLoops
+) {
     return new Promise(async (resolve, reject) => {
         const layerName = L_.asLayerUUID(layerObj.name)
         if (forceMake !== true && L_._layersBeingMade[layerName] === true) {
@@ -578,6 +586,11 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON, id, forceMake) {
 
         // release hold on layer
         L_._layersBeingMade[layerName] = false
+
+        if (stopLoops !== true && layerObj.type === 'vector') {
+            Filtering.updateGeoJSON(layerObj.name)
+            Filtering.triggerFilter(layerObj.name)
+        }
 
         resolve(true)
     })
@@ -871,6 +884,7 @@ async function makeVectorLayer(
                 data.features
             )
             L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
+
             allLayersLoaded()
             resolve()
         }

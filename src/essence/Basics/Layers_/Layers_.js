@@ -914,7 +914,7 @@ const L_ = {
 
         L_._refreshAnnotationEvents()
     },
-    addGeoJSONData: function (layer, geojson, keepLastN) {
+    addGeoJSONData: function (layer, geojson, keepLastN, stopLoops) {
         if (layer._sourceGeoJSON) {
             if (layer._sourceGeoJSON.features)
                 if (geojson.features)
@@ -953,7 +953,10 @@ const L_ = {
         L_.Map_.makeLayer(
             L_.layers.data[layer._layerName],
             true,
-            layer._sourceGeoJSON
+            layer._sourceGeoJSON,
+            null,
+            null,
+            stopLoops
         )
 
         if (initialOn) {
@@ -2695,7 +2698,7 @@ const L_ = {
         }
         return true
     },
-    updateVectorLayer: function (layerName, inputData, keepLastN) {
+    updateVectorLayer: function (layerName, inputData, keepLastN, stopLoops) {
         layerName = L_.asLayerUUID(layerName)
 
         if (layerName in L_.layers.layer) {
@@ -2710,7 +2713,7 @@ const L_ = {
             const updateLayer = L_.layers.layer[layerName]
 
             try {
-                L_.addGeoJSONData(updateLayer, inputData, keepLastN)
+                L_.addGeoJSONData(updateLayer, inputData, keepLastN, stopLoops)
             } catch (e) {
                 console.log(e)
                 console.warn(
