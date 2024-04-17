@@ -7,7 +7,7 @@ import Map_ from '../../Basics/Map_/Map_'
 
 import DataShaders from '../../Ancillary/DataShaders'
 import LayerInfoModal from './LayerInfoModal/LayerInfoModal'
-import Filtering from './Filtering/Filtering'
+import Filtering from '../../Basics/Layers_/Filtering/Filtering'
 import Help from '../../Ancillary/Help'
 import CursorInfo from '../../Ancillary/CursorInfo'
 
