@@ -22,6 +22,7 @@ The `user_files` table stores an entry for each file a user created via the Draw
 - `file_owner_group`: In special cases, a group of users can be the owner of a file. This is currently hardcoded only for Lead users.
 - `file_name`: The name of the drawing file.
 - `file_description`: The description of the file. File tags also get encoded into this description field based on the following:
+
   - `~^{str}`: denotes that this file is in a `{tag}` elevated(/prioritized) folder of the Draw Tool.
   - `~@{str}`: denotes that this file is in a `{tag}` folder of the Draw Tool.
   - `~#{str}`: denotes that this file has a tag of the name `{str}`.
@@ -47,7 +48,7 @@ The `file_histories` table provides a complete representation of all Draw Tool f
 
 - `file_id`: The id of the `user_files` file this history entry belongs to.
 - `history_id`: An incrementing id that work per file_id.
-- `time`: A Unix timestamp of when the drawing action occured.
+- `time`: A Unix timestamp of when the drawing action occurred.
 - `action_index`: An id for what action was performed.
   - 0: add
   - 1: edit
@@ -75,7 +76,7 @@ The `user_features` table stores every Draw Tool feature and with PostGIS encode
 
 ### published_stores
 
-In the Draw Tool, Lead users can copy features from various layers into a Lead layer and then publish that layer. Publishing requires various checks to take place such as no duplicate names, no duplicate uuids, certain features must be fully contained within others, what are a polygon's children, etc. The `published_stores` table stores the intermediary spatial, relational and heirarchical metadata in performing this validation. This metadata speeds up a spatial search API that is not yet released publically.
+In the Draw Tool, Lead users can copy features from various layers into a Lead layer and then publish that layer. Publishing requires various checks to take place such as no duplicate names, no duplicate uuids, certain features must be fully contained within others, what are a polygon's children, etc. The `published_stores` table stores the intermediary spatial, relational and hierarchical metadata in performing this validation. This metadata speeds up a spatial search API that is not yet released publicly.
 
 ### publisheds
 

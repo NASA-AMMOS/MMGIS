@@ -2,7 +2,7 @@
 
 _Shades the ground when line-of-sights to an orbiting target are occluded._
 
-**Note:** Terrain beyond the screen's current extent is **not** factored into the displayed visiblity map — only observer-target direction and on-screen terrain is considered. A distant off-screen mountain will **not** cast shadows.
+**Note:** Terrain beyond the screen's current extent is **not** factored into the displayed visibility map — only observer-target direction and on-screen terrain is considered. A distant off-screen mountain will **not** cast shadows.
 
 ### Interface
 
@@ -23,7 +23,7 @@ _Shades the ground when line-of-sights to an orbiting target are occluded._
 - _Time_
   - Offers the ability to set the current working time using a mission/spacecraft's custom date type.
 - _Height_
-  - Height in meters above the surface to use when calculating line-of-sight shading. For instance, a point on the surface (0m) may not be visible to a 'Source Entity', say the Mars Reconnaissance Orbiter (MRO), but 2m above that point may be. This value does not _only_ apply to the center longtitude and latitude but to all points on the visible terrain. Gradually increaing this value shows the shade map n-meters above the surface.
+  - Height in meters above the surface to use when calculating line-of-sight shading. For instance, a point on the surface (0m) may not be visible to a 'Source Entity', say the Mars Reconnaissance Orbiter (MRO), but 2m above that point may be. This value does not _only_ apply to the center longtitude and latitude but to all points on the visible terrain. Gradually increasing this value shows the shade map n-meters above the surface.
 
 #### Shaded Region Options
 
@@ -32,11 +32,11 @@ _Shades the ground when line-of-sights to an orbiting target are occluded._
 - _Opacity_
   - The opaqueness to shade the shadowed regions on the map. A value of 0 is fully transparent and a value of 1 is fully opaque.
 - _Resolution_
-  - MMGIS downloads terrain data needed for the shading alogrithm. Increasing the resolution improves the quality of the shade map and the cost of download and render speed. Each higher option is 4x the resolution of the previous one (i.e. 'ultra' is 4x more terrain data than 'high' and 16x more data than 'medium'). To save on performance, if the resolution is 'high' or 'ultra', the Shade Tool will no longer regenerate the shaded map whenever any parameter changes and instead 'Generate/Regenerate' must manually be pressed.
+  - MMGIS downloads terrain data needed for the shading algorithm. Increasing the resolution improves the quality of the shade map and the cost of download and render speed. Each higher option is 4x the resolution of the previous one (i.e. 'ultra' is 4x more terrain data than 'high' and 16x more data than 'medium'). To save on performance, if the resolution is 'high' or 'ultra', the Shade Tool will no longer regenerate the shaded map whenever any parameter changes and instead 'Generate/Regenerate' must manually be pressed.
   - The generated viewshed is zoom-dependent. If you are zoomed in far enough, all resolutions will behave the same. If you are zoomed out far enough, all resolutions will behave differently. For instance assuming a 50m data resolution, we'd have:
     1. At ≤ 50m zoom scale, all four resolutions are the same.
     2. At 100m zoom scale, Ultra, High, and Medium are all the same.
-    3. At 200m zoom scale, Ultra amd High are the same.
+    3. At 200m zoom scale, Ultra and High are the same.
     4. At ≥ 400m zoom scale, all four resolutions result in different maps.
 - _Elevation Map_
   - Specifies the terrain dataset to use.

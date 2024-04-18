@@ -67,7 +67,7 @@ Run: `docker-compose up -d`
 
 1. Click `NEW MISSION`  
    Enter a new mission name and click `MAKE MISSION`  
-   Optiona;" (Use the mission name `"Test"` (case-sensitive) to make the sample mission)
+   Optional: (Use the mission name `"Test"` (case-sensitive) to make the sample mission)
 
 Navigate to `http://localhost:8888`.
 

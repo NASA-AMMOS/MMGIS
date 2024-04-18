@@ -15,10 +15,10 @@ _Real-time line-of-sight visibility maps_
 
 - _Checkbox_
   - Toggles the viewshed on and off.
-- _Editting Icon_
-  - In the case of multiple viewsheds, if the viewshed is being editted, it means clicking and interacting with the map will set its observer point.
+- _Editing Icon_
+  - In the case of multiple viewsheds, if the viewshed is being edited, it means clicking and interacting with the map will set its observer point.
 - _Viewshed Name_
-  - An edittable viewshed name.
+  - An editable viewshed name.
 - _3D_
   - Click to view the viewshed in 3D. (May not be supported depending on configuration.)
 - _Options_
@@ -33,11 +33,11 @@ _Real-time line-of-sight visibility maps_
 - _Opacity_
   - The opacity/transparency to render the viewshed on the map.
 - _Resolution_
-  - MMGIS downloads terrain data needed for the shading alogrithm. Increasing the resolution improves the quality of the shade map and the cost of download and render speed. Each higher option is 4x the resolution of the previous one (i.e. 'ultra' is 4x more terrain data than 'high' and 16x more data than 'medium'). To save on performance, if the resolution is 'high' or 'ultra', the Shade Tool will no longer regenerate the shaded map whenever any parameter changes and instead 'Generate/Regenerate' must manually be pressed.
+  - MMGIS downloads terrain data needed for the shading algorithm. Increasing the resolution improves the quality of the shade map and the cost of download and render speed. Each higher option is 4x the resolution of the previous one (i.e. 'ultra' is 4x more terrain data than 'high' and 16x more data than 'medium'). To save on performance, if the resolution is 'high' or 'ultra', the Shade Tool will no longer regenerate the shaded map whenever any parameter changes and instead 'Generate/Regenerate' must manually be pressed.
   - The generated viewshed is zoom-dependent. If you are zoomed in far enough, all resolutions will behave the same. If you are zoomed out far enough, all resolutions will behave differently. For instance assuming a 50m data resolution, we'd have:
     1. At ≤ 50m zoom scale, all four resolutions are the same.
     2. At 100m zoom scale, Ultra, High, and Medium are all the same.
-    3. At 200m zoom scale, Ultra amd High are the same.
+    3. At 200m zoom scale, Ultra and High are the same.
     4. At ≥ 400m zoom scale, all four resolutions result in different maps.
 - _Reverse_
   - Whether to invert the viewshedded region. If true, then all the colored regions are **not** visible.
@@ -56,9 +56,9 @@ _Real-time line-of-sight visibility maps_
 - _Center Elevation_
   - Tilt angle in degrees in which the observer is looking. 0 is level with the horizon, 90 is looking straight up and -90 is straight down.
 - _Latitude_
-  - Latitude position of the observer. Clicking on the map or draggin the observer marker will also prefill this.
+  - Latitude position of the observer. Clicking on the map or dragging the observer marker will also prefill this.
 - _Longitude_
-  - Longitude position of the observer. Clicking on the map or draggin the observer marker will also prefill this.
+  - Longitude position of the observer. Clicking on the map or dragging the observer marker will also prefill this.
 
 #### Footer
 
