@@ -467,6 +467,7 @@ function interfaceWithMMWebGIS() {
     //tools.html( markup );
 
     //Add event functions and whatnot
+    var previousCursor = d3.select('#map').style('cursor')
     d3.select('#map').style('cursor', 'crosshair')
 
     Map_.map.on('mousemove', IdentifierTool.idPixelMap)
@@ -496,9 +497,6 @@ function interfaceWithMMWebGIS() {
 
     function separateFromMMWebGIS() {
         CursorInfo.hide()
-
-        d3.select('#map').style('cursor', 'grab')
-
         Map_.map.off('mousemove', IdentifierTool.idPixelMap)
         //Globe_.shouldRaycastSprites = true
         if (L_.hasGlobe) {
@@ -508,25 +506,29 @@ function interfaceWithMMWebGIS() {
                 .removeEventListener('mousemove', IdentifierTool.idPixelGlobe)
         }
 
-        let tools = d3.select(
-            IdentifierTool.targetId ? `#${IdentifierTool.targetId}` : '#toolPanel'
-        )
-        tools.style('background', 'var(--color-k)')
-        //Clear it
-        tools.selectAll('*').remove()
-
-        var prevActive = $(
-            '#toolcontroller_sepdiv #' +
-                'Identifier' +
-                'Tool'
-        )
-        prevActive.removeClass('active').css({
-            color: ToolController_.defaultColor,
-            background: 'none',
-        })
-        prevActive.parent().css({
-            background: 'none',
-        })
+        if (IdentifierTool.targetId === 'toolContentSeparated_Identifier') {
+            d3.select('#map').style('cursor', 'grab')
+            let tools = d3.select(
+                IdentifierTool.targetId ? `#${IdentifierTool.targetId}` : '#toolPanel'
+            )
+            tools.style('background', 'var(--color-k)')
+            //Clear it
+            tools.selectAll('*').remove()
+            var prevActive = $(
+                '#toolcontroller_sepdiv #' +
+                    'Identifier' +
+                    'Tool'
+            )
+            prevActive.removeClass('active').css({
+                color: ToolController_.defaultColor,
+                background: 'none',
+            })
+            prevActive.parent().css({
+                background: 'none',
+            })
+        } else {
+            d3.select('#map').style('cursor', previousCursor)
+        }
     }
 }
 
