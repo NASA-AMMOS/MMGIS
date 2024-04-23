@@ -18,6 +18,7 @@ import { setConfiguration, setSnackBarText } from "../../core/ConfigureStore";
 
 import Home from "../Tabs/Home/Home";
 import Layers from "../Tabs/Layers/Layers";
+import Tools from "../Tabs/Tools/Tools";
 import UserInterface from "../Tabs/UserInterface/UserInterface";
 
 const useStyles = makeStyles((theme) => ({
@@ -67,6 +68,28 @@ const useStyles = makeStyles((theme) => ({
       background: theme.palette.swatches.p[0],
     },
   },
+  introWrapper: {
+    width: "100%",
+    height: "100%",
+  },
+  intro: {
+    position: "absolute",
+    left: "50%",
+    top: "50%",
+    textAlign: "center",
+    transform: "translateX(-50%) translateY(-50%)",
+  },
+  title: {
+    fontSize: "30px",
+    fontWeight: "bold",
+    lineHeight: "22px",
+    opacity: 0.65,
+  },
+  subtitle: { letterSpacing: "1px", textTransform: "uppercase", opacity: 0.5 },
+  message: {
+    fontSize: "13px",
+    opacity: 0.6,
+  },
 }));
 
 export default function Main() {
@@ -105,6 +128,8 @@ export default function Main() {
       TabPage = <Layers />;
       break;
     case 2:
+      TabPage = <Tools />;
+      break;
     case 3:
     case 4:
       TabPage = (
@@ -121,34 +146,58 @@ export default function Main() {
 
   return (
     <div className={c.Main}>
-      <div className={c.topbar}>
-        <div className={c.tabs}>
-          <Tabs
-            variant="scrollable"
-            value={tabValue}
-            onChange={(e, val) => {
-              setTabValue(val);
-            }}
-            sx={{ borderRight: 1, borderColor: "divider" }}
-          >
-            <Tab icon={<HomeIcon />} iconPosition="start" label="Home" />
-            <Tab icon={<LayersIcon />} iconPosition="start" label="Layers" />
-            <Tab icon={<HandymanIcon />} iconPosition="start" label="Tools" />
-            <Tab
-              icon={<ExploreIcon />}
-              iconPosition="start"
-              label="Coordinates"
-            />
-            <Tab icon={<AccessTimeIcon />} iconPosition="start" label="Time" />
-            <Tab
-              icon={<ViewQuiltIcon />}
-              iconPosition="start"
-              label="User Interface"
-            />
-          </Tabs>
+      {mission == null ? (
+        <div className={c.introWrapper}>
+          <div className={c.intro}>
+            <div className={c.title}>MMGIS</div>
+            <div className={c.subtitle}>Configuration</div>
+            <div className={c.message}>Create or Select a Mission</div>
+          </div>
         </div>
-      </div>
-      <div className={c.tabPage}>{TabPage}</div>
+      ) : (
+        <>
+          <div className={c.topbar}>
+            <div className={c.tabs}>
+              <Tabs
+                variant="scrollable"
+                value={tabValue}
+                onChange={(e, val) => {
+                  setTabValue(val);
+                }}
+                sx={{ borderRight: 1, borderColor: "divider" }}
+              >
+                <Tab icon={<HomeIcon />} iconPosition="start" label="Home" />
+                <Tab
+                  icon={<LayersIcon />}
+                  iconPosition="start"
+                  label="Layers"
+                />
+                <Tab
+                  icon={<HandymanIcon />}
+                  iconPosition="start"
+                  label="Tools"
+                />
+                <Tab
+                  icon={<ExploreIcon />}
+                  iconPosition="start"
+                  label="Coordinates"
+                />
+                <Tab
+                  icon={<AccessTimeIcon />}
+                  iconPosition="start"
+                  label="Time"
+                />
+                <Tab
+                  icon={<ViewQuiltIcon />}
+                  iconPosition="start"
+                  label="User Interface"
+                />
+              </Tabs>
+            </div>
+          </div>
+          <div className={c.tabPage}>{TabPage}</div>
+        </>
+      )}
     </div>
   );
 }

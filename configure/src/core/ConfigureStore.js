@@ -9,6 +9,7 @@ export const ConfigureStore = createSlice({
     modal: {
       newMission: false,
       layer: false,
+      tool: false,
     },
     snackBarText: false,
   },

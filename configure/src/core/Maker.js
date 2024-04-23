@@ -25,9 +25,10 @@ import Select from "@mui/material/Select";
 
 import { calls } from "./calls";
 import { setConfiguration, setSnackBarText } from "./ConfigureStore";
-import { getIn, setIn } from "./utils";
+import { getIn, setIn, traverseLayers } from "./utils";
 
 import Map from "../components/Map/Map";
+import ColorButton from "../components/ColorButton/ColorButton";
 
 const useStyles = makeStyles((theme) => ({
   Maker: {
@@ -67,6 +68,7 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const getComponent = (com, configuration, layer, updateConfiguration, c) => {
+  const directConf = layer == null ? configuration : layer;
   switch (com.type) {
     case "text":
       return (
@@ -77,9 +79,33 @@ const getComponent = (com, configuration, layer, updateConfiguration, c) => {
               label={com.name}
               variant="filled"
               size="small"
-              value={getIn(configuration, com.field, "")}
+              value={getIn(directConf, com.field, "")}
               onChange={(e) => {
-                updateConfiguration(com.field, e.target.value);
+                updateConfiguration(com.field, e.target.value, layer);
+              }}
+            />
+          </Tooltip>
+        </div>
+      );
+    case "textarray":
+      let text_array_f = getIn(directConf, com.field, []);
+      if (text_array_f != null && typeof text_array_f.join === "function")
+        text_array_f.join(",");
+      return (
+        <div>
+          <Tooltip title={com.description || ""} placement="top" arrow>
+            <TextField
+              className={c.text}
+              label={com.name}
+              variant="filled"
+              size="small"
+              value={text_array_f}
+              onChange={(e) => {
+                updateConfiguration(
+                  com.field,
+                  e.target.value.split(","),
+                  layer
+                );
               }}
             />
           </Tooltip>
@@ -94,9 +120,9 @@ const getComponent = (com, configuration, layer, updateConfiguration, c) => {
               label={com.name}
               variant="filled"
               size="small"
-              value={getIn(configuration, com.field, "")}
+              value={getIn(directConf, com.field, "")}
               onChange={(e) => {
-                updateConfiguration(com.field, e.target.value);
+                updateConfiguration(com.field, e.target.value, layer);
               }}
               type="number"
               min={com.min != null ? com.min : 0}
@@ -115,13 +141,9 @@ const getComponent = (com, configuration, layer, updateConfiguration, c) => {
               <FormControlLabel
                 control={
                   <Checkbox
-                    checked={getIn(
-                      configuration,
-                      com.field,
-                      com.defaultChecked
-                    )}
+                    checked={getIn(directConf, com.field, com.defaultChecked)}
                     onChange={(e) => {
-                      updateConfiguration(com.field, e.target.checked);
+                      updateConfiguration(com.field, e.target.checked, layer);
                     }}
                   />
                 }
@@ -138,9 +160,9 @@ const getComponent = (com, configuration, layer, updateConfiguration, c) => {
             <FormControl className={c.dropdown} variant="filled" size="small">
               <InputLabel>{com.name}</InputLabel>
               <Select
-                value={getIn(configuration, com.field, com.options?.[0])}
+                value={getIn(directConf, com.field, com.options?.[0])}
                 onChange={(e) => {
-                  updateConfiguration(com.field, e.target.value);
+                  updateConfiguration(com.field, e.target.value, layer);
                 }}
               >
                 {com.options.map((o) => {
@@ -150,6 +172,16 @@ const getComponent = (com, configuration, layer, updateConfiguration, c) => {
             </FormControl>
           </Tooltip>
         </div>
+      );
+    case "colorpicker":
+      return (
+        <ColorButton
+          label={com.name}
+          color={getIn(directConf, com.field, null)}
+          onChange={(color) => {
+            updateConfiguration(com.field, color.hex, layer);
+          }}
+        />
       );
     case "map":
       return (
@@ -236,9 +268,18 @@ export default function Maker(props) {
 
   const configuration = useSelector((state) => state.core.configuration);
 
-  const updateConfiguration = (keyPath, value) => {
+  const updateConfiguration = (keyPath, value, layer) => {
     const nextConfiguration = JSON.parse(JSON.stringify(configuration));
-    setIn(nextConfiguration, keyPath.split("."), value);
+
+    if (layer == null) {
+      setIn(nextConfiguration, keyPath.split("."), value);
+    } else {
+      traverseLayers(nextConfiguration.layers, (l, path, index) => {
+        if (layer.uuid === l.uuid) {
+          setIn(l, keyPath.split("."), value);
+        }
+      });
+    }
     dispatch(setConfiguration(nextConfiguration));
   };
 

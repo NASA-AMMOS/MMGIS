@@ -24,3 +24,39 @@ export const setIn = (obj, keyArray, value) => {
   }
   object[keyArray[keyArray.length - 1]] = value;
 };
+export const traverseLayers = (layers, onLayer) => {
+  depthTraversal(layers, 0, []);
+  function depthTraversal(node, depth, path) {
+    for (var i = 0; i < node.length; i++) {
+      const ret = onLayer(node[i], path, i);
+
+      if (ret === "remove") {
+        node.splice(i, 1);
+        i--;
+      }
+      //Add other feature information while we're at it
+      else if (
+        node[i] &&
+        node[i].sublayers != null &&
+        node[i].sublayers.length > 0
+      ) {
+        depthTraversal(
+          node[i].sublayers,
+          depth + 1,
+          `${path.length > 0 ? path + "." : ""}${node[i].name}`
+        );
+      }
+    }
+  }
+};
+export const getLayerByUUID = (layers, uuid) => {
+  let layer = null;
+  if (uuid == null) return layer;
+
+  traverseLayers(layers, (l, path, depth) => {
+    if (layer == null && l.uuid === uuid) {
+      layer = l;
+    }
+  });
+  return layer;
+};

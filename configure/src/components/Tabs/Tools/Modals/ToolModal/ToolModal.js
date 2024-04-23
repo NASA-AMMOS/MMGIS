@@ -31,14 +31,6 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 
 import Maker from "../../../../../core/Maker";
 
-import dataConfig from "../../../../../metaconfigs/layer-data-config.json";
-import headerConfig from "../../../../../metaconfigs/layer-header-config.json";
-import modelConfig from "../../../../../metaconfigs/layer-model-config.json";
-import queryConfig from "../../../../../metaconfigs/layer-query-config.json";
-import tileConfig from "../../../../../metaconfigs/layer-tile-config.json";
-import vectorConfig from "../../../../../metaconfigs/layer-vector-config.json";
-import vectortileConfig from "../../../../../metaconfigs/layer-vectortile-config.json";
-
 const useStyles = makeStyles((theme) => ({
   Modal: {
     margin: theme.headHeights[1],
@@ -111,16 +103,12 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const MODAL_NAME = "layer";
-const LayerModal = (props) => {
+const ToolModal = (props) => {
   const {} = props;
   const c = useStyles();
 
   const modal = useSelector((state) => state.core.modal[MODAL_NAME]);
   const configuration = useSelector((state) => state.core.configuration);
-
-  const layerUUID = modal && modal.layerUUID ? modal.layerUUID : null;
-
-  const layer = getLayerByUUID(configuration.layers, layerUUID) || {};
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -131,40 +119,6 @@ const LayerModal = (props) => {
     // close modal
     dispatch(setModal({ name: MODAL_NAME, on: false }));
   };
-
-  let config = {};
-  switch (layer.type) {
-    case "data":
-      config = dataConfig;
-      break;
-
-    case "header":
-      config = headerConfig;
-      break;
-
-    case "model":
-      config = modelConfig;
-      break;
-
-    case "query":
-      config = queryConfig;
-      break;
-
-    case "tile":
-      config = tileConfig;
-      break;
-
-    case "vector":
-      config = vectorConfig;
-      break;
-
-    case "vectortile":
-      config = vectortileConfig;
-      break;
-
-    default:
-      break;
-  }
 
   return (
     <Dialog
@@ -181,7 +135,7 @@ const LayerModal = (props) => {
         <div className={c.flexBetween}>
           <div className={c.flexBetween}>
             <LayersIcon className={c.backgroundIcon} />
-            <div className={c.title}>{layer.name}</div>
+            <div className={c.title}>{"TOOL"}</div>
           </div>
           <IconButton
             className={c.closeIcon}
@@ -194,7 +148,7 @@ const LayerModal = (props) => {
         </div>
       </DialogTitle>
       <DialogContent className={c.content}>
-        <Maker config={config} layer={layer} />
+        {/*<Maker config={config} layer={layer} />*/}
       </DialogContent>
       <DialogActions>
         <Button variant="contained" onClick={() => {}}>
@@ -205,4 +159,4 @@ const LayerModal = (props) => {
   );
 };
 
-export default LayerModal;
+export default ToolModal;

@@ -73,12 +73,11 @@ export default function Layers() {
   const configuration = useSelector((state) => state.core.configuration);
 
   const handleClick = (layer) => {
-    console.log(layer);
     dispatch(
       setModal({
         name: "layer",
         on: true,
-        layer: JSON.stringify(layer),
+        layerUUID: layer.uuid,
         onClose: () => {
           console.log("closed");
         },

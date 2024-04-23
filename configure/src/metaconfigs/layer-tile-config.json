@@ -4,7 +4,7 @@
       "forceHeight": "64px",
       "components": [
         {
-          "field": "",
+          "field": "type",
           "name": "Layer Type",
           "description": "",
           "type": "dropdown",
@@ -20,15 +20,23 @@
           ]
         },
         {
-          "field": "",
+          "field": "name",
           "name": "Layer Name",
           "description": "",
           "type": "text",
           "width": 4
         },
         {
+          "field": "visibility",
+          "name": "Initially On",
+          "description": "",
+          "type": "checkbox",
+          "width": 2,
+          "defaultChecked": false
+        },
+        {
           "type": "map",
-          "width": 6,
+          "width": 4,
           "height": "321px"
         }
       ]
@@ -36,26 +44,26 @@
     {
       "components": [
         {
-          "field": "",
+          "field": "url",
           "name": "URL",
           "description": "",
           "type": "text",
-          "width": 6
+          "width": 8
         }
       ]
     },
     {
       "components": [
         {
-          "field": "",
+          "field": "tileformat",
           "name": "Tile Format",
           "description": "",
           "type": "dropdown",
-          "width": 2,
+          "width": 4,
           "options": ["tms", "wmts", "wms"]
         },
         {
-          "field": "",
+          "field": "controlled",
           "name": "Controlled",
           "description": "",
           "type": "checkbox",
@@ -63,86 +71,7 @@
           "defaultChecked": false
         },
         {
-          "field": "",
-          "name": "Initially On",
-          "description": "",
-          "type": "checkbox",
-          "width": 2,
-          "defaultChecked": false
-        }
-      ]
-    },
-    {
-      "components": [
-        {
-          "field": "",
-          "name": "Minimum Zoom",
-          "description": "",
-          "type": "number",
-          "min": 0,
-          "step": 1,
-          "width": 2
-        },
-        {
-          "field": "",
-          "name": "Maximum Native Zoom",
-          "description": "",
-          "type": "number",
-          "min": 0,
-          "step": 1,
-          "width": 2
-        },
-        {
-          "field": "",
-          "name": "Maximum Zoom",
-          "description": "",
-          "type": "number",
-          "min": 0,
-          "step": 1,
-          "width": 2
-        }
-      ]
-    },
-    {
-      "name": "Digital Elevation Model (DEM) Tiles",
-      "components": [
-        {
-          "field": "",
-          "name": "DEM Tile URL",
-          "description": "",
-          "type": "text",
-          "width": 10
-        },
-        {
-          "field": "",
-          "name": "DEM Parser",
-          "description": "",
-          "type": "dropdown",
-          "width": 2,
-          "options": ["rgba", "tif"]
-        }
-      ]
-    },
-    {
-      "components": [
-        {
-          "components": [
-            {
-              "field": "",
-              "name": "Bounding Box",
-              "description": "minx,miny,maxx,maxy",
-              "type": "textarray",
-              "width": 12
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Style",
-      "components": [
-        {
-          "field": "",
+          "field": "initialOpacity",
           "name": "Initial Opacity",
           "description": "0 (transparent) to 1 (opaque)",
           "type": "number",
@@ -152,10 +81,61 @@
       ]
     },
     {
+      "components": [
+        {
+          "field": "minZoom",
+          "name": "Minimum Zoom",
+          "description": "",
+          "type": "number",
+          "min": 0,
+          "step": 1,
+          "width": 3
+        },
+        {
+          "field": "maxNativeZoom",
+          "name": "Maximum Native Zoom",
+          "description": "",
+          "type": "number",
+          "min": 0,
+          "step": 1,
+          "width": 2
+        },
+        {
+          "field": "maxZoom",
+          "name": "Maximum Zoom",
+          "description": "",
+          "type": "number",
+          "min": 0,
+          "step": 1,
+          "width": 3
+        }
+      ]
+    },
+    {
+      "name": "Digital Elevation Model (DEM) Tiles",
+      "components": [
+        {
+          "field": "demtileurl",
+          "name": "DEM Tile URL",
+          "description": "",
+          "type": "text",
+          "width": 10
+        },
+        {
+          "field": "demparser",
+          "name": "DEM Parser",
+          "description": "",
+          "type": "dropdown",
+          "width": 2,
+          "options": ["rgba", "tif"]
+        }
+      ]
+    },
+    {
       "name": "Time",
       "components": [
         {
-          "field": "",
+          "field": "time.enabled",
           "name": "Time Enabled",
           "description": "",
           "type": "checkbox",
@@ -163,7 +143,7 @@
           "defaultChecked": false
         },
         {
-          "field": "",
+          "field": "time.type",
           "name": "Time Type",
           "description": "",
           "type": "dropdown",
@@ -171,19 +151,31 @@
           "options": ["requery", "local"]
         },
         {
-          "field": "",
+          "field": "time.format",
           "name": "Time Format",
           "description": "",
           "type": "text",
           "width": 3
         },
         {
-          "field": "",
+          "field": "time.compositeTile",
           "name": "Composite Time Tiles",
           "description": "",
           "type": "checkbox",
           "width": 3,
           "defaultChecked": false
+        }
+      ]
+    },
+    {
+      "name": "Other",
+      "components": [
+        {
+          "field": "boundingBox",
+          "name": "Bounding Box",
+          "description": "minx,miny,maxx,maxy",
+          "type": "textarray",
+          "width": 12
         }
       ]
     }
@@ -195,7 +187,7 @@
         {
           "components": [
             {
-              "field": "",
+              "field": "description",
               "name": "Description",
               "description": "Supports markdown",
               "type": "textfield",
@@ -206,7 +198,7 @@
         {
           "components": [
             {
-              "field": "",
+              "field": "tags",
               "name": "Tags",
               "description": "Comma-separate, <cat>:<tag> for category",
               "type": "textarray",

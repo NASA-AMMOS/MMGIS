@@ -1,1 +1,236 @@
-{}
+{
+  "rows": [
+    {
+      "components": [
+        {
+          "field": "type",
+          "name": "Layer Type",
+          "description": "",
+          "type": "dropdown",
+          "width": 2,
+          "options": [
+            "data",
+            "header",
+            "model",
+            "query",
+            "tile",
+            "vector",
+            "vectortile"
+          ]
+        },
+        {
+          "field": "name",
+          "name": "Layer Name",
+          "description": "",
+          "type": "text",
+          "width": 6
+        },
+        {
+          "field": "kind",
+          "name": "Kind of Layer",
+          "description": "",
+          "type": "dropdown",
+          "width": 2,
+          "options": [
+            "info",
+            "waypoint",
+            "chemistry_tool",
+            "draw_tool",
+            "edl_wedge"
+          ]
+        },
+        {
+          "field": "visibility",
+          "name": "Initially On",
+          "description": "",
+          "type": "checkbox",
+          "width": 2,
+          "defaultChecked": false
+        }
+      ]
+    },
+    {
+      "components": [
+        {
+          "field": "url",
+          "name": "URL",
+          "description": "",
+          "type": "text",
+          "width": 12
+        }
+      ]
+    },
+    {
+      "components": [
+        {
+          "field": "minZoom",
+          "name": "Minimum Zoom",
+          "description": "",
+          "type": "number",
+          "min": 0,
+          "step": 1,
+          "width": 2
+        },
+        {
+          "field": "maxZoom",
+          "name": "Maximum Zoom",
+          "description": "",
+          "type": "number",
+          "min": 0,
+          "step": 1,
+          "width": 2
+        },
+        {
+          "field": "layer3dType",
+          "name": "3D Layer Type",
+          "description": "",
+          "type": "dropdown",
+          "width": 2,
+          "options": ["clamped", "vector"]
+        },
+        {
+          "field": "initialOpacity",
+          "name": "Initial Opacity",
+          "description": "0 (transparent) to 1 (opaque)",
+          "type": "number",
+          "min": 0,
+          "width": 2
+        },
+        {
+          "field": "controlled",
+          "name": "Controlled",
+          "description": "",
+          "type": "checkbox",
+          "width": 4,
+          "defaultChecked": false
+        }
+      ]
+    },
+    {
+      "name": "Style",
+      "components": [
+        {
+          "field": "style.color",
+          "name": "Color",
+          "description": "Stroke Color",
+          "type": "colorpicker",
+          "width": 2
+        },
+        {
+          "field": "style.opacity",
+          "name": "Opacity",
+          "description": "Stroke Opacity",
+          "type": "number",
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "width": 2
+        },
+        {
+          "field": "style.fillColor",
+          "name": "Fill Color",
+          "description": "Fill Color",
+          "type": "colorpicker",
+          "width": 2
+        },
+        {
+          "field": "style.fillOpacity",
+          "name": "Fill Opacity",
+          "description": "Fill Opacity",
+          "type": "number",
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "width": 2
+        },
+        {
+          "field": "style.radius",
+          "name": "Radius",
+          "description": "Radius in pixels of point features.",
+          "type": "number",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "width": 2
+        }
+      ]
+    },
+    {
+      "name": "Time",
+      "components": [
+        {
+          "field": "time.enabled",
+          "name": "Time Enabled",
+          "description": "",
+          "type": "checkbox",
+          "width": 3,
+          "defaultChecked": false
+        },
+        {
+          "field": "time.type",
+          "name": "Time Type",
+          "description": "",
+          "type": "dropdown",
+          "width": 3,
+          "options": ["requery", "local"]
+        },
+        {
+          "field": "time.format",
+          "name": "Time Format",
+          "description": "",
+          "type": "text",
+          "width": 3
+        },
+        {
+          "field": "time.compositeTile",
+          "name": "Composite Time Tiles",
+          "description": "",
+          "type": "checkbox",
+          "width": 3,
+          "defaultChecked": false
+        }
+      ]
+    },
+    {
+      "name": "Other",
+      "components": [
+        {
+          "field": "boundingBox",
+          "name": "Bounding Box",
+          "description": "minx,miny,maxx,maxy",
+          "type": "textarray",
+          "width": 12
+        }
+      ]
+    }
+  ],
+  "tabs": [
+    {
+      "name": "Legend",
+      "rows": [
+        {
+          "components": [
+            {
+              "field": "legend",
+              "name": "Legend URL",
+              "description": "",
+              "type": "text",
+              "width": 12
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "tags",
+              "name": "Tags",
+              "description": "Comma-separate, <cat>:<tag> for category",
+              "type": "textarray",
+              "width": 12
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
