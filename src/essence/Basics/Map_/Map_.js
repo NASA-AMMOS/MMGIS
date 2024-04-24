@@ -929,6 +929,10 @@ async function makeTileLayer(layerObj) {
         starttime:
             typeof layerObj.time === 'undefined' ? '' : layerObj.time.start,
         endtime: typeof layerObj.time === 'undefined' ? '' : layerObj.time.end,
+        customTimes:
+            typeof layerObj.time === 'undefined'
+                ? null
+                : layerObj.time.customTimes,
         variables: layerObj.variables || {},
     })
 

@@ -421,7 +421,7 @@ The following is an example of how to call the `toggleTimeUI` function:
 window.mmgisAPI.toggleTimeUI(false);
 ```
 
-### setTime(startTime, endTime, isRelative, timeOffset, currentTime)
+### setTime(startTime, endTime, isRelative, timeOffset, currentTime, currentTimes)
 
 This function sets the global time properties for all of MMGIS. All time enabled layers that are configured to use the `Global` time type will be updated by this function.
 
@@ -434,6 +434,11 @@ Note that layers will not be refreshed on the map until `reloadTimeLayers()` (or
 - `isRelative` - If true, startTime and endTime are relative to the current UTC time
 - `timeOffset` - An offset to use for the current UTC time; can be either a string in `hh:mm:ss` format or an integer value in seconds
 - `currentTime` - If set, offset is ignored and the current working time is set to this currentTime
+- `customTimes` - Sets an array of times of format `YYYY-MM-DDThh:mm:ssZ` to be used while replacing `{customtime.0}`, `{customtime.1}`, ... in the tile or vector layer url in order to inject custom times.
+  - If value is a `string`, puts it into the 0th index of the internal customtimes array.
+  - If value is a `[string]`, replaces the current internal customtimes array with it.
+  - If value is the empty array `[]`, clears the internal customtimes array.
+  - If value is `null`, does not modify the existing internal customtimes array.
 
 The following are examples of how to call the `setTime` function:
 

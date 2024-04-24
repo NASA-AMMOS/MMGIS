@@ -26,6 +26,9 @@ var TimeControl = {
     globalTimeFormat: null,
     _updateLockedForAcceptingInput: false,
     timeUI: null,
+    customTimes: {
+        times: [],
+    },
     init: function () {
         if (L_.configData.time && L_.configData.time.enabled === true) {
             TimeControl.enabled = true
@@ -64,10 +67,19 @@ var TimeControl = {
         endTime,
         isRelative,
         timeOffset = '00:00:00',
-        currentTime
+        currentTime,
+        customTimes
     ) {
         if (!TimeControl.enabled || startTime == null || endTime == null)
             return false
+
+        if (customTimes != null) {
+            if (typeof customTimes === 'string') {
+                TimeControl.customTimes.times = [customTimes]
+            } else {
+                TimeControl.customTimes.times = customTimes
+            }
+        }
 
         const now = new Date()
         let offset = 0
@@ -129,6 +141,7 @@ var TimeControl = {
         if (layer.time && layer.time.enabled == true) {
             layer.time.start = startTime
             layer.time.end = endTime
+            layer.time.customTimes = TimeControl.customTimes
             d3.select('.starttime.' + F_.getSafeName(layer.name)).text(
                 layer.time.start
             )
@@ -216,6 +229,22 @@ var TimeControl = {
                             /{endtime}/g,
                             layerTimeFormat(Date.parse(layer.time.end))
                         )
+
+                    if (
+                        TimeControl.customTimes?.times &&
+                        TimeControl.customTimes.times.length > 0
+                    ) {
+                        for (
+                            let i = 0;
+                            i < TimeControl.customTimes.times.length;
+                            i++
+                        ) {
+                            layer.url = layer.url.replace(
+                                new RegExp(`{customtime.${i}}`, 'g'),
+                                TimeControl.customTimes.times[i]
+                            )
+                        }
+                    }
                 }
             }
             if (
@@ -254,7 +283,6 @@ var TimeControl = {
                 const keys = Object.keys(layer.variables.urlReplacements)
                 for (let i = 0; i < keys.length; i++) {
                     const r = layer.variables.urlReplacements[keys[i]]
-
                     if (r.on === 'timeChange') {
                         const response = await fetch(r.url, {
                             method: r.type,
@@ -310,6 +338,7 @@ var TimeControl = {
             if (layer.time && layer.time.enabled === true) {
                 layer.time.start = TimeControl.startTime
                 layer.time.end = TimeControl.currentTime
+                layer.time.customTimes = TimeControl.customTimes
                 d3.select('.starttime.' + F_.getSafeName(layer.name)).text(
                     layer.time.start
                 )
@@ -378,6 +407,7 @@ function initLayerDataTimes() {
             layer.time.end = L_.FUTURES.endTime
                 ? L_.FUTURES.endTime.toISOString().split('.')[0] + 'Z'
                 : TimeControl.endTime
+            layer.time.customTimes = TimeControl.customTimes
         }
     }
 }
@@ -392,6 +422,7 @@ function initLayerTimes() {
             layer.time.end = L_.FUTURES.endTime
                 ? L_.FUTURES.endTime.toISOString().split('.')[0] + 'Z'
                 : TimeControl.endTime
+            layer.time.customTimes = TimeControl.customTimes
             d3.select('.starttime.' + F_.getSafeName(layer.name)).text(
                 layer.time.start
             )

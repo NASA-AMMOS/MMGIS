@@ -24,6 +24,19 @@ var colorFilterExtension = {
             .replace(/{time}/g, this.options.time)
             .replace(/{starttime}/g, this.options.starttime)
             .replace(/{endtime}/g, this.options.endtime)
+
+        if (
+            this.options.customTimes?.times &&
+            this.options.customTimes?.times.length > 0
+        ) {
+            for (let i = 0; i < this.options.customTimes.times.length; i++) {
+                url = url.replace(
+                    new RegExp(`{customtime.${i}}`, 'g'),
+                    this.options.customTimes.times[i]
+                )
+            }
+        }
+
         if (this.options.time && this.options.tileFormat === 'tms') {
             let paramDelimiter = '?'
             let urlParams = false
@@ -245,6 +258,22 @@ var wmsExtension = {
                     .replace('{time}', this.options.time)
                     .replace('{starttime}', this.options.starttime)
                     .replace('{endtime}', this.options.endtime)
+
+                if (
+                    this.options.customTimes?.times &&
+                    this.options.customTimes.times.length > 0
+                ) {
+                    for (
+                        let i = 0;
+                        i < this.options.customTimes.times.length;
+                        i++
+                    ) {
+                        wmsParamsUpdate[key] = wmsParamsUpdate[key].replace(
+                            new RegExp(`{customtime.${i}}`, 'g'),
+                            this.options.customTimes.times[i]
+                        )
+                    }
+                }
             } else {
                 wmsParamsUpdate[key] = this.wmsParams[key]
             }

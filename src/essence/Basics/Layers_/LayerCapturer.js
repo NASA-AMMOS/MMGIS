@@ -57,6 +57,18 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
             .replace(/{starttime}/g, startTime)
             .replace(/{endtime}/g, endTime)
             .replace(/{time}/g, endTime)
+
+        if (
+            TimeControl.customTimes?.times &&
+            TimeControl.customTimes.times.length > 0
+        ) {
+            for (let i = 0; i < TimeControl.customTimes.times.length; i++) {
+                layerUrl = layerUrl.replace(
+                    new RegExp(`{customtime.${i}}`, 'g'),
+                    TimeControl.customTimes.times[i]
+                )
+            }
+        }
     }
     if (!F_.isUrlAbsolute(layerUrl)) layerUrl = L_.missionPath + layerUrl
 
@@ -239,6 +251,22 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                             .replace(/{miny}/g, body.miny)
                             .replace(/{maxx}/g, body.maxx)
                             .replace(/{maxy}/g, body.maxy)
+
+                        if (
+                            TimeControl.customTimes?.times &&
+                            TimeControl.customTimes.times.length > 0
+                        ) {
+                            for (
+                                let i = 0;
+                                i < TimeControl.customTimes.times.length;
+                                i++
+                            ) {
+                                dynamicLayerUrl = dynamicLayerUrl.replace(
+                                    new RegExp(`{customtime.${i}}`, 'g'),
+                                    TimeControl.customTimes.times[i]
+                                )
+                            }
+                        }
 
                         if (!F_.isUrlAbsolute(dynamicLayerUrl))
                             dynamicLayerUrl = L_.missionPath + dynamicLayerUrl
