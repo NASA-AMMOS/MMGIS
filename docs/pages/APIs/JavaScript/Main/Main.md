@@ -27,7 +27,7 @@ The `src/essence/mmgisAPI/mmgisAPI.js` file exposes functions that can be called
   - [asLayerUUID(uuid)](#asLayerUUIDuuid)
 - [Time Control](#time-control)
   - [toggleTimeUI(visibility)](#toggletimeuivisibility)
-  - [setTime(startTime, endTime, isRelative, timeOffset, currentTime)](#settimestarttime-endtime-isrelative-timeoffset-currenttime)
+  - [setTime(startTime, endTime, isRelative, timeOffset, currentTime, customTimes)](#settimestarttime-endtime-isrelative-timeoffset-currenttime-customtimes)
   - [setLayerTime(layer, startTime, endTime)](#setlayertimelayer-starttime-endtime)
   - [getTime()](#gettime)
   - [getStartTime()](#getstarttime)
@@ -421,7 +421,7 @@ The following is an example of how to call the `toggleTimeUI` function:
 window.mmgisAPI.toggleTimeUI(false);
 ```
 
-### setTime(startTime, endTime, isRelative, timeOffset, currentTime, currentTimes)
+### setTime(startTime, endTime, isRelative, timeOffset, currentTime, customTimes)
 
 This function sets the global time properties for all of MMGIS. All time enabled layers that are configured to use the `Global` time type will be updated by this function.
 
