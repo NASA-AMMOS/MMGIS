@@ -26,9 +26,46 @@ var IdentifierTool = {
     MMWebGISInterface: null,
     mousemoveTimeout: null,
     mousemoveTimeoutMap: null,
+    targetId: null,
+    made: false,
+    justification: 'left',
     vars: {},
-    make: function () {
+    initialize: function () {
+        //Get tool variables and UI adjustments
+        this.justification = L_.getToolVars('identifier')['justification']
+        var toolContent = d3.select('#toolSeparated_Identifier')
+        toolContent.style('bottom', '2px')
+        if (this.justification == 'right') {
+            var toolController = d3.select('#toolcontroller_sepdiv')
+            toolController.style('top', '110px')
+            toolController.style('left', null)
+            toolController.style('right', '5px')
+            toolContent.style('left', null)
+            toolContent.style('right', '0px')
+        } else if (this.justification != L_.getToolVars('legend')['justification']) {
+            var toolController = d3.select('#toolcontroller_sepdiv').clone(false).attr('id', 'toolcontroller_sepdiv_left')
+            $('#toolSeparated_Identifier').appendTo('#toolcontroller_sepdiv_left')
+            toolController.style('top', '40px')
+            toolController.style('left', '5px')
+            toolController.style('right', null)
+        }
+    },   
+    make: function (targetId) {
         this.MMWebGISInterface = new interfaceWithMMWebGIS()
+        this.targetId = targetId
+        this.activeLayerNames = []
+
+        L_.subscribeOnLayerToggle('IdentifierTool', () => {
+            this.MMWebGISInterface = new interfaceWithMMWebGIS()
+        })
+
+        this.made = true
+
+        L_.subscribeOnLayerToggle('IdentifierTool', () => {
+            this.MMWebGISInterface = new interfaceWithMMWebGIS()
+        })
+
+        this.made = true
 
         //Get tool variables
         this.varsRaw = L_.getToolVars('identifier', true)
@@ -69,6 +106,9 @@ var IdentifierTool = {
     },
     destroy: function () {
         this.MMWebGISInterface.separateFromMMWebGIS()
+        this.targetId = null
+        L_.unsubscribeOnLayerToggle('IdentifierTool')
+        this.made = false
     },
     fillURLParameters: function (url, layerUUID) {
         if (IdentifierTool.vars.data?.[layerUUID]?.data?.[0]) {
@@ -456,11 +496,21 @@ function interfaceWithMMWebGIS() {
 
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
+
+    var newActive = $(
+        '#toolcontroller_sepdiv #' +
+            'Identifier' +
+            'Tool'
+    )
+    newActive.addClass('active').css({
+        color: ToolController_.activeColor,
+    })
+    newActive.parent().css({
+        background: ToolController_.activeBG,
+    })
+
     function separateFromMMWebGIS() {
         CursorInfo.hide()
-
-        d3.select('#map').style('cursor', previousCursor)
-
         Map_.map.off('mousemove', IdentifierTool.idPixelMap)
         //Globe_.shouldRaycastSprites = true
         if (L_.hasGlobe) {
@@ -468,6 +518,30 @@ function interfaceWithMMWebGIS() {
             Globe_.litho
                 .getContainer()
                 .removeEventListener('mousemove', IdentifierTool.idPixelGlobe)
+        }
+
+        if (IdentifierTool.targetId === 'toolContentSeparated_Identifier') {
+            d3.select('#map').style('cursor', 'grab')
+            let tools = d3.select(
+                IdentifierTool.targetId ? `#${IdentifierTool.targetId}` : '#toolPanel'
+            )
+            tools.style('background', 'var(--color-k)')
+            //Clear it
+            tools.selectAll('*').remove()
+            var prevActive = $(
+                '#toolcontroller_sepdiv #' +
+                    'Identifier' +
+                    'Tool'
+            )
+            prevActive.removeClass('active').css({
+                color: ToolController_.defaultColor,
+                background: 'none',
+            })
+            prevActive.parent().css({
+                background: 'none',
+            })
+        } else {
+            d3.select('#map').style('cursor', previousCursor)
         }
     }
 }
