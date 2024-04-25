@@ -103,7 +103,7 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
 
 1. GDAL and Python are weaker dependencies (desirable but, without them, not everything will work)
 
-   - GDAL [2.+](https://gdal.org/download.html) with Python bindings (Windows users may find [these](https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal) helpful)
+   - GDAL [2.+](https://gdal.org/download.html) with Python bindings (Windows users may find [these](https://github.com/cgohlke/geospatial-wheels/releases) helpful)
    - Python [3.6+](https://www.python.org/downloads/release/python-396/)
      - `python -m pip install numpy`
      - Note: MMGIS expects and uses the command `python` only and not `python3` or variations.

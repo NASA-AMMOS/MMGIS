@@ -624,7 +624,7 @@ let MeasureTool = {
         steps = 100
 
         //Get tool variables
-        this.vars = L_.getToolVars('measure', true)
+        this.vars = JSON.parse(JSON.stringify(L_.getToolVars('measure', true)))
         this.vars.layerDems = this.vars.layerDems || {}
 
         const standardLayerDems = {}
