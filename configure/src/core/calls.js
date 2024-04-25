@@ -8,7 +8,7 @@ const c = {
   },
   getToolConfig: {
     type: "GET",
-    url: "config/pre/toolConfigs.json",
+    url: "configure/public/toolConfigs.json",
   },
   get: {
     type: "GET",

@@ -12,7 +12,6 @@ import config from "../../../metaconfigs/tab-home-config.json";
 const useStyles = makeStyles((theme) => ({
   Home: {
     width: "100%",
-    height: "100%",
     display: "flex",
     background: theme.palette.swatches.grey[1000],
   },

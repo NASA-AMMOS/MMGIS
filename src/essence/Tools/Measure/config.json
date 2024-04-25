@@ -16,5 +16,76 @@
     "name": "Measure",
     "paths": {
         "MeasureTool": "essence/Tools/Measure/MeasureTool"
+    },
+    "config": {
+        "rows": [
+            {
+                "components": [
+                    {
+                        "field": "dem",
+                        "name": "DEM path",
+                        "description": "Path to Data/defaultDEM.tif",
+                        "type": "text",
+                        "width": 12
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "layerDems",
+                        "name": "Layer specific DEMs",
+                        "description": "Only show DEM if associated layer is on.",
+                        "type": "object",
+                        "width": 12,
+                        "items": {
+                            "rows": [
+                                {
+                                    "addable": true,
+                                    "components": [
+                                        {
+                                            "name": "Layer Name",
+                                            "description": "",
+                                            "type": "text",
+                                            "width": 4
+                                        },
+                                        {
+                                            "name": "DEM path",
+                                            "description": "",
+                                            "type": "text",
+                                            "width": 8
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "onlyShowDemIfLayerOn",
+                        "name": "Only Show DEM If On",
+                        "description": "Only show DEM if associated layer is on.",
+                        "type": "checkbox",
+                        "width": 2,
+                        "defaultChecked": false
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "defaultMode",
+                        "name": "Default Mode",
+                        "description": "",
+                        "type": "dropdown",
+                        "width": 2,
+                        "options": ["segment", "continuous", "continuous_color"]
+                    }
+                ]
+            }
+        ]
     }
 }

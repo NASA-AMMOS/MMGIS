@@ -19,7 +19,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 
 import CloseSharpIcon from "@mui/icons-material/CloseSharp";
-import LayersIcon from "@mui/icons-material/Layers";
+import HandymanIcon from "@mui/icons-material/Handyman";
 
 import TextField from "@mui/material/TextField";
 import FormGroup from "@mui/material/FormGroup";
@@ -100,15 +100,33 @@ const useStyles = makeStyles((theme) => ({
   backgroundIcon: {
     margin: "7px 8px 0px 0px",
   },
+  info: {
+    padding: "16px",
+    marginBottom: `1px solid ${theme.palette.swatches.grey[800]}`,
+  },
+  infoTitle: {
+    color: theme.palette.swatches.grey[500],
+    marginBottom: "8px",
+  },
+  infoDescription: {
+    color: theme.palette.swatches.grey[200],
+  },
 }));
 
-const MODAL_NAME = "layer";
+const MODAL_NAME = "tool";
 const ToolModal = (props) => {
   const {} = props;
   const c = useStyles();
 
-  const modal = useSelector((state) => state.core.modal[MODAL_NAME]);
+  let modal = useSelector((state) => state.core.modal[MODAL_NAME]);
   const configuration = useSelector((state) => state.core.configuration);
+
+  const open = modal !== false;
+
+  modal = modal || {};
+  const toolName = modal.toolName;
+  const tool = modal.tool;
+  const toolConfig = modal.toolConfig;
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -124,7 +142,7 @@ const ToolModal = (props) => {
     <Dialog
       className={c.Modal}
       fullScreen={isMobile}
-      open={modal !== false}
+      open={open}
       onClose={handleClose}
       aria-labelledby="responsive-dialog-title"
       PaperProps={{
@@ -134,8 +152,8 @@ const ToolModal = (props) => {
       <DialogTitle className={c.heading}>
         <div className={c.flexBetween}>
           <div className={c.flexBetween}>
-            <LayersIcon className={c.backgroundIcon} />
-            <div className={c.title}>{"TOOL"}</div>
+            <HandymanIcon className={c.backgroundIcon} />
+            <div className={c.title}>{toolName}</div>
           </div>
           <IconButton
             className={c.closeIcon}
@@ -148,7 +166,18 @@ const ToolModal = (props) => {
         </div>
       </DialogTitle>
       <DialogContent className={c.content}>
-        {/*<Maker config={config} layer={layer} />*/}
+        <div className={c.info}>
+          <Typography className={c.infoTitle}>
+            {toolConfig?.description}
+          </Typography>
+          <Typography className={c.infoDescription}>
+            {toolConfig?.descriptionFull?.title}
+          </Typography>
+        </div>
+
+        {toolConfig && tool ? (
+          <Maker config={toolConfig.config} tool={tool} inlineHelp={true} />
+        ) : null}
       </DialogContent>
       <DialogActions>
         <Button variant="contained" onClick={() => {}}>

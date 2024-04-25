@@ -70,7 +70,7 @@ export const palette = {
     vectortile: "#78b1c2",
     query: "#87b051",
     data: "#c43541",
-    model: "##dbb658",
+    model: "#dbb658",
   },
 };
 

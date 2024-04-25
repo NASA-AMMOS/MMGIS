@@ -3,65 +3,82 @@ import { useSelector, useDispatch } from "react-redux";
 import {} from "./ToolsSlice";
 import { makeStyles } from "@mui/styles";
 
+import clsx from "clsx";
+
 import { calls } from "../../../core/calls";
-import { setSnackBarText, setModal } from "../../../core/ConfigureStore";
+import {
+  setToolConfiguration,
+  setSnackBarText,
+  setModal,
+} from "../../../core/ConfigureStore";
 
 import ToolModal from "./Modals/ToolModal/ToolModal";
 
-import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
-import ListItemButton from "@mui/material/ListItemButton";
-import ListItemIcon from "@mui/material/ListItemIcon";
-import ListItemText from "@mui/material/ListItemText";
-
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown"; // Header
-import StorageIcon from "@mui/icons-material/Storage"; // Data
-import PolylineIcon from "@mui/icons-material/Polyline"; // Vector
-import TravelExploreIcon from "@mui/icons-material/TravelExplore"; // Query
-import LanguageIcon from "@mui/icons-material/Language"; // Tile
-import GridViewIcon from "@mui/icons-material/GridView"; // Vector tile
-import ViewInArIcon from "@mui/icons-material/ViewInAr"; // Model
-
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import AccessTimeFilledIcon from "@mui/icons-material/AccessTimeFilled";
+import Grid from "@mui/material/Grid";
+import Paper from "@mui/material/Paper";
+import Box from "@mui/material/Box";
 
 const useStyles = makeStyles((theme) => ({
   Tools: {
     width: "100%",
-    height: "100%",
     display: "flex",
     background: theme.palette.swatches.grey[1000],
   },
-  toolsList: {
-    width: "100%",
-    padding: "0px 15% !important",
+  card: {
+    height: "300px",
+    background: theme.palette.swatches.grey[900],
+    border: `1px solid ${theme.palette.swatches.grey[800]}`,
+    borderRadius: "3px",
+    boxShadow:
+      "rgba(0, 0, 0, 0.2) 0px 2px 1px -1px, rgba(0, 0, 0, 0.14) 0px 1px 1px 0px, rgba(0, 0, 0, 0.12) 0px 1px 3px 0px",
+    transition: "background 0.2s ease-in-out",
+    "&:hover": {
+      background: theme.palette.swatches.p[0],
+      cursor: "pointer",
+    },
   },
-  toolsListItem: {
-    height: "32px",
+  cardHeader: {
+    height: "58px",
+    lineHeight: "58px",
+    display: "flex",
+    justifyContent: "space-between",
   },
-  toolsListItemButton: {
-    height: "32px",
-    borderTop: `1px solid ${theme.palette.swatches.grey[800]} !important`,
-    //borderBottom: `1px solid ${theme.palette.swatches.grey[700]} !important`,
-    borderRight: `1px solid ${theme.palette.swatches.grey[700]} !important`,
-    display: "flex !important",
-    justifyContent: "space-between !important",
-    paddingRight: "8px !important",
-    "& > div": {
-      display: "flex",
-      justifyContent: "space-between",
-    },
-    "& > div:first-child": {
-      "& .MuiListItemIcon-root": {
-        minWidth: "36px",
-        marginTop: "4px",
-      },
-    },
-    "& > div:nth-child(2)": {
-      "& .MuiListItemIcon-root": {
-        minWidth: "20px",
-      },
-    },
+  cardIcon: {
+    width: "58px",
+    height: "58px",
+    paddingLeft: "13px",
+  },
+  cardName: {
+    fontWeight: "bold",
+    letterSpacing: "2px",
+    fontSize: "18px",
+    paddingLeft: "16px",
+    color: theme.palette.swatches.grey[200],
+    textTransform: "uppercase",
+  },
+  cardOn: {
+    width: "20px",
+    height: "20px",
+    margin: "19px",
+    borderRadius: "3px",
+    background: theme.palette.accent.main,
+  },
+  cardOff: {
+    width: "20px",
+    height: "20px",
+    margin: "19px",
+    borderRadius: "3px",
+    background: theme.palette.swatches.grey[800],
+  },
+  cardContent: {
+    padding: "8px 16px 16px 16px",
+  },
+  cardContentTitle: {
+    color: theme.palette.swatches.grey[500],
+    marginBottom: "8px",
+  },
+  cardContentBody: {
+    color: theme.palette.swatches.grey[200],
   },
 }));
 
@@ -71,18 +88,101 @@ export default function Tools() {
   const dispatch = useDispatch();
   const mission = useSelector((state) => state.core.mission);
   const configuration = useSelector((state) => state.core.configuration);
+  const toolConfiguration = useSelector(
+    (state) => state.core.toolConfiguration
+  );
 
-  const handleClick = (tool) => {
+  useEffect(() => {
+    if (mission != null)
+      calls.api(
+        "getToolConfig",
+        null,
+        (res) => {
+          dispatch(setToolConfiguration(res));
+        },
+        (res) => {
+          dispatch(
+            setSnackBarText({
+              text:
+                res?.message || "Failed to get tool configuration template.",
+              severity: "error",
+            })
+          );
+        }
+      );
+  }, []);
+
+  const handleClick = (toolName, toolConfig, tool) => {
     dispatch(
       setModal({
         name: "tool",
         on: true,
-        toolUUID: tool.uuid,
+        toolName,
+        toolConfig,
+        tool,
         onClose: () => {
           console.log("closed");
         },
       })
     );
+  };
+
+  const getToolCards = () => {
+    const cards = [];
+    if (toolConfiguration) {
+      Object.keys(toolConfiguration)
+        .sort((a, b) => a.localeCompare(b))
+        .forEach((key, idx) => {
+          const tConfig = toolConfiguration[key];
+          let t = configuration.tools.filter((f) => f.name === key)[0];
+          let toolActive = true;
+          if (t == null) {
+            t = {};
+            toolActive = false;
+          }
+          cards.push(
+            <Grid
+              item
+              xs={12}
+              sm={6}
+              md={6}
+              lg={4}
+              xl={3}
+              onClick={() => {
+                handleClick(key, tConfig, t);
+              }}
+            >
+              <div key={idx} className={c.card}>
+                <div className={c.cardHeader}>
+                  <div className={c.cardIcon}>
+                    <i
+                      className={`mdi mdi-${
+                        t.icon || tConfig.defaultIcon
+                      } mdi-36px`}
+                    ></i>
+                  </div>
+                  <div
+                    className={clsx({
+                      [c.cardOn]: toolActive,
+                      [c.cardOff]: !toolActive,
+                    })}
+                  ></div>
+                </div>
+                <div className={c.cardName}>{key}</div>
+                <div className={c.cardContent}>
+                  <div className={c.cardContentTitle}>
+                    {tConfig.description}
+                  </div>
+                  <div className={c.cardContentBody}>
+                    {tConfig.descriptionFull?.title}
+                  </div>
+                </div>
+              </div>
+            </Grid>
+          );
+        });
+    }
+    return cards;
   };
 
   if (configuration?.tools?.length == null) {
@@ -91,7 +191,18 @@ export default function Tools() {
 
   return (
     <>
-      <div className={c.Tools}></div>
+      <div className={c.Tools}>
+        <Box sx={{ width: "100%", padding: "60px 120px" }}>
+          <Grid
+            container
+            rowSpacing={4}
+            columnSpacing={4}
+            columns={{ xs: 12, sm: 12, md: 12, lg: 12, xl: 12 }}
+          >
+            {getToolCards()}
+          </Grid>
+        </Box>
+      </div>
 
       <ToolModal />
     </>

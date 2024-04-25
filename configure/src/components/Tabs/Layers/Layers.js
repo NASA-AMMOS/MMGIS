@@ -28,7 +28,6 @@ import AccessTimeFilledIcon from "@mui/icons-material/AccessTimeFilled";
 const useStyles = makeStyles((theme) => ({
   Layers: {
     width: "100%",
-    height: "100%",
     display: "flex",
     background: theme.palette.swatches.grey[1000],
   },

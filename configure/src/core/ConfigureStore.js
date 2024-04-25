@@ -6,6 +6,7 @@ export const ConfigureStore = createSlice({
     missions: [],
     mission: null,
     configuration: {},
+    toolConfiguration: {},
     modal: {
       newMission: false,
       layer: false,
@@ -22,6 +23,9 @@ export const ConfigureStore = createSlice({
     },
     setConfiguration: (state, action) => {
       state.configuration = action.payload;
+    },
+    setToolConfiguration: (state, action) => {
+      state.toolConfiguration = action.payload;
     },
     /**
      * Controls all modal open/close states
@@ -54,6 +58,7 @@ export const {
   setMissions,
   setMission,
   setConfiguration,
+  setToolConfiguration,
   setModal,
   setSnackBarText,
 } = ConfigureStore.actions;

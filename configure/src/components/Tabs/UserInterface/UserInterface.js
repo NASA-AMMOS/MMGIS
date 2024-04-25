@@ -11,7 +11,6 @@ import config from "../../../metaconfigs/tab-ui-config.json";
 const useStyles = makeStyles((theme) => ({
   UserInterface: {
     width: "100%",
-    height: "100%",
     display: "flex",
     background: theme.palette.swatches.grey[1000],
   },

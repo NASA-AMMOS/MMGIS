@@ -22,6 +22,9 @@ import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
+import IconButton from "@mui/material/IconButton";
+
+import AddIcon from "@mui/icons-material/Add";
 
 import { calls } from "./calls";
 import { setConfiguration, setSnackBarText } from "./ConfigureStore";
@@ -52,8 +55,19 @@ const useStyles = makeStyles((theme) => ({
     fontSize: "20px",
     letterSpacing: "1px",
   },
+  rowTitle2: {
+    paddingBottom: "5px",
+    borderBottom: `1px solid ${theme.palette.swatches.grey[800]}`,
+  },
   rowTitleBasic: {
     margin: "40px 20px 0px 20px",
+  },
+  subtitle2: {
+    fontSize: "12px !important",
+    fontStyle: "italic",
+    width: "100%",
+    marginBottom: "8px !important",
+    color: theme.palette.swatches.grey[400],
   },
   text: {
     width: "100%",
@@ -64,51 +78,90 @@ const useStyles = makeStyles((theme) => ({
   checkbox: {
     paddingTop: "4px",
   },
+  object: {
+    background: theme.palette.swatches.grey[800],
+  },
   map: {},
+  noMargin: {
+    margin: 0,
+  },
+  objectAdd: {
+    width: "40px",
+    height: "40px",
+    padding: "4px",
+  },
 }));
 
-const getComponent = (com, configuration, layer, updateConfiguration, c) => {
+const getComponent = (
+  com,
+  configuration,
+  layer,
+  updateConfiguration,
+  c,
+  inlineHelp
+) => {
   const directConf = layer == null ? configuration : layer;
+  let inner;
   switch (com.type) {
     case "text":
+      inner = (
+        <TextField
+          className={c.text}
+          label={com.name}
+          variant="filled"
+          size="small"
+          value={getIn(directConf, com.field, "")}
+          onChange={(e) => {
+            updateConfiguration(com.field, e.target.value, layer);
+          }}
+        />
+      );
       return (
         <div>
-          <Tooltip title={com.description || ""} placement="top" arrow>
-            <TextField
-              className={c.text}
-              label={com.name}
-              variant="filled"
-              size="small"
-              value={getIn(directConf, com.field, "")}
-              onChange={(e) => {
-                updateConfiguration(com.field, e.target.value, layer);
-              }}
-            />
-          </Tooltip>
+          {inlineHelp ? (
+            <>
+              {inner}
+              <Typography className={c.subtitle2}>
+                {com.description || ""}
+              </Typography>
+            </>
+          ) : (
+            <Tooltip title={com.description || ""} placement="top" arrow>
+              {inner}
+            </Tooltip>
+          )}
         </div>
       );
     case "textarray":
       let text_array_f = getIn(directConf, com.field, []);
       if (text_array_f != null && typeof text_array_f.join === "function")
         text_array_f.join(",");
+      inner = (
+        <TextField
+          className={c.text}
+          label={com.name}
+          variant="filled"
+          size="small"
+          value={text_array_f}
+          onChange={(e) => {
+            updateConfiguration(com.field, e.target.value.split(","), layer);
+          }}
+        />
+      );
       return (
         <div>
-          <Tooltip title={com.description || ""} placement="top" arrow>
-            <TextField
-              className={c.text}
-              label={com.name}
-              variant="filled"
-              size="small"
-              value={text_array_f}
-              onChange={(e) => {
-                updateConfiguration(
-                  com.field,
-                  e.target.value.split(","),
-                  layer
-                );
-              }}
-            />
-          </Tooltip>
+          {inlineHelp ? (
+            <>
+              {inner}
+              <Typography className={c.subtitle2}>
+                {com.description || ""}
+              </Typography>
+            </>
+          ) : (
+            <Tooltip title={com.description || ""} placement="top" arrow>
+              {inner}
+            </Tooltip>
+          )}
         </div>
       );
     case "number":
@@ -183,6 +236,60 @@ const getComponent = (com, configuration, layer, updateConfiguration, c) => {
           }}
         />
       );
+    case "object":
+      const section = [];
+      com.items.rows.forEach((item, idx) => {
+        section.push(
+          <Box
+            sx={{ flexGrow: 1 }}
+            className={clsx(c.row, c.noMargin)}
+            key={idx}
+            style={{ display: "flex" }}
+          >
+            <div className={c.objectAdd}>
+              {item.addable ? (
+                <IconButton aria-label="add">
+                  <AddIcon />
+                </IconButton>
+              ) : null}
+            </div>
+            <Grid
+              container
+              spacing={4}
+              direction="row"
+              justifyContent="left"
+              alignItems="left"
+            >
+              {item.components.map((icom, idx2) => {
+                return (
+                  <Grid
+                    item
+                    xs={icom.width || 4}
+                    md={icom.width || 4}
+                    lg={icom.width || 4}
+                    xl={icom.width || 4}
+                    key={`${idx}-${idx2}`}
+                  >
+                    {getComponent(
+                      icom,
+                      configuration,
+                      layer,
+                      updateConfiguration,
+                      c
+                    )}
+                  </Grid>
+                );
+              })}
+            </Grid>
+          </Box>
+        );
+      });
+      return (
+        <div className={clsx(c.object)}>
+          <div className={clsx(c.rowTitle2)}>{com.name}</div>
+          {section}
+        </div>
+      );
     case "map":
       return (
         <div className={c.map} style={{ height: com.height || "200px" }}>
@@ -200,7 +307,8 @@ const makeConfig = (
   configuration,
   layer,
   c,
-  shadowed
+  shadowed,
+  inlineHelp
 ) => {
   const made = [];
   if (config.rows == null) return made;
@@ -246,7 +354,8 @@ const makeConfig = (
                     configuration,
                     layer,
                     updateConfiguration,
-                    c
+                    c,
+                    inlineHelp
                   )}
                 </Grid>
               );
@@ -261,7 +370,7 @@ const makeConfig = (
 };
 
 export default function Maker(props) {
-  const { config, layer, shadowed } = props;
+  const { config, layer, shadowed, inlineHelp } = props;
   const c = useStyles();
 
   const dispatch = useDispatch();
@@ -291,7 +400,8 @@ export default function Maker(props) {
         configuration,
         layer,
         c,
-        shadowed
+        shadowed,
+        inlineHelp
       )}
     </div>
   );
