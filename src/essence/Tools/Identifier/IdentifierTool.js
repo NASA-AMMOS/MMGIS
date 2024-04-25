@@ -34,7 +34,21 @@ var IdentifierTool = {
         //Get tool variables and UI adjustments
         this.justification = L_.getToolVars('identifier')['justification']
         var toolContent = d3.select('#toolSeparated_Identifier')
-        toolContent.style('bottom', '2px')    
+        toolContent.style('bottom', '2px')
+        if (this.justification == 'right') {
+            var toolController = d3.select('#toolcontroller_sepdiv')
+            toolController.style('top', '110px')
+            toolController.style('left', null)
+            toolController.style('right', '5px')
+            toolContent.style('left', null)
+            toolContent.style('right', '0px')
+        } else if (this.justification != L_.getToolVars('legend')['justification']) {
+            var toolController = d3.select('#toolcontroller_sepdiv').clone(false).attr('id', 'toolcontroller_sepdiv_left')
+            $('#toolSeparated_Identifier').appendTo('#toolcontroller_sepdiv_left')
+            toolController.style('top', '40px')
+            toolController.style('left', '5px')
+            toolController.style('right', null)
+        }
     },   
     make: function (targetId) {
         this.MMWebGISInterface = new interfaceWithMMWebGIS()
