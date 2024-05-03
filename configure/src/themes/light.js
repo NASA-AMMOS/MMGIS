@@ -33,6 +33,7 @@ export const palette = {
       700: "#b4b8bb",
       800: "#d4d6d8",
       900: "#f4f5f5",
+      950: "#fafafa",
       1000: "#FFFFFF",
     },
     blue: {},
@@ -53,6 +54,7 @@ export const palette = {
       8: "#11495c",
       9: "#75351e",
       10: "#78b1c2",
+      11: "#24806d",
     },
     r: {
       1: "#b30000",

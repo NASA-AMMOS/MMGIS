@@ -5,7 +5,7 @@ export const ConfigureStore = createSlice({
   initialState: {
     missions: [],
     mission: null,
-    configuration: {},
+    configuration: "{}",
     toolConfiguration: {},
     modal: {
       newMission: false,

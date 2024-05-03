@@ -60,3 +60,21 @@ export const getLayerByUUID = (layers, uuid) => {
   });
   return layer;
 };
+
+export const getToolFromConfiguration = (toolName, configuration) => {
+  for (let i = 0; i < configuration.tools.length; i++) {
+    if (configuration.tools[i].name === toolName) return configuration.tools[i];
+  }
+};
+export const updateToolInConfiguration = (
+  toolName,
+  configuration,
+  keyArray,
+  value
+) => {
+  for (let i = 0; i < configuration.tools.length; i++) {
+    if (configuration.tools[i].name === toolName) {
+      setIn(configuration.tools[i], keyArray, value);
+    }
+  }
+};

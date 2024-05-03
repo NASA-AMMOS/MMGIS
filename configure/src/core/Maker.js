@@ -28,7 +28,13 @@ import AddIcon from "@mui/icons-material/Add";
 
 import { calls } from "./calls";
 import { setConfiguration, setSnackBarText } from "./ConfigureStore";
-import { getIn, setIn, traverseLayers } from "./utils";
+import {
+  getIn,
+  setIn,
+  traverseLayers,
+  getToolFromConfiguration,
+  updateToolInConfiguration,
+} from "./utils";
 
 import Map from "../components/Map/Map";
 import ColorButton from "../components/ColorButton/ColorButton";
@@ -56,8 +62,10 @@ const useStyles = makeStyles((theme) => ({
     letterSpacing: "1px",
   },
   rowTitle2: {
-    paddingBottom: "5px",
-    borderBottom: `1px solid ${theme.palette.swatches.grey[800]}`,
+    lineHeight: "48px",
+    paddingLeft: "10px",
+    color: theme.palette.swatches.p[11],
+    letterSpacing: "1px",
   },
   rowTitleBasic: {
     margin: "40px 20px 0px 20px",
@@ -78,8 +86,20 @@ const useStyles = makeStyles((theme) => ({
   checkbox: {
     paddingTop: "4px",
   },
+  keyvalue: {
+    display: "flex",
+    justifyContent: "space-between",
+    "& > div:first-child": { width: "25%", marginRight: "8px" },
+    "& > div:last-child": { flex: 1 },
+  },
+  objectArrayBox: {
+    display: "flex",
+    margin: "0px 10px",
+  },
   object: {
-    background: theme.palette.swatches.grey[800],
+    border: `2px solid ${theme.palette.swatches.grey[900]}`,
+    borderLeft: `2px solid ${theme.palette.swatches.grey[200]}`,
+    background: theme.palette.swatches.grey[950],
   },
   map: {},
   noMargin: {
@@ -96,9 +116,12 @@ const getComponent = (
   com,
   configuration,
   layer,
+  tool,
   updateConfiguration,
   c,
-  inlineHelp
+  inlineHelp,
+  value,
+  forceField
 ) => {
   const directConf = layer == null ? configuration : layer;
   let inner;
@@ -110,9 +133,9 @@ const getComponent = (
           label={com.name}
           variant="filled"
           size="small"
-          value={getIn(directConf, com.field, "")}
+          value={value != null ? value : getIn(directConf, com.field, "")}
           onChange={(e) => {
-            updateConfiguration(com.field, e.target.value, layer);
+            updateConfiguration(forceField || com.field, e.target.value, layer);
           }}
         />
       );
@@ -236,23 +259,18 @@ const getComponent = (
           }}
         />
       );
-    case "object":
+    case "objectarray":
       const section = [];
-      com.items.rows.forEach((item, idx) => {
+      let items = getIn(tool, com.field.split("."), []);
+      if (typeof items.push !== "function") items = [];
+
+      items.forEach((item, idx) => {
         section.push(
           <Box
             sx={{ flexGrow: 1 }}
-            className={clsx(c.row, c.noMargin)}
+            className={clsx(c.row, c.objectArrayBox)}
             key={idx}
-            style={{ display: "flex" }}
           >
-            <div className={c.objectAdd}>
-              {item.addable ? (
-                <IconButton aria-label="add">
-                  <AddIcon />
-                </IconButton>
-              ) : null}
-            </div>
             <Grid
               container
               spacing={4}
@@ -260,7 +278,7 @@ const getComponent = (
               justifyContent="left"
               alignItems="left"
             >
-              {item.components.map((icom, idx2) => {
+              {com.object.map((icom, idx2) => {
                 return (
                   <Grid
                     item
@@ -274,8 +292,12 @@ const getComponent = (
                       icom,
                       configuration,
                       layer,
+                      tool,
                       updateConfiguration,
-                      c
+                      c,
+                      inlineHelp,
+                      item[icom.field],
+                      `${com.field}.${idx}.${icom.field}`
                     )}
                   </Grid>
                 );
@@ -286,7 +308,34 @@ const getComponent = (
       });
       return (
         <div className={clsx(c.object)}>
-          <div className={clsx(c.rowTitle2)}>{com.name}</div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <div className={clsx(c.rowTitle2)}>{com.name}</div>
+            <div className={c.objectAdd}>
+              <IconButton
+                aria-label="add"
+                onClick={() => {
+                  if (tool) {
+                    const t = getToolFromConfiguration(
+                      tool.name,
+                      configuration
+                    );
+                    let next = getIn(t, com.field.split("."), []);
+                    next = JSON.parse(JSON.stringify(next));
+                    if (typeof next.push !== "function") next = [];
+                    let nextObj = {};
+                    com.object.forEach((obj) => {
+                      nextObj[obj.field] = null;
+                    });
+                    next.push(nextObj);
+
+                    updateConfiguration(com.field, next, configuration);
+                  }
+                }}
+              >
+                <AddIcon />
+              </IconButton>
+            </div>
+          </div>
           {section}
         </div>
       );
@@ -306,6 +355,7 @@ const makeConfig = (
   config,
   configuration,
   layer,
+  tool,
   c,
   shadowed,
   inlineHelp
@@ -353,6 +403,7 @@ const makeConfig = (
                     com,
                     configuration,
                     layer,
+                    tool,
                     updateConfiguration,
                     c,
                     inlineHelp
@@ -370,24 +421,34 @@ const makeConfig = (
 };
 
 export default function Maker(props) {
-  const { config, layer, shadowed, inlineHelp } = props;
+  const { config, layer, toolName, shadowed, inlineHelp } = props;
   const c = useStyles();
 
   const dispatch = useDispatch();
 
   const configuration = useSelector((state) => state.core.configuration);
 
+  let tool = null;
+  if (toolName) tool = getToolFromConfiguration(toolName, configuration);
+
   const updateConfiguration = (keyPath, value, layer) => {
     const nextConfiguration = JSON.parse(JSON.stringify(configuration));
 
-    if (layer == null) {
-      setIn(nextConfiguration, keyPath.split("."), value);
-    } else {
+    if (tool != null) {
+      updateToolInConfiguration(
+        tool.name,
+        nextConfiguration,
+        keyPath.split("."),
+        value
+      );
+    } else if (layer != null) {
       traverseLayers(nextConfiguration.layers, (l, path, index) => {
         if (layer.uuid === l.uuid) {
           setIn(l, keyPath.split("."), value);
         }
       });
+    } else {
+      setIn(nextConfiguration, keyPath.split("."), value);
     }
     dispatch(setConfiguration(nextConfiguration));
   };
@@ -399,6 +460,7 @@ export default function Maker(props) {
         config,
         configuration,
         layer,
+        tool,
         c,
         shadowed,
         inlineHelp

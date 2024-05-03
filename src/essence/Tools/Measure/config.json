@@ -22,7 +22,7 @@
             {
                 "components": [
                     {
-                        "field": "dem",
+                        "field": "variables.dem",
                         "name": "DEM path",
                         "description": "Path to Data/defaultDEM.tif",
                         "type": "text",
@@ -33,39 +33,34 @@
             {
                 "components": [
                     {
-                        "field": "layerDems",
+                        "field": "variables.layerDems",
                         "name": "Layer specific DEMs",
                         "description": "Only show DEM if associated layer is on.",
-                        "type": "object",
+                        "type": "objectarray",
                         "width": 12,
-                        "items": {
-                            "rows": [
-                                {
-                                    "addable": true,
-                                    "components": [
-                                        {
-                                            "name": "Layer Name",
-                                            "description": "",
-                                            "type": "text",
-                                            "width": 4
-                                        },
-                                        {
-                                            "name": "DEM path",
-                                            "description": "",
-                                            "type": "text",
-                                            "width": 8
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
+                        "object": [
+                            {
+                                "field": "layer",
+                                "name": "Layer Name",
+                                "description": "",
+                                "type": "text",
+                                "width": 4
+                            },
+                            {
+                                "field": "dem",
+                                "name": "DEM Path",
+                                "description": "",
+                                "type": "text",
+                                "width": 8
+                            }
+                        ]
                     }
                 ]
             },
             {
                 "components": [
                     {
-                        "field": "onlyShowDemIfLayerOn",
+                        "field": "variables.onlyShowDemIfLayerOn",
                         "name": "Only Show DEM If On",
                         "description": "Only show DEM if associated layer is on.",
                         "type": "checkbox",
@@ -77,7 +72,7 @@
             {
                 "components": [
                     {
-                        "field": "defaultMode",
+                        "field": "variables.defaultMode",
                         "name": "Default Mode",
                         "description": "",
                         "type": "dropdown",

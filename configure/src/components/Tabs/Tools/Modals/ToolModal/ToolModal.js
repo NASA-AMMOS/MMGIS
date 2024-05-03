@@ -22,9 +22,9 @@ import CloseSharpIcon from "@mui/icons-material/CloseSharp";
 import HandymanIcon from "@mui/icons-material/Handyman";
 
 import TextField from "@mui/material/TextField";
+import Switch from "@mui/material/Switch";
 import FormGroup from "@mui/material/FormGroup";
 import FormControlLabel from "@mui/material/FormControlLabel";
-import Checkbox from "@mui/material/Checkbox";
 
 import { makeStyles, useTheme } from "@mui/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -100,6 +100,26 @@ const useStyles = makeStyles((theme) => ({
   backgroundIcon: {
     margin: "7px 8px 0px 0px",
   },
+  top: {
+    display: "flex",
+    justifyContent: "space-between",
+  },
+  topOptions: {
+    padding: "20px 20px 0px 20px",
+    "& > div:first-child": {
+      float: "right",
+    },
+  },
+  switch: {
+    transform: "scale(1.25)",
+    marginRight: "8px",
+    "& .MuiSwitch-switchBase.Mui-checked": {
+      color: theme.palette.accent.main,
+    },
+    "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
+      backgroundColor: theme.palette.swatches.p[8],
+    },
+  },
   info: {
     padding: "16px",
     marginBottom: `1px solid ${theme.palette.swatches.grey[800]}`,
@@ -119,13 +139,11 @@ const ToolModal = (props) => {
   const c = useStyles();
 
   let modal = useSelector((state) => state.core.modal[MODAL_NAME]);
-  const configuration = useSelector((state) => state.core.configuration);
 
   const open = modal !== false;
 
   modal = modal || {};
   const toolName = modal.toolName;
-  const tool = modal.tool;
   const toolConfig = modal.toolConfig;
 
   const theme = useTheme();
@@ -137,6 +155,8 @@ const ToolModal = (props) => {
     // close modal
     dispatch(setModal({ name: MODAL_NAME, on: false }));
   };
+
+  console.log(modal);
 
   return (
     <Dialog
@@ -166,17 +186,50 @@ const ToolModal = (props) => {
         </div>
       </DialogTitle>
       <DialogContent className={c.content}>
-        <div className={c.info}>
-          <Typography className={c.infoTitle}>
-            {toolConfig?.description}
-          </Typography>
-          <Typography className={c.infoDescription}>
-            {toolConfig?.descriptionFull?.title}
-          </Typography>
+        <div className={c.top}>
+          <div className={c.info}>
+            <Typography className={c.infoTitle}>
+              {toolConfig?.description}
+            </Typography>
+            <Typography className={c.infoDescription}>
+              {toolConfig?.descriptionFull?.title}
+            </Typography>
+          </div>
+          <div className={c.topOptions}>
+            <FormGroup>
+              <FormControlLabel
+                control={
+                  <Switch
+                    className={c.switch}
+                    checked={true}
+                    onChange={(e) => {
+                      //updateConfiguration(forceField || com.field, e.target.value, layer);
+                    }}
+                  />
+                }
+                label="ON"
+                labelPlacement="start"
+              />
+            </FormGroup>
+            <TextField
+              className={c.text}
+              variant="filled"
+              size="small"
+              value={modal?.tool?.icon || toolConfig?.defaultIcon || ""}
+              label={"Icon Name"}
+              onChange={(e) => {
+                //updateConfiguration(forceField || com.field, e.target.value, layer);
+              }}
+            />
+          </div>
         </div>
 
-        {toolConfig && tool ? (
-          <Maker config={toolConfig.config} tool={tool} inlineHelp={true} />
+        {toolConfig && toolName ? (
+          <Maker
+            config={toolConfig.config}
+            toolName={toolName}
+            inlineHelp={true}
+          />
         ) : null}
       </DialogContent>
       <DialogActions>
