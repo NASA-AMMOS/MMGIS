@@ -2,12 +2,18 @@ import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 import { calls } from "../../../../../core/calls";
-import { getLayerByUUID } from "../../../../../core/utils";
+import {
+  getLayerByUUID,
+  getIn,
+  setIn,
+  getToolFromConfiguration,
+  updateToolInConfiguration,
+} from "../../../../../core/utils";
 
 import {
-  setMissions,
   setModal,
   setSnackBarText,
+  setConfiguration,
 } from "../../../../../core/ConfigureStore";
 
 import Typography from "@mui/material/Typography";
@@ -139,12 +145,14 @@ const ToolModal = (props) => {
   const c = useStyles();
 
   let modal = useSelector((state) => state.core.modal[MODAL_NAME]);
+  const configuration = useSelector((state) => state.core.configuration);
 
   const open = modal !== false;
 
   modal = modal || {};
   const toolName = modal.toolName;
   const toolConfig = modal.toolConfig;
+  const tool = getToolFromConfiguration(toolName, configuration) || {};
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -157,6 +165,9 @@ const ToolModal = (props) => {
   };
 
   console.log(modal);
+
+  let toolActive = tool.name != null ? true : false;
+  if (tool?.on != null) toolActive = tool.on;
 
   return (
     <Dialog
@@ -201,13 +212,31 @@ const ToolModal = (props) => {
                 control={
                   <Switch
                     className={c.switch}
-                    checked={true}
+                    checked={toolActive}
                     onChange={(e) => {
-                      //updateConfiguration(forceField || com.field, e.target.value, layer);
+                      const nextConfiguration = JSON.parse(
+                        JSON.stringify(configuration)
+                      );
+                      if (tool != null) {
+                        updateToolInConfiguration(
+                          tool.name,
+                          nextConfiguration,
+                          ["on"],
+                          !toolActive
+                        );
+                      } else {
+                        nextConfiguration.tools.push({
+                          on: true,
+                          name: toolName,
+                          icon: toolConfig.defaultIcon,
+                          js: Object.keys(toolConfig.paths)[0],
+                        });
+                      }
+                      dispatch(setConfiguration(nextConfiguration));
                     }}
                   />
                 }
-                label="ON"
+                label={toolActive ? "ON" : "OFF"}
                 labelPlacement="start"
               />
             </FormGroup>
@@ -215,7 +244,7 @@ const ToolModal = (props) => {
               className={c.text}
               variant="filled"
               size="small"
-              value={modal?.tool?.icon || toolConfig?.defaultIcon || ""}
+              value={tool?.icon || toolConfig?.defaultIcon || ""}
               label={"Icon Name"}
               onChange={(e) => {
                 //updateConfiguration(forceField || com.field, e.target.value, layer);

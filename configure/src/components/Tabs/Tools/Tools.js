@@ -112,17 +112,14 @@ export default function Tools() {
       );
   }, []);
 
-  const handleClick = (toolName, toolConfig, tool) => {
+  const handleClick = (toolName, toolConfig) => {
     dispatch(
       setModal({
         name: "tool",
         on: true,
         toolName,
         toolConfig,
-        tool,
-        onClose: () => {
-          console.log("closed");
-        },
+        onClose: () => {},
       })
     );
   };
@@ -140,6 +137,7 @@ export default function Tools() {
             t = {};
             toolActive = false;
           }
+          if (t?.on != null) toolActive = t.on;
           cards.push(
             <Grid
               item
@@ -149,7 +147,7 @@ export default function Tools() {
               lg={4}
               xl={3}
               onClick={() => {
-                handleClick(key, tConfig, t);
+                handleClick(key, tConfig);
               }}
             >
               <div key={idx} className={c.card}>
