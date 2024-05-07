@@ -94,12 +94,15 @@ const useStyles = makeStyles((theme) => ({
   },
   objectArrayBox: {
     display: "flex",
-    margin: "0px 10px",
+    margin: "0px 10px 10px 10px",
+    background: theme.palette.swatches.grey[1000],
+    padding: "10px",
+    boxShadow: "0px 2px 2px 0px rgba(0, 0, 0, 0.1)",
   },
   object: {
     border: `2px solid ${theme.palette.swatches.grey[900]}`,
     borderLeft: `2px solid ${theme.palette.swatches.grey[200]}`,
-    background: theme.palette.swatches.grey[950],
+    background: theme.palette.swatches.grey[850],
   },
   map: {},
   noMargin: {

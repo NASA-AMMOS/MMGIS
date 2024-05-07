@@ -32,6 +32,7 @@ export const palette = {
       600: "#949a9e",
       700: "#b4b8bb",
       800: "#d4d6d8",
+      850: "#efefef",
       900: "#f4f5f5",
       950: "#fafafa",
       1000: "#FFFFFF",

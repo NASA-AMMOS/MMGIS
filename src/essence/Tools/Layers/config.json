@@ -13,5 +13,21 @@
     "paths": {
         "LayersTool": "essence/Tools/Layers/LayersTool"
     },
-    "expandable": true
+    "expandable": true,
+    "config": {
+        "rows": [
+            {
+                "components": [
+                    {
+                        "field": "variables.expanded",
+                        "name": "Expanded",
+                        "description": "Whether all layer groupings default to being expanded (as opposed to being collapsed).",
+                        "type": "checkbox",
+                        "width": 3,
+                        "defaultChecked": false
+                    }
+                ]
+            }
+        ]
+    }
 }

@@ -39,5 +39,131 @@
         "ShadeTool": "essence/Tools/Shade/ShadeTool",
         "ShadeTool_Manager": "essence/Tools/Shade/ShadeTool_Algorithm",
         "ShadeTool_Algorithm": "essence/Tools/Shade/ShadeTool_Algorithm"
+    },
+    "config": {
+        "rows": [
+            {
+                "components": [
+                    {
+                        "field": "variables.dem",
+                        "name": "DEM path",
+                        "description": "Path to Data/defaultDEM.tif",
+                        "type": "text",
+                        "width": 12
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.data",
+                        "name": "Layer specific DEMs",
+                        "description": "Only show DEM if associated layer is on.",
+                        "type": "objectarray",
+                        "width": 12,
+                        "object": [
+                            {
+                                "field": "name",
+                                "name": "Name",
+                                "description": "User-friendly name for DEM",
+                                "type": "text",
+                                "width": 2
+                            },
+                            {
+                                "field": "demtileurl",
+                                "name": "DEM Path",
+                                "description": "",
+                                "type": "text",
+                                "width": 8
+                            },
+                            {
+                                "field": "minZoom",
+                                "name": "Minimum Zoom",
+                                "description": "",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "width": 1
+                            },
+                            {
+                                "field": "maxNativeZoom",
+                                "name": "Maximum Native Zoom",
+                                "description": "",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "width": 1
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.sources",
+                        "name": "Sources",
+                        "description": "Only show DEM if associated layer is on.",
+                        "type": "objectarray",
+                        "width": 12,
+                        "object": [
+                            {
+                                "field": "name",
+                                "name": "Name",
+                                "description": "User-friendly name for orbiter or body that 'casts shadows'",
+                                "type": "text",
+                                "width": 4
+                            },
+                            {
+                                "field": "value",
+                                "name": "Value",
+                                "description": "SPICE Spacecraft name or ID",
+                                "type": "text",
+                                "width": 4
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.observers",
+                        "name": "Observers",
+                        "description": "Only show DEM if associated layer is on.",
+                        "type": "objectarray",
+                        "width": 12,
+                        "object": [
+                            {
+                                "field": "name",
+                                "name": "Name",
+                                "description": "User-friendly name for observer for spacecraft time computations",
+                                "type": "text",
+                                "width": 4
+                            },
+                            {
+                                "field": "value",
+                                "name": "Value",
+                                "description": "SPICE Spacecraft name or ID",
+                                "type": "text",
+                                "width": 4
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.defaultHeight",
+                        "name": "Default Height",
+                        "description": "",
+                        "type": "number",
+                        "min": 0,
+                        "width": 2
+                    }
+                ]
+            }
+        ]
     }
 }

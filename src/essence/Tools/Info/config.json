@@ -13,5 +13,21 @@
     "paths": {
         "InfoTool": "essence/Tools/Info/InfoTool"
     },
-    "expandable": true
+    "expandable": true,
+    "config": {
+        "rows": [
+            {
+                "components": [
+                    {
+                        "field": "variables.sortAlphabetically",
+                        "name": "Sort Alphabetically",
+                        "description": "Whether to sort the feature's fields alphabetically instead of listing them in their native order.",
+                        "type": "checkbox",
+                        "width": 3,
+                        "defaultChecked": false
+                    }
+                ]
+            }
+        ]
+    }
 }
