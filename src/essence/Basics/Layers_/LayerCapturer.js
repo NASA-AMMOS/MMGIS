@@ -188,10 +188,7 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                         L_.clearVectorLayer(layerObj.name)
                     }
                 })
-                cb(
-                    { type: 'FeatureCollection', check: true, features: [] },
-                    true
-                )
+                cb({ type: 'FeatureCollection', features: [] }, true)
                 break
             case 'api':
                 break
