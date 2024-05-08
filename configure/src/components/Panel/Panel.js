@@ -62,7 +62,6 @@ const useStyles = makeStyles((theme) => ({
       "background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, width 250ms ease-out 0ms, box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, border-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms",
   },
   missionActive: {
-    width: "calc(100% + 15px)",
     background: `${theme.palette.swatches.grey[1000]} !important`,
     color: `${theme.palette.swatches.grey[100]} !important`,
     fontWeight: "bold !important",

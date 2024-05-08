@@ -18,7 +18,9 @@ export const palette = {
     secondary: "#000000",
     tertiary: "#04f5f5",
   },
-  active: {},
+  active: {
+    main: "#0792c5",
+  },
   swatches: {
     grey: {
       0: "#000000",
@@ -178,12 +180,12 @@ export const theme = {
       },
     },
     MuiCheckbox: {
-      root: {
-        color: palette.swatches.grey.grey300,
-        "&$checked": {
-          color: palette.active.main,
+      styleOverrides: {
+        root: {
+          "&.Mui-checked": {
+            color: palette.active.main,
+          },
         },
-        padding: "3.25px",
       },
     },
     MuiPagination: {

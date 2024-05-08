@@ -57,7 +57,7 @@ const useStyles = makeStyles((theme) => ({
   contents: {
     height: "100%",
     width: "100%",
-    maxWidth: "1500px !important",
+    maxWidth: "80% !important",
     maxHeight: "calc(100% - 32px) !important",
   },
   heading: {

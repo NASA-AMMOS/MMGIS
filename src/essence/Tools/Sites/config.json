@@ -25,5 +25,59 @@
     "toolbarPriority": 4,
     "paths": {
         "SitesTool": "essence/Tools/Sites/SitesTool"
+    },
+    "config": {
+        "rows": [
+            {
+                "components": [
+                    {
+                        "field": "variables.sites",
+                        "name": "Sites",
+                        "description": "",
+                        "type": "objectarray",
+                        "width": 12,
+                        "object": [
+                            {
+                                "field": "name",
+                                "name": "Name",
+                                "description": "Name of site",
+                                "type": "text",
+                                "width": 4
+                            },
+                            {
+                                "field": "code",
+                                "name": "Code",
+                                "description": "Unique identifier. Can match header layer to toggle its sublayers.",
+                                "type": "text",
+                                "width": 2
+                            },
+                            {
+                                "field": "view.0",
+                                "name": "Latitude",
+                                "description": "",
+                                "type": "number",
+                                "width": 2
+                            },
+                            {
+                                "field": "view.1",
+                                "name": "Longitude",
+                                "description": "",
+                                "type": "number",
+                                "width": 2
+                            },
+                            {
+                                "field": "view.2",
+                                "name": "Zoom Level",
+                                "description": "",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "width": 2
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
     }
 }

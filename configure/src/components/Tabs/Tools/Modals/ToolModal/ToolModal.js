@@ -55,14 +55,13 @@ const useStyles = makeStyles((theme) => ({
   contents: {
     height: "100%",
     width: "100%",
-    maxWidth: "1500px !important",
+    maxWidth: "80% !important",
     maxHeight: "calc(100% - 32px) !important",
   },
   heading: {
     height: theme.headHeights[2],
     boxSizing: "border-box",
     background: theme.palette.swatches.p[0],
-    borderBottom: `1px solid ${theme.palette.swatches.grey[800]}`,
     padding: `4px ${theme.spacing(2)} 4px ${theme.spacing(4)} !important`,
   },
   title: {
@@ -110,11 +109,16 @@ const useStyles = makeStyles((theme) => ({
   top: {
     display: "flex",
     justifyContent: "space-between",
+    borderBottom: `3px solid ${theme.palette.swatches.p[0]}`,
+    paddingBottom: `10px`,
+    background: theme.palette.secondary.main,
+    color: theme.palette.swatches.grey[700],
   },
   topOptions: {
     padding: "20px 20px 0px 20px",
+    minWidth: "180px",
     "& > div:first-child": {
-      float: "right",
+      padding: "5px",
     },
   },
   switch: {
@@ -123,8 +127,14 @@ const useStyles = makeStyles((theme) => ({
     "& .MuiSwitch-switchBase.Mui-checked": {
       color: theme.palette.accent.main,
     },
-    "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
-      backgroundColor: theme.palette.swatches.p[8],
+    "& .MuiSwitch-track": {
+      backgroundColor: `${theme.palette.swatches.grey[800]} !important`,
+    },
+  },
+  onLabel: {
+    "& .MuiFormControlLabel-label": {
+      color: theme.palette.swatches.grey[900],
+      marginRight: "5px",
     },
   },
   info: {
@@ -132,11 +142,23 @@ const useStyles = makeStyles((theme) => ({
     marginBottom: `1px solid ${theme.palette.swatches.grey[800]}`,
   },
   infoTitle: {
-    color: theme.palette.swatches.grey[500],
+    color: theme.palette.swatches.grey[900],
     marginBottom: "8px",
   },
   infoDescription: {
-    color: theme.palette.swatches.grey[200],
+    color: theme.palette.swatches.grey[600],
+  },
+  text: {
+    "& .MuiFormLabel-root": {
+      color: theme.palette.swatches.grey[700],
+    },
+    "& .MuiInputBase-root": {
+      background: theme.palette.swatches.grey[300],
+      color: theme.palette.swatches.grey[900],
+    },
+    "& .MuiInputBase-root::after": {
+      borderBottom: `1px solid ${theme.palette.swatches.grey[400]}`,
+    },
   },
 }));
 
@@ -210,6 +232,7 @@ const ToolModal = (props) => {
           <div className={c.topOptions}>
             <FormGroup>
               <FormControlLabel
+                className={c.onLabel}
                 control={
                   <Switch
                     className={c.switch}
@@ -263,7 +286,7 @@ const ToolModal = (props) => {
         ) : null}
       </DialogContent>
       <DialogActions>
-        <Button variant="contained" onClick={() => {}}>
+        <Button variant="contained" onClick={handleClose}>
           Done
         </Button>
       </DialogActions>

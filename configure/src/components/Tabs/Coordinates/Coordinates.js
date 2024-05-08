@@ -6,23 +6,23 @@ import { calls } from "../../../core/calls";
 import Maker from "../../../core/Maker";
 import { setSnackBarText } from "../../../core/ConfigureStore";
 
-import config from "../../../metaconfigs/tab-ui-config.json";
+import config from "../../../metaconfigs/tab-coordinates-config.json";
 
 const useStyles = makeStyles((theme) => ({
-  UserInterface: {
+  Coordinates: {
     width: "100%",
     display: "flex",
     background: theme.palette.swatches.grey[1000],
   },
 }));
 
-export default function UserInterface() {
+export default function Coordinates() {
   const c = useStyles();
 
   const dispatch = useDispatch();
 
   return (
-    <div className={c.UserInterface}>
+    <div className={c.Coordinates}>
       <Maker config={config} shadowed={true} inlineHelp={true} />
     </div>
   );

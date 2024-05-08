@@ -85,5 +85,233 @@
     "tests": {
         "DrawToolTest": "essence/Tools/Draw/DrawTool.test"
     },
-    "expandable": true
+    "expandable": true,
+    "config": {
+        "rows": [
+            {
+                "name": "Intent Aliases",
+                "description": "There are five files that are group editable with the correct permission. The group authentication is set an environment variable in the .env file during startup. These files are meant as collaborative layers that a only a few people will manage and contribute to do to the potential of race conditions on who did the last edit.",
+                "components": [
+                    {
+                        "field": "variables.intents.0",
+                        "name": "Polygon 1 Alias",
+                        "description": "",
+                        "type": "text",
+                        "width": 2
+                    },
+
+                    {
+                        "field": "variables.intents.1",
+                        "name": "Polygon 2 Alias",
+                        "description": "",
+                        "type": "text",
+                        "width": 2
+                    },
+                    {
+                        "field": "variables.intents.2",
+                        "name": "Polygon 3 Alias",
+                        "description": "",
+                        "type": "text",
+                        "width": 2
+                    },
+                    {
+                        "field": "variables.intents.3",
+                        "name": "Line Alias",
+                        "description": "",
+                        "type": "text",
+                        "width": 2
+                    },
+
+                    {
+                        "field": "variables.intents.4",
+                        "name": "Point Alias",
+                        "description": "",
+                        "type": "text",
+                        "width": 2
+                    },
+                    {
+                        "field": "variables.intents.5",
+                        "name": "All Alias",
+                        "description": "",
+                        "type": "text",
+                        "width": 2
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.defaultDrawClipping",
+                        "name": "Default Draw Clipping",
+                        "description": "Default clipping mode for drawing. Drawing a polygon Over another would clip away that other polygon. Drawing a polygon Under another would have that polygon clip away the newly drawn one. When the clipping mode is Off, no clipping occurs. Users may freely change the clipping mode.",
+                        "type": "dropdown",
+                        "width": 3,
+                        "options": ["over", "under", "off"]
+                    },
+                    {
+                        "field": "variables.leadsCanEditFileInfo",
+                        "name": "Leads Can Edit File Info",
+                        "description": "If true, lead roles can edit the file info, (name, description, tags, folder, make private) of any user's public file.",
+                        "type": "checkbox",
+                        "width": 3,
+                        "defaultChecked": false
+                    },
+                    {
+                        "field": "variables.hoverLengthOnLines",
+                        "name": "Hover Length On Lines",
+                        "description": "If true, the hover text for line features will include the total length of the line in meters.",
+                        "type": "checkbox",
+                        "width": 3,
+                        "defaultChecked": false
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.defaultPublicFilter",
+                        "name": "Default Public Filter",
+                        "description": "When the DrawTool first opens, filter the file list down to only public files or not.",
+                        "type": "checkbox",
+                        "width": 4,
+                        "defaultChecked": false
+                    },
+                    {
+                        "field": "variables.defaultYoursOnlyFilter",
+                        "name": "Default Yours Only Filter",
+                        "description": "When the DrawTool first opens, filter the file list down to only files you own or not.",
+                        "type": "checkbox",
+                        "width": 4,
+                        "defaultChecked": true
+                    },
+                    {
+                        "field": "variables.defaultOnFilter",
+                        "name": "Default On Filter",
+                        "description": "When the DrawTool first opens, filter the file list down to only files that are on or not. ",
+                        "type": "checkbox",
+                        "width": 4,
+                        "defaultChecked": false
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.templates",
+                        "name": "Default File Property Templates",
+                        "description": "Templates create forms for feature properties. For instance, all features in a given draw file could, in the feature's edit panel, have the field “Reviewed” be togglable via a checkbox. Users may make their own templates too but the ones configured here are promoted and cannot be delete.",
+                        "type": "objectarray",
+                        "width": 12,
+                        "object": [
+                            {
+                                "field": "name",
+                                "name": "Template Name",
+                                "description": "",
+                                "type": "text",
+                                "width": 4
+                            },
+                            {
+                                "field": "name",
+                                "name": "Property Field Name",
+                                "description": "",
+                                "type": "text",
+                                "width": 4
+                            },
+                            {
+                                "field": "type",
+                                "name": "Component",
+                                "description": "",
+                                "type": "dropdown",
+                                "width": 2,
+                                "options": [
+                                    "slider",
+                                    "number",
+                                    "text",
+                                    "textarea",
+                                    "checkbox",
+                                    "dropdown",
+                                    "incrementer",
+                                    "date"
+                                ]
+                            },
+                            {
+                                "field": "required",
+                                "name": "Required",
+                                "description": "Field requires entry.",
+                                "type": "checkbox",
+                                "width": 2,
+                                "defaultChecked": false
+                            },
+
+                            {
+                                "field": "min",
+                                "name": "Min Value",
+                                "description": "For Slider and Number",
+                                "type": "number",
+                                "width": 4
+                            },
+                            {
+                                "field": "max",
+                                "name": "Max Value",
+                                "description": "For Slider and Number",
+                                "type": "number",
+                                "width": 4
+                            },
+                            {
+                                "field": "step",
+                                "name": "Step Size",
+                                "description": "For Slider and Number",
+                                "type": "number",
+                                "width": 4
+                            },
+
+                            {
+                                "field": "minLength",
+                                "name": "Min Length",
+                                "description": "For Text and Textarea",
+                                "type": "number",
+                                "width": 4
+                            },
+                            {
+                                "field": "maxLength",
+                                "name": "Max Length",
+                                "description": "For Text and Textarea",
+                                "type": "number",
+                                "width": 4
+                            },
+                            {
+                                "field": "regex",
+                                "name": "Regex",
+                                "description": "For Text and Textarea",
+                                "type": "text",
+                                "width": 3
+                            },
+
+                            {
+                                "field": "items",
+                                "name": "Dropdown Items",
+                                "description": "Comma-separated. For dropdown",
+                                "type": "text",
+                                "width": 6
+                            },
+                            {
+                                "field": "format",
+                                "name": "Date Format",
+                                "description": "For date",
+                                "type": "text",
+                                "width": 3
+                            },
+                            {
+                                "field": "default",
+                                "name": "Default Value",
+                                "description": "For all types",
+                                "type": "text",
+                                "width": 3
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
 }

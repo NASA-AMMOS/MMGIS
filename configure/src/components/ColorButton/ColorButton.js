@@ -25,7 +25,7 @@ const useStyles = makeStyles((theme) => ({
   },
   label: {
     flex: 1,
-    lineHeight: "40px",
+    lineHeight: "43px",
     margin: "5px",
   },
   popover: {
