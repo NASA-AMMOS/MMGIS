@@ -1522,6 +1522,27 @@ var Formulae_ = {
         })
         return g
     },
+    parseIntoGeoJSON(data) {
+        let d
+        // []
+        if (Array.isArray(data) && data.length === 0) {
+            d = { type: 'FeatureCollection', features: [] }
+        }
+        // [<FeatureCollection>]
+        else if (
+            Array.isArray(data) &&
+            data[0] &&
+            data[0].type === 'FeatureCollection'
+        ) {
+            const nextData = { type: 'FeatureCollection', features: [] }
+            data.forEach((fc) => {
+                if (fc.type === 'FeatureCollection')
+                    nextData.features = nextData.features.concat(fc.features)
+            })
+            d = nextData
+        }
+        return d == null ? data : d
+    },
     // Gets all tiles with tile xyz at zoom z
     tilesWithin(xyz, z) {
         let tiles = []

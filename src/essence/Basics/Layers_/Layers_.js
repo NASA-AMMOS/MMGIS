@@ -2738,6 +2738,12 @@ const L_ = {
     syncSublayerData: async function (layerName, onlyClear) {
         layerName = L_.asLayerUUID(layerName)
 
+        if (
+            L_.layers.layer[layerName] == null ||
+            L_.layers.layer[layerName] == false
+        )
+            return
+
         try {
             let geojson = L_.layers.layer[layerName].toGeoJSON(
                 L_.GEOJSON_PRECISION

@@ -188,7 +188,10 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                         L_.clearVectorLayer(layerObj.name)
                     }
                 })
-                cb({ type: 'FeatureCollection', features: [] }, true)
+                cb(
+                    { type: 'FeatureCollection', check: true, features: [] },
+                    true
+                )
                 break
             case 'api':
                 break
@@ -276,6 +279,8 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                 data.features = data.Features
                                 delete data.Features
                             }
+
+                            data = F_.parseIntoGeoJSON(data)
 
                             const lastLoc = _layerRequestLastLoc[layerObj.name]
                             const nowLoc = L_.Map_.map.getCenter()
