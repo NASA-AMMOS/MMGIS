@@ -64,7 +64,6 @@ const useStyles = makeStyles((theme) => ({
     height: theme.headHeights[2],
     boxSizing: "border-box",
     background: theme.palette.swatches.p[0],
-    borderBottom: `1px solid ${theme.palette.swatches.grey[800]}`,
     padding: `4px ${theme.spacing(2)} 4px ${theme.spacing(4)} !important`,
   },
   title: {
@@ -195,7 +194,7 @@ const LayerModal = (props) => {
         </div>
       </DialogTitle>
       <DialogContent className={c.content}>
-        <Maker config={config} layer={layer} />
+        <Maker config={config} layer={layer} inlineHelp={true} />
       </DialogContent>
       <DialogActions>
         <Button variant="contained" onClick={() => {}}>

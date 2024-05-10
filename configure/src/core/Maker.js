@@ -38,11 +38,36 @@ import {
 
 import Map from "../components/Map/Map";
 import ColorButton from "../components/ColorButton/ColorButton";
+import MDEditor from "@uiw/react-md-editor";
 
 const useStyles = makeStyles((theme) => ({
   Maker: {
     width: "100%",
     background: theme.palette.swatches.grey[1000],
+  },
+  tabs: {
+    background: theme.palette.secondary.main,
+    "& button": {
+      color: theme.palette.swatches.grey[700],
+    },
+    "& button.Mui-selected": {
+      color: theme.palette.swatches.grey[1000],
+      background: theme.palette.swatches.grey[200],
+    },
+    "& .MuiTabs-indicator": {
+      backgroundColor: theme.palette.swatches.p[0],
+      height: "3px",
+    },
+    "& .MuiTabScrollButton-root": {
+      color: theme.palette.swatches.grey[1000],
+    },
+  },
+  contentTabs: {
+    height: "calc(100% - 48px)",
+    overflowY: "auto",
+    "& .rowTitle:first-child": {
+      marginTop: "20px !important",
+    },
   },
   shadowed: {
     boxShadow: `inset 10px 0px 10px -5px rgba(0,0,0,0.3)`,
@@ -74,7 +99,7 @@ const useStyles = makeStyles((theme) => ({
     paddingBottom: "5px",
     fontSize: "12px",
     letterSpacing: "1px",
-    color: theme.palette.swatches.p[0],
+    color: theme.palette.swatches.p[12],
     fontWeight: "bold",
     textTransform: "uppercase",
   },
@@ -214,6 +239,19 @@ const getComponent = (
           )}
         </div>
       );
+    case "markdown":
+      let markdown_f = value || getIn(directConf, com.field, "");
+      return (
+        <div className="container">
+          <MDEditor
+            value={markdown_f}
+            onChange={(val) => {
+              updateConfiguration(forceField || com.field, val, layer);
+            }}
+            height={700}
+          />
+        </div>
+      );
     case "number":
       inner = (
         <TextField
@@ -221,9 +259,9 @@ const getComponent = (
           label={com.name}
           variant="filled"
           size="small"
-          value={getIn(directConf, com.field, "")}
+          value={value || getIn(directConf, com.field, "")}
           onChange={(e) => {
-            updateConfiguration(com.field, e.target.value, layer);
+            updateConfiguration(forceField || com.field, e.target.value, layer);
           }}
           type="number"
           min={com.min != null ? com.min : 0}
@@ -253,9 +291,15 @@ const getComponent = (
           <FormControlLabel
             control={
               <Checkbox
-                checked={getIn(directConf, com.field, com.defaultChecked)}
+                checked={
+                  value || getIn(directConf, com.field, com.defaultChecked)
+                }
                 onChange={(e) => {
-                  updateConfiguration(com.field, e.target.checked, layer);
+                  updateConfiguration(
+                    forceField || com.field,
+                    e.target.checked,
+                    layer
+                  );
                 }}
               />
             }
@@ -284,9 +328,13 @@ const getComponent = (
         <FormControl className={c.dropdown} variant="filled" size="small">
           <InputLabel>{com.name}</InputLabel>
           <Select
-            value={getIn(directConf, com.field, com.options?.[0])}
+            value={value || getIn(directConf, com.field, com.options?.[0])}
             onChange={(e) => {
-              updateConfiguration(com.field, e.target.value, layer);
+              updateConfiguration(
+                forceField || com.field,
+                e.target.value,
+                layer
+              );
             }}
           >
             {com.options.map((o) => {
@@ -312,17 +360,23 @@ const getComponent = (
         </div>
       );
     case "colorpicker":
+      let color;
+      if (tool) color = getIn(tool, com.field.split("."), { hex: "#000000" });
+      else if (layer)
+        color = getIn(layer, com.field.split("."), { hex: "#000000" });
+      else color = getIn(directConf, com.field.split("."), { hex: "#000000" });
+
       inner = (
         <ColorButton
           label={com.name}
-          color={getIn(directConf, com.field, { hex: "transparent" })}
+          color={value || color}
           onChange={(color) => {
             if (color) {
               let colorStr = color.hex;
               if (color.rgb?.a !== 1) {
                 colorStr = `rgba(${color.rgb.r}, ${color.rgb.g}, ${color.rgb.b}, ${color.rgb.a})`;
               }
-              updateConfiguration(com.field, colorStr, layer);
+              updateConfiguration(forceField || com.field, colorStr, layer);
             }
           }}
         />
@@ -347,6 +401,7 @@ const getComponent = (
       const section = [];
       let items;
       if (tool) items = getIn(tool, com.field.split("."), []);
+      else if (layer) items = getIn(layer, com.field.split("."), []);
       else items = getIn(configuration, com.field.split("."), []);
       if (typeof items.push !== "function") items = [];
 
@@ -431,14 +486,7 @@ const getComponent = (
 
                     updateConfiguration(com.field, next, configuration);
                   } else {
-                    const nextConfiguration = JSON.parse(
-                      JSON.stringify(configuration)
-                    );
-                    let next = getIn(
-                      nextConfiguration,
-                      com.field.split("."),
-                      []
-                    );
+                    let next = getIn(configuration, com.field.split("."), []);
                     next = JSON.parse(JSON.stringify(next));
                     if (typeof next.push !== "function") next = [];
                     let nextObj = {};
@@ -446,8 +494,8 @@ const getComponent = (
                       nextObj[obj.field] = null;
                     });
                     next.push(nextObj);
-                    setIn(nextConfiguration, com.field.split("."), next);
-                    setConfiguration(nextConfiguration);
+
+                    updateConfiguration(com.field, next, layer);
                   }
                 }}
               >
@@ -469,6 +517,27 @@ const getComponent = (
   }
 };
 
+const makeConfigTabs = (tabs, value, onChange, c) => {
+  if (tabs) {
+    return (
+      <Tabs
+        className={c.tabs}
+        value={value}
+        onChange={(e, v) => {
+          onChange(v);
+        }}
+        variant="scrollable"
+        scrollButtons="auto"
+        aria-label="scrollable auto tabs example"
+      >
+        {tabs.map((tab) => (
+          <Tab label={tab.name} />
+        ))}
+      </Tabs>
+    );
+  }
+};
+
 const makeConfig = (
   updateConfiguration,
   config,
@@ -480,13 +549,16 @@ const makeConfig = (
   inlineHelp
 ) => {
   const made = [];
+
   if (config == null || config.rows == null) return made;
 
   config.rows.forEach((row, idx) => {
     if (row.name) {
       made.push(
         <div
-          className={clsx(c.rowTitle, { [c.rowTitleBasic]: !shadowed })}
+          className={clsx(c.rowTitle, "rowTitle", {
+            [c.rowTitleBasic]: !shadowed,
+          })}
           key={`${idx}_title`}
         >
           {row.name}
@@ -509,6 +581,13 @@ const makeConfig = (
           {row.subname}
         </div>
       );
+      if (row.subdescription) {
+        made.push(
+          <div className={clsx(c.rowDescription)} key={`${idx}_desc`}>
+            {row.subdescription}
+          </div>
+        );
+      }
     }
     if (row.components) {
       made.push(
@@ -562,6 +641,8 @@ export default function Maker(props) {
 
   const dispatch = useDispatch();
 
+  const [tabValue, setTabValue] = useState(0);
+
   const configuration = useSelector((state) => state.core.configuration);
 
   let tool = null;
@@ -590,17 +671,25 @@ export default function Maker(props) {
   };
 
   return (
-    <div className={clsx(c.Maker, { [c.shadowed]: shadowed })}>
-      {makeConfig(
-        updateConfiguration,
-        config,
-        configuration,
-        layer,
-        tool,
-        c,
-        shadowed,
-        inlineHelp
-      )}
+    <div
+      className={clsx(c.Maker, { [c.shadowed]: shadowed })}
+      style={{ height: config.tabs ? "100%" : "unset" }}
+    >
+      {config.tabs
+        ? makeConfigTabs(config.tabs, tabValue, setTabValue, c)
+        : null}
+      <div className={clsx({ [c.contentTabs]: config.tabs })}>
+        {makeConfig(
+          updateConfiguration,
+          config.tabs ? config.tabs[tabValue] : config,
+          configuration,
+          layer,
+          tool,
+          c,
+          shadowed,
+          inlineHelp
+        )}
+      </div>
     </div>
   );
 }

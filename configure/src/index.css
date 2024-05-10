@@ -7,6 +7,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
   width: 100vw;
   height: 100vh;
+  --color-canvas-default: #1a1a1a;
+}
+.w-md-editor-fullscreen {
+  right: 240px !important;
 }
 
 code {

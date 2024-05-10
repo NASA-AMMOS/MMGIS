@@ -187,8 +187,6 @@ const ToolModal = (props) => {
     dispatch(setModal({ name: MODAL_NAME, on: false }));
   };
 
-  console.log(modal);
-
   let toolActive = tool.name != null ? true : false;
   if (tool?.on != null) toolActive = tool.on;
 

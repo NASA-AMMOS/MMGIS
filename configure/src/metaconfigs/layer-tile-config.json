@@ -1,186 +1,189 @@
 {
-  "rows": [
+  "tabs": [
     {
-      "forceHeight": "64px",
-      "components": [
+      "name": "Core",
+      "rows": [
         {
-          "field": "type",
-          "name": "Layer Type",
-          "description": "",
-          "type": "dropdown",
-          "width": 2,
-          "options": [
-            "data",
-            "header",
-            "model",
-            "query",
-            "tile",
-            "vector",
-            "vectortile"
+          "forceHeight": "64px",
+          "components": [
+            {
+              "field": "type",
+              "name": "Layer Type",
+              "description": "",
+              "type": "dropdown",
+              "width": 2,
+              "options": [
+                "data",
+                "header",
+                "model",
+                "query",
+                "tile",
+                "vector",
+                "vectortile"
+              ]
+            },
+            {
+              "field": "name",
+              "name": "Layer Name",
+              "description": "",
+              "type": "text",
+              "width": 4
+            },
+            {
+              "field": "visibility",
+              "name": "Initially On",
+              "description": "",
+              "type": "checkbox",
+              "width": 2,
+              "defaultChecked": false
+            },
+            {
+              "type": "map",
+              "width": 4,
+              "height": "321px"
+            }
           ]
         },
         {
-          "field": "name",
-          "name": "Layer Name",
-          "description": "",
-          "type": "text",
-          "width": 4
+          "components": [
+            {
+              "field": "url",
+              "name": "URL",
+              "description": "",
+              "type": "text",
+              "width": 8
+            }
+          ]
         },
         {
-          "field": "visibility",
-          "name": "Initially On",
-          "description": "",
-          "type": "checkbox",
-          "width": 2,
-          "defaultChecked": false
+          "components": [
+            {
+              "field": "tileformat",
+              "name": "Tile Format",
+              "description": "",
+              "type": "dropdown",
+              "width": 4,
+              "options": ["tms", "wmts", "wms"]
+            },
+            {
+              "field": "controlled",
+              "name": "Controlled",
+              "description": "",
+              "type": "checkbox",
+              "width": 2,
+              "defaultChecked": false
+            },
+            {
+              "field": "initialOpacity",
+              "name": "Initial Opacity",
+              "description": "0 (transparent) to 1 (opaque)",
+              "type": "number",
+              "min": 0,
+              "width": 2
+            }
+          ]
         },
         {
-          "type": "map",
-          "width": 4,
-          "height": "321px"
+          "components": [
+            {
+              "field": "minZoom",
+              "name": "Minimum Zoom",
+              "description": "",
+              "type": "number",
+              "min": 0,
+              "step": 1,
+              "width": 3
+            },
+            {
+              "field": "maxNativeZoom",
+              "name": "Maximum Native Zoom",
+              "description": "",
+              "type": "number",
+              "min": 0,
+              "step": 1,
+              "width": 2
+            },
+            {
+              "field": "maxZoom",
+              "name": "Maximum Zoom",
+              "description": "",
+              "type": "number",
+              "min": 0,
+              "step": 1,
+              "width": 3
+            }
+          ]
+        },
+        {
+          "name": "Digital Elevation Model (DEM) Tiles",
+          "components": [
+            {
+              "field": "demtileurl",
+              "name": "DEM Tile URL",
+              "description": "",
+              "type": "text",
+              "width": 10
+            },
+            {
+              "field": "demparser",
+              "name": "DEM Parser",
+              "description": "",
+              "type": "dropdown",
+              "width": 2,
+              "options": ["rgba", "tif"]
+            }
+          ]
+        },
+        {
+          "name": "Time",
+          "components": [
+            {
+              "field": "time.enabled",
+              "name": "Time Enabled",
+              "description": "",
+              "type": "checkbox",
+              "width": 3,
+              "defaultChecked": false
+            },
+            {
+              "field": "time.type",
+              "name": "Time Type",
+              "description": "",
+              "type": "dropdown",
+              "width": 3,
+              "options": ["requery", "local"]
+            },
+            {
+              "field": "time.format",
+              "name": "Time Format",
+              "description": "",
+              "type": "text",
+              "width": 3
+            },
+            {
+              "field": "time.compositeTile",
+              "name": "Composite Time Tiles",
+              "description": "",
+              "type": "checkbox",
+              "width": 3,
+              "defaultChecked": false
+            }
+          ]
+        },
+        {
+          "name": "Other",
+          "components": [
+            {
+              "field": "boundingBox",
+              "name": "Bounding Box",
+              "description": "minx,miny,maxx,maxy",
+              "type": "textarray",
+              "width": 12
+            }
+          ]
         }
       ]
     },
-    {
-      "components": [
-        {
-          "field": "url",
-          "name": "URL",
-          "description": "",
-          "type": "text",
-          "width": 8
-        }
-      ]
-    },
-    {
-      "components": [
-        {
-          "field": "tileformat",
-          "name": "Tile Format",
-          "description": "",
-          "type": "dropdown",
-          "width": 4,
-          "options": ["tms", "wmts", "wms"]
-        },
-        {
-          "field": "controlled",
-          "name": "Controlled",
-          "description": "",
-          "type": "checkbox",
-          "width": 2,
-          "defaultChecked": false
-        },
-        {
-          "field": "initialOpacity",
-          "name": "Initial Opacity",
-          "description": "0 (transparent) to 1 (opaque)",
-          "type": "number",
-          "min": 0,
-          "width": 2
-        }
-      ]
-    },
-    {
-      "components": [
-        {
-          "field": "minZoom",
-          "name": "Minimum Zoom",
-          "description": "",
-          "type": "number",
-          "min": 0,
-          "step": 1,
-          "width": 3
-        },
-        {
-          "field": "maxNativeZoom",
-          "name": "Maximum Native Zoom",
-          "description": "",
-          "type": "number",
-          "min": 0,
-          "step": 1,
-          "width": 2
-        },
-        {
-          "field": "maxZoom",
-          "name": "Maximum Zoom",
-          "description": "",
-          "type": "number",
-          "min": 0,
-          "step": 1,
-          "width": 3
-        }
-      ]
-    },
-    {
-      "name": "Digital Elevation Model (DEM) Tiles",
-      "components": [
-        {
-          "field": "demtileurl",
-          "name": "DEM Tile URL",
-          "description": "",
-          "type": "text",
-          "width": 10
-        },
-        {
-          "field": "demparser",
-          "name": "DEM Parser",
-          "description": "",
-          "type": "dropdown",
-          "width": 2,
-          "options": ["rgba", "tif"]
-        }
-      ]
-    },
-    {
-      "name": "Time",
-      "components": [
-        {
-          "field": "time.enabled",
-          "name": "Time Enabled",
-          "description": "",
-          "type": "checkbox",
-          "width": 3,
-          "defaultChecked": false
-        },
-        {
-          "field": "time.type",
-          "name": "Time Type",
-          "description": "",
-          "type": "dropdown",
-          "width": 3,
-          "options": ["requery", "local"]
-        },
-        {
-          "field": "time.format",
-          "name": "Time Format",
-          "description": "",
-          "type": "text",
-          "width": 3
-        },
-        {
-          "field": "time.compositeTile",
-          "name": "Composite Time Tiles",
-          "description": "",
-          "type": "checkbox",
-          "width": 3,
-          "defaultChecked": false
-        }
-      ]
-    },
-    {
-      "name": "Other",
-      "components": [
-        {
-          "field": "boundingBox",
-          "name": "Bounding Box",
-          "description": "minx,miny,maxx,maxy",
-          "type": "textarray",
-          "width": 12
-        }
-      ]
-    }
-  ],
-  "tabs": [
     {
       "name": "Description + Tags",
       "rows": [

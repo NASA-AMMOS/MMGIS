@@ -9,9 +9,10 @@ export const getIn = (obj, keyArray, notSetValue) => {
   if (typeof keyArray === "string") keyArray = keyArray.split(".");
   let object = Object.assign({}, obj);
   for (let i = 0; i < keyArray.length; i++) {
-    if (object && object.hasOwnProperty(keyArray[i]))
+    if (object && object.hasOwnProperty(keyArray[i])) {
+      if (typeof object === "string") object = [object];
       object = object[keyArray[i]] || notSetValue;
-    else return notSetValue != null ? notSetValue : null;
+    } else return notSetValue != null ? notSetValue : null;
   }
   return object;
 };

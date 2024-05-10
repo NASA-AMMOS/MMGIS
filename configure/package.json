@@ -14,6 +14,7 @@
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^11.2.7",
     "@testing-library/user-event": "^13.5.0",
+    "@uiw/react-md-editor": "^3.25.6",
     "clsx": "^2.0.0",
     "html2pug": "^4.0.0",
     "immutable": "^5.0.0-beta.4",
