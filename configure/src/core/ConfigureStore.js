@@ -11,6 +11,7 @@ export const ConfigureStore = createSlice({
       newMission: false,
       layer: false,
       tool: false,
+      preview: false,
     },
     snackBarText: false,
   },

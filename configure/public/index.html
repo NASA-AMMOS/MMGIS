@@ -9,6 +9,19 @@
       name="description"
       content="Web site created using create-react-app"
     />
+    <script>
+      var mmgisglobal = {};
+      mmgisglobal.SERVER = "node";
+      mmgisglobal.AUTH = "#{AUTH}";
+      mmgisglobal.SHOW_AUTH_TIMEOUT = true;
+      mmgisglobal.user = "#{user}";
+      mmgisglobal.NODE_ENV = "#{NODE_ENV}";
+      mmgisglobal.ROOT_PATH = "#{ROOT_PATH}";
+      mmgisglobal.WEBSOCKET_ROOT_PATH = "#{WEBSOCKET_ROOT_PATH}";
+      mmgisglobal.PORT = "#{PORT}";
+      mmgisglobal.ENABLE_CONFIG_WEBSOCKETS = "#{ENABLE_CONFIG_WEBSOCKETS}";
+      mmgisglobal.ENABLE_CONFIG_OVERRIDE = "#{ENABLE_CONFIG_OVERRIDE}";
+    </script>
     <!--
       Notice the use of %PUBLIC_URL% in the tags above.
       It will be replaced with the URL of the `public` folder during the build.

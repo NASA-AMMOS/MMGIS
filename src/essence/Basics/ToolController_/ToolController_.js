@@ -21,12 +21,7 @@ let ToolController_ = {
     activeBG: 'var(--color-i)',
     loaded: false,
     init: function (tools) {
-        // remove tools that start have on: false (on null still allowed)
-        const toolsOn = []
-        tools.forEach((t) => {
-            if (t.on !== false) toolsOn.push(t)
-        })
-        this.tools = toolsOn
+        this.tools = tools
 
         var mainDiv = d3
             .select('#toolbar')

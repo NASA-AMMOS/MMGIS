@@ -13,6 +13,7 @@ const useStyles = makeStyles((theme) => ({
     width: "100%",
     display: "flex",
     background: theme.palette.swatches.grey[1000],
+    paddingBottom: "64px",
   },
 }));
 

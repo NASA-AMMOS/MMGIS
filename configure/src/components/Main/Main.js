@@ -16,6 +16,8 @@ import ViewQuiltIcon from "@mui/icons-material/ViewQuilt";
 import { calls } from "../../core/calls";
 import { setConfiguration, setSnackBarText } from "../../core/ConfigureStore";
 
+import SaveBar from "../SaveBar/SaveBar";
+
 import Home from "../Tabs/Home/Home";
 import Layers from "../Tabs/Layers/Layers";
 import Tools from "../Tabs/Tools/Tools";
@@ -196,6 +198,7 @@ export default function Main() {
             </div>
           </div>
           <div className={c.tabPage}>{TabPage}</div>
+          <SaveBar />
         </>
       )}
     </div>

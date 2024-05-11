@@ -3182,7 +3182,11 @@ function parseConfig(configData, urlOnLayers) {
     L_.radius = L_.configData.msv.radius
     L_.masterdb = L_.configData.msv.masterdb || false
 
-    L_.tools = L_.configData.tools
+    // Remove tools that start have on: false (on null still allowed)
+    L_.tools = []
+    L_.configData.tools.forEach((t) => {
+        if (t.on !== false) L_.tools.push(t)
+    })
 
     L_.hasMap = L_.configData.panels.indexOf('map') > -1
     L_.hasMap = true //Should always have map;
