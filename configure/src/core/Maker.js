@@ -18,6 +18,7 @@ import Tooltip from "@mui/material/Tooltip";
 import FormGroup from "@mui/material/FormGroup";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Checkbox from "@mui/material/Checkbox";
+import Switch from "@mui/material/Switch";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
@@ -129,11 +130,33 @@ const useStyles = makeStyles((theme) => ({
   text: {
     width: "100%",
   },
+  textArrayHexes: {
+    display: "flex",
+  },
+  textArrayHex: {
+    width: "20px",
+    height: "20px",
+    margin: "4px",
+    borderRadius: "4px",
+  },
   dropdown: {
     width: "100%",
   },
   checkbox: {
     paddingTop: "4px",
+  },
+  switch: {
+    paddingTop: "4px",
+    marginRight: "8px",
+    "& .MuiSwitch-switchBase": {
+      color: theme.palette.swatches.grey[700],
+    },
+    "& .MuiSwitch-switchBase.Mui-checked": {
+      color: theme.palette.accent.main,
+    },
+    "& .MuiSwitch-track": {
+      backgroundColor: `${theme.palette.swatches.grey[700]} !important`,
+    },
   },
   keyvalue: {
     display: "flex",
@@ -223,11 +246,31 @@ const getComponent = (
           }}
         />
       );
+      console.log(
+        typeof text_array_f,
+        typeof text_array_f === "string"
+          ? text_array_f.match(/(#(?:[0-9a-f]{3}){1,2})/gi)
+          : "nope"
+      );
       return (
         <div>
           {inlineHelp ? (
             <>
               {inner}
+              <div className={c.textArrayHexes}>
+                {typeof text_array_f === "string"
+                  ? text_array_f
+                      .match(/(#(?:[0-9a-f]{3}){1,2})/gi)
+                      .map((hex) => {
+                        return (
+                          <div
+                            className={c.textArrayHex}
+                            style={{ background: hex }}
+                          ></div>
+                        );
+                      })
+                  : null}
+              </div>
               <Typography className={c.subtitle2}>
                 {com.description || ""}
               </Typography>
@@ -291,6 +334,44 @@ const getComponent = (
           <FormControlLabel
             control={
               <Checkbox
+                checked={
+                  value || getIn(directConf, com.field, com.defaultChecked)
+                }
+                onChange={(e) => {
+                  updateConfiguration(
+                    forceField || com.field,
+                    e.target.checked,
+                    layer
+                  );
+                }}
+              />
+            }
+            label={com.name}
+          />
+        </FormGroup>
+      );
+      return (
+        <div>
+          {inlineHelp ? (
+            <>
+              {inner}
+              <Typography className={c.subtitle2}>
+                {com.description || ""}
+              </Typography>
+            </>
+          ) : (
+            <Tooltip title={com.description || ""} placement="top" arrow>
+              {inner}
+            </Tooltip>
+          )}
+        </div>
+      );
+    case "switch":
+      inner = (
+        <FormGroup className={c.switch}>
+          <FormControlLabel
+            control={
+              <Switch
                 checked={
                   value || getIn(directConf, com.field, com.defaultChecked)
                 }

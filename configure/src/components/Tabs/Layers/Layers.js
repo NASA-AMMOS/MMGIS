@@ -4,15 +4,23 @@ import {} from "./LayersSlice";
 import { makeStyles } from "@mui/styles";
 
 import { calls } from "../../../core/calls";
-import { setSnackBarText, setModal } from "../../../core/ConfigureStore";
+import { reorderArray } from "../../../core/utils";
+import {
+  setSnackBarText,
+  setModal,
+  setConfiguration,
+} from "../../../core/ConfigureStore";
 
 import LayerModal from "./Modals/LayerModal/LayerModal";
+
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
+import IconButton from "@mui/material/IconButton";
 
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown"; // Header
 import StorageIcon from "@mui/icons-material/Storage"; // Data
@@ -24,6 +32,11 @@ import ViewInArIcon from "@mui/icons-material/ViewInAr"; // Model
 
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import AccessTimeFilledIcon from "@mui/icons-material/AccessTimeFilled";
+import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
+import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
+import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+
+const INDENT_WIDTH = 40;
 
 const useStyles = makeStyles((theme) => ({
   Layers: {
@@ -31,44 +44,101 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     background: theme.palette.swatches.grey[1000],
     paddingBottom: "64px",
+    position: "relative",
+  },
+  verticalLines: {
+    display: "flex",
+    height: "calc(100% - 72px)",
+    position: "absolute",
+    top: "0px",
+    left: "0px",
+    margin: "4px 20%",
+    "& > div": {
+      width: `${INDENT_WIDTH - 1}px`,
+      height: "100%",
+      borderLeft: `1px solid ${theme.palette.swatches.grey[850]}`,
+    },
   },
   layersList: {
     width: "100%",
-    padding: "0px 15% !important",
+    margin: "0px 20%",
   },
   layersListItem: {
-    height: "32px",
+    height: "28px",
+    margin: "4px 0px",
+    color: theme.palette.swatches.grey[1000],
+    width: "unset !important",
+    transition: "background 0.2s ease-out",
+    "&:hover": {
+      background: theme.palette.swatches.grey[1000],
+    },
   },
   layersListItemButton: {
-    height: "32px",
-    borderTop: `1px solid ${theme.palette.swatches.grey[800]} !important`,
-    //borderBottom: `1px solid ${theme.palette.swatches.grey[700]} !important`,
-    borderRight: `1px solid ${theme.palette.swatches.grey[700]} !important`,
+    height: "28px",
     display: "flex !important",
     justifyContent: "space-between !important",
-    paddingRight: "8px !important",
+    paddingLeft: "8px !important",
+    paddingRight: "4px !important",
     "& > div": {
       display: "flex",
       justifyContent: "space-between",
     },
     "& > div:first-child": {
       "& .MuiListItemIcon-root": {
-        minWidth: "36px",
+        minWidth: "26px",
         marginTop: "4px",
       },
     },
     "& > div:nth-child(2)": {
       "& .MuiListItemIcon-root": {
         minWidth: "20px",
+        color: theme.palette.swatches.grey[1000],
       },
     },
   },
+  layerName: {
+    lineHeight: "21px",
+  },
+  right: {
+    display: "flex",
+    justifyContent: "space-between",
+    lineHeight: "0px",
+    height: "28px",
+  },
+  indicatorIcons: {
+    display: "flex",
+    justifyContent: "space-between",
+    borderRight: `4px solid ${theme.palette.swatches.grey[1000]}`,
+    marginRight: "4px",
+    paddingRight: "4px",
+    "& > div": {
+      padding: "4px",
+      width: "28px",
+      height: "28px",
+      boxSizing: "border-box",
+    },
+  },
+  positionIcons: {
+    display: "flex",
+    justifyContent: "space-between",
+  },
+  rowIcon: {
+    width: "28px",
+    height: "28px",
+    color: `${theme.palette.swatches.grey[1000]} !important`,
+  },
+  dragHandle: {
+    padding: "4px",
+  },
 }));
 
+let savedLayersConfiguration = "";
 export default function Layers() {
   const c = useStyles();
 
   const dispatch = useDispatch();
+  const [flatLayers, setFlatLayers] = useState([]);
+
   const mission = useSelector((state) => state.core.mission);
   const configuration = useSelector((state) => state.core.configuration);
 
@@ -89,98 +159,259 @@ export default function Layers() {
     return <div className={c.Layers}>Not found</div>;
   }
 
-  const flatLayers = [];
-  traverseLayers(configuration.layers, (layer, path, i, depth) => {
-    flatLayers.push({ layer, depth });
-  });
+  const strConf = JSON.stringify(configuration.layers);
+  if (savedLayersConfiguration != strConf) {
+    const nextFlatLayers = [];
+    traverseLayers(configuration.layers, (layer, path, i, depth) => {
+      nextFlatLayers.push({ layer, depth });
+    });
+    setFlatLayers(nextFlatLayers);
+    savedLayersConfiguration = strConf;
+  }
+
+  const onIndent = (layer, idx) => {
+    const nextFlatLayers = JSON.parse(JSON.stringify(flatLayers));
+    nextFlatLayers[idx].depth = Math.min(nextFlatLayers[idx].depth + 1, 12);
+    setFlatLayers(nextFlatLayers);
+  };
+  const onExdent = (layer, idx) => {
+    const nextFlatLayers = JSON.parse(JSON.stringify(flatLayers));
+    nextFlatLayers[idx].depth = Math.max(nextFlatLayers[idx].depth - 1, 0);
+    setFlatLayers(nextFlatLayers);
+  };
+
+  const onDragEnd = (result) => {
+    // dropped outside the list
+    if (!result.destination) {
+      return;
+    }
+
+    const nextLayers = [];
+
+    const nextFlatLayers = reorderArray(
+      JSON.parse(JSON.stringify(flatLayers)),
+      result.source.index,
+      result.destination.index
+    );
+
+    // Now we have to convert flatLayers to actual configuration structure
+
+    const prevIndentations = [];
+    const prevLayerObjects = [];
+    //Iterate over actual layer rows and not modals (which is where the data is)
+    // because modals aren't ordered.
+    nextFlatLayers.forEach(function (layer, idx) {
+      const l = layer.layer;
+
+      if (l.type === "header") {
+        l.sublayers = [];
+      }
+
+      // Make dragged layer always match the depth of the new layer just above it
+      if (idx === result.destination.index) {
+        if (idx === 0) layer.depth = 0;
+        else if (prevLayerObjects[idx - 1].type === "header")
+          layer.depth = prevIndentations[idx - 1] + 1;
+        else layer.depth = prevIndentations[idx - 1];
+      }
+
+      //This is now the proper spelling and 'broke' is the misspelling
+      let breaked = false;
+      for (let i = prevIndentations.length - 1; i >= 0; i--) {
+        if (layer.depth > prevIndentations[i]) {
+          if (prevLayerObjects[i].type === "header") {
+            if (!prevLayerObjects[i].hasOwnProperty("sublayers")) {
+              prevLayerObjects[i].sublayers = [];
+            }
+            prevLayerObjects[i].sublayers.push(l);
+            breaked = true;
+            break;
+          } else {
+            layer.depth = prevIndentations[i];
+          }
+        }
+      }
+
+      if (!breaked || prevIndentations.length == 0) {
+        nextLayers.push(l);
+      }
+
+      prevIndentations.push(layer.depth);
+      prevLayerObjects.push(l);
+    });
+
+    const nextConfiguration = JSON.parse(JSON.stringify(configuration));
+    nextConfiguration.layers = nextLayers;
+    dispatch(setConfiguration(nextConfiguration));
+  };
 
   return (
     <>
       <div className={c.Layers}>
-        <List className={c.layersList}>
-          {flatLayers.map((l, idx) => {
-            const indentationPerDepth = 30;
-            let color = "#FFFFFF";
-            let iconType = null;
-            switch (l.layer.type) {
-              case "header":
-                iconType = <KeyboardArrowDownIcon fontSize="small" />;
-                color = "#2c2f30";
-                break;
-              case "data":
-                iconType = <StorageIcon fontSize="small" />;
-                color = "#c43541";
-                break;
-              case "vector":
-                iconType = <PolylineIcon fontSize="small" />;
-                color = "#0792c5";
-                break;
-              case "query":
-                iconType = <TravelExploreIcon fontSize="small" />;
-                color = "#87b051";
-                break;
-              case "tile":
-                iconType = <LanguageIcon fontSize="small" />;
-                color = "#75351e";
-                break;
-              case "vectortile":
-                iconType = <GridViewIcon fontSize="small" />;
-                color = "#78b1c2";
-                break;
-              case "model":
-                iconType = <ViewInArIcon fontSize="small" />;
-                color = "#dbb658";
-                break;
-              default:
-            }
-
-            return (
-              <ListItem
-                className={c.layersListItem}
-                key={idx}
-                disablePadding
-                style={{
-                  paddingLeft: l.depth * indentationPerDepth + "px",
-                }}
+        <div className={c.verticalLines}>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+        </div>
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId="droppable">
+            {(provided, snapshot) => (
+              <div
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+                className={c.layersList}
               >
-                <ListItemButton
-                  className={c.layersListItemButton}
-                  role={undefined}
-                  onClick={(e) => {
-                    handleClick(l.layer);
-                  }}
-                  dense
-                  style={{
-                    borderLeft: `6px solid ${color}`,
-                  }}
-                >
-                  <div>
-                    <ListItemIcon
-                      style={{
-                        color: color,
-                      }}
+                {flatLayers.map((l, idx) => {
+                  let color = "#FFFFFF";
+                  let iconType = null;
+                  switch (l.layer.type) {
+                    case "header":
+                      iconType = <KeyboardArrowDownIcon fontSize="small" />;
+                      color = "#2c2f30";
+                      break;
+                    case "data":
+                      iconType = <StorageIcon fontSize="small" />;
+                      color = "#c43541";
+                      break;
+                    case "vector":
+                      iconType = <PolylineIcon fontSize="small" />;
+                      color = "#245980";
+                      break;
+                    case "query":
+                      iconType = <TravelExploreIcon fontSize="small" />;
+                      color = "#4c8b2d";
+                      break;
+                    case "tile":
+                      iconType = <LanguageIcon fontSize="small" />;
+                      color = "#67401d";
+                      break;
+                    case "vectortile":
+                      iconType = <GridViewIcon fontSize="small" />;
+                      color = "#0792c5";
+                      break;
+                    case "model":
+                      iconType = <ViewInArIcon fontSize="small" />;
+                      color = "#a98732";
+                      break;
+                    default:
+                  }
+
+                  return (
+                    <Draggable
+                      key={l.layer.uuid || l.layer.name}
+                      draggableId={l.layer.uuid || l.layer.name}
+                      index={idx}
                     >
-                      {iconType}
-                    </ListItemIcon>
-                    <ListItemText primary={l.layer.name} />
-                  </div>
-                  <div>
-                    {l.layer.time?.enabled === true ? (
-                      <ListItemIcon>
-                        <AccessTimeFilledIcon fontSize="small" />
-                      </ListItemIcon>
-                    ) : null}
-                    {l.layer.visibility === true ? (
-                      <ListItemIcon>
-                        <VisibilityIcon fontSize="small" />
-                      </ListItemIcon>
-                    ) : null}
-                  </div>
-                </ListItemButton>
-              </ListItem>
-            );
-          })}
-        </List>
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                        >
+                          <ListItem
+                            className={c.layersListItem}
+                            key={idx}
+                            disablePadding
+                            style={{
+                              marginLeft: l.depth * INDENT_WIDTH + "px",
+                              background: color,
+                              marginTop: snapshot.isDragging ? "0px" : "4px",
+                              boxShadow: snapshot.isDragging
+                                ? `0px 1px 4px 0px rgba(0,0,0,0.4)`
+                                : `0px 1px 2px 0px rgba(0,0,0,0.2)`,
+                            }}
+                          >
+                            <ListItemButton
+                              className={c.layersListItemButton}
+                              role={undefined}
+                              onClick={(e) => {
+                                handleClick(l.layer);
+                              }}
+                              dense
+                            >
+                              <div>
+                                <ListItemIcon
+                                  style={{
+                                    color: "white",
+                                  }}
+                                >
+                                  {iconType}
+                                </ListItemIcon>
+                                <ListItemText
+                                  className={c.layerName}
+                                  primary={l.layer.name}
+                                />
+                              </div>
+                              <div className={c.right}>
+                                <div className={c.indicatorIcons}>
+                                  {l.layer.time?.enabled === true ? (
+                                    <ListItemIcon>
+                                      <AccessTimeFilledIcon fontSize="small" />
+                                    </ListItemIcon>
+                                  ) : null}
+                                  {l.layer.visibility === true ? (
+                                    <ListItemIcon>
+                                      <VisibilityIcon fontSize="small" />
+                                    </ListItemIcon>
+                                  ) : null}
+                                </div>
+                                <div className={c.positionIcons}>
+                                  <IconButton
+                                    className={c.rowIcon}
+                                    title="Indent Left"
+                                    aria-label="indent left"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onExdent(l, idx);
+                                    }}
+                                  >
+                                    <KeyboardArrowLeftIcon fontSize="small" />
+                                  </IconButton>
+                                  <IconButton
+                                    className={c.rowIcon}
+                                    title="Indent Right"
+                                    aria-label="indent right"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onIndent(l, idx);
+                                    }}
+                                  >
+                                    <KeyboardArrowRightIcon fontSize="small" />
+                                  </IconButton>
+                                  <div
+                                    {...provided.dragHandleProps}
+                                    className={c.dragHandle}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                    }}
+                                  >
+                                    <ListItemIcon>
+                                      <DragIndicatorIcon fontSize="small" />
+                                    </ListItemIcon>
+                                  </div>
+                                </div>
+                              </div>
+                            </ListItemButton>
+                          </ListItem>
+                        </div>
+                      )}
+                    </Draggable>
+                  );
+                })}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
       </div>
 
       <LayerModal />

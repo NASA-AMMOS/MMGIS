@@ -1,59 +1,157 @@
 {
-  "rows": [
+  "tabs": [
     {
-      "components": [
+      "name": "Core",
+      "rows": [
         {
-          "field": "msv.view.[0]",
-          "name": "Layer Name",
-          "description": "",
-          "type": "text",
-          "width": 8
-        },
+          "forceHeight": "64px",
+          "components": [
+            {
+              "field": "type",
+              "name": "Layer Type",
+              "description": "",
+              "type": "dropdown",
+              "width": 2,
+              "options": [
+                "data",
+                "header",
+                "model",
+                "query",
+                "tile",
+                "vector",
+                "vectortile"
+              ]
+            },
+            {
+              "field": "name",
+              "name": "Layer Name",
+              "description": "",
+              "type": "text",
+              "width": 8
+            },
+            {
+              "field": "visibility",
+              "name": "Initially On",
+              "description": "",
+              "type": "checkbox",
+              "width": 2,
+              "defaultChecked": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Information",
+      "rows": [
         {
-          "field": "msv.view.[1]",
-          "name": "Layer Type",
-          "description": "",
-          "type": "dropdown",
-          "width": 2,
-          "options": [
-            "data",
-            "header",
-            "model",
-            "query",
-            "tile",
-            "vector",
-            "vectortile"
+          "name": "Information",
+          "subname": "Layer Tags",
+          "subdescription": "Assign tags to this layer so that they may be searched upon through the LayersTool.",
+          "components": [
+            {
+              "new": true,
+              "field": "variables.tags.0",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "variables.tags.1",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "variables.tags.2",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "variables.tags.3",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "variables.tags.4",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "variables.tags.5",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            }
           ]
         },
         {
-          "field": "msv.view.[2]",
-          "name": "Initially On",
-          "description": "",
-          "type": "dropdown",
-          "width": 2,
-          "options": [false, true]
-        }
-      ]
-    },
-    {
-      "components": [
+          "components": [
+            {
+              "field": "variables.tags.6",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "variables.tags.7",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "variables.tags.8",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "variables.tags.9",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "variables.tags.10",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "variables.tags.11",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            }
+          ]
+        },
         {
-          "field": "msv.radius.major",
-          "name": "Description",
-          "description": "Supports markdown",
-          "type": "textfield",
-          "width": 12
-        }
-      ]
-    },
-    {
-      "components": [
-        {
-          "field": "msv.radius.major",
-          "name": "Tags",
-          "description": "Comma-separate, <cat>:<tag> for category",
-          "type": "textfield",
-          "width": 12
+          "subname": "Description",
+          "subdescription": "A freeform markdown description of the layer. In the LayersTool, users may click the information icon beside the layer's name to view this information.",
+          "components": [
+            {
+              "field": "description",
+              "name": "Description",
+              "description": "",
+              "type": "markdown",
+              "width": 12
+            }
+          ]
         }
       ]
     }

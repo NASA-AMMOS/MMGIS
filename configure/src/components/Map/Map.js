@@ -36,10 +36,12 @@ const Map = ({ configuration, layer }) => {
       ],
       parseFloat(configuration?.msv?.view?.[2] || 0)
     );
-    L.tileLayer(layer.url, {
-      maxZoom: 19,
-      tms: true,
-    }).addTo(m);
+    try {
+      L.tileLayer(layer.url, {
+        maxZoom: 19,
+        tms: true,
+      }).addTo(m);
+    } catch (err) {}
     setMap(m);
   };
   // Make viewer

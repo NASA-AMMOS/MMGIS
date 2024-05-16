@@ -321,7 +321,7 @@
               "field": "time.enabled",
               "name": "Time Enabled",
               "description": "True if the layer is time enabled. URLs that contain {starttime} or {endtime} will be dynamically replaced by their set values when the layer is fetched. If true and a URL is set and Controlled is true, only the initial url query will be performed.",
-              "type": "checkbox",
+              "type": "switch",
               "width": 3,
               "defaultChecked": false
             }
@@ -815,97 +815,6 @@
       ]
     },
     {
-      "name": "Tool - Identifier",
-      "rows": [
-        {
-          "name": "Tool: Identifier",
-          "components": [
-            {
-              "field": "variables.tools.identifier.data",
-              "name": "Data",
-              "description": "Configure this layer for use with the IdentifierTool. Configuring the tool within this layer may override configurations of this layer within the tool itself in the Tools Tab.",
-              "type": "objectarray",
-              "width": 12,
-              "object": [
-                {
-                  "field": "url",
-                  "name": "URL to .tif",
-                  "description": "This can be a relative path to a file under the Mission name or a full url path. The former is preferred is the file is large. Can use '{starttime}' and '{endtime}' if the layer is time enabled.",
-                  "type": "text",
-                  "width": 12
-                },
-                {
-                  "field": "bands",
-                  "name": "Bands",
-                  "description": "Number of bands from which to query.",
-                  "type": "number",
-                  "min": 0,
-                  "step": 1,
-                  "width": 2
-                },
-                {
-                  "field": "sigfigs",
-                  "name": "SigFigs",
-                  "description": "Number of significant figures to use after the decimal of returned values.",
-                  "type": "number",
-                  "min": 0,
-                  "step": 1,
-                  "width": 2
-                },
-                {
-                  "field": "unit",
-                  "name": "Unit",
-                  "description": "A string that is appended to your returned value. e.g. ' m' would be appended on a raw value ('41') and show '41 m'. If it was 'm', it would return '41m', without a space.",
-                  "type": "text",
-                  "width": 4
-                },
-                {
-                  "field": "timeFormat",
-                  "name": "Time Format",
-                  "description": "A string for formatting the injected '{starttime}' and '{endtime}' in the url. See syntax in https://d3js.org/d3-time-format#locale_format",
-                  "type": "text",
-                  "width": 4
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Tool - Measure",
-      "rows": [
-        {
-          "name": "Tool: Measure",
-          "components": [
-            {
-              "field": "variables.tools.measure.layerDems",
-              "name": "Layer Specific DEMs",
-              "description": "Object of layer names and the paths to their DEMs. Users may switch between DEMs to profile via a dropdown. The dropdown only renders if there is more than one DEM configured overall. Configuring the tool within this layer may override configurations of this layer within the tool itself in the Tools Tab.",
-              "type": "objectarray",
-              "width": 12,
-              "object": [
-                {
-                  "field": "layer",
-                  "name": "Layer Name",
-                  "description": "",
-                  "type": "text",
-                  "width": 4
-                },
-                {
-                  "field": "dem",
-                  "name": "DEM Path",
-                  "description": "",
-                  "type": "text",
-                  "width": 8
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
       "name": "Attachment - Layers",
       "rows": [
         {
@@ -917,7 +826,7 @@
               "field": "variables.layerAttachments.labels.enabled",
               "name": "Enabled",
               "description": "Place a label beside each feature. Also applies to 'Coordinate Attachments -> Marker' features.",
-              "type": "checkbox",
+              "type": "switch",
               "width": 3,
               "defaultChecked": false
             }
@@ -958,7 +867,7 @@
               "field": "variables.layerAttachments.pairings.enabled",
               "name": "Enabled",
               "description": "Links cross-layer features together. Features paired to this layer will attempt to compute the azimuth-elevation relationship between the two to draw in the Viewer's PhotoSphere. Additionally, on the Map, a line will be drawn between the two features.",
-              "type": "checkbox",
+              "type": "switch",
               "width": 3,
               "defaultChecked": false
             }
@@ -1048,7 +957,7 @@
               "field": "variables.coordinateAttachments.marker.enabled",
               "name": "Enabled",
               "description": "Place a marker at every coordinate of every feature.",
-              "type": "checkbox",
+              "type": "switch",
               "width": 3,
               "defaultChecked": false
             }
@@ -1134,7 +1043,7 @@
               "field": "variables.markerAttachments.bearing.enabled",
               "name": "Enabled",
               "description": "Sets a bearing direction (clockwise from north) of this layer's point markers (or markerIcons if set). Overrides the layer's shape dropdown value.",
-              "type": "checkbox",
+              "type": "switch",
               "width": 3,
               "defaultChecked": false
             }
@@ -1174,7 +1083,7 @@
               "field": "variables.markerAttachments.image.enabled",
               "name": "Enabled",
               "description": "Places a scaled and orientated image under each marker.",
-              "type": "checkbox",
+              "type": "switch",
               "width": 3,
               "defaultChecked": false
             }
@@ -1280,7 +1189,7 @@
               "field": "variables.markerAttachments.model.enabled",
               "name": "Enabled",
               "description": "Render a model in the 3D Globe for the point features of this layer.",
-              "type": "checkbox",
+              "type": "switch",
               "width": 3,
               "defaultChecked": false
             }
@@ -1426,7 +1335,7 @@
               "field": "variables.markerAttachments.uncertainty.enabled",
               "name": "Enabled",
               "description": "Turns on a sublayer feature that places ellipses about point features in order to indicate positional uncertainties.",
-              "type": "checkbox",
+              "type": "switch",
               "width": 3,
               "defaultChecked": false
             }
@@ -1570,7 +1479,7 @@
               "field": "variables.pathAttachments.gradient.enabled",
               "name": "Enabled",
               "description": "Renders a 'hotline' gradient for visualizing value changes along a path. Useful with 'Miscellaneous -> Hide Main Features'. Look into 'Enhanced GeoJSON' in the docs on how to format layers with properties-per-coordinate.",
-              "type": "checkbox",
+              "type": "switch",
               "width": 3,
               "defaultChecked": false
             }
