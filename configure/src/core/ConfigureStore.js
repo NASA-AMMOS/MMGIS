@@ -7,6 +7,7 @@ export const ConfigureStore = createSlice({
     mission: null,
     configuration: "{}",
     toolConfiguration: {},
+    page: null,
     modal: {
       newMission: false,
       layer: false,
@@ -21,12 +22,17 @@ export const ConfigureStore = createSlice({
     },
     setMission: (state, action) => {
       state.mission = action.payload;
+      // Clear the bottom page (tokens, geodatasets, etc.) when a mission is clicked
+      state.page = null;
     },
     setConfiguration: (state, action) => {
       state.configuration = action.payload;
     },
     setToolConfiguration: (state, action) => {
       state.toolConfiguration = action.payload;
+    },
+    setPage: (state, action) => {
+      state.page = action.payload.page;
     },
     /**
      * Controls all modal open/close states
@@ -60,6 +66,7 @@ export const {
   setMission,
   setConfiguration,
   setToolConfiguration,
+  setPage,
   setModal,
   setSnackBarText,
 } = ConfigureStore.actions;

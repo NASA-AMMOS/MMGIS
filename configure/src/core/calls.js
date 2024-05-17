@@ -99,6 +99,15 @@ function api(call, data, success, error) {
     return;
   }
 
+  const options = {
+    method: c[call].type,
+    credentials: "include",
+    headers: new Headers({ "content-type": "application/json" }),
+  };
+
+  if (c[call].type === "POST") options.body = JSON.stringify(data);
+  else if (c[call].type === "GET") options.data = JSON.stringify(data);
+
   fetch(
     `${domain}${c[call].url}${
       c[call].type === "GET"
@@ -107,11 +116,7 @@ function api(call, data, success, error) {
           : ""
         : ""
     }`,
-    {
-      method: c[call].type,
-      data: JSON.stringify(data),
-      credentials: "include",
-    }
+    options
   )
     .then((res) => res.json())
     .then((json) => {

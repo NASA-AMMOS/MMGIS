@@ -15,7 +15,7 @@ router.get("/get", function (req, res, next) {
   LongTermTokens.findAll()
     .then((tokens) => {
       tokens.forEach((token) => {
-        if (token.token) token.token = token.token.slice(0, 12) + "...";
+        if (token.token) token.token = token.token.slice(0, 16) + "...";
       });
       res.send({ status: "success", tokens: tokens });
       return null;

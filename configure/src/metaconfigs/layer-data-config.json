@@ -174,12 +174,12 @@
         },
         {
           "subname": "Color Ramps",
-          "description": "Color ramps to dynamic color the data tiles. A good site for color ramps is: https://developers.arcgis.com/javascript/latest/visualization/symbols-color-ramps/esri-color-ramps/",
+          "description": "Color ramps for which to dynamically color the data tiles. A good site for color ramps is: https://developers.arcgis.com/javascript/latest/visualization/symbols-color-ramps/esri-color-ramps/",
           "components": [
             {
               "field": "variables.shader.ramps.0",
               "name": "Color Ramp 0",
-              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698",
+              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698,transparent",
               "type": "textarray",
               "width": 12
             }
@@ -190,7 +190,7 @@
             {
               "field": "variables.shader.ramps.1",
               "name": "Color Ramp 1",
-              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698",
+              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698,transparent",
               "type": "textarray",
               "width": 12
             }
@@ -201,7 +201,7 @@
             {
               "field": "variables.shader.ramps.2",
               "name": "Color Ramp 2",
-              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698",
+              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698,transparent",
               "type": "textarray",
               "width": 12
             }
@@ -212,7 +212,7 @@
             {
               "field": "variables.shader.ramps.3",
               "name": "Color Ramp 3",
-              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698",
+              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698,transparent",
               "type": "textarray",
               "width": 12
             }
@@ -223,7 +223,7 @@
             {
               "field": "variables.shader.ramps.4",
               "name": "Color Ramp 4",
-              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698",
+              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698,transparent",
               "type": "textarray",
               "width": 12
             }
@@ -234,7 +234,7 @@
             {
               "field": "variables.shader.ramps.5",
               "name": "Color Ramp 5",
-              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698",
+              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698,transparent",
               "type": "textarray",
               "width": 12
             }
@@ -245,7 +245,7 @@
             {
               "field": "variables.shader.ramps.6",
               "name": "Color Ramp 6",
-              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698",
+              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698,transparent",
               "type": "textarray",
               "width": 12
             }
@@ -256,7 +256,7 @@
             {
               "field": "variables.shader.ramps.7",
               "name": "Color Ramp 7",
-              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698",
+              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698,transparent",
               "type": "textarray",
               "width": 12
             }
@@ -267,7 +267,7 @@
             {
               "field": "variables.shader.ramps.8",
               "name": "Color Ramp 8",
-              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698",
+              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698,transparent",
               "type": "textarray",
               "width": 12
             }
@@ -278,7 +278,7 @@
             {
               "field": "variables.shader.ramps.9",
               "name": "Color Ramp 9",
-              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698",
+              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698,transparent",
               "type": "textarray",
               "width": 12
             }
@@ -289,7 +289,7 @@
             {
               "field": "variables.shader.ramps.10",
               "name": "Color Ramp 10",
-              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698",
+              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698,transparent",
               "type": "textarray",
               "width": 12
             }
@@ -300,7 +300,7 @@
             {
               "field": "variables.shader.ramps.11",
               "name": "Color Ramp 11",
-              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698",
+              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698,transparent",
               "type": "textarray",
               "width": 12
             }
@@ -311,7 +311,7 @@
             {
               "field": "variables.shader.ramps.12",
               "name": "Color Ramp 12",
-              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698",
+              "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698,transparent",
               "type": "textarray",
               "width": 12
             }

@@ -6,11 +6,16 @@ import mmgisLogo from "../../images/mmgis.png";
 
 import clsx from "clsx";
 
-import { setMission, setModal } from "../../core/ConfigureStore";
+import { setMission, setModal, setPage } from "../../core/ConfigureStore";
 
 import NewMissionModal from "./Modals/NewMissionModal/NewMissionModal";
 
 import Button from "@mui/material/Button";
+
+import TextSnippetIcon from "@mui/icons-material/TextSnippet";
+import ShapeLineIcon from "@mui/icons-material/ShapeLine";
+import KeyIcon from "@mui/icons-material/Key";
+import PhishingIcon from "@mui/icons-material/Phishing";
 
 const useStyles = makeStyles((theme) => ({
   Panel: {
@@ -71,6 +76,32 @@ const useStyles = makeStyles((theme) => ({
       background: `${theme.palette.swatches.grey[200]} !important`,
     },
   },
+  pages: {
+    position: "absolute",
+    bottom: "0px",
+    display: "flex",
+    flexFlow: "column",
+    width: "100%",
+  },
+  pageButton: {
+    width: "100%",
+    borderTop: `1px solid ${theme.palette.swatches.grey[300]} !important`,
+    color: `${theme.palette.swatches.grey[700]} !important`,
+    textTransform: "capitalize !important",
+    justifyContent: "start !important",
+    fontSize: "14px !important",
+    padding: "3px 16px !important",
+    background: `transparent !important`,
+    transition:
+      "background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, width 250ms ease-out 0ms, box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, border-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms",
+    "&:hover": {
+      color: `${theme.palette.swatches.grey[900]} !important`,
+      background: `${theme.palette.swatches.grey[200]} !important`,
+    },
+    "& svg": {
+      fontSize: "16px !important",
+    },
+  },
 }));
 
 export default function Panel() {
@@ -124,7 +155,52 @@ export default function Panel() {
             ))}
           </ul>
         </div>
-        <div className={c.pages}></div>
+        <div className={c.pages}>
+          <Button
+            className={c.pageButton}
+            variant="contained"
+            disableElevation
+            startIcon={<ShapeLineIcon size="small" />}
+            onClick={() => {
+              dispatch(setModal({ name: "newMission" }));
+            }}
+          >
+            GeoDatasets
+          </Button>
+          <Button
+            className={c.pageButton}
+            variant="contained"
+            disableElevation
+            startIcon={<TextSnippetIcon size="small" />}
+            onClick={() => {
+              dispatch(setModal({ name: "newMission" }));
+            }}
+          >
+            Datasets
+          </Button>
+          <Button
+            className={c.pageButton}
+            variant="contained"
+            disableElevation
+            startIcon={<KeyIcon size="small" />}
+            onClick={() => {
+              dispatch(setPage({ page: "api_tokens" }));
+            }}
+          >
+            API Tokens
+          </Button>
+          <Button
+            className={c.pageButton}
+            variant="contained"
+            disableElevation
+            startIcon={<PhishingIcon size="small" />}
+            onClick={() => {
+              dispatch(setModal({ name: "newMission" }));
+            }}
+          >
+            WebHooks
+          </Button>
+        </div>
       </div>
       <NewMissionModal />
     </>

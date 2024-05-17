@@ -233,7 +233,7 @@ const getComponent = (
     case "textarray":
       let text_array_f = getIn(directConf, com.field, []);
       if (text_array_f != null && typeof text_array_f.join === "function")
-        text_array_f.join(",");
+        text_array_f = text_array_f.join(",");
       inner = (
         <TextField
           className={c.text}
@@ -246,12 +246,6 @@ const getComponent = (
           }}
         />
       );
-      console.log(
-        typeof text_array_f,
-        typeof text_array_f === "string"
-          ? text_array_f.match(/(#(?:[0-9a-f]{3}){1,2})/gi)
-          : "nope"
-      );
       return (
         <div>
           {inlineHelp ? (
@@ -259,16 +253,16 @@ const getComponent = (
               {inner}
               <div className={c.textArrayHexes}>
                 {typeof text_array_f === "string"
-                  ? text_array_f
-                      .match(/(#(?:[0-9a-f]{3}){1,2})/gi)
-                      .map((hex) => {
+                  ? (text_array_f.match(/(#(?:[0-9a-f]{3}){1,2})/gi) || []).map(
+                      (hex) => {
                         return (
                           <div
                             className={c.textArrayHex}
                             style={{ background: hex }}
                           ></div>
                         );
-                      })
+                      }
+                    )
                   : null}
               </div>
               <Typography className={c.subtitle2}>

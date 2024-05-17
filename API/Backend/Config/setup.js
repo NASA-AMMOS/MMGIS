@@ -33,12 +33,10 @@ let setup = {
         }
       );
     }
-    console.log(
-      "ERROR - ensureAdmin off!!!!!!!!!!!!!!!!!!!!!! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-    );
+
     s.app.use(
       s.ROOT_PATH + "/API/configure",
-      //s.ensureAdmin(),
+      s.ensureAdmin(),
       s.checkHeadersCodeInjection,
       s.setContentType,
       router

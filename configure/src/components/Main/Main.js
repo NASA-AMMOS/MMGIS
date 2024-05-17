@@ -25,6 +25,8 @@ import Coordinates from "../Tabs/Coordinates/Coordinates";
 import Time from "../Tabs/Time/Time";
 import UserInterface from "../Tabs/UserInterface/UserInterface";
 
+import APITokens from "../../pages/APITokens/APITokens";
+
 const useStyles = makeStyles((theme) => ({
   Main: {
     width: "100%",
@@ -101,6 +103,7 @@ export default function Main() {
 
   const dispatch = useDispatch();
   const mission = useSelector((state) => state.core.mission);
+  const page = useSelector((state) => state.core.page);
 
   useEffect(() => {
     if (mission != null)
@@ -120,6 +123,14 @@ export default function Main() {
         }
       );
   }, [dispatch, mission]);
+
+  let Page = null;
+  switch (page) {
+    case "api_tokens":
+      Page = <APITokens />;
+      break;
+    default:
+  }
 
   const [tabValue, setTabValue] = useState(0);
 
@@ -148,7 +159,9 @@ export default function Main() {
 
   return (
     <div className={c.Main}>
-      {mission == null ? (
+      {Page != null ? (
+        <div className={c.page}>{Page}</div>
+      ) : mission == null ? (
         <div className={c.introWrapper}>
           <div className={c.intro}>
             <div className={c.title}>MMGIS</div>
