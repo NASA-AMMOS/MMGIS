@@ -7,6 +7,7 @@ export const ConfigureStore = createSlice({
     mission: null,
     configuration: "{}",
     toolConfiguration: {},
+    geodatasets: [],
     page: null,
     modal: {
       newMission: false,
@@ -30,6 +31,9 @@ export const ConfigureStore = createSlice({
     },
     setToolConfiguration: (state, action) => {
       state.toolConfiguration = action.payload;
+    },
+    setGeodatasets: (state, action) => {
+      state.geodatasets = action.payload;
     },
     setPage: (state, action) => {
       state.page = action.payload.page;
@@ -66,6 +70,7 @@ export const {
   setMission,
   setConfiguration,
   setToolConfiguration,
+  setGeodatasets,
   setPage,
   setModal,
   setSnackBarText,

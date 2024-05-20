@@ -26,6 +26,7 @@ import Time from "../Tabs/Time/Time";
 import UserInterface from "../Tabs/UserInterface/UserInterface";
 
 import APITokens from "../../pages/APITokens/APITokens";
+import GeoDatasets from "../../pages/GeoDatasets/GeoDatasets";
 
 const useStyles = makeStyles((theme) => ({
   Main: {
@@ -126,6 +127,9 @@ export default function Main() {
 
   let Page = null;
   switch (page) {
+    case "geodatasets":
+      Page = <GeoDatasets />;
+      break;
     case "api_tokens":
       Page = <APITokens />;
       break;

@@ -162,7 +162,7 @@ export default function Panel() {
             disableElevation
             startIcon={<ShapeLineIcon size="small" />}
             onClick={() => {
-              dispatch(setModal({ name: "newMission" }));
+              dispatch(setPage({ page: "geodatasets" }));
             }}
           >
             GeoDatasets
@@ -173,7 +173,7 @@ export default function Panel() {
             disableElevation
             startIcon={<TextSnippetIcon size="small" />}
             onClick={() => {
-              dispatch(setModal({ name: "newMission" }));
+              dispatch(setPage({ page: "newMission" }));
             }}
           >
             Datasets
@@ -195,7 +195,7 @@ export default function Panel() {
             disableElevation
             startIcon={<PhishingIcon size="small" />}
             onClick={() => {
-              dispatch(setModal({ name: "newMission" }));
+              dispatch(setPage({ page: "newMission" }));
             }}
           >
             WebHooks
