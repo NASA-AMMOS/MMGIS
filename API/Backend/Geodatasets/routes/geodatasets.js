@@ -277,10 +277,51 @@ router.post("/entries", function (req, res, next) {
         for (let i = 0; i < sets.length; i++) {
           entries.push({ name: sets[i].name, updated: sets[i].updatedAt });
         }
-        res.send({
-          status: "success",
-          body: { entries: entries },
-        });
+        // For each entry, list all occurrences in latest configuration objects
+        sequelize
+          .query(
+            "SELECT DISTINCT ON (mission) mission, version, config FROM configs ORDER BY mission ASC"
+          )
+          .then(([results]) => {
+            // Populate occurrences
+            results.forEach((m) => {
+              Utils.traverseLayers([m.config.layers], (layer, path) => {
+                entries.forEach((entry) => {
+                  entry.occurrences = entry.occurrences || {};
+                  entry.occurrences[m.mission] =
+                    entry.occurrences[m.mission] || [];
+
+                  if (layer.url === `geodatasets:${entry.name}`) {
+                    entry.occurrences[m.mission].push({
+                      name: layer.name,
+                      uuid: layer.uuid,
+                      path: path,
+                    });
+                  }
+                });
+              });
+            });
+
+            res.send({
+              status: "success",
+              body: { entries: entries },
+            });
+            return null;
+          })
+          .catch((err) => {
+            logger(
+              "error",
+              "Failed to find missions.",
+              req.originalUrl,
+              req,
+              err
+            );
+            res.send({
+              status: "failure",
+              message: "Failed to find missions.",
+            });
+            return null;
+          });
       } else {
         res.send({
           status: "failure",

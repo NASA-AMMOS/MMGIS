@@ -16,7 +16,7 @@
             "sources": [
                 {
                     "name": "User-friendly name for orbiter or body that 'casts shadows'",
-                    "value": "SPICE Spacecraft name or ID"
+                    "value": "NAIF SPICE Spacecraft name or ID"
                 },
                 {
                     "name": "...",
@@ -43,5 +43,145 @@
         "ShadeTool": "essence/Tools/Shade/ShadeTool",
         "ShadeTool_Manager": "essence/Tools/Shade/ShadeTool_Algorithm",
         "ShadeTool_Algorithm": "essence/Tools/Shade/ShadeTool_Algorithm"
+    },
+    "config": {
+        "rows": [
+            {
+                "components": [
+                    {
+                        "field": "variables.dem",
+                        "name": "DEM path",
+                        "description": "A path to a DEM.tif. This is used to get the current center elevation. This can/should be the same file used for the Measure Tool and the Coordinate's elevation.",
+                        "type": "text",
+                        "width": 12
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.data",
+                        "name": "Layer specific DEMs",
+                        "description": "At minimum, the Shade tool requires at least one 'data' source. A data source describes a DEM tileset (see /auxiliary/gdal2customtiles or /auxiliary/1bto4b) and allows users to select it by name to generate shade maps over.",
+                        "type": "objectarray",
+                        "width": 12,
+                        "object": [
+                            {
+                                "field": "name",
+                                "name": "Name",
+                                "description": "User-friendly name for DEM",
+                                "type": "text",
+                                "width": 2
+                            },
+                            {
+                                "field": "demtileurl",
+                                "name": "DEM Path",
+                                "description": "",
+                                "type": "text",
+                                "width": 8
+                            },
+                            {
+                                "field": "minZoom",
+                                "name": "Minimum Zoom",
+                                "description": "",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "width": 1
+                            },
+                            {
+                                "field": "maxNativeZoom",
+                                "name": "Maximum Native Zoom",
+                                "description": "",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "width": 1
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.sources",
+                        "name": "Sources",
+                        "description": "An array of objects with the properties 'name' and 'value'. 'name' is the display name for the Source Entity dropdown. 'value' is the SPICE spacecraft ID that gets passed to the backend ll2aerll.py script. Ensure the right kernels for the configured source entities/targets exist in /private/api/spice/kernels.",
+                        "type": "objectarray",
+                        "width": 12,
+                        "object": [
+                            {
+                                "field": "name",
+                                "name": "Name",
+                                "description": "User-friendly name for orbiter or body that 'casts light'",
+                                "type": "text",
+                                "width": 4
+                            },
+                            {
+                                "field": "value",
+                                "name": "Value",
+                                "description": "NAIF SPICE Spacecraft name or ID",
+                                "type": "text",
+                                "width": 4
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.observers",
+                        "name": "Observers",
+                        "description": "An array of objects with the properties 'name' and 'value'. 'name' is the display name for the Source Entity dropdown. 'value' is the SPICE spacecraft ID that gets passed to the backend chronos.py scripts. Ensure the right kernels for the configured observers exist in /private/api/spice/kernels and that there is a proper chronos setup file for each observer's value private/api/spice/chronosSetups/chronos-{lowercased_observer_value}.setup.",
+                        "type": "objectarray",
+                        "width": 12,
+                        "object": [
+                            {
+                                "field": "name",
+                                "name": "Name",
+                                "description": "User-friendly name for observer for spacecraft time computations",
+                                "type": "text",
+                                "width": 4
+                            },
+                            {
+                                "field": "value",
+                                "name": "Value",
+                                "description": "NAIF SPICE Spacecraft name or ID",
+                                "type": "text",
+                                "width": 4
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.defaultHeight",
+                        "name": "Default Height",
+                        "description": "Sets a default for the 'Height' parameter. Height in meters above the surface to use when calculating line-of-sight shading. For instance, a point on the surface (0m) may not be visible to a 'Source Entity', say the Mars Reconnaissance Orbiter (MRO), but 2m above that point may be. This value does not only apply to the center longitude and latitude but to all points on the visible terrain. Gradually increasing this value shows the shade map n-meters above the surface. The regular default is 0 meters.",
+                        "type": "number",
+                        "min": 0,
+                        "width": 4
+                    },
+                    {
+                        "field": "variables.observerTimePlaceholder",
+                        "name": "Observer Time Placeholder",
+                        "description": "Sets the placeholder information for when the observer time's input box is cleared. Useful for denoting the expected time format to be inputted. For example “SOL DDDD HH:MM:SS”. Default null.",
+                        "type": "text",
+                        "width": 4
+                    },
+                    {
+                        "field": "variables.utcTimeFormat",
+                        "name": "UTC Time Format",
+                        "description": "Sets the placeholder information for when the observer time's input box is cleared. Useful for denoting the expected time format to be inputted. Uses d3 time syntax (https://d3js.org/d3-time-format#locale_format). Example for day-of-year: '%Y-%j %H:%M:%S'. Defaults to times like so: 2023 SEP 06 19:27:05.",
+                        "type": "text",
+                        "width": 4
+                    }
+                ]
+            }
+        ]
     }
 }

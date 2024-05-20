@@ -2,14 +2,14 @@
     "defaultIcon": "map-marker",
     "description": "Mouse over the map for a by-pixel legend of a raster.",
     "descriptionFull": {
-        "title": "Mouse over to query underlying datasets.",
+        "title": "Mouse over to query underlying datasets. This will read the raw values from a geo-referenced dataset, which can be any bit-depth (8,16,32). You can set up multiple file to return values from.",
         "example": {
             "[Layer_Name]": {
                 "url": "(str) path_to_data/data.tif",
                 "bands": "(int) how many bands to query from",
                 "sigfigs": "(int) how many digits after the decimal",
                 "unit": "(str) whatever string unit",
-                "timeFormat": "(str) for injecting '{starttime}' and '{endtime}' in url. See syntax in https://d3js.org/d3-time-format#locale_format"
+                "timeFormat": "(str) for formatting injected '{starttime}' and '{endtime}' in url. See syntax in https://d3js.org/d3-time-format#locale_format"
             },
             "...": {}
         }
@@ -20,5 +20,68 @@
     "separatedTool": true,
     "paths": {
         "IdentifierTool": "essence/Tools/Identifier/IdentifierTool"
+    },
+    "config": {
+        "rows": [
+            {
+                "components": [
+                    {
+                        "field": "variables.layers",
+                        "name": "Layers",
+                        "description": "Only show DEM if associated layer is on.",
+                        "type": "objectarray",
+                        "width": 12,
+                        "object": [
+                            {
+                                "field": "name",
+                                "name": "Layer Name or UUID",
+                                "description": "This is the layer name exactly as it appears in the Layers section in the configuration.",
+                                "type": "text",
+                                "width": 4
+                            },
+                            {
+                                "field": "url",
+                                "name": "URL to .tif",
+                                "description": "This can be a relative path to a file under the Mission name or a full url path. The former is preferred is the file is large. Can use '{starttime}' and '{endtime}' if the layer is time enabled.",
+                                "type": "text",
+                                "width": 8
+                            },
+                            {
+                                "field": "bands",
+                                "name": "Bands",
+                                "description": "Number of bands from which to query.",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "width": 2
+                            },
+                            {
+                                "field": "sigfigs",
+                                "name": "SigFigs",
+                                "description": "Number of significant figures to use after the decimal of returned values.",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "width": 2
+                            },
+                            {
+                                "field": "unit",
+                                "name": "Unit",
+                                "description": "A string that is appended to your returned value. e.g. ' m' would be appended on a raw value ('41') and show '41 m'. If it was 'm', it would return '41m', without a space.",
+                                "type": "text",
+                                "width": 4
+                            },
+                            {
+                                "field": "timeFormat",
+                                "name": "Time Format",
+                                "description": "A string for formatting the injected '{starttime}' and '{endtime}' in the url. See syntax in https://d3js.org/d3-time-format#locale_format",
+                                "type": "text",
+                                "width": 4
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
     }
 }

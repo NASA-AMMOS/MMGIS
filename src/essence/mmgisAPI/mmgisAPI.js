@@ -22,6 +22,10 @@ var mmgisAPI_ = {
             mmgisAPI_.onLoadCallback = null
         }
     },
+    setConfiguration: function (configuration) {
+        if (window.mmgisglobal.setConfiguration)
+            window.mmgisglobal.setConfiguration(configuration)
+    },
     // Adds a layer to the map. For a more "temporary" layer, use Leaflet directly through `mmgisAPI.map`
     addLayer: function (layerObj, placement) {
         return new Promise(async (resolve, reject) => {
@@ -441,6 +445,11 @@ var mmgisAPI_ = {
 }
 
 var mmgisAPI = {
+    /**
+     * Sets a new configuration object for MMGIS to use
+     * @param {object} configurationObj - The new configuration JSON object (what the configuration CMS creates)
+     */
+    setConfiguration: mmgisAPI_.setConfiguration,
     /**
      * Adds a layer to the map. For a more "temporary" layer, use Leaflet directly through `mmgisAPI.map`
      * @param {object} layerObj - See schema in configData
