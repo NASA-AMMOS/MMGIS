@@ -515,7 +515,7 @@ let BottomBar = {
                                 `</li>`,
                             `</ul>`,
                         `</div>`,
-                        (L_.Globe_ ? 
+                        (L_.Globe_ && L_.hasGlobe ? 
                             [`<div class='mainSettingsModalSection' id='mainSettingsModalSection3DGlobe'>`,
                                 `<div class='mainSettingsModalSectionTitle'>3D Globe</div>`,
                                 `<ul class='mainSettingsModalSectionOptions'>`,
@@ -555,7 +555,7 @@ let BottomBar = {
                     $(
                         '#mainSettingsModalSection3DGlobe #globeSetRadiusOfTiles'
                     ).on('input', function () {
-                        if (L_.Globe_) {
+                        if (L_.Globe_ && L_.hasGlobe) {
                             L_.Globe_.litho.options.radiusOfTiles = parseInt(
                                 $(this).val()
                             )

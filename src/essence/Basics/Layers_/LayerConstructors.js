@@ -65,7 +65,7 @@ export const constructVectorLayer = (
             }
 
             if (feature.properties.hasOwnProperty('style')) {
-                let className = layerObj.style.className
+                let className = layerObj.uuid
                 let layerName = layerObj.style.layerName
                 layerObj.style = Object.assign({}, layerObj.style)
                 layerObj.style = {
@@ -967,6 +967,25 @@ const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {
     let leafletLayerObjectUncertaintyEllipse
 
     if (uncertaintyVar) {
+        let existingOn = null
+        let existingOpacity =
+            uncertaintyVar.initialOpacity != null
+                ? uncertaintyVar.initialOpacity
+                : 1
+        if (L_.layers.attachments[L_.asLayerUUID(layerObj.name)]) {
+            existingOn =
+                L_.layers.attachments[L_.asLayerUUID(layerObj.name)]
+                    .uncertainty_ellipses.on
+            existingOpacity = L_.layers.opacity[layerObj.name]
+        }
+
+        const isOn =
+            existingOn != null
+                ? existingOn
+                : uncertaintyVar.initialVisibility != null
+                ? uncertaintyVar.initialVisibility
+                : true
+
         uncertaintyStyle = {
             fillOpacity: uncertaintyVar.fillOpacity || 0.25,
             fillColor: uncertaintyVar.color || 'white',
@@ -1018,7 +1037,7 @@ const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {
 
         curtainUncertaintyOptions = {
             name: `markerAttachmentUncertainty_${layerObj.name}Curtain`,
-            on: true,
+            on: isOn,
             opacity: uncertaintyVar.opacity3d || 0.5,
             imageColor:
                 uncertaintyVar.color3d || uncertaintyVar.color || '#FFFF00',
@@ -1030,9 +1049,9 @@ const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {
         }
         clampedUncertaintyOptions = {
             name: `markerAttachmentUncertainty_${layerObj.name}Clamped`,
-            on: true,
+            on: isOn,
             order: -9999,
-            opacity: 1,
+            opacity: existingOpacity,
             minZoom: 0,
             maxZoom: 100,
             geojson: {
@@ -1087,22 +1106,23 @@ const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {
             },
         }
 
+        const layer = L.geoJson(geojson, leafletLayerObjectUncertaintyEllipse)
+        layer.customClearLayers = function (layerName, subName) {
+            const sublayer = L_.layers.attachments[layerName][subName]
+            L_.Globe_.litho.removeLayer(sublayer.curtainLayerId)
+            L_.Globe_.litho.removeLayer(sublayer.clampedLayerId)
+        }
+
         return curtainUncertaintyOptions
             ? {
-                  on:
-                      uncertaintyVar.initialVisibility != null
-                          ? uncertaintyVar.initialVisibility
-                          : true,
+                  on: isOn,
                   type: 'uncertainty_ellipses',
                   curtainLayerId: curtainUncertaintyOptions.name,
                   curtainOptions: curtainUncertaintyOptions,
                   clampedLayerId: clampedUncertaintyOptions.name,
                   clampedOptions: clampedUncertaintyOptions,
                   geojson: geojson,
-                  layer: L.geoJson(
-                      geojson,
-                      leafletLayerObjectUncertaintyEllipse
-                  ),
+                  layer: layer,
                   title: 'Renders elliptical buffers about point features based on X and Y uncertainty properties.',
               }
             : false
@@ -1120,6 +1140,25 @@ const imageOverlays = (geojson, layerObj, leafletLayerObject) => {
             'click'
         )
         let leafletLayerObjectImageOverlay
+
+        let existingOn = null
+        let existingOpacity =
+            imageVar.initialOpacity != null ? imageVar.initialOpacity : 1
+        if (L_.layers.attachments[L_.asLayerUUID(layerObj.name)]) {
+            existingOn =
+                L_.layers.attachments[L_.asLayerUUID(layerObj.name)]
+                    .image_overlays.on
+            existingOpacity =
+                L_.layers.attachments[L_.asLayerUUID(layerObj.name)]
+                    .image_overlays.opacity
+        }
+
+        const isOn =
+            existingOn != null
+                ? existingOn
+                : imageVar.initialVisibility != null
+                ? imageVar.initialVisibility
+                : true
 
         if (imageVar && imageShow === 'always')
             leafletLayerObjectImageOverlay = {
@@ -1239,30 +1278,20 @@ const imageOverlays = (geojson, layerObj, leafletLayerObject) => {
 
                     return L.layerGroup([
                         L.imageTransform(imageSettings.image, anchors, {
-                            opacity: 1,
+                            opacity: existingOpacity,
                             clip: anchors,
-                            id: `${layerObj.name}${
-                                imageSettings.image
-                            }${angle}${JSON.stringify(center)}`,
+                            id: `${layerObj.name}_${imageSettings.image}`,
+                            layerName: layerObj.name,
                         }),
                     ])
                 },
             }
-        let existingOn = null
-        if (L_.layers.attachments[L_.asLayerUUID(layerObj.name)])
-            existingOn =
-                L_.layers.attachments[L_.asLayerUUID(layerObj.name)]
-                    .image_overlays.on
 
-        const isOn =
-            existingOn != null
-                ? existingOn
-                : imageVar.initialVisibility != null
-                ? imageVar.initialVisibility
-                : true
         return imageShow === 'always'
             ? {
                   on: isOn,
+                  type: 'image_overlays',
+                  opacity: existingOpacity,
                   layer: L.geoJson(geojson, leafletLayerObjectImageOverlay),
                   title: 'Map rendered image overlays.',
               }

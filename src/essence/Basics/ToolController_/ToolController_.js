@@ -170,17 +170,9 @@ let ToolController_ = {
                                     })
                                 }
 
-                                // Toggle drag handle
-                                $('#toolPanelDrag').css(
-                                    'display',
-                                    toolConfigs[tools[i].name]?.expandable ===
-                                        true
-                                        ? 'block'
-                                        : 'none'
-                                )
-
                                 ToolController_.makeTool(
-                                    ToolController_.toolModuleNames[i]
+                                    ToolController_.toolModuleNames[i],
+                                    i
                                 )
 
                                 // Dispatch `toolChange` event
@@ -247,7 +239,7 @@ let ToolController_ = {
         var tool = this.toolModules[name]
         return tool || { use: function () {} }
     },
-    makeTool: function (name) {
+    makeTool: function (name, idx) {
         var tool = this.getTool(name)
 
         if (tool != undefined) {
@@ -275,6 +267,14 @@ let ToolController_ = {
                     }
                     this.prevHeight = this.activeTool.height;
                     */
+                    // Toggle drag handle
+                    $('#toolPanelDrag').css(
+                        'display',
+                        toolConfigs[ToolController_.tools[idx].name]
+                            ?.expandable === true
+                            ? 'block'
+                            : 'none'
+                    )
 
                     this.activeTool.make(this)
                 } else {
@@ -287,6 +287,8 @@ let ToolController_ = {
                 }
                 this.activeToolName = name
             } else {
+                // Toggle drag handle
+                $('#toolPanelDrag').css('display', 'none')
                 //close tool
                 this.closeActiveTool()
             }

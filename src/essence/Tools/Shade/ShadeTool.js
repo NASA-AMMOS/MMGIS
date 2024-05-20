@@ -41,12 +41,21 @@ let ShadeTool = {
     shedColors: [{ r: 0, g: 0, b: 0, a: 192 }],
     shedMarkers: {},
     canvases: {},
-    dynamicUpdateResCutoff: 0,
-    dynamicUpdatePanCutoff: 0,
+    dynamicUpdateResCutoff: 1,
+    dynamicUpdatePanCutoff: 1,
     MMGISInterface: null,
     tempSheet: null,
+    tempIndicatorPoint: null,
+    indicatorLastDragPoint: null,
+    tempIndicatorPointStyle: {
+        fillColor: '#000',
+        fillOpacity: 0,
+        color: 'lime',
+        weight: 3,
+    },
     sunColor: '#d2db58',
     earthColor: '#58dbb8',
+    _lastConvertedMs: '000',
     initialize: function () {
         this.vars = L_.getToolVars('shade')
 
@@ -92,6 +101,8 @@ let ShadeTool = {
     },
     make: function () {
         this.MMGISInterface = new interfaceWithMMGIS()
+
+        ShadeTool.indicatorLastDragPoint = null
 
         if (this.firstOpen) {
             // Turn on files from url if any
@@ -159,13 +170,16 @@ let ShadeTool = {
 
         return urlString
     },
-    timeChange: function (time) {
+    timeChange: function () {
         $('#shadeTool .vstRegen').addClass('changed')
         $('#vstShades > li').each((i, elm) => {
             const id = $(elm).attr('shadeId')
             $('.vstOptionTime input').val(
-                ShadeTool.parseToUTCTime(TimeControl.getEndTime())
+                ShadeTool.parseToUTCTime(TimeControl.getEndTime(), true)
             )
+            const rawTime = ShadeTool.parseToUTCTime(TimeControl.getEndTime())
+            $('.vstOptionTime input').attr('raw', rawTime)
+            $('.vstOptionTime input').attr('title', rawTime)
             ShadeTool.updateObserverSpecificTime(id)
             // prettier-ignore
             if (
@@ -177,6 +191,7 @@ let ShadeTool = {
         })
     },
     panEnd: function () {
+        ShadeTool.indicatorLastDragPoint = null
         $('#shadeTool .vstRegen').addClass('changed')
         $('#vstShades > li').each((i, elm) => {
             const id = $(elm).attr('shadeId')
@@ -265,24 +280,31 @@ let ShadeTool = {
         }
 
         let allSources = ''
+        let sourcesList = [
+            {
+                name: 'Custom',
+                value: false,
+            },
+        ]
         if (
             ShadeTool.vars &&
             ShadeTool.vars.sources &&
             ShadeTool.vars.sources.length > 0
         ) {
-            allSources = ShadeTool.vars.sources
-                .map(
-                    (c, i) =>
-                        "<option value='" +
-                        c.value +
-                        "' " +
-                        (i === 0 ? 'selected' : '') +
-                        '>' +
-                        c.name +
-                        '</option>'
-                )
-                .join('\n')
+            sourcesList = ShadeTool.vars.sources.concat(sourcesList)
         }
+        allSources = sourcesList
+            .map(
+                (c, i) =>
+                    "<option value='" +
+                    c.value +
+                    "' " +
+                    (i === 0 ? 'selected' : '') +
+                    '>' +
+                    c.name +
+                    '</option>'
+            )
+            .join('\n')
 
         let allObservers = ''
         if (
@@ -291,16 +313,18 @@ let ShadeTool = {
             ShadeTool.vars.observers.length > 0
         ) {
             allObservers = ShadeTool.vars.observers
-                .map(
-                    (c, i) =>
-                        "<option value='" +
-                        c.value +
-                        "' " +
-                        (i === 0 ? 'selected' : '') +
-                        '>' +
-                        c.name +
-                        '</option>'
-                )
+                .map((c, i) => {
+                    if (c.value != null && c.name != null)
+                        return (
+                            "<option value='" +
+                            c.value +
+                            "' " +
+                            (i === 0 ? 'selected' : '') +
+                            '>' +
+                            c.name +
+                            '</option>'
+                        )
+                })
                 .join('\n')
         }
 
@@ -324,19 +348,21 @@ let ShadeTool = {
                             "</select>",
                         "</div>",
                         `<div class='vstOptionHeading'>Observer</div>`,
-                        "<div class='vstOptionObserver'>",
-                            `<div title='Ground observer for time conversions'>Entity</div>`,
-                            "<select class='dropdown'>",
-                                allObservers,
-                            "</select>",
-                        "</div>",
-                        "<div class='vstOptionTimeSpecific'>",
-                            `<div title='Ground observer time'>Time</div>`,
-                            "<div class='flexbetween'>",
-                                `<div class='vstClockIcon2'><i class='mdi mdi-clock-outline mdi-18px'></i></div>`,
-                                `<input type='text' placeholder='YYYY mmm DD HH:MM:SS' value='${TimeControl.getEndTime()}'>`,
+                        allObservers.length != 0 ? [
+                            "<div class='vstOptionObserver'>",
+                                `<div title='Ground observer for time conversions'>Entity</div>`,
+                                "<select class='dropdown'>",
+                                    allObservers,
+                                "</select>",
                             "</div>",
-                        "</div>",
+                            "<div class='vstOptionTimeSpecific'>",
+                                `<div title='Ground observer time'>Time</div>`,
+                                "<div class='flexbetween'>",
+                                    `<div class='vstClockIcon2'><i class='mdi mdi-clock-outline mdi-18px'></i></div>`,
+                                    `<input type='text' placeholder='${ShadeTool.vars.observerTimePlaceholder || ''}' value='${TimeControl.getEndTime()}'>`,
+                                "</div>",
+                            "</div>",
+                        ].join('\n') : null,
                         "<div class='vstOptionHeight'>",
                             "<div title='Height above surface of source point.'>Height</div>",
                             "<div class='flexbetween'>",
@@ -382,15 +408,28 @@ let ShadeTool = {
                                 "<li>",
                                     "<div>Azimuth</div>",
                                     "<div id='shadeTool_results_outputs_az'></div>",
+                                    "<div class='flexbetween' id='shadeTool_results_outputs_az_input_wrap' style='display: none;'>",
+                                        "<input id='shadeTool_results_outputs_az_input' type='number' min='0' max='360'></input>",
+                                        "<div class='vstUnit smallFont'>&deg;</div>",
+                                    "</div>",
                                 "</li>",
                                 "<li>",
                                     "<div>Elevation</div>",
                                     "<div id='shadeTool_results_outputs_el'></div>",
+                                    "<div class='flexbetween' id='shadeTool_results_outputs_el_input_wrap' style='display: none;'>",
+                                        "<input id='shadeTool_results_outputs_el_input' type='number' min='-90' max='90'></input>",
+                                        "<div class='vstUnit smallFont'>&deg;</div>",
+                                    "</div>",
                                 "</li>",
                                 "<li>",
                                     "<div>Range</div>",
                                     "<div id='shadeTool_results_outputs_range'></div>",
+                                    "<div class='flexbetween' id='shadeTool_results_outputs_range_input_wrap' style='display: none;'>",
+                                        "<input id='shadeTool_results_outputs_range_input' type='number' disabled></input>",
+                                        "<div class='vstUnit smallFont'>km</div>",
+                                    "</div>",
                                 "</li>",
+                                /*
                                 "<li>",
                                     "<div>Longitude</div>",
                                     "<div id='shadeTool_results_outputs_lng'></div>",
@@ -399,6 +438,7 @@ let ShadeTool = {
                                     "<div>Latitude</div>",
                                     "<div id='shadeTool_results_outputs_lat'></div>",
                                 "</li>",
+                                */
                             "</ul>",
                         "</div>",
                         "<div id='shadeTool_indicators'>",
@@ -490,17 +530,23 @@ let ShadeTool = {
             'change',
             (function (id) {
                 return function () {
-                    const time = $(this).val() + 'Z'
+                    let time = $(this).val()
+                    if (ShadeTool.vars.utcTimeFormat) {
+                        const parseTime = d3.utcParse(
+                            ShadeTool.vars.utcTimeFormat
+                        )
+                        time = parseTime(time).toISOString()
+                    } else {
+                        time += 'Z'
+                    }
+
                     let isValid = false
                     try {
                         new Date(time).toISOString()
                         isValid = true
                     } catch {}
                     if (isValid) {
-                        TimeControl.setTime(
-                            TimeControl.getStartTime(),
-                            $(this).val() + 'Z'
-                        )
+                        TimeControl.setTime(TimeControl.getStartTime(), time)
                         ShadeTool.updateObserverSpecificTime(id)
                     } else {
                         CursorInfo.update(
@@ -576,9 +622,126 @@ let ShadeTool = {
                     $('#vstShades #vstId_' + id + ' .vstRegen').addClass(
                         'changed'
                     )
+                    const val = $(
+                        '#vstShades #vstId_' + id + ' .vstOptionTarget select'
+                    ).val()
+                    if (val === 'false') {
+                        $('#shadeTool_results_outputs_az').css({
+                            display: 'none',
+                        })
+                        $('#shadeTool_results_outputs_az_input_wrap').css({
+                            display: 'inherit',
+                        })
+                        $('#shadeTool_results_outputs_az_input').val(
+                            parseFloat(
+                                $('#shadeTool_results_outputs_az').text()
+                            )
+                        )
+                        $('#shadeTool_results_outputs_el').css({
+                            display: 'none',
+                        })
+                        $('#shadeTool_results_outputs_el_input_wrap').css({
+                            display: 'inherit',
+                        })
+                        $('#shadeTool_results_outputs_el_input').val(
+                            parseFloat(
+                                $('#shadeTool_results_outputs_el').text()
+                            )
+                        )
+                        $('#shadeTool_results_outputs_range').css({
+                            display: 'none',
+                        })
+                        $('#shadeTool_results_outputs_range_input_wrap').css({
+                            display: 'inherit',
+                        })
+                        $('#shadeTool_results_outputs_range_input').val(
+                            parseFloat(
+                                100000 //$('#shadeTool_results_outputs_range').text()
+                            )
+                        )
+                    } else {
+                        $('#shadeTool_results_outputs_az').css({
+                            display: 'inherit',
+                        })
+                        $('#shadeTool_results_outputs_az_input_wrap').css({
+                            display: 'none',
+                        })
+                        $('#shadeTool_results_outputs_el').css({
+                            display: 'inherit',
+                        })
+                        $('#shadeTool_results_outputs_el_input_wrap').css({
+                            display: 'none',
+                        })
+                        $('#shadeTool_results_outputs_range').css({
+                            display: 'inherit',
+                        })
+                        $('#shadeTool_results_outputs_range_input_wrap').css({
+                            display: 'none',
+                        })
+                    }
                     if (
                         $(
                             `#vstShades #vstId_${id} .vstOptionResolution select`
+                        ).val() <= ShadeTool.dynamicUpdateResCutoff
+                    ) {
+                        ShadeTool.setActiveElmId(id)
+                        ShadeTool.setSource()
+                    }
+                }
+            })(id)
+        )
+        $('#shadeTool_results_outputs_az_input').on(
+            'change',
+            (function (id) {
+                return function () {
+                    $('#vstShades #vstId_' + id + ' .vstRegen').addClass(
+                        'changed'
+                    )
+                    if (
+                        $(
+                            '#vstShades #vstId_' +
+                                id +
+                                ' .vstOptionResolution select'
+                        ).val() <= ShadeTool.dynamicUpdateResCutoff
+                    ) {
+                        ShadeTool.setActiveElmId(id)
+                        ShadeTool.setSource()
+                    }
+                }
+            })(id)
+        )
+        $('#shadeTool_results_outputs_el_input').on(
+            'change',
+            (function (id) {
+                return function () {
+                    $('#vstShades #vstId_' + id + ' .vstRegen').addClass(
+                        'changed'
+                    )
+                    if (
+                        $(
+                            '#vstShades #vstId_' +
+                                id +
+                                ' .vstOptionResolution select'
+                        ).val() <= ShadeTool.dynamicUpdateResCutoff
+                    ) {
+                        ShadeTool.setActiveElmId(id)
+                        ShadeTool.setSource()
+                    }
+                }
+            })(id)
+        )
+        $('#shadeTool_results_outputs_range_input').on(
+            'change',
+            (function (id) {
+                return function () {
+                    $('#vstShades #vstId_' + id + ' .vstRegen').addClass(
+                        'changed'
+                    )
+                    if (
+                        $(
+                            '#vstShades #vstId_' +
+                                id +
+                                ' .vstOptionResolution select'
                         ).val() <= ShadeTool.dynamicUpdateResCutoff
                     ) {
                         ShadeTool.setActiveElmId(id)
@@ -678,19 +841,29 @@ let ShadeTool = {
     },
     updateObserverSpecificTime: function (id) {
         id = id || 0
+
+        const options = ShadeTool.getShadeOptions(id)
+        let body
+        if (ShadeTool.vars?.observers) {
+            for (let i = 0; i < ShadeTool.vars.observers.length; i++) {
+                if ((ShadeTool.vars.observers[i].value = options.observer)) {
+                    body = ShadeTool.vars.observers[i].body
+                }
+            }
+        }
+
+        if (body == null || options.observer == null) return
+
         calls.api(
-            'chronos',
+            'chronice',
             {
-                target: $(
-                    '#vstShades #vstId_' + id + ' .vstOptionObserver select'
-                )
-                    .val()
-                    .toLowerCase(),
+                body: body,
+                target: options.observer,
                 from: 'utc',
-                fromtype: 'scet',
-                to: 'lst',
-                totype: 'lst',
-                time: TimeControl.getEndTime(),
+                time: TimeControl.getEndTime().replace(
+                    '.000Z',
+                    `.${ShadeTool._lastConvertedMs}Z`
+                ),
             },
             function (s) {
                 try {
@@ -727,18 +900,25 @@ let ShadeTool = {
     },
     updateFromObserverSpecificTime: function (id) {
         id = id || 0
+
+        const options = ShadeTool.getShadeOptions(id)
+        let body
+        if (ShadeTool.vars?.observers) {
+            for (let i = 0; i < ShadeTool.vars.observers.length; i++) {
+                if ((ShadeTool.vars.observers[i].value = options.observer)) {
+                    body = ShadeTool.vars.observers[i].body
+                }
+            }
+        }
+
+        if (body == null || options.observer == null) return
+
         calls.api(
-            'chronos',
+            'chronice',
             {
-                target: $(
-                    '#vstShades #vstId_' + id + ' .vstOptionObserver select'
-                )
-                    .val()
-                    .toLowerCase(),
-                from: 'lst',
-                fromtype: 'lst',
-                to: 'utc',
-                totype: 'scet',
+                body: body,
+                target: options.observer,
+                from: 'lmst',
                 time: $(
                     '#vstShades #vstId_' + id + ' .vstOptionTimeSpecific input'
                 ).val(),
@@ -767,6 +947,7 @@ let ShadeTool = {
                         'black'
                     )
                 } else {
+                    ShadeTool._lastConvertedMs = s.result.split('.')[1] || '000'
                     TimeControl.setTime(
                         TimeControl.getStartTime(),
                         s.result.replace(' ', 'T') + 'Z'
@@ -784,7 +965,10 @@ let ShadeTool = {
         const mapRect = document.getElementById('map').getBoundingClientRect()
         const wOffset = mapRect.width / 2
         const hOffset = mapRect.height / 2
-        const centerLatLng = Map_.map.containerPointToLatLng([wOffset, hOffset])
+        let centerLatLng = Map_.map.containerPointToLatLng([wOffset, hOffset])
+
+        if (ShadeTool.indicatorLastDragPoint)
+            centerLatLng = ShadeTool.indicatorLastDragPoint
 
         source = {
             lng: parseFloat(centerLatLng.lng),
@@ -813,6 +997,31 @@ let ShadeTool = {
 
         let dataLayer = ShadeTool.vars.data[options.dataIndex]
 
+        const isCustom = options.target === 'false'
+        let customAz, customEl, customRange
+        if (isCustom) {
+            customAz = parseFloat(
+                $('#shadeTool_results_outputs_az_input').val()
+            )
+            customEl = parseFloat(
+                $('#shadeTool_results_outputs_el_input').val()
+            )
+            customRange = parseFloat(
+                $('#shadeTool_results_outputs_range_input').val()
+            )
+            if (isNaN(customAz) || isNaN(customEl) || isNaN(customRange)) {
+                CursorInfo.update(
+                    'Azimuth, Elevation and Range need to be set when using Custom Az/El source.',
+                    6000,
+                    true,
+                    { x: 296, y: -5 },
+                    '#e9ff26',
+                    'black'
+                )
+                return
+            }
+        }
+
         ShadeTool.tags[activeElmId] =
             activeElmId +
             'd' +
@@ -832,8 +1041,32 @@ let ShadeTool = {
             't' +
             options.time.replace(/ /g, '_')
 
+        // Custom source needs azimuth, elevation and range part of id to make it unique
+        if (isCustom)
+            ShadeTool.tags[
+                activeElmId
+            ] += `A${customAz}E${customEl}R${customRange}`
+
+        //
+        let obsRefFrame
+        let obsBody
+        if (ShadeTool.vars?.observers) {
+            for (let i = 0; i < ShadeTool.vars.observers.length; i++) {
+                if ((ShadeTool.vars.observers[i].value = options.observer)) {
+                    obsRefFrame = ShadeTool.vars.observers[i].frame
+                    obsBody = ShadeTool.vars.observers[i].body
+                } else if (options.observer == null) {
+                    // If no observer, pick first
+                    obsRefFrame = ShadeTool.vars.observers[0].frame
+                    obsBody = ShadeTool.vars.observers[0].body
+                    break
+                }
+            }
+        }
+
         let demUrl = ShadeTool.vars.dem
         if (!F_.isUrlAbsolute(demUrl)) demUrl = L_.missionPath + demUrl
+
         calls.api(
             'getbands',
             {
@@ -858,22 +1091,29 @@ let ShadeTool = {
                                 height: data[0][1],
                                 target: options.target,
                                 time: options.time + ' UTC',
+                                obsRefFrame: obsRefFrame,
+                                obsBody: obsBody,
                                 includeSunEarth: options.includeSunEarth,
+                                isCustom: isCustom,
+                                customAz,
+                                customEl,
+                                customRange,
                             },
                             function (s) {
+                                /*
                                 Map_.rmNotNull(ShadeTool.tempIndicatorPoint)
                                 ShadeTool.tempIndicatorPoint =
                                     new L.circleMarker(
                                         [source.lat, source.lng],
-                                        {
-                                            fillColor: '#000',
-                                            fillOpacity: 0,
-                                            color: 'lime',
-                                            weight: 2,
-                                        }
+                                        ShadeTool.tempIndicatorPointStyle
                                     )
                                         .setRadius(4)
                                         .addTo(Map_.map)
+                                        .bringToFront()
+
+                                ShadeTool.indicatorDragOn()
+                                */
+
                                 try {
                                     s = JSON.parse(s)
                                 } catch {
@@ -893,8 +1133,8 @@ let ShadeTool = {
                                 $('#shadeTool_results_outputs_az').text('--')
                                 $('#shadeTool_results_outputs_el').text('--')
                                 $('#shadeTool_results_outputs_range').text('--')
-                                $('#shadeTool_results_outputs_lng').text('--')
-                                $('#shadeTool_results_outputs_lat').text('--')
+                                //$('#shadeTool_results_outputs_lng').text('--')
+                                //$('#shadeTool_results_outputs_lat').text('--')
 
                                 if (
                                     s.message &&
@@ -922,12 +1162,14 @@ let ShadeTool = {
                                     $('#shadeTool_results_outputs_range').text(
                                         s.range.toFixed(3) + 'km'
                                     )
+                                    /*
                                     $('#shadeTool_results_outputs_lng').text(
                                         s.longitude.toFixed(8) + '°'
                                     )
                                     $('#shadeTool_results_outputs_lat').text(
                                         s.latitude.toFixed(8) + '°'
                                     )
+                                    */
 
                                     keepGoing({
                                         lat: s.latitude,
@@ -940,7 +1182,6 @@ let ShadeTool = {
                                 }
                             },
                             function (e) {
-                                console.log('e', e)
                                 $(
                                     '#vstShades #vstId_' +
                                         activeElmId +
@@ -1191,8 +1432,13 @@ let ShadeTool = {
                     '#vstShades #vstId_' + elmId + ' .vstOptionHeight input'
                 ).val()
             ),
-            height: 0,
-            time: $('.vstOptionTime input').val(),
+            observer: $(
+                '#vstShades #vstId_' + elmId + ' .vstOptionObserver select'
+            ).val(),
+            height: $(
+                '#vstShades #vstId_' + elmId + ' .vstOptionHeight input'
+            ).val(),
+            time: $('.vstOptionTime input').attr('raw'),
         }
     },
     // Update Range Azimuth Elevation indicators
@@ -1519,7 +1765,11 @@ let ShadeTool = {
             options.color || 'yellow'
         )
     },
-    parseToUTCTime(time) {
+    parseToUTCTime(time, formatted) {
+        if (formatted && ShadeTool.vars.utcTimeFormat) {
+            const tF = d3.utcFormat(ShadeTool.vars.utcTimeFormat)
+            return tF(Date.parse(time))
+        }
         //'2023-06-28T03:15:20.883Z' -> '2023 JUL 16 03:56:00'
         return (
             time.substring(0, 4) +
@@ -1538,6 +1788,43 @@ let ShadeTool = {
         L_.layers.layer['shade' + activeElmId] = null
         ShadeTool.canvases[activeElmId] = null
     },
+    indicatorDragOn: function () {
+        ShadeTool.tempIndicatorPoint.on(
+            'mousedown',
+            ShadeTool.indicatorDragDown
+        )
+        Map_.map.on('mouseup', ShadeTool.indicatorDragUp)
+        Map_.map.on('mousemove', ShadeTool.indicatorDragMove)
+    },
+    indicatorDragOff: function () {
+        ShadeTool.tempIndicatorPoint.off('mousedown', DrawTool.cmLayerDown)
+        Map_.map.off('mouseup', DrawTool.cmLayerUp)
+        Map_.map.off('mousemove', DrawTool.cmLayerMove)
+
+        ShadeTool.tempIndicatorPoint.dragging = false
+        Map_.map.dragging.enable()
+    },
+    indicatorDragDown: function () {
+        ShadeTool.tempIndicatorPoint.dragging = true
+        Map_.map.dragging.disable()
+    },
+    indicatorDragUp: function () {
+        if (ShadeTool.tempIndicatorPoint.dragging == true) {
+            ShadeTool.tempIndicatorPoint.dragging = false
+            //So the layer itself can ignore the click to drag
+            ShadeTool.tempIndicatorPoint.justDragged = true
+            Map_.map.dragging.enable()
+            if (DrawTool.indicatorLastDragPoint) {
+                Map_.rmNotNull(ShadeTool.tempIndicatorPoint)
+            }
+        }
+    },
+    indicatorDragMove: function (e) {
+        if (ShadeTool.tempIndicatorPoint.dragging) {
+            ShadeTool.tempIndicatorPoint.setLatLng(e.latlng)
+            ShadeTool.indicatorLastDragPoint = e.latlng
+        }
+    },
 }
 
 //
@@ -1546,6 +1833,7 @@ function interfaceWithMMGIS() {
         separateFromMMGIS()
     }
 
+    const rawTime = ShadeTool.parseToUTCTime(TimeControl.getEndTime())
     // prettier-ignore
     let markup = [
         "<div id='shadeTool'>",
@@ -1555,25 +1843,13 @@ function interfaceWithMMGIS() {
                         "<div id='vstTitle'>Shade</div>",
                         Help.getComponent(helpKey),
                     "</div>",
-                    /*
-                    "<div id='vstNew'>",
-                        "<div>New</div>",
-                        "<i class='mdi mdi-plus mdi-18px'></i>",
-                    "</div>",
-                    */
                 "</div>",
                 "<div class='vstOptionTime'>",
                     "<div class='flexbetween'>",
                         `<div class='vstClockIcon'><i class='mdi mdi-clock-outline mdi-18px'></i></div>`,
-                        `<input type='text' value='${ShadeTool.parseToUTCTime(TimeControl.getEndTime())}'>`,
+                        `<input type='text' value='${ShadeTool.parseToUTCTime(TimeControl.getEndTime(), true)}' raw='${rawTime}' title='${rawTime}'>`,
                     "</div>",
                 "</div>",
-                /*
-                "<div>",
-                    "<div id='vstToggleAll' class='checkbox on'></div>",
-                    "<div class='vstLabel'>Toggle All</div>",
-                "</div>",
-                */
             "</div>",
             "<div id='vstContent'>",
                 "<ul id='vstShades'>",

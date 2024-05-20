@@ -24,7 +24,9 @@
                     "elFOV": 30
                 },
                 { "...": "..." }
-            ]
+            ],
+            "defaultObserverHeight": 2,
+            "defaultTargetHeight": 0
         }
     },
     "hasVars": true,

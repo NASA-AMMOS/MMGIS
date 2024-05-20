@@ -27,7 +27,7 @@ The `src/essence/mmgisAPI/mmgisAPI.js` file exposes functions that can be called
   - [asLayerUUID(uuid)](#asLayerUUIDuuid)
 - [Time Control](#time-control)
   - [toggleTimeUI(visibility)](#toggletimeuivisibility)
-  - [setTime(startTime, endTime, isRelative, timeOffset, currentTime)](#settimestarttime-endtime-isrelative-timeoffset-currenttime)
+  - [setTime(startTime, endTime, isRelative, timeOffset, currentTime, customTimes)](#settimestarttime-endtime-isrelative-timeoffset-currenttime-customtimes)
   - [setLayerTime(layer, startTime, endTime)](#setlayertimelayer-starttime-endtime)
   - [getTime()](#gettime)
   - [getStartTime()](#getstarttime)
@@ -196,6 +196,8 @@ This function updates an existing vector layer with a specified name and valid G
 - `layerUUID` - name of layer to update
 - `inputData` - valid GeoJSON data
 - `keepN` - number of features to keep. A value less than or equal to 0 keeps all previous features
+
+Returns `false` if the layer could not be updated (either some parameters are wrong or that layer is already is the midst of being loaded).
 
 The following is an example of how to call the `updateVectorLayer` function:
 
@@ -377,6 +379,8 @@ This function will reload the given layer by re-fetching the data and re-drawing
 - `evenIfOff` - _boolean_ | If true, reloads the layer even if the layer is not active
 - `evenIfControlled` - _boolean_ | If true, reloads the layer even if it's a "Controlled" layer
 
+Returns `false` if the layer could not be updated (either some parameters are wrong or that layer is already is the midst of being loaded).
+
 The following is an example of how to call the `reloadLayer` function:
 
 ```javascript
@@ -417,7 +421,7 @@ The following is an example of how to call the `toggleTimeUI` function:
 window.mmgisAPI.toggleTimeUI(false);
 ```
 
-### setTime(startTime, endTime, isRelative, timeOffset, currentTime)
+### setTime(startTime, endTime, isRelative, timeOffset, currentTime, customTimes)
 
 This function sets the global time properties for all of MMGIS. All time enabled layers that are configured to use the `Global` time type will be updated by this function.
 
@@ -430,6 +434,11 @@ Note that layers will not be refreshed on the map until `reloadTimeLayers()` (or
 - `isRelative` - If true, startTime and endTime are relative to the current UTC time
 - `timeOffset` - An offset to use for the current UTC time; can be either a string in `hh:mm:ss` format or an integer value in seconds
 - `currentTime` - If set, offset is ignored and the current working time is set to this currentTime
+- `customTimes` - Sets an array of times of format `YYYY-MM-DDThh:mm:ssZ` to be used while replacing `{customtime.0}`, `{customtime.1}`, ... in the tile or vector layer url in order to inject custom times.
+  - If value is a `string`, puts it into the 0th index of the internal customtimes array.
+  - If value is a `[string]`, replaces the current internal customtimes array with it.
+  - If value is the empty array `[]`, clears the internal customtimes array.
+  - If value is `null`, does not modify the existing internal customtimes array.
 
 The following are examples of how to call the `setTime` function:
 

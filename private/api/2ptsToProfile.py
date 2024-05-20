@@ -25,6 +25,8 @@ gdal.UseExceptions()
 # Takes in a [[x,y],[x,y],[x,y],[x,y]...[x,y],[x,y]]
 # and returns an array of values on the raster at those points in order
 
+# Just temporary, script outputs them as None
+NODATA_VALUE = -1100101
 
 def getRasterDataValues(pointArray):
     valuesArray = []
@@ -33,8 +35,8 @@ def getRasterDataValues(pointArray):
             value = band.ReadAsArray(
                 pointArray[i][0], pointArray[i][1], 1, 1)[0][0]
         except:
-            # -1100101 = (e)rror
-            value = -1100101
+            # (e)rror
+            value = NODATA_VALUE
 
         noData = band.GetNoDataValue()
         if noData is not None:
@@ -43,7 +45,7 @@ def getRasterDataValues(pointArray):
             if abs(noData) > 1000000000:
                 decPlaces = 10
             if abs(value) >= abs(noData / decPlaces) and abs(value) <= abs(noData * decPlaces):
-                value = -1100101
+                value = NODATA_VALUE
         valuesArray.append(value)
     return valuesArray
 
@@ -60,9 +62,9 @@ def getRasterDataCoords(pointArray):
             valueY = bandY.ReadAsArray(
                 pointArray[i][0], pointArray[i][1], 1, 1)[0][0]
         except:
-            # -1100101 = (e)rror
-            valueX = -1100101
-            valueY = -1100101
+            # (e)rror
+            valueX = NODATA_VALUE
+            valueY = NODATA_VALUE
 
         noDataX = bandX.GetNoDataValue()
         if noDataX is not None:
@@ -71,7 +73,7 @@ def getRasterDataCoords(pointArray):
             if abs(noDataX) > 1000000000:
                 decPlaces = 10
             if abs(valueX) >= abs(noDataX / decPlaces) and abs(valueX) <= abs(noDataX * decPlaces):
-                valueX = -1100101
+                valueX = NODATA_VALUE
 
         noDataY = bandY.GetNoDataValue()
         if noDataY is not None:
@@ -80,7 +82,7 @@ def getRasterDataCoords(pointArray):
             if abs(noDataY) > 1000000000:
                 decPlaces = 10
             if abs(valueY) >= abs(noDataY / decPlaces) and abs(valueY) <= abs(noDataY * decPlaces):
-                valueY = -1100101
+                valueY = NODATA_VALUE
 
         coordsArray.append([valueX, valueY])
 
@@ -208,6 +210,8 @@ if axes == 'xyz':
 # Come latlon with elevs and print
 for i in range(0, len(latLonElevArray)):
     latLonElevArray[i] = [latLonElevArray[i][1], latLonElevArray[i][0]]
+    if elevArray[i] == NODATA_VALUE:
+        elevArray[i] = None
     latLonElevArray[i].append(elevArray[i])
 
 print(latLonElevArray)

@@ -72,6 +72,7 @@ let Globe_ = {
             majorRadius: F_.radiusOfPlanetMajor,
             minorRadius: F_.radiusOfPlanetMinor,
             radiusOfTiles: 5,
+            blockInitialAnimate: !L_.hasGlobe,
             //renderOnlyWhenOpen: false, //default true
             //wireframeMode: true, // default false
             //useLOD: true, // default true
@@ -106,6 +107,11 @@ let Globe_ = {
 
         // CONSTRUCTOR
         this.litho = new LithoSphere(containerId, lithoConfig)
+
+        if (!L_.hasGlobe) {
+            this.litho = this.getMockLitho(this.litho)
+            return
+        }
 
         this.litho.addControl('mmgisLithoHome', this.litho.controls.home)
         this.litho.addControl(
@@ -198,6 +204,28 @@ let Globe_ = {
         $(`#${this.id}`).on('mousemove', () => {
             coordinates.hideElevation()
         })
+    },
+    getMockLitho: function () {
+        return {
+            removeLayer: function () {},
+            addLayer: function () {},
+            toggleLayer: function () {},
+            hasLayer: function () {},
+            getCenter: function () {},
+            setCenter: function () {},
+            getCameras: function () {},
+            setLayerOpacity: function () {},
+            setLayerFilterEffect: function () {},
+            orderLayers: function () {},
+            invalidateSize: function () {},
+            setLayerSpecificOptions: function () {},
+            getElevationAtLngLat: function () {
+                return 0
+            },
+            projection: this.litho.projection,
+            _: {},
+            options: {},
+        }
     },
     reset: function () {},
     setLink: function () {},

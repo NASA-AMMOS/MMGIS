@@ -70,6 +70,7 @@ const L_ = {
     toggledOffFeatures: [],
     mapAndGlobeLinked: false,
     addLayerQueue: [],
+    _layersBeingMade: {},
     _onLoadCallbacks: [],
     _loaded: false,
     init: function (configData, missionsList, urlOnLayers) {
@@ -214,6 +215,18 @@ const L_ = {
         if (L_._onLayerToggleSubscriptions[fid] != null)
             delete L_._onLayerToggleSubscriptions[fid]
     },
+    _onSpecificLayerToggleSubscriptions: {},
+    subscribeOnSpecificLayerToggle: function (fid, layerId, func) {
+        if (typeof func === 'function')
+            L_._onSpecificLayerToggleSubscriptions[fid] = {
+                layer: layerId,
+                func: func,
+            }
+    },
+    unsubscribeOnSpecificLayerToggle: function (fid) {
+        if (L_._onSpecificLayerToggleSubscriptions[fid] != null)
+            delete L_._onSpecificLayerToggleSubscriptions[fid]
+    },
     //Takes in config layer obj
     //Toggles a layer on and off and accounts for sublayers
     //Takes in a config layer object
@@ -230,6 +243,11 @@ const L_ = {
 
         Object.keys(L_._onLayerToggleSubscriptions).forEach((k) => {
             L_._onLayerToggleSubscriptions[k](s.name, !on)
+        })
+
+        Object.keys(L_._onSpecificLayerToggleSubscriptions).forEach((k) => {
+            const subs = L_._onSpecificLayerToggleSubscriptions[k]
+            if (subs.layer === s.name) subs.func(s.name, !on)
         })
 
         // Always reupdate layer infos at the end to keep them in sync
@@ -456,7 +474,7 @@ const L_ = {
                         L_.layers.layer[s.name] === false &&
                         globeOnly != true
                     ) {
-                        await L_.Map_.makeLayer(s, true)
+                        await L_.Map_.makeLayer(s, true, null, null, true)
                         Description.updateInfo()
                         hadToMake = true
                     }
@@ -561,6 +579,10 @@ const L_ = {
                 })
             }
         }
+        // Refresh opacity
+        if (s.type === 'vector') {
+            L_.setLayerOpacity(s.name, L_.layers.opacity[s.name])
+        }
     },
     _refreshAnnotationEvents() {
         // Add annotation click events since onEachFeatureDefault doesn't apply to popups
@@ -573,6 +595,28 @@ const L_ = {
                 latlng: layer._latlng,
             })
         })
+    },
+    // If opacity is null, reinforces opacities
+    setSublayerOpacity(layerName, sublayerName, opacity) {
+        layerName = L_.asLayerUUID(layerName)
+
+        const sublayers = L_.layers.attachments[layerName] || {}
+        const sublayer = sublayers[sublayerName]
+
+        if (opacity == null) opacity = sublayer?.opacity
+
+        if (sublayer && sublayer.opacity != null) {
+            sublayer.opacity = opacity
+            switch (sublayer.type) {
+                case 'image_overlays':
+                    $(`.${sublayer.type}_${layerName}`).css({
+                        opacity: opacity,
+                    })
+                    break
+                default:
+                    break
+            }
+        }
     },
     toggleSublayer: function (layerName, sublayerName) {
         layerName = L_.asLayerUUID(layerName)
@@ -631,6 +675,7 @@ const L_ = {
                                 1 -
                                 L_._layersOrdered.indexOf(layerName)
                         )
+                        L_.setSublayerOpacity(layerName, sublayerName)
                         break
                 }
                 sublayer.on = true
@@ -737,16 +782,16 @@ const L_ = {
                         map.addLayer(
                             L_.layers.layer[L_.layers.dataFlat[i].name]
                         )
-                        // Set markerDiv based opacities if any
-                        $(
-                            `.leafletMarkerShape_${F_.getSafeName(
-                                L_.layers.dataFlat[i].name
-                            )}`
-                        ).css({
-                            opacity:
-                                L_.layers.opacity[L_.layers.dataFlat[i].name] ||
-                                0,
-                        })
+                        // Refresh opacity
+                        if (L_.layers.dataFlat[i].type === 'vector') {
+                            const lname = L_.layers.dataFlat[i].name
+                            setTimeout(() => {
+                                L_.setLayerOpacity(
+                                    lname,
+                                    L_.layers.opacity[lname]
+                                )
+                            }, 300)
+                        }
                     } catch (e) {
                         console.log(e)
                         console.warn(
@@ -761,7 +806,11 @@ const L_ = {
                 let layerUrl = s.url
                 if (!F_.isUrlAbsolute(layerUrl))
                     layerUrl = L_.missionPath + layerUrl
-                if (s.type === 'tile' || s.type === 'data') {
+                if (
+                    s.type === 'tile' ||
+                    s.type === 'data' ||
+                    s.type === 'vectortile'
+                ) {
                     // Make sure all tile layers follow z-index order at start instead of element order
                     L_.layers.layer[s.name].setZIndex(
                         L_._layersOrdered.length +
@@ -865,7 +914,7 @@ const L_ = {
 
         L_._refreshAnnotationEvents()
     },
-    addGeoJSONData: function (layer, geojson) {
+    addGeoJSONData: function (layer, geojson, keepLastN, stopLoops) {
         if (layer._sourceGeoJSON) {
             if (layer._sourceGeoJSON.features)
                 if (geojson.features)
@@ -880,6 +929,10 @@ const L_ = {
                         ? geojson
                         : null
                 )
+            if (keepLastN && keepLastN > 0) {
+                layer._sourceGeoJSON.features =
+                    layer._sourceGeoJSON.features.slice(-1 * keepLastN)
+            }
         }
 
         // Don't add data if hidden
@@ -900,7 +953,10 @@ const L_ = {
         L_.Map_.makeLayer(
             L_.layers.data[layer._layerName],
             true,
-            layer._sourceGeoJSON
+            layer._sourceGeoJSON,
+            null,
+            null,
+            stopLoops
         )
 
         if (initialOn) {
@@ -908,7 +964,6 @@ const L_ = {
             L_.layers.on[layer._layerName] = true
         }
         //L_.syncSublayerData(layer._layerName)
-
         if (initialOn) {
             // Reselect activeFeature
             if (L_.activeFeature) {
@@ -999,11 +1054,27 @@ const L_ = {
                 )
             } else {
                 const savedOptions = JSON.parse(JSON.stringify(layer.options))
+
                 layer.setStyle({
                     color: color,
                     stroke: color,
                 })
                 layer.options = savedOptions
+
+                // For some odd reason sometimes the first style does not work
+                // This makes sure it does
+                setTimeout(() => {
+                    if (
+                        layer.options.color != color &&
+                        layer.options.stroke != color
+                    ) {
+                        layer.setStyle({
+                            color: color,
+                            stroke: color,
+                        })
+                        layer.options = savedOptions
+                    }
+                }, 1)
             }
         } catch (err) {
             if (layer._icon)
@@ -1151,9 +1222,11 @@ const L_ = {
         ) {
             if (l._path) l._path.style.display = 'inherit'
             if (l._container) l._container.style.display = 'inherit'
+            if (l._icon) l._icon.style.display = 'inherit'
         } else {
             if (l._path) l._path.style.display = 'none'
             if (l._container) l._container.style.display = 'none'
+            if (l._icon) l._icon.style.display = 'none'
         }
     },
     addArrowToMap: function (
@@ -1466,13 +1539,13 @@ const L_ = {
         newOpacity = parseFloat(newOpacity)
         if (L_.Globe_) L_.Globe_.litho.setLayerOpacity(name, newOpacity)
         let l = L_.layers.layer[name]
-        if (l.options.initialFillOpacity == null)
-            l.options.initialFillOpacity =
-                L_.layers.data[name]?.style?.fillOpacity != null
-                    ? parseFloat(L_.layers.data[name].style.fillOpacity)
-                    : 1
 
         if (l) {
+            if (l.options.initialFillOpacity == null)
+                l.options.initialFillOpacity =
+                    L_.layers.data[name]?.style?.fillOpacity != null
+                        ? parseFloat(L_.layers.data[name].style.fillOpacity)
+                        : 1
             try {
                 l.setOpacity(newOpacity)
             } catch (error) {
@@ -1480,10 +1553,10 @@ const L_ = {
                     opacity: newOpacity,
                     fillOpacity: newOpacity * l.options.initialFillOpacity,
                 })
-                $(`.leafletMarkerShape_${F_.getSafeName(name)}`).css({
-                    opacity: newOpacity,
-                })
             }
+            $(`.leafletMarkerShape_${F_.getSafeName(name)}`).css({
+                opacity: newOpacity,
+            })
 
             const sublayers = L_.layers.attachments[name]
             if (sublayers) {
@@ -1497,11 +1570,16 @@ const L_ = {
                             sublayers[sub].layer.setOpacity(newOpacity)
                         } catch (error) {
                             try {
+                                let opacity = newOpacity
+                                let fillOpacity =
+                                    newOpacity * l.options.initialFillOpacity
+                                if (sub === 'uncertainty_ellipses') {
+                                    opacity = opacity * 0.8
+                                    fillOpacity = fillOpacity * 0.25
+                                }
                                 sublayers[sub].layer.setStyle({
-                                    opacity: newOpacity,
-                                    fillOpacity:
-                                        newOpacity *
-                                        l.options.initialFillOpacity,
+                                    opacity,
+                                    fillOpacity,
                                 })
                             } catch (error2) {
                                 /*
@@ -1778,16 +1856,26 @@ const L_ = {
         }
         return false
     },
-    getToolVars: function (toolName, showWarnings) {
+    getToolVars: function (toolName, withVarsFromLayers, showWarnings) {
+        let vars = {}
         for (var i = 0; i < L_.tools.length; i++) {
             if (
                 L_.tools[i].hasOwnProperty('name') &&
                 L_.tools[i].name.toLowerCase() == toolName &&
                 L_.tools[i].hasOwnProperty('variables')
             ) {
-                return L_.tools[i].variables
+                vars = L_.tools[i].variables
             }
         }
+        if (withVarsFromLayers) {
+            vars.__layers = {}
+            L_.layers.dataFlat.forEach((d) => {
+                if (d.name != null && d?.variables?.tools?.[toolName] != null) {
+                    vars.__layers[d.name] = d.variables.tools[toolName]
+                }
+            })
+        }
+        if (Object.keys(vars).length > 0) return vars
         if (showWarnings)
             console.warn(
                 `WARNING: Tried to get ${toolName} Tool's config variables and failed.`
@@ -2481,7 +2569,7 @@ const L_ = {
                     '` as inputData is invalid: ' +
                     JSON.stringify(inputData, null, 4)
             )
-            return
+            return false
         }
 
         // Make sure the timeProp exists as a property in the updated data
@@ -2494,11 +2582,17 @@ const L_ = {
                     ' and does not exist as a property in inputData: ' +
                     JSON.stringify(lastFeature, null, 4)
             )
-            return
+            return false
         }
 
         if (layerName in L_.layers.layer) {
             const updateLayer = L_.layers.layer[layerName]
+            if (L_._layersBeingMade[layerName] === true) {
+                console.error(
+                    `ERROR - appendLineString: Cannot make layer ${layerObj.display_name}/${layerObj.name} as it's already being made!`
+                )
+                return false
+            }
 
             var layers = updateLayer.getLayers()
             var layersGeoJSON = updateLayer.toGeoJSON(L_.GEOJSON_PRECISION)
@@ -2514,7 +2608,7 @@ const L_ = {
                             '` as the feature is not a LineStringfeature: ' +
                             JSON.stringify(lastFeature, null, 4)
                     )
-                    return
+                    return false
                 }
 
                 // Make sure the timeProp exists as a property in the feature
@@ -2538,7 +2632,7 @@ const L_ = {
                                 "` as inputData has the wrong geometry type (must be of type 'LineString'): " +
                                 JSON.stringify(inputData, null, 4)
                         )
-                        return
+                        return false
                     }
 
                     // Append new data to the end of the last feature
@@ -2557,7 +2651,7 @@ const L_ = {
                             "` as inputData has the wrong type (must be of type 'Feature'): " +
                             JSON.stringify(inputData, null, 4)
                     )
-                    return
+                    return false
                 }
 
                 const initialOn = L_.layers.on[layerName]
@@ -2567,7 +2661,16 @@ const L_ = {
                 }
 
                 L_.clearGeoJSONData(updateLayer)
-                L_.addGeoJSONData(updateLayer, layersGeoJSON)
+                try {
+                    L_.addGeoJSONData(updateLayer, layersGeoJSON)
+                } catch (e) {
+                    console.log(e)
+                    console.warn(
+                        'Warning: Unable to append LineString to layer as the layer or input data is invalid: ' +
+                            layerName
+                    )
+                    return false
+                }
 
                 if (initialOn) {
                     // Reselect activeFeature
@@ -2584,43 +2687,62 @@ const L_ = {
                         layerName +
                         '` as the layer contains no features'
                 )
-                return
+                return false
             }
         } else {
             console.warn(
                 'Warning: Unable to append to vector layer as it does not exist: ' +
                     layerName
             )
+            return false
         }
+        return true
     },
-    updateVectorLayer: function (layerName, inputData) {
+    updateVectorLayer: function (layerName, inputData, keepLastN, stopLoops) {
         layerName = L_.asLayerUUID(layerName)
 
         if (layerName in L_.layers.layer) {
+            const layerObj = L_.layers.data[layerName]
+            if (L_._layersBeingMade[layerName] === true) {
+                console.error(
+                    `ERROR - updateVectorLayer: Cannot make layer ${layerObj.display_name}/${layerObj.name} as it's already being made!`
+                )
+                return false
+            }
+
             const updateLayer = L_.layers.layer[layerName]
 
             try {
-                L_.addGeoJSONData(updateLayer, inputData)
+                L_.addGeoJSONData(updateLayer, inputData, keepLastN, stopLoops)
             } catch (e) {
                 console.log(e)
                 console.warn(
-                    'Warning: Unable to update vector layer as the input data is invalid: ' +
+                    'Warning: Unable to update vector layer as the layer or input data is invalid: ' +
                         layerName
                 )
-                return
+                return false
             }
             L_.syncSublayerData(layerName)
             L_.globeLithoLayerHelper(L_.layers.layer[layerName])
+            L_.setLayerOpacity(layerName, L_.layers.opacity[layerName])
         } else {
             console.warn(
                 'Warning: Unable to update vector layer as it does not exist: ' +
                     layerName
             )
+            return false
         }
+        return true
     },
     // Make a layer's sublayer match the layers data again
     syncSublayerData: async function (layerName, onlyClear) {
         layerName = L_.asLayerUUID(layerName)
+
+        if (
+            L_.layers.layer[layerName] == null ||
+            L_.layers.layer[layerName] == false
+        )
+            return
 
         try {
             let geojson = L_.layers.layer[layerName].toGeoJSON(
@@ -2639,6 +2761,15 @@ const L_ = {
                         subUpdateLayers[sub].layer != null
                     ) {
                         subUpdateLayers[sub].layer.clearLayers()
+                        if (
+                            typeof subUpdateLayers[sub].layer
+                                .customClearLayers === 'function'
+                        ) {
+                            subUpdateLayers[sub].layer.customClearLayers(
+                                layerName,
+                                sub
+                            )
+                        }
 
                         if (!onlyClear) {
                             if (
@@ -2656,6 +2787,14 @@ const L_ = {
                                 'function'
                             ) {
                                 subUpdateLayers[sub].layer.addData(geojson)
+                            }
+
+                            if (sub === 'image_overlays') {
+                                subUpdateLayers[sub].layer.setZIndex(
+                                    L_._layersOrdered.length +
+                                        1 -
+                                        L_._layersOrdered.indexOf(layerName)
+                                )
                             }
                         }
                     }

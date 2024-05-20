@@ -155,7 +155,7 @@ var markup = [
                 "</div>",
                 "<div id='drawToolDrawSortDiv'>",
                     "<div type='public' title='Public Only'><i class='mdi mdi-shield-outline mdi-14px'></i></div>",
-                    "<div type='owned' title='Yours Only' class='active'><i class='mdi mdi-account mdi-18px'></i></div>",
+                    "<div type='owned' title='Yours Only'><i class='mdi mdi-account mdi-18px'></i></div>",
                     "<div type='on' title='On Only'><i class='mdi mdi-eye mdi-18px'></i></div>",
                 "</div>",
             "</div>",
@@ -226,7 +226,7 @@ var markup = [
             "<div id='drawToolShapes_filtering'>",
                 "<div id='drawToolShapes_filtering_header'>",
                     "<div id='drawToolShapes_filtering_title_left'>",
-                        "<div id='drawToolShapes_filtering_title'>Filter</div>",
+                        "<div id='drawToolShapes_filtering_title'>Advanced Filter</div>",
                     "</div>",
                     "<div id='drawToolShapes_filtering_adds'>",
                         "<div id='drawToolShapes_filtering_add_value' class='mmgisButton5' title='Add New Key-Value Filter'><div>Add</div><i class='mdi mdi-plus mdi-18px'></i></div>",
@@ -478,6 +478,8 @@ var DrawTool = {
         },
     },
     initialize: function () {
+        DrawTool._firstGetFiles = null
+
         this.vars = L_.getToolVars('draw')
 
         //Set up intent mapping if any
@@ -512,13 +514,60 @@ var DrawTool = {
         if (DrawTool_SetOperations) DrawTool_SetOperations.init(DrawTool)
 
         //Turn on files from url
+        let hadDrawLayersOn = false
         if (L_.FUTURES.tools) {
-            for (var t of L_.FUTURES.tools) {
-                var tUrl = t.split('$')
+            for (let t of L_.FUTURES.tools) {
+                const tUrl = t.split('$')
                 if (tUrl[0] == 'DrawTool') {
-                    var fileIds = tUrl[1].split('.')
-                    for (var f of fileIds) {
-                        this.toggleFile(parseInt(f))
+                    const tUrl2 = tUrl[1].split('-')
+                    //fileson
+                    const fileIds = tUrl2[0].split('.')
+                    let finishedFileIdsCount = 0
+                    for (let f of fileIds) {
+                        this.toggleFile(
+                            parseInt(f),
+                            null,
+                            null,
+                            null,
+                            null,
+                            () => {
+                                finishedFileIdsCount++
+                                if (finishedFileIdsCount >= fileIds.length) {
+                                    // We want to make sure that users of the javascript api can still hit drawing files if
+                                    // they were deeplinked to but the tool was never opened/maked
+                                    if (hadDrawLayersOn) {
+                                        DrawTool.getFiles(function () {
+                                            //Populate masterFilesIds
+                                            DrawTool.masterFileIds = []
+                                            for (var f in DrawTool.files) {
+                                                if (DrawTool.files[f].is_master)
+                                                    DrawTool.masterFileIds.push(
+                                                        DrawTool.files[f].id
+                                                    )
+                                            }
+
+                                            DrawTool.destroy()
+                                        })
+                                    }
+                                }
+                            }
+                        )
+                    }
+                    hadDrawLayersOn = true
+
+                    // default filters
+                    const filtersOn = tUrl2[1]
+                    if (filtersOn != null) {
+                        window._toolStates = window._toolStates || {}
+                        window._toolStates.draw = window._toolStates.draw || {}
+                        window._toolStates.draw.filter =
+                            window._toolStates.draw.filter || {}
+
+                        window._toolStates.draw.filter.public =
+                            filtersOn[0] == '1'
+                        window._toolStates.draw.filter.owned =
+                            filtersOn[1] == '1'
+                        window._toolStates.draw.filter.on = filtersOn[2] == '1'
                     }
                     break
                 }
@@ -531,7 +580,6 @@ var DrawTool = {
         DrawTool.activeContent = 'draw'
         DrawTool.intentType = null
         DrawTool.currentFileId = null
-        DrawTool._firstGetFiles = null
         //DrawTool.filesOn = [];
         DrawTool.isEditing = false
 
@@ -602,7 +650,7 @@ var DrawTool = {
         })
     },
     destroy: function () {
-        this.MMGISInterface.separateFromMMGIS()
+        if (this.MMGISInterface) this.MMGISInterface.separateFromMMGIS()
 
         for (var l in L_.layers.layer) {
             var s = l.split('_')
@@ -763,7 +811,26 @@ var DrawTool = {
         }
     },
     getUrlString: function () {
-        return this.filesOn.toString().replace(/,/g, '.')
+        // Structure is fileOnId.fileOnId.fileOnId,filtersOnBinary
+        const publicFilterOn = $(
+            `#drawToolDrawSortDiv > [type="public"]`
+        ).hasClass('active')
+            ? 1
+            : 0
+        const yoursOnlyFilterOn = $(
+            `#drawToolDrawSortDiv > [type="owned"]`
+        ).hasClass('active')
+            ? 1
+            : 0
+        const onFilterOn = $(`#drawToolDrawSortDiv > [type="on"]`).hasClass(
+            'active'
+        )
+            ? 1
+            : 0
+        return (
+            this.filesOn.toString().replace(/,/g, '.') +
+            `-${publicFilterOn}${yoursOnlyFilterOn}${onFilterOn}`
+        )
     },
     showContent: function (type) {
         //Go to back to latest history after leaving history
@@ -806,6 +873,7 @@ var DrawTool = {
                 DrawTool.endDrawing()
                 DrawTool.populateShapes()
                 $('#drawToolShapes').css('display', 'flex')
+                DrawTool.setSubmitButtonState(true)
                 break
             case 'history':
                 $('.drawToolContextMenuHeaderClose').click()
@@ -888,17 +956,17 @@ var DrawTool = {
         }
         if (typeof file_description !== 'string') return []
 
-        const tags = file_description.match(/~#\w+/g) || []
+        const tags = file_description.match(/~#([^\s])+/g) || []
         const uniqueTags = [...tags]
         // remove '#'s
         tagFolders.tags = uniqueTags.map((t) => t.substring(2)) || []
 
-        const folders = file_description.match(/~@\w+/g) || []
+        const folders = file_description.match(/~@([^\s])+/g) || []
         const uniqueFolders = [...folders]
         // remove '@'s
         tagFolders.folders = uniqueFolders.map((t) => t.substring(2)) || []
 
-        const efolders = file_description.match(/~\^\w+/g) || []
+        const efolders = file_description.match(/~\^([^\s])+/g) || []
         const uniqueEFolders = [...efolders]
         // remove '^'s
         tagFolders.efolders = uniqueEFolders.map((t) => t.substring(2)) || []
@@ -938,15 +1006,14 @@ var DrawTool = {
                 .concat(tagFolders.folders)
                 .concat(tagFolders.efolders)
         }
-
         return tagFolders
     },
     stripTagsFromDescription(file_description) {
         if (typeof file_description !== 'string') return ''
         return file_description
-            .replaceAll(/~#\w+/g, '')
-            .replaceAll(/~@\w+/g, '')
-            .replaceAll(/~\^\w+/g, '')
+            .replaceAll(/~#([^\s])+/g, '')
+            .replaceAll(/~@([^\s])+/g, '')
+            .replaceAll(/~\^([^\s])+/g, '')
             .trimStart()
             .trimEnd()
     },
@@ -978,6 +1045,8 @@ var DrawTool = {
 
                     // Add tags and folders
                     for (let i = 0; i < DrawTool.files.length; i++) {
+                        DrawTool.files[i].file_description =
+                            DrawTool.files[i].file_description || ''
                         DrawTool.files[i]._tagFolders =
                             DrawTool.getTagsFoldersFromFileDescription(
                                 DrawTool.files[i]
@@ -1308,6 +1377,7 @@ var DrawTool = {
     },
     timeFilterDrawingLayer(fileId) {
         if (L_.layers.layer[`DrawTool_${fileId}`]) {
+            DrawTool.setSubmitButtonState(true)
             const file = DrawTool.getFileObjectWithId(fileId)
 
             let startField
@@ -1332,10 +1402,13 @@ var DrawTool = {
                                         startField,
                                         endField
                                     )
+
                                 if (l2.savedOptions == null)
-                                    l2.savedOptions = JSON.parse(
-                                        JSON.stringify(l2.options)
-                                    )
+                                    l2.savedOptions = {
+                                        opacity: l2.options.opacity,
+                                        fillOpacity: l2.options.fillOpacity,
+                                    }
+
                                 l2.temporallyHidden = !isVisible
                                 if (l2.temporallyHidden)
                                     $(
@@ -1371,7 +1444,10 @@ var DrawTool = {
                         endField
                     )
                     if (l.savedOptions == null)
-                        l.savedOptions = JSON.parse(JSON.stringify(l.options))
+                        l.savedOptions = {
+                            opacity: l.options.opacity,
+                            fillOpacity: l.options.fillOpacity,
+                        }
 
                     l.temporallyHidden = !isVisible
                     if (l.temporallyHidden)
@@ -1420,6 +1496,28 @@ function interfaceWithMMGIS() {
 
     //Add the markup to tools or do it manually
     tools.html(markup)
+
+    // Set default Public filter state
+    if (window._toolStates?.draw?.filter?.public != null) {
+        if (window._toolStates.draw.filter.public === true)
+            $(`#drawToolDrawSortDiv > [type="public"]`).addClass('active')
+    } else if (DrawTool.vars.defaultPublicFilter === true) {
+        $(`#drawToolDrawSortDiv > [type="public"]`).addClass('active')
+    }
+    // Set default Yours Only filter state
+    if (window._toolStates?.draw?.filter?.owned != null) {
+        if (window._toolStates.draw.filter.owned === true)
+            $(`#drawToolDrawSortDiv > [type="owned"]`).addClass('active')
+    } else if (DrawTool.vars.defaultYoursOnlyFilter !== false) {
+        $(`#drawToolDrawSortDiv > [type="owned"]`).addClass('active')
+    }
+    // Set default On filter state
+    if (window._toolStates?.draw?.filter?.on != null) {
+        if (window._toolStates.draw.filter.on === true)
+            $(`#drawToolDrawSortDiv > [type="on"]`).addClass('active')
+    } else if (DrawTool.vars.defaultOnFilter === true) {
+        $(`#drawToolDrawSortDiv > [type="on"]`).addClass('active')
+    }
 
     // Set defaultDrawClipping if any
     $(

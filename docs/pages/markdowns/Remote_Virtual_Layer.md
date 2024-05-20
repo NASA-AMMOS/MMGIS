@@ -2,7 +2,7 @@
 
 A remote virtual layer can be supported via various GDAL drivers. The most common is the [GDAL WMS Driver](https://gdal.org/drivers/raster/wms.html). This allows MMGIS to treat remote datasets as if they were local.
 
-## GDAL XML Desciption File Template
+## GDAL XML Description File Template
 
 Here is a template of a GDAL XML Description file that may be used to access a remote DEM for the [Measure Tool](?page=Measure).
 
@@ -10,7 +10,7 @@ Here is a template of a GDAL XML Description file that may be used to access a r
 <GDAL_WMS>
     <Service name="WMS">
         <!-- recommend Version 1.1.1; Version 1.3 uses different bounding box definition -->
-        <Version>1.1.1</Version> 
+        <Version>1.1.1</Version>
         <!-- root URL of WMS service -->
         <ServerUrl>http://localhost/map/?</ServerUrl>
         <!-- projection of the source dataset -->

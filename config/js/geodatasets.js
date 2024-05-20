@@ -21,6 +21,12 @@ var Geodatasets = {
                     "<div class='geodatasetName'>",
                         "<input type='text' placeholder='Geodataset Name' value='' />",
                     "</div>",
+                    "<div class='geodatasetStartProp'>",
+                        "<input type='text' placeholder='Geodataset properties.path.to.start.time.key' value='' />",
+                    "</div>",
+                    "<div class='geodatasetEndProp'>",
+                        "<input type='text' placeholder='Geodataset properties.path.to.end.time.key' value='' />",
+                    "</div>",
                     "<div class='geodatasetRecreate'>",
                         "<a class='btn waves-effect waves-light'>Re/create</a>",
                     "</div>",
@@ -75,6 +81,8 @@ var Geodatasets = {
       "click",
       function (evt) {
         let name = $(".geodatasetName input").val();
+        let startProp = $(".geodatasetStartProp input").val() || null;
+        let endProp = $(".geodatasetEndProp input").val() || null;
         if (Geodatasets.geojson == null) {
           alert("Please upload a .geojson file.");
           return;
@@ -89,6 +97,8 @@ var Geodatasets = {
           url: calls.geodatasets_recreate.url,
           data: {
             name: name,
+            startProp,
+            endProp,
             geojson: Geodatasets.geojson,
           },
           success: function (data) {

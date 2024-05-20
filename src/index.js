@@ -7,6 +7,7 @@ import RefreshAuth from './pre/RefreshAuth'
 import $ from 'jquery'
 import L from './external/Leaflet/leaflet1.5.1' // './external/Leaflet/leaflet1.5.1_DEBUG' //
 import ld from './external/Leaflet/leaflet.draw'
+import pd from './external/Leaflet/Path.Drag'
 import lgu from './external/Leaflet/leaflet.geometryutil'
 import ls from './external/Leaflet/leaflet.snap'
 import lc from './external/Leaflet/leaflet-corridor'

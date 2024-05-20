@@ -26,6 +26,9 @@ var TimeControl = {
     globalTimeFormat: null,
     _updateLockedForAcceptingInput: false,
     timeUI: null,
+    customTimes: {
+        times: [],
+    },
     init: function () {
         if (L_.configData.time && L_.configData.time.enabled === true) {
             TimeControl.enabled = true
@@ -64,10 +67,19 @@ var TimeControl = {
         endTime,
         isRelative,
         timeOffset = '00:00:00',
-        currentTime
+        currentTime,
+        customTimes
     ) {
         if (!TimeControl.enabled || startTime == null || endTime == null)
             return false
+
+        if (customTimes != null) {
+            if (typeof customTimes === 'string') {
+                TimeControl.customTimes.times = [customTimes]
+            } else {
+                TimeControl.customTimes.times = customTimes
+            }
+        }
 
         const now = new Date()
         let offset = 0
@@ -114,12 +126,12 @@ var TimeControl = {
                     .toISOString()
                     .split('.')[0] + 'Z'
         }
-        TimeControl.timeUI.updateTimes(
+
+        return TimeControl.timeUI.updateTimes(
             TimeControl.startTime,
             TimeControl.endTime,
             TimeControl.currentTime
         )
-        return true
     },
     setLayerTime: function (layer, startTime, endTime) {
         if (typeof layer == 'string') {
@@ -129,6 +141,7 @@ var TimeControl = {
         if (layer.time && layer.time.enabled == true) {
             layer.time.start = startTime
             layer.time.end = endTime
+            layer.time.customTimes = TimeControl.customTimes
             d3.select('.starttime.' + F_.getSafeName(layer.name)).text(
                 layer.time.start
             )
@@ -174,14 +187,20 @@ var TimeControl = {
             layer = L_.layers.data[layer]
         }
 
-        if (L_.layers.layer[layer.name] === null) return
+        if (L_.layers.layer[layer.name] === null) return false
 
-        let layerTimeFormat = d3.utcFormat(layer.time.format)
+        let layerTimeFormat =
+            layer.time?.format == null
+                ? d3.utcFormat('%Y-%m-%dT%H:%M:%SZ')
+                : d3.utcFormat(layer.time.format)
         layer.time.current = TimeControl.currentTime // keeps track of when layer was refreshed
 
         let originalUrl = layer.url
 
-        layer.url = await TimeControl.performTimeUrlReplacements(layer)
+        layer.url = await TimeControl.performTimeUrlReplacements(
+            layer.url,
+            layer
+        )
         let changedUrl = null
         if (layer.url !== originalUrl) changedUrl = layer.url
 
@@ -210,6 +229,22 @@ var TimeControl = {
                             /{endtime}/g,
                             layerTimeFormat(Date.parse(layer.time.end))
                         )
+
+                    if (
+                        TimeControl.customTimes?.times &&
+                        TimeControl.customTimes.times.length > 0
+                    ) {
+                        for (
+                            let i = 0;
+                            i < TimeControl.customTimes.times.length;
+                            i++
+                        ) {
+                            layer.url = layer.url.replace(
+                                new RegExp(`{customtime.${i}}`, 'g'),
+                                TimeControl.customTimes.times[i]
+                            )
+                        }
+                    }
                 }
             }
             if (
@@ -227,7 +262,7 @@ var TimeControl = {
                 // refresh map
                 if (evenIfControlled === true || layer.controlled !== true)
                     if (L_.layers.on[layer.name] || evenIfOff) {
-                        await Map_.refreshLayer(layer)
+                        return await Map_.refreshLayer(layer)
                     }
             }
         }
@@ -236,16 +271,18 @@ var TimeControl = {
 
         return true
     },
-    performTimeUrlReplacements: async function (layer) {
+    performTimeUrlReplacements: async function (url, layer) {
         return new Promise(async (resolve, reject) => {
-            let layerTimeFormat = d3.utcFormat(layer.time.format)
+            let layerTimeFormat =
+                layer.time?.format == null
+                    ? d3.utcFormat('%Y-%m-%dT%H:%M:%SZ')
+                    : d3.utcFormat(layer.time.format)
 
-            let nextUrl = layer.url
+            let nextUrl = url
             if (layer.variables?.urlReplacements) {
                 const keys = Object.keys(layer.variables.urlReplacements)
                 for (let i = 0; i < keys.length; i++) {
                     const r = layer.variables.urlReplacements[keys[i]]
-
                     if (r.on === 'timeChange') {
                         const response = await fetch(r.url, {
                             method: r.type,
@@ -283,7 +320,11 @@ var TimeControl = {
         var reloadedLayers = []
         for (let layerName in L_.layers.data) {
             const layer = L_.layers.data[layerName]
-            if (layer.time && layer.time.enabled === true) {
+            if (
+                layer.time &&
+                layer.time.enabled === true &&
+                layer.variables?.dynamicExtent != true
+            ) {
                 TimeControl.reloadLayer(layer)
                 reloadedLayers.push(layer.name)
             }
@@ -297,6 +338,7 @@ var TimeControl = {
             if (layer.time && layer.time.enabled === true) {
                 layer.time.start = TimeControl.startTime
                 layer.time.end = TimeControl.currentTime
+                layer.time.customTimes = TimeControl.customTimes
                 d3.select('.starttime.' + F_.getSafeName(layer.name)).text(
                     layer.time.start
                 )
@@ -341,7 +383,10 @@ var TimeControl = {
         return updatedLayers
     },
     setLayerWmsParams: function (layer) {
-        var layerTimeFormat = d3.utcFormat(layer.time.format)
+        let layerTimeFormat =
+            layer.time?.format == null
+                ? d3.utcFormat('%Y-%m-%dT%H:%M:%SZ')
+                : d3.utcFormat(layer.time.format)
         const l = L_.layers.layer[layer.name]
 
         if (l != null && layer.type === 'tile') {
@@ -362,6 +407,7 @@ function initLayerDataTimes() {
             layer.time.end = L_.FUTURES.endTime
                 ? L_.FUTURES.endTime.toISOString().split('.')[0] + 'Z'
                 : TimeControl.endTime
+            layer.time.customTimes = TimeControl.customTimes
         }
     }
 }
@@ -376,6 +422,7 @@ function initLayerTimes() {
             layer.time.end = L_.FUTURES.endTime
                 ? L_.FUTURES.endTime.toISOString().split('.')[0] + 'Z'
                 : TimeControl.endTime
+            layer.time.customTimes = TimeControl.customTimes
             d3.select('.starttime.' + F_.getSafeName(layer.name)).text(
                 layer.time.start
             )

@@ -10,7 +10,7 @@ import calls from '../../../pre/calls'
 
 import metricsGraphics from '../../../external/MetricsGraphics/metricsgraphics.min'
 
-import {render, unmountComponentAtNode } from 'react-dom'
+import { render, unmountComponentAtNode } from 'react-dom'
 import React, { useState, useEffect, useRef } from 'react'
 
 import { Chart } from 'chart.js'
@@ -64,15 +64,25 @@ const Measure = () => {
             .on('mousemove', MeasureTool.moveMap)
             .on('mouseout', MeasureTool.mouseOutMap)
 
-        const globeCont = Globe_.litho.getContainer()
-        globeCont.addEventListener(
-            'mousedown',
-            MeasureTool.mouseDownGlobe,
-            false
-        )
-        globeCont.addEventListener('mouseup', MeasureTool.clickGlobe, false)
-        globeCont.addEventListener('mousemove', MeasureTool.moveGlobe, false)
-        globeCont.addEventListener('mouseout', MeasureTool.mouseOutMap, false)
+        if (L_.hasGlobe) {
+            const globeCont = Globe_.litho.getContainer()
+            globeCont.addEventListener(
+                'mousedown',
+                MeasureTool.mouseDownGlobe,
+                false
+            )
+            globeCont.addEventListener('mouseup', MeasureTool.clickGlobe, false)
+            globeCont.addEventListener(
+                'mousemove',
+                MeasureTool.moveGlobe,
+                false
+            )
+            globeCont.addEventListener(
+                'mouseout',
+                MeasureTool.mouseOutMap,
+                false
+            )
+        }
 
         Viewer_.imageViewerMap.addHandler(
             'canvas-click',
@@ -305,7 +315,7 @@ const Measure = () => {
                                                 : `rgba(255, 0, 47, ${alpha})`
                                     },
                                 },
-                                spanGaps: true,
+                                spanGaps: false,
                                 borderWidth: 1,
                                 fill: 'start',
                                 pointRadius: 0,
@@ -459,7 +469,11 @@ const Measure = () => {
                                     .css({ opacity: 1 })
 
                                 $('#measureInfoElev > div:last-child')
-                                    .text(`${d[4].toFixed(3)}m`)
+                                    .text(
+                                        d[4] != null
+                                            ? `${d[4].toFixed(3)}m`
+                                            : 'No Data'
+                                    )
                                     .css({ opacity: 1 })
 
                                 const text2d =
@@ -610,7 +624,27 @@ let MeasureTool = {
         steps = 100
 
         //Get tool variables
-        this.vars = L_.getToolVars('measure')
+        this.vars = JSON.parse(JSON.stringify(L_.getToolVars('measure', true)))
+        this.vars.layerDems = this.vars.layerDems || {}
+
+        const standardLayerDems = {}
+        Object.keys(this.vars.layerDems).forEach((layerName) => {
+            standardLayerDems[L_.asLayerUUID(layerName)] = [
+                this.vars.layerDems[layerName],
+            ]
+        })
+        this.vars.layerDems = standardLayerDems
+
+        if (this.vars.__layers) {
+            Object.keys(this.vars.__layers).forEach((layerName) => {
+                const layer = this.vars.__layers[layerName]
+                if (layer.layerDems) {
+                    this.vars.layerDems[layerName] = (
+                        this.vars.layerDems[layerName] || []
+                    ).concat(layer.layerDems)
+                }
+            })
+        }
 
         if (
             this.vars.defaultMode &&
@@ -632,19 +666,29 @@ let MeasureTool = {
             .off('mousemove', MeasureTool.moveMap)
             .off('mouseout', MeasureTool.mouseOutMap)
 
-        const globeCont = Globe_.litho.getContainer()
-        globeCont.removeEventListener(
-            'mousedown',
-            MeasureTool.mouseDownGlobe,
-            false
-        )
-        globeCont.removeEventListener('mouseup', MeasureTool.clickGlobe, false)
-        globeCont.removeEventListener('mousemove', MeasureTool.moveGlobe, false)
-        globeCont.removeEventListener(
-            'mouseout',
-            MeasureTool.mouseOutMap,
-            false
-        )
+        if (L_.hasGlobe) {
+            const globeCont = Globe_.litho.getContainer()
+            globeCont.removeEventListener(
+                'mousedown',
+                MeasureTool.mouseDownGlobe,
+                false
+            )
+            globeCont.removeEventListener(
+                'mouseup',
+                MeasureTool.clickGlobe,
+                false
+            )
+            globeCont.removeEventListener(
+                'mousemove',
+                MeasureTool.moveGlobe,
+                false
+            )
+            globeCont.removeEventListener(
+                'mouseout',
+                MeasureTool.mouseOutMap,
+                false
+            )
+        }
 
         Viewer_.imageViewerMap.removeHandler(
             'canvas-click',
@@ -678,14 +722,27 @@ let MeasureTool = {
             dems.push({ name: 'Main', path: MeasureTool.vars.dem })
         if (MeasureTool.vars.layerDems)
             for (let name in MeasureTool.vars.layerDems) {
-                if (!onlyShowDemIfLayerOn || L_.layers.on[name])
-                    dems.push({
-                        name: name,
-                        path: MeasureTool.vars.layerDems[name],
-                    })
+                MeasureTool.vars.layerDems[name].forEach((item) => {
+                    if (!onlyShowDemIfLayerOn || L_.layers.on[name]) {
+                        if (typeof item === 'string') {
+                            dems.push({
+                                name: L_.layers.data[name]?.display_name,
+                                path: item,
+                            })
+                        } else {
+                            dems.push({
+                                name:
+                                    item.name ||
+                                    L_.layers.data[name]?.display_name,
+                                path: item.url,
+                            })
+                        }
+                    }
+                })
             }
         if (dems.length === 0)
             dems.push({ name: 'Misconfigured', path: 'none' })
+
         return dems
     },
     clickMap: function (e) {
@@ -1539,28 +1596,30 @@ function makeGlobePolyline(polylinePoints) {
             },
         })
     }
-
-    const globeBCR = Globe_.litho.getContainer()?.getBoundingClientRect() || {}
-    if (globeBCR.width > 0)
-        Globe_.litho.addLayer('clamped', {
-            name: '_measurePolyline',
-            id: '_measurePolyline',
-            on: true,
-            order: 10,
-            opacity: 1,
-            minZoom: 0,
-            maxZoom: 30,
-            style: {
-                default: {
-                    weight: 3,
-                    color: 'prop=color',
+    if (L_.hasGlobe) {
+        const globeBCR =
+            Globe_.litho.getContainer()?.getBoundingClientRect() || {}
+        if (globeBCR.width > 0)
+            Globe_.litho.addLayer('clamped', {
+                name: '_measurePolyline',
+                id: '_measurePolyline',
+                on: true,
+                order: 10,
+                opacity: 1,
+                minZoom: 0,
+                maxZoom: 30,
+                style: {
+                    default: {
+                        weight: 3,
+                        color: 'prop=color',
+                    },
                 },
-            },
-            geojson: {
-                type: 'FeatureCollection',
-                features: features,
-            },
-        })
+                geojson: {
+                    type: 'FeatureCollection',
+                    features: features,
+                },
+            })
+    }
 }
 
 MeasureTool.init()

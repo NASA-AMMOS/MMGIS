@@ -2,6 +2,7 @@
 import $ from 'jquery'
 import * as d3 from 'd3'
 import F_ from '../Basics/Formulae_/Formulae_'
+import Dropy from '../../external/Dropy/dropy'
 
 import tippy from 'tippy.js'
 
@@ -13,6 +14,7 @@ const Description = {
     descPoint: null,
     tippyDesc: null,
     L_: null,
+    _infoAlreadyGone: false,
     init: function (mission, site, Map_, L_) {
         this.L_ = L_
         this.Map_ = Map_
@@ -58,6 +60,7 @@ const Description = {
             .style('font-weight', 'bold')
             .style('cursor', 'pointer')
             .style('margin', '0')
+            .style('overflow', 'hidden')
 
         Description.descPointInner.on('click', function () {
             if (typeof Map_.activeLayer.getBounds === 'function')
@@ -68,6 +71,11 @@ const Description = {
 
         this.inited = true
         if (this.waitingOnUpdate) this.updateInfo()
+
+        $(window).on('resize', () => {
+            $('#mainDescPointLinks > dl.dropy').removeClass('open')
+            $(`#mainDescPointLinks_global`).empty()
+        })
     },
     updateInfo(force) {
         if (force !== true) {
@@ -133,6 +141,20 @@ const Description = {
                             l.variables.info[i].icon +
                             " mdi-18px'></i>"
                     newInfo += '<div>' + infoText + '</div></div>'
+
+                    // Go initially
+                    if (Description._infoAlreadyGone == false) {
+                        if (l.variables.info[i].go == true) {
+                            if (lat != null && lng != null) {
+                                Description.Map_.map.setView(
+                                    [lat, lng],
+                                    Description.Map_.mapScaleZoom ||
+                                        Description.Map_.map.getZoom()
+                                )
+                            }
+                            Description._infoAlreadyGone = true
+                        }
+                    }
                 }
                 if (newInfo.length > 0) infos.push(newInfo)
             }
@@ -159,6 +181,7 @@ const Description = {
                 )
             }
         })
+        Description._infoAlreadyGone = true
     },
     updatePoint: function (activeLayer) {
         if (
@@ -180,7 +203,7 @@ const Description = {
             activeLayer.hasOwnProperty('options')
         ) {
             var keyAsName
-            var links = "<span style='padding-left: 4px;'></span>"
+            const links = []
 
             if (
                 this.L_.layers.data[activeLayer.options.layerName] &&
@@ -188,26 +211,20 @@ const Description = {
             ) {
                 let v =
                     this.L_.layers.data[activeLayer.options.layerName].variables
+
                 if (v.links) {
-                    links = ''
                     for (let i = 0; i < v.links.length; i++) {
-                        links +=
-                            "<a href='" +
-                            F_.bracketReplace(
-                                v.links[i].link,
-                                activeLayer.feature.properties,
-                                v.links[i].replace
-                            ) +
-                            "' target='" +
-                            F_.cleanString(v.links[i].name) +
-                            "' title='" +
-                            v.links[i].name +
-                            "'>" +
-                            "<span class='mainDescLinkName'>" +
-                            v.links[i].name +
-                            '</span>' +
-                            "<i class='mdi mdi-open-in-new mdi-12px'></i>" +
-                            '</a>'
+                        const link = F_.bracketReplace(
+                            v.links[i].link,
+                            activeLayer.feature.properties,
+                            v.links[i].replace
+                        )
+                        if (link != null && link != '')
+                            links.push({
+                                name: `<span style='display: flex; justify-content: space-between;'>${v.links[i].name}<i class='mdi mdi-open-in-new mdi-14px' style='margin-left: 4px; margin-top: 1px;'></i></span>`,
+                                link: link,
+                                target: F_.cleanString(v.links[i].name),
+                            })
                     }
                 }
             }
@@ -246,7 +263,31 @@ const Description = {
                     ': ' +
                     keyAsName
             )
-            Description.descPointLinks.html(links)
+
+            $('#mainDescPointLinks_global').remove()
+            const globalConstruct = Dropy.construct(
+                links.map((l) => l.name),
+                `<i class='mdi mdi-link mdi-18px'></i>`,
+                null,
+                {
+                    openUp: false,
+                    dark: true,
+                }
+            )
+            $('#mainDescPointLinks').html(globalConstruct)
+            Dropy.init(
+                $('#mainDescPointLinks'),
+                function (idx) {
+                    if (links[idx] && links[idx].link)
+                        window.open(
+                            links[idx].link,
+                            links[idx].target || '_blank'
+                        )
+                },
+                null,
+                null,
+                { dontChange: true, globalConstruct }
+            )
 
             if (Description.tippyDesc && Description.tippyDesc[0])
                 Description.tippyDesc[0].setContent(

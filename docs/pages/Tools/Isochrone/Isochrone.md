@@ -85,4 +85,4 @@ This section may have additional options specified by the selected model.
 
 ## Technical
 
-The Isochrone tool runs a version of Dijkstra's algorithm on tiled data to generate results. In this implementation, every pixel is a vertex which is implicitly connected by an edge to 16 of its neighbors: its 8 immediate neighbors, plus neigbors that can be reached by the "knight's move" - i.e. the move a knight makes on a chessboard. Analysis is performed entirely in-browser in JavaScript.
+The Isochrone tool runs a version of Dijkstra's algorithm on tiled data to generate results. In this implementation, every pixel is a vertex which is implicitly connected by an edge to 16 of its neighbors: its 8 immediate neighbors, plus neighbors that can be reached by the "knight's move" - i.e. the move a knight makes on a chessboard. Analysis is performed entirely in-browser in JavaScript.

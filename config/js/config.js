@@ -2796,6 +2796,9 @@ function layerPopulateVariable(modalId, layerType) {
         value: "Example",
       },
     ];
+    currentLayerVars.dynamicExtent = currentLayerVars.dynamicExtent || false;
+    currentLayerVars.dynamicExtentMoveThreshold =
+      currentLayerVars.dynamicExtentMoveThreshold || null;
     currentLayerVars.shortcutSuffix = currentLayerVars.shortcutSuffix || null;
 
     if (layerType == "tile") {
@@ -2811,6 +2814,30 @@ function layerPopulateVariable(modalId, layerType) {
               },
               return:
                 "value_in_response_to_replace_with.use.dot.notation.to.traverse.objects",
+            },
+          };
+      currentLayerVars.tools = currentLayerVars.tools
+        ? currentLayerVars.tools
+        : {
+            measure: {
+              layerDems: [
+                {
+                  name: "(str) example",
+                  url: "(str) path_to_data/data.tif (required)",
+                },
+              ],
+            },
+            identifier: {
+              data: [
+                {
+                  url: "(str) path_to_data/data.tif (required)",
+                  bands: "(int) how many bands to query from",
+                  sigfigs: "(int) how many digits after the decimal",
+                  unit: "(str) whatever string unit",
+                  timeFormat:
+                    "(str) for injecting '{starttime}' and '{endtime}' in url. See syntax in https://d3js.org/d3-time-format#locale_format",
+                },
+              ],
             },
           };
     } else if (layerType == "data") {
@@ -2911,6 +2938,7 @@ function layerPopulateVariable(modalId, layerType) {
           },
           image: {
             initialVisibility: true,
+            initialOpacity: 1,
             path: "url to top-down ortho image. ex. public/images/rovers/PerseveranceTopDown.png",
             pathProp: "path to image. take priority over path",
             widthMeters: 2.6924,
@@ -2974,6 +3002,7 @@ function layerPopulateVariable(modalId, layerType) {
           which: "last",
           icon: "material design icon",
           value: "Prop: {prop}",
+          go: false,
         },
       ];
       currentLayerVars.markerIcon = currentLayerVars.markerIcon || {

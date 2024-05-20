@@ -13,6 +13,8 @@ services:
   db:
     image: postgis/postgis:10-2.5-alpine
     env_file: .env
+    environment:
+      POSTGRES_PASSWORD_OFF: Rename to 'POSTGRES_PASSWORD' and replace this with an initial root password for the DB
     ports:
       - 5432:5432
     restart: on-failure

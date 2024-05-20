@@ -27,7 +27,7 @@ A file path that points to a geojson. If the path is relative, it will be relati
 
 #### Controlled
 
-_type:_ bool
+_type:_ bool  
 Whether the layer can be dynamically updated or not. If true, the layer can be dynamically updated and the URL is not required.
 
 If true and a URL is set and Time Enabled is true, the initial url query will be performed.
@@ -127,6 +127,8 @@ Example:
 ```javascript
 {
     "useKeyAsName": "propKey || [propKey1, propKey2, ...]",
+    "dynamicExtent": false,
+    "dynamicExtentMoveThreshold": "100000000/z",
     "shortcutSuffix": "single letter to 'ATL + {letter}' toggle the layer on and off",
     "hideMainFeature": false,
     "datasetLinks": [
@@ -147,7 +149,8 @@ Example:
         {
             "which": "last",
             "icon": "material design icon",
-            "value": "Prop: {prop}"
+            "value": "Prop: {prop}",
+            "go": false
         }
     ],
     "layerAttachments": {
@@ -203,6 +206,7 @@ Example:
         },
         "image": {
           "initialVisibility": true,
+          "initialOpacity": 1,
           "path": "url to top-down ortho image. ex. public/images/rovers/PerseveranceTopDown.png",
           "pathProp": "path to image. take priority over path",
           "widthMeters": 2.6924,
@@ -253,6 +257,8 @@ Example:
 ```
 
 - `useKeyAsName`: The property key whose value should be the hover text of each feature. If left unset, the hover key and value will be the first one listed in the feature's properties. This may also be an array of keys.
+- `dynamicExtent`: If true, tries to only query the vector features present in the user's current map viewport. Pan and zooming causes requeries. If used with a geodataset, the time and extent queries will work out-of-the-box. Otherwise, if using an external server, the following parameters in `{}` will be automatically replaced on query in the url: `starttime={starttime}&endtime={endtime}&startprop={startprop}&endprop={endprop}&crscode={crscode}&zoom={zoom}&minx={minx}&miny={miny}&maxx={maxx}&maxy={maxy}`
+- `dynamicExtentMoveThreshold`: If `dynamicExtent` is true, only requery if the map was panned past the stated threshold. Unit is in meters. If a zoom-dependent threshold is desired, set this value to a string ending in `/z`. This will then internally use `dynamicExtentMoveThreshold / Math.pow(2, zoom)` as the threshold value.
 - `shortcutSuffix`: A single letter to 'ALT + {letter}' toggle the layer on and off. Please verify that your chosen shortcut does not conflict with other system or browser-level keyboard shortcuts.
 - `hideMainFeature`: If true, hides all typically rendered features. This is useful if showing only `*Attachments` sublayers is desired. Default false
 - `datasetLinks`: Datasets are csvs uploaded from the "Manage Datasets" page accessible on the lower left. Every time a feature from this layer is clicked with datasetLinks configured, it will request the data from the server and include it with it's regular geojson properties. This is especially useful when single features need a lot of metadata to perform a task as it loads it only as needed.
@@ -267,6 +273,7 @@ Example:
   - `which`: This only supports the value `last` at this point.
   - `icon`: Any [Material Design Icon](http://materialdesignicons.com/) name
   - `value`: A name to display. All `{prop}`s will be replaced by their corresponding `features[which].properties[prop]` value.
+  - `go`: Boolean that, if true, pans and zooms to the feature of `which` on intial load. The zoom used is Map Scale Zoom or the current zoom. Only the first feature with info.go is gone to.
 - `layerAttachments`: Attachments that may apply to the entire layer.
   - `labels`: Place a label beside each feature. Also applies to `coordinateAttachments.marker` features.
     - `initialVisibility`: Whether the label sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.
@@ -311,6 +318,7 @@ Example:
     - `opacity3d`: 3d curtain ellipse opacity
   - `image`: Places a scaled and orientated image under each marker. A sublayer.
     - `initialVisibility`: Whether the image sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.
+    - `initialOpacity`: The inital image opacity. Users canchange sublayer opacity n the layer settings in the LayersTool. From 0 to 1. Default 1
     - `path`: A url to a (preferably) top-down north-facing orthographic image.
     - `pathProp`: A prop path to an image url. Take priority over path. Useful if the path is feature specific.
     - `widthMeters`: Width of image in meters in order to calculate scale.

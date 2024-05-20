@@ -34,9 +34,9 @@ const c = {
         type: 'POST',
         url: 'api/utils/ll2aerll',
     },
-    chronos: {
+    chronice: {
         type: 'POST',
-        url: 'api/utils/chronos',
+        url: 'api/utils/chronice',
     },
     proj42wkt: {
         type: 'GET',
@@ -127,7 +127,7 @@ const c = {
         url: 'API/datasets/get',
     },
     geodatasets_get: {
-        type: 'POST',
+        type: 'GET',
         url: 'API/geodatasets/get',
     },
     geodatasets_search: {

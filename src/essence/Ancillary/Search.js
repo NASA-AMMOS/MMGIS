@@ -470,7 +470,8 @@ function getSearchFieldStringForFeature(name, props) {
                     str += Math.round(F_.getIn(props, sf[i][1]))
                     break
                 case 'rmunder':
-                    str += F_.getIn(props, sf[i][1]).replace('_', ' ')
+                    if (F_.getIn(props, sf[i][1]))
+                        str += F_.getIn(props, sf[i][1]).replace('_', ' ')
                     break
             }
             if (i != sf.length - 1) str += ' '
@@ -510,11 +511,11 @@ function getMapZoomCoordinate(layers) {
     var longitudeValidRange = [-180, 180]
 
     for (var i = 0; i < layers.length; i++) {
-        const center = center(layers[i].feature)?.geometry?.coordinates || [
+        const centerPt = center(layers[i].feature)?.geometry?.coordinates || [
             -1001, -1001,
         ]
-        var latitude = center[1]
-        var longitude = center[0]
+        var latitude = centerPt[1]
+        var longitude = centerPt[0]
 
         //make sure latitude and longitude are in [-90, 90] and [-180, 180]
         if (

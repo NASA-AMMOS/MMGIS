@@ -21,7 +21,7 @@ There are two SPICE python scripts that require these backend kernel setups:
 - `/private/api/spice/ll2aer11.py`
   - Turns a lnglat and target into a directional azimuth, elevation, range, and lntlat
   - Reads in all kernels `/private/api/spice/kernels`.
-  - `/private/api/spice/getKernelUtils` has some wget scripts as examples for downloadign new kernels (however these resources will quickly become outdated)
+  - `/private/api/spice/getKernelUtils` has some wget scripts as examples for downloading new kernels (however these resources will quickly become outdated)
 
 ## Tool Configuration
 
@@ -66,7 +66,9 @@ There are two SPICE python scripts that require these backend kernel setups:
             "value": "MSL"
         }
     ],
-    "defaultHeight": 0
+    "defaultHeight": 0,
+    "observerTimePlaceholder": null,
+    "utcTimeFormat": null
 }
 ```
 
@@ -80,14 +82,18 @@ _**observers**_ - An array of objects with the properties "name" and "value". "n
 
 _**defaultHeight**_ - Sets a default for the 'Height' parameter (see below). The regular default is 0 meters.
 
+_**observerTimePlaceholder**_ - Sets the placeholder information for when the observer time's input box is cleared. Useful for denoting the expected time format to be inputed. For example "SOL DDDD HH:MM:SS". Default null.
+
+_**utcTimeFormat**_ - Sets the placeholder information for when the observer time's input box is cleared. Useful for denoting the expected time format to be inputed. Uses [d3 time syntax](https://d3js.org/d3-time-format#locale_format). Example for day-of-year: `"%Y-%j %H:%M:%S"`. Defaults to times like so: `2023 SEP 06 19:27:05`.
+
 ## Tool Use
 
-**Note:** Terrain beyond the screen's current extent is **not** factored into the displayed visiblity map — only observer-target direction and on-screen terrain is considered. A distant off-screen mountain will **not** cast shadows.
+**Note:** Terrain beyond the screen's current extent is **not** factored into the displayed visibility map — only observer-target direction and on-screen terrain is considered. A distant off-screen mountain will **not** cast shadows.
 
 ### Interface
 
 - _Time_
-  - The desired datetime to query. Formatted as `YYYY MMM DD HH:MM:SS` and for example `2023 SEP 06 19:27:05`. Updating this time and pressing 'Enter' will set it as the current time for the ShadeTool and for all of MMGIS. It is both connected to the Observer's local time as well as MMGIS' timeline (expandable via the clock icon in the bottom left of the screen).
+  - The desired datetime to query. Formatted as `YYYY MMM DD HH:MM:SS` and for example `2023 SEP 06 19:27:05` (or based on `utcTimeFormat`). Updating this time and pressing 'Enter' will set it as the current time for the ShadeTool and for all of MMGIS. It is both connected to the Observer's local time as well as MMGIS' timeline (expandable via the clock icon in the bottom left of the screen).
 
 #### Source
 
@@ -103,7 +109,7 @@ _**defaultHeight**_ - Sets a default for the 'Height' parameter (see below). The
 - _Time_
   - Offers the ability to set the current working time using a mission/spacecraft's custom date type.
 - _Height_
-  - Height in meters above the surface to use when calculating line-of-sight shading. For instance, a point on the surface (0m) may not be visible to a 'Source Entity', say the Mars Reconnaissance Orbiter (MRO), but 2m above that point may be. This value does not _only_ apply to the center longtitude and latitude but to all points on the visible terrain. Gradually increaing this value shows the shade map n-meters above the surface.
+  - Height in meters above the surface to use when calculating line-of-sight shading. For instance, a point on the surface (0m) may not be visible to a 'Source Entity', say the Mars Reconnaissance Orbiter (MRO), but 2m above that point may be. This value does not _only_ apply to the center longitude and latitude but to all points on the visible terrain. Gradually increasing this value shows the shade map n-meters above the surface.
 
 #### Shaded Region Options
 
@@ -112,7 +118,7 @@ _**defaultHeight**_ - Sets a default for the 'Height' parameter (see below). The
 - _Opacity_
   - The opaqueness to shade the shadowed regions on the map. A value of 0 is fully transparent and a value of 1 is fully opaque.
 - _Resolution_
-  - MMGIS downloads terrain data needed for the shading alogrithm. Increasing the resolution improves the quality of the shade map and the cost of download and render speed. Each higher option is 4x the resolution of the previous one (i.e. 'ultra' is 4x more terrain data than 'high' and 16x more data than 'medium'). To save on performance, if the resolution is 'high' or 'ultra', the Shade Tool will no longer regenerate the shaded map whenever any parameter changes and instead 'Generate/Regenerate' must manually be pressed.
+  - MMGIS downloads terrain data needed for the shading algorithm. Increasing the resolution improves the quality of the shade map and the cost of download and render speed. Each higher option is 4x the resolution of the previous one (i.e. 'ultra' is 4x more terrain data than 'high' and 16x more data than 'medium'). To save on performance, if the resolution is 'high' or 'ultra', the Shade Tool will no longer regenerate the shaded map whenever any parameter changes and instead 'Generate/Regenerate' must manually be pressed.
 - _Elevation Map_
 
   - Specifies the terrain dataset to use.

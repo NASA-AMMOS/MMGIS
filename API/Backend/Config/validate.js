@@ -116,24 +116,8 @@ const isValidLayerName = (name) => {
     errs.push(
       err("Found a layer with name: undefined", ["layers[layer].name"])
     );
-  if (!validCSSName(name))
-    errs.push(
-      err(
-        `Layer: '${name}' must not be empty, a non-string, contain symbols or begin with numbers.`,
-        ["layers[layer].name"]
-      )
-    );
 
   return errs;
-
-  function validCSSName(name) {
-    if (name == null || typeof name !== "string") return false;
-
-    const match = name.match(/[_A-Z ]+[_A-Z0-9- ]+/gi);
-    if (match && match[0].length === name.length) return true;
-
-    return false;
-  }
 };
 
 const isValidUrl = (layer) => {

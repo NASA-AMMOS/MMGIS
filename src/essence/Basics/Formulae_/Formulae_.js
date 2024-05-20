@@ -809,8 +809,13 @@ var Formulae_ = {
         return r.test(url)
     },
     csvToJSON: function (csv) {
+        if (csv == null) return {}
+
         var lines = csv.split('\n')
         var result = []
+
+        if (lines == null || lines[0] == null) return {}
+
         var headers = lines[0].split(',')
         for (var i = 1; i < lines.length; i++) {
             var obj = {}
@@ -1516,6 +1521,27 @@ var Formulae_ = {
                 })
         })
         return g
+    },
+    parseIntoGeoJSON(data) {
+        let d
+        // []
+        if (Array.isArray(data) && data.length === 0) {
+            d = { type: 'FeatureCollection', features: [] }
+        }
+        // [<FeatureCollection>]
+        else if (
+            Array.isArray(data) &&
+            data[0] &&
+            data[0].type === 'FeatureCollection'
+        ) {
+            const nextData = { type: 'FeatureCollection', features: [] }
+            data.forEach((fc) => {
+                if (fc.type === 'FeatureCollection')
+                    nextData.features = nextData.features.concat(fc.features)
+            })
+            d = nextData
+        }
+        return d == null ? data : d
     },
     // Gets all tiles with tile xyz at zoom z
     tilesWithin(xyz, z) {

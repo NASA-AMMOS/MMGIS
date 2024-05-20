@@ -517,19 +517,19 @@ router.post("/change", function (req, res, next) {
 router.post("/modifykeyword", function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
 
-  const keyword = req.body.keyword;
+  let keyword = req.body.keyword;
   const type = req.body.type;
   const newKeyword = req.body.newKeyword;
   let symbol = null;
   switch (type.toLowerCase()) {
     case "tags":
-      symbol = "#";
+      symbol = "~#";
       break;
     case "folders":
-      symbol = "@";
+      symbol = "~@";
       break;
     case "efolders":
-      symbol = "^";
+      symbol = "~^";
       break;
     default:
       break;
@@ -538,12 +538,16 @@ router.post("/modifykeyword", function (req, res, next) {
   if (
     symbol == null ||
     keyword == null ||
-    keyword.match(/^[a-z0-9_]+$/i) == null ||
-    (newKeyword != null && newKeyword.match(/^[a-z0-9_]+$/i) == null)
+    (keyword != null &&
+      (keyword.indexOf(" ") > -1 || keyword.indexOf("~") > -1)) ||
+    (newKeyword != null &&
+      (newKeyword.indexOf(" ") > -1 ||
+        newKeyword.indexOf("~") > -1 ||
+        newKeyword.indexOf("$") > -1))
   ) {
     res.send({
       status: "failure",
-      message: `Bad Input. Either: no 'keyword', no 'type', 'keyword' or 'newKeyword' contains non-alphanumerics.`,
+      message: `Bad Input. Either: no 'keyword', no 'type', 'keyword' or 'newKeyword' contains spaces, dollar-signs, tildes.`,
       body: {},
     });
     return;
@@ -564,7 +568,14 @@ router.post("/modifykeyword", function (req, res, next) {
     },
     {
       where: {
-        file_description: { [Sequelize.Op.iRegexp]: `[${existing}]` },
+        file_description: {
+          // Escape special chars so that regex works
+          [Sequelize.Op.like]: sequelize.literal(
+            `'%${existing
+              .replaceAll("%", "$%")
+              .replaceAll("_", "$_")}%' ESCAPE '$'`
+          ),
+        },
       },
     }
   )

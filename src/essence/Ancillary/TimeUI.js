@@ -133,6 +133,28 @@ const TimeUI = {
         return TimeUI
     },
     getElement: function () {},
+    getDateAdditionalSeconds: function (d) {
+        let dateString = d
+        let opMult = 1
+        let additionalSeconds = 0
+        if (typeof dateString === 'string') {
+            const indexPlus = dateString.indexOf(' + ')
+            const indexMinus = dateString.indexOf(' - ')
+            if (indexPlus > -1 || indexMinus > -1) {
+                if (indexMinus > indexPlus) opMult = -1
+                const initialendSplit = dateString.split(
+                    ` ${opMult === 1 ? '+' : '-'} `
+                )
+                dateString = initialendSplit[0]
+                additionalSeconds = parseInt(initialendSplit[1]) || 0
+                additionalSeconds = isNaN(additionalSeconds)
+                    ? 0
+                    : additionalSeconds
+            }
+            additionalSeconds *= opMult
+        }
+        return { dateString, additionalSeconds }
+    },
     attachEvents: function (timeChange) {
         let startingModeIndex = TimeUI.modeIndex
         // Set modeIndex to 1/Point if a deeplink had an endtime but no starttime
@@ -141,7 +163,7 @@ const TimeUI = {
 
         // Timeline pan and zoom
         // zoom
-        $('#mmgisTimeUITimelineInner').on('mousewheel', function (e) {
+        $('#mmgisTimeUITimelineInner').on('wheel', function (e) {
             if (TimeUI.play) return
             const x = e.originalEvent.offsetX
             const width = document
@@ -331,8 +353,10 @@ const TimeUI = {
             theme: 'blue',
         })
 
-        if (L_.configData.time?.startInPointMode == true)
+        if (L_.configData.time?.startInPointMode == true) {
             TimeUI.modeIndex = TimeUI.modes.indexOf('Point')
+            startingModeIndex = TimeUI.modeIndex
+        }
         // Mode dropdown
         $('#mmgisTimeUIModeDropdown').html(
             Dropy.construct(TimeUI.modes, 'Mode', startingModeIndex, {
@@ -376,15 +400,22 @@ const TimeUI = {
             TimeUI._refreshIntervals()
         })
 
+        let dateAddSec = null
+
         // Initial end
         if (L_.FUTURES.endTime != null) {
             L_.configData.time.initialend = L_.FUTURES.endTime
         }
+
+        // parse formats like "2024-03-04T14:05:00Z + 10000000" for relative times
+        dateAddSec = TimeUI.getDateAdditionalSeconds(
+            L_.configData.time.initialend
+        )
         if (
             L_.configData.time.initialend != null &&
             L_.configData.time.initialend != 'now'
         ) {
-            const dateStaged = new Date(L_.configData.time.initialend)
+            const dateStaged = new Date(dateAddSec.dateString)
             if (dateStaged == 'Invalid Date') {
                 TimeUI._initialEnd = new Date()
                 console.warn(
@@ -392,18 +423,30 @@ const TimeUI = {
                 )
             } else TimeUI._initialEnd = dateStaged
         } else TimeUI._initialEnd = new Date()
+        TimeUI._initialEnd.setSeconds(
+            TimeUI._initialEnd.getSeconds() + dateAddSec.additionalSeconds
+        )
 
-        // Initial Timeline window end
         if (
             L_.configData.time.initialwindowend != null &&
             L_.configData.time.initialwindowend != 'now'
         ) {
-            const dateStaged = new Date(L_.configData.time.initialwindowend)
+            // parse formats like "2024-03-04T14:05:00Z + 10000000" for relative times
+            dateAddSec = TimeUI.getDateAdditionalSeconds(
+                L_.configData.time.initialwindowend
+            )
+            const dateStaged = new Date(dateAddSec.dateString)
             if (dateStaged == 'Invalid Date') {
+                TimeUI._timelineEndTimestamp = new Date()
                 console.warn(
                     "Invalid 'Initial Window End Time' provided. Defaulting to 'now'."
                 )
-            } else TimeUI._timelineEndTimestamp = dateStaged.getTime()
+            } else {
+                dateStaged.setSeconds(
+                    dateStaged.getSeconds() + dateAddSec.additionalSeconds
+                )
+                TimeUI._timelineEndTimestamp = dateStaged.getTime()
+            }
         }
 
         // Initial start
@@ -412,12 +455,18 @@ const TimeUI = {
         if (L_.FUTURES.startTime != null) {
             L_.configData.time.initialstart = L_.FUTURES.startTime
         }
+
         if (L_.configData.time.initialstart == null)
             TimeUI._initialStart.setUTCMonth(
                 TimeUI._initialStart.getUTCMonth() - 1
             )
         else {
-            const dateStaged = new Date(L_.configData.time.initialstart)
+            // parse formats like "2024-03-04T14:05:00Z + 10000000" for relative times
+            dateAddSec = TimeUI.getDateAdditionalSeconds(
+                L_.configData.time.initialstart
+            )
+
+            const dateStaged = new Date(dateAddSec.dateString)
             if (dateStaged == 'Invalid Date') {
                 TimeUI._initialStart.setUTCMonth(
                     TimeUI._initialStart.getUTCMonth() - 1
@@ -425,29 +474,44 @@ const TimeUI = {
                 console.warn(
                     "Invalid 'Initial Start Time' provided. Defaulting to 1 month before the end time."
                 )
-            } else if (dateStaged.getTime() > TimeUI._initialEnd.getTime()) {
-                TimeUI._initialStart.setUTCMonth(
-                    TimeUI._initialStart.getUTCMonth() - 1
+            } else {
+                dateStaged.setSeconds(
+                    dateStaged.getSeconds() + dateAddSec.additionalSeconds
                 )
-                console.warn(
-                    "'Initial Start Time' cannot be later than the end time. Defaulting to 1 month before the end time."
-                )
-            } else TimeUI._initialStart = dateStaged
+                if (dateStaged.getTime() > TimeUI._initialEnd.getTime()) {
+                    TimeUI._initialStart.setUTCMonth(
+                        TimeUI._initialStart.getUTCMonth() - 1
+                    )
+                    console.warn(
+                        "'Initial Start Time' cannot be later than the end time. Defaulting to 1 month before the end time."
+                    )
+                } else TimeUI._initialStart = dateStaged
+            }
         }
 
         // Initial Timeline window start
         if (L_.configData.time.initialwindowstart != null) {
-            const dateStaged = new Date(L_.configData.time.initialwindowstart)
+            // parse formats like "2024-03-04T14:05:00Z + 10000000" for relative times
+            dateAddSec = TimeUI.getDateAdditionalSeconds(
+                L_.configData.time.initialwindowstart
+            )
+
+            const dateStaged = new Date(dateAddSec.dateString)
             if (dateStaged == 'Invalid Date') {
                 console.warn("Invalid 'Initial Window Start Time' provided.")
-            } else if (
-                TimeUI._timelineEndTimestamp == null ||
-                dateStaged.getTime() > TimeUI._timelineEndTimestamp
-            ) {
-                console.warn(
-                    "'Initial Window Start Time' cannot be later than the Initial Window End Time."
+            } else {
+                dateStaged.setSeconds(
+                    dateStaged.getSeconds() + dateAddSec.additionalSeconds
                 )
-            } else TimeUI._timelineStartTimestamp = dateStaged.getTime()
+                if (
+                    TimeUI._timelineEndTimestamp == null ||
+                    dateStaged.getTime() > TimeUI._timelineEndTimestamp
+                ) {
+                    console.warn(
+                        "'Initial Window Start Time' cannot be later than the Initial Window End Time."
+                    )
+                } else TimeUI._timelineStartTimestamp = dateStaged.getTime()
+            }
         }
 
         // Initialize the time control times, but don't trigger events
@@ -460,9 +524,8 @@ const TimeUI = {
 
         if (L_.configData.time?.startInPointMode == true)
             TimeUI.changeMode(TimeUI.modes.indexOf('Point'))
-
         // Set modeIndex to 1/Point if a deeplink had an endtime but no starttime
-        if (TimeUI.modeIndex != startingModeIndex)
+        else if (TimeUI.modeIndex != startingModeIndex)
             TimeUI.changeMode(startingModeIndex)
     },
     fina() {
@@ -865,25 +928,57 @@ const TimeUI = {
         let date
 
         // Start
+        let offsetStartDate = null
+        let parsedStart = null
         if (start != null) {
             date = new Date(start)
-            const offsetStartDate = TimeUI.addOffset(date)
-            const parsedStart = TimeUI.startTempus.dates.parseInput(
+            offsetStartDate = TimeUI.addOffset(date)
+            parsedStart = TimeUI.startTempus.dates.parseInput(
                 new Date(offsetStartDate)
             )
+        }
+        // End
+        let offsetEndDate = null
+        let parsedEnd = null
+        if (end != null) {
+            date = new Date(end)
+            offsetEndDate = new Date(
+                date.getTime() + date.getTimezoneOffset() * 60000
+            )
+            parsedEnd = TimeUI.endTempus.dates.parseInput(
+                new Date(offsetEndDate)
+            )
+        }
+
+        if (parsedStart != null && parsedEnd != null) {
+            if (offsetStartDate.getTime() > offsetEndDate.getTime()) {
+                console.warn(
+                    `updateTimes: Cannot set start time after end time. ${parsedStart} > ${parseEnd}`
+                )
+                return false
+            }
+        }
+
+        if (parsedStart != null) {
+            TimeUI.endTempus.updateOptions({
+                restrictions: {
+                    minDate: parsedStart,
+                },
+            })
+        }
+        if (parsedEnd != null) {
+            TimeUI.startTempus.updateOptions({
+                restrictions: {
+                    maxDate: parsedEnd,
+                },
+            })
+        }
+
+        if (parsedStart) {
             TimeUI.startTempus.dontChangeNext = true
             TimeUI.startTempus.dates.setValue(parsedStart)
         }
-
-        // End
-        if (end != null) {
-            date = new Date(end)
-            const offsetEndDate = new Date(
-                date.getTime() + date.getTimezoneOffset() * 60000
-            )
-            const parsedEnd = TimeUI.endTempus.dates.parseInput(
-                new Date(offsetEndDate)
-            )
+        if (parsedEnd) {
             TimeUI.endTempus.dontChangeNext = true
             TimeUI.endTempus.dates.setValue(parsedEnd)
         }
@@ -895,6 +990,7 @@ const TimeUI = {
         }
 
         TimeUI.change()
+        return true
     },
     setStartTime(
         ISOString,

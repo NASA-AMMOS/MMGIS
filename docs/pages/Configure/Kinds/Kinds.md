@@ -29,6 +29,7 @@ The Waypoint Kind only applies to point features and uses the `markerAttachments
 markerAttachments: {
     image: {
         initialVisibility: true,
+        initialOpacity: 1,
         path: "url to top-down ortho image. ex. public/images/rovers/PerseveranceTopDown.png",
         pathProp: "path to image. take priority over path",
         widthMeters: 2.6924,

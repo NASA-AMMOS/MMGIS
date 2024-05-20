@@ -12,10 +12,19 @@ const sequelize = new Sequelize(
     dialect: "postgres",
     logging: process.env.VERBOSE_LOGGING == "true" || false,
     pool: {
-      max: 10,
+      max:
+        process.env.DB_POOL_MAX != null
+          ? parseInt(process.env.DB_POOL_MAX) || 10
+          : 10,
       min: 0,
-      acquire: 30000,
-      idle: 10000,
+      acquire:
+        process.env.DB_POOL_TIMEOUT != null
+          ? parseInt(process.env.DB_POOL_TIMEOUT) || 30000
+          : 30000,
+      idle:
+        process.env.DB_POOL_IDLE != null
+          ? parseInt(process.env.DB_POOL_IDLE) || 10000
+          : 10000,
     },
   }
 );

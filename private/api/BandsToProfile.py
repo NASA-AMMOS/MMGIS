@@ -117,6 +117,7 @@ if str(sys.argv[4]).isalnum():
     type = str(sys.argv[4])  # xyorll
 bands = ast.literal_eval(unquote(sys.argv[5]))  # bands
 
+
 latLonPair = [[lat, lon]]
 
 # Open the image

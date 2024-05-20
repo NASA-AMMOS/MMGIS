@@ -284,9 +284,11 @@ var QueryURL = {
         if (mapZoom == undefined) mapZoom = L_.Map_.map.getZoom()
 
         var globeCenter = L_.Globe_.litho.getCenter()
-        if (globeLon == undefined) globeLon = globeCenter.lng
-        if (globeLat == undefined) globeLat = globeCenter.lat
-        if (globeZoom == undefined) globeZoom = L_.Globe_.litho.zoom
+        if (globeCenter) {
+            if (globeLon == undefined) globeLon = globeCenter.lng
+            if (globeLat == undefined) globeLat = globeCenter.lat
+            if (globeZoom == undefined) globeZoom = L_.Globe_.litho.zoom
+        }
 
         var viewerImg = L_.Viewer_.getLastImageId()
         var viewerLoc = L_.Viewer_.getLocation()
@@ -316,25 +318,28 @@ var QueryURL = {
         urlAppendage += '&globeZoom=' + globeZoom
 
         //globeCamera
-        var orbit = L_.Globe_.litho.getCameras().orbit
-        var cam = orbit.camera
-        var con = orbit.controls
+        const lithoCams = L_.Globe_.litho.getCameras()
+        if (lithoCams != null) {
+            var orbit = lithoCams.orbit
+            var cam = orbit.camera
+            var con = orbit.controls
 
-        var pos = cam.position
-        var tar = con.target
-        var globeCamera =
-            pos.x +
-            ',' +
-            pos.y +
-            ',' +
-            pos.z +
-            ',' +
-            tar.x +
-            ',' +
-            tar.y +
-            ',' +
-            tar.z
-        urlAppendage += '&globeCamera=' + globeCamera
+            var pos = cam.position
+            var tar = con.target
+            var globeCamera =
+                pos.x +
+                ',' +
+                pos.y +
+                ',' +
+                pos.z +
+                ',' +
+                tar.x +
+                ',' +
+                tar.y +
+                ',' +
+                tar.z
+            urlAppendage += '&globeCamera=' + globeCamera
+        }
 
         //panePercents
         var pP = L_.UserInterface_.getPanelPercents()

@@ -1,0 +1,289 @@
+#layersTool_filtering {
+    border-top: 1px solid var(--color-a);
+    background: var(--color-a2);
+    display: none;
+}
+.gears_on #layersTool_filtering {
+    display: block;
+}
+#layersTool_filtering_header {
+    display: flex;
+    justify-content: space-between;
+    height: 30px;
+    line-height: 30px;
+}
+#layersTool_filtering_title_left {
+    display: flex;
+}
+#layersTool_filtering_title {
+    font-size: 16px;
+    padding-left: 14px;
+    line-height: 31px;
+}
+#layersTool_filtering_count {
+    font-size: 12px;
+    padding: 0px 4px;
+    color: #d6d6d6;
+}
+#layersTool_filtering_add_value {
+    padding: 0px 6px;
+    color: var(--color-a6);
+}
+#layersTool_filtering_add_value:hover {
+    background: var(--color-c);
+    color: var(--color-a7);
+}
+#layersTool_filtering_add_value > div {
+    font-size: 11px;
+    margin-right: 2px;
+    line-height: 32px;
+    text-transform: uppercase;
+}
+
+#layerTool_filtering_filters {
+    border-left: 1px solid var(--color-a2);
+    border-right: 1px solid var(--color-a2);
+}
+
+#layerTool_filtering_filters_spatial {
+    display: flex;
+    border-bottom: 1px solid #353535;
+}
+#layerTool_filtering_filters_spatial_draw {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    white-space: nowrap;
+    padding-left: 0px;
+    margin: 4px 8px;
+    height: 22px;
+    line-height: 22px;
+    border-radius: 4px;
+    background: var(--color-a3);
+}
+#layerTool_filtering_filters_spatial_draw > div {
+    line-height: 24px;
+    font-size: 13px;
+}
+#layerTool_filtering_filters_spatial_draw > i {
+    color: var(--color-a6);
+    width: 22px;
+    height: 22px;
+    line-height: 24px;
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+    padding-left: 2px;
+    margin-right: 6px;
+}
+#layerTool_filtering_filters_spatial.drawing
+    #layerTool_filtering_filters_spatial_draw
+    > i {
+    background: var(--color-r7);
+    color: black;
+}
+#layerTool_filtering_filters_spatial.drawn
+    #layerTool_filtering_filters_spatial_draw
+    > i {
+    background: var(--color-green2);
+    color: black;
+}
+#layerTool_filtering_filters_spatial_draw:hover {
+    background: var(--color-c);
+}
+.layerTool_filtering_filters_clear {
+    width: 30px;
+    background: var(--color-a1-5);
+    padding: 0px 6px;
+    color: #888;
+}
+.layerTool_filtering_filters_clear:hover {
+    background: var(--color-a1);
+    color: #fff;
+}
+#layerTool_filtering_filters_spatial_radius_wrapper {
+    display: flex;
+    background: var(--color-a1-5);
+    color: #ccc;
+    width: 131px;
+    box-sizing: border-box;
+    border-right: 1px solid var(--color-a2);
+}
+#layersTool_filtering
+    #layerTool_filtering_filters_spatial_radius_wrapper
+    > input {
+    background: var(--color-a1-5);
+    padding-left: 0px;
+    text-align: right;
+    font-size: 13px;
+}
+#layersTool_filtering
+    #layerTool_filtering_filters_spatial_radius_wrapper
+    > input:hover {
+    background: var(--color-a1-5);
+}
+#layerTool_filtering_filters_spatial_radius_wrapper > div:first-child {
+    line-height: 30px;
+    padding: 0px 8px;
+    font-size: 12px;
+}
+#layerTool_filtering_filters_spatial_radius_wrapper > div:last-child {
+    line-height: 32px;
+    height: 30px;
+    padding: 0px 8px 0px 1px;
+    font-size: 12px;
+}
+
+#layersTool_filtering_footer {
+    display: flex;
+    justify-content: space-between;
+    height: 30px;
+    line-height: 30px;
+}
+#layersTool_filtering_adds {
+    display: flex;
+    justify-content: space-between;
+}
+#layersTool_filtering_adds > div > div {
+    padding-left: 2px;
+}
+
+.layersTool_filtering_value {
+    display: flex;
+    height: 31px;
+    border-bottom: 1px solid var(--color-a2);
+}
+.layersTool_filtering_value .layersTool_filtering_value_key {
+    flex: 1;
+}
+.layersTool_filtering_value_operator {
+    box-sizing: border-box;
+    border-left: 1px solid var(--color-a2);
+    border-right: 1px solid var(--color-a2);
+}
+.layersTool_filtering_value .layersTool_filtering_value_value {
+    flex: 1;
+    position: relative;
+}
+
+.layersTool_filtering_value_value_type {
+    position: absolute;
+    right: 0;
+    top: 0;
+    pointer-events: none;
+    height: 30px;
+    line-height: 30px;
+    width: 30px;
+    text-align: center;
+    color: #999;
+    opacity: 0;
+    transition: opacity 0.2s ease-out;
+}
+.layersTool_filtering_value_value_type > i:first-child {
+    color: var(--color-yellow);
+}
+.layersTool_filtering_value_value_type > i:last-child {
+    color: var(--color-green);
+}
+
+.layersTool_filtering_value_value_input:hover
+    + .layersTool_filtering_value_value_type {
+    opacity: 1;
+}
+
+#layersTool_filtering input {
+    background: var(--color-a1-5);
+    color: #ccc;
+    width: 100%;
+    box-sizing: border-box;
+    border-left: 6px solid var(--color-a);
+    height: 30px;
+    padding-left: 8px;
+    border: none;
+    font-size: 14px;
+    transition: background 0.2s cubic-bezier(0.785, 0.135, 0.15, 0.86);
+}
+#layersTool_filtering input:hover {
+    background: var(--color-a1);
+}
+.layersTool_filtering_value_value_input {
+    border-right: 1px solid var(--color-a2) !important;
+}
+#layersTool_filtering select {
+    background: #111;
+    color: #ccc;
+    height: 30px;
+}
+.layersTool_filtering_value_operator_select {
+    background: var(--color-a1);
+    color: var(--color-f);
+    border: none;
+    cursor: pointer;
+    height: 30px;
+    transition: background 0.2s cubic-bezier(0.785, 0.135, 0.15, 0.86);
+}
+.layersTool_filtering_value_operator_select:hover {
+    background: var(--color-a2);
+}
+
+.layersTool_filtering_value_remove .mmgisButton5 {
+    width: 22px;
+}
+#layersTool_filtering_clear {
+    padding: 0px 14px;
+}
+#layersTool_filtering_clear:hover {
+    background: var(--color-red2);
+}
+#layersTool_filtering_submit {
+    padding: 0px 8px;
+    transition: background 0.2s cubic-bezier(0.785, 0.135, 0.15, 0.86);
+}
+#layersTool_filtering_submit.active {
+    background: var(--color-h);
+    color: black;
+}
+#layersTool_filtering_submit.active:hover {
+    background: #fffb80;
+}
+
+#layersTool_filtering .dropy,
+#layersTool_filtering .dropy__title {
+    height: 30px;
+    border: none;
+}
+#layersTool_filtering .dropy__title span {
+    padding: 6px;
+}
+#layersTool_filtering .dropy .dropy__content li a {
+    padding: 6px;
+    border-top: 1px solid var(--color-m);
+    margin-bottom: 0px;
+    height: 30px;
+}
+#layersTool_filtering .dropy__content .dropy__header {
+    display: none;
+}
+#layersTool_filtering .dropy__content ul {
+    transition: none;
+}
+
+#layersTool_filtering_submit_loading {
+    display: none;
+    padding: 6px 6px 6px 0px;
+}
+#layersTool_filtering_submit_loading.active {
+    display: block;
+}
+#layersTool_filtering_submit_loading.active > div {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 3px solid black;
+    border-top: 3px solid transparent;
+    animation: submitLoadingSpin 1s ease-in-out infinite;
+}
+@keyframes submitLoadingSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}

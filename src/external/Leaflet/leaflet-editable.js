@@ -1841,7 +1841,9 @@
         // 🍂method enableEdit(map?: L.Map): this.editor
         // Enable editing, by creating an editor if not existing, and then calling `enable` on it.
         enableEdit: function (map) {
-            if (!this.editor) this.createEditor(map)
+            if (!this.editor) {
+                this.createEditor(map)
+            }
             this.editor.enable()
             return this.editor
         },
