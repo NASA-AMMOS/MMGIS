@@ -24,12 +24,22 @@ import Typography from "@mui/material/Typography";
 import Paper from "@mui/material/Paper";
 import Checkbox from "@mui/material/Checkbox";
 import IconButton from "@mui/material/IconButton";
+import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import DeleteIcon from "@mui/icons-material/Delete";
 import FilterListIcon from "@mui/icons-material/FilterList";
+import Divider from "@mui/material/Divider";
 import { visuallyHidden } from "@mui/utils";
+
+import InventoryIcon from "@mui/icons-material/Inventory";
+import PreviewIcon from "@mui/icons-material/Preview";
+import DownloadIcon from "@mui/icons-material/Download";
+import UploadIcon from "@mui/icons-material/Upload";
+import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
+import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
+import AddIcon from "@mui/icons-material/Add";
 
 function descendingComparator(a, b, orderBy) {
   if (b[orderBy] < a[orderBy]) {
@@ -66,39 +76,20 @@ function stableSort(array, comparator) {
 const headCells = [
   {
     id: "name",
-    numeric: false,
-    disablePadding: true,
-    label: "GeoDataset Name",
-  },
-  {
-    id: "num_features",
-    numeric: true,
-    disablePadding: false,
-    label: "Number of Features",
+    label: "Name",
   },
   {
     id: "updated",
-    numeric: false,
-    disablePadding: false,
     label: "Last Updated",
   },
   {
     id: "actions",
-    numeric: false,
-    disablePadding: false,
-    label: "Actions",
+    label: "",
   },
 ];
 
 function EnhancedTableHead(props) {
-  const {
-    onSelectAllClick,
-    order,
-    orderBy,
-    numSelected,
-    rowCount,
-    onRequestSort,
-  } = props;
+  const { order, orderBy, rowCount, onRequestSort } = props;
   const createSortHandler = (property) => (event) => {
     onRequestSort(event, property);
   };
@@ -106,22 +97,11 @@ function EnhancedTableHead(props) {
   return (
     <TableHead>
       <TableRow>
-        <TableCell padding="checkbox">
-          <Checkbox
-            color="primary"
-            indeterminate={numSelected > 0 && numSelected < rowCount}
-            checked={rowCount > 0 && numSelected === rowCount}
-            onChange={onSelectAllClick}
-            inputProps={{
-              "aria-label": "select all desserts",
-            }}
-          />
-        </TableCell>
-        {headCells.map((headCell) => (
+        {headCells.map((headCell, idx) => (
           <TableCell
             key={headCell.id}
-            align={headCell.numeric ? "right" : "left"}
-            padding={headCell.disablePadding ? "none" : "normal"}
+            align={idx === 0 ? "left" : "right"}
+            padding={"normal"}
             sortDirection={orderBy === headCell.id ? order : false}
           >
             <TableSortLabel
@@ -143,8 +123,50 @@ function EnhancedTableHead(props) {
   );
 }
 
+const useStyles = makeStyles((theme) => ({
+  actions: {
+    display: "flex",
+    justifyContent: "right",
+  },
+  inIcon: {
+    width: "40px !important",
+    height: "40px !important",
+  },
+  previewIcon: {
+    width: "40px !important",
+    height: "40px !important",
+  },
+  downloadIcon: {
+    marginRight: "4px !important",
+    width: "40px !important",
+    height: "40px !important",
+  },
+  updateIcon: {
+    marginLeft: "4px !important",
+    width: "40px !important",
+    height: "40px !important",
+  },
+  renameIcon: {
+    marginRight: "4px !important",
+    width: "40px !important",
+    height: "40px !important",
+  },
+  deleteIcon: {
+    marginLeft: "4px !important",
+    width: "40px !important",
+    height: "40px !important",
+    "&:hover": {
+      background: "#c43541 !important",
+    },
+  },
+  addButton: {
+    whiteSpace: "nowrap",
+    padding: "5px 20px !important",
+    margin: "0px 10px !important",
+  },
+}));
+
 EnhancedTableHead.propTypes = {
-  numSelected: PropTypes.number.isRequired,
   onRequestSort: PropTypes.func.isRequired,
   onSelectAllClick: PropTypes.func.isRequired,
   order: PropTypes.oneOf(["asc", "desc"]).isRequired,
@@ -153,55 +175,34 @@ EnhancedTableHead.propTypes = {
 };
 
 function EnhancedTableToolbar(props) {
-  const { numSelected } = props;
+  const c = useStyles();
 
   return (
     <Toolbar
       sx={{
         pl: { sm: 2 },
         pr: { xs: 1, sm: 1 },
-        ...(numSelected > 0 && {
-          bgcolor: (theme) =>
-            alpha(
-              theme.palette.primary.main,
-              theme.palette.action.activatedOpacity
-            ),
-        }),
       }}
     >
-      {numSelected > 0 ? (
-        <Typography
-          sx={{ flex: "1 1 100%" }}
-          color="inherit"
-          variant="subtitle1"
-          component="div"
-        >
-          {numSelected} selected
-        </Typography>
-      ) : (
-        <Typography
-          sx={{ flex: "1 1 100%" }}
-          variant="h6"
-          id="tableTitle"
-          component="div"
-        >
-          GEODATASETS
-        </Typography>
-      )}
+      <Typography
+        sx={{ flex: "1 1 100%" }}
+        variant="h6"
+        id="tableTitle"
+        component="div"
+      >
+        GEODATASETS
+      </Typography>
 
-      {numSelected > 0 ? (
-        <Tooltip title="Delete">
-          <IconButton>
-            <DeleteIcon />
-          </IconButton>
-        </Tooltip>
-      ) : (
-        <Tooltip title="Filter list">
-          <IconButton>
-            <FilterListIcon />
-          </IconButton>
-        </Tooltip>
-      )}
+      <Button
+        variant="contained"
+        className={c.addButton}
+        endIcon={<AddIcon />}
+        onClick={() => {
+          //dispatch(setModal({ name: "preview" }));
+        }}
+      >
+        New GeoDataset
+      </Button>
     </Toolbar>
   );
 }
@@ -213,9 +214,10 @@ EnhancedTableToolbar.propTypes = {
 export default function GeoDatasets() {
   const [order, setOrder] = React.useState("asc");
   const [orderBy, setOrderBy] = React.useState("calories");
-  const [selected, setSelected] = React.useState([]);
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
+
+  const c = useStyles();
 
   const dispatch = useDispatch();
   const geodatasets = useSelector((state) => state.core.geodatasets);
@@ -260,34 +262,6 @@ export default function GeoDatasets() {
     setOrderBy(property);
   };
 
-  const handleSelectAllClick = (event) => {
-    if (event.target.checked) {
-      const newSelected = geodatasets.map((n) => n.id);
-      setSelected(newSelected);
-      return;
-    }
-    setSelected([]);
-  };
-
-  const handleClick = (event, id) => {
-    const selectedIndex = selected.indexOf(id);
-    let newSelected = [];
-
-    if (selectedIndex === -1) {
-      newSelected = newSelected.concat(selected, id);
-    } else if (selectedIndex === 0) {
-      newSelected = newSelected.concat(selected.slice(1));
-    } else if (selectedIndex === selected.length - 1) {
-      newSelected = newSelected.concat(selected.slice(0, -1));
-    } else if (selectedIndex > 0) {
-      newSelected = newSelected.concat(
-        selected.slice(0, selectedIndex),
-        selected.slice(selectedIndex + 1)
-      );
-    }
-    setSelected(newSelected);
-  };
-
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
@@ -296,8 +270,6 @@ export default function GeoDatasets() {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
-
-  const isSelected = (id) => selected.indexOf(id) !== -1;
 
   // Avoid a layout jump when reaching the last page with empty rows.
   const emptyRows =
@@ -315,7 +287,7 @@ export default function GeoDatasets() {
   return (
     <Box sx={{ width: "100%" }}>
       <Paper sx={{ width: "100%", mb: 2 }}>
-        <EnhancedTableToolbar numSelected={selected.length} />
+        <EnhancedTableToolbar />
         <TableContainer>
           <Table
             sx={{ minWidth: 750 }}
@@ -323,50 +295,80 @@ export default function GeoDatasets() {
             size="small"
           >
             <EnhancedTableHead
-              numSelected={selected.length}
               order={order}
               orderBy={orderBy}
-              onSelectAllClick={handleSelectAllClick}
               onRequestSort={handleRequestSort}
               rowCount={geodatasets.length}
             />
             <TableBody>
               {visibleRows.map((row, index) => {
-                const isItemSelected = isSelected(row.id);
-                const labelId = `enhanced-table-checkbox-${index}`;
-
                 return (
                   <TableRow
                     hover
-                    onClick={(event) => handleClick(event, row.id)}
                     role="checkbox"
-                    aria-checked={isItemSelected}
+                    aria-checked={false}
                     tabIndex={-1}
                     key={row.id}
-                    selected={isItemSelected}
+                    selected={false}
                     sx={{ cursor: "pointer" }}
                   >
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        color="primary"
-                        checked={isItemSelected}
-                        inputProps={{
-                          "aria-labelledby": labelId,
-                        }}
-                      />
+                    <TableCell align="left">{row.name}</TableCell>
+                    <TableCell align="right">{row.updated}</TableCell>
+                    <TableCell align="right">
+                      <div className={c.actions}>
+                        <IconButton
+                          className={c.inIcon}
+                          title="In"
+                          aria-label="in"
+                          onClick={() => {}}
+                        >
+                          <InventoryIcon fontSize="inhesmallrit" />
+                        </IconButton>
+                        <IconButton
+                          className={c.previewIcon}
+                          title="Preview"
+                          aria-label="preview"
+                          onClick={() => {}}
+                        >
+                          <PreviewIcon fontSize="small" />
+                        </IconButton>
+
+                        <IconButton
+                          className={c.downloadIcon}
+                          title="Download"
+                          aria-label="download"
+                          onClick={() => {}}
+                        >
+                          <DownloadIcon fontSize="small" />
+                        </IconButton>
+                        <Divider orientation="vertical" flexItem />
+                        <IconButton
+                          className={c.updateIcon}
+                          title="Update"
+                          aria-label="update"
+                          onClick={() => {}}
+                        >
+                          <UploadIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          className={c.renameIcon}
+                          title="Rename"
+                          aria-label="rename"
+                          onClick={() => {}}
+                        >
+                          <DriveFileRenameOutlineIcon fontSize="small" />
+                        </IconButton>
+                        <Divider orientation="vertical" flexItem />
+                        <IconButton
+                          className={c.deleteIcon}
+                          title="Delete"
+                          aria-label="delete"
+                          onClick={() => {}}
+                        >
+                          <DeleteForeverIcon fontSize="small" />
+                        </IconButton>
+                      </div>
                     </TableCell>
-                    <TableCell
-                      component="th"
-                      id={labelId}
-                      scope="row"
-                      padding="none"
-                    >
-                      {row.name}
-                    </TableCell>
-                    <TableCell align="right">{row.calories}</TableCell>
-                    <TableCell align="right">{row.fat}</TableCell>
-                    <TableCell align="right">{row.carbs}</TableCell>
-                    <TableCell align="right">{row.protein}</TableCell>
                   </TableRow>
                 );
               })}

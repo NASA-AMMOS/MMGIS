@@ -55,6 +55,10 @@ function get(reqtype, req, res, next) {
         if (type == "geojson") {
           let q = `SELECT properties, ST_AsGeoJSON(geom) FROM ${table}`;
 
+          if (req.query?.limited) {
+            q += ` ORDER BY id DESC LIMIT 3`;
+          }
+
           let hasBounds = false;
           let minx = req.query?.minx;
           let miny = req.query?.miny;
