@@ -6,7 +6,11 @@ import clsx from "clsx";
 
 import { calls } from "../../core/calls";
 import { copyToClipboard } from "../../core/utils";
-import { setSnackBarText, setGeodatasets } from "../../core/ConfigureStore";
+import {
+  setSnackBarText,
+  setGeodatasets,
+  setModal,
+} from "../../core/ConfigureStore";
 
 import PropTypes from "prop-types";
 import { alpha } from "@mui/material/styles";
@@ -40,6 +44,8 @@ import UploadIcon from "@mui/icons-material/Upload";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import AddIcon from "@mui/icons-material/Add";
+
+import NewGeoDatasetModal from "./Modals/NewGeoDatasetModal/NewGeoDatasetModal";
 
 function descendingComparator(a, b, orderBy) {
   if (b[orderBy] < a[orderBy]) {
@@ -124,6 +130,9 @@ function EnhancedTableHead(props) {
 }
 
 const useStyles = makeStyles((theme) => ({
+  GeoDatasets: {},
+  GeoDatasetsInner: { height: "100%", display: "flex", flexFlow: "column" },
+  table: { flex: 1 },
   actions: {
     display: "flex",
     justifyContent: "right",
@@ -176,6 +185,7 @@ EnhancedTableHead.propTypes = {
 
 function EnhancedTableToolbar(props) {
   const c = useStyles();
+  const dispatch = useDispatch();
 
   return (
     <Toolbar
@@ -198,7 +208,7 @@ function EnhancedTableToolbar(props) {
         className={c.addButton}
         endIcon={<AddIcon />}
         onClick={() => {
-          //dispatch(setModal({ name: "preview" }));
+          dispatch(setModal({ name: "newGeoDataset" }));
         }}
       >
         New GeoDataset
@@ -215,12 +225,13 @@ export default function GeoDatasets() {
   const [order, setOrder] = React.useState("asc");
   const [orderBy, setOrderBy] = React.useState("calories");
   const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(5);
+  const [rowsPerPage, setRowsPerPage] = React.useState(25);
 
   const c = useStyles();
 
   const dispatch = useDispatch();
   const geodatasets = useSelector((state) => state.core.geodatasets);
+
   useEffect(() => {
     calls.api(
       "geodatasets_entries",
@@ -285,115 +296,118 @@ export default function GeoDatasets() {
   );
 
   return (
-    <Box sx={{ width: "100%" }}>
-      <Paper sx={{ width: "100%", mb: 2 }}>
-        <EnhancedTableToolbar />
-        <TableContainer>
-          <Table
-            sx={{ minWidth: 750 }}
-            aria-labelledby="tableTitle"
-            size="small"
-          >
-            <EnhancedTableHead
-              order={order}
-              orderBy={orderBy}
-              onRequestSort={handleRequestSort}
-              rowCount={geodatasets.length}
-            />
-            <TableBody>
-              {visibleRows.map((row, index) => {
-                return (
-                  <TableRow
-                    hover
-                    role="checkbox"
-                    aria-checked={false}
-                    tabIndex={-1}
-                    key={row.id}
-                    selected={false}
-                    sx={{ cursor: "pointer" }}
-                  >
-                    <TableCell align="left">{row.name}</TableCell>
-                    <TableCell align="right">{row.updated}</TableCell>
-                    <TableCell align="right">
-                      <div className={c.actions}>
-                        <IconButton
-                          className={c.inIcon}
-                          title="In"
-                          aria-label="in"
-                          onClick={() => {}}
-                        >
-                          <InventoryIcon fontSize="inhesmallrit" />
-                        </IconButton>
-                        <IconButton
-                          className={c.previewIcon}
-                          title="Preview"
-                          aria-label="preview"
-                          onClick={() => {}}
-                        >
-                          <PreviewIcon fontSize="small" />
-                        </IconButton>
+    <>
+      <Box className={c.GeoDatasets} sx={{ width: "100%" }}>
+        <Paper className={c.GeoDatasetsInner} sx={{ width: "100%", mb: 2 }}>
+          <EnhancedTableToolbar />
+          <TableContainer className={c.table}>
+            <Table
+              sx={{ minWidth: 750 }}
+              aria-labelledby="tableTitle"
+              size="small"
+            >
+              <EnhancedTableHead
+                order={order}
+                orderBy={orderBy}
+                onRequestSort={handleRequestSort}
+                rowCount={geodatasets.length}
+              />
+              <TableBody>
+                {visibleRows.map((row, index) => {
+                  return (
+                    <TableRow
+                      hover
+                      role="checkbox"
+                      aria-checked={false}
+                      tabIndex={-1}
+                      key={row.id}
+                      selected={false}
+                      sx={{ cursor: "pointer" }}
+                    >
+                      <TableCell align="left">{row.name}</TableCell>
+                      <TableCell align="right">{row.updated}</TableCell>
+                      <TableCell align="right">
+                        <div className={c.actions}>
+                          <IconButton
+                            className={c.inIcon}
+                            title="In"
+                            aria-label="in"
+                            onClick={() => {}}
+                          >
+                            <InventoryIcon fontSize="inhesmallrit" />
+                          </IconButton>
+                          <IconButton
+                            className={c.previewIcon}
+                            title="Preview"
+                            aria-label="preview"
+                            onClick={() => {}}
+                          >
+                            <PreviewIcon fontSize="small" />
+                          </IconButton>
 
-                        <IconButton
-                          className={c.downloadIcon}
-                          title="Download"
-                          aria-label="download"
-                          onClick={() => {}}
-                        >
-                          <DownloadIcon fontSize="small" />
-                        </IconButton>
-                        <Divider orientation="vertical" flexItem />
-                        <IconButton
-                          className={c.updateIcon}
-                          title="Update"
-                          aria-label="update"
-                          onClick={() => {}}
-                        >
-                          <UploadIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          className={c.renameIcon}
-                          title="Rename"
-                          aria-label="rename"
-                          onClick={() => {}}
-                        >
-                          <DriveFileRenameOutlineIcon fontSize="small" />
-                        </IconButton>
-                        <Divider orientation="vertical" flexItem />
-                        <IconButton
-                          className={c.deleteIcon}
-                          title="Delete"
-                          aria-label="delete"
-                          onClick={() => {}}
-                        >
-                          <DeleteForeverIcon fontSize="small" />
-                        </IconButton>
-                      </div>
-                    </TableCell>
+                          <IconButton
+                            className={c.downloadIcon}
+                            title="Download"
+                            aria-label="download"
+                            onClick={() => {}}
+                          >
+                            <DownloadIcon fontSize="small" />
+                          </IconButton>
+                          <Divider orientation="vertical" flexItem />
+                          <IconButton
+                            className={c.updateIcon}
+                            title="Update"
+                            aria-label="update"
+                            onClick={() => {}}
+                          >
+                            <UploadIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton
+                            className={c.renameIcon}
+                            title="Rename"
+                            aria-label="rename"
+                            onClick={() => {}}
+                          >
+                            <DriveFileRenameOutlineIcon fontSize="small" />
+                          </IconButton>
+                          <Divider orientation="vertical" flexItem />
+                          <IconButton
+                            className={c.deleteIcon}
+                            title="Delete"
+                            aria-label="delete"
+                            onClick={() => {}}
+                          >
+                            <DeleteForeverIcon fontSize="small" />
+                          </IconButton>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {emptyRows > 0 && (
+                  <TableRow
+                    style={{
+                      height: 33 * emptyRows,
+                    }}
+                  >
+                    <TableCell colSpan={6} />
                   </TableRow>
-                );
-              })}
-              {emptyRows > 0 && (
-                <TableRow
-                  style={{
-                    height: 33 * emptyRows,
-                  }}
-                >
-                  <TableCell colSpan={6} />
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={geodatasets.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
-      </Paper>
-    </Box>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <TablePagination
+            rowsPerPageOptions={[25, 50, 100]}
+            component="div"
+            count={geodatasets.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+        </Paper>
+      </Box>
+      <NewGeoDatasetModal />
+    </>
   );
 }

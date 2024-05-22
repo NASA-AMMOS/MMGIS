@@ -14,6 +14,7 @@ export const ConfigureStore = createSlice({
       layer: false,
       tool: false,
       preview: false,
+      newGeoDataset: false,
     },
     snackBarText: false,
   },

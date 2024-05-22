@@ -97,6 +97,7 @@ const useStyles = makeStyles((theme) => ({
     fontSize: "13px",
     opacity: 0.6,
   },
+  page: { height: "100%" },
 }));
 
 export default function Main() {
