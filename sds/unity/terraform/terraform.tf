@@ -10,15 +10,8 @@ data "aws_ssm_parameter" "subnet_list" {
 #  name = "/unity/account/ecs/execution_role_arn"
 #}
 
-locals {
-  subnet_map = jsondecode(data.aws_ssm_parameter.subnet_list.value)
-  subnet_ids = nonsensitive(local.subnet_map["private"])
-  public_subnet_ids = nonsensitive(local.subnet_map["public"])
-}
-
-
 module "base" {
-  source                   = "git::ssh://git@github.jpl.nasa.gov/terraform/base?ref=6.0.0"
+  source                   = ""
   project                  = var.project
   venue                    = var.venue
   subsystem                = var.subsystem
@@ -40,12 +33,10 @@ module "base" {
   ebs_block_device_size    = var.ebs_block_device_size
   root_block_device_size   = var.root_block_device_size
   ebs_mount_directory      = var.ebs_mount_directory
-  csso_proxy_only          = var.csso_proxy_only
   application_endpoint_url = var.application_endpoint_url
   terraform_app_commit     = var.terraform_app_commit
   deployment_method        = var.deployment_method
   secrets                  = local.secrets
-  stickiness_enabled       = var.stickiness_enabled
   docker_volume_path       = var.docker_volume_path
   efs_config = {
     efs_id             = var.efs_id
@@ -53,42 +44,56 @@ module "base" {
   }
 }
 
+locals {
+  subnet_map = jsondecode(data.aws_ssm_parameter.subnet_list.value)
+  subnet_ids = nonsensitive(local.subnet_map["private"])
+  public_subnet_ids = nonsensitive(local.subnet_map["public"])
+}
+
+
 # Application environment variables
 locals {
   environment_vars = {
     AWS_DEFAULT_REGION      = module.base.aws_region
-    CS3_GET_PARAMETERS      = module.base.ps_path
     DOMAIN                  = module.base.cname
     SERVER                  = var.server
     AUTH                    = var.auth
     NODE_ENV                = var.node_env
-    CSSO_LEAD_GROUP         = var.csso_lead_group
-    SESSION_USER            = var.session_user
-    INGEST_RATE             = var.ingest_rate
-    SECRET                  = module.base.auto_generated_password
     DB_HOST                 = var.db_host
     DB_PORT                 = var.db_port
     DB_NAME                 = var.db_name
     DB_USER                 = var.db_user
-    CSSO_GROUPS             = "[${join(", ", formatlist("\"%s\"", var.groups))}]"
-    SESSION_HOST            = module.base.csso_login_url
-    TACTICAL_HOST           = var.tactical_host
-    PLACES_HOST             = var.places_host
-    SCIENCE_INTENT_HOST     = var.science_intent_host
-    MTTTT_HOST              = var.mtttt_host
-    ENABLE_MMGIS_WEBSOCKETS = var.enable_mmgis_websockets
     PORT                    = var.app_listening_port
+    DB_POOL_MAX             = var.db_pool_max
+    DB_POOL_TIMEOUT         = var.db_pool_timeout
+    DB_POOL_IDLE            = var.db_pool_idle
+    CSSO_GROUPS             = var.csso_groups
     VERBOSE_LOGGING         = var.verbose_logging
+    FRAME_ANCESTORS         = var.frame_ancestors
+    FRAME_SRC               = var.frame_src
+    THIRD_PARTY_COOKIES     = var.third_party_cookies
+    ROOT_PATH               = var.root_path
+    WEBSOCKET_ROOT_PATH     = var.websocket_root_path
+    CLEARANCE_NUMBER        = var.clearance_number
+    DISABLE_LINK_SHORTENER  = var.disable_link_shortener
     HIDE_CONFIG             = var.hide_config
-    CONFIGCONFIG_PATH       = var.configconfig_path
     FORCE_CONFIG_PATH       = var.force_config_path
     LEADS                   = "[${join(", ", formatlist("\"%s\"", var.leads))}]"
+    ENABLE_MMGIS_WEBSOCKETS = var.enable_mmgis_websockets
+    ENABLE_CONFIG_WEBSOCKETS = var.enable_config_websockets
+    ENABLE_CONFIG_OVERRIDE  = var.enable_config_override
+    MAIN_MISSION            = var.main_mission
+    SKIP_CLIENT_INITIAL_LOGIN = var.skip_client_initial_login
+    GENERATE_SOURCEMAP      = var.generate_sourcemap
+    SPICE_SCHEDULED_KERNEL_DOWNLOAD = var.spice_scheduled_kernel_download
+    SPICE_SCHEDULED_KERNEL_DOWNLOAD_ON_START = var.spice_scheduled_kernel_download_on_start
+    SPICE_SCHEDULED_KERNEL_cron_expr = var.spice_scheduled_kernel_cron_expr
   }
 }
 
 locals {
   secrets = {
-    DB_PASS      = var.db_password
-    SESSION_PASS = var.session_pass
+    SECRET       = var.secret
+    DB_PASS      = var.db_pass
   }
 }
