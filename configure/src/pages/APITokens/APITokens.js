@@ -170,7 +170,7 @@ export default function APITokens() {
         } else {
           dispatch(
             setSnackBarText({
-              ext: res?.message || "Failed to get existing API keys.",
+              text: res?.message || "Failed to get existing API keys.",
               severity: "error",
             })
           );

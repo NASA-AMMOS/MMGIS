@@ -1,3 +1,5 @@
+import { saveAs } from "file-saver";
+
 /**
  * Traverses an object with an array of keys
  * @param {*} obj
@@ -106,5 +108,50 @@ export const copyToClipboard = (text) => {
     // If a selection existed before copying
     document.getSelection().removeAllRanges(); // Unselect everything on the HTML document
     document.getSelection().addRange(selected); // Restore the original selection
+  }
+};
+
+export const downloadObject = (
+  exportObj,
+  exportName,
+  exportExt,
+  downloadType
+) => {
+  let strung;
+  if (typeof exportObj === "string") {
+    strung = exportObj;
+  } else {
+    if (exportExt && (exportExt === ".json" || exportExt === ".geojson")) {
+      //pretty print geojson
+      let features = [];
+      for (let i = 0; i < exportObj.features.length; i++)
+        features.push(JSON.stringify(exportObj.features[i]));
+      features = "[\n" + features.join(",\n") + "\n]";
+      exportObj.features = "__FEATURES_PLACEHOLDER__";
+      strung = JSON.stringify(exportObj, null, 2);
+      strung = strung.replace('"__FEATURES_PLACEHOLDER__"', features);
+    } else strung = JSON.stringify(exportObj);
+  }
+  let fileName = exportName + (exportExt || ".json");
+
+  try {
+    // Create a blob of the data
+    let fileToSave = new Blob([strung], {
+      type: `application/${downloadType || "json"}`,
+      name: fileName,
+    });
+    // Save the file //from FileSaver
+    saveAs(fileToSave, fileName);
+  } catch (err) {
+    //https://stackoverflow.com/questions/19721439/download-json-object-as-a-file-from-browser#answer-30800715
+    let dataStr =
+      `data:text/${downloadType || "json"};charset=utf-8,` +
+      encodeURIComponent(strung);
+    let downloadAnchorNode = document.createElement("a");
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", fileName);
+    document.body.appendChild(downloadAnchorNode); // required for firefox
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
   }
 };

@@ -279,7 +279,12 @@ router.post("/entries", function (req, res, next) {
       if (sets && sets.length > 0) {
         let entries = [];
         for (let i = 0; i < sets.length; i++) {
-          entries.push({ name: sets[i].name, updated: sets[i].updatedAt });
+          entries.push({
+            name: sets[i].name,
+            updated: sets[i].updatedAt,
+            filename: sets[i].filename,
+            num_features: sets[i].num_features,
+          });
         }
         // For each entry, list all occurrences in latest configuration objects
         sequelize
@@ -289,12 +294,11 @@ router.post("/entries", function (req, res, next) {
           .then(([results]) => {
             // Populate occurrences
             results.forEach((m) => {
-              Utils.traverseLayers([m.config.layers], (layer, path) => {
+              Utils.traverseLayers(m.config.layers, (layer, path) => {
                 entries.forEach((entry) => {
                   entry.occurrences = entry.occurrences || {};
                   entry.occurrences[m.mission] =
                     entry.occurrences[m.mission] || [];
-
                   if (layer.url === `geodatasets:${entry.name}`) {
                     entry.occurrences[m.mission].push({
                       name: layer.name,
@@ -418,9 +422,10 @@ router.post("/search", function (req, res, next) {
 router.post("/append/:name", function (req, res, next) {
   req.body = {
     name: req.params.name,
-    startProp: null,
-    endProp: null,
-    geojson: req.body,
+    startProp: req.query.start_prop || null,
+    endProp: req.query.end_prop || null,
+    filename: req.query.filename || null,
+    geojson: typeof req.body === "string" ? JSON.parse(req.body) : req.body,
     action: "append",
   };
   recreate(req, res, next);
@@ -466,6 +471,7 @@ router.post("/recreate", function (req, res, next) {
 function recreate(req, res, next) {
   let startProp = req.body.startProp;
   let endProp = req.body.endProp;
+  let filename = req.body.filename;
 
   let features = null;
   try {
@@ -491,6 +497,10 @@ function recreate(req, res, next) {
 
   makeNewGeodatasetTable(
     req.body.name,
+    filename,
+    features.length,
+    startProp,
+    endProp,
     function (result) {
       let checkEnding = result.table.split("_");
       if (checkEnding[checkEnding.length - 1] !== "geodatasets") {
@@ -557,18 +567,18 @@ function populateGeodatasetTable(Table, features, startProp, endProp, cb) {
       end_time = new Date(end_time).getTime();
       end_time = isNaN(end_time) ? null : end_time;
     }
-
-    rows.push({
+    const row = {
       properties: features[i].properties,
       geometry_type: features[i].geometry.type,
-      start_time,
-      end_time,
       geom: {
         crs: { type: "name", properties: { name: "EPSG:4326" } },
         type: features[i].geometry.type,
         coordinates: features[i].geometry.coordinates,
       },
-    });
+    };
+    if (startProp) row.start_time = start_time;
+    if (endProp) row.end_time = end_time;
+    rows.push(row);
   }
 
   Table.bulkCreate(rows, { returning: true })
@@ -611,10 +621,7 @@ router.delete("/remove/:name", function (req, res, next) {
         sequelize
           .query(`DROP TABLE IF EXISTS ${result.dataValues.table};`)
           .then(() => {
-            Geodatasets.update(
-              { name: "__deleted__" },
-              { where: { name: req.params.name } }
-            )
+            Geodatasets.destroy({ where: { name: req.params.name } })
               .then(() => {
                 logger(
                   "info",

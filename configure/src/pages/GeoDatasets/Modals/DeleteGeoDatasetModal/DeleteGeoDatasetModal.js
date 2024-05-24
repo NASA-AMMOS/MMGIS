@@ -3,11 +3,7 @@ import { useSelector, useDispatch } from "react-redux";
 
 import { calls } from "../../../../core/calls";
 
-import {
-  setMissions,
-  setModal,
-  setSnackBarText,
-} from "../../../../core/ConfigureStore";
+import { setModal, setSnackBarText } from "../../../../core/ConfigureStore";
 
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
@@ -18,12 +14,11 @@ import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 
 import CloseSharpIcon from "@mui/icons-material/CloseSharp";
-import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
+import ShapeLineIcon from "@mui/icons-material/ShapeLine";
+import WarningIcon from "@mui/icons-material/Warning";
+import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 
 import TextField from "@mui/material/TextField";
-import FormGroup from "@mui/material/FormGroup";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import Checkbox from "@mui/material/Checkbox";
 
 import { makeStyles, useTheme } from "@mui/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -50,7 +45,7 @@ const useStyles = makeStyles((theme) => ({
   heading: {
     height: theme.headHeights[2],
     boxSizing: "border-box",
-    background: theme.palette.swatches.p[0],
+    background: theme.palette.swatches.p[4],
     borderBottom: `1px solid ${theme.palette.swatches.grey[800]}`,
     padding: `4px ${theme.spacing(2)} 4px ${theme.spacing(4)} !important`,
   },
@@ -58,6 +53,7 @@ const useStyles = makeStyles((theme) => ({
     padding: `8px 0px`,
     fontSize: theme.typography.pxToRem(16),
     fontWeight: "bold",
+    color: theme.palette.swatches.grey[0],
     textTransform: "uppercase",
   },
   content: {
@@ -88,39 +84,118 @@ const useStyles = makeStyles((theme) => ({
     marginBottom: "8px !important",
     color: theme.palette.swatches.grey[400],
   },
-  missionNameInput: {
+  confirmInput: {
     width: "100%",
-    margin: "8px 0px 4px 0px !important",
+    margin: "10px 0px 4px 0px !important",
+    borderTop: `1px solid ${theme.palette.swatches.grey[500]}`,
   },
   backgroundIcon: {
     margin: "7px 8px 0px 0px",
   },
+
+  fileName: {
+    textAlign: "center",
+    fontWeight: "bold",
+    letterSpacing: "1px",
+    marginBottom: "10px",
+    borderBottom: `1px solid ${theme.palette.swatches.grey[500]}`,
+    paddingBottom: "10px",
+  },
+
+  layerName: {
+    textAlign: "center",
+    fontSize: "24px !important",
+    letterSpacing: "1px !important",
+    color: theme.palette.swatches.p[4],
+    fontWeight: "bold !important",
+    margin: "10px !important",
+    borderBottom: `1px solid ${theme.palette.swatches.grey[100]}`,
+    paddingBottom: "10px",
+  },
+  hasOccurrencesTitle: {
+    margin: "10px",
+    display: "flex",
+  },
+  hasOccurrences: {
+    fontStyle: "italic",
+  },
+  mission: {
+    background: theme.palette.swatches.p[11],
+    color: theme.palette.swatches.grey[900],
+    height: "24px",
+    lineHeight: "24px",
+    padding: "0px 5px",
+    borderRadius: "3px",
+    display: "inline-block",
+    letterSpacing: "1px",
+    marginLeft: "20px",
+  },
+  pathName: {
+    display: "flex",
+    marginLeft: "40px",
+    marginTop: "4px",
+    height: "24px",
+    lineHeight: "24px",
+  },
+  path: {
+    color: theme.palette.swatches.grey[500],
+  },
+  name: {
+    color: theme.palette.swatches.grey[100],
+    fontWeight: "bold",
+  },
+  confirmMessage: {
+    fontStyle: "italic",
+    fontSize: "15px !important",
+  },
+  dialogActions: {
+    display: "flex !important",
+    justifyContent: "space-between !important",
+  },
+  delete: {
+    background: `${theme.palette.swatches.p[4]} !important`,
+    color: `${theme.palette.swatches.grey[1000]} !important`,
+    "&:hover": {
+      background: `${theme.palette.swatches.grey[0]} !important`,
+    },
+  },
+  cancel: {},
 }));
 
-const MODAL_NAME = "newMission";
-const NewMissionModal = (props) => {
-  const {} = props;
+const MODAL_NAME = "deleteGeoDataset";
+const DeleteGeoDatasetModal = (props) => {
+  const { queryGeoDatasets } = props;
   const c = useStyles();
 
   const modal = useSelector((state) => state.core.modal[MODAL_NAME]);
+  const geodatasets = useSelector((state) => state.core.geodatasets);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const dispatch = useDispatch();
 
-  const [missionName, setMissionName] = useState("");
-  const [createDir, setCreateDir] = useState(true);
+  const [geoDatasetName, setGeoDatasetName] = useState(null);
 
   const handleClose = () => {
     // close modal
     dispatch(setModal({ name: MODAL_NAME, on: false }));
   };
   const handleSubmit = () => {
-    if (missionName == null || missionName === "") {
+    if (!modal?.geoDataset?.name) {
       dispatch(
         setSnackBarText({
-          text: "Please enter a mission name.",
+          text: "Cannot delete undefined GeoDataset.",
+          severity: "error",
+        })
+      );
+      return;
+    }
+
+    if (geoDatasetName !== modal.geoDataset.name) {
+      dispatch(
+        setSnackBarText({
+          text: "Confirmation GeoDataset name does not match.",
           severity: "error",
         })
       );
@@ -128,55 +203,65 @@ const NewMissionModal = (props) => {
     }
 
     calls.api(
-      "add",
-      null,
+      "geodatasets_remove",
+      {
+        urlReplacements: {
+          name: modal.geoDataset.name,
+        },
+      },
       (res) => {
-        calls.api(
-          "missions",
-          null,
-          (res) => {
-            dispatch(setMissions(res.missions));
-
-            dispatch(
-              setSnackBarText({
-                text: res.message,
-                severity: "success",
-              })
-            );
-            // reset fields
-            setMissionName("");
-            setCreateDir(true);
-
-            // and then close
-            handleClose();
-          },
-          (res) => {
-            dispatch(
-              setSnackBarText({
-                text: res?.message || "Failed to requery missions.",
-                severity: "error",
-              })
-            );
-
-            // reset fields
-            setMissionName("");
-            setCreateDir(true);
-
-            // and then close
-            handleClose();
-          }
-        );
+        if (res.status === "success") {
+          dispatch(
+            setSnackBarText({
+              text: `Successfully deleted the '${modal.geoDataset.name}' GeoDataset.`,
+              severity: "success",
+            })
+          );
+          queryGeoDatasets();
+          handleClose();
+        } else {
+          dispatch(
+            setSnackBarText({
+              text: `Failed to delete the '${modal.geoDataset.name}' GeoDataset.`,
+              severity: "error",
+            })
+          );
+        }
       },
       (res) => {
         dispatch(
           setSnackBarText({
-            text: res?.message || "Failed to make new mission.",
+            text: `Failed to delete the '${modal.geoDataset.name}' GeoDataset.`,
             severity: "error",
           })
         );
       }
     );
   };
+
+  let occurrences = [];
+
+  if (modal?.geoDataset?.occurrences)
+    occurrences = Object.keys(modal?.geoDataset?.occurrences)
+      .map((mission) => {
+        const m = modal?.geoDataset?.occurrences[mission];
+        if (m.length == 0) return null;
+        else {
+          const items = [<div className={c.mission}>{mission}</div>];
+          m.forEach((n) => {
+            items.push(
+              <div className={c.pathName}>
+                <div className={c.path}>
+                  {`${n.path}.`.replaceAll(".", " ➔ ")}
+                </div>
+                <div className={c.name}>{n.name}</div>
+              </div>
+            );
+          });
+          return items;
+        }
+      })
+      .filter(Boolean);
 
   return (
     <Dialog
@@ -192,8 +277,8 @@ const NewMissionModal = (props) => {
       <DialogTitle className={c.heading}>
         <div className={c.flexBetween}>
           <div className={c.flexBetween}>
-            <RocketLaunchIcon className={c.backgroundIcon} />
-            <div className={c.title}>Make a New Mission</div>
+            <ShapeLineIcon className={c.backgroundIcon} />
+            <div className={c.title}>Delete a GeoDataset</div>
           </div>
           <IconButton
             className={c.closeIcon}
@@ -206,50 +291,48 @@ const NewMissionModal = (props) => {
         </div>
       </DialogTitle>
       <DialogContent className={c.content}>
-        <Typography className={c.subtitle}>
-          Missions are separately configurable MMGIS map interfaces.
-        </Typography>
+        <Typography
+          className={c.layerName}
+        >{`Deleting: ${modal?.geoDataset?.name}`}</Typography>
+        {occurrences.length > 0 && (
+          <>
+            <div className={c.hasOccurrencesTitle}>
+              <WarningIcon />
+              <Typography className={c.hasOccurrences}>
+                {`This GeoDataset is currently in use in the following layers:`}
+              </Typography>
+            </div>
+            <div className={c.occurrences}>{occurrences}</div>
+          </>
+        )}
         <TextField
-          className={c.missionNameInput}
-          label="Mission Name"
+          className={c.confirmInput}
+          label="Confirm GeoDataset Name"
           variant="filled"
-          value={missionName}
+          value={geoDatasetName}
           onChange={(e) => {
-            setMissionName(e.target.value);
+            setGeoDatasetName(e.target.value);
           }}
         />
-        <Typography className={c.subtitle2}>
-          {`A new and unique name for a mission. No special characters allowed and it should not start with a number.`}
-        </Typography>
-        <FormGroup>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={createDir}
-                onChange={(e) => {
-                  setCreateDir(!createDir);
-                }}
-              />
-            }
-            label="Create a /Missions/{Mission Name} directory"
-          />
-        </FormGroup>
-        <Typography className={c.subtitle2}>
-          {`Layer, Tiles and Data for this mission can be stored in /Missions/{Mission Name} directory.
-            Whenever a non-absolute URL is found in this mission's configuration, it will be treated as relative to this folder regardless of whether this folder exists.`}
-        </Typography>
+        <Typography
+          className={c.confirmMessage}
+        >{`Enter '${modal?.geoDataset?.name}' above and click 'Delete' to confirm the permanent deletion of this GeoDataset.`}</Typography>
       </DialogContent>
-      <DialogActions>
+      <DialogActions className={c.dialogActions}>
         <Button
-          className={c.addSelected}
+          className={c.delete}
           variant="contained"
+          startIcon={<DeleteForeverIcon size="small" />}
           onClick={handleSubmit}
         >
-          Make Mission
+          Delete
+        </Button>
+        <Button className={c.cancel} variant="outlined" onClick={handleClose}>
+          Cancel
         </Button>
       </DialogActions>
     </Dialog>
   );
 };
 
-export default NewMissionModal;
+export default DeleteGeoDatasetModal;

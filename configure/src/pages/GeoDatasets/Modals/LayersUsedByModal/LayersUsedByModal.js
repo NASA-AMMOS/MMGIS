@@ -3,11 +3,7 @@ import { useSelector, useDispatch } from "react-redux";
 
 import { calls } from "../../../../core/calls";
 
-import {
-  setMissions,
-  setModal,
-  setSnackBarText,
-} from "../../../../core/ConfigureStore";
+import { setModal, setSnackBarText } from "../../../../core/ConfigureStore";
 
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
@@ -18,12 +14,11 @@ import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 
 import CloseSharpIcon from "@mui/icons-material/CloseSharp";
-import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
+import ShapeLineIcon from "@mui/icons-material/ShapeLine";
+import WarningIcon from "@mui/icons-material/Warning";
+import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 
 import TextField from "@mui/material/TextField";
-import FormGroup from "@mui/material/FormGroup";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import Checkbox from "@mui/material/Checkbox";
 
 import { makeStyles, useTheme } from "@mui/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -58,6 +53,7 @@ const useStyles = makeStyles((theme) => ({
     padding: `8px 0px`,
     fontSize: theme.typography.pxToRem(16),
     fontWeight: "bold",
+    color: theme.palette.swatches.grey[0],
     textTransform: "uppercase",
   },
   content: {
@@ -73,32 +69,66 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     justifyContent: "space-between",
   },
-  subtitle: {
-    fontSize: "14px !important",
-    width: "100%",
-    textAlign: "right",
-    marginBottom: "8px !important",
-    color: theme.palette.swatches.grey[300],
-    letterSpacing: "0.2px",
-  },
-  subtitle2: {
-    fontSize: "12px !important",
-    fontStyle: "italic",
-    width: "100%",
-    marginBottom: "8px !important",
-    color: theme.palette.swatches.grey[400],
-  },
-  missionNameInput: {
-    width: "100%",
-    margin: "8px 0px 4px 0px !important",
-  },
   backgroundIcon: {
     margin: "7px 8px 0px 0px",
   },
+
+  fileName: {
+    textAlign: "center",
+    fontWeight: "bold",
+    letterSpacing: "1px",
+    marginBottom: "10px",
+    borderBottom: `1px solid ${theme.palette.swatches.grey[500]}`,
+    paddingBottom: "10px",
+  },
+
+  layerName: {
+    textAlign: "center",
+    fontSize: "24px !important",
+    letterSpacing: "1px !important",
+    color: theme.palette.swatches.grey[100],
+    fontWeight: "bold !important",
+    margin: "10px !important",
+    borderBottom: `1px solid ${theme.palette.swatches.grey[100]}`,
+    paddingBottom: "10px",
+  },
+  hasOccurrencesTitle: {
+    margin: "10px",
+    display: "flex",
+  },
+  hasOccurrences: {
+    fontStyle: "italic",
+  },
+  mission: {
+    background: theme.palette.swatches.p[11],
+    color: theme.palette.swatches.grey[900],
+    height: "24px",
+    lineHeight: "24px",
+    padding: "0px 5px",
+    borderRadius: "3px",
+    display: "inline-block",
+    letterSpacing: "1px",
+    marginLeft: "20px",
+  },
+  pathName: {
+    display: "flex",
+    marginLeft: "40px",
+    marginTop: "4px",
+    height: "24px",
+    lineHeight: "24px",
+  },
+  path: {
+    color: theme.palette.swatches.grey[500],
+  },
+  name: {
+    color: theme.palette.swatches.grey[100],
+    fontWeight: "bold",
+  },
+  close: {},
 }));
 
-const MODAL_NAME = "newMission";
-const NewMissionModal = (props) => {
+const MODAL_NAME = "layersUsedByGeoDataset";
+const LayersUsedByModal = (props) => {
   const {} = props;
   const c = useStyles();
 
@@ -109,74 +139,34 @@ const NewMissionModal = (props) => {
 
   const dispatch = useDispatch();
 
-  const [missionName, setMissionName] = useState("");
-  const [createDir, setCreateDir] = useState(true);
-
   const handleClose = () => {
     // close modal
     dispatch(setModal({ name: MODAL_NAME, on: false }));
   };
-  const handleSubmit = () => {
-    if (missionName == null || missionName === "") {
-      dispatch(
-        setSnackBarText({
-          text: "Please enter a mission name.",
-          severity: "error",
-        })
-      );
-      return;
-    }
 
-    calls.api(
-      "add",
-      null,
-      (res) => {
-        calls.api(
-          "missions",
-          null,
-          (res) => {
-            dispatch(setMissions(res.missions));
+  let occurrences = [];
 
-            dispatch(
-              setSnackBarText({
-                text: res.message,
-                severity: "success",
-              })
+  if (modal?.geoDataset?.occurrences)
+    occurrences = Object.keys(modal?.geoDataset?.occurrences)
+      .map((mission) => {
+        const m = modal?.geoDataset?.occurrences[mission];
+        if (m.length == 0) return null;
+        else {
+          const items = [<div className={c.mission}>{mission}</div>];
+          m.forEach((n) => {
+            items.push(
+              <div className={c.pathName}>
+                <div className={c.path}>
+                  {`${n.path}.`.replaceAll(".", " ➔ ")}
+                </div>
+                <div className={c.name}>{n.name}</div>
+              </div>
             );
-            // reset fields
-            setMissionName("");
-            setCreateDir(true);
-
-            // and then close
-            handleClose();
-          },
-          (res) => {
-            dispatch(
-              setSnackBarText({
-                text: res?.message || "Failed to requery missions.",
-                severity: "error",
-              })
-            );
-
-            // reset fields
-            setMissionName("");
-            setCreateDir(true);
-
-            // and then close
-            handleClose();
-          }
-        );
-      },
-      (res) => {
-        dispatch(
-          setSnackBarText({
-            text: res?.message || "Failed to make new mission.",
-            severity: "error",
-          })
-        );
-      }
-    );
-  };
+          });
+          return items;
+        }
+      })
+      .filter(Boolean);
 
   return (
     <Dialog
@@ -192,8 +182,8 @@ const NewMissionModal = (props) => {
       <DialogTitle className={c.heading}>
         <div className={c.flexBetween}>
           <div className={c.flexBetween}>
-            <RocketLaunchIcon className={c.backgroundIcon} />
-            <div className={c.title}>Make a New Mission</div>
+            <ShapeLineIcon className={c.backgroundIcon} />
+            <div className={c.title}>GeoDataset is Used By</div>
           </div>
           <IconButton
             className={c.closeIcon}
@@ -206,50 +196,33 @@ const NewMissionModal = (props) => {
         </div>
       </DialogTitle>
       <DialogContent className={c.content}>
-        <Typography className={c.subtitle}>
-          Missions are separately configurable MMGIS map interfaces.
-        </Typography>
-        <TextField
-          className={c.missionNameInput}
-          label="Mission Name"
-          variant="filled"
-          value={missionName}
-          onChange={(e) => {
-            setMissionName(e.target.value);
-          }}
-        />
-        <Typography className={c.subtitle2}>
-          {`A new and unique name for a mission. No special characters allowed and it should not start with a number.`}
-        </Typography>
-        <FormGroup>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={createDir}
-                onChange={(e) => {
-                  setCreateDir(!createDir);
-                }}
-              />
-            }
-            label="Create a /Missions/{Mission Name} directory"
-          />
-        </FormGroup>
-        <Typography className={c.subtitle2}>
-          {`Layer, Tiles and Data for this mission can be stored in /Missions/{Mission Name} directory.
-            Whenever a non-absolute URL is found in this mission's configuration, it will be treated as relative to this folder regardless of whether this folder exists.`}
-        </Typography>
+        <Typography
+          className={c.layerName}
+        >{`${modal?.geoDataset?.name}`}</Typography>
+        {occurrences.length > 0 ? (
+          <>
+            <div className={c.hasOccurrencesTitle}>
+              <Typography className={c.hasOccurrences}>
+                {`This GeoDataset is currently in use in the following layers:`}
+              </Typography>
+            </div>
+            <div className={c.occurrences}>{occurrences}</div>
+          </>
+        ) : (
+          <div className={c.hasOccurrencesTitle}>
+            <Typography className={c.hasOccurrences}>
+              {`This GeoDataset is not in use.`}
+            </Typography>
+          </div>
+        )}
       </DialogContent>
-      <DialogActions>
-        <Button
-          className={c.addSelected}
-          variant="contained"
-          onClick={handleSubmit}
-        >
-          Make Mission
+      <DialogActions className={c.dialogActions}>
+        <Button className={c.close} variant="outlined" onClick={handleClose}>
+          Close
         </Button>
       </DialogActions>
     </Dialog>
   );
 };
 
-export default NewMissionModal;
+export default LayersUsedByModal;

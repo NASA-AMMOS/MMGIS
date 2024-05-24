@@ -177,13 +177,11 @@ function checkHeadersCodeInjection(req, res, next) {
     "pass",
     "pw",
     "password",
-    "delete",
     "insert",
     "select",
     "disable",
     "enable",
     "drop",
-    "set",
     "script",
     "<script>",
   ];

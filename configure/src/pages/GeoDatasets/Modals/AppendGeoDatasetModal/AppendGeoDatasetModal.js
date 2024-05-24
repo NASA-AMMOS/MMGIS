@@ -18,7 +18,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 
 import CloseSharpIcon from "@mui/icons-material/CloseSharp";
-import ShapeLineIcon from "@mui/icons-material/ShapeLine";
+import ControlPointDuplicateIcon from "@mui/icons-material/ControlPointDuplicate";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 
 import { useDropzone } from "react-dropzone";
@@ -104,8 +104,8 @@ const useStyles = makeStyles((theme) => ({
     fontWeight: "bold",
     letterSpacing: "1px",
     marginBottom: "10px",
-    borderBottom: `1px solid ${theme.palette.swatches.grey[500]}`,
     paddingBottom: "10px",
+    borderBottom: `1px solid ${theme.palette.swatches.grey[500]}`,
   },
   dropzone: {
     width: "100%",
@@ -147,30 +147,30 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const MODAL_NAME = "newGeoDataset";
-const NewGeoDatasetModal = (props) => {
+const MODAL_NAME = "appendGeoDataset";
+const AppendGeoDatasetModal = (props) => {
   const { queryGeoDatasets } = props;
   const c = useStyles();
 
   const modal = useSelector((state) => state.core.modal[MODAL_NAME]);
-  const geodatasets = useSelector((state) => state.core.geodatasets);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const dispatch = useDispatch();
 
-  const [geoDatasetName, setGeoDatasetName] = useState(null);
+  const [geojson, setGeojson] = useState(null);
+  const [fileName, setFileName] = useState(null);
   const [startTimeField, setStartTimeField] = useState(null);
   const [endTimeField, setEndTimeField] = useState(null);
-  const [fileName, setFileName] = useState(null);
-  const [geojson, setGeojson] = useState(null);
 
   const handleClose = () => {
     // close modal
     dispatch(setModal({ name: MODAL_NAME, on: false }));
   };
   const handleSubmit = () => {
+    const geoDatasetName = modal?.geoDataset?.name;
+
     if (geojson == null || fileName === null) {
       dispatch(
         setSnackBarText({
@@ -181,52 +181,36 @@ const NewGeoDatasetModal = (props) => {
       return;
     }
 
-    if (geoDatasetName == null || geoDatasetName == "") {
+    if (geoDatasetName === null) {
       dispatch(
         setSnackBarText({
-          text: "Please enter a name for the new GeoDataset.",
+          text: "No GeoDataset found to append to.",
           severity: "error",
         })
       );
       return;
     }
-
-    for (let i = 0; i < geodatasets.length; i++) {
-      if (geodatasets[i].name === geoDatasetName) {
-        dispatch(
-          setSnackBarText({
-            text: "GeoDataset name already exists.",
-            severity: "error",
-          })
-        );
-        return;
-      }
-    }
-
-    if (geoDatasetName.match(/[|\\/~^:,;?!&%$@#*+\{\}\[\]<>]/)) {
-      dispatch(
-        setSnackBarText({
-          text: "GeoDataset names cannot contain the following symbols: |\\/~^:,;?!&%$@#*+.{}[]<>",
-          severity: "error",
-        })
-      );
-      return;
-    }
+    const forceParams = {
+      filename: fileName,
+    };
+    if (startTimeField) forceParams.start_prop = startTimeField;
+    if (endTimeField) forceParams.end_prop = endTimeField;
 
     calls.api(
-      "geodatasets_recreate",
+      "geodatasets_append",
       {
-        name: geoDatasetName,
-        startProp: startTimeField,
-        endProp: endTimeField,
-        geojson: geojson,
-        filename: fileName,
+        urlReplacements: {
+          name: geoDatasetName,
+        },
+        forceParams,
+        type: geojson.type,
+        features: geojson.features,
       },
       (res) => {
         if (res.status === "success") {
           dispatch(
             setSnackBarText({
-              text: "Successfully created a new GeoDataset.",
+              text: "Successfully appended to GeoDataset.",
               severity: "success",
             })
           );
@@ -235,7 +219,7 @@ const NewGeoDatasetModal = (props) => {
         } else {
           dispatch(
             setSnackBarText({
-              text: res?.message || "Failed to create a GeoDataset.",
+              text: res?.message || "Failed to append to GeoDataset.",
               severity: "error",
             })
           );
@@ -244,7 +228,7 @@ const NewGeoDatasetModal = (props) => {
       (res) => {
         dispatch(
           setSnackBarText({
-            text: res?.message || "Failed to create a GeoDataset.",
+            text: res?.message || "Failed to append to GeoDataset.",
             severity: "error",
           })
         );
@@ -270,7 +254,7 @@ const NewGeoDatasetModal = (props) => {
 
       const reader = new FileReader();
       reader.onload = (e) => {
-        setGeojson(e.target.result);
+        setGeojson(JSON.parse(e.target.result));
       };
       reader.readAsText(file);
     },
@@ -294,8 +278,10 @@ const NewGeoDatasetModal = (props) => {
       <DialogTitle className={c.heading}>
         <div className={c.flexBetween}>
           <div className={c.flexBetween}>
-            <ShapeLineIcon className={c.backgroundIcon} />
-            <div className={c.title}>Make a New GeoDataset</div>
+            <ControlPointDuplicateIcon className={c.backgroundIcon} />
+            <div
+              className={c.title}
+            >{`Append features to this GeoDataset: ${modal?.geoDataset?.name}`}</div>
           </div>
           <IconButton
             className={c.closeIcon}
@@ -309,7 +295,7 @@ const NewGeoDatasetModal = (props) => {
       </DialogTitle>
       <DialogContent className={c.content}>
         <Typography className={c.subtitle}>
-          {`GeoDatasets are .geojson/.json files that get stored in MMGIS' spatial database. Set a layer's "URL" to "geodatasets:{geodataset_name}" to use it.`}
+          {`Appends the features of the uploaded file to the GeoDataset`}
         </Typography>
         <div className={c.dropzone}>
           <div {...getRootProps({ className: "dropzone" })}>
@@ -329,18 +315,6 @@ const NewGeoDatasetModal = (props) => {
           <InsertDriveFileIcon />
           <div>{fileName || "No File Selected"}</div>
         </div>
-        <TextField
-          className={c.missionNameInput}
-          label="GeoDataset Name"
-          variant="filled"
-          value={geoDatasetName}
-          onChange={(e) => {
-            setGeoDatasetName(e.target.value);
-          }}
-        />
-        <Typography className={c.subtitle2}>
-          {`A new and unique name for a GeoDataset. No special characters allowed.`}
-        </Typography>
 
         <div className={c.timeFields}>
           <div>
@@ -354,7 +328,7 @@ const NewGeoDatasetModal = (props) => {
               }}
             />
             <Typography className={c.subtitle2}>
-              {`(Optional) The name of a start time field inside each feature's "properties" object for which to create a temporal index for the geodataset. This enables time queries on GeoDatasets. The value here can use dot.notation in the case the time property is nested in the properties object. This field cannot be changed after the GeoDataset is created. If there is only one time to query upon, and not a time range, use End Time Field for that main time.`}
+              {`If this GeoDataset already has a Start Time Field attached, the name of that start time field inside each feature's "properties" object for which to create a temporal index for the geodataset. `}
             </Typography>
           </div>
           <div>
@@ -368,7 +342,7 @@ const NewGeoDatasetModal = (props) => {
               }}
             />
             <Typography className={c.subtitle2}>
-              {`(Optional) The name of an end time field inside each feature's "properties" object for which to create a temporal index for the geodataset. This enables time queries on GeoDatasets. The value here can use dot.notation in the case the time property is nested in the properties object. This field cannot be changed after the GeoDataset is created. If there is only one time to query upon, and not a time range, use End Time Field for that main time.`}
+              {`If this GeoDataset already has a End Time Field attached, the name of that end time field inside each feature's "properties" object for which to create a temporal index for the geodataset. This enables time queries on GeoDatasets. `}
             </Typography>
           </div>
         </div>
@@ -379,11 +353,11 @@ const NewGeoDatasetModal = (props) => {
           variant="contained"
           onClick={handleSubmit}
         >
-          Create GeoDataset
+          Append to GeoDataset
         </Button>
       </DialogActions>
     </Dialog>
   );
 };
 
-export default NewGeoDatasetModal;
+export default AppendGeoDatasetModal;

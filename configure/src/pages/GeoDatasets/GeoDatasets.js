@@ -5,7 +5,7 @@ import { makeStyles } from "@mui/styles";
 import clsx from "clsx";
 
 import { calls } from "../../core/calls";
-import { copyToClipboard } from "../../core/utils";
+import { downloadObject } from "../../core/utils";
 import {
   setSnackBarText,
   setGeodatasets,
@@ -35,6 +35,7 @@ import Switch from "@mui/material/Switch";
 import DeleteIcon from "@mui/icons-material/Delete";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import Divider from "@mui/material/Divider";
+import Badge from "@mui/material/Badge";
 import { visuallyHidden } from "@mui/utils";
 
 import InventoryIcon from "@mui/icons-material/Inventory";
@@ -44,8 +45,15 @@ import UploadIcon from "@mui/icons-material/Upload";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import AddIcon from "@mui/icons-material/Add";
+import ShapeLineIcon from "@mui/icons-material/ShapeLine";
+import ControlPointDuplicateIcon from "@mui/icons-material/ControlPointDuplicate";
 
 import NewGeoDatasetModal from "./Modals/NewGeoDatasetModal/NewGeoDatasetModal";
+import DeleteGeoDatasetModal from "./Modals/DeleteGeoDatasetModal/DeleteGeoDatasetModal";
+import LayersUsedByModal from "./Modals/LayersUsedByModal/LayersUsedByModal";
+import PreviewGeoDatasetModal from "./Modals/PreviewGeoDatasetModal/PreviewGeoDatasetModal";
+import AppendGeoDatasetModal from "./Modals/AppendGeoDatasetModal/AppendGeoDatasetModal";
+import UpdateGeoDatasetModal from "./Modals/UpdateGeoDatasetModal/UpdateGeoDatasetModal";
 
 function descendingComparator(a, b, orderBy) {
   if (b[orderBy] < a[orderBy]) {
@@ -79,6 +87,98 @@ function stableSort(array, comparator) {
   return stabilizedThis.map((el) => el[0]);
 }
 
+const useStyles = makeStyles((theme) => ({
+  GeoDatasets: { width: "100%", height: "100%" },
+  GeoDatasetsInner: {
+    width: "100%",
+    height: "100%",
+    display: "flex",
+    flexFlow: "column",
+  },
+  table: {
+    flex: 1,
+    overflowY: "auto",
+    background: theme.palette.swatches.grey[900],
+    "& td": {
+      borderRight: `1px solid ${theme.palette.swatches.grey[800]}`,
+    },
+  },
+  flex: {
+    display: "flex",
+    "& > svg": {
+      margin: "3px 10px 0px 2px",
+    },
+  },
+  actions: {
+    display: "flex",
+    justifyContent: "right",
+  },
+  inIcon: {
+    width: "40px !important",
+    height: "40px !important",
+  },
+  previewIcon: {
+    width: "40px !important",
+    height: "40px !important",
+  },
+  downloadIcon: {
+    marginRight: "4px !important",
+    width: "40px !important",
+    height: "40px !important",
+  },
+  appendIcon: {
+    marginLeft: "4px !important",
+    width: "40px !important",
+    height: "40px !important",
+  },
+  renameIcon: {
+    width: "40px !important",
+    height: "40px !important",
+  },
+  updateIcon: {
+    marginRight: "4px !important",
+    width: "40px !important",
+    height: "40px !important",
+  },
+  deleteIcon: {
+    marginLeft: "4px !important",
+    width: "40px !important",
+    height: "40px !important",
+    "&:hover": {
+      background: "#c43541 !important",
+      color: `${theme.palette.swatches.grey[900]} !important`,
+    },
+  },
+  addButton: {
+    whiteSpace: "nowrap",
+    padding: "5px 20px !important",
+    margin: "0px 10px !important",
+  },
+  badge: {
+    "& > span": {
+      backgroundColor: `${theme.palette.swatches.p[11]} !important`,
+    },
+  },
+  topbar: {
+    width: "100%",
+    height: "48px",
+    minHeight: "48px",
+    display: "flex",
+    justifyContent: "space-between",
+    background: theme.palette.swatches.grey[1000],
+    boxShadow: `inset 10px 0px 10px -5px rgba(0,0,0,0.3)`,
+    borderBottom: `1px solid ${theme.palette.swatches.grey[900]} !important`,
+    padding: `0px 20px`,
+    boxSizing: `border-box !important`,
+  },
+  th: {
+    fontWeight: "bold !important",
+    textTransform: "uppercase",
+    letterSpacing: "1px !important",
+    borderRight: `1px solid ${theme.palette.swatches.grey[900]}`,
+  },
+}));
+
 const headCells = [
   {
     id: "name",
@@ -87,6 +187,14 @@ const headCells = [
   {
     id: "updated",
     label: "Last Updated",
+  },
+  {
+    id: "filename",
+    label: "Uploaded From",
+  },
+  {
+    id: "num_features",
+    label: "# of Features",
   },
   {
     id: "actions",
@@ -100,11 +208,14 @@ function EnhancedTableHead(props) {
     onRequestSort(event, property);
   };
 
+  const c = useStyles();
+
   return (
     <TableHead>
       <TableRow>
         {headCells.map((headCell, idx) => (
           <TableCell
+            className={c.th}
             key={headCell.id}
             align={idx === 0 ? "left" : "right"}
             padding={"normal"}
@@ -129,52 +240,6 @@ function EnhancedTableHead(props) {
   );
 }
 
-const useStyles = makeStyles((theme) => ({
-  GeoDatasets: {},
-  GeoDatasetsInner: { height: "100%", display: "flex", flexFlow: "column" },
-  table: { flex: 1 },
-  actions: {
-    display: "flex",
-    justifyContent: "right",
-  },
-  inIcon: {
-    width: "40px !important",
-    height: "40px !important",
-  },
-  previewIcon: {
-    width: "40px !important",
-    height: "40px !important",
-  },
-  downloadIcon: {
-    marginRight: "4px !important",
-    width: "40px !important",
-    height: "40px !important",
-  },
-  updateIcon: {
-    marginLeft: "4px !important",
-    width: "40px !important",
-    height: "40px !important",
-  },
-  renameIcon: {
-    marginRight: "4px !important",
-    width: "40px !important",
-    height: "40px !important",
-  },
-  deleteIcon: {
-    marginLeft: "4px !important",
-    width: "40px !important",
-    height: "40px !important",
-    "&:hover": {
-      background: "#c43541 !important",
-    },
-  },
-  addButton: {
-    whiteSpace: "nowrap",
-    padding: "5px 20px !important",
-    margin: "0px 10px !important",
-  },
-}));
-
 EnhancedTableHead.propTypes = {
   onRequestSort: PropTypes.func.isRequired,
   onSelectAllClick: PropTypes.func.isRequired,
@@ -188,20 +253,18 @@ function EnhancedTableToolbar(props) {
   const dispatch = useDispatch();
 
   return (
-    <Toolbar
-      sx={{
-        pl: { sm: 2 },
-        pr: { xs: 1, sm: 1 },
-      }}
-    >
-      <Typography
-        sx={{ flex: "1 1 100%" }}
-        variant="h6"
-        id="tableTitle"
-        component="div"
-      >
-        GEODATASETS
-      </Typography>
+    <Toolbar className={c.topbar}>
+      <div className={c.flex}>
+        <ShapeLineIcon />
+        <Typography
+          sx={{ flex: "1 1 100%" }}
+          variant="h6"
+          id="tableTitle"
+          component="div"
+        >
+          GEODATASETS
+        </Typography>
+      </div>
 
       <Button
         variant="contained"
@@ -232,7 +295,7 @@ export default function GeoDatasets() {
   const dispatch = useDispatch();
   const geodatasets = useSelector((state) => state.core.geodatasets);
 
-  useEffect(() => {
+  const queryGeoDatasets = () => {
     calls.api(
       "geodatasets_entries",
       {},
@@ -263,9 +326,10 @@ export default function GeoDatasets() {
         );
       }
     );
-  }, [dispatch]);
-
-  console.log(geodatasets);
+  };
+  useEffect(() => {
+    queryGeoDatasets();
+  }, []);
 
   const handleRequestSort = (event, property) => {
     const isAsc = orderBy === property && order === "asc";
@@ -297,14 +361,15 @@ export default function GeoDatasets() {
 
   return (
     <>
-      <Box className={c.GeoDatasets} sx={{ width: "100%" }}>
-        <Paper className={c.GeoDatasetsInner} sx={{ width: "100%", mb: 2 }}>
+      <Box className={c.GeoDatasets}>
+        <Paper className={c.GeoDatasetsInner}>
           <EnhancedTableToolbar />
           <TableContainer className={c.table}>
             <Table
               sx={{ minWidth: 750 }}
               aria-labelledby="tableTitle"
               size="small"
+              stickyHeader
             >
               <EnhancedTableHead
                 order={order}
@@ -314,6 +379,13 @@ export default function GeoDatasets() {
               />
               <TableBody>
                 {visibleRows.map((row, index) => {
+                  let numOccurrences = 0;
+                  if (row.occurrences) {
+                    Object.keys(row.occurrences).forEach((m) => {
+                      numOccurrences += row.occurrences[m].length;
+                    });
+                  }
+
                   return (
                     <TableRow
                       hover
@@ -322,63 +394,166 @@ export default function GeoDatasets() {
                       tabIndex={-1}
                       key={row.id}
                       selected={false}
-                      sx={{ cursor: "pointer" }}
                     >
                       <TableCell align="left">{row.name}</TableCell>
-                      <TableCell align="right">{row.updated}</TableCell>
+                      <TableCell align="right">
+                        {row.updated
+                          ? new Date(row.updated).toLocaleString()
+                          : row.updated}
+                      </TableCell>
+                      <TableCell align="right">{row.filename}</TableCell>
+                      <TableCell align="right">{row.num_features}</TableCell>
                       <TableCell align="right">
                         <div className={c.actions}>
-                          <IconButton
-                            className={c.inIcon}
-                            title="In"
-                            aria-label="in"
-                            onClick={() => {}}
-                          >
-                            <InventoryIcon fontSize="inhesmallrit" />
-                          </IconButton>
-                          <IconButton
-                            className={c.previewIcon}
-                            title="Preview"
-                            aria-label="preview"
-                            onClick={() => {}}
-                          >
-                            <PreviewIcon fontSize="small" />
-                          </IconButton>
+                          <Tooltip title={"Used By"} placement="top" arrow>
+                            <IconButton
+                              className={c.inIcon}
+                              title="Used By"
+                              aria-label="used by"
+                              onClick={() => {
+                                dispatch(
+                                  setModal({
+                                    name: "layersUsedByGeoDataset",
+                                    geoDataset: row,
+                                  })
+                                );
+                              }}
+                            >
+                              <Badge
+                                className={c.badge}
+                                badgeContent={numOccurrences}
+                                color="primary"
+                              >
+                                <InventoryIcon fontSize="small" />
+                              </Badge>
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title={"Preview"} placement="top" arrow>
+                            <IconButton
+                              className={c.previewIcon}
+                              title="Preview"
+                              aria-label="preview"
+                              onClick={() => {
+                                dispatch(
+                                  setModal({
+                                    name: "previewGeoDataset",
+                                    geoDataset: row,
+                                  })
+                                );
+                              }}
+                            >
+                              <PreviewIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title={"Download"} placement="top" arrow>
+                            <IconButton
+                              className={c.downloadIcon}
+                              title="Download"
+                              aria-label="download"
+                              onClick={() => {
+                                if (row.name)
+                                  calls.api(
+                                    "geodatasets_get",
+                                    {
+                                      layer: row.name,
+                                    },
+                                    (res) => {
+                                      downloadObject(
+                                        res,
+                                        `${row.name}-geodataset`,
+                                        ".geojson"
+                                      );
+                                      dispatch(
+                                        setSnackBarText({
+                                          text:
+                                            res?.message ||
+                                            "Successfully downloaded GeoDataset.",
+                                          severity: "success",
+                                        })
+                                      );
+                                    },
+                                    (res) => {
+                                      dispatch(
+                                        setSnackBarText({
+                                          text:
+                                            res?.message ||
+                                            "Failed to download GeoDataset.",
+                                          severity: "error",
+                                        })
+                                      );
+                                    }
+                                  );
+                              }}
+                            >
+                              <DownloadIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Divider orientation="vertical" flexItem />
+                          <Tooltip title={"Append"} placement="top" arrow>
+                            <IconButton
+                              className={c.appendIcon}
+                              title="Append"
+                              aria-label="append"
+                              onClick={() => {
+                                dispatch(
+                                  setModal({
+                                    name: "appendGeoDataset",
+                                    geoDataset: row,
+                                  })
+                                );
+                              }}
+                            >
+                              <ControlPointDuplicateIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          {/*
+                          <Tooltip title={"Rename"} placement="top" arrow>
+                            <IconButton
+                              className={c.renameIcon}
+                              title="Rename"
+                              aria-label="rename"
+                              onClick={() => {}}
+                            >
+                              <DriveFileRenameOutlineIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                            */}
+                          <Tooltip title={"Update"} placement="top" arrow>
+                            <IconButton
+                              className={c.updateIcon}
+                              title="Update"
+                              aria-label="update"
+                              onClick={() => {
+                                dispatch(
+                                  setModal({
+                                    name: "updateGeoDataset",
+                                    geoDataset: row,
+                                  })
+                                );
+                              }}
+                            >
+                              <UploadIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Divider orientation="vertical" flexItem />
 
-                          <IconButton
-                            className={c.downloadIcon}
-                            title="Download"
-                            aria-label="download"
-                            onClick={() => {}}
-                          >
-                            <DownloadIcon fontSize="small" />
-                          </IconButton>
-                          <Divider orientation="vertical" flexItem />
-                          <IconButton
-                            className={c.updateIcon}
-                            title="Update"
-                            aria-label="update"
-                            onClick={() => {}}
-                          >
-                            <UploadIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            className={c.renameIcon}
-                            title="Rename"
-                            aria-label="rename"
-                            onClick={() => {}}
-                          >
-                            <DriveFileRenameOutlineIcon fontSize="small" />
-                          </IconButton>
-                          <Divider orientation="vertical" flexItem />
-                          <IconButton
-                            className={c.deleteIcon}
-                            title="Delete"
-                            aria-label="delete"
-                            onClick={() => {}}
-                          >
-                            <DeleteForeverIcon fontSize="small" />
-                          </IconButton>
+                          <Tooltip title={"Delete"} placement="top" arrow>
+                            <IconButton
+                              className={c.deleteIcon}
+                              title="Delete"
+                              aria-label="delete"
+                              onClick={() => {
+                                dispatch(
+                                  setModal({
+                                    name: "deleteGeoDataset",
+                                    geoDataset: row,
+                                  })
+                                );
+                              }}
+                            >
+                              <DeleteForeverIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -407,7 +582,12 @@ export default function GeoDatasets() {
           />
         </Paper>
       </Box>
-      <NewGeoDatasetModal />
+      <NewGeoDatasetModal queryGeoDatasets={queryGeoDatasets} />
+      <DeleteGeoDatasetModal queryGeoDatasets={queryGeoDatasets} />
+      <LayersUsedByModal />
+      <PreviewGeoDatasetModal />
+      <AppendGeoDatasetModal queryGeoDatasets={queryGeoDatasets} />
+      <UpdateGeoDatasetModal queryGeoDatasets={queryGeoDatasets} />
     </>
   );
 }

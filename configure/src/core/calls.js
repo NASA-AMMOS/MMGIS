@@ -46,6 +46,10 @@ const c = {
     type: "POST",
     url: "api/geodatasets/recreate",
   },
+  geodatasets_append: {
+    type: "POST",
+    url: "api/geodatasets/append/:name",
+  },
   geodatasets_entries: {
     type: "POST",
     url: "api/geodatasets/entries",
@@ -53,6 +57,10 @@ const c = {
   geodatasets_get: {
     type: "GET",
     url: "api/geodatasets/get",
+  },
+  geodatasets_remove: {
+    type: "DELETE",
+    url: "api/geodatasets/remove/:name",
   },
   datasets_recreate: {
     type: "POST",
@@ -105,11 +113,23 @@ function api(call, data, success, error) {
     headers: new Headers({ "content-type": "application/json" }),
   };
 
+  let url = c[call].url;
+  if (data?.urlReplacements != null) {
+    Object.keys(data.urlReplacements).forEach((r) => {
+      url = url.replace(`/:${r}`, `/${data.urlReplacements[r]}`);
+    });
+    delete data.urlReplacements;
+  }
+  if (c[call].type === "POST" && data?.forceParams != null) {
+    url += `?${new URLSearchParams(data.forceParams)}`;
+    delete data.forceParams;
+  }
+
   if (c[call].type === "POST") options.body = JSON.stringify(data);
   else if (c[call].type === "GET") options.data = JSON.stringify(data);
 
   fetch(
-    `${domain}${c[call].url}${
+    `${domain}${url}${
       c[call].type === "GET"
         ? data != null
           ? `?${new URLSearchParams(data)}`

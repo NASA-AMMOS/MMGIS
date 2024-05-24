@@ -11,6 +11,15 @@ const attributes = {
     unique: true,
     allowNull: false,
   },
+  filename: {
+    type: Sequelize.STRING,
+    unique: false,
+    allowNull: true,
+  },
+  num_features: {
+    type: Sequelize.INTEGER,
+    allowNull: true,
+  },
   table: {
     type: Sequelize.STRING,
     unique: true,
@@ -25,7 +34,15 @@ const options = {
 // setup User model and its fields.
 var Geodatasets = sequelize.define("geodatasets", attributes, options);
 
-function makeNewGeodatasetTable(name, success, failure) {
+function makeNewGeodatasetTable(
+  name,
+  filename,
+  num_features,
+  startProp,
+  endProp,
+  success,
+  failure
+) {
   name = name.replace(/[`~!@#$%^&*()|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, "");
 
   const attributes = {
@@ -33,14 +50,6 @@ function makeNewGeodatasetTable(name, success, failure) {
       type: Sequelize.JSON,
       allowNull: true,
       defaultValue: {},
-    },
-    start_time: {
-      type: Sequelize.BIGINT,
-      allowNull: true,
-    },
-    end_time: {
-      type: Sequelize.BIGINT,
-      allowNull: true,
     },
     geometry_type: {
       type: Sequelize.STRING,
@@ -57,6 +66,18 @@ function makeNewGeodatasetTable(name, success, failure) {
     timestamps: false,
   };
 
+  if (startProp != null)
+    attributes.start_time = {
+      type: Sequelize.BIGINT,
+      allowNull: true,
+    };
+
+  if (endProp != null)
+    attributes.end_time = {
+      type: Sequelize.BIGINT,
+      allowNull: true,
+    };
+
   Geodatasets.findOne({ where: { name: name } })
     .then((result) => {
       if (result) {
@@ -66,7 +87,11 @@ function makeNewGeodatasetTable(name, success, failure) {
           options
         );
         Geodatasets.update(
-          { updatedAt: new Date().toISOString() },
+          {
+            updatedAt: new Date().toISOString(),
+            filename: filename,
+            num_features: (result.num_features || 0) + num_features,
+          },
           { where: { name: name }, silent: true }
         )
           .then((r) => {
@@ -75,32 +100,48 @@ function makeNewGeodatasetTable(name, success, failure) {
                 `CREATE INDEX IF NOT EXISTS ${result.dataValues.table}_geom_idx on ${result.dataValues.table} USING gist (geom);`
               )
               .then(() => {
-                sequelize
-                  .query(
-                    `CREATE INDEX IF NOT EXISTS ${result.dataValues.table}_time_idx on ${result.dataValues.table} USING gist (start_time, end_time);`
-                  )
-                  .then(() => {
-                    success({
-                      name: result.dataValues.name,
-                      table: result.dataValues.table,
-                      tableObj: GeodatasetTable,
-                    });
+                if (startProp != null || endProp != null) {
+                  sequelize
+                    .query(
+                      `CREATE INDEX IF NOT EXISTS ${
+                        result.dataValues.table
+                      }_time_idx on ${result.dataValues.table} USING gist ${
+                        startProp != null && endProp != null
+                          ? "(start_time, end_time)"
+                          : "(end_time)"
+                      };`
+                    )
+                    .then(() => {
+                      success({
+                        name: result.dataValues.name,
+                        table: result.dataValues.table,
+                        tableObj: GeodatasetTable,
+                      });
 
-                    return null;
-                  })
-                  .catch((err) => {
-                    logger(
-                      "error",
-                      "Failed to recreate temporal index for geodataset table.",
-                      "geodatasets",
-                      null,
-                      err
-                    );
-                    failure({
-                      status: "failure",
-                      message: "Failed to recreate temporal index",
+                      return null;
+                    })
+                    .catch((err) => {
+                      logger(
+                        "error",
+                        "Failed to recreate temporal index for geodataset table.",
+                        "geodatasets",
+                        null,
+                        err
+                      );
+                      failure({
+                        status: "failure",
+                        message: "Failed to recreate temporal index",
+                      });
                     });
+                } else {
+                  success({
+                    name: result.dataValues.name,
+                    table: result.dataValues.table,
+                    tableObj: GeodatasetTable,
                   });
+
+                  return null;
+                }
               })
               .catch((err) => {
                 logger(
@@ -139,6 +180,8 @@ function makeNewGeodatasetTable(name, success, failure) {
             Geodatasets.create({
               name: name,
               table: newTable,
+              filename: filename,
+              num_features: num_features,
             })
               .then((created) => {
                 let GeodatasetTable = sequelize.define(
@@ -259,8 +302,50 @@ function makeNewGeodatasetTable(name, success, failure) {
     });
 }
 
+// Adds to the table, never removes
+const up = async () => {
+  // filename column
+  await sequelize
+    .query(
+      `ALTER TABLE geodatasets ADD COLUMN IF NOT EXISTS filename varchar(255) NULL;`
+    )
+    .then(() => {
+      return null;
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        `Failed to add geodatasets.filename column. DB tables may be out of sync!`,
+        "geodatasets",
+        null,
+        err
+      );
+      return null;
+    });
+
+  // num_features column
+  await sequelize
+    .query(
+      `ALTER TABLE geodatasets ADD COLUMN IF NOT EXISTS num_features INTEGER NULL;`
+    )
+    .then(() => {
+      return null;
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        `Failed to add geodatasets.num_features column. DB tables may be out of sync!`,
+        "geodatasets",
+        null,
+        err
+      );
+      return null;
+    });
+};
+
 // export User model for use in other files.
 module.exports = {
   Geodatasets: Geodatasets,
   makeNewGeodatasetTable: makeNewGeodatasetTable,
+  up,
 };
