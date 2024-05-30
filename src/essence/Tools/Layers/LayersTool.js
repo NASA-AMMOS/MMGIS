@@ -304,6 +304,21 @@ function interfaceWithMMGIS(fromInit) {
                     layerExport = ''
             }
 
+            // Add download URL for raster layers
+            if(node[i].hasOwnProperty('variables')) {
+                if(node[i].variables.hasOwnProperty('downloadURL')) {
+                    layerExport = [
+                        '<ul>',
+                            '<li>',
+                                '<div class="layersToolExportSourceGeoJSON">',
+                                    `<div><a href="` + node[i].variables.downloadURL + `" target="_blank">Download Data</a></div>`,
+                                '</div>',
+                            '</li>',
+                        '</ul>',
+                    ].join('\n')
+                }
+            }
+
             // Build timeDisplay
             var timeDisplay = ''
             if (node[i].time != null) {
