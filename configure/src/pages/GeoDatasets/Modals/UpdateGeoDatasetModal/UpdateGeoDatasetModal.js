@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 import { calls } from "../../../../core/calls";
@@ -18,7 +18,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 
 import CloseSharpIcon from "@mui/icons-material/CloseSharp";
-import ControlPointDuplicateIcon from "@mui/icons-material/ControlPointDuplicate";
+import UploadIcon from "@mui/icons-material/Upload";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 
 import { useDropzone } from "react-dropzone";
@@ -164,6 +164,11 @@ const UpdateGeoDatasetModal = (props) => {
   const [startTimeField, setStartTimeField] = useState(null);
   const [endTimeField, setEndTimeField] = useState(null);
 
+  useEffect(() => {
+    setStartTimeField(modal?.geoDataset?.start_time_field);
+    setEndTimeField(modal?.geoDataset?.end_time_field);
+  }, [JSON.stringify(modal)]);
+
   const handleClose = () => {
     // close modal
     dispatch(setModal({ name: MODAL_NAME, on: false }));
@@ -272,10 +277,10 @@ const UpdateGeoDatasetModal = (props) => {
       <DialogTitle className={c.heading}>
         <div className={c.flexBetween}>
           <div className={c.flexBetween}>
-            <ControlPointDuplicateIcon className={c.backgroundIcon} />
+            <UploadIcon className={c.backgroundIcon} />
             <div
               className={c.title}
-            >{`Update this GeoDataset: ${modal?.geoDataset?.name}`}</div>
+            >{`Update/Replace this GeoDataset: ${modal?.geoDataset?.name}`}</div>
           </div>
           <IconButton
             className={c.closeIcon}
@@ -347,7 +352,7 @@ const UpdateGeoDatasetModal = (props) => {
           variant="contained"
           onClick={handleSubmit}
         >
-          Append to GeoDataset
+          Update/Replace GeoDataset
         </Button>
       </DialogActions>
     </Dialog>

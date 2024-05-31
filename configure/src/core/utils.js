@@ -13,17 +13,22 @@ export const getIn = (obj, keyArray, notSetValue) => {
   for (let i = 0; i < keyArray.length; i++) {
     if (object && object.hasOwnProperty(keyArray[i])) {
       if (typeof object === "string") object = [object];
-      object = object[keyArray[i]] || notSetValue;
+      object = object[keyArray[i]] != null ? object[keyArray[i]] : notSetValue;
     } else return notSetValue != null ? notSetValue : null;
   }
   return object;
 };
-export const setIn = (obj, keyArray, value) => {
+export const setIn = (obj, keyArray, value, force) => {
   if (keyArray == null || keyArray.length === 0) return null;
   let object = obj;
   for (let i = 0; i < keyArray.length - 1; i++) {
-    if (object.hasOwnProperty(keyArray[i])) object = object[keyArray[i]];
-    else return null;
+    if (force) {
+      if (!object.hasOwnProperty(keyArray[i])) object[keyArray[i]] = {};
+      object = object[keyArray[i]];
+    } else {
+      if (object.hasOwnProperty(keyArray[i])) object = object[keyArray[i]];
+      else return null;
+    }
   }
   object[keyArray[keyArray.length - 1]] = value;
 };
@@ -77,7 +82,7 @@ export const updateToolInConfiguration = (
 ) => {
   for (let i = 0; i < configuration.tools.length; i++) {
     if (configuration.tools[i].name === toolName) {
-      setIn(configuration.tools[i], keyArray, value);
+      setIn(configuration.tools[i], keyArray, value, true);
     }
   }
 };

@@ -284,6 +284,8 @@ router.post("/entries", function (req, res, next) {
             updated: sets[i].updatedAt,
             filename: sets[i].filename,
             num_features: sets[i].num_features,
+            start_time_field: sets[i].start_time_field,
+            end_time_field: sets[i].end_time_field,
           });
         }
         // For each entry, list all occurrences in latest configuration objects
@@ -501,6 +503,7 @@ function recreate(req, res, next) {
     features.length,
     startProp,
     endProp,
+    res?.body?.action || null,
     function (result) {
       let checkEnding = result.table.split("_");
       if (checkEnding[checkEnding.length - 1] !== "geodatasets") {

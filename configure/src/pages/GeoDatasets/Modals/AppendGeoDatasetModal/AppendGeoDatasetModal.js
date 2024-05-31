@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 import { calls } from "../../../../core/calls";
@@ -164,6 +164,11 @@ const AppendGeoDatasetModal = (props) => {
   const [startTimeField, setStartTimeField] = useState(null);
   const [endTimeField, setEndTimeField] = useState(null);
 
+  useEffect(() => {
+    setStartTimeField(modal?.geoDataset?.start_time_field);
+    setEndTimeField(modal?.geoDataset?.end_time_field);
+  }, [JSON.stringify(modal)]);
+
   const handleClose = () => {
     // close modal
     dispatch(setModal({ name: MODAL_NAME, on: false }));
@@ -328,7 +333,7 @@ const AppendGeoDatasetModal = (props) => {
               }}
             />
             <Typography className={c.subtitle2}>
-              {`If this GeoDataset already has a Start Time Field attached, the name of that start time field inside each feature's "properties" object for which to create a temporal index for the geodataset. `}
+              {`If this GeoDataset already has a Start Time Field attached, the name of that start time field inside each feature's "properties" object for which to create a temporal index for the geodataset. Take care in using time field names for the appended GeoJSON features that are different from that of the existing features.`}
             </Typography>
           </div>
           <div>
@@ -342,7 +347,7 @@ const AppendGeoDatasetModal = (props) => {
               }}
             />
             <Typography className={c.subtitle2}>
-              {`If this GeoDataset already has a End Time Field attached, the name of that end time field inside each feature's "properties" object for which to create a temporal index for the geodataset. This enables time queries on GeoDatasets. `}
+              {`If this GeoDataset already has a End Time Field attached, the name of that end time field inside each feature's "properties" object for which to create a temporal index for the geodataset. Take care in using time field names for the appended GeoJSON features that are different from that of the existing features.`}
             </Typography>
           </div>
         </div>

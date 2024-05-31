@@ -26,6 +26,7 @@ import Select from "@mui/material/Select";
 import IconButton from "@mui/material/IconButton";
 
 import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
 
 import { calls } from "./calls";
 import { setConfiguration, setSnackBarText } from "./ConfigureStore";
@@ -40,6 +41,8 @@ import {
 import Map from "../components/Map/Map";
 import ColorButton from "../components/ColorButton/ColorButton";
 import MDEditor from "@uiw/react-md-editor";
+import CodeMirror from "@uiw/react-codemirror";
+import { json } from "@codemirror/lang-json";
 
 const useStyles = makeStyles((theme) => ({
   Maker: {
@@ -168,13 +171,19 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     margin: "0px 10px 10px 10px",
     background: theme.palette.swatches.grey[1000],
-    padding: "10px",
+    padding: "10px 44px 10px 10px",
     boxShadow: "0px 2px 2px 0px rgba(0, 0, 0, 0.1)",
+    position: "relative",
   },
   object: {
     border: `2px solid ${theme.palette.swatches.grey[900]}`,
     borderLeft: `2px solid ${theme.palette.swatches.grey[200]}`,
     background: theme.palette.swatches.grey[850],
+  },
+  objectArrayRemove: {
+    position: "absolute !important",
+    right: "2px",
+    top: "2px",
   },
   map: {},
   noMargin: {
@@ -184,6 +193,10 @@ const useStyles = makeStyles((theme) => ({
     width: "40px",
     height: "40px",
     padding: "4px",
+  },
+  json: {
+    border: `1px solid ${theme.palette.swatches.grey[850]}`,
+    boxShadow: `0px 2px 4px 0px rgba(0, 0, 0, 0.2)`,
   },
 }));
 
@@ -198,7 +211,8 @@ const getComponent = (
   value,
   forceField
 ) => {
-  const directConf = layer == null ? configuration : layer;
+  const directConf =
+    layer == null ? (tool == null ? configuration : tool) : layer;
   let inner;
   switch (com.type) {
     case "text":
@@ -289,6 +303,23 @@ const getComponent = (
           />
         </div>
       );
+    case "json":
+      let json_f = value || getIn(directConf, com.field, {});
+      return (
+        <div className={c.json}>
+          <CodeMirror
+            value={JSON.stringify(json_f, null, 2)}
+            height="300px"
+            extensions={[json()]}
+            onChange={(val) => {
+              try {
+                const v = JSON.parse(val);
+                updateConfiguration(forceField || com.field, v, layer);
+              } catch (e) {}
+            }}
+          />
+        </div>
+      );
     case "number":
       inner = (
         <TextField
@@ -296,12 +327,17 @@ const getComponent = (
           label={com.name}
           variant="filled"
           size="small"
-          value={value || getIn(directConf, com.field, "")}
+          value={value != null ? value : getIn(directConf, com.field, "")}
           onChange={(e) => {
-            updateConfiguration(forceField || com.field, e.target.value, layer);
+            let v = e.target.value;
+            const min = com.min != null ? com.min : -Infinity;
+            const max = com.max != null ? com.max : Infinity;
+            v = Math.max(v, min);
+            v = Math.min(v, max);
+            updateConfiguration(forceField || com.field, v, layer);
           }}
           type="number"
-          min={com.min != null ? com.min : 0}
+          min={com.min != null ? com.min : -Infinity}
           step={com.step != null ? com.step : 1}
           max={com.max != null ? com.max : Infinity}
         />
@@ -530,6 +566,43 @@ const getComponent = (
                   </Grid>
                 );
               })}
+              <IconButton
+                className={c.objectArrayRemove}
+                aria-label="remove"
+                onClick={() => {
+                  /*
+                  if (tool) {
+                    const t = getToolFromConfiguration(
+                      tool.name,
+                      configuration
+                    );
+                    let next = getIn(t, com.field.split("."), []);
+                    next = JSON.parse(JSON.stringify(next));
+                    if (typeof next.push !== "function") next = [];
+                    let nextObj = {};
+                    com.object.forEach((obj) => {
+                      nextObj[obj.field] = null;
+                    });
+                    next.push(nextObj);
+
+                    updateConfiguration(com.field, next, configuration);
+                  } else {
+                    let next = getIn(configuration, com.field.split("."), []);
+                    next = JSON.parse(JSON.stringify(next));
+                    if (typeof next.push !== "function") next = [];
+                    let nextObj = {};
+                    com.object.forEach((obj) => {
+                      nextObj[obj.field] = null;
+                    });
+                    next.push(nextObj);
+
+                    updateConfiguration(com.field, next, layer);
+                  }
+                  */
+                }}
+              >
+                <CloseIcon />
+              </IconButton>
             </Grid>
           </Box>
         );
@@ -569,6 +642,7 @@ const getComponent = (
                       nextObj[obj.field] = null;
                     });
                     next.push(nextObj);
+                    console.log(next);
 
                     updateConfiguration(com.field, next, layer);
                   }
@@ -736,11 +810,11 @@ export default function Maker(props) {
     } else if (layer != null) {
       traverseLayers(nextConfiguration.layers, (l, path, index) => {
         if (layer.uuid === l.uuid) {
-          setIn(l, keyPath.split("."), value);
+          setIn(l, keyPath.split("."), value, true);
         }
       });
     } else {
-      setIn(nextConfiguration, keyPath.split("."), value);
+      setIn(nextConfiguration, keyPath.split("."), value, true);
     }
     dispatch(setConfiguration(nextConfiguration));
   };

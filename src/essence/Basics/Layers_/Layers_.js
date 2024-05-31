@@ -3327,10 +3327,15 @@ function parseConfig(configData, urlOnLayers) {
         if (t.on !== false) L_.tools.push(t)
     })
 
-    L_.hasMap = L_.configData.panels.indexOf('map') > -1
-    L_.hasMap = true //Should always have map;
-    L_.hasViewer = L_.configData.panels.indexOf('viewer') > -1
-    L_.hasGlobe = L_.configData.panels.indexOf('globe') > -1
+    if (L_.configData?.panels?.length != null) {
+        L_.hasMap = L_.configData.panels.indexOf('map') > -1
+        L_.hasMap = true //Should always have map;
+        L_.hasViewer = L_.configData.panels.indexOf('viewer') > -1
+        L_.hasGlobe = L_.configData.panels.indexOf('globe') > -1
+    } else {
+        L_.hasViewer = L_.configData.panels.viewer === true
+        L_.hasGlobe = L_.configData.panels.globe === true
+    }
     //We only care about the layers now
     const layers = L_.configData.layers
 

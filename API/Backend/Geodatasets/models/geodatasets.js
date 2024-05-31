@@ -20,6 +20,16 @@ const attributes = {
     type: Sequelize.INTEGER,
     allowNull: true,
   },
+  start_time_field: {
+    type: Sequelize.STRING,
+    unique: false,
+    allowNull: true,
+  },
+  end_time_field: {
+    type: Sequelize.STRING,
+    unique: false,
+    allowNull: true,
+  },
   table: {
     type: Sequelize.STRING,
     unique: true,
@@ -40,6 +50,7 @@ function makeNewGeodatasetTable(
   num_features,
   startProp,
   endProp,
+  action,
   success,
   failure
 ) {
@@ -86,14 +97,18 @@ function makeNewGeodatasetTable(
           attributes,
           options
         );
-        Geodatasets.update(
-          {
-            updatedAt: new Date().toISOString(),
-            filename: filename,
-            num_features: (result.num_features || 0) + num_features,
-          },
-          { where: { name: name }, silent: true }
-        )
+        let updateThese = {
+          updatedAt: new Date().toISOString(),
+          filename: filename,
+        };
+        if (action != "append") {
+          updateThese.start_time_field = startProp;
+          updateThese.end_time_field = endProp;
+          updateThese.num_features = num_features;
+        } else {
+          updateThese.num_features = (result.num_features || 0) + num_features;
+        }
+        Geodatasets.update(updateThese, { where: { name: name }, silent: true })
           .then((r) => {
             sequelize
               .query(
@@ -172,16 +187,18 @@ function makeNewGeodatasetTable(
           });
       } else {
         sequelize
-          .query("SELECT COUNT(*) FROM geodatasets")
+          .query("SELECT MAX(id) FROM geodatasets")
           .then(([results]) => {
             let newTable =
-              "g" + (parseInt(results[0].count) + 1) + "_geodatasets";
+              "g" + (parseInt(results[0].max) + 1) + "_geodatasets";
 
             Geodatasets.create({
               name: name,
               table: newTable,
               filename: filename,
               num_features: num_features,
+              start_time_field: startProp,
+              end_time_field: endProp,
             })
               .then((created) => {
                 let GeodatasetTable = sequelize.define(
@@ -335,6 +352,44 @@ const up = async () => {
       logger(
         "error",
         `Failed to add geodatasets.num_features column. DB tables may be out of sync!`,
+        "geodatasets",
+        null,
+        err
+      );
+      return null;
+    });
+
+  // start_time_field column
+  await sequelize
+    .query(
+      `ALTER TABLE geodatasets ADD COLUMN IF NOT EXISTS start_time_field varchar(255) NULL;`
+    )
+    .then(() => {
+      return null;
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        `Failed to add geodatasets.start_time_field column. DB tables may be out of sync!`,
+        "geodatasets",
+        null,
+        err
+      );
+      return null;
+    });
+
+  // end_time_field column
+  await sequelize
+    .query(
+      `ALTER TABLE geodatasets ADD COLUMN IF NOT EXISTS end_time_field varchar(255) NULL;`
+    )
+    .then(() => {
+      return null;
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        `Failed to add geodatasets.end_time_field column. DB tables may be out of sync!`,
         "geodatasets",
         null,
         err

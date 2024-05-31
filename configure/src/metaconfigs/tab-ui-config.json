@@ -4,7 +4,7 @@
       "name": "Rebranding",
       "components": [
         {
-          "field": "msv.view.[0]",
+          "field": "look.pagename",
           "name": "Page Name",
           "description": "Sets the browser tab title and, if the UI is not minimalist, sets the title in the top bar. Defaults to MMGIS",
           "type": "text",
@@ -12,7 +12,7 @@
           "default": "MMGIS"
         },
         {
-          "field": "msv.view.[1]",
+          "field": "look.logourl",
           "name": "Square Logo Image URL",
           "description": "",
           "type": "text",
@@ -21,13 +21,27 @@
       ]
     },
     {
+      "name": "Map Panel",
+      "components": [
+        {
+          "field": "msv.mapscale",
+          "name": "Zoom Level of Map Scale",
+          "description": "An integer to be the default map zoom level. This is not the initial zoom but rather a preferred zoom level that functions as a default if an ideal zoom for a function cannot be determined. Setting this value also adds a button above the scale bar to quickly zoom to it. In terms of drawing features, this is the preferred zoom level at which users should draw.",
+          "type": "number",
+          "min": 0,
+          "max": 40,
+          "width": 4
+        }
+      ]
+    },
+    {
       "name": "Viewer Panel",
       "components": [
         {
-          "field": "msv.radius.major",
+          "field": "panels.viewer",
           "name": "Enabled",
           "description": "",
-          "type": "checkbox",
+          "type": "switch",
           "width": 4,
           "defaultChecked": true
         }
@@ -37,10 +51,10 @@
       "name": "Globe Panel",
       "components": [
         {
-          "field": "msv.radius.major",
+          "field": "panels.globe",
           "name": "Enabled",
           "description": "",
-          "type": "checkbox",
+          "type": "switch",
           "width": 4,
           "defaultChecked": true
         }
@@ -51,7 +65,7 @@
         {
           "field": "panelSettings.demFallbackPath",
           "name": "DEM Fallback URL",
-          "description": "",
+          "description": "A URL to an underlying and ever-present DEM terrain tileset to fill in any missing elevation tiles of active layers.",
           "type": "text",
           "width": 8
         },
@@ -77,7 +91,7 @@
       "name": "Interface",
       "components": [
         {
-          "field": "msv.radius.major",
+          "field": "look.topbar",
           "name": "Top Bar",
           "description": "",
           "type": "checkbox",
@@ -85,7 +99,7 @@
           "defaultChecked": true
         },
         {
-          "field": "msv.radius.major",
+          "field": "look.toolbar",
           "name": "Tool Bar",
           "description": "",
           "type": "checkbox",
@@ -93,7 +107,7 @@
           "defaultChecked": true
         },
         {
-          "field": "msv.radius.major",
+          "field": "look.scalebar",
           "name": "Scale Bar",
           "description": "",
           "type": "checkbox",
@@ -101,7 +115,7 @@
           "defaultChecked": true
         },
         {
-          "field": "msv.radius.major",
+          "field": "look.coordinates",
           "name": "Coordinates",
           "description": "",
           "type": "checkbox",
@@ -113,7 +127,7 @@
     {
       "components": [
         {
-          "field": "msv.radius.major",
+          "field": "look.zoomcontrol",
           "name": "Map Zoom Control",
           "description": "",
           "type": "checkbox",
@@ -121,7 +135,7 @@
           "defaultChecked": true
         },
         {
-          "field": "msv.radius.major",
+          "field": "look.graticule",
           "name": "Map Graticule",
           "description": "",
           "type": "checkbox",
@@ -129,7 +143,7 @@
           "defaultChecked": false
         },
         {
-          "field": "msv.radius.major",
+          "field": "look.miscellaneous",
           "name": "Miscellaneous",
           "description": "",
           "type": "checkbox",
@@ -137,7 +151,7 @@
           "defaultChecked": true
         },
         {
-          "field": "msv.radius.major",
+          "field": "look.settings",
           "name": "Settings",
           "description": "",
           "type": "checkbox",

@@ -98,10 +98,24 @@ const useStyles = makeStyles((theme) => ({
   table: {
     flex: 1,
     overflowY: "auto",
-    background: theme.palette.swatches.grey[900],
+    "& tr": {
+      background: theme.palette.swatches.grey[850],
+    },
     "& td": {
       borderRight: `1px solid ${theme.palette.swatches.grey[800]}`,
+      borderBottom: `1px solid ${theme.palette.swatches.grey[700]} !important`,
     },
+    "& td:first-child": {
+      fontWeight: "bold",
+      letterSpacing: "1px",
+      fontSize: "16px",
+      color: `${theme.palette.swatches.p[13]}`,
+    },
+  },
+  tableInner: {
+    margin: "53px",
+    width: "calc(100% - 106px) !important",
+    boxShadow: "0px 1px 7px 0px rgba(0, 0, 0, 0.2)",
   },
   flex: {
     display: "flex",
@@ -165,17 +179,23 @@ const useStyles = makeStyles((theme) => ({
     minHeight: "48px",
     display: "flex",
     justifyContent: "space-between",
-    background: theme.palette.swatches.grey[1000],
+    background: theme.palette.swatches.grey[850],
     boxShadow: `inset 10px 0px 10px -5px rgba(0,0,0,0.3)`,
     borderBottom: `1px solid ${theme.palette.swatches.grey[900]} !important`,
     padding: `0px 20px`,
     boxSizing: `border-box !important`,
   },
+  bottomBar: {
+    background: theme.palette.swatches.grey[850],
+    boxShadow: "inset 10px 0px 10px -5px rgba(0,0,0,0.3)",
+  },
   th: {
     fontWeight: "bold !important",
     textTransform: "uppercase",
     letterSpacing: "1px !important",
-    borderRight: `1px solid ${theme.palette.swatches.grey[900]}`,
+    color: `${theme.palette.swatches.grey[850]} !important`,
+    backgroundColor: `${theme.palette.swatches.grey[150]} !important`,
+    borderRight: `1px solid ${theme.palette.swatches.grey[400]}`,
   },
 }));
 
@@ -195,6 +215,14 @@ const headCells = [
   {
     id: "num_features",
     label: "# of Features",
+  },
+  {
+    id: "start_time_field",
+    label: "Start Time Field",
+  },
+  {
+    id: "end_time_field",
+    label: "End Time Field",
   },
   {
     id: "actions",
@@ -366,6 +394,7 @@ export default function GeoDatasets() {
           <EnhancedTableToolbar />
           <TableContainer className={c.table}>
             <Table
+              className={c.tableInner}
               sx={{ minWidth: 750 }}
               aria-labelledby="tableTitle"
               size="small"
@@ -403,6 +432,10 @@ export default function GeoDatasets() {
                       </TableCell>
                       <TableCell align="right">{row.filename}</TableCell>
                       <TableCell align="right">{row.num_features}</TableCell>
+                      <TableCell align="right">
+                        {row.start_time_field}
+                      </TableCell>
+                      <TableCell align="right">{row.end_time_field}</TableCell>
                       <TableCell align="right">
                         <div className={c.actions}>
                           <Tooltip title={"Used By"} placement="top" arrow>
@@ -572,6 +605,7 @@ export default function GeoDatasets() {
             </Table>
           </TableContainer>
           <TablePagination
+            className={c.bottomBar}
             rowsPerPageOptions={[25, 50, 100]}
             component="div"
             count={geodatasets.length}

@@ -4,6 +4,7 @@
   "homepage": "./configure/build",
   "private": true,
   "dependencies": {
+    "@codemirror/lang-json": "^6.0.1",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
     "@fontsource/roboto": "^5.0.8",
@@ -14,6 +15,7 @@
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^11.2.7",
     "@testing-library/user-event": "^13.5.0",
+    "@uiw/react-codemirror": "^4.22.1",
     "@uiw/react-md-editor": "^3.25.6",
     "clsx": "^2.0.0",
     "file-saver": "^2.0.5",

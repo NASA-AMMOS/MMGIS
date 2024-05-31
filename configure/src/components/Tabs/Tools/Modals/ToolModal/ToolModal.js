@@ -160,6 +160,11 @@ const useStyles = makeStyles((theme) => ({
       borderBottom: `1px solid ${theme.palette.swatches.grey[400]}`,
     },
   },
+  noFurtherConf: {
+    textAlign: "center",
+    margin: "40px 0px !important",
+    color: theme.palette.swatches.grey[600],
+  },
 }));
 
 const MODAL_NAME = "tool";
@@ -275,13 +280,17 @@ const ToolModal = (props) => {
           </div>
         </div>
 
-        {toolConfig && toolName ? (
+        {toolConfig && toolConfig.config && toolName ? (
           <Maker
             config={toolConfig.config}
             toolName={toolName}
             inlineHelp={true}
           />
-        ) : null}
+        ) : (
+          <Typography className={c.noFurtherConf}>
+            This tool takes no further configurations.
+          </Typography>
+        )}
       </DialogContent>
       <DialogActions>
         <Button variant="contained" onClick={handleClose}>

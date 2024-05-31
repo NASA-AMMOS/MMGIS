@@ -142,6 +142,12 @@ export default function Layers() {
   const mission = useSelector((state) => state.core.mission);
   const configuration = useSelector((state) => state.core.configuration);
 
+  useEffect(() => {
+    return () => {
+      savedLayersConfiguration = "";
+    };
+  }, []);
+
   const handleClick = (layer) => {
     dispatch(
       setModal({

@@ -8,7 +8,7 @@
           "field": "projection.custom",
           "name": "Enabled",
           "description": "Enable to use the projection defined below instead of the default Web-Mercator.",
-          "type": "checkbox",
+          "type": "switch",
           "width": 3,
           "defaultChecked": false
         }
@@ -130,7 +130,7 @@
           "field": "coordinates.coordll",
           "name": "Enabled",
           "description": "Check to display Longitude, Latitude coordinates to users. This is the default main coordinate type.",
-          "type": "checkbox",
+          "type": "switch",
           "width": 2,
           "defaultChecked": true
         },
@@ -157,7 +157,7 @@
           "field": "coordinates.coorden",
           "name": "Enabled",
           "description": "Check to display Easting, Northing coordinates to users. These coordinates are always in a mercator projection and can be manipulated with the input boxes below. Use Primary or Secondary Projection if you need Easting, Northing in another projection.",
-          "type": "checkbox",
+          "type": "switch",
           "width": 2,
           "defaultChecked": false
         },
@@ -198,7 +198,7 @@
           "field": "coordinates.coordcustomproj",
           "name": "Enabled",
           "description": "Check to display Easting, Northing coordinates calculated via proj4 and the projection defined in the Projection Tab. If no projection is specified in the Projection Tab, this setting becomes ignored.",
-          "type": "checkbox",
+          "type": "switch",
           "width": 2,
           "defaultChecked": false
         },
@@ -239,7 +239,7 @@
           "field": "coordinates.coordsecondaryproj",
           "name": "Enabled",
           "description": "See Primary Projection, however any proj4 string may be entered here to convert coordinates to and without modifying the Map's underlying projection.",
-          "type": "checkbox",
+          "type": "switch",
           "width": 2,
           "defaultChecked": false
         },
@@ -291,7 +291,7 @@
           "field": "coordinates.coordrxy",
           "name": "Enabled",
           "description": "Check to display X, Y, Z coordinates to users relative to point features they highlight. If no point feature is highlighted, X, Y, Z coordinates will be relative to the Map's origin.",
-          "type": "checkbox",
+          "type": "switch",
           "width": 2,
           "defaultChecked": false
         }
@@ -304,7 +304,7 @@
           "field": "coordinates.coordsite",
           "name": "Enabled",
           "description": "Check to display Y, X, -Z coordinates to users relative to point features they highlight. If no point feature is highlighted, Y, X, -Z coordinates will be relative to the Map's origin.",
-          "type": "checkbox",
+          "type": "switch",
           "width": 2,
           "defaultChecked": false
         }
@@ -318,7 +318,7 @@
           "field": "coordinates.coordelev",
           "name": "Enabled",
           "description": "Check to query for and append elevation values to the lower-right coordinates as users mouse around. DEM URL must be set.",
-          "type": "checkbox",
+          "type": "switch",
           "width": 2,
           "defaultChecked": false
         },

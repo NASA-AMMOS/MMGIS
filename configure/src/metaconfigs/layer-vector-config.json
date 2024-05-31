@@ -36,6 +36,7 @@
               "type": "dropdown",
               "width": 2,
               "options": [
+                "none",
                 "info",
                 "waypoint",
                 "chemistry_tool",
@@ -756,9 +757,9 @@
           "components": [
             {
               "field": "variables.dynamicExtent",
-              "name": "Enable",
+              "name": "Enabled",
               "description": " If true, tries to only query the vector features present in the user's current map viewport. This can be very performant for large vector datasets especially if minimum and maximum zooms are set for the layer. Pan and zooming causes requeries. If used with a geodataset, the time and extent queries will work out-of-the-box. Otherwise, if using an external server, the following parameters in {} will be automatically replaced on query in the url: 'starttime={starttime}&endtime={endtime}&startprop={startprop}&endprop={endprop}&crscode={crscode}&zoom={zoom}&minx={minx}&miny={miny}&maxx={maxx}&maxy={maxy}'",
-              "type": "checkbox",
+              "type": "switch",
               "width": 3,
               "defaultChecked": false
             },

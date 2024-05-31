@@ -131,6 +131,9 @@ export default function Tools() {
       Object.keys(toolConfiguration)
         .sort((a, b) => a.localeCompare(b))
         .forEach((key, idx) => {
+          // Kinds is a pseudo-tool, skip it
+          if (key.toLowerCase() == "kinds") return;
+
           const tConfig = toolConfiguration[key];
           let t = configuration.tools.filter((f) => f.name === key)[0];
           let toolActive = true;

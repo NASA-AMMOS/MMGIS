@@ -7,7 +7,7 @@
           "field": "time.enabled",
           "name": "Enabled",
           "description": "This both enables the user interface for Time and enables all other layer-based time effects to take place.",
-          "type": "checkbox",
+          "type": "switch",
           "width": 3,
           "defaultChecked": false
         }
