@@ -36,6 +36,7 @@ import {
   traverseLayers,
   getToolFromConfiguration,
   updateToolInConfiguration,
+  getLayerByUUID,
 } from "./utils";
 
 import Map from "../components/Map/Map";
@@ -570,7 +571,6 @@ const getComponent = (
                 className={c.objectArrayRemove}
                 aria-label="remove"
                 onClick={() => {
-                  /*
                   if (tool) {
                     const t = getToolFromConfiguration(
                       tool.name,
@@ -579,26 +579,28 @@ const getComponent = (
                     let next = getIn(t, com.field.split("."), []);
                     next = JSON.parse(JSON.stringify(next));
                     if (typeof next.push !== "function") next = [];
-                    let nextObj = {};
-                    com.object.forEach((obj) => {
-                      nextObj[obj.field] = null;
-                    });
-                    next.push(nextObj);
+
+                    next.splice(idx, 1);
 
                     updateConfiguration(com.field, next, configuration);
+                  } else if (layer) {
+                    const l = getLayerByUUID(configuration.layers, layer.uuid);
+                    let next = getIn(l, com.field.split("."), []);
+                    next = JSON.parse(JSON.stringify(next));
+                    if (typeof next.push !== "function") next = [];
+
+                    next.splice(idx, 1);
+
+                    updateConfiguration(com.field, next, layer);
                   } else {
                     let next = getIn(configuration, com.field.split("."), []);
                     next = JSON.parse(JSON.stringify(next));
                     if (typeof next.push !== "function") next = [];
-                    let nextObj = {};
-                    com.object.forEach((obj) => {
-                      nextObj[obj.field] = null;
-                    });
-                    next.push(nextObj);
+
+                    next.splice(idx, 1);
 
                     updateConfiguration(com.field, next, layer);
                   }
-                  */
                 }}
               >
                 <CloseIcon />
@@ -633,6 +635,18 @@ const getComponent = (
                     next.push(nextObj);
 
                     updateConfiguration(com.field, next, configuration);
+                  } else if (layer) {
+                    const l = getLayerByUUID(configuration.layers, layer.uuid);
+                    let next = getIn(l, com.field.split("."), []);
+                    next = JSON.parse(JSON.stringify(next));
+                    if (typeof next.push !== "function") next = [];
+                    let nextObj = {};
+                    com.object.forEach((obj) => {
+                      nextObj[obj.field] = null;
+                    });
+                    next.push(nextObj);
+
+                    updateConfiguration(com.field, next, layer);
                   } else {
                     let next = getIn(configuration, com.field.split("."), []);
                     next = JSON.parse(JSON.stringify(next));
@@ -642,7 +656,6 @@ const getComponent = (
                       nextObj[obj.field] = null;
                     });
                     next.push(nextObj);
-                    console.log(next);
 
                     updateConfiguration(com.field, next, layer);
                   }

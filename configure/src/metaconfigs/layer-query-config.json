@@ -141,7 +141,7 @@
           ]
         },
         {
-          "name": "Must",
+          "subname": "Must",
           "description": "ElasticSearch DSL 'must' Array. Make sure any below specified JSON begins as an array: []",
           "components": [
             {
@@ -154,7 +154,7 @@
           ]
         },
         {
-          "name": "Sort",
+          "subname": "Sort",
           "components": [
             {
               "field": "variables.query.sort",
@@ -183,7 +183,7 @@
           ]
         },
         {
-          "name": "Headers",
+          "subname": "Headers",
           "components": [
             {
               "field": "variables.query.headers",
@@ -211,7 +211,7 @@
           ]
         },
         {
-          "name": "Fields",
+          "subname": "Fields",
           "components": [
             {
               "field": "variables.query.fields",
@@ -225,7 +225,7 @@
                   "name": "Field Name",
                   "description": "A field to search upon.",
                   "type": "text",
-                  "width": 3
+                  "width": 4
                 },
                 {
                   "field": "aggSize",
@@ -234,14 +234,14 @@
                   "type": "number",
                   "min": 0,
                   "step": 1,
-                  "width": 2
+                  "width": 3
                 }
               ]
             }
           ]
         },
         {
-          "name": "Miscellaneous",
+          "subname": "Miscellaneous",
           "components": [
             {
               "field": "variables.query.bodyWrapper",
@@ -709,10 +709,10 @@
           "components": [
             {
               "field": "variables.shortcutSuffix",
-              "name": "A single letter to 'ALT + {letter}' toggle the layer on and off. Please verify that your chosen shortcut does not conflict with other system or browser-level keyboard shortcuts.",
-              "description": "",
+              "name": "Alt + {letter} Toggle Shortcut",
+              "description": "A single letter to 'ALT + {letter}' toggle the layer on and off. Please verify that your chosen shortcut does not conflict with other system or browser-level keyboard shortcuts.",
               "type": "text",
-              "width": 4
+              "width": 6
             }
           ]
         },

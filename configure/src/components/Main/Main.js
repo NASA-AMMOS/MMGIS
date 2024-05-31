@@ -32,7 +32,7 @@ const useStyles = makeStyles((theme) => ({
   Main: {
     width: "100%",
     height: "100%",
-    background: theme.palette.swatches.grey[900],
+    background: theme.palette.swatches.grey[1000],
     boxShadow: `inset 10px 0px 10px -5px rgba(0,0,0,0.3)`,
   },
   tabPage: {

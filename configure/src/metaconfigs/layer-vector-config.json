@@ -541,10 +541,10 @@
           "components": [
             {
               "field": "variables.shortcutSuffix",
-              "name": "A single letter to 'ALT + {letter}' toggle the layer on and off. Please verify that your chosen shortcut does not conflict with other system or browser-level keyboard shortcuts.",
-              "description": "",
+              "name": "Alt + {letter} Toggle Shortcut",
+              "description": "A single letter to 'ALT + {letter}' toggle the layer on and off. Please verify that your chosen shortcut does not conflict with other system or browser-level keyboard shortcuts.",
               "type": "text",
-              "width": 4
+              "width": 6
             }
           ]
         },
