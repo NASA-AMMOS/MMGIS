@@ -3379,6 +3379,11 @@ function parseConfig(configData, urlOnLayers) {
                         })(d[i].name)
                     )
                 }
+
+                // Set disabled time object if missing
+                if (d[i].time == null) {
+                    d[i].time = { enabled: false }
+                }
             }
 
             //Create parsed layers data

@@ -1067,9 +1067,12 @@ const TimeUI = {
         dontRemoveOffset,
         ignoreDontChange
     ) {
-        const timestamp =
-            typeof ISOString === 'string' ? Date.parse(ISOString) : ISOString
-        TimeUI._timeSliderTimestamp = timestamp
+        if (typeof ISOString === 'string') {
+            TimeUI._timeSliderTimestamp = TimeUI.addOffset(ISOString)
+        } else {
+            TimeUI._timeSliderTimestamp = ISOString
+        }
+
         if (TimeUI.play) {
             const date = new Date(TimeUI._timeSliderTimestamp)
             const offsetNowDate = new Date(
