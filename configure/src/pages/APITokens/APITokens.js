@@ -31,6 +31,7 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     flexFlow: "column",
     background: theme.palette.swatches.grey[1000],
+    backgroundImage: "url(configure/build/gridlines.png)",
     paddingBottom: "64px",
     overflowY: "auto",
     height: "100vh",
@@ -147,6 +148,7 @@ const useStyles = makeStyles((theme) => ({
     padding: "8px",
     borderRadius: "4px",
     background: theme.palette.swatches.grey[900],
+    wordBreak: "break-all",
   },
 }));
 

@@ -8,6 +8,7 @@ import Panel from "../components/Panel/Panel";
 
 import { calls } from "../core/calls";
 import { setMissions, setSnackBarText } from "./ConfigureStore";
+import Websocket from "./Websocket";
 
 const useStyles = makeStyles((theme) => ({
   Configure: {
@@ -55,6 +56,7 @@ export default function Configure() {
       <div className={c.right}>
         <Main />
       </div>
+      <Websocket />
     </div>
   );
 }

@@ -13,7 +13,9 @@ const useStyles = makeStyles((theme) => ({
     width: "100%",
     display: "flex",
     background: theme.palette.swatches.grey[1000],
-    paddingBottom: "64px",
+    padding: "0px 32px 64px 32px",
+    boxSizing: "border-box",
+    backgroundImage: "url(configure/build/gridlines.png)",
   },
 }));
 
@@ -24,7 +26,7 @@ export default function UserInterface() {
 
   return (
     <div className={c.UserInterface}>
-      <Maker config={config} shadowed={true} inlineHelp={true} />
+      <Maker config={config} inlineHelp={true} />
     </div>
   );
 }

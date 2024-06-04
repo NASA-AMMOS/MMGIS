@@ -197,7 +197,12 @@ const LayerModal = (props) => {
         <Maker config={config} layer={layer} inlineHelp={true} />
       </DialogContent>
       <DialogActions>
-        <Button variant="contained" onClick={() => {}}>
+        <Button
+          variant="contained"
+          onClick={() => {
+            handleClose();
+          }}
+        >
           Done
         </Button>
       </DialogActions>

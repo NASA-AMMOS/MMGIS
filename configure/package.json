@@ -22,6 +22,7 @@
     "html2pug": "^4.0.0",
     "immutable": "^5.0.0-beta.4",
     "leaflet": "^1.9.4",
+    "papaparse": "^5.4.1",
     "react": "^17.0.2",
     "react-beautiful-dnd": "^13.1.1",
     "react-color": "^2.19.3",

@@ -12,6 +12,19 @@ body {
   display: flex;
 }
 
+#seeBeta {
+  width: 100%;
+  text-align: center;
+  padding: 4px 0px;
+  background: linear-gradient(to top, #165293, #1568c1);
+}
+#seeBeta > a {
+  color: white;
+  text-decoration: underline;
+  font-size: 14px;
+  font-weight: bold;
+}
+
 .helpFromDocs {
   position: fixed;
   border-radius: 50%;

@@ -8,7 +8,7 @@ import { calls } from "../../core/calls";
 import { downloadObject } from "../../core/utils";
 import {
   setSnackBarText,
-  setGeodatasets,
+  setDatasets,
   setModal,
 } from "../../core/ConfigureStore";
 
@@ -45,15 +45,10 @@ import UploadIcon from "@mui/icons-material/Upload";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import AddIcon from "@mui/icons-material/Add";
-import ShapeLineIcon from "@mui/icons-material/ShapeLine";
 import ControlPointDuplicateIcon from "@mui/icons-material/ControlPointDuplicate";
+import TextSnippetIcon from "@mui/icons-material/TextSnippet";
 
-import NewGeoDatasetModal from "./Modals/NewGeoDatasetModal/NewGeoDatasetModal";
-import DeleteGeoDatasetModal from "./Modals/DeleteGeoDatasetModal/DeleteGeoDatasetModal";
-import LayersUsedByModal from "./Modals/LayersUsedByModal/LayersUsedByModal";
-import PreviewGeoDatasetModal from "./Modals/PreviewGeoDatasetModal/PreviewGeoDatasetModal";
-import AppendGeoDatasetModal from "./Modals/AppendGeoDatasetModal/AppendGeoDatasetModal";
-import UpdateGeoDatasetModal from "./Modals/UpdateGeoDatasetModal/UpdateGeoDatasetModal";
+import NewDatasetModal from "./Modals/NewDatasetModal/NewDatasetModal";
 
 function descendingComparator(a, b, orderBy) {
   if (b[orderBy] < a[orderBy]) {
@@ -88,8 +83,8 @@ function stableSort(array, comparator) {
 }
 
 const useStyles = makeStyles((theme) => ({
-  GeoDatasets: { width: "100%", height: "100%" },
-  GeoDatasetsInner: {
+  Datasets: { width: "100%", height: "100%" },
+  DatasetsInner: {
     width: "100%",
     height: "100%",
     display: "flex",
@@ -210,22 +205,6 @@ const headCells = [
     label: "Last Updated",
   },
   {
-    id: "filename",
-    label: "Uploaded From",
-  },
-  {
-    id: "num_features",
-    label: "# of Features",
-  },
-  {
-    id: "start_time_field",
-    label: "Start Time Field",
-  },
-  {
-    id: "end_time_field",
-    label: "End Time Field",
-  },
-  {
     id: "actions",
     label: "",
   },
@@ -284,14 +263,14 @@ function EnhancedTableToolbar(props) {
   return (
     <Toolbar className={c.topbar}>
       <div className={c.flex}>
-        <ShapeLineIcon />
+        <TextSnippetIcon />
         <Typography
           sx={{ flex: "1 1 100%" }}
           variant="h6"
           id="tableTitle"
           component="div"
         >
-          GEODATASETS
+          DATASETS
         </Typography>
       </div>
 
@@ -300,10 +279,10 @@ function EnhancedTableToolbar(props) {
         className={c.addButton}
         endIcon={<AddIcon />}
         onClick={() => {
-          dispatch(setModal({ name: "newGeoDataset" }));
+          dispatch(setModal({ name: "newDataset" }));
         }}
       >
-        New GeoDataset
+        New Dataset
       </Button>
     </Toolbar>
   );
@@ -313,7 +292,7 @@ EnhancedTableToolbar.propTypes = {
   numSelected: PropTypes.number.isRequired,
 };
 
-export default function GeoDatasets() {
+export default function Datasets() {
   const [order, setOrder] = React.useState("asc");
   const [orderBy, setOrderBy] = React.useState("calories");
   const [page, setPage] = React.useState(0);
@@ -322,16 +301,16 @@ export default function GeoDatasets() {
   const c = useStyles();
 
   const dispatch = useDispatch();
-  const geodatasets = useSelector((state) => state.core.geodatasets);
+  const datasets = useSelector((state) => state.core.datasets);
 
-  const queryGeoDatasets = () => {
+  const queryDatasets = () => {
     calls.api(
-      "geodatasets_entries",
+      "datasets_entries",
       {},
       (res) => {
         if (res.status === "success")
           dispatch(
-            setGeodatasets(
+            setDatasets(
               res.body.entries.map((en, idx) => {
                 en.id = idx;
                 return en;
@@ -341,7 +320,7 @@ export default function GeoDatasets() {
         else
           dispatch(
             setSnackBarText({
-              text: res?.message || "Failed to get geodatasets.",
+              text: res?.message || "Failed to get datasets.",
               severity: "error",
             })
           );
@@ -349,7 +328,7 @@ export default function GeoDatasets() {
       (res) => {
         dispatch(
           setSnackBarText({
-            text: res?.message || "Failed to get geodatasets.",
+            text: res?.message || "Failed to get datasets.",
             severity: "error",
           })
         );
@@ -357,7 +336,7 @@ export default function GeoDatasets() {
     );
   };
   useEffect(() => {
-    queryGeoDatasets();
+    queryDatasets();
   }, []);
 
   const handleRequestSort = (event, property) => {
@@ -377,21 +356,21 @@ export default function GeoDatasets() {
 
   // Avoid a layout jump when reaching the last page with empty rows.
   const emptyRows =
-    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - geodatasets.length) : 0;
+    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - datasets.length) : 0;
 
   const visibleRows = React.useMemo(
     () =>
-      stableSort(geodatasets, getComparator(order, orderBy)).slice(
+      stableSort(datasets, getComparator(order, orderBy)).slice(
         page * rowsPerPage,
         page * rowsPerPage + rowsPerPage
       ),
-    [order, orderBy, page, rowsPerPage, geodatasets]
+    [order, orderBy, page, rowsPerPage, datasets]
   );
 
   return (
     <>
-      <Box className={c.GeoDatasets}>
-        <Paper className={c.GeoDatasetsInner}>
+      <Box className={c.Datasets}>
+        <Paper className={c.DatasetsInner}>
           <EnhancedTableToolbar />
           <TableContainer className={c.table}>
             <Table
@@ -405,7 +384,7 @@ export default function GeoDatasets() {
                 order={order}
                 orderBy={orderBy}
                 onRequestSort={handleRequestSort}
-                rowCount={geodatasets.length}
+                rowCount={datasets.length}
               />
               <TableBody>
                 {visibleRows.map((row, index) => {
@@ -431,12 +410,6 @@ export default function GeoDatasets() {
                           ? new Date(row.updated).toLocaleString()
                           : row.updated}
                       </TableCell>
-                      <TableCell align="right">{row.filename}</TableCell>
-                      <TableCell align="right">{row.num_features}</TableCell>
-                      <TableCell align="right">
-                        {row.start_time_field}
-                      </TableCell>
-                      <TableCell align="right">{row.end_time_field}</TableCell>
                       <TableCell align="right">
                         <div className={c.actions}>
                           <Tooltip title={"Used By"} placement="top" arrow>
@@ -447,8 +420,8 @@ export default function GeoDatasets() {
                               onClick={() => {
                                 dispatch(
                                   setModal({
-                                    name: "layersUsedByGeoDataset",
-                                    geoDataset: row,
+                                    name: "layersUsedByDataset",
+                                    dataset: row,
                                   })
                                 );
                               }}
@@ -470,8 +443,8 @@ export default function GeoDatasets() {
                               onClick={() => {
                                 dispatch(
                                   setModal({
-                                    name: "previewGeoDataset",
-                                    geoDataset: row,
+                                    name: "previewDataset",
+                                    dataset: row,
                                   })
                                 );
                               }}
@@ -487,21 +460,21 @@ export default function GeoDatasets() {
                               onClick={() => {
                                 if (row.name)
                                   calls.api(
-                                    "geodatasets_get",
+                                    "datasets_get",
                                     {
                                       layer: row.name,
                                     },
                                     (res) => {
                                       downloadObject(
                                         res,
-                                        `${row.name}-geodataset`,
+                                        `${row.name}-dataset`,
                                         ".geojson"
                                       );
                                       dispatch(
                                         setSnackBarText({
                                           text:
                                             res?.message ||
-                                            "Successfully downloaded GeoDataset.",
+                                            "Successfully downloaded Dataset.",
                                           severity: "success",
                                         })
                                       );
@@ -511,7 +484,7 @@ export default function GeoDatasets() {
                                         setSnackBarText({
                                           text:
                                             res?.message ||
-                                            "Failed to download GeoDataset.",
+                                            "Failed to download Dataset.",
                                           severity: "error",
                                         })
                                       );
@@ -531,8 +504,8 @@ export default function GeoDatasets() {
                               onClick={() => {
                                 dispatch(
                                   setModal({
-                                    name: "appendGeoDataset",
-                                    geoDataset: row,
+                                    name: "appendDataset",
+                                    dataset: row,
                                   })
                                 );
                               }}
@@ -560,8 +533,8 @@ export default function GeoDatasets() {
                               onClick={() => {
                                 dispatch(
                                   setModal({
-                                    name: "updateGeoDataset",
-                                    geoDataset: row,
+                                    name: "updateDataset",
+                                    dataset: row,
                                   })
                                 );
                               }}
@@ -579,8 +552,8 @@ export default function GeoDatasets() {
                               onClick={() => {
                                 dispatch(
                                   setModal({
-                                    name: "deleteGeoDataset",
-                                    geoDataset: row,
+                                    name: "deleteDataset",
+                                    dataset: row,
                                   })
                                 );
                               }}
@@ -609,7 +582,7 @@ export default function GeoDatasets() {
             className={c.bottomBar}
             rowsPerPageOptions={[25, 50, 100]}
             component="div"
-            count={geodatasets.length}
+            count={datasets.length}
             rowsPerPage={rowsPerPage}
             page={page}
             onPageChange={handleChangePage}
@@ -617,12 +590,14 @@ export default function GeoDatasets() {
           />
         </Paper>
       </Box>
-      <NewGeoDatasetModal queryGeoDatasets={queryGeoDatasets} />
-      <DeleteGeoDatasetModal queryGeoDatasets={queryGeoDatasets} />
+      <NewDatasetModal queryDatasets={queryDatasets} />
+      {/*
+      <DeleteDatasetModal queryDatasets={queryDatasets} />
       <LayersUsedByModal />
-      <PreviewGeoDatasetModal />
-      <AppendGeoDatasetModal queryGeoDatasets={queryGeoDatasets} />
-      <UpdateGeoDatasetModal queryGeoDatasets={queryGeoDatasets} />
+      <PreviewDatasetModal />
+      <AppendDatasetModal queryDatasets={queryDatasets} />
+      <UpdateDatasetModal queryDatasets={queryDatasets} />
+              */}
     </>
   );
 }

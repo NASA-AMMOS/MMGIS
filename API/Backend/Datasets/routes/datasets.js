@@ -83,7 +83,7 @@ function get(req, res, next) {
 router.post("/entries", function (req, res, next) {
   Datasets.findAll()
     .then((sets) => {
-      if (sets && sets.length > 0) {
+      if (sets) {
         let entries = [];
         for (let i = 0; i < sets.length; i++) {
           entries.push({ name: sets[i].name, updated: sets[i].updatedAt });

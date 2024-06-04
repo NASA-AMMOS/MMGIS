@@ -45,6 +45,7 @@ const useStyles = makeStyles((theme) => ({
     background: theme.palette.swatches.grey[1000],
     paddingBottom: "64px",
     position: "relative",
+    backgroundImage: "url(configure/build/gridlines.png)",
   },
   verticalLines: {
     display: "flex",
@@ -56,7 +57,7 @@ const useStyles = makeStyles((theme) => ({
     "& > div": {
       width: `${INDENT_WIDTH - 1}px`,
       height: "100%",
-      borderLeft: `1px solid ${theme.palette.swatches.grey[850]}`,
+      borderLeft: `1px solid ${theme.palette.swatches.grey[700]}`,
     },
   },
   layersList: {

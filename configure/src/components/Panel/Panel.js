@@ -22,6 +22,10 @@ const useStyles = makeStyles((theme) => ({
     width: "220px",
     height: "100%",
     background: theme.palette.secondary.main,
+    backgroundImage: "url(configure/build/contours.png)",
+    backgroundSize: "200%",
+    display: "flex",
+    flexFlow: "column",
   },
   title: {
     padding: "30px 0px",
@@ -35,18 +39,26 @@ const useStyles = makeStyles((theme) => ({
     fontSize: "13px",
     marginTop: "-5px",
     textTransform: "uppercase",
+    "& > span": {
+      color: theme.palette.accent.main,
+    },
   },
   newMission: {
     width: "100%",
   },
   newMissionButton: {
     width: "100%",
-    background: `${theme.palette.swatches.p[0]} !important`,
+    color: `${theme.palette.swatches.grey[900]} !important`,
+    background: `${theme.palette.swatches.grey[300]} !important`,
     "&:hover": {
-      background: `${theme.palette.swatches.p[5]} !important`,
+      background: `${theme.palette.swatches.p[0]} !important`,
+      color: `${theme.palette.swatches.grey[0]} !important`,
     },
   },
-  missions: {},
+  missions: {
+    flex: 1,
+    overflowY: "auto",
+  },
   missionsUl: {
     listStyleType: "none",
     padding: 0,
@@ -58,6 +70,7 @@ const useStyles = makeStyles((theme) => ({
   },
   missionButton: {
     width: "100%",
+    background: "rgba(255,255,255,0.06) !important",
     color: `${theme.palette.swatches.grey[900]} !important`,
     textTransform: "capitalize !important",
     justifyContent: "end !important",
@@ -77,11 +90,11 @@ const useStyles = makeStyles((theme) => ({
     },
   },
   pages: {
-    position: "absolute",
     bottom: "0px",
     display: "flex",
     flexFlow: "column",
     width: "100%",
+    borderTop: `2px solid ${theme.palette.swatches.grey[300]}`,
   },
   pageButton: {
     width: "100%",
@@ -91,7 +104,7 @@ const useStyles = makeStyles((theme) => ({
     justifyContent: "start !important",
     fontSize: "14px !important",
     padding: "3px 16px !important",
-    background: `transparent !important`,
+    background: "rgba(255,255,255,0.06) !important",
     transition:
       "background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, width 250ms ease-out 0ms, box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, border-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms",
     "&:hover": {
@@ -116,7 +129,9 @@ export default function Panel() {
       <div className={c.Panel}>
         <div className={c.title}>
           <img className={c.titleImage} src={mmgisLogo} alt="MMGIS"></img>
-          <div className={c.configurationName}>Configuration</div>
+          <div className={c.configurationName}>
+            Configuration <span>BETA</span>
+          </div>
         </div>
         <div className={c.newMission}>
           <Button
@@ -173,7 +188,7 @@ export default function Panel() {
             disableElevation
             startIcon={<TextSnippetIcon size="small" />}
             onClick={() => {
-              dispatch(setPage({ page: "newMission" }));
+              dispatch(setPage({ page: "datasets" }));
             }}
           >
             Datasets
@@ -195,7 +210,7 @@ export default function Panel() {
             disableElevation
             startIcon={<PhishingIcon size="small" />}
             onClick={() => {
-              dispatch(setPage({ page: "newMission" }));
+              dispatch(setPage({ page: "webhooks" }));
             }}
           >
             WebHooks

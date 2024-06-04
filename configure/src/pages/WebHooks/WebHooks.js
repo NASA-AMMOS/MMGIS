@@ -94,7 +94,6 @@ const useStyles = makeStyles((theme) => ({
     height: "100%",
     display: "flex",
     flexFlow: "column",
-    backgroundImage: "url(configure/build/gridlines.png)",
   },
   table: {
     flex: 1,

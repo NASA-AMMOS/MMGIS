@@ -38,10 +38,35 @@ export const constructVectorLayer = (
     Map_
 ) => {
     let col = layerObj.style.color
+    if (layerObj.style.colorProp != null && layerObj.style.colorProp !== '')
+        col = `prop:${layerObj.style.colorProp}`
+
     let opa = String(layerObj.style.opacity)
+    if (layerObj.style.opacityProp != null && layerObj.style.opacityProp !== '')
+        opa = `prop:${layerObj.style.opacityProp}`
+
     let wei = String(layerObj.style.weight)
+    if (layerObj.style.weightProp != null && layerObj.style.weightProp !== '')
+        wei = `prop:${layerObj.style.weightProp}`
+
     let fiC = layerObj.style.fillColor
+    if (
+        layerObj.style.fillColorProp != null &&
+        layerObj.style.fillColorProp !== ''
+    )
+        fiC = `prop:${layerObj.style.fillColorProp}`
+
     let fiO = String(layerObj.style.fillOpacity)
+    if (
+        layerObj.style.fillOpacityProp != null &&
+        layerObj.style.fillOpacityProp !== ''
+    )
+        fiO = `prop:${layerObj.style.fillOpacityProp}`
+
+    let rad = String(layerObj.style.radius)
+    if (layerObj.style.radiusProp != null && layerObj.style.radiusProp !== '')
+        rad = `prop:${layerObj.style.radiusProp}`
+
     let leafletLayerObject = {
         style: function (feature, preferredStyle) {
             if (preferredStyle) {
@@ -62,6 +87,10 @@ export const constructVectorLayer = (
                     preferredStyle.fillOpacity != null
                         ? String(preferredStyle.fillOpacity)
                         : fiO
+                rad =
+                    preferredStyle.radius != null
+                        ? String(preferredStyle.radius)
+                        : rad
             }
 
             if (feature.properties.hasOwnProperty('style')) {
@@ -111,14 +140,15 @@ export const constructVectorLayer = (
                         ? feature.style.fillopacity
                         : fiO
 
-                // Check for radius property if radius=1 (default/prop:radius)
-                layerObj.style.radius =
-                    layerObj.radius == 1
-                        ? parseFloat(feature.properties['radius'])
-                        : layerObj.radius
+                var finalRad =
+                    rad.toLowerCase().substring(0, 4) === 'prop'
+                        ? feature.properties[rad.substring(5)] || '1'
+                        : feature.style && feature.style.radius != null
+                        ? feature.style.radius
+                        : rad
+                if (!isNaN(parseInt(finalRad))) finalRad = parseInt(finalRad)
 
-                if (preferredStyle && preferredStyle.radius != null)
-                    layerObj.style.radius = preferredStyle.radius
+                // Check for radius property if radius=1 (default/prop:radius)
 
                 var noPointerEventsClass =
                     feature.style && feature.style.nointeraction
@@ -130,6 +160,7 @@ export const constructVectorLayer = (
                 layerObj.style.weight = finalWei
                 layerObj.style.fillColor = finalFiC
                 layerObj.style.fillOpacity = finalFiO
+                layerObj.style.radius = finalRad
             }
             if (
                 noPointerEventsClass != null &&

@@ -14,6 +14,30 @@ let setup = {
         s.ensureAdmin(true),
         (req, res) => {
           const user = process.env.AUTH === "csso" ? req.user : null;
+          res.render("configure", {
+            user: user,
+            AUTH: process.env.AUTH,
+            NODE_ENV: process.env.NODE_ENV,
+            PORT: process.env.PORT || "8888",
+            ENABLE_CONFIG_WEBSOCKETS: process.env.ENABLE_CONFIG_WEBSOCKETS,
+            ENABLE_CONFIG_OVERRIDE: process.env.ENABLE_CONFIG_OVERRIDE,
+            ROOT_PATH:
+              process.env.NODE_ENV === "development"
+                ? ""
+                : process.env.ROOT_PATH || "",
+            WEBSOCKET_ROOT_PATH:
+              process.env.NODE_ENV === "development"
+                ? ""
+                : process.env.WEBSOCKET_ROOT_PATH || "",
+          });
+        }
+      );
+      s.app.get(
+        s.ROOT_PATH + "/configure-beta",
+        s.ensureGroup(s.permissions.users),
+        s.ensureAdmin(true),
+        (req, res) => {
+          const user = process.env.AUTH === "csso" ? req.user : null;
           res.render("../configure/build/index.pug", {
             user: user,
             AUTH: process.env.AUTH,

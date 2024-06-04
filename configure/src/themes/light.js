@@ -44,7 +44,9 @@ export const palette = {
     green: {},
     yellow: {},
     orange: {},
-    red: {},
+    red: {
+      500: "#8e1515",
+    },
     p: {
       0: "#dbb658",
       1: "#c0822f",
@@ -136,6 +138,7 @@ export const theme = {
     MuiFilledInput: {
       styleOverrides: {
         root: {
+          backgroundColor: "#f0f0f0",
           "&::before, &::after": {
             borderBottom: `1px solid ${palette.swatches.grey[700]}`,
           },

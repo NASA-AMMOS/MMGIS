@@ -24,6 +24,7 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     background: theme.palette.swatches.grey[1000],
     paddingBottom: "64px",
+    backgroundImage: "url(configure/build/gridlines.png)",
   },
   card: {
     height: "300px",
@@ -34,7 +35,7 @@ const useStyles = makeStyles((theme) => ({
       "rgba(0, 0, 0, 0.2) 0px 2px 1px -1px, rgba(0, 0, 0, 0.14) 0px 1px 1px 0px, rgba(0, 0, 0, 0.12) 0px 1px 3px 0px",
     transition: "background 0.2s ease-in-out",
     "&:hover": {
-      background: theme.palette.swatches.p[0],
+      background: theme.palette.swatches.grey[850],
       cursor: "pointer",
     },
   },
@@ -77,6 +78,7 @@ const useStyles = makeStyles((theme) => ({
   cardContentTitle: {
     color: theme.palette.swatches.grey[500],
     marginBottom: "8px",
+    fontStyle: "italic",
   },
   cardContentBody: {
     color: theme.palette.swatches.grey[200],

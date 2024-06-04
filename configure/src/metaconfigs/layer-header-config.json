@@ -28,14 +28,6 @@
               "description": "",
               "type": "text",
               "width": 8
-            },
-            {
-              "field": "visibility",
-              "name": "Initially On",
-              "description": "",
-              "type": "checkbox",
-              "width": 2,
-              "defaultChecked": false
             }
           ]
         }

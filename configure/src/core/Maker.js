@@ -24,6 +24,7 @@ import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
 import IconButton from "@mui/material/IconButton";
+import Slider from "@mui/material/Slider";
 
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
@@ -48,7 +49,6 @@ import { json } from "@codemirror/lang-json";
 const useStyles = makeStyles((theme) => ({
   Maker: {
     width: "100%",
-    background: theme.palette.swatches.grey[1000],
   },
   tabs: {
     background: theme.palette.secondary.main,
@@ -96,7 +96,7 @@ const useStyles = makeStyles((theme) => ({
     fontStyle: "italic",
     width: "calc(100% - 120px)",
     color: theme.palette.swatches.grey[400],
-    margin: "5px 60px 0px 60px",
+    margin: "5px 20px 0px 20px",
   },
   rowSubTitle: {
     borderBottom: `1px solid ${theme.palette.swatches.grey[850]}`,
@@ -199,6 +199,15 @@ const useStyles = makeStyles((theme) => ({
     border: `1px solid ${theme.palette.swatches.grey[850]}`,
     boxShadow: `0px 2px 4px 0px rgba(0, 0, 0, 0.2)`,
   },
+  slider: {
+    flexFlow: "column !important",
+  },
+  sliderName: {
+    margin: "0px !important",
+    padding: "8px 0px 0px 8px",
+    marginBottom: "-13px !important",
+    fontSize: "14px !important",
+  },
 }));
 
 const getComponent = (
@@ -300,7 +309,7 @@ const getComponent = (
             onChange={(val) => {
               updateConfiguration(forceField || com.field, val, layer);
             }}
-            height={700}
+            height={500}
           />
         </div>
       );
@@ -380,6 +389,49 @@ const getComponent = (
             label={com.name}
           />
         </FormGroup>
+      );
+      return (
+        <div>
+          {inlineHelp ? (
+            <>
+              {inner}
+              <Typography className={c.subtitle2}>
+                {com.description || ""}
+              </Typography>
+            </>
+          ) : (
+            <Tooltip title={com.description || ""} placement="top" arrow>
+              {inner}
+            </Tooltip>
+          )}
+        </div>
+      );
+    case "slider":
+      inner = (
+        <Box>
+          <Grid container spacing={2} className={c.slider}>
+            <Typography className={c.sliderName} id="input-slider" gutterBottom>
+              {com.name}
+            </Typography>
+            <Grid item xs>
+              <Slider
+                value={value != null ? value : getIn(directConf, com.field, "")}
+                onChange={(e) => {
+                  let v = e.target.value;
+                  const min = com.min != null ? com.min : -Infinity;
+                  const max = com.max != null ? com.max : Infinity;
+                  v = Math.max(v, min);
+                  v = Math.min(v, max);
+                  updateConfiguration(forceField || com.field, v, layer);
+                }}
+                min={com.min != null ? com.min : -Infinity}
+                step={com.step != null ? com.step : 1}
+                max={com.max != null ? com.max : Infinity}
+                valueLabelDisplay="auto"
+              />
+            </Grid>
+          </Grid>
+        </Box>
       );
       return (
         <div>

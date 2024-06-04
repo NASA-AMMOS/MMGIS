@@ -131,7 +131,7 @@
               "new": true,
               "field": "style.colorProp",
               "name": "Color From Property",
-              "description": "Color but taken from each individual feature's property. For example 'color' or 'path.to.prop.in.properties.object'",
+              "description": "Color but taken from each individual feature's property. For example 'color' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'Color' field.",
               "type": "text",
               "width": 4
             },
@@ -139,7 +139,7 @@
               "field": "style.opacity",
               "name": "Opacity",
               "description": "Stroke Opacity",
-              "type": "number",
+              "type": "slider",
               "min": 0,
               "max": 1,
               "step": 0.01,
@@ -149,7 +149,7 @@
               "new": true,
               "field": "style.opacityProp",
               "name": "Opacity From Property",
-              "description": "Opacity but taken from each individual feature's property. For example 'opacity' or 'path.to.prop.in.properties.object'",
+              "description": "Opacity but taken from each individual feature's property. For example 'opacity' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'Opacity' field.",
               "type": "text",
               "width": 4
             }
@@ -168,7 +168,7 @@
               "new": true,
               "field": "style.fillColorProp",
               "name": "Fill Color From Property",
-              "description": "Fill Color but taken from each individual feature's property. For example 'fill_color' or 'path.to.prop.in.properties.object'",
+              "description": "Fill Color but taken from each individual feature's property. For example 'fill_color' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'Fill Color' field.",
               "type": "text",
               "width": 4
             },
@@ -176,7 +176,7 @@
               "field": "style.fillOpacity",
               "name": "Fill Opacity",
               "description": "Fill Opacity",
-              "type": "number",
+              "type": "slider",
               "min": 0,
               "max": 1,
               "step": 0.01,
@@ -186,21 +186,39 @@
               "new": true,
               "field": "style.fillOpacityProp",
               "name": "Fill Opacity From Property",
-              "description": "Fill Opacity but taken from each individual feature's property. For example 'fill_opacity' or 'path.to.prop.in.properties.object'",
+              "description": "Fill Opacity but taken from each individual feature's property. For example 'fill_opacity' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'Fill Opacity' field.",
               "type": "text",
-              "width": 2
+              "width": 4
             }
           ]
         },
         {
           "components": [
             {
+              "field": "style.weight",
+              "name": "Weight",
+              "description": "Stroke weight in pixels of point features.",
+              "type": "slider",
+              "min": 0,
+              "max": 16,
+              "step": 1,
+              "width": 2
+            },
+            {
+              "new": true,
+              "field": "style.weightProp",
+              "name": "Weight From Property",
+              "description": "Weight but taken from each individual feature's property. For example 'weight' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'Weight' field.",
+              "type": "text",
+              "width": 4
+            },
+            {
               "field": "style.radius",
               "name": "Radius",
               "description": "Radius in pixels of point features.",
-              "type": "number",
+              "type": "slider",
               "min": 0,
-              "max": 100,
+              "max": 24,
               "step": 1,
               "width": 2
             },
@@ -208,7 +226,7 @@
               "new": true,
               "field": "style.radiusProp",
               "name": "Radius From Property",
-              "description": "Radius but taken from each individual feature's property. For example 'radius' or 'path.to.prop.in.properties.object'",
+              "description": "Radius but taken from each individual feature's property. For example 'radius' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'Radius' field.",
               "type": "text",
               "width": 4
             }
@@ -748,6 +766,7 @@
         }
       ]
     },
+
     {
       "name": "Behavior",
       "rows": [
@@ -769,6 +788,19 @@
               "description": "If dynamicExtent is true, only requery if the map was panned past the stated threshold. Unit is in meters. If a zoom-dependent threshold is desired, set this value to a string ending in '/z'. This will then internally use 'dynamicExtentMoveThreshold / Math.pow(2, zoom)' as the threshold value.",
               "type": "text",
               "width": 3
+            }
+          ]
+        },
+        {
+          "subname": "Miscellaneous",
+          "components": [
+            {
+              "field": "variables.style.nointeraction",
+              "name": "Disable Interactivity",
+              "description": "If checked, no mouse events will trigger on features of this layer.",
+              "type": "checkbox",
+              "width": 2,
+              "defaultChecked": false
             }
           ]
         }

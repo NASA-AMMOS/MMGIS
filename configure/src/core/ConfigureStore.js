@@ -1,5 +1,9 @@
 import { createSlice } from "@reduxjs/toolkit";
 
+import { calls } from "./calls";
+
+const configId = parseInt(Math.random() * 100000);
+
 export const ConfigureStore = createSlice({
   name: "core",
   initialState: {
@@ -8,6 +12,7 @@ export const ConfigureStore = createSlice({
     configuration: "{}",
     toolConfiguration: {},
     geodatasets: [],
+    datasets: [],
     page: null,
     modal: {
       newMission: false,
@@ -20,8 +25,15 @@ export const ConfigureStore = createSlice({
       previewGeoDataset: false,
       appendGeoDataset: false,
       updateGeoDataset: false,
+      newDataset: false,
     },
     snackBarText: false,
+    lockConfig: false,
+    lockConfigCount: false,
+    lockConfigTypes: {
+      main: false,
+      disconnect: false,
+    },
   },
   reducers: {
     setMissions: (state, action) => {
@@ -40,6 +52,9 @@ export const ConfigureStore = createSlice({
     },
     setGeodatasets: (state, action) => {
       state.geodatasets = action.payload;
+    },
+    setDatasets: (state, action) => {
+      state.datasets = action.payload;
     },
     setPage: (state, action) => {
       state.page = action.payload.page;
@@ -67,6 +82,88 @@ export const ConfigureStore = createSlice({
           severity: action.payload.severity,
         };
     },
+    clearLockConfig: (state, action) => {
+      state.lockConfigTypes[action.payload.type || "main"] = false;
+
+      let canUnlock = true;
+      Object.keys(state.lockConfigTypes).forEach((k) => {
+        if (state.lockConfigTypes[k] === true) canUnlock = false;
+      });
+      if (canUnlock) {
+        state.lockConfig = false;
+      }
+    },
+    setLockConfig: (state, action) => {
+      state.lockConfigTypes[action.payload.type || "main"] = true;
+      state.lockConfig = true;
+      state.lockConfigCount =
+        window.mmgisglobal.ENABLE_CONFIG_OVERRIDE === "true" ? 4 : false;
+    },
+    saveConfiguration: (state, action) => {
+      if (state.lockConfig === true) {
+        if (state.lockConfigCount !== false) {
+          if (state.lockConfigTypes.disconnect === true) {
+            state.snackBarText = {
+              text: `Websocket disconnected. You will not be able to save until it reconnects or ${
+                state.lockConfigCount
+              } more attempt${
+                state.lockConfigCount !== 1 ? "s" : ""
+              } at saving to force it.`,
+              severity: "error",
+            };
+          } else {
+            state.snackBarText = {
+              text: `This configuration changed while you were working on it. Cannot save without a refresh or ${
+                state.lockConfigCount
+              } more attempt${
+                state.lockConfigCount !== 1 ? "s" : ""
+              } at saving to force it.`,
+              severity: "error",
+            };
+          }
+          state.lockConfigCount--;
+          if (state.lockConfigCount <= 0) {
+            // clearLockConfig
+            state.lockConfigTypes["main"] = false;
+
+            let canUnlock = true;
+            Object.keys(state.lockConfigTypes).forEach((k) => {
+              if (state.lockConfigTypes[k] === true) canUnlock = false;
+            });
+            if (canUnlock) {
+              state.lockConfig = false;
+            }
+          }
+        } else {
+          if (state.lockConfigTypes.disconnect === true) {
+            state.snackBarText = {
+              text: `Websocket disconnected. You will not be able to save until it reconnects.`,
+              severity: "error",
+            };
+          } else {
+            state.snackBarText = {
+              text: `This configuration changed while you were working on it. Cannot save without a refresh.`,
+              severity: "error",
+            };
+          }
+        }
+        return;
+      }
+      calls.api(
+        "upsert",
+        {
+          mission: state.mission,
+          config: JSON.stringify(state.configuration),
+          id: configId,
+        },
+        (res) => {
+          action.payload.cb("success", res);
+        },
+        (res) => {
+          action.payload.cb("error", res);
+        }
+      );
+    },
   },
 });
 
@@ -77,9 +174,13 @@ export const {
   setConfiguration,
   setToolConfiguration,
   setGeodatasets,
+  setDatasets,
   setPage,
   setModal,
   setSnackBarText,
+  saveConfiguration,
+  clearLockConfig,
+  setLockConfig,
 } = ConfigureStore.actions;
 
 export default ConfigureStore.reducer;

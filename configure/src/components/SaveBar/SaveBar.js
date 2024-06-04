@@ -3,8 +3,17 @@ import { useSelector, useDispatch } from "react-redux";
 import {} from "./SaveBarSlice";
 import { makeStyles } from "@mui/styles";
 
+import clsx from "clsx";
+
 import { calls } from "../../core/calls";
-import { setModal } from "../../core/ConfigureStore";
+
+import {
+  setModal,
+  setConfiguration,
+  clearLockConfig,
+  saveConfiguration,
+  setSnackBarText,
+} from "../../core/ConfigureStore";
 
 import Button from "@mui/material/Button";
 
@@ -32,11 +41,15 @@ const useStyles = makeStyles((theme) => ({
     background: `${theme.palette.swatches.grey[800]} !important`,
   },
   save: {
-    margin: "8px 24px 8px 8px !important",
+    margin: "8px !important",
     height: "32px",
     borderRadius: "3px !important",
     background: `${theme.palette.swatches.p[11]} !important`,
     color: "white !important",
+  },
+  saveDisabled: {
+    cursor: "not-allowed !important",
+    background: `${theme.palette.swatches.red[500]} !important`,
   },
 }));
 
@@ -44,6 +57,9 @@ export default function SaveBar() {
   const c = useStyles();
 
   const dispatch = useDispatch();
+
+  const mission = useSelector((state) => state.core.mission);
+  const lockConfig = useSelector((state) => state.core.lockConfig);
 
   return (
     <>
@@ -58,7 +74,48 @@ export default function SaveBar() {
         >
           Preview Changes
         </Button>
-        <Button className={c.save} variant="contained" endIcon={<SaveIcon />}>
+        <Button
+          className={clsx(c.save, { [c.saveDisabled]: lockConfig })}
+          variant="contained"
+          endIcon={<SaveIcon />}
+          onClick={() => {
+            dispatch(
+              saveConfiguration({
+                cb: (status, resp) => {
+                  dispatch(
+                    setSnackBarText({
+                      text:
+                        status === "success"
+                          ? "Saved!"
+                          : "Failed to save configuration!",
+                      severity: status,
+                    })
+                  );
+                  if (status === "success")
+                    if (mission != null)
+                      calls.api(
+                        "get",
+                        { mission: mission },
+                        (res) => {
+                          dispatch(setConfiguration(res));
+                          dispatch(clearLockConfig({}));
+                        },
+                        (res) => {
+                          dispatch(
+                            setSnackBarText({
+                              text:
+                                res?.message ||
+                                "Failed to get configuration for mission.",
+                              severity: "error",
+                            })
+                          );
+                        }
+                      );
+                },
+              })
+            );
+          }}
+        >
           Save Changes
         </Button>
       </div>
