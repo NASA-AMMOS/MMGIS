@@ -37,6 +37,7 @@ import UserInterface from "../Tabs/UserInterface/UserInterface";
 import APITokens from "../../pages/APITokens/APITokens";
 import GeoDatasets from "../../pages/GeoDatasets/GeoDatasets";
 import Datasets from "../../pages/Datasets/Datasets";
+import WebHooks from "../../pages/WebHooks/WebHooks";
 
 const useStyles = makeStyles((theme) => ({
   Main: {
@@ -162,6 +163,9 @@ export default function Main() {
       break;
     case "api_tokens":
       Page = <APITokens />;
+      break;
+    case "webhooks":
+      Page = <WebHooks />;
       break;
     default:
   }

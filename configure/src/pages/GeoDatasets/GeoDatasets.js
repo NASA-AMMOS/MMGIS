@@ -114,15 +114,9 @@ const useStyles = makeStyles((theme) => ({
     },
   },
   tableInner: {
-    margin: "53px",
-    width: "calc(100% - 106px) !important",
+    margin: "32px",
+    width: "calc(100% - 64px) !important",
     boxShadow: "0px 1px 7px 0px rgba(0, 0, 0, 0.2)",
-  },
-  flex: {
-    display: "flex",
-    "& > svg": {
-      margin: "3px 10px 0px 2px",
-    },
   },
   actions: {
     display: "flex",
@@ -177,14 +171,22 @@ const useStyles = makeStyles((theme) => ({
   topbar: {
     width: "100%",
     height: "48px",
-    minHeight: "48px",
+    minHeight: "48px !important",
     display: "flex",
     justifyContent: "space-between",
-    background: theme.palette.swatches.grey[850],
+    background: theme.palette.swatches.grey[1000],
     boxShadow: `inset 10px 0px 10px -5px rgba(0,0,0,0.3)`,
-    borderBottom: `1px solid ${theme.palette.swatches.grey[900]} !important`,
+    borderBottom: `2px solid ${theme.palette.swatches.grey[800]} !important`,
     padding: `0px 20px`,
     boxSizing: `border-box !important`,
+  },
+  topbarTitle: {
+    display: "flex",
+    color: theme.palette.accent.main,
+    "& > svg": {
+      color: theme.palette.swatches.grey[150],
+      margin: "3px 10px 0px 2px",
+    },
   },
   bottomBar: {
     background: theme.palette.swatches.grey[850],
@@ -194,9 +196,9 @@ const useStyles = makeStyles((theme) => ({
     fontWeight: "bold !important",
     textTransform: "uppercase",
     letterSpacing: "1px !important",
-    color: `${theme.palette.swatches.grey[850]} !important`,
-    backgroundColor: `${theme.palette.swatches.grey[150]} !important`,
-    borderRight: `1px solid ${theme.palette.swatches.grey[400]}`,
+    color: `${theme.palette.accent.main} !important`,
+    backgroundColor: `${theme.palette.swatches.grey[1000]} !important`,
+    borderRight: `1px solid ${theme.palette.swatches.grey[900]}`,
   },
 }));
 
@@ -283,12 +285,12 @@ function EnhancedTableToolbar(props) {
 
   return (
     <Toolbar className={c.topbar}>
-      <div className={c.flex}>
+      <div className={c.topbarTitle}>
         <ShapeLineIcon />
         <Typography
           sx={{ flex: "1 1 100%" }}
+          style={{ fontWeight: "bold", fontSize: "16px", lineHeight: "29px" }}
           variant="h6"
-          id="tableTitle"
           component="div"
         >
           GEODATASETS
@@ -315,7 +317,7 @@ EnhancedTableToolbar.propTypes = {
 
 export default function GeoDatasets() {
   const [order, setOrder] = React.useState("asc");
-  const [orderBy, setOrderBy] = React.useState("calories");
+  const [orderBy, setOrderBy] = React.useState("name");
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(25);
 

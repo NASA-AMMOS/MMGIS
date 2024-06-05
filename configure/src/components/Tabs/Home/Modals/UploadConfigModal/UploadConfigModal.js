@@ -1,13 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
-import { calls } from "../../../../core/calls";
+import { calls } from "../../../../../core/calls";
 
 import {
-  setMissions,
   setModal,
   setSnackBarText,
-} from "../../../../core/ConfigureStore";
+  saveConfiguration,
+  setConfiguration,
+  clearLockConfig,
+} from "../../../../../core/ConfigureStore";
 
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
@@ -18,15 +20,10 @@ import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 
 import CloseSharpIcon from "@mui/icons-material/CloseSharp";
-import ControlPointDuplicateIcon from "@mui/icons-material/ControlPointDuplicate";
+import UploadIcon from "@mui/icons-material/Upload";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 
 import { useDropzone } from "react-dropzone";
-
-import TextField from "@mui/material/TextField";
-import FormGroup from "@mui/material/FormGroup";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import Checkbox from "@mui/material/Checkbox";
 
 import { makeStyles, useTheme } from "@mui/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -79,7 +76,6 @@ const useStyles = makeStyles((theme) => ({
   subtitle: {
     fontSize: "14px !important",
     width: "100%",
-    textAlign: "right",
     marginBottom: "8px !important",
     color: theme.palette.swatches.grey[300],
     letterSpacing: "0.2px",
@@ -98,14 +94,12 @@ const useStyles = makeStyles((theme) => ({
   backgroundIcon: {
     margin: "7px 8px 0px 0px",
   },
-
   fileName: {
     textAlign: "center",
     fontWeight: "bold",
     letterSpacing: "1px",
     marginBottom: "10px",
     paddingBottom: "10px",
-    borderBottom: `1px solid ${theme.palette.swatches.grey[500]}`,
   },
   dropzone: {
     width: "100%",
@@ -136,47 +130,30 @@ const useStyles = makeStyles((theme) => ({
     "& > p:first-child": { fontWeight: "bold", letterSpacing: "1px" },
     "& > p:last-child": { fontSize: "14px", fontStyle: "italic" },
   },
-  timeFields: {
-    display: "flex",
-    "& > div:first-child": {
-      marginRight: "5px",
-    },
-    "& > div:last-child": {
-      marginLeft: "5px",
-    },
-  },
 }));
 
-const MODAL_NAME = "appendGeoDataset";
-const AppendGeoDatasetModal = (props) => {
-  const { queryGeoDatasets } = props;
+const MODAL_NAME = "uploadConfig";
+const UploadConfigModal = (props) => {
+  const { queryVersions } = props;
   const c = useStyles();
 
   const modal = useSelector((state) => state.core.modal[MODAL_NAME]);
+  const mission = useSelector((state) => state.core.mission);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const dispatch = useDispatch();
 
-  const [geojson, setGeojson] = useState(null);
+  const [configJson, setConfigJson] = useState(null);
   const [fileName, setFileName] = useState(null);
-  const [startTimeField, setStartTimeField] = useState(null);
-  const [endTimeField, setEndTimeField] = useState(null);
-
-  useEffect(() => {
-    setStartTimeField(modal?.geoDataset?.start_time_field);
-    setEndTimeField(modal?.geoDataset?.end_time_field);
-  }, [JSON.stringify(modal)]);
 
   const handleClose = () => {
     // close modal
     dispatch(setModal({ name: MODAL_NAME, on: false }));
   };
   const handleSubmit = () => {
-    const geoDatasetName = modal?.geoDataset?.name;
-
-    if (geojson == null || fileName === null) {
+    if (configJson == null || fileName === null) {
       dispatch(
         setSnackBarText({
           text: "Please upload a file.",
@@ -185,59 +162,59 @@ const AppendGeoDatasetModal = (props) => {
       );
       return;
     }
+    console.log(configJson);
 
-    if (geoDatasetName === null) {
+    if (
+      !configJson.hasOwnProperty("msv") ||
+      !configJson.hasOwnProperty("layers") ||
+      !configJson.hasOwnProperty("tools")
+    ) {
       dispatch(
         setSnackBarText({
-          text: "No GeoDataset found to append to.",
+          text: "This JSON doesn't appear to be an MMGIS Config.JSON file.",
           severity: "error",
         })
       );
       return;
     }
-    const forceParams = {
-      filename: fileName,
-    };
-    if (startTimeField) forceParams.start_prop = startTimeField;
-    if (endTimeField) forceParams.end_prop = endTimeField;
 
-    calls.api(
-      "geodatasets_append",
-      {
-        urlReplacements: {
-          name: geoDatasetName,
+    dispatch(
+      saveConfiguration({
+        configuration: configJson,
+        cb: (status, resp) => {
+          dispatch(
+            setSnackBarText({
+              text:
+                status === "success"
+                  ? "Uploaded and Saved!"
+                  : "Failed to save configuration!",
+              severity: status,
+            })
+          );
+          queryVersions();
+          if (status === "success")
+            if (mission != null)
+              calls.api(
+                "get",
+                { mission: mission },
+                (res) => {
+                  dispatch(setConfiguration(res));
+                  dispatch(clearLockConfig({}));
+                  handleClose();
+                },
+                (res) => {
+                  dispatch(
+                    setSnackBarText({
+                      text:
+                        res?.message ||
+                        "Failed to get configuration for mission.",
+                      severity: "error",
+                    })
+                  );
+                }
+              );
         },
-        forceParams,
-        type: geojson.type,
-        features: geojson.features,
-      },
-      (res) => {
-        if (res.status === "success") {
-          dispatch(
-            setSnackBarText({
-              text: "Successfully appended to GeoDataset.",
-              severity: "success",
-            })
-          );
-          queryGeoDatasets();
-          handleClose();
-        } else {
-          dispatch(
-            setSnackBarText({
-              text: res?.message || "Failed to append to GeoDataset.",
-              severity: "error",
-            })
-          );
-        }
-      },
-      (res) => {
-        dispatch(
-          setSnackBarText({
-            text: res?.message || "Failed to append to GeoDataset.",
-            severity: "error",
-          })
-        );
-      }
+      })
     );
   };
 
@@ -251,7 +228,7 @@ const AppendGeoDatasetModal = (props) => {
   } = useDropzone({
     maxFiles: 1,
     accept: {
-      "application/json": [".json", ".geojson"],
+      "application/json": [".json"],
     },
     onDropAccepted: (files) => {
       const file = files[0];
@@ -259,13 +236,13 @@ const AppendGeoDatasetModal = (props) => {
 
       const reader = new FileReader();
       reader.onload = (e) => {
-        setGeojson(JSON.parse(e.target.result));
+        setConfigJson(JSON.parse(e.target.result));
       };
       reader.readAsText(file);
     },
     onDropRejected: () => {
       setFileName(null);
-      setGeojson(null);
+      setConfigJson(null);
     },
   });
 
@@ -283,10 +260,8 @@ const AppendGeoDatasetModal = (props) => {
       <DialogTitle className={c.heading}>
         <div className={c.flexBetween}>
           <div className={c.flexBetween}>
-            <ControlPointDuplicateIcon className={c.backgroundIcon} />
-            <div
-              className={c.title}
-            >{`Append features to this GeoDataset: ${modal?.geoDataset?.name}`}</div>
+            <UploadIcon className={c.backgroundIcon} />
+            <div className={c.title}>{`Upload a Configuration`}</div>
           </div>
           <IconButton
             className={c.closeIcon}
@@ -300,7 +275,7 @@ const AppendGeoDatasetModal = (props) => {
       </DialogTitle>
       <DialogContent className={c.content}>
         <Typography className={c.subtitle}>
-          {`Appends the features of the uploaded file to the GeoDataset`}
+          {`Replaces the existing configuration for this mission with one that's uploaded.`}
         </Typography>
         <div className={c.dropzone}>
           <div {...getRootProps({ className: "dropzone" })}>
@@ -310,7 +285,7 @@ const AppendGeoDatasetModal = (props) => {
             {!isDragActive && (
               <div className={c.dropzoneMessage}>
                 <p>Drag 'n' drop or click to select files...</p>
-                <p>Only *.json and *.geojson files are accepted.</p>
+                <p>Only *.json MMGIS configuration files are accepted.</p>
               </div>
             )}
           </div>
@@ -320,37 +295,6 @@ const AppendGeoDatasetModal = (props) => {
           <InsertDriveFileIcon />
           <div>{fileName || "No File Selected"}</div>
         </div>
-
-        <div className={c.timeFields}>
-          <div>
-            <TextField
-              className={c.missionNameInput}
-              label="Start Time Field"
-              variant="filled"
-              value={startTimeField}
-              onChange={(e) => {
-                setStartTimeField(e.target.value);
-              }}
-            />
-            <Typography className={c.subtitle2}>
-              {`If this GeoDataset already has a Start Time Field attached, the name of that start time field inside each feature's "properties" object for which to create a temporal index for the geodataset. Take care in using time field names for the appended GeoJSON features that are different from that of the existing features.`}
-            </Typography>
-          </div>
-          <div>
-            <TextField
-              className={c.missionNameInput}
-              label="End Time Field"
-              variant="filled"
-              value={endTimeField}
-              onChange={(e) => {
-                setEndTimeField(e.target.value);
-              }}
-            />
-            <Typography className={c.subtitle2}>
-              {`If this GeoDataset already has a End Time Field attached, the name of that end time field inside each feature's "properties" object for which to create a temporal index for the geodataset. Take care in using time field names for the appended GeoJSON features that are different from that of the existing features.`}
-            </Typography>
-          </div>
-        </div>
       </DialogContent>
       <DialogActions>
         <Button
@@ -358,11 +302,11 @@ const AppendGeoDatasetModal = (props) => {
           variant="contained"
           onClick={handleSubmit}
         >
-          Append to GeoDataset
+          Upload Config.JSON
         </Button>
       </DialogActions>
     </Dialog>
   );
 };
 
-export default AppendGeoDatasetModal;
+export default UploadConfigModal;

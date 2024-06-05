@@ -1,9 +1,14 @@
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
-import { calls } from "../../../../core/calls";
+import { calls } from "../../../../../core/calls";
 
-import { setModal, setSnackBarText } from "../../../../core/ConfigureStore";
+import {
+  setModal,
+  setMission,
+  setMissions,
+  setSnackBarText,
+} from "../../../../../core/ConfigureStore";
 
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
@@ -45,7 +50,7 @@ const useStyles = makeStyles((theme) => ({
   heading: {
     height: theme.headHeights[2],
     boxSizing: "border-box",
-    background: theme.palette.swatches.p[0],
+    background: theme.palette.swatches.p[4],
     borderBottom: `1px solid ${theme.palette.swatches.grey[800]}`,
     padding: `4px ${theme.spacing(2)} 4px ${theme.spacing(4)} !important`,
   },
@@ -69,6 +74,25 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     justifyContent: "space-between",
   },
+  subtitle: {
+    fontSize: "14px !important",
+    width: "100%",
+    marginBottom: "8px !important",
+    color: theme.palette.swatches.grey[300],
+    letterSpacing: "0.2px",
+  },
+  subtitle2: {
+    fontSize: "12px !important",
+    fontStyle: "italic",
+    width: "100%",
+    marginBottom: "8px !important",
+    color: theme.palette.swatches.grey[400],
+  },
+  confirmInput: {
+    width: "100%",
+    margin: "10px 0px 4px 0px !important",
+    borderTop: `1px solid ${theme.palette.swatches.grey[500]}`,
+  },
   backgroundIcon: {
     margin: "7px 8px 0px 0px",
   },
@@ -86,7 +110,7 @@ const useStyles = makeStyles((theme) => ({
     textAlign: "center",
     fontSize: "24px !important",
     letterSpacing: "1px !important",
-    color: theme.palette.swatches.grey[100],
+    color: theme.palette.swatches.p[4],
     fontWeight: "bold !important",
     margin: "10px !important",
     borderBottom: `1px solid ${theme.palette.swatches.grey[100]}`,
@@ -124,49 +148,104 @@ const useStyles = makeStyles((theme) => ({
     color: theme.palette.swatches.grey[100],
     fontWeight: "bold",
   },
-  close: {},
+  confirmMessage: {
+    fontStyle: "italic",
+    fontSize: "15px !important",
+  },
+  dialogActions: {
+    display: "flex !important",
+    justifyContent: "space-between !important",
+  },
+  delete: {
+    background: `${theme.palette.swatches.p[4]} !important`,
+    color: `${theme.palette.swatches.grey[1000]} !important`,
+    "&:hover": {
+      background: `${theme.palette.swatches.grey[0]} !important`,
+    },
+  },
+  cancel: {},
 }));
 
-const MODAL_NAME = "layersUsedByGeoDataset";
-const LayersUsedByModal = (props) => {
-  const {} = props;
+const MODAL_NAME = "deleteConfig";
+const DeleteConfigModal = (props) => {
+  const { queryGeoDatasets } = props;
   const c = useStyles();
 
   const modal = useSelector((state) => state.core.modal[MODAL_NAME]);
+  const mission = useSelector((state) => state.core.mission);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const dispatch = useDispatch();
 
+  const [missionName, setMissionName] = useState(null);
+
   const handleClose = () => {
     // close modal
     dispatch(setModal({ name: MODAL_NAME, on: false }));
   };
+  const handleSubmit = () => {
+    if (!mission) {
+      dispatch(
+        setSnackBarText({
+          text: "Cannot delete undefined Mission.",
+          severity: "error",
+        })
+      );
+      return;
+    }
 
-  let occurrences = [];
+    if (missionName !== mission) {
+      dispatch(
+        setSnackBarText({
+          text: "Confirmation Mission name does not match.",
+          severity: "error",
+        })
+      );
+      return;
+    }
 
-  if (modal?.geoDataset?.occurrences)
-    occurrences = Object.keys(modal?.geoDataset?.occurrences)
-      .map((mission) => {
-        const m = modal?.geoDataset?.occurrences[mission];
-        if (m.length == 0) return null;
-        else {
-          const items = [<div className={c.mission}>{mission}</div>];
-          m.forEach((n) => {
-            items.push(
-              <div className={c.pathName}>
-                <div className={c.path}>
-                  {`${n.path}.`.replaceAll(".", " ➔ ")}
-                </div>
-                <div className={c.name}>{n.name}</div>
-              </div>
+    calls.api(
+      "destroy",
+      {
+        mission: mission,
+      },
+      (res) => {
+        dispatch(
+          setSnackBarText({
+            text: `Successfully deleted the '${mission}' Mission.`,
+            severity: "success",
+          })
+        );
+        dispatch(setMission(null));
+        calls.api(
+          "missions",
+          null,
+          (res) => {
+            dispatch(setMissions(res.missions));
+          },
+          (res) => {
+            dispatch(
+              setSnackBarText({
+                text: res?.message || "Failed to get available missions.",
+                severity: "error",
+              })
             );
-          });
-          return items;
-        }
-      })
-      .filter(Boolean);
+          }
+        );
+        handleClose();
+      },
+      (res) => {
+        dispatch(
+          setSnackBarText({
+            text: `Failed to delete the '${mission}' Mission.`,
+            severity: "error",
+          })
+        );
+      }
+    );
+  };
 
   return (
     <Dialog
@@ -183,7 +262,7 @@ const LayersUsedByModal = (props) => {
         <div className={c.flexBetween}>
           <div className={c.flexBetween}>
             <ShapeLineIcon className={c.backgroundIcon} />
-            <div className={c.title}>GeoDataset is Used By</div>
+            <div className={c.title}>Delete a Mission</div>
           </div>
           <IconButton
             className={c.closeIcon}
@@ -198,31 +277,35 @@ const LayersUsedByModal = (props) => {
       <DialogContent className={c.content}>
         <Typography
           className={c.layerName}
-        >{`${modal?.geoDataset?.name}`}</Typography>
-        {occurrences.length > 0 ? (
-          <>
-            <div className={c.hasOccurrencesTitle}>
-              <Typography className={c.hasOccurrences}>
-                {`This GeoDataset is currently in use in the following layers:`}
-              </Typography>
-            </div>
-            <div className={c.occurrences}>{occurrences}</div>
-          </>
-        ) : (
-          <div className={c.hasOccurrencesTitle}>
-            <Typography className={c.hasOccurrences}>
-              {`This GeoDataset is not in use.`}
-            </Typography>
-          </div>
-        )}
+        >{`Deleting: ${mission}`}</Typography>
+        <TextField
+          className={c.confirmInput}
+          label="Confirm Mission Name"
+          variant="filled"
+          value={missionName}
+          onChange={(e) => {
+            setMissionName(e.target.value);
+          }}
+        />
+        <Typography
+          className={c.confirmMessage}
+        >{`Enter '${mission}' above and click 'Delete' to confirm the permanent deletion of this Mission. None of the mission's data files in /Missions will be deleted.`}</Typography>
       </DialogContent>
       <DialogActions className={c.dialogActions}>
-        <Button className={c.close} variant="outlined" onClick={handleClose}>
-          Close
+        <Button
+          className={c.delete}
+          variant="contained"
+          startIcon={<DeleteForeverIcon size="small" />}
+          onClick={handleSubmit}
+        >
+          Delete
+        </Button>
+        <Button className={c.cancel} variant="outlined" onClick={handleClose}>
+          Cancel
         </Button>
       </DialogActions>
     </Dialog>
   );
 };
 
-export default LayersUsedByModal;
+export default DeleteConfigModal;

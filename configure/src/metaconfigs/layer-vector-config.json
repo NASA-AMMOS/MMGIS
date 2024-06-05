@@ -233,6 +233,31 @@
           ]
         },
         {
+          "components": [
+            {
+              "field": "shape",
+              "name": "Shape",
+              "description": "A marker symbol for point features for this layer. When set to 'None', a simple circle is used. Marker icons and other attachments may override this setting.",
+              "type": "dropdown",
+              "width": 4,
+              "options": [
+                "none",
+                "circle",
+                "directional-circle",
+                "triangle",
+                "triangle-flipped",
+                "square",
+                "diamond",
+                "pentagon",
+                "hexagon",
+                "star",
+                "plus",
+                "pin"
+              ]
+            }
+          ]
+        },
+        {
           "subname": "Marker Icons",
           "subdescription": "Uses an icon image instead of an svg for all of the layer's point markers. If you're using this as a bearing marker, make sure the base icon is pointing north.",
           "components": [

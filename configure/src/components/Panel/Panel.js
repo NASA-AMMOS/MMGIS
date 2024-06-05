@@ -6,7 +6,12 @@ import mmgisLogo from "../../images/mmgis.png";
 
 import clsx from "clsx";
 
-import { setMission, setModal, setPage } from "../../core/ConfigureStore";
+import {
+  setConfiguration,
+  setMission,
+  setModal,
+  setPage,
+} from "../../core/ConfigureStore";
 
 import NewMissionModal from "./Modals/NewMissionModal/NewMissionModal";
 
@@ -177,6 +182,7 @@ export default function Panel() {
             disableElevation
             startIcon={<ShapeLineIcon size="small" />}
             onClick={() => {
+              dispatch(setMission(null));
               dispatch(setPage({ page: "geodatasets" }));
             }}
           >
@@ -188,6 +194,7 @@ export default function Panel() {
             disableElevation
             startIcon={<TextSnippetIcon size="small" />}
             onClick={() => {
+              dispatch(setMission(null));
               dispatch(setPage({ page: "datasets" }));
             }}
           >
@@ -199,6 +206,7 @@ export default function Panel() {
             disableElevation
             startIcon={<KeyIcon size="small" />}
             onClick={() => {
+              dispatch(setMission(null));
               dispatch(setPage({ page: "api_tokens" }));
             }}
           >
@@ -210,6 +218,7 @@ export default function Panel() {
             disableElevation
             startIcon={<PhishingIcon size="small" />}
             onClick={() => {
+              dispatch(setMission(null));
               dispatch(setPage({ page: "webhooks" }));
             }}
           >

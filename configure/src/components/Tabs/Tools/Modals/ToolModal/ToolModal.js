@@ -87,7 +87,6 @@ const useStyles = makeStyles((theme) => ({
   subtitle: {
     fontSize: "14px !important",
     width: "100%",
-    textAlign: "right",
     marginBottom: "8px !important",
     color: theme.palette.swatches.grey[300],
     letterSpacing: "0.2px",
@@ -244,7 +243,7 @@ const ToolModal = (props) => {
                       const nextConfiguration = JSON.parse(
                         JSON.stringify(configuration)
                       );
-                      if (tool != null) {
+                      if (tool != null && tool.name != null) {
                         updateToolInConfiguration(
                           tool.name,
                           nextConfiguration,

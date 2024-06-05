@@ -1,30 +1,28 @@
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
-import { calls } from "../../../../../core/calls";
-import { getLayerByUUID } from "../../../../../core/utils";
+import { getLayerByUUID, traverseLayers } from "../../../../../core/utils";
 
 import {
-  setMissions,
   setModal,
   setSnackBarText,
+  setConfiguration,
 } from "../../../../../core/ConfigureStore";
 
-import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
+import Tooltip from "@mui/material/Tooltip";
 import IconButton from "@mui/material/IconButton";
+import Divider from "@mui/material/Divider";
+import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 
 import CloseSharpIcon from "@mui/icons-material/CloseSharp";
 import LayersIcon from "@mui/icons-material/Layers";
 
-import TextField from "@mui/material/TextField";
-import FormGroup from "@mui/material/FormGroup";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import Checkbox from "@mui/material/Checkbox";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
 import { makeStyles, useTheme } from "@mui/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -89,7 +87,6 @@ const useStyles = makeStyles((theme) => ({
   subtitle: {
     fontSize: "14px !important",
     width: "100%",
-    textAlign: "right",
     marginBottom: "8px !important",
     color: theme.palette.swatches.grey[300],
     letterSpacing: "0.2px",
@@ -108,18 +105,43 @@ const useStyles = makeStyles((theme) => ({
   backgroundIcon: {
     margin: "7px 8px 0px 0px",
   },
+  dialogActions: {
+    display: "flex !important",
+    justifyContent: "space-between !important",
+    background: `${theme.palette.swatches.grey[150]} !important`,
+    padding: "8px 14px !important",
+  },
+  removeButton: {
+    background: `${theme.palette.swatches.red[500]} !important`,
+    color: `${theme.palette.swatches.grey[1000]} !important`,
+    border: "none !important",
+  },
+  actionsRight: {
+    display: "flex",
+  },
+  cloneButton: {
+    color: `${theme.palette.swatches.grey[900]} !important`,
+  },
+  divider: {
+    borderColor: `${theme.palette.swatches.grey[300]} !important`,
+    margin: "0px 10px !important",
+  },
+  doneButton: {
+    background: `${theme.palette.swatches.p[0]} !important`,
+    color: `${theme.palette.swatches.grey[150]} !important`,
+    border: "none !important",
+    width: "100px",
+  },
 }));
 
 const MODAL_NAME = "layer";
 const LayerModal = (props) => {
-  const {} = props;
   const c = useStyles();
 
   const modal = useSelector((state) => state.core.modal[MODAL_NAME]);
   const configuration = useSelector((state) => state.core.configuration);
 
   const layerUUID = modal && modal.layerUUID ? modal.layerUUID : null;
-
   const layer = getLayerByUUID(configuration.layers, layerUUID) || {};
 
   const theme = useTheme();
@@ -196,15 +218,71 @@ const LayerModal = (props) => {
       <DialogContent className={c.content}>
         <Maker config={config} layer={layer} inlineHelp={true} />
       </DialogContent>
-      <DialogActions>
-        <Button
-          variant="contained"
-          onClick={() => {
-            handleClose();
-          }}
-        >
-          Done
-        </Button>
+      <DialogActions className={c.dialogActions}>
+        <div>
+          <Button
+            className={c.removeButton}
+            variant="outlined"
+            startIcon={<DeleteForeverIcon size="small" />}
+            onClick={() => {
+              const nextConfiguration = JSON.parse(
+                JSON.stringify(configuration)
+              );
+              traverseLayers(nextConfiguration.layers, (l, path, index) => {
+                if (layer.uuid === l.uuid) {
+                  return "remove";
+                }
+              });
+              dispatch(setConfiguration(nextConfiguration));
+              dispatch(
+                setSnackBarText({
+                  text: `Successfully removed '${layer.name}'.`,
+                  severity: "success",
+                })
+              );
+              handleClose();
+            }}
+          >
+            Remove Layer
+          </Button>
+        </div>
+        <div className={c.actionsRight}>
+          <Tooltip title="Clone Layer" placement="top" arrow>
+            <IconButton
+              className={c.cloneButton}
+              onClick={() => {
+                const nextConfiguration = JSON.parse(
+                  JSON.stringify(configuration)
+                );
+                const clonedLayer = JSON.parse(JSON.stringify(layer));
+                window.newUUIDCount++;
+                const uuid = window.newUUIDCount;
+                clonedLayer.uuid = uuid;
+                nextConfiguration.layers.unshift(clonedLayer);
+                dispatch(setConfiguration(nextConfiguration));
+                dispatch(
+                  setSnackBarText({
+                    text: `Cloned '${layer.name}'.`,
+                    severity: "success",
+                  })
+                );
+              }}
+            >
+              <ContentCopyIcon fontSize="inherit" />
+            </IconButton>
+          </Tooltip>
+
+          <Divider className={c.divider} orientation="vertical" flexItem />
+
+          <Button
+            className={c.doneButton}
+            onClick={() => {
+              handleClose();
+            }}
+          >
+            Done
+          </Button>
+        </div>
       </DialogActions>
     </Dialog>
   );

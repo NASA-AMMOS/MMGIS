@@ -82,7 +82,6 @@ const useStyles = makeStyles((theme) => ({
   subtitle: {
     fontSize: "14px !important",
     width: "100%",
-    textAlign: "right",
     marginBottom: "8px !important",
     color: theme.palette.swatches.grey[300],
     letterSpacing: "0.2px",

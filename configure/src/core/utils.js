@@ -126,7 +126,11 @@ export const downloadObject = (
   if (typeof exportObj === "string") {
     strung = exportObj;
   } else {
-    if (exportExt && (exportExt === ".json" || exportExt === ".geojson")) {
+    if (
+      exportExt &&
+      (exportExt === ".json" || exportExt === ".geojson") &&
+      exportObj.features
+    ) {
       //pretty print geojson
       let features = [];
       for (let i = 0; i < exportObj.features.length; i++)
@@ -135,7 +139,7 @@ export const downloadObject = (
       exportObj.features = "__FEATURES_PLACEHOLDER__";
       strung = JSON.stringify(exportObj, null, 2);
       strung = strung.replace('"__FEATURES_PLACEHOLDER__"', features);
-    } else strung = JSON.stringify(exportObj);
+    } else strung = JSON.stringify(exportObj, null, 2);
   }
   let fileName = exportName + (exportExt || ".json");
 

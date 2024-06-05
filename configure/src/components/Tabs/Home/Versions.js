@@ -4,13 +4,15 @@ import { makeStyles } from "@mui/styles";
 
 import clsx from "clsx";
 
-import { calls } from "../../core/calls";
-import { downloadObject } from "../../core/utils";
+import { calls } from "../../../core/calls";
+import { downloadObject } from "../../../core/utils";
 import {
   setSnackBarText,
-  setDatasets,
   setModal,
-} from "../../core/ConfigureStore";
+  setConfiguration,
+  clearLockConfig,
+} from "../../../core/ConfigureStore";
+import { setVersions } from "./HomeSlice";
 
 import PropTypes from "prop-types";
 import { alpha } from "@mui/material/styles";
@@ -45,10 +47,9 @@ import UploadIcon from "@mui/icons-material/Upload";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import AddIcon from "@mui/icons-material/Add";
+import ShapeLineIcon from "@mui/icons-material/ShapeLine";
+import LowPriorityIcon from "@mui/icons-material/LowPriority";
 import ControlPointDuplicateIcon from "@mui/icons-material/ControlPointDuplicate";
-import TextSnippetIcon from "@mui/icons-material/TextSnippet";
-
-import NewDatasetModal from "./Modals/NewDatasetModal/NewDatasetModal";
 
 function descendingComparator(a, b, orderBy) {
   if (b[orderBy] < a[orderBy]) {
@@ -83,8 +84,8 @@ function stableSort(array, comparator) {
 }
 
 const useStyles = makeStyles((theme) => ({
-  Datasets: { width: "100%", height: "100%" },
-  DatasetsInner: {
+  Versions: { width: "100%", height: "100%" },
+  VersionsInner: {
     width: "100%",
     height: "100%",
     display: "flex",
@@ -109,17 +110,18 @@ const useStyles = makeStyles((theme) => ({
     },
   },
   tableInner: {
-    margin: "32px",
-    width: "calc(100% - 64px) !important",
+    width: "100% !important",
     boxShadow: "0px 1px 7px 0px rgba(0, 0, 0, 0.2)",
+  },
+  flex: {
+    display: "flex",
+    "& > svg": {
+      margin: "3px 10px 0px 2px",
+    },
   },
   actions: {
     display: "flex",
     justifyContent: "right",
-  },
-  inIcon: {
-    width: "40px !important",
-    height: "40px !important",
   },
   previewIcon: {
     width: "40px !important",
@@ -130,62 +132,11 @@ const useStyles = makeStyles((theme) => ({
     width: "40px !important",
     height: "40px !important",
   },
-  appendIcon: {
+  setIcon: {
     marginLeft: "4px !important",
     width: "40px !important",
     height: "40px !important",
-  },
-  renameIcon: {
-    width: "40px !important",
-    height: "40px !important",
-  },
-  updateIcon: {
-    marginRight: "4px !important",
-    width: "40px !important",
-    height: "40px !important",
-  },
-  deleteIcon: {
-    marginLeft: "4px !important",
-    width: "40px !important",
-    height: "40px !important",
-    "&:hover": {
-      background: "#c43541 !important",
-      color: `${theme.palette.swatches.grey[900]} !important`,
-    },
-  },
-  addButton: {
-    whiteSpace: "nowrap",
-    padding: "5px 20px !important",
-    margin: "0px 10px !important",
-  },
-  badge: {
-    "& > span": {
-      backgroundColor: `${theme.palette.swatches.p[11]} !important`,
-    },
-  },
-  topbar: {
-    width: "100%",
-    height: "48px",
-    minHeight: "48px !important",
-    display: "flex",
-    justifyContent: "space-between",
-    background: theme.palette.swatches.grey[1000],
-    boxShadow: `inset 10px 0px 10px -5px rgba(0,0,0,0.3)`,
-    borderBottom: `2px solid ${theme.palette.swatches.grey[800]} !important`,
-    padding: `0px 20px`,
-    boxSizing: `border-box !important`,
-  },
-  topbarTitle: {
-    display: "flex",
-    color: theme.palette.accent.main,
-    "& > svg": {
-      color: theme.palette.swatches.grey[150],
-      margin: "3px 10px 0px 2px",
-    },
-  },
-  bottomBar: {
-    background: theme.palette.swatches.grey[850],
-    boxShadow: "inset 10px 0px 10px -5px rgba(0,0,0,0.3)",
+    transform: "rotateZ(180deg)",
   },
   th: {
     fontWeight: "bold !important",
@@ -195,16 +146,32 @@ const useStyles = makeStyles((theme) => ({
     backgroundColor: `${theme.palette.swatches.grey[1000]} !important`,
     borderRight: `1px solid ${theme.palette.swatches.grey[900]}`,
   },
+  bottomBar: {
+    background: theme.palette.swatches.grey[1000],
+  },
+  versionCell: {
+    display: "flex",
+  },
+  current: {
+    background: theme.palette.swatches.p[11],
+    borderRadius: "3px",
+    color: theme.palette.swatches.grey[1000],
+    margin: "0px 6px",
+    padding: "2px 6px",
+    fontSize: "12px",
+    textTransform: "uppercase",
+    lineHeight: "18px",
+  },
 }));
 
 const headCells = [
   {
-    id: "name",
-    label: "Name",
+    id: "version",
+    label: "Version",
   },
   {
-    id: "updated",
-    label: "Last Updated",
+    id: "createdAt",
+    label: "Date",
   },
   {
     id: "actions",
@@ -258,88 +225,22 @@ EnhancedTableHead.propTypes = {
   rowCount: PropTypes.number.isRequired,
 };
 
-function EnhancedTableToolbar(props) {
-  const c = useStyles();
-  const dispatch = useDispatch();
-
-  return (
-    <Toolbar className={c.topbar}>
-      <div className={c.topbarTitle}>
-        <TextSnippetIcon />
-        <Typography
-          sx={{ flex: "1 1 100%" }}
-          style={{ fontWeight: "bold", fontSize: "16px", lineHeight: "29px" }}
-          variant="h6"
-          component="div"
-        >
-          DATASETS
-        </Typography>
-      </div>
-
-      <Button
-        variant="contained"
-        className={c.addButton}
-        endIcon={<AddIcon />}
-        onClick={() => {
-          dispatch(setModal({ name: "newDataset" }));
-        }}
-      >
-        New Dataset
-      </Button>
-    </Toolbar>
-  );
-}
-
-EnhancedTableToolbar.propTypes = {
-  numSelected: PropTypes.number.isRequired,
-};
-
-export default function Datasets() {
-  const [order, setOrder] = React.useState("asc");
-  const [orderBy, setOrderBy] = React.useState("name");
+export default function Versions(props) {
+  const { queryVersions } = props;
+  const [order, setOrder] = React.useState("desc");
+  const [orderBy, setOrderBy] = React.useState("version");
   const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(25);
+  const [rowsPerPage, setRowsPerPage] = React.useState(5);
 
   const c = useStyles();
 
   const dispatch = useDispatch();
-  const datasets = useSelector((state) => state.core.datasets);
+  const mission = useSelector((state) => state.core.mission);
+  const versions = useSelector((state) => state.home.versions);
 
-  const queryDatasets = () => {
-    calls.api(
-      "datasets_entries",
-      {},
-      (res) => {
-        if (res.status === "success")
-          dispatch(
-            setDatasets(
-              res.body.entries.map((en, idx) => {
-                en.id = idx;
-                return en;
-              })
-            )
-          );
-        else
-          dispatch(
-            setSnackBarText({
-              text: res?.message || "Failed to get datasets.",
-              severity: "error",
-            })
-          );
-      },
-      (res) => {
-        dispatch(
-          setSnackBarText({
-            text: res?.message || "Failed to get datasets.",
-            severity: "error",
-          })
-        );
-      }
-    );
-  };
   useEffect(() => {
-    queryDatasets();
-  }, []);
+    queryVersions();
+  }, [mission]);
 
   const handleRequestSort = (event, property) => {
     const isAsc = orderBy === property && order === "asc";
@@ -358,22 +259,21 @@ export default function Datasets() {
 
   // Avoid a layout jump when reaching the last page with empty rows.
   const emptyRows =
-    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - datasets.length) : 0;
+    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - versions.length) : 0;
 
   const visibleRows = React.useMemo(
     () =>
-      stableSort(datasets, getComparator(order, orderBy)).slice(
+      stableSort(versions, getComparator(order, orderBy)).slice(
         page * rowsPerPage,
         page * rowsPerPage + rowsPerPage
       ),
-    [order, orderBy, page, rowsPerPage, datasets]
+    [order, orderBy, page, rowsPerPage, versions]
   );
 
   return (
     <>
-      <Box className={c.Datasets}>
-        <Paper className={c.DatasetsInner}>
-          <EnhancedTableToolbar />
+      <Box className={c.Versions}>
+        <Paper className={c.VersionsInner}>
           <TableContainer className={c.table}>
             <Table
               className={c.tableInner}
@@ -386,7 +286,7 @@ export default function Datasets() {
                 order={order}
                 orderBy={orderBy}
                 onRequestSort={handleRequestSort}
-                rowCount={datasets.length}
+                rowCount={versions.length}
               />
               <TableBody>
                 {visibleRows.map((row, index) => {
@@ -406,49 +306,53 @@ export default function Datasets() {
                       key={row.id}
                       selected={false}
                     >
-                      <TableCell align="left">{row.name}</TableCell>
+                      <TableCell align="left">
+                        <div className={c.versionCell}>
+                          <div>{`v${row.version}`}</div>
+                          {row.current ? (
+                            <div className={c.current}>current</div>
+                          ) : null}
+                        </div>
+                      </TableCell>
                       <TableCell align="right">
-                        {row.updated
-                          ? new Date(row.updated).toLocaleString()
-                          : row.updated}
+                        {row.createdAt
+                          ? new Date(row.createdAt).toLocaleString()
+                          : row.createdAt}
                       </TableCell>
                       <TableCell align="right">
                         <div className={c.actions}>
-                          <Tooltip title={"Used By"} placement="top" arrow>
-                            <IconButton
-                              className={c.inIcon}
-                              title="Used By"
-                              aria-label="used by"
-                              onClick={() => {
-                                dispatch(
-                                  setModal({
-                                    name: "layersUsedByDataset",
-                                    dataset: row,
-                                  })
-                                );
-                              }}
-                            >
-                              <Badge
-                                className={c.badge}
-                                badgeContent={numOccurrences}
-                                color="primary"
-                              >
-                                <InventoryIcon fontSize="small" />
-                              </Badge>
-                            </IconButton>
-                          </Tooltip>
                           <Tooltip title={"Preview"} placement="top" arrow>
                             <IconButton
                               className={c.previewIcon}
                               title="Preview"
                               aria-label="preview"
                               onClick={() => {
-                                dispatch(
-                                  setModal({
-                                    name: "previewDataset",
-                                    dataset: row,
-                                  })
-                                );
+                                if (row.version)
+                                  calls.api(
+                                    "get",
+                                    {
+                                      mission: row.mission,
+                                      version: row.version,
+                                      id: window.configId,
+                                    },
+                                    (res) => {
+                                      dispatch(
+                                        setModal({
+                                          name: "preview",
+                                          customConfig: res,
+                                          version: row.version,
+                                        })
+                                      );
+                                    },
+                                    (res) => {
+                                      dispatch(
+                                        setSnackBarText({
+                                          text: "Failed to download Configuration JSON.",
+                                          severity: "error",
+                                        })
+                                      );
+                                    }
+                                  );
                               }}
                             >
                               <PreviewIcon fontSize="small" />
@@ -460,23 +364,23 @@ export default function Datasets() {
                               title="Download"
                               aria-label="download"
                               onClick={() => {
-                                if (row.name)
+                                if (row.version)
                                   calls.api(
-                                    "datasets_get",
+                                    "get",
                                     {
-                                      layer: row.name,
+                                      mission: row.mission,
+                                      version: row.version,
+                                      id: window.configId,
                                     },
                                     (res) => {
                                       downloadObject(
-                                        res,
-                                        `${row.name}-dataset`,
-                                        ".geojson"
+                                        res.config,
+                                        `${row.mission}_v${row.version}_config`,
+                                        ".json"
                                       );
                                       dispatch(
                                         setSnackBarText({
-                                          text:
-                                            res?.message ||
-                                            "Successfully downloaded Dataset.",
+                                          text: "Successfully downloaded Configuration JSON.",
                                           severity: "success",
                                         })
                                       );
@@ -484,9 +388,7 @@ export default function Datasets() {
                                     (res) => {
                                       dispatch(
                                         setSnackBarText({
-                                          text:
-                                            res?.message ||
-                                            "Failed to download Dataset.",
+                                          text: "Failed to download Configuration JSON.",
                                           severity: "error",
                                         })
                                       );
@@ -497,70 +399,64 @@ export default function Datasets() {
                               <DownloadIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          <Divider orientation="vertical" flexItem />
-                          <Tooltip title={"Append"} placement="top" arrow>
-                            <IconButton
-                              className={c.appendIcon}
-                              title="Append"
-                              aria-label="append"
-                              onClick={() => {
-                                dispatch(
-                                  setModal({
-                                    name: "appendDataset",
-                                    dataset: row,
-                                  })
-                                );
-                              }}
-                            >
-                              <ControlPointDuplicateIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          {/*
-                          <Tooltip title={"Rename"} placement="top" arrow>
-                            <IconButton
-                              className={c.renameIcon}
-                              title="Rename"
-                              aria-label="rename"
-                              onClick={() => {}}
-                            >
-                              <DriveFileRenameOutlineIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                            */}
-                          <Tooltip title={"Update"} placement="top" arrow>
-                            <IconButton
-                              className={c.updateIcon}
-                              title="Update"
-                              aria-label="update"
-                              onClick={() => {
-                                dispatch(
-                                  setModal({
-                                    name: "updateDataset",
-                                    dataset: row,
-                                  })
-                                );
-                              }}
-                            >
-                              <UploadIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+
                           <Divider orientation="vertical" flexItem />
 
-                          <Tooltip title={"Delete"} placement="top" arrow>
+                          <Tooltip title={"Set"} placement="top" arrow>
                             <IconButton
-                              className={c.deleteIcon}
-                              title="Delete"
-                              aria-label="delete"
+                              className={c.setIcon}
+                              title="Set"
+                              aria-label="set"
                               onClick={() => {
-                                dispatch(
-                                  setModal({
-                                    name: "deleteDataset",
-                                    dataset: row,
-                                  })
-                                );
+                                if (row.version)
+                                  calls.api(
+                                    "upsert",
+                                    {
+                                      mission: row.mission,
+                                      version: row.version,
+                                      id: window.configId,
+                                    },
+                                    (res) => {
+                                      dispatch(
+                                        setSnackBarText({
+                                          text: "Successfully set Configuration JSON to this version.",
+                                          severity: "success",
+                                        })
+                                      );
+                                      queryVersions();
+                                      if (res.status === "success")
+                                        if (mission != null)
+                                          calls.api(
+                                            "get",
+                                            { mission: mission },
+                                            (res) => {
+                                              dispatch(setConfiguration(res));
+                                              dispatch(clearLockConfig({}));
+                                            },
+                                            (res) => {
+                                              dispatch(
+                                                setSnackBarText({
+                                                  text:
+                                                    res?.message ||
+                                                    "Failed to get configuration for mission.",
+                                                  severity: "error",
+                                                })
+                                              );
+                                            }
+                                          );
+                                    },
+                                    (res) => {
+                                      dispatch(
+                                        setSnackBarText({
+                                          text: "Failed to set Configuration JSON to this version.",
+                                          severity: "error",
+                                        })
+                                      );
+                                    }
+                                  );
                               }}
                             >
-                              <DeleteForeverIcon fontSize="small" />
+                              <LowPriorityIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
                         </div>
@@ -582,9 +478,9 @@ export default function Datasets() {
           </TableContainer>
           <TablePagination
             className={c.bottomBar}
-            rowsPerPageOptions={[25, 50, 100]}
+            rowsPerPageOptions={[5, 10, 25]}
             component="div"
-            count={datasets.length}
+            count={versions.length}
             rowsPerPage={rowsPerPage}
             page={page}
             onPageChange={handleChangePage}
@@ -592,14 +488,6 @@ export default function Datasets() {
           />
         </Paper>
       </Box>
-      <NewDatasetModal queryDatasets={queryDatasets} />
-      {/*
-      <DeleteDatasetModal queryDatasets={queryDatasets} />
-      <LayersUsedByModal />
-      <PreviewDatasetModal />
-      <AppendDatasetModal queryDatasets={queryDatasets} />
-      <UpdateDatasetModal queryDatasets={queryDatasets} />
-              */}
     </>
   );
 }

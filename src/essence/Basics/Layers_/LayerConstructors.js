@@ -280,7 +280,7 @@ export const constructVectorLayer = (
                         `</svg>`,
                     ].join('\n')
                     break
-                case 'directional_circle':
+                case 'directional-circle':
                     svg = [
                         `<div style="height: 100%; width: 100%;transform: rotateZ(${yaw}deg); transform-origin: center;">`,
                         `<svg style="overflow: visible;" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,

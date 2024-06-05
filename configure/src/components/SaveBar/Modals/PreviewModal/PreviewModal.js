@@ -154,7 +154,11 @@ const PreviewModal = (props) => {
         <div className={c.flexBetween}>
           <div className={c.flexBetween}>
             <PreviewIcon className={c.backgroundIcon} />
-            <div className={c.title}>Previewing Changes</div>
+            <div className={c.title}>
+              {modal?.customConfig != null
+                ? `Previewing Configuration v${modal.version}`
+                : "Previewing Changes"}
+            </div>
           </div>
           <IconButton
             className={c.closeIcon}
@@ -167,7 +171,7 @@ const PreviewModal = (props) => {
         </div>
       </DialogTitle>
       <DialogContent className={c.content}>
-        <MMGIS configuration={configuration} />
+        <MMGIS configuration={modal?.customConfig || configuration} />
       </DialogContent>
     </Dialog>
   );

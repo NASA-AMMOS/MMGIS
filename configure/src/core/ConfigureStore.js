@@ -2,14 +2,15 @@ import { createSlice } from "@reduxjs/toolkit";
 
 import { calls } from "./calls";
 
-const configId = parseInt(Math.random() * 100000);
+window.newUUIDCount = 0;
+window.configId = parseInt(Math.random() * 100000);
 
 export const ConfigureStore = createSlice({
   name: "core",
   initialState: {
     missions: [],
     mission: null,
-    configuration: "{}",
+    configuration: {},
     toolConfiguration: {},
     geodatasets: [],
     datasets: [],
@@ -26,6 +27,9 @@ export const ConfigureStore = createSlice({
       appendGeoDataset: false,
       updateGeoDataset: false,
       newDataset: false,
+      uploadConfig: false,
+      cloneConfig: false,
+      deleteConfig: false,
     },
     snackBarText: false,
     lockConfig: false,
@@ -149,12 +153,18 @@ export const ConfigureStore = createSlice({
         }
         return;
       }
+
+      let finalConfig = action.payload.configuration
+        ? JSON.parse(JSON.stringify(action.payload.configuration))
+        : JSON.parse(JSON.stringify(state.configuration));
+      if (finalConfig.temp) delete finalConfig.temp;
+
       calls.api(
         "upsert",
         {
           mission: state.mission,
-          config: JSON.stringify(state.configuration),
-          id: configId,
+          config: JSON.stringify(finalConfig),
+          id: window.configId,
         },
         (res) => {
           action.payload.cb("success", res);

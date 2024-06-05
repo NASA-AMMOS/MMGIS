@@ -21,6 +21,7 @@ import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import IconButton from "@mui/material/IconButton";
+import Button from "@mui/material/Button";
 
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown"; // Header
 import StorageIcon from "@mui/icons-material/Storage"; // Data
@@ -29,6 +30,7 @@ import TravelExploreIcon from "@mui/icons-material/TravelExplore"; // Query
 import LanguageIcon from "@mui/icons-material/Language"; // Tile
 import GridViewIcon from "@mui/icons-material/GridView"; // Vector tile
 import ViewInArIcon from "@mui/icons-material/ViewInAr"; // Model
+import AddIcon from "@mui/icons-material/Add";
 
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import AccessTimeFilledIcon from "@mui/icons-material/AccessTimeFilled";
@@ -49,11 +51,11 @@ const useStyles = makeStyles((theme) => ({
   },
   verticalLines: {
     display: "flex",
-    height: "calc(100% - 72px)",
+    height: "calc(100% - 128px)",
     position: "absolute",
     top: "0px",
     left: "0px",
-    margin: "4px 20%",
+    margin: "32px 18%",
     "& > div": {
       width: `${INDENT_WIDTH - 1}px`,
       height: "100%",
@@ -62,7 +64,7 @@ const useStyles = makeStyles((theme) => ({
   },
   layersList: {
     width: "100%",
-    margin: "0px 20%",
+    margin: "28px 18%",
   },
   layersListItem: {
     height: "28px",
@@ -131,6 +133,15 @@ const useStyles = makeStyles((theme) => ({
   dragHandle: {
     padding: "4px",
   },
+  addLayer: {
+    position: "absolute !important",
+    top: "32px",
+    right: "18%",
+    transform: "translateX(calc(100% + 5px))",
+    borderRadius: "3px !important",
+    backgroundColor: `${theme.palette.swatches.p[0]} !important`,
+    outline: "none !important",
+  },
 }));
 
 let savedLayersConfiguration = "";
@@ -155,9 +166,7 @@ export default function Layers() {
         name: "layer",
         on: true,
         layerUUID: layer.uuid,
-        onClose: () => {
-          console.log("closed");
-        },
+        onClose: () => {},
       })
     );
   };
@@ -252,9 +261,30 @@ export default function Layers() {
     dispatch(setConfiguration(nextConfiguration));
   };
 
+  console.log(flatLayers);
+
   return (
     <>
       <div className={c.Layers}>
+        <Button
+          className={c.addLayer}
+          variant="outlined"
+          startIcon={<AddIcon size="small" />}
+          onClick={() => {
+            const nextConfiguration = JSON.parse(JSON.stringify(configuration));
+            window.newUUIDCount++;
+            const uuid = window.newUUIDCount;
+            nextConfiguration.layers.unshift({
+              name: "New Layer",
+              uuid,
+              type: "header",
+              sublayers: [],
+            });
+            dispatch(setConfiguration(nextConfiguration));
+          }}
+        >
+          Add New Layer
+        </Button>
         <div className={c.verticalLines}>
           <div></div>
           <div></div>
@@ -315,8 +345,10 @@ export default function Layers() {
 
                   return (
                     <Draggable
-                      key={l.layer.uuid || l.layer.name}
-                      draggableId={l.layer.uuid || l.layer.name}
+                      key={l.layer.uuid ? String(l.layer.uuid) : l.layer.name}
+                      draggableId={
+                        l.layer.uuid ? String(l.layer.uuid) : l.layer.name
+                      }
                       index={idx}
                     >
                       {(provided, snapshot) => (

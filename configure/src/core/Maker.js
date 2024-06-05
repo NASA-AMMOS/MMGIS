@@ -413,7 +413,7 @@ const getComponent = (
             <Typography className={c.sliderName} id="input-slider" gutterBottom>
               {com.name}
             </Typography>
-            <Grid item xs>
+            <Grid item xs style={{ margin: "0px 10px" }}>
               <Slider
                 value={value != null ? value : getIn(directConf, com.field, "")}
                 onChange={(e) => {
