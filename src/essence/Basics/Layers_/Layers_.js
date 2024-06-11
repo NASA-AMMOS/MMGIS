@@ -536,11 +536,17 @@ const L_ = {
                                             weight: s.style.weight,
                                             radius: s.radius,
                                         },
-                                        bearing: s.variables?.markerAttachments
-                                            ?.bearing
-                                            ? s.variables.markerAttachments
-                                                  .bearing
-                                            : null,
+                                        bearing:
+                                            (s.variables?.markerAttachments
+                                                ?.bearing &&
+                                                s.variables?.markerAttachments
+                                                    ?.bearing.enabled ==
+                                                    null) ||
+                                            s.variables?.markerAttachments
+                                                ?.bearing?.enabled === true
+                                                ? s.variables.markerAttachments
+                                                      .bearing
+                                                : null,
                                     },
                                     opacity: L_.layers.opacity[s.name],
                                     minZoom:
@@ -892,10 +898,16 @@ const L_ = {
                                         weight: s.style.weight,
                                         radius: s.radius,
                                     },
-                                    bearing: s.variables?.markerAttachments
-                                        ?.bearing
-                                        ? s.variables.markerAttachments.bearing
-                                        : null,
+                                    bearing:
+                                        (s.variables?.markerAttachments
+                                            ?.bearing &&
+                                            s.variables?.markerAttachments
+                                                ?.bearing.enabled == null) ||
+                                        s.variables?.markerAttachments?.bearing
+                                            ?.enabled === true
+                                            ? s.variables.markerAttachments
+                                                  .bearing
+                                            : null,
                                 },
                                 opacity: L_.layers.opacity[s.name],
                                 minZoom:
@@ -3321,12 +3333,21 @@ function parseConfig(configData, urlOnLayers) {
     L_.radius = L_.configData.msv.radius
     L_.masterdb = L_.configData.msv.masterdb || false
 
-    L_.tools = L_.configData.tools
+    // Remove tools that start have on: false (on null still allowed)
+    L_.tools = []
+    L_.configData.tools.forEach((t) => {
+        if (t.on !== false) L_.tools.push(t)
+    })
 
-    L_.hasMap = L_.configData.panels.indexOf('map') > -1
-    L_.hasMap = true //Should always have map;
-    L_.hasViewer = L_.configData.panels.indexOf('viewer') > -1
-    L_.hasGlobe = L_.configData.panels.indexOf('globe') > -1
+    if (L_.configData?.panels?.length != null) {
+        L_.hasMap = L_.configData.panels.indexOf('map') > -1
+        L_.hasMap = true //Should always have map;
+        L_.hasViewer = L_.configData.panels.indexOf('viewer') > -1
+        L_.hasGlobe = L_.configData.panels.indexOf('globe') > -1
+    } else {
+        L_.hasViewer = L_.configData.panels.viewer === true
+        L_.hasGlobe = L_.configData.panels.globe === true
+    }
     //We only care about the layers now
     const layers = L_.configData.layers
 

@@ -16,5 +16,71 @@
     "name": "Measure",
     "paths": {
         "MeasureTool": "essence/Tools/Measure/MeasureTool"
+    },
+    "config": {
+        "rows": [
+            {
+                "components": [
+                    {
+                        "field": "variables.dem",
+                        "name": "DEM path",
+                        "description": "Path to a primary DEM (such as Data/defaultDEM.tif). Required if Layer Specific DEMs is unset.",
+                        "type": "text",
+                        "width": 12
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.layerDems",
+                        "name": "Layer Specific DEMs",
+                        "description": "Object of layer names and the paths to their DEMs. Users may switch between DEMs to profile via a dropdown. The dropdown only renders if there is more than one DEM configured overall.",
+                        "type": "objectarray",
+                        "width": 12,
+                        "object": [
+                            {
+                                "field": "layer",
+                                "name": "Layer Name",
+                                "description": "",
+                                "type": "text",
+                                "width": 4
+                            },
+                            {
+                                "field": "dem",
+                                "name": "DEM Path",
+                                "description": "",
+                                "type": "text",
+                                "width": 8
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.onlyShowDemIfLayerOn",
+                        "name": "Only Show DEM If On",
+                        "description": "If true, hides the configured Layer Specific DEMs of off layers from the tool's DEM selection dropdown. If false, all Layer Specific DEMs, even with invalid layer names, always show in the dropdown.",
+                        "type": "checkbox",
+                        "width": 2,
+                        "defaultChecked": false
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.defaultMode",
+                        "name": "Default Mode",
+                        "description": "Which measurement mode to default to. Options are 'segment', 'continuous' and 'continuous_color'",
+                        "type": "dropdown",
+                        "width": 2,
+                        "options": ["segment", "continuous", "continuous_color"]
+                    }
+                ]
+            }
+        ]
     }
 }
