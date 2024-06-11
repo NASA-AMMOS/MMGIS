@@ -20,7 +20,6 @@ import IconButton from "@mui/material/IconButton";
 
 import CloseSharpIcon from "@mui/icons-material/CloseSharp";
 import ShapeLineIcon from "@mui/icons-material/ShapeLine";
-import WarningIcon from "@mui/icons-material/Warning";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 
 import TextField from "@mui/material/TextField";

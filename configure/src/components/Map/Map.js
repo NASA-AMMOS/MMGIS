@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
 import * as L from "leaflet";
 
-import clsx from "clsx";
-
 import ReactJson from "react-json-view";
 
 import { makeStyles } from "@mui/styles";

@@ -1,20 +1,12 @@
-import React, { useState } from "react";
+import React from "react";
 import { useSelector, useDispatch } from "react-redux";
 
-import { calls } from "../../../../../core/calls";
 import {
-  getLayerByUUID,
-  getIn,
-  setIn,
   getToolFromConfiguration,
   updateToolInConfiguration,
 } from "../../../../../core/utils";
 
-import {
-  setModal,
-  setSnackBarText,
-  setConfiguration,
-} from "../../../../../core/ConfigureStore";
+import { setModal, setConfiguration } from "../../../../../core/ConfigureStore";
 
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";

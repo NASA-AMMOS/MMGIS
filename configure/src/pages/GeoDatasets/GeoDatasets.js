@@ -1,8 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { makeStyles } from "@mui/styles";
-
-import clsx from "clsx";
 
 import { calls } from "../../core/calls";
 import { downloadObject } from "../../core/utils";
@@ -26,14 +24,9 @@ import TableSortLabel from "@mui/material/TableSortLabel";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import Paper from "@mui/material/Paper";
-import Checkbox from "@mui/material/Checkbox";
 import IconButton from "@mui/material/IconButton";
 import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import Switch from "@mui/material/Switch";
-import DeleteIcon from "@mui/icons-material/Delete";
-import FilterListIcon from "@mui/icons-material/FilterList";
 import Divider from "@mui/material/Divider";
 import Badge from "@mui/material/Badge";
 import { visuallyHidden } from "@mui/utils";
@@ -42,7 +35,6 @@ import InventoryIcon from "@mui/icons-material/Inventory";
 import PreviewIcon from "@mui/icons-material/Preview";
 import DownloadIcon from "@mui/icons-material/Download";
 import UploadIcon from "@mui/icons-material/Upload";
-import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import AddIcon from "@mui/icons-material/Add";
 import ShapeLineIcon from "@mui/icons-material/ShapeLine";
@@ -174,15 +166,12 @@ const useStyles = makeStyles((theme) => ({
     minHeight: "48px !important",
     display: "flex",
     justifyContent: "space-between",
-    background: theme.palette.swatches.grey[1000],
-    boxShadow: `inset 10px 0px 10px -5px rgba(0,0,0,0.3)`,
-    borderBottom: `2px solid ${theme.palette.swatches.grey[800]} !important`,
     padding: `0px 20px`,
     boxSizing: `border-box !important`,
   },
   topbarTitle: {
     display: "flex",
-    color: theme.palette.accent.main,
+    color: theme.palette.swatches.grey[150],
     "& > svg": {
       color: theme.palette.swatches.grey[150],
       margin: "3px 10px 0px 2px",

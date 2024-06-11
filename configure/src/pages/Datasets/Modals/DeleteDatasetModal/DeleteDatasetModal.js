@@ -161,40 +161,40 @@ const useStyles = makeStyles((theme) => ({
   cancel: {},
 }));
 
-const MODAL_NAME = "deleteGeoDataset";
-const DeleteGeoDatasetModal = (props) => {
-  const { queryGeoDatasets } = props;
+const MODAL_NAME = "deleteDataset";
+const DeleteDatasetModal = (props) => {
+  const { queryDatasets } = props;
   const c = useStyles();
 
   const modal = useSelector((state) => state.core.modal[MODAL_NAME]);
-  const geodatasets = useSelector((state) => state.core.geodatasets);
+  const datasets = useSelector((state) => state.core.datasets);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const dispatch = useDispatch();
 
-  const [geoDatasetName, setGeoDatasetName] = useState(null);
+  const [datasetName, setDatasetName] = useState(null);
 
   const handleClose = () => {
     // close modal
     dispatch(setModal({ name: MODAL_NAME, on: false }));
   };
   const handleSubmit = () => {
-    if (!modal?.geoDataset?.name) {
+    if (!modal?.dataset?.name) {
       dispatch(
         setSnackBarText({
-          text: "Cannot delete undefined GeoDataset.",
+          text: "Cannot delete undefined Dataset.",
           severity: "error",
         })
       );
       return;
     }
 
-    if (geoDatasetName !== modal.geoDataset.name) {
+    if (datasetName !== modal.dataset.name) {
       dispatch(
         setSnackBarText({
-          text: "Confirmation GeoDataset name does not match.",
+          text: "Confirmation Dataset name does not match.",
           severity: "error",
         })
       );
@@ -202,26 +202,26 @@ const DeleteGeoDatasetModal = (props) => {
     }
 
     calls.api(
-      "geodatasets_remove",
+      "datasets_remove",
       {
         urlReplacements: {
-          name: modal.geoDataset.name,
+          name: modal.dataset.name,
         },
       },
       (res) => {
         if (res.status === "success") {
           dispatch(
             setSnackBarText({
-              text: `Successfully deleted the '${modal.geoDataset.name}' GeoDataset.`,
+              text: `Successfully deleted the '${modal.dataset.name}' Dataset.`,
               severity: "success",
             })
           );
-          queryGeoDatasets();
+          queryDatasets();
           handleClose();
         } else {
           dispatch(
             setSnackBarText({
-              text: `Failed to delete the '${modal.geoDataset.name}' GeoDataset.`,
+              text: `Failed to delete the '${modal.dataset.name}' Dataset.`,
               severity: "error",
             })
           );
@@ -230,7 +230,7 @@ const DeleteGeoDatasetModal = (props) => {
       (res) => {
         dispatch(
           setSnackBarText({
-            text: `Failed to delete the '${modal.geoDataset.name}' GeoDataset.`,
+            text: `Failed to delete the '${modal.dataset.name}' Dataset.`,
             severity: "error",
           })
         );
@@ -240,10 +240,10 @@ const DeleteGeoDatasetModal = (props) => {
 
   let occurrences = [];
 
-  if (modal?.geoDataset?.occurrences)
-    occurrences = Object.keys(modal?.geoDataset?.occurrences)
+  if (modal?.dataset?.occurrences)
+    occurrences = Object.keys(modal?.dataset?.occurrences)
       .map((mission) => {
-        const m = modal?.geoDataset?.occurrences[mission];
+        const m = modal?.dataset?.occurrences[mission];
         if (m.length == 0) return null;
         else {
           const items = [<div className={c.mission}>{mission}</div>];
@@ -277,7 +277,7 @@ const DeleteGeoDatasetModal = (props) => {
         <div className={c.flexBetween}>
           <div className={c.flexBetween}>
             <ShapeLineIcon className={c.backgroundIcon} />
-            <div className={c.title}>Delete a GeoDataset</div>
+            <div className={c.title}>Delete a Dataset</div>
           </div>
           <IconButton
             className={c.closeIcon}
@@ -292,13 +292,13 @@ const DeleteGeoDatasetModal = (props) => {
       <DialogContent className={c.content}>
         <Typography
           className={c.layerName}
-        >{`Deleting: ${modal?.geoDataset?.name}`}</Typography>
+        >{`Deleting: ${modal?.dataset?.name}`}</Typography>
         {occurrences.length > 0 && (
           <>
             <div className={c.hasOccurrencesTitle}>
               <WarningIcon />
               <Typography className={c.hasOccurrences}>
-                {`This GeoDataset is currently in use in the following layers:`}
+                {`This Dataset is currently in use in the following layers:`}
               </Typography>
             </div>
             <div className={c.occurrences}>{occurrences}</div>
@@ -306,25 +306,26 @@ const DeleteGeoDatasetModal = (props) => {
         )}
         <TextField
           className={c.confirmInput}
-          label="Confirm GeoDataset Name"
+          label="Confirm Dataset Name"
           variant="filled"
-          value={geoDatasetName}
+          value={datasetName}
           onChange={(e) => {
-            setGeoDatasetName(e.target.value);
+            setDatasetName(e.target.value);
           }}
         />
         <Typography
           className={c.confirmMessage}
-        >{`Enter '${modal?.geoDataset?.name}' above and click 'Delete' to confirm the permanent deletion of this GeoDataset.`}</Typography>
+        >{`Enter '${modal?.dataset?.name}' above and click 'Delete' to confirm the permanent deletion of this Dataset.`}</Typography>
       </DialogContent>
       <DialogActions className={c.dialogActions}>
         <Button
           className={c.delete}
           variant="contained"
           startIcon={<DeleteForeverIcon size="small" />}
-          onClick={handleSubmit}
+          onClick={() => {}}
+          style={{ cursor: "not-allowed" }}
         >
-          Delete
+          Not Implemented
         </Button>
         <Button className={c.cancel} variant="outlined" onClick={handleClose}>
           Cancel
@@ -334,4 +335,4 @@ const DeleteGeoDatasetModal = (props) => {
   );
 };
 
-export default DeleteGeoDatasetModal;
+export default DeleteDatasetModal;

@@ -1,29 +1,15 @@
-import React, { useState } from "react";
+import React from "react";
 import { useSelector, useDispatch } from "react-redux";
 
-import { calls } from "../../../../core/calls";
+import { setModal } from "../../../../core/ConfigureStore";
 
-import {
-  setMissions,
-  setModal,
-  setSnackBarText,
-} from "../../../../core/ConfigureStore";
-
-import Typography from "@mui/material/Typography";
-import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 
 import CloseSharpIcon from "@mui/icons-material/CloseSharp";
 import PreviewIcon from "@mui/icons-material/Preview";
-
-import TextField from "@mui/material/TextField";
-import FormGroup from "@mui/material/FormGroup";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import Checkbox from "@mui/material/Checkbox";
 
 import { makeStyles, useTheme } from "@mui/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";

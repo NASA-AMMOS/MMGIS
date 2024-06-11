@@ -3,11 +3,7 @@ import { useSelector, useDispatch } from "react-redux";
 
 import { calls } from "../../../../core/calls";
 
-import {
-  setMissions,
-  setModal,
-  setSnackBarText,
-} from "../../../../core/ConfigureStore";
+import { setModal, setSnackBarText } from "../../../../core/ConfigureStore";
 
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
@@ -24,9 +20,6 @@ import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import { useDropzone } from "react-dropzone";
 
 import TextField from "@mui/material/TextField";
-import FormGroup from "@mui/material/FormGroup";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import Checkbox from "@mui/material/Checkbox";
 
 import { makeStyles, useTheme } from "@mui/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";

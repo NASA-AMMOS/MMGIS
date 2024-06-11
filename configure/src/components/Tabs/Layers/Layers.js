@@ -3,19 +3,13 @@ import { useSelector, useDispatch } from "react-redux";
 import {} from "./LayersSlice";
 import { makeStyles } from "@mui/styles";
 
-import { calls } from "../../../core/calls";
 import { reorderArray } from "../../../core/utils";
-import {
-  setSnackBarText,
-  setModal,
-  setConfiguration,
-} from "../../../core/ConfigureStore";
+import { setModal, setConfiguration } from "../../../core/ConfigureStore";
 
 import LayerModal from "./Modals/LayerModal/LayerModal";
 
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
-import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";

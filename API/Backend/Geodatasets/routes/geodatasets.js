@@ -291,7 +291,16 @@ router.post("/entries", function (req, res, next) {
         // For each entry, list all occurrences in latest configuration objects
         sequelize
           .query(
-            "SELECT DISTINCT ON (mission) mission, version, config FROM configs ORDER BY mission ASC"
+            `
+            SELECT t1.*
+            FROM configs AS t1
+            INNER JOIN (
+                SELECT mission, MAX(version) AS max_version
+                FROM configs
+                GROUP BY mission
+            ) AS t2
+            ON t1.mission = t2.mission AND t1.version = t2.max_version ORDER BY mission ASC;
+            `
           )
           .then(([results]) => {
             // Populate occurrences

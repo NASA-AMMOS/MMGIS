@@ -10,6 +10,7 @@ const inspect = require("util").inspect;
 
 const { sequelize } = require("../../../connection");
 
+const Utils = require("../../../utils.js");
 const logger = require("../../../logger");
 const datasets = require("../models/datasets");
 const csvtojson = require("csvtojson");
@@ -88,10 +89,63 @@ router.post("/entries", function (req, res, next) {
         for (let i = 0; i < sets.length; i++) {
           entries.push({ name: sets[i].name, updated: sets[i].updatedAt });
         }
-        res.send({
-          status: "success",
-          body: { entries: entries },
-        });
+        // For each entry, list all occurrences in latest configuration objects
+        sequelize
+          .query(
+            `
+            SELECT t1.*
+            FROM configs AS t1
+            INNER JOIN (
+                SELECT mission, MAX(version) AS max_version
+                FROM configs
+                GROUP BY mission
+            ) AS t2
+            ON t1.mission = t2.mission AND t1.version = t2.max_version ORDER BY mission ASC;
+            `
+          )
+          .then(([results]) => {
+            // Populate occurrences
+            results.forEach((m) => {
+              Utils.traverseLayers(m.config.layers, (layer, path) => {
+                entries.forEach((entry) => {
+                  entry.occurrences = entry.occurrences || {};
+                  entry.occurrences[m.mission] =
+                    entry.occurrences[m.mission] || [];
+                  if (layer?.variables?.datasetLinks?.length != null) {
+                    layer.variables.datasetLinks.forEach((d) => {
+                      if (d.dataset === entry.name) {
+                        entry.occurrences[m.mission].push({
+                          name: layer.name,
+                          uuid: layer.uuid,
+                          path: path,
+                        });
+                      }
+                    });
+                  }
+                });
+              });
+            });
+
+            res.send({
+              status: "success",
+              body: { entries: entries },
+            });
+            return null;
+          })
+          .catch((err) => {
+            logger(
+              "error",
+              "Failed to find missions.",
+              req.originalUrl,
+              req,
+              err
+            );
+            res.send({
+              status: "failure",
+              message: "Failed to find missions.",
+            });
+            return null;
+          });
       } else {
         res.send({
           status: "failure",
@@ -149,6 +203,56 @@ router.post("/search", function (req, res, next) {
             logger(
               "error",
               "SQL error search through dataset.",
+              req.originalUrl,
+              req,
+              err
+            );
+            res.send({
+              status: "failure",
+              message: "SQL error.",
+            });
+          });
+      } else {
+        res.send({
+          status: "failure",
+          message: "Layer not found.",
+        });
+      }
+
+      return null;
+    })
+    .catch((err) => {
+      logger("error", "Failure finding dataset.", req.originalUrl, req, err);
+      res.send({
+        status: "failure",
+      });
+    });
+});
+
+/*
+ * req.query.layer
+ */
+router.get("/download", function (req, res, next) {
+  //First Find the table name
+  Datasets.findOne({ where: { name: req.query.layer } })
+    .then((result) => {
+      if (result) {
+        let table = result.dataValues.table;
+
+        sequelize
+          .query("SELECT * FROM " + table)
+          .then(([results]) => {
+            res.send({
+              status: "success",
+              body: results,
+            });
+
+            return null;
+          })
+          .catch((err) => {
+            logger(
+              "error",
+              "SQL error downloading dataset.",
               req.originalUrl,
               req,
               err

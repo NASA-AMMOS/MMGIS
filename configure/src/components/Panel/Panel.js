@@ -6,12 +6,7 @@ import mmgisLogo from "../../images/mmgis.png";
 
 import clsx from "clsx";
 
-import {
-  setConfiguration,
-  setMission,
-  setModal,
-  setPage,
-} from "../../core/ConfigureStore";
+import { setMission, setModal, setPage } from "../../core/ConfigureStore";
 
 import NewMissionModal from "./Modals/NewMissionModal/NewMissionModal";
 
@@ -222,7 +217,7 @@ export default function Panel() {
               dispatch(setPage({ page: "webhooks" }));
             }}
           >
-            WebHooks
+            Webhooks
           </Button>
         </div>
       </div>

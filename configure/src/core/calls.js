@@ -71,8 +71,12 @@ const c = {
     url: "api/datasets/entries",
   },
   datasets_get: {
-    type: "GET",
+    type: "POST",
     url: "api/datasets/get",
+  },
+  datasets_download: {
+    type: "GET",
+    url: "api/datasets/download",
   },
   longtermtoken_get: {
     type: "GET",

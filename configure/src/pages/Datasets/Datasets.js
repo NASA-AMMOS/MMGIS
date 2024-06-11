@@ -1,8 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { makeStyles } from "@mui/styles";
-
-import clsx from "clsx";
 
 import { calls } from "../../core/calls";
 import { downloadObject } from "../../core/utils";
@@ -13,7 +11,6 @@ import {
 } from "../../core/ConfigureStore";
 
 import PropTypes from "prop-types";
-import { alpha } from "@mui/material/styles";
 import Box from "@mui/material/Box";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -26,29 +23,24 @@ import TableSortLabel from "@mui/material/TableSortLabel";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import Paper from "@mui/material/Paper";
-import Checkbox from "@mui/material/Checkbox";
 import IconButton from "@mui/material/IconButton";
 import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import Switch from "@mui/material/Switch";
-import DeleteIcon from "@mui/icons-material/Delete";
-import FilterListIcon from "@mui/icons-material/FilterList";
 import Divider from "@mui/material/Divider";
 import Badge from "@mui/material/Badge";
 import { visuallyHidden } from "@mui/utils";
 
 import InventoryIcon from "@mui/icons-material/Inventory";
-import PreviewIcon from "@mui/icons-material/Preview";
 import DownloadIcon from "@mui/icons-material/Download";
 import UploadIcon from "@mui/icons-material/Upload";
-import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import AddIcon from "@mui/icons-material/Add";
-import ControlPointDuplicateIcon from "@mui/icons-material/ControlPointDuplicate";
 import TextSnippetIcon from "@mui/icons-material/TextSnippet";
 
 import NewDatasetModal from "./Modals/NewDatasetModal/NewDatasetModal";
+import LayersUsedByModal from "./Modals/LayersUsedByModal/LayersUsedByModal";
+import UpdateDatasetModal from "./Modals/UpdateDatasetModal/UpdateDatasetModal";
+import DeleteDatasetModal from "./Modals/DeleteDatasetModal/DeleteDatasetModal";
 
 function descendingComparator(a, b, orderBy) {
   if (b[orderBy] < a[orderBy]) {
@@ -169,15 +161,12 @@ const useStyles = makeStyles((theme) => ({
     minHeight: "48px !important",
     display: "flex",
     justifyContent: "space-between",
-    background: theme.palette.swatches.grey[1000],
-    boxShadow: `inset 10px 0px 10px -5px rgba(0,0,0,0.3)`,
-    borderBottom: `2px solid ${theme.palette.swatches.grey[800]} !important`,
     padding: `0px 20px`,
     boxSizing: `border-box !important`,
   },
   topbarTitle: {
     display: "flex",
-    color: theme.palette.accent.main,
+    color: theme.palette.swatches.grey[150],
     "& > svg": {
       color: theme.palette.swatches.grey[150],
       margin: "3px 10px 0px 2px",
@@ -213,7 +202,7 @@ const headCells = [
 ];
 
 function EnhancedTableHead(props) {
-  const { order, orderBy, rowCount, onRequestSort } = props;
+  const { order, orderBy, onRequestSort } = props;
   const createSortHandler = (property) => (event) => {
     onRequestSort(event, property);
   };
@@ -420,6 +409,7 @@ export default function Datasets() {
                               title="Used By"
                               aria-label="used by"
                               onClick={() => {
+                                console.log(row);
                                 dispatch(
                                   setModal({
                                     name: "layersUsedByDataset",
@@ -437,23 +427,6 @@ export default function Datasets() {
                               </Badge>
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title={"Preview"} placement="top" arrow>
-                            <IconButton
-                              className={c.previewIcon}
-                              title="Preview"
-                              aria-label="preview"
-                              onClick={() => {
-                                dispatch(
-                                  setModal({
-                                    name: "previewDataset",
-                                    dataset: row,
-                                  })
-                                );
-                              }}
-                            >
-                              <PreviewIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
                           <Tooltip title={"Download"} placement="top" arrow>
                             <IconButton
                               className={c.downloadIcon}
@@ -462,7 +435,7 @@ export default function Datasets() {
                               onClick={() => {
                                 if (row.name)
                                   calls.api(
-                                    "datasets_get",
+                                    "datasets_download",
                                     {
                                       layer: row.name,
                                     },
@@ -470,7 +443,7 @@ export default function Datasets() {
                                       downloadObject(
                                         res,
                                         `${row.name}-dataset`,
-                                        ".geojson"
+                                        ".json"
                                       );
                                       dispatch(
                                         setSnackBarText({
@@ -498,23 +471,6 @@ export default function Datasets() {
                             </IconButton>
                           </Tooltip>
                           <Divider orientation="vertical" flexItem />
-                          <Tooltip title={"Append"} placement="top" arrow>
-                            <IconButton
-                              className={c.appendIcon}
-                              title="Append"
-                              aria-label="append"
-                              onClick={() => {
-                                dispatch(
-                                  setModal({
-                                    name: "appendDataset",
-                                    dataset: row,
-                                  })
-                                );
-                              }}
-                            >
-                              <ControlPointDuplicateIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
                           {/*
                           <Tooltip title={"Rename"} placement="top" arrow>
                             <IconButton
@@ -593,13 +549,9 @@ export default function Datasets() {
         </Paper>
       </Box>
       <NewDatasetModal queryDatasets={queryDatasets} />
-      {/*
-      <DeleteDatasetModal queryDatasets={queryDatasets} />
       <LayersUsedByModal />
-      <PreviewDatasetModal />
-      <AppendDatasetModal queryDatasets={queryDatasets} />
       <UpdateDatasetModal queryDatasets={queryDatasets} />
-              */}
+      <DeleteDatasetModal queryDatasets={queryDatasets} />
     </>
   );
 }

@@ -1,13 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
+
+import Papa from "papaparse";
 
 import { calls } from "../../../../core/calls";
 
-import {
-  setMissions,
-  setModal,
-  setSnackBarText,
-} from "../../../../core/ConfigureStore";
+import { setModal, setSnackBarText } from "../../../../core/ConfigureStore";
 
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
@@ -16,17 +14,13 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
+import LinearProgress from "@mui/material/LinearProgress";
 
 import CloseSharpIcon from "@mui/icons-material/CloseSharp";
-import ControlPointDuplicateIcon from "@mui/icons-material/ControlPointDuplicate";
+import UploadIcon from "@mui/icons-material/Upload";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 
 import { useDropzone } from "react-dropzone";
-
-import TextField from "@mui/material/TextField";
-import FormGroup from "@mui/material/FormGroup";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import Checkbox from "@mui/material/Checkbox";
 
 import { makeStyles, useTheme } from "@mui/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -146,9 +140,9 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const MODAL_NAME = "appendGeoDataset";
-const AppendGeoDatasetModal = (props) => {
-  const { queryGeoDatasets } = props;
+const MODAL_NAME = "updateDataset";
+const UpdateDatasetModal = (props) => {
+  const { queryDatasets } = props;
   const c = useStyles();
 
   const modal = useSelector((state) => state.core.modal[MODAL_NAME]);
@@ -158,24 +152,18 @@ const AppendGeoDatasetModal = (props) => {
 
   const dispatch = useDispatch();
 
-  const [geojson, setGeojson] = useState(null);
   const [fileName, setFileName] = useState(null);
-  const [startTimeField, setStartTimeField] = useState(null);
-  const [endTimeField, setEndTimeField] = useState(null);
-
-  useEffect(() => {
-    setStartTimeField(modal?.geoDataset?.start_time_field);
-    setEndTimeField(modal?.geoDataset?.end_time_field);
-  }, [JSON.stringify(modal)]);
+  const [file, setFile] = useState(null);
+  const [progress, setProgress] = useState(null);
 
   const handleClose = () => {
     // close modal
     dispatch(setModal({ name: MODAL_NAME, on: false }));
   };
   const handleSubmit = () => {
-    const geoDatasetName = modal?.geoDataset?.name;
+    const datasetName = modal?.dataset?.name;
 
-    if (geojson == null || fileName === null) {
+    if (file == null || fileName === null) {
       dispatch(
         setSnackBarText({
           text: "Please upload a file.",
@@ -185,59 +173,117 @@ const AppendGeoDatasetModal = (props) => {
       return;
     }
 
-    if (geoDatasetName === null) {
+    if (datasetName == null || datasetName == "") {
       dispatch(
         setSnackBarText({
-          text: "No GeoDataset found to append to.",
+          text: "Missing Dataset name.",
           severity: "error",
         })
       );
       return;
     }
-    const forceParams = {
-      filename: fileName,
-    };
-    if (startTimeField) forceParams.start_prop = startTimeField;
-    if (endTimeField) forceParams.end_prop = endTimeField;
 
-    calls.api(
-      "geodatasets_append",
-      {
-        urlReplacements: {
-          name: geoDatasetName,
-        },
-        forceParams,
-        type: geojson.type,
-        features: geojson.features,
-      },
-      (res) => {
-        if (res.status === "success") {
-          dispatch(
-            setSnackBarText({
-              text: "Successfully appended to GeoDataset.",
-              severity: "success",
-            })
-          );
-          queryGeoDatasets();
-          handleClose();
+    if (datasetName.match(/[|\\/~^:,;?!&%$@#*+\{\}\[\]<>]/)) {
+      dispatch(
+        setSnackBarText({
+          text: "Dataset names cannot contain the following symbols: |\\/~^:,;?!&%$@#*+.{}[]<>",
+          severity: "error",
+        })
+      );
+      return;
+    }
+
+    const rowsPerChunk = 10000;
+    let currentRows = [];
+    let header = [];
+    let first = true;
+    let firstStep = true;
+    let cursorSum = 0;
+    let cursorStep = null;
+    Papa.parse(file, {
+      step: (row, parser) => {
+        if (firstStep) {
+          header = row.data;
+          firstStep = false;
         } else {
-          dispatch(
-            setSnackBarText({
-              text: res?.message || "Failed to append to GeoDataset.",
-              severity: "error",
-            })
-          );
+          let r = {};
+          for (let i = 0; i < header.length; i++) r[header[i]] = row.data[i];
+          currentRows.push(r);
+
+          if (currentRows.length >= rowsPerChunk) {
+            cursorStep = cursorStep || row.meta.cursor;
+            cursorSum += cursorStep;
+            setProgress(Math.round((cursorSum / file.size) * 100));
+
+            parser.pause();
+
+            calls.api(
+              "datasets_recreate",
+              {
+                name: datasetName,
+                csv: JSON.stringify(currentRows),
+                header: header,
+                mode: first ? "full" : "append",
+              },
+              (res) => {
+                first = false;
+                currentRows = [];
+                parser.resume();
+              },
+              (res) => {
+                currentRows = [];
+                console.log(res?.message);
+                dispatch(
+                  setSnackBarText({
+                    text: "Failed to upload a Dataset.",
+                    severity: "error",
+                  })
+                );
+              }
+            );
+          }
         }
       },
-      (res) => {
-        dispatch(
-          setSnackBarText({
-            text: res?.message || "Failed to append to GeoDataset.",
-            severity: "error",
-          })
-        );
-      }
-    );
+      complete: function () {
+        if (currentRows.length > 0) {
+          calls.api(
+            "datasets_recreate",
+            {
+              name: datasetName,
+              csv: JSON.stringify(currentRows),
+              header: header,
+              mode: "append",
+            },
+            (res) => {
+              dispatch(
+                setSnackBarText({
+                  text: "Successfully updated/replaced Dataset.",
+                  severity: "success",
+                })
+              );
+              queryDatasets();
+              setProgress(null);
+              handleClose();
+            },
+            (res) => {
+              currentRows = [];
+              console.log(res?.message);
+              dispatch(
+                setSnackBarText({
+                  text: "Failed to upload a Dataset.",
+                  severity: "error",
+                })
+              );
+            }
+          );
+        } else {
+          queryDatasets();
+          setProgress(null);
+        }
+      },
+    });
+
+    return;
   };
 
   // Dropzone initialization
@@ -250,24 +296,18 @@ const AppendGeoDatasetModal = (props) => {
   } = useDropzone({
     maxFiles: 1,
     accept: {
-      "application/json": [".json", ".geojson"],
+      "application/csv": [".csv"],
     },
     onDropAccepted: (files) => {
-      const file = files[0];
-      setFileName(file.name);
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setGeojson(JSON.parse(e.target.result));
-      };
-      reader.readAsText(file);
+      const uploadedFile = files[0];
+      setFileName(uploadedFile.name);
+      setFile(uploadedFile);
     },
     onDropRejected: () => {
       setFileName(null);
-      setGeojson(null);
+      setFile(null);
     },
   });
-
   return (
     <Dialog
       className={c.Modal}
@@ -282,10 +322,10 @@ const AppendGeoDatasetModal = (props) => {
       <DialogTitle className={c.heading}>
         <div className={c.flexBetween}>
           <div className={c.flexBetween}>
-            <ControlPointDuplicateIcon className={c.backgroundIcon} />
+            <UploadIcon className={c.backgroundIcon} />
             <div
               className={c.title}
-            >{`Append features to this GeoDataset: ${modal?.geoDataset?.name}`}</div>
+            >{`Update/Replace this Dataset: ${modal?.dataset?.name}`}</div>
           </div>
           <IconButton
             className={c.closeIcon}
@@ -299,7 +339,7 @@ const AppendGeoDatasetModal = (props) => {
       </DialogTitle>
       <DialogContent className={c.content}>
         <Typography className={c.subtitle}>
-          {`Appends the features of the uploaded file to the GeoDataset`}
+          {`Overwrites the contents of the existing Dataset with that of the uploaded file.`}
         </Typography>
         <div className={c.dropzone}>
           <div {...getRootProps({ className: "dropzone" })}>
@@ -309,7 +349,7 @@ const AppendGeoDatasetModal = (props) => {
             {!isDragActive && (
               <div className={c.dropzoneMessage}>
                 <p>Drag 'n' drop or click to select files...</p>
-                <p>Only *.json and *.geojson files are accepted.</p>
+                <p>Only *.csv files are accepted.</p>
               </div>
             )}
           </div>
@@ -319,49 +359,21 @@ const AppendGeoDatasetModal = (props) => {
           <InsertDriveFileIcon />
           <div>{fileName || "No File Selected"}</div>
         </div>
-
-        <div className={c.timeFields}>
-          <div>
-            <TextField
-              className={c.missionNameInput}
-              label="Start Time Field"
-              variant="filled"
-              value={startTimeField}
-              onChange={(e) => {
-                setStartTimeField(e.target.value);
-              }}
-            />
-            <Typography className={c.subtitle2}>
-              {`If this GeoDataset already has a Start Time Field attached, the name of that start time field inside each feature's "properties" object for which to create a temporal index for the geodataset. Take care in using time field names for the appended GeoJSON features that are different from that of the existing features.`}
-            </Typography>
-          </div>
-          <div>
-            <TextField
-              className={c.missionNameInput}
-              label="End Time Field"
-              variant="filled"
-              value={endTimeField}
-              onChange={(e) => {
-                setEndTimeField(e.target.value);
-              }}
-            />
-            <Typography className={c.subtitle2}>
-              {`If this GeoDataset already has a End Time Field attached, the name of that end time field inside each feature's "properties" object for which to create a temporal index for the geodataset. Take care in using time field names for the appended GeoJSON features that are different from that of the existing features.`}
-            </Typography>
-          </div>
-        </div>
       </DialogContent>
       <DialogActions>
+        {progress != null && (
+          <LinearProgress variant="determinate" value={progress} />
+        )}
         <Button
           className={c.addSelected}
           variant="contained"
           onClick={handleSubmit}
         >
-          Append to GeoDataset
+          Update/Replace Dataset
         </Button>
       </DialogActions>
     </Dialog>
   );
 };
 
-export default AppendGeoDatasetModal;
+export default UpdateDatasetModal;

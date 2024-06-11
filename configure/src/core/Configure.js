@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import clsx from "clsx";
+import { useEffect } from "react";
+import { useDispatch } from "react-redux";
+
 import { makeStyles } from "@mui/styles";
 
 import Main from "../components/Main/Main";

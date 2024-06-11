@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {} from "./ToolsSlice";
 import { makeStyles } from "@mui/styles";
@@ -15,7 +15,6 @@ import {
 import ToolModal from "./Modals/ToolModal/ToolModal";
 
 import Grid from "@mui/material/Grid";
-import Paper from "@mui/material/Paper";
 import Box from "@mui/material/Box";
 
 const useStyles = makeStyles((theme) => ({

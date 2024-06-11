@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { makeStyles } from "@mui/styles";
 
@@ -7,7 +7,6 @@ import "leaflet/dist/leaflet.css";
 import clsx from "clsx";
 
 import Box from "@mui/material/Box";
-import Paper from "@mui/material/Paper";
 import Grid from "@mui/material/Grid";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
@@ -29,8 +28,7 @@ import Slider from "@mui/material/Slider";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 
-import { calls } from "./calls";
-import { setConfiguration, setSnackBarText } from "./ConfigureStore";
+import { setConfiguration } from "./ConfigureStore";
 import {
   getIn,
   setIn,
@@ -198,6 +196,9 @@ const useStyles = makeStyles((theme) => ({
   json: {
     border: `1px solid ${theme.palette.swatches.grey[850]}`,
     boxShadow: `0px 2px 4px 0px rgba(0, 0, 0, 0.2)`,
+    "& > div:first-child": {
+      margin: "4px 8px 0px 8px",
+    },
   },
   slider: {
     flexFlow: "column !important",
@@ -315,11 +316,20 @@ const getComponent = (
       );
     case "json":
       let json_f = value || getIn(directConf, com.field, {});
+      try {
+        if (typeof json_f === "string") json_f = JSON.parse(json_f);
+      } catch (err) {}
       return (
         <div className={c.json}>
+          <div>
+            <Typography className={c.subtitle}>{com.name || ""}</Typography>
+            <Typography className={c.subtitle2}>
+              {com.description || ""}
+            </Typography>
+          </div>
           <CodeMirror
             value={JSON.stringify(json_f, null, 2)}
-            height="300px"
+            height={com.height || "300px"}
             extensions={[json()]}
             onChange={(val) => {
               try {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useDispatch } from "react-redux";
 import { makeStyles } from "@mui/styles";
 
 import clsx from "clsx";
@@ -39,11 +39,11 @@ const useStyles = makeStyles((theme) => ({
   },
   top: {
     display: "flex",
-    borderBottom: `1px solid ${theme.palette.swatches.grey[800]}`,
     paddingBottom: "10px",
+    height: "48px",
   },
   title: {
-    margin: "40px 60px 0px 60px",
+    margin: "18px 0px 0px 60px",
     paddingBottom: "5px",
     fontSize: "22px",
     letterSpacing: "1px",
@@ -54,13 +54,10 @@ const useStyles = makeStyles((theme) => ({
     margin: "20px 60px",
   },
   subtitle: {
-    margin: "40px 60px 0px 60px",
+    margin: "0px 60px 0px 60px !important",
+    fontSize: "13px !important",
     paddingBottom: "5px",
-    fontSize: "12px",
-    letterSpacing: "1px",
-    color: theme.palette.swatches.p[12],
-    fontWeight: "bold",
-    textTransform: "uppercase",
+    fontStyle: "italic",
   },
   subtitle2: {
     fontSize: "12px !important",
@@ -77,8 +74,8 @@ const useStyles = makeStyles((theme) => ({
   },
   generate: { width: "100%", height: "48px" },
   generated: {
-    height: "48px",
-    lineHeight: "48px",
+    height: "42px",
+    lineHeight: "42px",
     display: "flex",
     marginBottom: "20px",
     border: `2px solid ${theme.palette.swatches.p[0]}`,
@@ -94,7 +91,7 @@ const useStyles = makeStyles((theme) => ({
       padding: "0px 16px",
     },
     "& > div:nth-child(3)": {
-      height: "48px",
+      height: "42px",
     },
   },
   genTitle: {},
@@ -103,18 +100,18 @@ const useStyles = makeStyles((theme) => ({
   tokenList: {},
   tokenListItem: {
     display: "flex",
-    height: "48px",
-    lineHeight: "48px",
+    height: "42px",
+    lineHeight: "42px",
     width: "100%",
     background: theme.palette.swatches.grey[900],
     border: `1px solid ${theme.palette.swatches.grey[700]}`,
-    boxShadow: `0px 1px 4px 0px rgba(0,0,0,0.3)`,
-    marginBottom: "8px",
+    boxShadow: `0px 1px 3px 0px rgba(0,0,0,0.15)`,
+    marginBottom: "3px",
     "& > div:nth-child(1)": {
       background: theme.palette.swatches.grey[150],
       color: "white",
       textAlign: "center",
-      width: "48px",
+      width: "42px",
     },
     "& > div:nth-child(2)": { flex: 1, padding: "0px 16px" },
     "& > div:nth-child(3)": {
@@ -139,9 +136,27 @@ const useStyles = makeStyles((theme) => ({
     },
     "& > div:nth-child(5)": {
       borderLeft: `1px solid ${theme.palette.swatches.grey[700]}`,
-      width: "48px",
+      width: "42px",
       textAlign: "center",
     },
+  },
+  examples: {
+    margin: "20px 0px",
+    "& > ul": {
+      listStyleType: "none",
+      padding: "0px",
+    },
+    "& > ul > li > div:first-child": {
+      fontWeight: "bold",
+      padding: "10px 0px",
+    },
+  },
+  examplesTitle: {
+    fontSize: "20px",
+    color: theme.palette.swatches.grey[150],
+    borderBottom: `1px solid ${theme.palette.swatches.grey[150]}`,
+    padding: "10px 0px",
+    fontWeight: "bold",
   },
   code: {
     fontFamily: "monospace",
@@ -265,22 +280,16 @@ export default function APITokens() {
     <div className={c.APITokens}>
       <div className={c.top}>
         <div className={c.title}>API Tokens</div>
-        <div className={c.subtitle}>
+      </div>
+      <div>
+        <Typography className={c.subtitle}>
           {
             "Generate an authentication token for programmatic control over the configuration and data endpoints. The generated token may be used it requests via the header: 'Authorization:Bearer <token>' and more information can be found at https://nasa-ammos.github.io/MMGIS/apis/configure#api-tokens"
           }
-        </div>
-      </div>
-      <div>
+        </Typography>
         <Box sx={{ flexGrow: 1 }} className={clsx(c.row)}>
-          <Grid
-            container
-            spacing={4}
-            direction="row"
-            justifyContent="center"
-            alignItems="left"
-          >
-            <Grid item xs={3} md={3} lg={3} xl={3} key={0}>
+          <Grid container spacing={4} direction="row" alignItems="left">
+            <Grid item xs={4} md={4} lg={4} xl={4} key={0}>
               <TextField
                 className={c.text}
                 label={"Token Name"}
@@ -298,7 +307,7 @@ export default function APITokens() {
               </Typography>
             </Grid>
 
-            <Grid item xs={3} md={3} lg={3} xl={3} key={1}>
+            <Grid item xs={4} md={4} lg={4} xl={4} key={1}>
               <FormControl className={c.dropdown} variant="filled" size="small">
                 <InputLabel>{"Expire After"}</InputLabel>
                 <Select
@@ -320,7 +329,7 @@ export default function APITokens() {
               </Typography>
             </Grid>
 
-            <Grid item xs={3} md={3} lg={3} xl={3} key={2}>
+            <Grid item xs={4} md={4} lg={4} xl={4} key={2}>
               <Button
                 className={c.generate}
                 variant="contained"
@@ -409,8 +418,8 @@ export default function APITokens() {
             })}
           </div>
 
-          <div>
-            <div>Examples</div>
+          <div className={c.examples}>
+            <div className={c.examplesTitle}>Examples</div>
             <ul>
               <li>
                 <div>General Usage</div>

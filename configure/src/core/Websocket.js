@@ -1,14 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { makeStyles } from "@mui/styles";
 
 import ReportIcon from "@mui/icons-material/Report";
 
-import {
-  setSnackBarText,
-  clearLockConfig,
-  setLockConfig,
-} from "./ConfigureStore";
+import { clearLockConfig, setLockConfig } from "./ConfigureStore";
 
 const vars = {
   initialWebSocketRetryInterval: 20000, // 1 minute
