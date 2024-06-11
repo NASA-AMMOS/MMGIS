@@ -1,5 +1,9 @@
 import { saveAs } from "file-saver";
 
+// Positive ints only
+export const isNumeric = (value) => {
+  return /^\d+$/.test(value);
+};
 /**
  * Traverses an object with an array of keys
  * @param {*} obj
@@ -19,11 +23,15 @@ export const getIn = (obj, keyArray, notSetValue) => {
   return object;
 };
 export const setIn = (obj, keyArray, value, force) => {
+  console.log("setIn", obj, keyArray, value, force);
   if (keyArray == null || keyArray.length === 0) return null;
   let object = obj;
   for (let i = 0; i < keyArray.length - 1; i++) {
+    console.log(obj, keyArray, keyArray[i], value, force);
     if (force) {
-      if (!object.hasOwnProperty(keyArray[i])) object[keyArray[i]] = {};
+      if (!object.hasOwnProperty(keyArray[i]))
+        object[keyArray[i]] =
+          i === keyArray.length - 2 && isNumeric(keyArray[i + 1]) ? [] : {};
       object = object[keyArray[i]];
     } else {
       if (object.hasOwnProperty(keyArray[i])) object = object[keyArray[i]];
@@ -32,6 +40,7 @@ export const setIn = (obj, keyArray, value, force) => {
   }
   object[keyArray[keyArray.length - 1]] = value;
 };
+
 export const traverseLayers = (layers, onLayer) => {
   depthTraversal(layers, 0, []);
   function depthTraversal(node, depth, path) {

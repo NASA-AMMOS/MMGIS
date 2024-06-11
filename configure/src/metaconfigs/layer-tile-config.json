@@ -268,46 +268,45 @@
         {
           "name": "Information",
           "subname": "Layer Tags",
-          "subdescription": "Assign tags to this layer so that they may be searched upon through the LayersTool.",
+          "subdescription": "Assign tags to this layer so that they may be searched upon through the LayersTool. A category may be specified with the following pattern: 'category:tag'",
           "components": [
             {
-              "new": true,
-              "field": "variables.tags.0",
+              "field": "tags.0",
               "name": "Tag",
               "description": "",
               "type": "text",
               "width": 2
             },
             {
-              "field": "variables.tags.1",
+              "field": "tags.1",
               "name": "Tag",
               "description": "",
               "type": "text",
               "width": 2
             },
             {
-              "field": "variables.tags.2",
+              "field": "tags.2",
               "name": "Tag",
               "description": "",
               "type": "text",
               "width": 2
             },
             {
-              "field": "variables.tags.3",
+              "field": "tags.3",
               "name": "Tag",
               "description": "",
               "type": "text",
               "width": 2
             },
             {
-              "field": "variables.tags.4",
+              "field": "tags.4",
               "name": "Tag",
               "description": "",
               "type": "text",
               "width": 2
             },
             {
-              "field": "variables.tags.5",
+              "field": "tags.5",
               "name": "Tag",
               "description": "",
               "type": "text",
@@ -318,42 +317,42 @@
         {
           "components": [
             {
-              "field": "variables.tags.6",
+              "field": "tags.6",
               "name": "Tag",
               "description": "",
               "type": "text",
               "width": 2
             },
             {
-              "field": "variables.tags.7",
+              "field": "tags.7",
               "name": "Tag",
               "description": "",
               "type": "text",
               "width": 2
             },
             {
-              "field": "variables.tags.8",
+              "field": "tags.8",
               "name": "Tag",
               "description": "",
               "type": "text",
               "width": 2
             },
             {
-              "field": "variables.tags.9",
+              "field": "tags.9",
               "name": "Tag",
               "description": "",
               "type": "text",
               "width": 2
             },
             {
-              "field": "variables.tags.10",
+              "field": "tags.10",
               "name": "Tag",
               "description": "",
               "type": "text",
               "width": 2
             },
             {
-              "field": "variables.tags.11",
+              "field": "tags.11",
               "name": "Tag",
               "description": "",
               "type": "text",

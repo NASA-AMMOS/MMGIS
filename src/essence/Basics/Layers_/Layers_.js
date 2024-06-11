@@ -536,11 +536,17 @@ const L_ = {
                                             weight: s.style.weight,
                                             radius: s.radius,
                                         },
-                                        bearing: s.variables?.markerAttachments
-                                            ?.bearing
-                                            ? s.variables.markerAttachments
-                                                  .bearing
-                                            : null,
+                                        bearing:
+                                            (s.variables?.markerAttachments
+                                                ?.bearing &&
+                                                s.variables?.markerAttachments
+                                                    ?.bearing.enabled ==
+                                                    null) ||
+                                            s.variables?.markerAttachments
+                                                ?.bearing?.enabled === true
+                                                ? s.variables.markerAttachments
+                                                      .bearing
+                                                : null,
                                     },
                                     opacity: L_.layers.opacity[s.name],
                                     minZoom:
@@ -892,10 +898,16 @@ const L_ = {
                                         weight: s.style.weight,
                                         radius: s.radius,
                                     },
-                                    bearing: s.variables?.markerAttachments
-                                        ?.bearing
-                                        ? s.variables.markerAttachments.bearing
-                                        : null,
+                                    bearing:
+                                        (s.variables?.markerAttachments
+                                            ?.bearing &&
+                                            s.variables?.markerAttachments
+                                                ?.bearing.enabled == null) ||
+                                        s.variables?.markerAttachments?.bearing
+                                            ?.enabled === true
+                                            ? s.variables.markerAttachments
+                                                  .bearing
+                                            : null,
                                 },
                                 opacity: L_.layers.opacity[s.name],
                                 minZoom:

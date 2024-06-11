@@ -243,7 +243,10 @@ export const constructVectorLayer = (
                 layerObj,
                 'variables.markerAttachments.bearing'
             )
-            if (bearingVar) {
+            if (
+                bearingVar &&
+                (bearingVar.enabled === true || bearingVar.enabled == null)
+            ) {
                 const unit = bearingVar.angleUnit || 'deg'
                 const bearingProp = bearingVar.angleProp || false
 
@@ -581,7 +584,10 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
     //LABELS
     const labelsVar = F_.getIn(layerObj, 'variables.layerAttachments.labels')
 
-    if (labelsVar) {
+    if (
+        labelsVar &&
+        (labelsVar.enabled === true || labelsVar.enabled == null)
+    ) {
         let theme = ['solid'].includes(labelsVar.theme)
             ? labelsVar.theme
             : 'default'
@@ -816,7 +822,10 @@ const pairings = (geojson, layerObj, leafletLayerObject) => {
         'variables.layerAttachments.pairings'
     )
 
-    if (pairingsVar) {
+    if (
+        pairingsVar &&
+        (pairingsVar.enabled === true || pairingsVar.enabled == null)
+    ) {
         const layers = (pairingsVar.layers || []).map((l) => L_.asLayerUUID(l))
 
         const pairProp = pairingsVar.pairProp
@@ -997,7 +1006,10 @@ const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {
     let clampedUncertaintyOptions
     let leafletLayerObjectUncertaintyEllipse
 
-    if (uncertaintyVar) {
+    if (
+        uncertaintyVar &&
+        (uncertaintyVar.enabled === true || uncertaintyVar.enabled == null)
+    ) {
         let existingOn = null
         let existingOpacity =
             uncertaintyVar.initialOpacity != null
@@ -1164,7 +1176,7 @@ const imageOverlays = (geojson, layerObj, leafletLayerObject) => {
     // IMAGE
     const imageVar = F_.getIn(layerObj, 'variables.markerAttachments.image')
 
-    if (imageVar) {
+    if (imageVar && (imageVar.enabled === true || imageVar.enabled == null)) {
         const imageShow = F_.getIn(
             layerObj,
             'variables.markerAttachments.image.show',
@@ -1334,7 +1346,7 @@ const models = (geojson, layerObj, leafletLayerObject) => {
     // MODEL
     const modelVar = F_.getIn(layerObj, 'variables.markerAttachments.model')
 
-    if (modelVar) {
+    if (modelVar && (modelVar.enabled === true || modelVar.enabled == null)) {
         const modelShow = F_.getIn(modelVar, 'show', 'click')
         const modelPaths = []
         const modelMtlPaths = []
@@ -1508,7 +1520,10 @@ const coordinateMarkers = (geojson, layerObj, leafletLayerObject) => {
         'variables.coordinateAttachments.marker'
     )
 
-    if (coordMarkerVar) {
+    if (
+        coordMarkerVar &&
+        (coordMarkerVar.enabled === true || coordMarkerVar.enabled == null)
+    ) {
         const coordMarkerSettings = {
             initialVisibility: F_.getIn(
                 coordMarkerVar,
@@ -1564,7 +1579,11 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
             layerObj,
             'variables.pathAttachments.gradient'
         )
-        if (pathGradientVar) {
+        if (
+            pathGradientVar &&
+            (pathGradientVar.enabled === true ||
+                pathGradientVar.enabled == null)
+        ) {
             const pathGradientSettings = {
                 initialVisibility: F_.getIn(
                     pathGradientVar,
