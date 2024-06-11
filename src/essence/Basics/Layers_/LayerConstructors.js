@@ -1006,6 +1006,7 @@ const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {
     let clampedUncertaintyOptions
     let leafletLayerObjectUncertaintyEllipse
 
+
     if (
         uncertaintyVar &&
         (uncertaintyVar.enabled === true || uncertaintyVar.enabled == null)

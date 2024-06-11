@@ -26,16 +26,67 @@ var IdentifierTool = {
     MMWebGISInterface: null,
     mousemoveTimeout: null,
     mousemoveTimeoutMap: null,
+    targetId: null,
+    made: false,
+    justification: 'left',
     vars: {},
-    make: function () {
+    initialize: function () {
+        //Get tool variables and UI adjustments
+        this.justification = L_.getToolVars('identifier')['justification']
+        var toolContent = d3.select('#toolSeparated_Identifier')
+        toolContent.style('bottom', '2px')
+        if (this.justification == 'right') {
+            var toolController = d3.select('#toolcontroller_sepdiv')
+            toolController.style('top', '110px')
+            toolController.style('left', null)
+            toolController.style('right', '5px')
+            toolContent.style('left', null)
+            toolContent.style('right', '0px')
+        } else if (this.justification != L_.getToolVars('legend')['justification']) {
+            var toolController = d3.select('#toolcontroller_sepdiv').clone(false).attr('id', 'toolcontroller_sepdiv_left')
+            $('#toolSeparated_Identifier').appendTo('#toolcontroller_sepdiv_left')
+            toolController.style('top', '40px')
+            toolController.style('left', '5px')
+            toolController.style('right', null)
+        }
+    },   
+    make: function (targetId) {
         this.MMWebGISInterface = new interfaceWithMMWebGIS()
+        this.targetId = targetId
+        this.activeLayerNames = []
+
+        L_.subscribeOnLayerToggle('IdentifierTool', () => {
+            this.MMWebGISInterface = new interfaceWithMMWebGIS()
+        })
+
+        this.made = true
+
+        L_.subscribeOnLayerToggle('IdentifierTool', () => {
+            this.MMWebGISInterface = new interfaceWithMMWebGIS()
+        })
+
+        this.made = true
 
         //Get tool variables
-        this.varsRaw = L_.getToolVars('identifier')
-        this.vars = {}
+        this.varsRaw = L_.getToolVars('identifier', true)
+        this.vars = {
+            data: {},
+        }
         Object.keys(this.varsRaw).forEach((layerName) => {
-            this.vars[L_.asLayerUUID(layerName)] = this.varsRaw[layerName]
+            if (layerName != '__layers')
+                this.vars.data[L_.asLayerUUID(layerName)] = {
+                    data: [this.varsRaw[layerName]],
+                }
         })
+
+        if (this.varsRaw.__layers) {
+            Object.keys(this.varsRaw.__layers).forEach((layerName) => {
+                const layer = this.varsRaw.__layers[layerName]
+                if (layer.data) {
+                    this.vars.data[layerName] = layer
+                }
+            })
+        }
 
         //Probably always 256
         this.tileImageWidth = 256
@@ -55,11 +106,14 @@ var IdentifierTool = {
     },
     destroy: function () {
         this.MMWebGISInterface.separateFromMMWebGIS()
+        this.targetId = null
+        L_.unsubscribeOnLayerToggle('IdentifierTool')
+        this.made = false
     },
     fillURLParameters: function (url, layerUUID) {
-        if (IdentifierTool.vars[layerUUID]) {
+        if (IdentifierTool.vars.data?.[layerUUID]?.data?.[0]) {
             const layerTimeFormat = d3.utcFormat(
-                IdentifierTool.vars[layerUUID].timeFormat
+                IdentifierTool.vars.data[layerUUID].data[0].timeFormat
             )
 
             let filledURL = url
@@ -113,29 +167,16 @@ var IdentifierTool = {
         }, 5)
     },
     idPixelGlobe: function (e) {
-        IdentifierTool.idPixel(e, [
-            Globe_.litho.mouse.lng,
-            Globe_.litho.mouse.lat,
-            Globe_.litho.zoom,
-        ])
-    },
-    idValueMap: function (e) {
-        IdentifierTool.idPixel(
-            e,
-            [e.latlng.lng, e.latlng.lat, Map_.map.getZoom()],
-            true
-        )
-    },
-    idValueGlobe: function (e) {
-        IdentifierTool.idPixel(
-            e,
-            [Globe_.litho.mouse.lng, Globe_.litho.mouse.lat, Globe_.litho.zoom],
-            true
-        )
+        if (Globe_.litho.mouse)
+            IdentifierTool.idPixel(e, [
+                Globe_.litho.mouse.lng,
+                Globe_.litho.mouse.lat,
+                Globe_.litho.zoom,
+            ])
     },
     //lnglatzoom is [lng,lat,zoom]
     //if trueValue is true, query the data layer for the value, else us the legend if possible
-    idPixel: function (e, lnglatzoom, trueValue) {
+    idPixel: function (e, lnglatzoom, trueValue, selfish) {
         trueValue = trueValue || false
         clearTimeout(IdentifierTool.mousemoveTimeout)
 
@@ -252,105 +293,128 @@ var IdentifierTool = {
                 )
             }
             //Oh IdentifierTool is the same as X != undefined
-            if (pxRGBA) {
-                if (
-                    trueValue &&
-                    IdentifierTool.vars[IdentifierTool.activeLayerNames[i]]
-                ) {
-                    queryDataValue(
-                        IdentifierTool.vars[IdentifierTool.activeLayerNames[i]]
-                            .url,
-                        lnglatzoom[0],
-                        lnglatzoom[1],
-                        IdentifierTool.vars[IdentifierTool.activeLayerNames[i]]
-                            .bands,
-                        IdentifierTool.activeLayerNames[i],
-                        (function (pxRGBA, i) {
-                            return function (value) {
-                                var htmlValues = ''
-                                var cnt = 0
-                                for (var v in value) {
-                                    var unit =
-                                        IdentifierTool.vars[
-                                            IdentifierTool.activeLayerNames[i]
-                                        ].unit || ''
-                                    if (
-                                        IdentifierTool.vars[
-                                            IdentifierTool.activeLayerNames[i]
-                                        ].units &&
-                                        IdentifierTool.vars[
-                                            IdentifierTool.activeLayerNames[i]
-                                        ].units.constructor === Array &&
-                                        IdentifierTool.vars[
-                                            IdentifierTool.activeLayerNames[i]
-                                        ].units[cnt]
-                                    ) {
-                                        unit =
-                                            IdentifierTool.vars[
+            if (
+                IdentifierTool.vars.data[IdentifierTool.activeLayerNames[i]]
+                    ?.data
+            ) {
+                const data =
+                    IdentifierTool.vars.data[IdentifierTool.activeLayerNames[i]]
+                for (let j = 0; j < data.data.length; j++) {
+                    const d = data.data[j]
+
+                    if (pxRGBA) {
+                        if (trueValue) {
+                            queryDataValue(
+                                d.url,
+                                lnglatzoom[0],
+                                lnglatzoom[1],
+                                d.bands,
+                                IdentifierTool.activeLayerNames[i],
+                                (function (pxRGBA, i, j) {
+                                    return function (value) {
+                                        const d2 =
+                                            IdentifierTool.vars.data[
                                                 IdentifierTool.activeLayerNames[
                                                     i
                                                 ]
-                                            ].units[cnt]
+                                            ].data[j]
+                                        var htmlValues = ''
+                                        // first empty it
+                                        $(
+                                            `#identifierToolIdPixelCursorInfo_${i}_${j}`
+                                        ).html(
+                                            [
+                                                '<div style="width: 100%; height: 22px; display: flex; justify-content: space-between;">',
+                                                '<div></div>',
+                                                '<div style="width: calc(100% - 2px); margin: 4px 2px 4px 0px; background: var(--color-a1);">&nbsp;</div>',
+                                                '</div>',
+                                            ].join('')
+                                        )
+                                        var cnt = 0
+                                        for (var v in value) {
+                                            var unit = d2.unit || ''
+                                            if (
+                                                d2.units &&
+                                                d2.units.constructor ===
+                                                    Array &&
+                                                d2.units[cnt]
+                                            ) {
+                                                unit = d2.units[cnt]
+                                            }
+                                            var valueParsed =
+                                                parseValue(
+                                                    value[v][1],
+                                                    d2.sigfigs
+                                                ) +
+                                                '' +
+                                                unit
+
+                                            htmlValues +=
+                                                '<div style="display: flex; justify-content: space-between;"><div style="margin-right: 15px; color: var(--color-a5); font-size: 12px;">' +
+                                                value[v][0] +
+                                                '</div><div style="color: var(--color-a6); font-size: 14px;">' +
+                                                valueParsed +
+                                                '</div></div>'
+                                            cnt++
+                                        }
+                                        $(
+                                            `#identifierToolIdPixelCursorInfo_${i}_${j}`
+                                        ).html(htmlValues)
                                     }
-                                    var valueParsed =
-                                        parseValue(
-                                            value[v][1],
-                                            IdentifierTool.vars[
-                                                IdentifierTool.activeLayerNames[
-                                                    i
-                                                ]
-                                            ].sigfigs
-                                        ) +
-                                        '' +
-                                        unit
-                                    htmlValues +=
-                                        '<div style="display: flex; justify-content: space-between;"><div style="margin-right: 15px;">' +
-                                        value[v][0] +
-                                        '</div><div>' +
-                                        valueParsed +
-                                        '</div></div>'
-                                    cnt++
-                                }
-                                $('#identifierToolIdPixelCursorInfo_' + i).html(
-                                    htmlValues
+                                })(pxRGBA, i, j)
+                            )
+                        } else {
+                            if (
+                                L_.layers.data[
+                                    IdentifierTool.activeLayerNames[i]
+                                ]?._legend
+                            ) {
+                                value = bestMatchInLegend(
+                                    pxRGBA,
+                                    L_.layers.data[
+                                        IdentifierTool.activeLayerNames[i]
+                                    ]._legend
                                 )
                             }
-                        })(pxRGBA, i)
-                    )
-                } else {
-                    if (
-                        L_.layers.data[IdentifierTool.activeLayerNames[i]]
-                            ?._legend
-                    ) {
-                        value = bestMatchInLegend(
-                            pxRGBA,
-                            L_.layers.data[IdentifierTool.activeLayerNames[i]]
-                                ._legend
-                        )
+                        }
+                        colorString =
+                            'rgba(' +
+                            pxRGBA.r +
+                            ',' +
+                            pxRGBA.g +
+                            ',' +
+                            pxRGBA.b +
+                            ',' +
+                            pxRGBA.a / 255 +
+                            ')'
                     }
+
+                    // prettier-ignore
+                    liEls.push(
+                        [`<li style="padding: 4px 9px; border-top: ${liEls.length === 1 ? 'none' : '1px solid var(--color-a2)'};">`,
+                            `<div style="display: flex;">`,
+                                `<div style='width: 14px; height: 14px; margin-right: 8px; margin-top: 2px; background: ${colorString};'></div>`,
+                                `<div style="letter-spacing: 0.5px; white-space: nowrap;">`,
+                                    d.name ||
+                                        L_.layers.data[
+                                            IdentifierTool.activeLayerNames[i]
+                                        ].display_name,
+                                `</div>`,
+                            `</div>`,
+                            `<div id='identifierToolIdPixelCursorInfo_${i}_${j}' style='padding-left: 20px;'>`,
+                            
+                                (trueValue || value == null || value == '') ? [
+                                    '<div style="width: 100%; height: 22px; display: flex; justify-content: space-between;">',
+                                        '<div></div>',
+                                        '<div style="width: calc(100% - 2px); margin: 4px 2px 4px 0px; background: var(--color-a1);">&nbsp;</div>',
+                                    '</div>'].join('') : value,
+                                    
+                            `</div>`,
+                        '</li>',
+                        ].join('')
+                    )
                 }
-                colorString =
-                    'rgba(' +
-                    pxRGBA.r +
-                    ',' +
-                    pxRGBA.g +
-                    ',' +
-                    pxRGBA.b +
-                    ',' +
-                    pxRGBA.a / 255 +
-                    ')'
             }
-            liEls[i] =
-                "<li><div style='width: 14px; height: 14px; float: left; margin-right: 5px; margin-top: 1px; background: " +
-                colorString +
-                ";'></div>" +
-                L_.layers.data[IdentifierTool.activeLayerNames[i]]
-                    .display_name +
-                "<div id='identifierToolIdPixelCursorInfo_" +
-                i +
-                "'  style='padding-left: 20px;'>" +
-                value +
-                '</div></li>'
         }
         CursorInfo.update(
             htmlInfoString + liEls.join('') + '</ul>',
@@ -359,17 +423,19 @@ var IdentifierTool = {
             null,
             null,
             null,
+            true,
+            null,
             true
         )
 
-        if (!trueValue) {
+        if (!trueValue && !selfish) {
             IdentifierTool.mousemoveTimeout = setTimeout(function () {
-                IdentifierTool.idPixel(e, lnglatzoom, true)
+                IdentifierTool.idPixel(e, lnglatzoom, true, true)
             }, 150)
         }
 
         function parseValue(v, sigfigs) {
-            var ed = 4
+            var ed = 10
             if (typeof v === 'string') {
                 return v
             }
@@ -387,8 +453,9 @@ var IdentifierTool = {
                     if (sigfigs != undefined) v = v.toFixed(sigfigs)
                 }
                 v = parseFloat(v)
-                if (sigfigs != undefined) ed = sigfigs
-                if (decPlacesAfter >= ed) v = v.toExponential(ed)
+                if (decPlacesAfter >= ed) {
+                    v = v.toExponential(ed)
+                }
                 return parseFloat(v)
             }
         }
@@ -418,26 +485,64 @@ function interfaceWithMMWebGIS() {
     d3.select('#map').style('cursor', 'crosshair')
 
     Map_.map.on('mousemove', IdentifierTool.idPixelMap)
-    Globe_.litho
-        .getContainer()
-        .addEventListener('mousemove', IdentifierTool.idPixelGlobe, false)
-    //Globe_.shouldRaycastSprites = false
-
-    Globe_.litho.getContainer().style.cursor = 'crosshair'
-    //Share everything. Don't take things that aren't yours.
-    // Put things back where you found them.
-    function separateFromMMWebGIS() {
-        CursorInfo.hide()
-
-        d3.select('#map').style('cursor', previousCursor)
-
-        //Globe_.shouldRaycastSprites = true
-        Globe_.litho.getContainer().style.cursor = 'default'
-
-        Map_.map.off('mousemove', IdentifierTool.idPixelMap)
+    if (L_.hasGlobe) {
         Globe_.litho
             .getContainer()
-            .removeEventListener('mousemove', IdentifierTool.idPixelGlobe)
+            .addEventListener('mousemove', IdentifierTool.idPixelGlobe, false)
+        //Globe_.shouldRaycastSprites = false
+
+        Globe_.litho.getContainer().style.cursor = 'crosshair'
+    }
+
+    //Share everything. Don't take things that aren't yours.
+    // Put things back where you found them.
+
+    var newActive = $(
+        '#toolcontroller_sepdiv #' +
+            'Identifier' +
+            'Tool'
+    )
+    newActive.addClass('active').css({
+        color: ToolController_.activeColor,
+    })
+    newActive.parent().css({
+        background: ToolController_.activeBG,
+    })
+
+    function separateFromMMWebGIS() {
+        CursorInfo.hide()
+        Map_.map.off('mousemove', IdentifierTool.idPixelMap)
+        //Globe_.shouldRaycastSprites = true
+        if (L_.hasGlobe) {
+            Globe_.litho.getContainer().style.cursor = 'default'
+            Globe_.litho
+                .getContainer()
+                .removeEventListener('mousemove', IdentifierTool.idPixelGlobe)
+        }
+
+        if (IdentifierTool.targetId === 'toolContentSeparated_Identifier') {
+            d3.select('#map').style('cursor', 'grab')
+            let tools = d3.select(
+                IdentifierTool.targetId ? `#${IdentifierTool.targetId}` : '#toolPanel'
+            )
+            tools.style('background', 'var(--color-k)')
+            //Clear it
+            tools.selectAll('*').remove()
+            var prevActive = $(
+                '#toolcontroller_sepdiv #' +
+                    'Identifier' +
+                    'Tool'
+            )
+            prevActive.removeClass('active').css({
+                color: ToolController_.defaultColor,
+                background: 'none',
+            })
+            prevActive.parent().css({
+                background: 'none',
+            })
+        } else {
+            d3.select('#map').style('cursor', previousCursor)
+        }
     }
 }
 
@@ -488,7 +593,7 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
             bands: '[[1,' + numBands + ']]',
             path: dataPath,
         },
-        function (data) {
+        (data) => {
             //Convert python's Nones to nulls
             data = data.replace(/none/gi, 'null')
             if (data.length > 2) {

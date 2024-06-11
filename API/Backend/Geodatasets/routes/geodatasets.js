@@ -633,6 +633,7 @@ router.delete("/remove/:name", function (req, res, next) {
         sequelize
           .query(`DROP TABLE IF EXISTS ${result.dataValues.table};`)
           .then(() => {
+
             Geodatasets.destroy({ where: { name: req.params.name } })
               .then(() => {
                 logger(
