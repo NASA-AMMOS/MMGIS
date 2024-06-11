@@ -27,8 +27,9 @@ import Slider from "@mui/material/Slider";
 
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
+import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
 
-import { setConfiguration } from "./ConfigureStore";
+import { setConfiguration, setSnackBarText } from "./ConfigureStore";
 import {
   getIn,
   setIn,
@@ -43,6 +44,7 @@ import ColorButton from "../components/ColorButton/ColorButton";
 import MDEditor from "@uiw/react-md-editor";
 import CodeMirror from "@uiw/react-codemirror";
 import { json } from "@codemirror/lang-json";
+import { Button } from "@mui/material";
 
 const useStyles = makeStyles((theme) => ({
   Maker: {
@@ -220,7 +222,8 @@ const getComponent = (
   c,
   inlineHelp,
   value,
-  forceField
+  forceField,
+  dispatch
 ) => {
   const directConf =
     layer == null ? (tool == null ? configuration : tool) : layer;
@@ -238,6 +241,79 @@ const getComponent = (
             updateConfiguration(forceField || com.field, e.target.value, layer);
           }}
         />
+      );
+      return (
+        <div>
+          {inlineHelp ? (
+            <>
+              {inner}
+              <Typography className={c.subtitle2}>
+                {com.description || ""}
+              </Typography>
+            </>
+          ) : (
+            <Tooltip title={com.description || ""} placement="top" arrow>
+              {inner}
+            </Tooltip>
+          )}
+        </div>
+      );
+    case "button":
+      inner = (
+        <Button
+          className={c.button}
+          variant="outlined"
+          startIcon={<PrecisionManufacturingIcon />}
+          onClick={() => {
+            if (com.action === "tile-populate-from-xml") {
+              tilePopulateFromXML(
+                layer.type,
+                layer.url,
+                layer.demtileurl,
+                `Missions/${configuration.msv.mission}/`,
+                (minZoom, maxNativeZoom, boundingBox) => {
+                  let conf = updateConfiguration(
+                    "minZoom",
+                    minZoom,
+                    layer,
+                    true
+                  );
+                  conf = updateConfiguration(
+                    "maxNativeZoom",
+                    maxNativeZoom,
+                    layer,
+                    true,
+                    conf
+                  );
+                  updateConfiguration(
+                    "boundingBox",
+                    boundingBox,
+                    layer,
+                    false,
+                    conf
+                  );
+
+                  dispatch(
+                    setSnackBarText({
+                      text: "Successfully populated fields from XML.",
+                      severity: "success",
+                    })
+                  );
+                },
+                (err) => {
+                  dispatch(
+                    setSnackBarText({
+                      text: "Could not find an XML alongside that URL.",
+                      severity: "error",
+                    })
+                  );
+                }
+              );
+            }
+          }}
+        >
+          {com.name}
+        </Button>
       );
       return (
         <div>
@@ -770,7 +846,8 @@ const makeConfig = (
   tool,
   c,
   shadowed,
-  inlineHelp
+  inlineHelp,
+  dispatch
 ) => {
   const made = [];
 
@@ -845,7 +922,10 @@ const makeConfig = (
                     tool,
                     updateConfiguration,
                     c,
-                    inlineHelp
+                    inlineHelp,
+                    null,
+                    null,
+                    dispatch
                   )}
                 </Grid>
               );
@@ -872,8 +952,16 @@ export default function Maker(props) {
   let tool = null;
   if (toolName) tool = getToolFromConfiguration(toolName, configuration);
 
-  const updateConfiguration = (keyPath, value, layer) => {
-    const nextConfiguration = JSON.parse(JSON.stringify(configuration));
+  const updateConfiguration = (
+    keyPath,
+    value,
+    layer,
+    returnInstead,
+    forceConfig
+  ) => {
+    const nextConfiguration = JSON.parse(
+      JSON.stringify(forceConfig || configuration)
+    );
 
     if (tool != null) {
       updateToolInConfiguration(
@@ -891,7 +979,8 @@ export default function Maker(props) {
     } else {
       setIn(nextConfiguration, keyPath.split("."), value, true);
     }
-    dispatch(setConfiguration(nextConfiguration));
+    if (returnInstead) return nextConfiguration;
+    else dispatch(setConfiguration(nextConfiguration));
   };
 
   return (
@@ -911,9 +1000,65 @@ export default function Maker(props) {
           tool,
           c,
           shadowed,
-          inlineHelp
+          inlineHelp,
+          dispatch
         )}
       </div>
     </div>
   );
+}
+
+// Helper funcs
+function tilePopulateFromXML(
+  layerType,
+  url,
+  demTileUrl,
+  missionPath,
+  cb,
+  errorCallback
+) {
+  // Tile or Data layer
+  // input url or demtileurl
+  // input mission path
+  // sets, minZoom, maxNativeZoom and boundingBox
+
+  let xmlPath = false;
+  if (layerType === "tile") xmlPath = url;
+  else if (layerType === "data") xmlPath = demTileUrl;
+
+  if (xmlPath == false) {
+    ///////////////////////////////////////////////////////////////////////////////
+    return;
+  }
+
+  xmlPath = xmlPath.replace("{z}/{x}/{y}.png", "tilemapresource.xml");
+  xmlPath = missionPath.replace("config.json", "") + xmlPath;
+  fetch(xmlPath)
+    .then((response) => response.text())
+    .then((str) => new window.DOMParser().parseFromString(str, "text/xml"))
+    .then((xml) => {
+      try {
+        const tLen = xml.getElementsByTagName("TileSet").length;
+        const minZoom =
+          xml.getElementsByTagName("TileSet")[0].attributes["order"].value;
+        const maxNativeZoom =
+          xml.getElementsByTagName("TileSet")[tLen - 1].attributes["order"]
+            .value;
+        const boundingBox =
+          xml.getElementsByTagName("BoundingBox")[0].attributes["minx"].value +
+          "," +
+          xml.getElementsByTagName("BoundingBox")[0].attributes["miny"].value +
+          "," +
+          xml.getElementsByTagName("BoundingBox")[0].attributes["maxx"].value +
+          "," +
+          xml.getElementsByTagName("BoundingBox")[0].attributes["maxy"].value;
+
+        cb(minZoom, maxNativeZoom, boundingBox);
+      } catch (err) {
+        errorCallback(err);
+      }
+    })
+    .catch((err) => {
+      errorCallback(err);
+    });
 }

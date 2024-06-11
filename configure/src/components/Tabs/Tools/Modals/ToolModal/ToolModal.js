@@ -141,11 +141,11 @@ const useStyles = makeStyles((theme) => ({
   },
   text: {
     "& .MuiFormLabel-root": {
-      color: theme.palette.swatches.grey[700],
+      color: `${theme.palette.swatches.grey[700]} !important`,
     },
     "& .MuiInputBase-root": {
-      background: theme.palette.swatches.grey[300],
-      color: theme.palette.swatches.grey[900],
+      background: `${theme.palette.swatches.grey[300]} !important`,
+      color: `${theme.palette.swatches.grey[900]} !important`,
     },
     "& .MuiInputBase-root::after": {
       borderBottom: `1px solid ${theme.palette.swatches.grey[400]}`,
@@ -263,9 +263,27 @@ const ToolModal = (props) => {
               variant="filled"
               size="small"
               value={tool?.icon || toolConfig?.defaultIcon || ""}
-              label={"Icon Name"}
+              label={"MDI Icon Name"}
               onChange={(e) => {
-                //updateConfiguration(forceField || com.field, e.target.value, layer);
+                const nextConfiguration = JSON.parse(
+                  JSON.stringify(configuration)
+                );
+                if (tool != null && tool.name != null) {
+                  updateToolInConfiguration(
+                    tool.name,
+                    nextConfiguration,
+                    ["icon"],
+                    e.target.value
+                  );
+                } else {
+                  nextConfiguration.tools.push({
+                    on: true,
+                    name: toolName,
+                    icon: e.target.value,
+                    js: Object.keys(toolConfig.paths)[0],
+                  });
+                }
+                dispatch(setConfiguration(nextConfiguration));
               }}
             />
           </div>

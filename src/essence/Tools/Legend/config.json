@@ -20,6 +20,14 @@
             {
                 "components": [
                     {
+                        "field": "separatedTool",
+                        "name": "Separated Tool",
+                        "description": "If true, this tool will live outside the left-hand toolbar and be independently accessible.",
+                        "type": "checkbox",
+                        "width": 3,
+                        "defaultChecked": true
+                    },
+                    {
                         "field": "variables.displayOnStart",
                         "name": "Display on Start",
                         "description": "Whether the expanded legend should automatically be displayed on start.",

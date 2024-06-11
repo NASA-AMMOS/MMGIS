@@ -4,7 +4,7 @@
       "name": "Core",
       "rows": [
         {
-          "forceHeight": "64px",
+          "name": "Core",
           "components": [
             {
               "field": "type",

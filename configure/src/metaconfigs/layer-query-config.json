@@ -296,7 +296,6 @@
               "width": 2
             },
             {
-              "new": true,
               "field": "style.colorProp",
               "name": "Color From Property",
               "description": "Color but taken from each individual feature's property. For example 'color' or 'path.to.prop.in.properties.object'",
@@ -314,7 +313,6 @@
               "width": 2
             },
             {
-              "new": true,
               "field": "style.opacityProp",
               "name": "Opacity From Property",
               "description": "Opacity but taken from each individual feature's property. For example 'opacity' or 'path.to.prop.in.properties.object'",
@@ -333,7 +331,6 @@
               "width": 2
             },
             {
-              "new": true,
               "field": "style.fillColorProp",
               "name": "Fill Color From Property",
               "description": "Fill Color but taken from each individual feature's property. For example 'fill_color' or 'path.to.prop.in.properties.object'",
@@ -351,7 +348,6 @@
               "width": 2
             },
             {
-              "new": true,
               "field": "style.fillOpacityProp",
               "name": "Fill Opacity From Property",
               "description": "Fill Opacity but taken from each individual feature's property. For example 'fill_opacity' or 'path.to.prop.in.properties.object'",
@@ -373,7 +369,6 @@
               "width": 2
             },
             {
-              "new": true,
               "field": "style.radiusProp",
               "name": "Radius From Property",
               "description": "Radius but taken from each individual feature's property. For example 'radius' or 'path.to.prop.in.properties.object'",
@@ -546,6 +541,18 @@
           "name": "Legend",
           "components": [
             {
+              "new": true,
+              "field": "legend",
+              "name": "Legend From URL",
+              "description": "A URL to a .csv with the following header: 'color,strokecolor,shape,value'. If the path is relative, it will be relative to the mission's directory. This legend is overridden if a legend is also configured below.",
+              "type": "text",
+              "width": 12
+            }
+          ]
+        },
+        {
+          "components": [
+            {
               "field": "variables.legend",
               "name": "Legend",
               "description": "Configures a legend for the layer. The Legend Tool renders symbologies and gradient scales for any properly configured layer that is on.",
@@ -557,21 +564,21 @@
                   "name": "Fill Color",
                   "description": "A color for the main fill of the symbol.",
                   "type": "colorpicker",
-                  "width": 3
+                  "width": 2
                 },
                 {
                   "field": "strokecolor",
                   "name": "Border Color",
                   "description": "A stroke/border color. Note that 'discreet' and 'continuous' shapes have no borders.",
                   "type": "colorpicker",
-                  "width": 3
+                  "width": 2
                 },
                 {
                   "field": "shape",
                   "name": "Shape",
                   "description": "The symbol for which to us for this legend entry. Discreet and continuous describe scales. These scales are broken into groups by a change in shape value. For instance, 'discreet, discreet, discreet, circle, discreet, discreet' represents a discreet scales of three colors, a circle and then a discreet scale of two colors.",
                   "type": "dropdown",
-                  "width": 3,
+                  "width": 5,
                   "options": [
                     "circle",
                     "square",
@@ -925,7 +932,7 @@
             {
               "field": "variables.dynamicExtent",
               "name": "Enabled",
-              "description": " If true, tries to only query the vector features present in the user's current map viewport. This can be very performant for large vector datasets especially if minimum and maximum zooms are set for the layer. Pan and zooming causes requeries. If used with a geodataset, the time and extent queries will work out-of-the-box. Otherwise, if using an external server, the following parameters in {} will be automatically replaced on query in the url: 'starttime={starttime}&endtime={endtime}&startprop={startprop}&endprop={endprop}&crscode={crscode}&zoom={zoom}&minx={minx}&miny={miny}&maxx={maxx}&maxy={maxy}'",
+              "description": " If true, tries to only query the vector features present in the user's current map viewport. This can be very performant for large vector datasets especially if minimum and maximum zooms are set for the layer. Pan and zooming causes requeries. If used with a geodataset, the time and extent queries will work out-of-the-box. Otherwise, if using an external server, the following parameters in {} will be automatically replaced on query in the url: 'starttime={starttime}&endtime={endtime}&startprop={startprop}&endprop={endprop}&crscode={crscode}&zoom={zoom}&minx={minx}&miny={miny}&maxx={maxx}&maxy={maxy}'. This setting is not advised if the data source is a straight geojson file because it expects a server that can crop the data to given extents.",
               "type": "switch",
               "width": 3,
               "defaultChecked": false
@@ -990,7 +997,6 @@
           "subname": "Labels",
           "components": [
             {
-              "new": true,
               "field": "variables.layerAttachments.labels.enabled",
               "name": "Enabled",
               "description": "Place a label beside each feature. Also applies to 'Coordinate Attachments -> Marker' features.",
@@ -1121,7 +1127,6 @@
           "subname": "Marker",
           "components": [
             {
-              "new": true,
               "field": "variables.coordinateAttachments.marker.enabled",
               "name": "Enabled",
               "description": "Place a marker at every coordinate of every feature.",
@@ -1207,7 +1212,6 @@
           "subname": "Bearings",
           "components": [
             {
-              "new": true,
               "field": "variables.markerAttachments.bearing.enabled",
               "name": "Enabled",
               "description": "Sets a bearing direction (clockwise from north) of this layer's point markers (or markerIcons if set). Overrides the layer's shape dropdown value.",
@@ -1247,7 +1251,6 @@
           "subname": "Image",
           "components": [
             {
-              "new": true,
               "field": "variables.markerAttachments.image.enabled",
               "name": "Enabled",
               "description": "Places a scaled and orientated image under each marker.",
@@ -1702,7 +1705,7 @@
             {
               "field": "variables.chemistry",
               "name": "Chemistry Values",
-              "description": "Comma-separated chemistry columns to use as percentages and it what order. Should be used with a Dataset. Look into the docs for the ChemistryTool for more information.",
+              "description": "Comma-separated chemistry columns to use as percentages and in what order. Should be used with a Dataset. Ex. 'Al2O3,CaO,FeOT,K2O,MgO,Na2O,SiO2,TiO2'. Look into the docs for the ChemistryTool for more information.",
               "type": "textarray",
               "width": 12
             }

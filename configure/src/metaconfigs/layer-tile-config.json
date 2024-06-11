@@ -145,6 +145,18 @@
               "width": 12
             }
           ]
+        },
+        {
+          "name": "Actions",
+          "components": [
+            {
+              "name": "Populate Fields From tilemapresource.xml",
+              "description": "If the above URL is relative to the Missions/{mission} directory and the tileset contains a tilemapresource.xml within it, queries that xml and auto-fills the 'Minimum Zoom', 'Maximum Native Zoom' and 'Bounding Box' fields above.",
+              "type": "button",
+              "action": "tile-populate-from-xml",
+              "width": 4
+            }
+          ]
         }
       ]
     },
@@ -196,6 +208,18 @@
           "name": "Legend",
           "components": [
             {
+              "new": true,
+              "field": "legend",
+              "name": "Legend From URL",
+              "description": "A URL to a .csv with the following header: 'color,strokecolor,shape,value'. If the path is relative, it will be relative to the mission's directory. This legend is overridden if a legend is also configured below.",
+              "type": "text",
+              "width": 12
+            }
+          ]
+        },
+        {
+          "components": [
+            {
               "field": "variables.legend",
               "name": "Legend",
               "description": "Configures a legend for the layer. The Legend Tool renders symbologies and gradient scales for any properly configured layer that is on.",
@@ -207,21 +231,21 @@
                   "name": "Fill Color",
                   "description": "A color for the main fill of the symbol.",
                   "type": "colorpicker",
-                  "width": 3
+                  "width": 2
                 },
                 {
                   "field": "strokecolor",
                   "name": "Border Color",
                   "description": "A stroke/border color. Note that 'discreet' and 'continuous' shapes have no borders.",
                   "type": "colorpicker",
-                  "width": 3
+                  "width": 2
                 },
                 {
                   "field": "shape",
                   "name": "Shape",
                   "description": "The symbol for which to us for this legend entry. Discreet and continuous describe scales. These scales are broken into groups by a change in shape value. For instance, 'discreet, discreet, discreet, circle, discreet, discreet' represents a discreet scales of three colors, a circle and then a discreet scale of two colors.",
                   "type": "dropdown",
-                  "width": 3,
+                  "width": 5,
                   "options": [
                     "circle",
                     "square",

@@ -64,6 +64,7 @@ export const constructVectorLayer = (
         fiO = `prop:${layerObj.style.fillOpacityProp}`
 
     let rad = String(layerObj.style.radius)
+    if (rad === 'undefined') rad = '8'
     if (layerObj.style.radiusProp != null && layerObj.style.radiusProp !== '')
         rad = `prop:${layerObj.style.radiusProp}`
 
@@ -142,8 +143,10 @@ export const constructVectorLayer = (
 
                 var finalRad =
                     rad.toLowerCase().substring(0, 4) === 'prop'
-                        ? feature.properties[rad.substring(5)] || '1'
-                        : feature.style && feature.style.radius != null
+                        ? feature.properties[rad.substring(5)] || '8'
+                        : feature.style &&
+                          feature.style.radius != null &&
+                          feature.style.radius != 'undefined'
                         ? feature.style.radius
                         : rad
                 if (!isNaN(parseInt(finalRad))) finalRad = parseInt(finalRad)
@@ -160,7 +163,7 @@ export const constructVectorLayer = (
                 layerObj.style.weight = finalWei
                 layerObj.style.fillColor = finalFiC
                 layerObj.style.fillOpacity = finalFiO
-                layerObj.style.radius = finalRad
+                layerObj.style.radius = finalRad || 8
             }
             if (
                 noPointerEventsClass != null &&
@@ -198,7 +201,6 @@ export const constructVectorLayer = (
                     Map_.map
                 )
             }
-
             return layerObj.style
         },
         onEachFeature: (function (layerObjName) {
@@ -255,7 +257,7 @@ export const constructVectorLayer = (
                     if (unit === 'rad') {
                         yaw = yaw * (180 / Math.PI)
                     }
-                    layerObj.shape = 'directional_circle'
+                    layerObj.shape = 'directional-circle'
                 }
 
                 const markerXY = Map_.map.latLngToLayerPoint(latlong)
@@ -275,7 +277,21 @@ export const constructVectorLayer = (
                 yaw = -((360 - yaw) % 360)
             }
 
-            switch (layerObj.shape) {
+            // Use style.shapeProp
+            let finalShape = layerObj.shape
+            if (
+                layerObj.style.shapeProp != null &&
+                layerObj.style.shapeProp != ''
+            ) {
+                const candidateShape = F_.getIn(
+                    feature.properties,
+                    layerObj.style.shapeProp,
+                    null
+                )
+                if (candidateShape) finalShape = candidateShape
+            }
+
+            switch (finalShape) {
                 case 'circle':
                     svg = [
                         `<svg style="height=100%;width=100%" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
@@ -370,7 +386,7 @@ export const constructVectorLayer = (
                     layer = L.circleMarker(
                         latlong,
                         leafletLayerObject.style
-                    ).setRadius(layerObj.radius)
+                    ).setRadius(layerObj.style.radius || layerObj.radius || 8)
                     break
             }
 
@@ -1005,7 +1021,6 @@ const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {
     let curtainUncertaintyOptions
     let clampedUncertaintyOptions
     let leafletLayerObjectUncertaintyEllipse
-
 
     if (
         uncertaintyVar &&

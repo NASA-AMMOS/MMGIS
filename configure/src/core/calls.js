@@ -1,4 +1,7 @@
-const domain = "http://localhost:8888/";
+const domain =
+  window.mmgisglobal.NODE_ENV === "development"
+    ? "http://localhost:8888"
+    : window.location.origin;
 
 const c = {
   missionPath: "Missions/",

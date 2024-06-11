@@ -114,7 +114,7 @@
       "description": "Configure which coordinates are made visible to users when mousing around and exporting vectors.",
       "components": [
         {
-          "field": "type",
+          "field": "coordinates.coordmain",
           "name": "Main Coordinate Type",
           "description": "",
           "type": "dropdown",

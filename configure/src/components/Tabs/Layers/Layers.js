@@ -3,7 +3,9 @@ import { useSelector, useDispatch } from "react-redux";
 import {} from "./LayersSlice";
 import { makeStyles } from "@mui/styles";
 
-import { reorderArray } from "../../../core/utils";
+import clsx from "clsx";
+
+import { reorderArray, insertLayerAfterUUID } from "../../../core/utils";
 import { setModal, setConfiguration } from "../../../core/ConfigureStore";
 
 import LayerModal from "./Modals/LayerModal/LayerModal";
@@ -15,6 +17,7 @@ import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
 import Button from "@mui/material/Button";
 
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown"; // Header
@@ -68,6 +71,9 @@ const useStyles = makeStyles((theme) => ({
     transition: "background 0.2s ease-out",
     "&:hover": {
       background: theme.palette.swatches.grey[1000],
+      "& .addAtPosition": {
+        opacity: 1,
+      },
     },
   },
   layersListItemButton: {
@@ -128,13 +134,32 @@ const useStyles = makeStyles((theme) => ({
     padding: "4px",
   },
   addLayer: {
-    position: "absolute !important",
-    top: "32px",
-    right: "18%",
-    transform: "translateX(calc(100% + 5px))",
+    position: "fixed !important",
+    top: "58px",
+    left: "230px",
     borderRadius: "3px !important",
     backgroundColor: `${theme.palette.swatches.p[0]} !important`,
-    outline: "none !important",
+    border: "none !important",
+  },
+  addAtPosition: {
+    position: "absolute",
+    left: "-34px",
+    bottom: "-3px",
+    opacity: 0,
+    transition: "opacity 0.2s ease-out",
+    "& > button": {
+      background: `${theme.palette.swatches.p[0]} !important`,
+      borderBottomRightRadius: "0px !important",
+      borderTopRightRadius: "4px !important",
+      borderBottomLeftRadius: "4px !important",
+      borderTopLeftRadius: "4px !important",
+    },
+  },
+  line: {
+    width: "486px",
+    height: "2px",
+    background: theme.palette.swatches.p[0],
+    marginTop: "26px",
   },
 }));
 
@@ -254,8 +279,6 @@ export default function Layers() {
     nextConfiguration.layers = nextLayers;
     dispatch(setConfiguration(nextConfiguration));
   };
-
-  console.log(flatLayers);
 
   return (
     <>
@@ -432,6 +455,53 @@ export default function Layers() {
                                     </ListItemIcon>
                                   </div>
                                 </div>
+                              </div>
+                              <div
+                                className={clsx(
+                                  c.addAtPosition,
+                                  "addAtPosition"
+                                )}
+                                style={{
+                                  transform: `translateX(${
+                                    l.depth * -INDENT_WIDTH
+                                  }px)`,
+                                }}
+                              >
+                                <Tooltip
+                                  title="Add New Layer Here"
+                                  placement="left"
+                                  arrow
+                                >
+                                  <IconButton
+                                    className={c.rowIcon}
+                                    title="Indent Right"
+                                    aria-label="indent right"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const nextConfiguration = JSON.parse(
+                                        JSON.stringify(configuration)
+                                      );
+                                      window.newUUIDCount++;
+                                      const uuid = window.newUUIDCount;
+                                      insertLayerAfterUUID(
+                                        nextConfiguration.layers,
+                                        {
+                                          name: "New Layer",
+                                          uuid,
+                                          type: "header",
+                                          sublayers: [],
+                                        },
+                                        l.layer.uuid
+                                      );
+                                      dispatch(
+                                        setConfiguration(nextConfiguration)
+                                      );
+                                    }}
+                                  >
+                                    <AddIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                                <div className={c.line}></div>
                               </div>
                             </ListItemButton>
                           </ListItem>

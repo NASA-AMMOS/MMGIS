@@ -1,7 +1,11 @@
 import React from "react";
 import { useSelector, useDispatch } from "react-redux";
 
-import { getLayerByUUID, traverseLayers } from "../../../../../core/utils";
+import {
+  getLayerByUUID,
+  traverseLayers,
+  insertLayerAfterUUID,
+} from "../../../../../core/utils";
 
 import {
   setModal,
@@ -115,6 +119,10 @@ const useStyles = makeStyles((theme) => ({
     background: `${theme.palette.swatches.red[500]} !important`,
     color: `${theme.palette.swatches.grey[1000]} !important`,
     border: "none !important",
+  },
+  uuid: {
+    color: theme.palette.swatches.grey[600],
+    fontSize: "14px",
   },
   actionsRight: {
     display: "flex",
@@ -246,6 +254,11 @@ const LayerModal = (props) => {
             Remove Layer
           </Button>
         </div>
+        <div className={c.uuid}>{`Layer UUID: ${layer.uuid}${
+          typeof layer.uuid === "number"
+            ? " (Will be formally assigned upon saving)"
+            : ""
+        }`}</div>
         <div className={c.actionsRight}>
           <Tooltip title="Clone Layer" placement="top" arrow>
             <IconButton
@@ -258,7 +271,12 @@ const LayerModal = (props) => {
                 window.newUUIDCount++;
                 const uuid = window.newUUIDCount;
                 clonedLayer.uuid = uuid;
-                nextConfiguration.layers.unshift(clonedLayer);
+                if (clonedLayer.type === "header") clonedLayer.sublayers = [];
+                insertLayerAfterUUID(
+                  nextConfiguration.layers,
+                  clonedLayer,
+                  layer.uuid
+                );
                 dispatch(setConfiguration(nextConfiguration));
                 dispatch(
                   setSnackBarText({

@@ -128,7 +128,6 @@
               "width": 2
             },
             {
-              "new": true,
               "field": "style.colorProp",
               "name": "Color From Property",
               "description": "Color but taken from each individual feature's property. For example 'color' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'Color' field.",
@@ -146,7 +145,6 @@
               "width": 2
             },
             {
-              "new": true,
               "field": "style.opacityProp",
               "name": "Opacity From Property",
               "description": "Opacity but taken from each individual feature's property. For example 'opacity' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'Opacity' field.",
@@ -165,7 +163,6 @@
               "width": 2
             },
             {
-              "new": true,
               "field": "style.fillColorProp",
               "name": "Fill Color From Property",
               "description": "Fill Color but taken from each individual feature's property. For example 'fill_color' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'Fill Color' field.",
@@ -183,7 +180,6 @@
               "width": 2
             },
             {
-              "new": true,
               "field": "style.fillOpacityProp",
               "name": "Fill Opacity From Property",
               "description": "Fill Opacity but taken from each individual feature's property. For example 'fill_opacity' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'Fill Opacity' field.",
@@ -205,7 +201,6 @@
               "width": 2
             },
             {
-              "new": true,
               "field": "style.weightProp",
               "name": "Weight From Property",
               "description": "Weight but taken from each individual feature's property. For example 'weight' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'Weight' field.",
@@ -223,7 +218,6 @@
               "width": 2
             },
             {
-              "new": true,
               "field": "style.radiusProp",
               "name": "Radius From Property",
               "description": "Radius but taken from each individual feature's property. For example 'radius' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'Radius' field.",
@@ -239,7 +233,7 @@
               "name": "Shape",
               "description": "A marker symbol for point features for this layer. When set to 'None', a simple circle is used. Marker icons and other attachments may override this setting.",
               "type": "dropdown",
-              "width": 4,
+              "width": 3,
               "options": [
                 "none",
                 "circle",
@@ -254,6 +248,13 @@
                 "plus",
                 "pin"
               ]
+            },
+            {
+              "field": "style.shapeProp",
+              "name": "Shape From Property",
+              "description": "Shape but taken from each individual feature's property. For example 'shape' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'shape' field. Shape values are formatted like the dropdown options but all lowercase.",
+              "type": "text",
+              "width": 3
             }
           ]
         },
@@ -421,6 +422,18 @@
           "name": "Legend",
           "components": [
             {
+              "new": true,
+              "field": "legend",
+              "name": "Legend From URL",
+              "description": "A URL to a .csv with the following header: 'color,strokecolor,shape,value'. If the path is relative, it will be relative to the mission's directory. This legend is overridden if a legend is also configured below.",
+              "type": "text",
+              "width": 12
+            }
+          ]
+        },
+        {
+          "components": [
+            {
               "field": "variables.legend",
               "name": "Legend",
               "description": "Configures a legend for the layer. The Legend Tool renders symbologies and gradient scales for any properly configured layer that is on.",
@@ -432,21 +445,21 @@
                   "name": "Fill Color",
                   "description": "A color for the main fill of the symbol.",
                   "type": "colorpicker",
-                  "width": 3
+                  "width": 2
                 },
                 {
                   "field": "strokecolor",
                   "name": "Border Color",
                   "description": "A stroke/border color. Note that 'discreet' and 'continuous' shapes have no borders.",
                   "type": "colorpicker",
-                  "width": 3
+                  "width": 2
                 },
                 {
                   "field": "shape",
                   "name": "Shape",
                   "description": "The symbol for which to us for this legend entry. Discreet and continuous describe scales. These scales are broken into groups by a change in shape value. For instance, 'discreet, discreet, discreet, circle, discreet, discreet' represents a discreet scales of three colors, a circle and then a discreet scale of two colors.",
                   "type": "dropdown",
-                  "width": 3,
+                  "width": 5,
                   "options": [
                     "circle",
                     "square",
@@ -801,7 +814,7 @@
             {
               "field": "variables.dynamicExtent",
               "name": "Enabled",
-              "description": " If true, tries to only query the vector features present in the user's current map viewport. This can be very performant for large vector datasets especially if minimum and maximum zooms are set for the layer. Pan and zooming causes requeries. If used with a geodataset, the time and extent queries will work out-of-the-box. Otherwise, if using an external server, the following parameters in {} will be automatically replaced on query in the url: 'starttime={starttime}&endtime={endtime}&startprop={startprop}&endprop={endprop}&crscode={crscode}&zoom={zoom}&minx={minx}&miny={miny}&maxx={maxx}&maxy={maxy}'",
+              "description": " If true, tries to only query the vector features present in the user's current map viewport. This can be very performant for large vector datasets especially if minimum and maximum zooms are set for the layer. Pan and zooming causes requeries. If used with a geodataset, the time and extent queries will work out-of-the-box. Otherwise, if using an external server, the following parameters in {} will be automatically replaced on query in the url: 'starttime={starttime}&endtime={endtime}&startprop={startprop}&endprop={endprop}&crscode={crscode}&zoom={zoom}&minx={minx}&miny={miny}&maxx={maxx}&maxy={maxy}'. This setting is not advised if the data source is a straight geojson file because it expects a server that can crop the data to given extents.",
               "type": "switch",
               "width": 3,
               "defaultChecked": false
@@ -879,7 +892,6 @@
           "subname": "Labels",
           "components": [
             {
-              "new": true,
               "field": "variables.layerAttachments.labels.enabled",
               "name": "Enabled",
               "description": "Place a label beside each feature. Also applies to 'Coordinate Attachments -> Marker' features.",
@@ -1010,7 +1022,6 @@
           "subname": "Marker",
           "components": [
             {
-              "new": true,
               "field": "variables.coordinateAttachments.marker.enabled",
               "name": "Enabled",
               "description": "Place a marker at every coordinate of every feature.",
@@ -1096,7 +1107,6 @@
           "subname": "Bearings",
           "components": [
             {
-              "new": true,
               "field": "variables.markerAttachments.bearing.enabled",
               "name": "Enabled",
               "description": "Sets a bearing direction (clockwise from north) of this layer's point markers (or markerIcons if set). Overrides the layer's shape dropdown value.",
@@ -1136,7 +1146,6 @@
           "subname": "Image",
           "components": [
             {
-              "new": true,
               "field": "variables.markerAttachments.image.enabled",
               "name": "Enabled",
               "description": "Places a scaled and orientated image under each marker.",

@@ -23,11 +23,9 @@ export const getIn = (obj, keyArray, notSetValue) => {
   return object;
 };
 export const setIn = (obj, keyArray, value, force) => {
-  console.log("setIn", obj, keyArray, value, force);
   if (keyArray == null || keyArray.length === 0) return null;
   let object = obj;
   for (let i = 0; i < keyArray.length - 1; i++) {
-    console.log(obj, keyArray, keyArray[i], value, force);
     if (force) {
       if (!object.hasOwnProperty(keyArray[i]))
         object[keyArray[i]] =
@@ -46,8 +44,11 @@ export const traverseLayers = (layers, onLayer) => {
   function depthTraversal(node, depth, path) {
     for (var i = 0; i < node.length; i++) {
       const ret = onLayer(node[i], path, i);
-
-      if (ret === "remove") {
+      if (ret && ret.type === "add") {
+        if (node[i].type === "header") {
+          node[i].sublayers.unshift(ret.layer);
+        } else node.splice(i + 1, 0, ret.layer);
+      } else if (ret === "remove") {
         node.splice(i, 1);
         i--;
       }
@@ -66,6 +67,17 @@ export const traverseLayers = (layers, onLayer) => {
     }
   }
 };
+export const insertLayerAfterUUID = (layers, layer, uuid) => {
+  traverseLayers(layers, (l, path, index) => {
+    if (l.uuid === uuid) {
+      return {
+        type: "add",
+        layer,
+      };
+    }
+  });
+};
+
 export const getLayerByUUID = (layers, uuid) => {
   let layer = null;
   if (uuid == null) return layer;
