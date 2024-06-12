@@ -1600,7 +1600,7 @@
             {
               "field": "variables.chemistry",
               "name": "Chemistry Values",
-              "description": "Comma-separated chemistry columns to use as percentages and it what order. Should be used with a Dataset. Look into the docs for the ChemistryTool for more information.",
+              "description": "Comma-separated chemistry columns to use as percentages and in what order. Should be used with a Dataset. Ex. 'Al2O3,CaO,FeOT,K2O,MgO,Na2O,SiO2,TiO2'. Look into the docs for the ChemistryTool for more information.",
               "type": "textarray",
               "width": 12
             }
