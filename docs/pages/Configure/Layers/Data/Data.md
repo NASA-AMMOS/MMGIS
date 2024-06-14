@@ -79,6 +79,7 @@ Data layers need a configured `shader` raw variable to be effective. Supported s
   - ramps: An array of arrays of hex color strings. "transparent" is a special keyword for a fully transparent ramp color.
 - "image": (Default) Simply shows the underlying raw data in an image form. Mainly for testing, it can also be useful for development for internal pass-tile-canvas-instead-of-url layers.
 
+
 Example:
 
 ```javascript
@@ -97,6 +98,9 @@ Example:
                 "#0000FF"
             ]
         ]
-    }
+    },
+    "downloadURL": "(str) url_to_data/data.tif"
 }
 ```
+
+- `downloadURL`: Provides a menu option for users to download the specified source data file for the layer.
