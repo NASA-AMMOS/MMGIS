@@ -1,6 +1,6 @@
 const domain =
   window.mmgisglobal.NODE_ENV === "development"
-    ? "http://localhost:8888"
+    ? "http://localhost:8888/"
     : window.location.origin + "/";
 
 const c = {

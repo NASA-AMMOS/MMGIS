@@ -6,7 +6,6 @@ import { calls } from "../../../../core/calls";
 import Papa from "papaparse";
 
 import {
-  setMissions,
   setModal,
   setSnackBarText,
 } from "../../../../core/ConfigureStore";
@@ -27,9 +26,6 @@ import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import { useDropzone } from "react-dropzone";
 
 import TextField from "@mui/material/TextField";
-import FormGroup from "@mui/material/FormGroup";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import Checkbox from "@mui/material/Checkbox";
 
 import { makeStyles, useTheme } from "@mui/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";

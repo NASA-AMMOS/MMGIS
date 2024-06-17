@@ -387,6 +387,18 @@
               "width": 6
             }
           ]
+        },
+        {
+          "subname": "Downloads",
+          "components": [
+            {
+              "field": "variables.downloadURL",
+              "name": "Download URL",
+              "description": "Provides a menu option for users to download the specified source data file for the layer.",
+              "type": "text",
+              "width": 12
+            }
+          ]
         }
       ]
     },
