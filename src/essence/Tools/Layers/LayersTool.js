@@ -300,6 +300,24 @@ function interfaceWithMMGIS(fromInit) {
                         '</ul>',
                     ].join('\n')
                     break
+                case 'data':
+                case 'tile':
+                    layerExport = ''
+                    // Add download URL for raster layers
+                    if(node[i].hasOwnProperty('variables')) {
+                        if(node[i].variables.hasOwnProperty('downloadURL')) {
+                            layerExport = [
+                                '<ul>',
+                                    '<li>',
+                                        '<div class="layersToolExportSourceGeoJSON">',
+                                            `<div><a href="` + node[i].variables.downloadURL + `" target="_blank">Download Data</a></div>`,
+                                        '</div>',
+                                    '</li>',
+                                '</ul>',
+                            ].join('\n')
+                        }
+                    }
+                    break 
                 default:
                     layerExport = ''
             }

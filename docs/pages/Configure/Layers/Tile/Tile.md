@@ -115,6 +115,7 @@ Example:
           "value_in_response_to_replace_with.use.dot.notation.to.traverse.objects",
       },
     },
+    "downloadURL": "(str) url_to_data/data.tif",
     "tools": {
       "measure": {
         "layerDems": [
@@ -141,3 +142,4 @@ Example:
 
 - `shortcutSuffix`: A single letter to 'ALT + {letter}' toggle the layer on and off. Please verify that your chosen shortcut does not conflict with other system or browser-level keyboard shortcuts.
 - `urlReplacements`: For the case where parts or all of a tileset's url comes from intermediary endpoints. For example a service may require sending a query to a server that then returns a uuid and that uuid is required in the tileset's url to query it.
+- `downloadURL`: Provides a menu option for users to download the specified source data file for the layer.
