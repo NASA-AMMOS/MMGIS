@@ -1,0 +1,221 @@
+.CurtainTool {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    background: var(--color-k);
+    color: var(--color-f);
+    box-shadow: inset 2px 0px 10px 0px rgba(0, 0, 0, 0.2);
+}
+.CurtainTool #curtainTop,
+.CurtainTool #curtainIcons {
+    display: flex;
+    justify-content: space-between;
+}
+.CurtainTool #curtainTop {
+    border-bottom: 1px solid var(--color-i);
+}
+.CurtainTool #curtainIcons {
+}
+.CurtainTool #curtainIcons > div {
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    margin: 2px 0px 2px 2px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+.CurtainTool #curtainIcons > div:hover {
+    color: var(--color-mmgis);
+    background: var(--color-m1);
+}
+
+.CurtainTool #curtainLeft {
+    width: 390px;
+    height: 100%;
+    display: flex;
+    flex-flow: column;
+}
+
+.CurtainTool #curtainLeft #curtainTitle {
+    height: 34px;
+    line-height: 34px;
+    font-size: 16px;
+    padding-left: 6px;
+    font-family: 'lato-light';
+    text-transform: uppercase;
+    color: var(--color-l);
+}
+
+.CurtainTool #curtainUrl {
+    padding: 7px 7px 0px 7px;
+    font-size: 14px;
+    color: white;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.CurtainTool #curtainStats {
+    display: flex;
+    justify-content: center;
+    font-size: 13px;
+    padding: 7px;
+    color: white;
+    border-bottom: 1px solid var(--color-i);
+}
+.CurtainTool #curtainStats > div {
+    padding: 0px 7px;
+    height: 29px;
+}
+.CurtainTool #curtainStats > div:not(:last-child) {
+    border-right: 1px solid var(--color-i);
+}
+.CurtainTool #curtainStats > div > div:first-child {
+    color: #b3b3b3;
+    font-size: 12px;
+}
+.CurtainTool #curtainStats > div > div {
+    text-align: center;
+}
+
+.CurtainTool #curtainBottom {
+    padding: 7px 14px 0px 14px;
+}
+.CurtainTool #curtainMode {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    line-height: 21px;
+    margin: 0px 7px 7px 7px;
+}
+
+.CurtainTool #curtain3dExag,
+.CurtainTool #curtain3dOffset {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    line-height: 21px;
+    margin: 0px 5px 7px 7px;
+}
+.CurtainTool .curtainSliderLabel {
+    padding: 0px 3px;
+    color: #b3b3b3;
+    font-size: 12px;
+    line-height: 21px;
+}
+.CurtainTool #curtainMode > select {
+    width: 130px;
+}
+.CurtainTool #curtain3dExag .slider2,
+.CurtainTool #curtain3dOffset .slider2 {
+    width: 130px;
+    margin-top: 3px;
+    margin-bottom: 1px;
+}
+
+.CurtainTool #curtainMiddle {
+    flex: 1;
+    height: 100%;
+    background: var(--color-n);
+    position: relative;
+}
+.CurtainTool #curtainViewer {
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+}
+
+.CurtainTool #curtainMessage {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0px;
+    opacity: 1;
+    pointer-events: all;
+    background: var(--color-n);
+    transition: opacity 1s cubic-bezier(0.785, 0.135, 0.15, 0.86);
+}
+.CurtainTool #curtainMessage.curtainMessageShown {
+}
+.CurtainTool #curtainMessage.curtainMessageHidden {
+    opacity: 0;
+    pointer-events: none;
+}
+.CurtainTool #curtainMessage > div {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translateX(-50%) translateY(-50%);
+}
+.CurtainTool #curtainTooltip {
+    position: absolute;
+    right: 0;
+    line-height: 26px;
+    padding: 0px 4px 0px 6px;
+    background: var(--color-k);
+    pointer-events: none;
+    transition: all 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+
+.CurtainTool #curtainToolBar {
+    width: 30px;
+    height: 100%;
+    display: flex;
+    flex-flow: column;
+}
+.CurtainTool #curtainToolBar > div {
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+.CurtainTool #curtainToolBar > div:hover {
+    color: var(--color-mmgis);
+    background: var(--color-m1);
+}
+
+/*dropdown*/
+.CurtainTool .dropdown {
+    background-color: var(--color-m1);
+    color: #e1e1e1;
+    border: none;
+    margin-top: 1px;
+    width: 100%;
+    height: 20px;
+    font-size: 14px;
+    padding-left: 2px;
+}
+.CurtainTool .dropdown::after {
+    color: #e1e1e1;
+}
+
+.CurtainTool .upper-canvas {
+    cursor: crosshair !important;
+}
+
+.CurtainTool #curtainLoading {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0px;
+    opacity: 1;
+    pointer-events: all;
+    background: var(--color-n);
+    transition: opacity 1s cubic-bezier(0.785, 0.135, 0.15, 0.86);
+}
+.CurtainTool #curtainLoading.curtainLoadingShown {
+}
+.CurtainTool #curtainLoading.curtainLoadingHidden {
+    opacity: 0;
+    pointer-events: none;
+}
+.CurtainTool #curtainLoading > div {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translateX(-50%) translateY(-50%);
+}

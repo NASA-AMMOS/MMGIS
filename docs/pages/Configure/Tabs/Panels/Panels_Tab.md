@@ -31,9 +31,13 @@ The Viewer sits to the left of the main Map. It can be expanded by clicking the 
             "type": "document"
         },
         {
-            "url": "Layers/GPR/Data/GPR_radargram.jpg",
-            "type": "radargram"
-        },
+                "url": "Layers/GPR/Data/GPR_radargram.jpg",
+                "type": "radargram",
+                "mode": "026",
+                "topElev": -2535,
+                "depth": 10.99,
+                "length": 23.44
+            },
         {
             "name": "Model Example",
             "url": "Data/models/example_model.obj",
@@ -75,7 +79,12 @@ Current only .pdf files are supported here.
 
 ### Radargram
 
-Renders as a standard image. The Curtain Tool will find this type and use it.
+Renders as a standard image. The Curtain Tool will find this type and use it. Should be set only for LineString geometries.
+
+- `mode`: Any string to show in a dropdown in the Curtain Tool to identify and switch between radargrams in case there are many.
+- `topElev`: Top elevation in meters that correspond to the top pixel of the radargram image. Radargrams should be generated to be terrain aligned.
+- `depth`: Depth of radargram image in meters.
+- `length`: Width of radargram image in meters.
 
 ### Model
 
