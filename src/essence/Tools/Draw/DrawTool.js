@@ -741,6 +741,7 @@ var DrawTool = {
                                         d
                                     )
 
+                                    Viewer_.changeImages(layer.feature, layer)
                                     Globe_.highlight(
                                         Globe_.findSpriteObject(
                                             layer.options.layerName,

@@ -168,7 +168,12 @@ var Viewer_ = {
     },
     //images is [ { 'url': '', 'name': '', 'isPanoramic': false },{...}, ... ]
     //Shows the first image too
-    changeImages: function (images, feature, layer) {
+    changeImages: function (feature, layer) {
+        let images = L_.propertiesToImages(
+            feature.properties,
+            layer.options.metadata ? layer.options.metadata.base_url || '' : ''
+        )
+
         // Don't refresh if the same exact point is clicked,
         // that's just annoying. So skip over it.
         if (

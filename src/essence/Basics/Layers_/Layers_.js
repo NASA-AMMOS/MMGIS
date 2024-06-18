@@ -3267,6 +3267,98 @@ const L_ = {
         }
         return features
     },
+    propertiesToImages(props, baseUrl) {
+        baseUrl = baseUrl || ''
+        var images = []
+        //Use "images" key first
+        if (props.hasOwnProperty('images')) {
+            for (var i = 0; i < props.images.length; i++) {
+                if (props.images[i].url) {
+                    var url = baseUrl + props.images[i].url
+                    if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
+                    if (props.images[i].isModel) {
+                        images.push({
+                            url: url,
+                            texture: props.images[i].texture,
+                            name:
+                                (props.images[i].name ||
+                                    props.images[i].url.match(
+                                        /([^\/]*)\/*$/
+                                    )[1]) + ' [Model]',
+                            type: 'model',
+                            isPanoramic: false,
+                            isModel: true,
+                            values: props.images[i].values || {},
+                            master: props.images[i].master,
+                        })
+                    } else {
+                        if (props.images[i].isPanoramic) {
+                            images.push({
+                                ...props.images[i],
+                                url: url,
+                                name:
+                                    (props.images[i].name ||
+                                        props.images[i].url.match(
+                                            /([^\/]*)\/*$/
+                                        )[1]) + ' [Panoramic]',
+                                type: 'photosphere',
+                                isPanoramic: true,
+                                isModel: false,
+                                values: props.images[i].values || {},
+                                master: props.images[i].master,
+                            })
+                        }
+                        images.push({
+                            url: url,
+                            name:
+                                props.images[i].name ||
+                                props.images[i].url.match(/([^\/]*)\/*$/)[1],
+                            type: props.images[i].type || 'image',
+                            isPanoramic: false,
+                            isModel: false,
+                            values: props.images[i].values || {},
+                            master: props.images[i].master,
+                        })
+                    }
+                }
+            }
+        }
+        //If there isn't one, search all string valued props for image urls
+        else {
+            for (var p in props) {
+                if (
+                    typeof props[p] === 'string' &&
+                    props[p].toLowerCase().match(/\.(jpeg|jpg|gif|png|xml)$/) !=
+                        null
+                ) {
+                    var url = props[p]
+                    if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
+                    images.push({
+                        url: url,
+                        name: p,
+                        isPanoramic: false,
+                        isModel: false,
+                    })
+                }
+                if (
+                    typeof props[p] === 'string' &&
+                    (props[p].toLowerCase().match(/\.(obj)$/) != null ||
+                        props[p].toLowerCase().match(/\.(dae)$/) != null)
+                ) {
+                    var url = props[p]
+                    if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
+                    images.push({
+                        url: url,
+                        name: p,
+                        isPanoramic: false,
+                        isModel: true,
+                    })
+                }
+            }
+        }
+
+        return images
+    },
 }
 
 //Takes in a configData object and does a depth-first search through its

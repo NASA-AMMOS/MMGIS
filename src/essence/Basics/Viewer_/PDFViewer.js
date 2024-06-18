@@ -52,7 +52,7 @@ const ReactPDF = (props) => {
                 style={{
                     position: 'fixed',
                     top: '40px',
-                    left: '46px',
+                    left: bcr ? `${bcr.left + 6}px` : '46px',
                     display: 'flex',
                     height: '30px',
                     justifyContent: 'center',

@@ -4,6 +4,7 @@ import L_ from '../../Basics/Layers_/Layers_'
 import LayerGeologic from '../../Basics/Layers_/LayerGeologic/LayerGeologic'
 import Globe_ from '../../Basics/Globe_/Globe_'
 import Map_ from '../../Basics/Map_/Map_'
+import Viewer_ from '../../Basics/Viewer_/Viewer_'
 import UserInterface_ from '../../Basics/UserInterface_/UserInterface_'
 import CursorInfo from '../../Ancillary/CursorInfo'
 import turf from 'turf'
@@ -2770,6 +2771,11 @@ var Editing = {
             }
             return newProperties
         }
+
+        Viewer_.changeImages(
+            DrawTool.contextMenuLayer.feature,
+            DrawTool.contextMenuLayer
+        )
     },
     getSnapGuides: function (layer) {
         var guides = []
