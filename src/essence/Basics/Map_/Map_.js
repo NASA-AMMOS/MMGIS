@@ -393,7 +393,7 @@ let Map_ = {
             )
         }
     },
-    refreshLayer: async function (layerObj) {
+    refreshLayer: async function (layerObj, cb) {
         // We need to find and remove all points on the map that belong to the layer
         // Not sure if there is a cleaner way of doing this
         for (var i = L_._layersOrdered.length - 1; i >= 0; i--) {
@@ -419,8 +419,10 @@ let Map_ = {
                     console.error(
                         `ERROR - refreshLayer: Cannot make layer ${layerObj.display_name}/${layerObj.name} as it's already being made!`
                     )
+                    if (typeof cb === 'function') cb()
                     return false
                 }
+                if (typeof cb === 'function') cb()
                 return true
             }
         }

@@ -262,13 +262,16 @@ var TimeControl = {
                 // refresh map
                 if (evenIfControlled === true || layer.controlled !== true)
                     if (L_.layers.on[layer.name] || evenIfOff) {
-                        return await Map_.refreshLayer(layer)
+                        return await Map_.refreshLayer(layer, () => {
+                            // put start/endtime keywords back
+                            if (layer.time && layer.time.enabled === true)
+                                layer.url = originalUrl
+                        })
                     }
             }
         }
         // put start/endtime keywords back
         if (layer.time && layer.time.enabled === true) layer.url = originalUrl
-
         return true
     },
     performTimeUrlReplacements: async function (url, layer) {
