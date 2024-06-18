@@ -43,7 +43,7 @@
     transition: opacity 0.2s ease-out;
 }
 #viewer_dropdownselector {
-    min-width: 30%;
+    min-width: 270px;
 }
 #viewer_dropdownselector .dropy {
     background: var(--color-a);
@@ -56,4 +56,11 @@
     position: absolute;
     left: 0;
     top: 40px;
+}
+
+#viewer #pdfViewerWrapper {
+    background: white;
+}
+#viewer .react-pdf__Document {
+    display: flex;
 }

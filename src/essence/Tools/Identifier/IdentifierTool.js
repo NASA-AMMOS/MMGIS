@@ -34,7 +34,7 @@ var IdentifierTool = {
         //Get tool variables and UI adjustments
         this.justification = L_.getToolVars('identifier')['justification']
         var toolContent = d3.select('#toolSeparated_Identifier')
-        toolContent.style('bottom', '2px')
+
         if (this.justification == 'right') {
             var toolController = d3.select('#toolcontroller_sepdiv')
             toolController.style('top', '110px')
@@ -42,14 +42,21 @@ var IdentifierTool = {
             toolController.style('right', '5px')
             toolContent.style('left', null)
             toolContent.style('right', '0px')
-        } else if (this.justification != L_.getToolVars('legend')['justification']) {
-            var toolController = d3.select('#toolcontroller_sepdiv').clone(false).attr('id', 'toolcontroller_sepdiv_left')
-            $('#toolSeparated_Identifier').appendTo('#toolcontroller_sepdiv_left')
+        } else if (
+            this.justification != L_.getToolVars('legend')['justification']
+        ) {
+            var toolController = d3
+                .select('#toolcontroller_sepdiv')
+                .clone(false)
+                .attr('id', 'toolcontroller_sepdiv_left')
+            $('#toolSeparated_Identifier').appendTo(
+                '#toolcontroller_sepdiv_left'
+            )
             toolController.style('top', '40px')
             toolController.style('left', '5px')
             toolController.style('right', null)
         }
-    },   
+    },
     make: function (targetId) {
         this.MMWebGISInterface = new interfaceWithMMWebGIS()
         this.targetId = targetId
@@ -497,11 +504,7 @@ function interfaceWithMMWebGIS() {
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
 
-    var newActive = $(
-        '#toolcontroller_sepdiv #' +
-            'Identifier' +
-            'Tool'
-    )
+    var newActive = $('#toolcontroller_sepdiv #' + 'Identifier' + 'Tool')
     newActive.addClass('active').css({
         color: ToolController_.activeColor,
     })
@@ -523,15 +526,15 @@ function interfaceWithMMWebGIS() {
         if (IdentifierTool.targetId === 'toolContentSeparated_Identifier') {
             d3.select('#map').style('cursor', 'grab')
             let tools = d3.select(
-                IdentifierTool.targetId ? `#${IdentifierTool.targetId}` : '#toolPanel'
+                IdentifierTool.targetId
+                    ? `#${IdentifierTool.targetId}`
+                    : '#toolPanel'
             )
             tools.style('background', 'var(--color-k)')
             //Clear it
             tools.selectAll('*').remove()
             var prevActive = $(
-                '#toolcontroller_sepdiv #' +
-                    'Identifier' +
-                    'Tool'
+                '#toolcontroller_sepdiv #' + 'Identifier' + 'Tool'
             )
             prevActive.removeClass('active').css({
                 color: ToolController_.defaultColor,
