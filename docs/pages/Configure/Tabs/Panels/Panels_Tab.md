@@ -27,6 +27,10 @@ The Viewer sits to the left of the main Map. It can be expanded by clicking the 
             "type": "image"
         },
         {
+            "url": "sample.pdf",
+            "type": "document"
+        },
+        {
             "url": "Layers/GPR/Data/GPR_radargram.jpg",
             "type": "radargram"
         },
@@ -64,6 +68,10 @@ _Note: The first image in the images array is loaded on feature click._
 ### Regular Image
 
 A standard image. Simply provide a url. If a name is not set, the file name is used instead.
+
+### Document
+
+Current only .pdf files are supported here.
 
 ### Radargram
 
