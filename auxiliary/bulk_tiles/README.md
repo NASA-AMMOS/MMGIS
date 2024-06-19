@@ -11,6 +11,7 @@ optional arguments:
   -h, --help            show this help message and exit
   -c COLORMAP_DIR, --colormap_dir COLORMAP_DIR
                         Directory containing colormaps
+  -d, --discrete        Use discrete color values
   -i INPUT_DIR, --input_dir INPUT_DIR
                         Directory containing raw input TIFF files
   -j JSON_CONFIG, --json_config JSON_CONFIG

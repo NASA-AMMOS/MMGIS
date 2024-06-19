@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 This script bulk processes a directory of TIFs into TMS tiles
@@ -15,7 +15,7 @@ from pathlib import Path
 from lxml import etree
 
 
-def process_tiffs(input_dir, process_dir, colormap_dir, legends_dir, prefix=''):
+def process_tiffs(input_dir, process_dir, colormap_dir, legends_dir, discrete, prefix=''):
     output_files = []
     if os.path.isdir(input_dir):
         input_files = sorted(glob.glob(input_dir + '/' + prefix + '*.tif', recursive=True))
@@ -25,7 +25,12 @@ def process_tiffs(input_dir, process_dir, colormap_dir, legends_dir, prefix=''):
         colormap_files = sorted(glob.glob(colormap_dir+'/*.txt', recursive=True))
         colormap_dict = {}
         for colormap_file in colormap_files:
-            colormap_key = os.path.basename(colormap_file).split('_')[1].split('.')[0]
+            if 'units_' in colormap_file:
+                continue
+            elif 'colormap_' in colormap_file:
+                colormap_key = os.path.basename(colormap_file).split('_')[1].split('.')[0]
+            else:
+                colormap_key = os.path.basename(colormap_file).split('.')[0]
             colormap_dict[colormap_key] = colormap_file
     else:
         print('Warning: ' + colormap_dir + ' directory does not exist')
@@ -39,7 +44,10 @@ def process_tiffs(input_dir, process_dir, colormap_dir, legends_dir, prefix=''):
         # Figure out the colormap map to use for the file
         colormap = None
         for key in colormap_dict:
-            if key in input_file:
+            if os.path.basename(input_file).split('.')[0] == key:
+                colormap = colormap_dict[key]
+                break
+            elif key in input_file:
                 colormap = colormap_dict[key]
         if colormap is None:
             print('Warning: Skipping...no colormap found for ' + input_file)
@@ -50,7 +58,9 @@ def process_tiffs(input_dir, process_dir, colormap_dir, legends_dir, prefix=''):
         # Colorize the TIFF file with its respective colormap
         rastertolegend = str(Path(os.path.dirname(os.path.realpath(__file__)) + '/../rastertolegend/rastertolegend.py')
                              .absolute())
-        color_tiff = ['python', rastertolegend, input_file, colormap, '-discrete']
+        color_tiff = ['python3', rastertolegend, input_file, colormap]
+        if discrete:
+            color_tiff.append('-discrete')
         print("Running:", " ".join(color_tiff))
         process = subprocess.Popen(color_tiff, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         process.wait()
@@ -66,7 +76,7 @@ def process_tiffs(input_dir, process_dir, colormap_dir, legends_dir, prefix=''):
                 print('Moving ' + color_output + ' to ' + legends_dir + '/' + legend_file)
                 shutil.move(color_output, legends_dir + '/' + legend_file)
             else:
-                output_file = process_dir + '/' + str(Path(color_output).name)
+                output_file = process_dir + '/' + str(Path(input_file).name)
                 print('Moving ' + color_output + ' to ' + output_file)
                 shutil.move(color_output, output_file)
                 output_files.append(output_file)
@@ -88,7 +98,7 @@ def create_tiles(input_files, output_dir):
         print('Output directory: ' + output_subdir)
         rasterstotiles = str(Path(os.path.dirname(os.path.realpath(__file__)) + '/../rasterstotiles/rasterstotiles.py')
                              .absolute())
-        tile_tiff = ['python', rasterstotiles, '-o', output_subdir, tiff]
+        tile_tiff = ['python3', rasterstotiles, '-o', output_subdir, tiff]
         print("Running:", " ".join(tile_tiff))
         process = subprocess.Popen(tile_tiff, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         process.wait()
@@ -137,7 +147,7 @@ def create_configs(output_dirs, json_config, prefix):
         sublayer['togglesWithHeader'] = False
         sublayer['minZoom'] = int(minZoom)
         sublayer['maxNativeZoom'] = int(maxNativeZoom)
-        sublayer['maxZoom'] = 10
+        sublayer['maxZoom'] = 16
         sublayer['boundingBox'] = [minx, miny, maxx, maxy]
 
         sublayers.append(sublayer)
@@ -155,6 +165,12 @@ parser.add_argument(
     dest='colormap_dir',
     help='Directory containing colormaps',
     action='store')
+parser.add_argument(
+    '-d',
+    '--discrete',
+    dest='discrete',
+    help='Use discrete color values',
+    action='store_true')
 parser.add_argument(
     '-i',
     '--input_dir',
@@ -199,7 +215,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 output_dirs = glob.glob(args.output_dir + '/*', recursive=True)
-output_tiffs = process_tiffs(args.input_dir, args.process_dir, args.colormap_dir, args.legends_dir, args.prefix)
+output_tiffs = process_tiffs(args.input_dir, args.process_dir, args.colormap_dir, args.legends_dir, args.discrete, args.prefix)
 output_dirs = create_tiles(output_tiffs, args.output_dir)
 
 # Generate JSON layer configurations if specified
