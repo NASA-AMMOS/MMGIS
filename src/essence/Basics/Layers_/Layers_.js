@@ -3323,37 +3323,48 @@ const L_ = {
                 }
             }
         }
-        //If there isn't one, search all string valued props for image urls
-        else {
-            for (var p in props) {
-                if (
-                    typeof props[p] === 'string' &&
-                    props[p].toLowerCase().match(/\.(jpeg|jpg|gif|png|xml)$/) !=
-                        null
-                ) {
-                    var url = props[p]
-                    if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
-                    images.push({
-                        url: url,
-                        name: p,
-                        isPanoramic: false,
-                        isModel: false,
-                    })
-                }
-                if (
-                    typeof props[p] === 'string' &&
-                    (props[p].toLowerCase().match(/\.(obj)$/) != null ||
-                        props[p].toLowerCase().match(/\.(dae)$/) != null)
-                ) {
-                    var url = props[p]
-                    if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
-                    images.push({
-                        url: url,
-                        name: p,
-                        isPanoramic: false,
-                        isModel: true,
-                    })
-                }
+        //Now search all string valued props for image urls
+
+        for (let p in props) {
+            if (
+                typeof props[p] === 'string' &&
+                props[p].toLowerCase().match(/\.(jpeg|jpg|gif|png|xml)$/) !=
+                    null
+            ) {
+                let url = props[p]
+                if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
+                images.push({
+                    url: url,
+                    name: p,
+                    isPanoramic: false,
+                    isModel: false,
+                })
+            } else if (
+                typeof props[p] === 'string' &&
+                props[p].toLowerCase().match(/\.(pdf)$/) != null
+            ) {
+                let url = props[p]
+                if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
+                images.push({
+                    url: url,
+                    name: p,
+                    type: 'document',
+                    isPanoramic: false,
+                    isModel: false,
+                })
+            } else if (
+                typeof props[p] === 'string' &&
+                (props[p].toLowerCase().match(/\.(obj)$/) != null ||
+                    props[p].toLowerCase().match(/\.(dae)$/) != null)
+            ) {
+                let url = props[p]
+                if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
+                images.push({
+                    url: url,
+                    name: p,
+                    isPanoramic: false,
+                    isModel: true,
+                })
             }
         }
 

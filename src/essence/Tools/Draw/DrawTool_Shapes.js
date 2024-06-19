@@ -352,7 +352,12 @@ var Shapes = {
                             $('#drawToolMouseoverText').addClass('active')
                             $('#drawToolMouseoverText').css({
                                 top: centerPx.y,
-                                left: centerPx.x + 310,
+                                left:
+                                    centerPx.x +
+                                    20 +
+                                    document
+                                        .getElementById('mapScreen')
+                                        .getBoundingClientRect().left,
                             })
                         }
                     })(layer, index)

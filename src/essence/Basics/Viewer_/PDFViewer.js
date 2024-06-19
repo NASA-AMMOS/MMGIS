@@ -1,6 +1,8 @@
 import { render } from 'react-dom'
 import React, { useState, useEffect } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
+import { useResizeDetector } from 'react-resize-detector'
+
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 
@@ -14,25 +16,30 @@ const ReactPDF = (props) => {
     const zoomLevels = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 4, 5]
     const [zoom, setZoom] = useState(3)
 
-    function onDocumentLoadSuccess({ numPages }: { numPages: number }): void {
-        setNumPages(numPages)
-    }
+    const { width, height, ref } = useResizeDetector({
+        handleHeight: false,
+        refreshMode: 'debounce',
+        refreshRate: 1000,
+    })
 
     useEffect(() => {
         setZoom(3)
     }, [pdfPath])
 
+    function onDocumentLoadSuccess({ numPages }: { numPages: number }): void {
+        setNumPages(numPages)
+    }
     const bcr = document
         .getElementById('pdfViewerWrapper')
         .getBoundingClientRect()
-    const width = bcr ? bcr.width - 40 : null
+    const pageWidth = bcr ? bcr.width - 40 : null
     return (
-        <div>
+        <div ref={ref}>
             <Document file={pdfPath} onLoadSuccess={onDocumentLoadSuccess}>
                 <Page
                     pageNumber={pageNumber}
                     scale={zoomLevels[zoom]}
-                    width={width}
+                    width={pageWidth}
                     onRenderSuccess={() => {
                         const container =
                             document.getElementById('pdfViewerWrapper')
