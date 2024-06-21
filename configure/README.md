@@ -1,70 +1,161 @@
-# Getting Started with Create React App
+# Configuration-Beta
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Development
 
-## Available Scripts
+1. Run MMGIS as you normally would from the `/` directory: `npm start`
+2. On each change while developing the `configure` page, build it with `npm run build` from this `/configure` directory
 
-In the project directory, you can run:
+Notes:
 
-### `npm start`
+- The Preview Changes features iframes MMGIS and would have to be run in a development browser with security disabled to work.
+- This `configure` page can be developed with hot-reloading but this would require disabling user/admin permissions and, because it is easy to forget to reenable those permissions, this building method is preferred.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## MetaConfig JSONs
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+The configure page's forms have configuration objects too. They live in two places:
 
-### `npm test`
+- `/configure/src/metaconfigs/*.json`
+- `/src/essence/Tools/{TOOL}/config.json` in a `config` object.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+See the above for working examples.
 
-### `npm run build`
+`/configure/src/Maker.js` reads these meta-configurations.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+The structure of these meta-configuration is as follows:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+- `field`: The name of the field in the configuration to write to. Supports dot.notation.strings. Layer specific meta-configs are written into and relative to the current working layer. Tool specific meta-configs are written into and relative to the tool's configuration object. Tab specific meta-configs are written into the top-level of the configuration object (full configuration field paths are required). In the case of 'fields' specified inside an `objectarray` component, 'field' is relative to the component's field.
+- `width`: A value of 12 fills the full width of the container. For example, if four fields are wanted side-by-side, their respective widths would be 3, 3, 3, and 3.
+- The `rows[i].component[j]` structure is required. Rows whose components overflow the width of 12 wrap into the next row -- otherwise another specified 'row' forces a new row.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```json
+{
+  "rows": [
+    {
+      "name": "Row 1",
+      "subname": "",
+      "components": [
+        {
+          "field": "projection.epsg",
+          "name": "EPSG Code",
+          "description": "An EPSG (or similar) code representing the spatial reference system.",
+          "type": "text",
+          "width": 12
+        }
+      ]
+    },
+    {
+      "name": "Projection",
+      "description": "Tilesets in non-Web Mercator projections are supported. The Projections Tab enables the configuration of a new projection for the given mission. All tilesets should be in agreement with the projection. Small issues with the settings here can have huge impacts on how the tilesets are rendered in MMGIS.",
+      "subname": "",
+      "components": [
+        {
+          "field": "projection.custom",
+          "name": "Enabled",
+          "description": "Enable to use the projection defined below instead of the default Web-Mercator.",
+          "type": "switch",
+          "width": 3,
+          "defaultChecked": false
+        },
 
-### `npm run eject`
+        {
+          "field": "projection.epsg",
+          "name": "EPSG Code",
+          "description": "An EPSG (or similar) code representing the spatial reference system.",
+          "type": "text",
+          "width": 2
+        },
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+        {
+          "field": "projection.bounds.0",
+          "name": "Bounds Min X",
+          "description": "Minimum easting value of the projection's spatial extent as stated by the base global tilemapresource.xml.",
+          "type": "number",
+          "width": 3
+        },
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+        {
+          "field": "coordinates.coordmain",
+          "name": "Main Coordinate Type",
+          "description": "",
+          "type": "dropdown",
+          "width": 2,
+          "options": ["ll", "en", "cproj", "sproj", "rxy", "site"]
+        },
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+        {
+          "field": "look.primarycolor",
+          "name": "Primary Color",
+          "description": "Colors various buttons, components, panels, feature hover text.",
+          "type": "colorpicker",
+          "width": 3
+        },
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+        {
+          "field": "description",
+          "name": "Description",
+          "description": "",
+          "type": "markdown",
+          "width": 12
+        },
 
-## Learn More
+        {
+          "type": "map",
+          "width": 4,
+          "height": "321px"
+        },
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+        {
+          "field": "variables.shader.ramps.6",
+          "name": "Color Ramp 6",
+          "description": "Like: #3900b3,#714dbf,#9e6b90,#cf9270,#ebb698,transparent",
+          "type": "textarray",
+          "width": 12
+        },
+        {
+          "field": "variables.query.must",
+          "name": "ElasticSearch DSL 'must' Array",
+          "description": "",
+          "type": "json",
+          "width": 12
+        },
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+        {
+          "field": "style.opacity",
+          "name": "Opacity",
+          "description": "Stroke Opacity",
+          "type": "slider",
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "width": 2
+        },
 
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+        {
+          "field": "coordinates.variables.rightClickMenuActions",
+          "name": "Context Menu Actions",
+          "description": "An array of objects. Specified 'fields' within are now relative to the objectarray's 'field'.",
+          "type": "objectarray",
+          "width": 12,
+          "object": [
+            {
+              "field": "name",
+              "name": "Name",
+              "description": "The text for this menu entry when users right-click.",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "goto",
+              "name": "Goto",
+              "description": "Whether to, upon clicking the action in the context menu, pan and zoom to fit the respective feature to the screen.",
+              "type": "checkbox",
+              "width": 2,
+              "defaultChecked": false
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```

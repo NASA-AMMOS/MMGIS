@@ -427,7 +427,7 @@
                 {
                   "field": "url",
                   "name": "URL to .tif",
-                  "description": "This can be a relative path to a file under the Mission name or a full url path. The former is preferred is the file is large. Can use '{starttime}' and '{endtime}' if the layer is time enabled.",
+                  "description": "This can be a relative path to a file under the Mission name or a full url path. The former is preferred is the file is large. Can use '{starttime}' and '{endtime}' if the layer is time enabled. If this field is left empty, the Identifier Tool will try to best-match the hovered-over pixel color with this layer's legend (if any).",
                   "type": "text",
                   "width": 12
                 },
