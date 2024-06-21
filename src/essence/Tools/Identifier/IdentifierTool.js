@@ -34,6 +34,7 @@ var IdentifierTool = {
         //Get tool variables and UI adjustments
         this.justification = L_.getToolVars('identifier')['justification']
         var toolContent = d3.select('#toolSeparated_Identifier')
+        toolContent.style('bottom', '2px')
 
         if (this.justification == 'right') {
             var toolController = d3.select('#toolcontroller_sepdiv')
@@ -351,17 +352,25 @@ var IdentifierTool = {
                                             var valueParsed =
                                                 parseValue(
                                                     value[v][1],
-                                                    d2.sigfigs
+                                                    d2.sigfigs,
+                                                    d2.scalefactor
                                                 ) +
                                                 '' +
                                                 unit
 
-                                            htmlValues +=
-                                                '<div style="display: flex; justify-content: space-between;"><div style="margin-right: 15px; color: var(--color-a5); font-size: 12px;">' +
-                                                value[v][0] +
-                                                '</div><div style="color: var(--color-a6); font-size: 14px;">' +
-                                                valueParsed +
-                                                '</div></div>'
+                                            if (value.length > 1) {
+                                                htmlValues +=
+                                                    '<div style="display: flex; justify-content: space-between;"><div style="margin-right: 15px; color: var(--color-a5); font-size: 12px;">' +
+                                                    value[v][0] +
+                                                    '</div><div style="color: var(--color-a6); font-size: 14px;">' +
+                                                    valueParsed +
+                                                    '</div></div>'
+                                            } else {
+                                                htmlValues +=
+                                                    '<div style="display: flex; justify-content: space-between;"><div style="color: var(--color-a6); font-size: 16px;">' +
+                                                    valueParsed +
+                                                    '</div></div>'
+                                            }
                                             cnt++
                                         }
                                         $(
@@ -441,7 +450,7 @@ var IdentifierTool = {
             }, 150)
         }
 
-        function parseValue(v, sigfigs) {
+        function parseValue(v, sigfigs, scalefactor) {
             var ed = 10
             if (typeof v === 'string') {
                 return v
@@ -450,6 +459,7 @@ var IdentifierTool = {
                 return v
             } else if (v.toString().indexOf('e') != -1) {
                 if (sigfigs != undefined) ed = sigfigs
+                if (scalefactor != undefined) v = v * parseFloat(scalefactor)
                 v = parseFloat(v)
                 return v.toExponential(ed)
             } else {
@@ -457,6 +467,7 @@ var IdentifierTool = {
                 var decPlacesBefore = decSplit[0] ? decSplit[0].length : 0
                 var decPlacesAfter = decSplit[1] ? decSplit[1].length : 0
                 if (decPlacesBefore <= 5) {
+                    if (scalefactor != undefined) v = v * parseFloat(scalefactor)
                     if (sigfigs != undefined) v = v.toFixed(sigfigs)
                 }
                 v = parseFloat(v)
