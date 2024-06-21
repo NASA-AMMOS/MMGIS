@@ -89,7 +89,14 @@
                                 "name": "Unit",
                                 "description": "A string that is appended to your returned value. e.g. ' m' would be appended on a raw value ('41') and show '41 m'. If it was 'm', it would return '41m', without a space.",
                                 "type": "text",
-                                "width": 4
+                                "width": 2
+                            },
+                            {
+                                "field": "scalefactor",
+                                "name": "Scale Factor",
+                                "description": "A number for which to multiply the raw value by for display purposes only. Useful, for instance, if the underlying dataset is in units that are off by factor's of 10 from what's desired to be shown to users.",
+                                "type": "number",
+                                "width": 2
                             },
                             {
                                 "field": "timeFormat",
