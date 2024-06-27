@@ -723,7 +723,7 @@ var DrawTool = {
                                         }
                                     }
 
-                                    L_.setLastActivePoint(layer)
+                                    L_.setLastActiveFeature(layer)
                                     L_.resetLayerFills()
                                     L_.highlight(layer)
                                     Map_.activeLayer = layer
