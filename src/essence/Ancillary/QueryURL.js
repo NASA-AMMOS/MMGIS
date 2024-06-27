@@ -360,17 +360,6 @@ var QueryURL = {
         if (L_.lastActiveFeature.layerName != null) {
             if (L_.layers.on[L_.lastActiveFeature.layerName])
                 if (
-                    L_.lastActiveFeature.lat != null &&
-                    L_.lastActiveFeature.lon != null
-                )
-                    urlAppendage +=
-                        '&selected=' +
-                        L_.lastActiveFeature.layerName +
-                        ',' +
-                        L_.lastActiveFeature.lat +
-                        ',' +
-                        L_.lastActiveFeature.lon
-                else if (
                     L_.lastActiveFeature.key != null &&
                     L_.lastActiveFeature.value != null
                 ) {
@@ -381,7 +370,17 @@ var QueryURL = {
                         L_.lastActiveFeature.key +
                         ',' +
                         L_.lastActiveFeature.value
-                }
+                } else if (
+                    L_.lastActiveFeature.lat != null &&
+                    L_.lastActiveFeature.lon != null
+                )
+                    urlAppendage +=
+                        '&selected=' +
+                        L_.lastActiveFeature.layerName +
+                        ',' +
+                        L_.lastActiveFeature.lat +
+                        ',' +
+                        L_.lastActiveFeature.lon
         }
 
         //viewer
