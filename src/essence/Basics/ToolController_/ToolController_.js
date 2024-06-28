@@ -43,7 +43,7 @@ let ToolController_ = {
             .attr('id', 'toolcontroller_sepdiv')
             .style('position', 'absolute')
             .style('top', '40px')
-            .style('left', '0px')
+            .style('left', '5px')
             .style('z-index', '1004')
 
         for (let i = 0; i < tools.length; i++) {

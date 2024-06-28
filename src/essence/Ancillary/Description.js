@@ -3,6 +3,7 @@ import $ from 'jquery'
 import * as d3 from 'd3'
 import F_ from '../Basics/Formulae_/Formulae_'
 import Dropy from '../../external/Dropy/dropy'
+import calls from '../../pre/calls'
 
 import tippy from 'tippy.js'
 
@@ -77,7 +78,7 @@ const Description = {
             $(`#mainDescPointLinks_global`).empty()
         })
     },
-    updateInfo(force) {
+    updateInfo(force, forceFeature, skipRequery) {
         if (force !== true) {
             this.waitingOnUpdate = false
             if (!this.inited) {
@@ -100,7 +101,41 @@ const Description = {
                 l.variables.info.hasOwnProperty('length')
             ) {
                 let layers = this.L_.layers.layer[layer]._layers
+
+                if (
+                    Object.keys(layers).length === 0 &&
+                    this.L_.layers.data[layer].variables.dynamicExtent
+                ) {
+                    let geodatasetName = this.L_.layers.data[layer].url
+                    if (
+                        skipRequery !== true &&
+                        geodatasetName.indexOf('geodatasets:') === 0
+                    ) {
+                        geodatasetName = geodatasetName.replace(
+                            'geodatasets:',
+                            ''
+                        )
+
+                        calls.api(
+                            'geodatasets_search',
+                            {
+                                layer: geodatasetName,
+                                last: true,
+                            },
+                            function (d) {
+                                Description.updateInfo(
+                                    false,
+                                    d?.body?.[0],
+                                    true
+                                )
+                            },
+                            function (d) {}
+                        )
+                        return
+                    }
+                }
                 let newInfo = ''
+
                 for (let i = 0; i < l.variables.info.length; i++) {
                     let which =
                         l.variables.info[i].which != null &&
@@ -113,8 +148,12 @@ const Description = {
                                   0
                               )
                             : Object.keys(layers).length - 1
-                    let feature = layers[Object.keys(layers)[which]]?.feature
-                    if (feature == null) continue
+                    let feature =
+                        forceFeature ||
+                        layers[Object.keys(layers)[which]]?.feature
+                    if (feature == null) {
+                        continue
+                    }
 
                     let infoText = F_.bracketReplace(
                         l.variables.info[i].value,
@@ -173,7 +212,7 @@ const Description = {
             let lat = d3.select(this).attr('lat')
             let lng = d3.select(this).attr('lng')
 
-            if (lat != null && lng != null) {
+            if (lat != null && lng != null && lat != 'null' && lng != 'null') {
                 Description.Map_.map.setView(
                     [lat, lng],
                     Description.Map_.mapScaleZoom ||
