@@ -829,6 +829,18 @@
           ]
         },
         {
+          "subname": "Identification",
+          "components": [
+            {
+              "field": "variables.useKeyAsId",
+              "name": "Property Key of Unique Id",
+              "description": "In the case of deep-linking to certain features, a feature.properties key/field name is needed that points to a unique id in order to reselect it. dot.notation.is.supported for nested fields. You must make sure unique key values exist per feature for this to function properly. It is advised to set this if 'Dynamic Extent' is enabled.",
+              "type": "text",
+              "width": 3
+            }
+          ]
+        },
+        {
           "subname": "Miscellaneous",
           "components": [
             {
