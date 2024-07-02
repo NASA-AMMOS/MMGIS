@@ -306,6 +306,14 @@ body {
 .toolButton:hover {
     background: var(--color-a1-5) !important;
 }
+
+.toolButtonSep.active {
+    color: var(--color-c) !important;
+    border-bottom: 2px solid var(--color-c);
+}
+.toolButtonSep#toolButtonSeparated_Legend.active {
+    border-bottom: none !important;
+}
 .toolButtonSep:hover {
     color: var(--color-c) !important;
 }

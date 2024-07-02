@@ -10,6 +10,7 @@ let ToolController_ = {
     incToolsDiv: null,
     excToolsDiv: null,
     separatedDiv: null,
+    activeSeparatedTools: [],
     toolModuleNames: [],
     toolModules: toolModules,
     activeTool: null,
@@ -90,11 +91,32 @@ let ToolController_ = {
                                         `${ToolController_.tools[i].name}Tool`
                                     ]
                                 if (tM) {
-                                    if (tM.made === false)
+                                    if (tM.made === false) {
                                         tM.make(
                                             `toolContentSeparated_${ToolController_.tools[i].name}`
                                         )
-                                    else tM.destroy()
+                                        ToolController_.activeSeparatedTools.push(
+                                            ToolController_.tools[i].name +
+                                                'Tool'
+                                        )
+                                        $(
+                                            `#toolButtonSeparated_${tools[i].name}`
+                                        ).addClass('active')
+                                    } else {
+                                        tM.destroy()
+                                        ToolController_.activeSeparatedTools =
+                                            ToolController_.activeSeparatedTools.filter(
+                                                (a) =>
+                                                    a !=
+                                                    ToolController_.tools[i]
+                                                        .name +
+                                                        'Tool'
+                                            )
+
+                                        $(
+                                            `#toolButtonSeparated_${tools[i].name}`
+                                        ).removeClass('active')
+                                    }
 
                                     // Dispatch `toggleSeparatedTool` event
                                     let _event = new CustomEvent(
