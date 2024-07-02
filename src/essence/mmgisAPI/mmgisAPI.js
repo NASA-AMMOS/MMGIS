@@ -300,6 +300,27 @@ var mmgisAPI_ = {
         }
         return null
     },
+    getActiveTools: function () {
+        if (ToolController_) {
+            const activeTool = mmgisAPI_.getActiveTool()
+            return {
+                activeToolNames: [ToolController_.activeToolName]
+                    .concat(ToolController_.activeSeparatedTools)
+                    .filter(Boolean),
+                activeTools: [activeTool.activeTool != null ? activeTool : null]
+                    .concat(
+                        ToolController_.activeSeparatedTools.map((a) => {
+                            return {
+                                activeTool: ToolController_.getTool(a),
+                                activeToolName: a,
+                            }
+                        })
+                    )
+                    .filter(Boolean),
+            }
+        }
+        return null
+    },
     getLayerConfigs: function (match) {
         if (match) {
             const matchedLayers = {}
@@ -640,6 +661,11 @@ var mmgisAPI = {
      * @returns {object} - The currently active tool and the name of the active tool as an object.
      */
     getActiveTool: mmgisAPI_.getActiveTool,
+
+    /** getActiveTools - returns the currently active tool
+     * @returns {object} - The currently active tool and the name of the active tool as an object.
+     */
+    getActiveTools: mmgisAPI_.getActiveTools,
 
     /** getLayerConfigs - returns an object with the visibility state of all layers
      * @returns {object} - an object containing the visibility state of each layer

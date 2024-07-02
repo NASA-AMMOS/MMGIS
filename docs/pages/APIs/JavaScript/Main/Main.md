@@ -54,6 +54,7 @@ The `src/essence/mmgisAPI/mmgisAPI.js` file exposes functions that can be called
   - [writeCoordinateURL()](#writecoordinateurl)
   - [onLoaded(onLoadCallback)](#onloadedonloadcallback)
   - [getActiveTool()](#getactivetool)
+  - [getActiveTools()](#getactivetools)
   - [setLoginToken(username, token)](#setlogintoken)
   - [project(lnglat)](#projectlnglat)
   - [unproject(xy)](#unprojectxy)
@@ -829,6 +830,26 @@ The following is an example of how to call the `getActiveTool` function:
 
 ```javascript
 window.mmgisAPI.getActiveTool();
+```
+
+### getActiveTools()
+
+This function returns an object with the currently active tool and the name of the active tool in addition to any active separated tools (such as the Identifier and Legend Tools).
+
+The following is an example of how to call the `getActiveTools` function:
+
+```javascript
+window.mmgisAPI.getActiveTools();
+/* returns (example)
+{
+  activeToolNames: ['InfoTool', 'LegendTool', 'IdentifierTool']
+  activeTools: [
+    {activeTool: {…}, activeToolName: 'InfoTool'},
+    {activeTool: {…}, activeToolName: 'LegendTool'},
+    {activeTool: {…}, activeToolName: 'IdentifierTool'}
+  ]
+}
+*/
 ```
 
 ### initialLogin()

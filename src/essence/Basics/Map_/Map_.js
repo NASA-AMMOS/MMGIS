@@ -1169,6 +1169,7 @@ function allLayersLoaded() {
                 ToolController_.toolModules['LegendTool'].make(
                     'toolContentSeparated_Legend'
                 )
+                ToolController_.activeSeparatedTools.push('LegendTool')
                 let _event = new CustomEvent('toggleSeparatedTool', {
                     detail: {
                         toggledToolName: 'LegendTool',
