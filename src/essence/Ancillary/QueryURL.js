@@ -357,15 +357,30 @@ var QueryURL = {
         if (layersOnString.length > 0) urlAppendage += '&on=' + layersOnString
 
         //selected
-        if (L_.lastActivePoint.layerName != null) {
-            if (L_.layers.on[L_.lastActivePoint.layerName])
-                urlAppendage +=
-                    '&selected=' +
-                    L_.lastActivePoint.layerName +
-                    ',' +
-                    L_.lastActivePoint.lat +
-                    ',' +
-                    L_.lastActivePoint.lon
+        if (L_.lastActiveFeature.layerName != null) {
+            if (L_.layers.on[L_.lastActiveFeature.layerName])
+                if (
+                    L_.lastActiveFeature.key != null &&
+                    L_.lastActiveFeature.value != null
+                ) {
+                    urlAppendage +=
+                        '&selected=' +
+                        L_.lastActiveFeature.layerName +
+                        ',' +
+                        L_.lastActiveFeature.key +
+                        ',' +
+                        L_.lastActiveFeature.value
+                } else if (
+                    L_.lastActiveFeature.lat != null &&
+                    L_.lastActiveFeature.lon != null
+                )
+                    urlAppendage +=
+                        '&selected=' +
+                        L_.lastActiveFeature.layerName +
+                        ',' +
+                        L_.lastActiveFeature.lat +
+                        ',' +
+                        L_.lastActiveFeature.lon
         }
 
         //viewer

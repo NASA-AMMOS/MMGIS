@@ -393,7 +393,7 @@ let Map_ = {
             )
         }
     },
-    refreshLayer: async function (layerObj) {
+    refreshLayer: async function (layerObj, cb) {
         // We need to find and remove all points on the map that belong to the layer
         // Not sure if there is a cleaner way of doing this
         for (var i = L_._layersOrdered.length - 1; i >= 0; i--) {
@@ -419,8 +419,10 @@ let Map_ = {
                     console.error(
                         `ERROR - refreshLayer: Cannot make layer ${layerObj.display_name}/${layerObj.name} as it's already being made!`
                     )
+                    if (typeof cb === 'function') cb()
                     return false
                 }
+                if (typeof cb === 'function') cb()
                 return true
             }
         }
@@ -698,19 +700,13 @@ function featureDefaultClick(feature, layer, e) {
     }
 
     function keepGoing() {
-        //View images
-        var propImages = propertiesToImages(
-            feature.properties,
-            layer.options.metadata ? layer.options.metadata.base_url || '' : ''
-        )
-
         Kinds.use(
             L_.layers.data[layer.options.layerName].kind,
             Map_,
             feature,
             layer,
             layer.options.layerName,
-            propImages,
+            null,
             e
         )
 
@@ -724,13 +720,7 @@ function featureDefaultClick(feature, layer, e) {
             }
         }
 
-        Viewer_.changeImages(propImages, feature, layer)
-        for (var i in propImages) {
-            if (propImages[i].type == 'radargram') {
-                //Globe_.radargram( layer.options.layerName, feature.geometry, propImages[i].url, propImages[i].length, propImages[i].depth );
-                break
-            }
-        }
+        Viewer_.changeImages(feature, layer)
 
         //figure out how to construct searchStr in URL. For example: a ChemCam target can sometime
         //be searched by "target sol", or it can be searched by "sol target" depending on config file.
@@ -1179,6 +1169,7 @@ function allLayersLoaded() {
                 ToolController_.toolModules['LegendTool'].make(
                     'toolContentSeparated_Legend'
                 )
+                ToolController_.activeSeparatedTools.push('LegendTool')
                 let _event = new CustomEvent('toggleSeparatedTool', {
                     detail: {
                         toggledToolName: 'LegendTool',
@@ -1189,98 +1180,6 @@ function allLayersLoaded() {
             }
         }
     }
-}
-
-function propertiesToImages(props, baseUrl) {
-    baseUrl = baseUrl || ''
-    var images = []
-    //Use "images" key first
-    if (props.hasOwnProperty('images')) {
-        for (var i = 0; i < props.images.length; i++) {
-            if (props.images[i].url) {
-                var url = baseUrl + props.images[i].url
-                if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
-                if (props.images[i].isModel) {
-                    images.push({
-                        url: url,
-                        texture: props.images[i].texture,
-                        name:
-                            (props.images[i].name ||
-                                props.images[i].url.match(/([^\/]*)\/*$/)[1]) +
-                            ' [Model]',
-                        type: 'model',
-                        isPanoramic: false,
-                        isModel: true,
-                        values: props.images[i].values || {},
-                        master: props.images[i].master,
-                    })
-                } else {
-                    if (props.images[i].isPanoramic) {
-                        images.push({
-                            ...props.images[i],
-                            url: url,
-                            name:
-                                (props.images[i].name ||
-                                    props.images[i].url.match(
-                                        /([^\/]*)\/*$/
-                                    )[1]) + ' [Panoramic]',
-                            type: 'photosphere',
-                            isPanoramic: true,
-                            isModel: false,
-                            values: props.images[i].values || {},
-                            master: props.images[i].master,
-                        })
-                    }
-                    images.push({
-                        url: url,
-                        name:
-                            props.images[i].name ||
-                            props.images[i].url.match(/([^\/]*)\/*$/)[1],
-                        type: props.images[i].type || 'image',
-                        isPanoramic: false,
-                        isModel: false,
-                        values: props.images[i].values || {},
-                        master: props.images[i].master,
-                    })
-                }
-            }
-        }
-    }
-    //If there isn't one, search all string valued props for image urls
-    else {
-        for (var p in props) {
-            if (
-                typeof props[p] === 'string' &&
-                props[p].toLowerCase().match(/\.(jpeg|jpg|gif|png|xml)$/) !=
-                    null
-            ) {
-                var url = props[p]
-                if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
-                images.push({
-                    url: url,
-                    name: p,
-                    isPanoramic: false,
-                    isModel: false,
-                })
-            }
-            if (
-                typeof props[p] === 'string' &&
-                (props[p].toLowerCase().match(/\.(obj)$/) != null ||
-                    props[p].toLowerCase().match(/\.(dae)$/) != null)
-            ) {
-                var url = props[p]
-                if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
-                images.push({
-                    url: url,
-                    name: p,
-                    isPanoramic: false,
-                    isModel: true,
-                })
-            }
-        }
-    }
-
-    return images
 }
 
 function buildToolBar() {

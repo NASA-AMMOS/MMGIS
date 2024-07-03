@@ -97,6 +97,8 @@
     "react-app-polyfill": "^1.0.6",
     "react-chartjs-2": "^3.3.0",
     "react-dom": "^16.13.1",
+    "react-pdf": "^7.7.3",
+    "react-resize-detector": "^7.1.2",
     "resolve": "1.15.0",
     "resolve-url-loader": "^5.0.0",
     "semver": "6.3",

@@ -854,7 +854,7 @@ const DrawTool_Templater = {
                         typeMarkup = [
                             `<div class='drawToolTemplaterLiBody_${type}'>`,
                                 `<div class='drawToolTemplaterLiBody_${type}_default'>`,
-                                    `<div>Value with a single '#' to place an incrementing number: </div>`,
+                                    `<div>Value with single '#' to place incrementing number: </div>`,
                                     `<input id='drawToolTemplaterLiFieldInput_${idx}_default' placeholder='ID-#' type='text' value='${opts.default != null ? opts.default : ''}'></input>`,
                                 "</div>",
                             "</div>"

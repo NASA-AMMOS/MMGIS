@@ -61,10 +61,13 @@ const L_ = {
     toolsLoaded: false,
     addedfiles: {}, //filename -> null (not null if added)
     activeFeature: null,
-    lastActivePoint: {
+    lastActiveFeature: {
         layerName: null,
+        type: null, // point, line, polygon
         lat: null,
         lon: null,
+        key: null, // if not a point, a property field to a unique value
+        value: null,
     },
     // features manually turned off
     toggledOffFeatures: [],
@@ -128,10 +131,12 @@ const L_ = {
         L_.searchFile = null
         L_.toolsLoaded = false
         L_.activeFeature = null
-        L_.lastActivePoint = {
+        L_.lastActiveFeature = {
             layerName: null,
             lat: null,
             lon: null,
+            key: null,
+            value: null,
         }
     },
     fina: function (
@@ -1016,7 +1021,7 @@ const L_ = {
             }
         else L_.activeFeature = null
 
-        L_.setLastActivePoint(layer)
+        L_.setLastActiveFeature(layer)
         L_.resetLayerFills()
         L_.highlight(layer)
         L_.Map_.activeLayer = layer
@@ -1897,28 +1902,40 @@ const L_ = {
     /**
      * @param {object} layer - leaflet layer object
      */
-    setLastActivePoint: function (layer) {
-        let layerName, lat, lon
+    setLastActiveFeature: function (layer) {
+        let layerName, lat, lon, key, value
         if (layer) {
             layerName = layer.hasOwnProperty('options')
                 ? layer.options.layerName
                 : null
             lat = layer.hasOwnProperty('_latlng') ? layer._latlng.lat : null
             lon = layer.hasOwnProperty('_latlng') ? layer._latlng.lng : null
+
+            if (L_.layers.data[layerName]?.variables?.useKeyAsId) {
+                key = L_.layers.data[layerName].variables.useKeyAsId
+
+                value = F_.getIn(layer.feature.properties, key)
+            }
         }
 
-        if (layerName != null && lat != null && layerName != null) {
-            L_.lastActivePoint = {
+        if (layerName != null && key != null && value != null) {
+            L_.lastActiveFeature = {
+                layerName: layerName,
+                lat: null,
+                lon: null,
+                key: key,
+                value: value,
+            }
+        } else if (layerName != null && lat != null && lon != null) {
+            L_.lastActiveFeature = {
                 layerName: layerName,
                 lat: lat,
                 lon: lon,
+                key: null,
+                value: null,
             }
         } else {
-            L_.lastActivePoint = {
-                layerName: null,
-                lat: null,
-                lon: null,
-            }
+            console.warn('Failed to set Last Active Feature.')
         }
     },
     selectFeature(layerName, feature) {
@@ -2024,6 +2041,8 @@ const L_ = {
                 let g = L_.layers.layer[activePoint.layerUUID]._layers
                 for (let l in g) {
                     if (
+                        g[l]?.feature?.geometry?.type &&
+                        g[l].feature.geometry.type.toLowerCase() === 'point' &&
                         g[l]._latlng.lat == activePoint.lat &&
                         g[l]._latlng.lng == activePoint.lon
                     ) {
@@ -3278,6 +3297,109 @@ const L_ = {
             }
         }
         return features
+    },
+    propertiesToImages(props, baseUrl) {
+        baseUrl = baseUrl || ''
+        var images = []
+        //Use "images" key first
+        if (props.hasOwnProperty('images')) {
+            for (var i = 0; i < props.images.length; i++) {
+                if (props.images[i].url) {
+                    var url = baseUrl + props.images[i].url
+                    if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
+                    if (props.images[i].isModel) {
+                        images.push({
+                            url: url,
+                            texture: props.images[i].texture,
+                            name:
+                                (props.images[i].name ||
+                                    props.images[i].url.match(
+                                        /([^\/]*)\/*$/
+                                    )[1]) + ' [Model]',
+                            type: 'model',
+                            isPanoramic: false,
+                            isModel: true,
+                            values: props.images[i].values || {},
+                            master: props.images[i].master,
+                        })
+                    } else {
+                        if (props.images[i].isPanoramic) {
+                            images.push({
+                                ...props.images[i],
+                                url: url,
+                                name:
+                                    (props.images[i].name ||
+                                        props.images[i].url.match(
+                                            /([^\/]*)\/*$/
+                                        )[1]) + ' [Panoramic]',
+                                type: 'photosphere',
+                                isPanoramic: true,
+                                isModel: false,
+                                values: props.images[i].values || {},
+                                master: props.images[i].master,
+                            })
+                        }
+                        images.push({
+                            url: url,
+                            name:
+                                props.images[i].name ||
+                                props.images[i].url.match(/([^\/]*)\/*$/)[1],
+                            type: props.images[i].type || 'image',
+                            isPanoramic: false,
+                            isModel: false,
+                            values: props.images[i].values || {},
+                            master: props.images[i].master,
+                        })
+                    }
+                }
+            }
+        }
+        //Now search all string valued props for image urls
+
+        for (let p in props) {
+            if (
+                typeof props[p] === 'string' &&
+                props[p].toLowerCase().match(/\.(jpeg|jpg|gif|png|xml)$/) !=
+                    null
+            ) {
+                let url = props[p]
+                if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
+                images.push({
+                    url: url,
+                    name: p,
+                    isPanoramic: false,
+                    isModel: false,
+                })
+            } else if (
+                typeof props[p] === 'string' &&
+                props[p].toLowerCase().match(/\.(pdf)$/) != null
+            ) {
+                let url = props[p]
+                if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
+                images.push({
+                    url: url,
+                    name: p,
+                    type: 'document',
+                    isPanoramic: false,
+                    isModel: false,
+                })
+            } else if (
+                typeof props[p] === 'string' &&
+                (props[p].toLowerCase().match(/\.(obj)$/) != null ||
+                    props[p].toLowerCase().match(/\.(dae)$/) != null)
+            ) {
+                let url = props[p]
+                if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
+                images.push({
+                    url: url,
+                    name: p,
+                    isPanoramic: false,
+                    isModel: true,
+                })
+            }
+        }
+
+        return images
     },
 }
 

@@ -123,7 +123,6 @@ function makeNewGeodatasetTable(
                 `CREATE INDEX IF NOT EXISTS ${result.dataValues.table}_geom_idx on ${result.dataValues.table} USING gist (geom);`
               )
               .then(() => {
-
                 if (startProp != null || endProp != null) {
                   sequelize
                     .query(
@@ -166,7 +165,6 @@ function makeNewGeodatasetTable(
 
                   return null;
                 }
-
               })
               .catch((err) => {
                 logger(
@@ -199,7 +197,8 @@ function makeNewGeodatasetTable(
         sequelize
           .query("SELECT MAX(id) FROM geodatasets")
           .then(([results]) => {
-            let newTable = "g" + (parseInt(results[0].max) + 1) + "_geodatasets";
+            let newTable =
+              "g" + (parseInt(results[0].max) + 1) + "_geodatasets";
 
             Geodatasets.create({
               name: name,

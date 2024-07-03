@@ -7,6 +7,7 @@ import * as THREE from '../../../external/THREE/three118'
 
 import Photosphere from './Photosphere'
 import ModelViewer from './ModelViewer'
+import PDFViewer from './PDFViewer'
 
 import Dropy from '../../../external/Dropy/dropy'
 
@@ -35,9 +36,12 @@ var Viewer_ = {
     imageViewerOverlay: null,
     imageViewerMap: null,
     imagePanorama: null,
+    imageModel: null,
+    imagePDF: null,
     imageIntro: null,
     photosphere: null,
     modelviewer: null,
+    pdfviewer: null,
     baseToolbar: null,
     lookupPath: null,
     toolBar: null,
@@ -73,6 +77,32 @@ var Viewer_ = {
             .style('width', '100%')
             .style('height', '100%')
             .style('display', 'none')
+
+        this.imagePDF = d3
+            .select('#viewer')
+            .append('div')
+            .attr('id', 'imagePDF')
+            .style('position', 'absolute')
+            .style('width', '100%')
+            .style('height', '100%')
+            .style('display', 'none')
+
+        this.imagePDF
+            .append('div')
+            .style('position', 'absolute')
+            .style('width', '100%')
+            .style('height', '100%')
+            .style('overflow-y', 'auto')
+            .style('display', 'flex')
+            .style('justify-content', 'center')
+            .append('div')
+            .attr('id', 'pdfViewerWrapper')
+            .style('position', 'absolute')
+            .style('overflow-y', 'auto')
+            .style('width', '100%')
+            .style('top', '35px')
+            .style('padding', '60px 0px')
+            .style('height', 'calc(100% - 35px)')
 
         this.imageIntro = d3
             .select('#viewer')
@@ -127,6 +157,7 @@ var Viewer_ = {
         this.imagePanorama.style('display', 'none')
         this.imageViewer.style('display', 'none')
         this.imageModel.style('display', 'none')
+        this.imagePDF.style('display', 'none')
         this.baseToolbar.style('display', 'none')
         this.imageIntro.style('display', 'block')
     },
@@ -137,7 +168,12 @@ var Viewer_ = {
     },
     //images is [ { 'url': '', 'name': '', 'isPanoramic': false },{...}, ... ]
     //Shows the first image too
-    changeImages: function (images, feature, layer) {
+    changeImages: function (feature, layer) {
+        let images = L_.propertiesToImages(
+            feature.properties,
+            layer.options.metadata ? layer.options.metadata.base_url || '' : ''
+        )
+
         // Don't refresh if the same exact point is clicked,
         // that's just annoying. So skip over it.
         if (
@@ -176,11 +212,12 @@ var Viewer_ = {
         if (Viewer_.Map_)
             Viewer_.Map_.rmNotNull(Viewer_.Map_.tempPhotosphereWedge)
 
-        var o = Viewer_.images[imageId]
+        let o = Viewer_.images[imageId]
 
         Viewer_.lastImageId = imageId
         if (o == null) {
             this.imageModel.style('display', 'none')
+            this.imagePDF.style('display', 'none')
             this.imagePanorama.style('display', 'none')
             this.imageViewer.style('display', 'none')
             this.baseToolbar.style('display', 'none')
@@ -190,10 +227,12 @@ var Viewer_ = {
 
         //Make sure dropdown matches image
 
-        var url = o.url
+        let url = o.url
 
         Viewer_.toolBarLoading.html('Loading')
         this.url = url
+
+        const extLow = F_.getExtension(url).toLowerCase()
 
         if (o.hasOwnProperty('master') && o.master != null) {
             this.masterImg = o.master
@@ -206,6 +245,7 @@ var Viewer_ = {
 
         if (o.isModel) {
             this.imageModel.style('display', 'inherit')
+            this.imagePDF.style('display', 'none')
             this.imagePanorama.style('display', 'none')
             this.imageViewer.style('display', 'none')
             this.baseToolbar.style('display', 'none')
@@ -260,6 +300,7 @@ var Viewer_ = {
             this.imagePanorama.style('display', 'inherit')
             this.imageViewer.style('display', 'none')
             this.imageModel.style('display', 'none')
+            this.imagePDF.style('display', 'none')
             this.baseToolbar.style('display', 'none')
             this.imageIntro.style('display', 'none')
 
@@ -298,10 +339,30 @@ var Viewer_ = {
                     }
                 }
             )
+        } else if (/*o.type === 'document' && */ extLow === 'pdf') {
+            this.imagePDF.style('display', 'inherit')
+            this.imagePanorama.style('display', 'none')
+            this.imageViewer.style('display', 'none')
+            this.imageModel.style('display', 'none')
+            this.baseToolbar.style('display', 'none')
+            this.imageIntro.style('display', 'none')
+
+            if (this.pdfviewer == null) {
+                this.pdfviewer = PDFViewer()
+            }
+
+            this.pdfviewer.changePDF(url, 'pdfViewerContainer', function (err) {
+                if (err) {
+                    console.log(err)
+                } else {
+                    console.log('here')
+                }
+            })
         } else {
             this.imageViewer.style('display', 'inherit')
             this.imagePanorama.style('display', 'none')
             this.imageModel.style('display', 'none')
+            this.imagePDF.style('display', 'none')
             this.baseToolbar.style('display', 'flex')
             this.imageIntro.style('display', 'none')
 

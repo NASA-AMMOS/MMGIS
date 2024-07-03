@@ -377,19 +377,27 @@ router.post("/search", function (req, res, next) {
           .query(
             "SELECT properties, ST_AsGeoJSON(geom) FROM " +
               table +
-              " WHERE properties ->> :key = :value;",
+              (req.body.last
+                ? " ORDER BY id DESC LIMIT 1;"
+                : " WHERE properties ->> :key = :value;"),
             {
               replacements: {
                 key: req.body.key,
-                value: req.body.value.replace(/[`;'"]/gi, ""),
+                value:
+                  typeof req.body.value === "string"
+                    ? req.body.value.replace(/[`;'"]/gi, "")
+                    : null,
               },
             }
           )
           .then(([results]) => {
             let r = [];
             for (let i = 0; i < results.length; i++) {
-              let feature = JSON.parse(results[i].st_asgeojson);
-              feature.properties = results[i].properties;
+              let properties = results[i].properties;
+              let feature = {};
+              feature.type = "Feature";
+              feature.properties = properties;
+              feature.geometry = JSON.parse(results[i].st_asgeojson);
               r.push(feature);
             }
 
@@ -633,7 +641,6 @@ router.delete("/remove/:name", function (req, res, next) {
         sequelize
           .query(`DROP TABLE IF EXISTS ${result.dataValues.table};`)
           .then(() => {
-
             Geodatasets.destroy({ where: { name: req.params.name } })
               .then(() => {
                 logger(
