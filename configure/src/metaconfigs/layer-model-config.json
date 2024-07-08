@@ -1,0 +1,1580 @@
+{
+  "tabs": [
+    {
+      "name": "Core",
+      "rows": [
+        {
+          "name": "Core",
+          "components": [
+            {
+              "field": "type",
+              "name": "Layer Type",
+              "description": "",
+              "type": "dropdown",
+              "width": 2,
+              "options": [
+                "data",
+                "header",
+                "model",
+                "query",
+                "tile",
+                "vector",
+                "vectortile"
+              ]
+            },
+            {
+              "field": "name",
+              "name": "Layer Name",
+              "description": "A display name for the layer.",
+              "type": "text",
+              "width": 6
+            },
+            {
+              "field": "visibility",
+              "name": "Initial Visibility",
+              "description": "Whether the layer is on initially.",
+              "type": "checkbox",
+              "width": 2,
+              "defaultChecked": false
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "url",
+              "name": "URL",
+              "description": "A file path that points to a .dae or .obj. If the path is relative, it will be relative to the mission’s directory.",
+              "type": "text",
+              "width": 12
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "position.longitude",
+              "name": "Longitude",
+              "description": "(Required) The longitude in decimal degrees at which to place the model.",
+              "type": "number",
+              "min": -180,
+              "max": 180,
+              "width": 4
+            },
+            {
+              "field": "position.latitude",
+              "name": "Latitude",
+              "description": "(Required) The latitude in decimal degrees at which to place the model.",
+              "type": "number",
+              "min": -90,
+              "max": 90,
+              "width": 4
+            },
+            {
+              "field": "position.elevation",
+              "name": "Elevation",
+              "description": "(Required) The elevation in meters at which to place the model.",
+              "type": "number",
+              "width": 4
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "rotation.x",
+              "name": "Rotation X (radians)",
+              "description": "(Optional) An x-axis rotation in radians to orient the model.",
+              "type": "number",
+              "width": 4
+            },
+            {
+              "field": "rotation.y",
+              "name": "Rotation Y (radians)",
+              "description": "(Optional) An y-axis rotation in radians to orient the model.",
+              "type": "number",
+              "width": 4
+            },
+            {
+              "field": "rotation.z",
+              "name": "Rotation Z (radians)",
+              "description": "(Optional) An z-axis rotation in radians to orient the model.",
+              "type": "number",
+              "width": 4
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "scale",
+              "name": "Scale",
+              "description": "(Optional) A scaling factor to resize the model.",
+              "type": "number",
+              "width": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Style",
+      "rows": [
+        {
+          "name": "Style",
+          "components": [
+            {
+              "field": "style.color",
+              "name": "Color",
+              "description": "The border color of each feature. If the feature is a line, this field is the color of the line.",
+              "type": "colorpicker",
+              "width": 2
+            },
+            {
+              "field": "style.colorProp",
+              "name": "Color From Property",
+              "description": "Color but taken from each individual feature's property. For example 'color' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'Color' field.",
+              "type": "text",
+              "width": 4
+            },
+            {
+              "field": "style.opacity",
+              "name": "Opacity",
+              "description": "Stroke Opacity",
+              "type": "slider",
+              "min": 0,
+              "max": 1,
+              "step": 0.01,
+              "width": 2
+            },
+            {
+              "field": "style.opacityProp",
+              "name": "Opacity From Property",
+              "description": "Opacity but taken from each individual feature's property. For example 'opacity' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'Opacity' field.",
+              "type": "text",
+              "width": 4
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "style.fillColor",
+              "name": "Fill Color",
+              "description": "Fill Color",
+              "type": "colorpicker",
+              "width": 2
+            },
+            {
+              "field": "style.fillColorProp",
+              "name": "Fill Color From Property",
+              "description": "Fill Color but taken from each individual feature's property. For example 'fill_color' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'Fill Color' field.",
+              "type": "text",
+              "width": 4
+            },
+            {
+              "field": "style.fillOpacity",
+              "name": "Fill Opacity",
+              "description": "Fill Opacity",
+              "type": "slider",
+              "min": 0,
+              "max": 1,
+              "step": 0.01,
+              "width": 2
+            },
+            {
+              "field": "style.fillOpacityProp",
+              "name": "Fill Opacity From Property",
+              "description": "Fill Opacity but taken from each individual feature's property. For example 'fill_opacity' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'Fill Opacity' field.",
+              "type": "text",
+              "width": 4
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "style.weight",
+              "name": "Weight",
+              "description": "Stroke weight in pixels of point features.",
+              "type": "slider",
+              "min": 0,
+              "max": 16,
+              "step": 1,
+              "width": 2
+            },
+            {
+              "field": "style.weightProp",
+              "name": "Weight From Property",
+              "description": "Weight but taken from each individual feature's property. For example 'weight' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'Weight' field.",
+              "type": "text",
+              "width": 4
+            },
+            {
+              "field": "style.radius",
+              "name": "Radius",
+              "description": "Radius in pixels of point features.",
+              "type": "slider",
+              "min": 0,
+              "max": 24,
+              "step": 1,
+              "width": 2
+            },
+            {
+              "field": "style.radiusProp",
+              "name": "Radius From Property",
+              "description": "Radius but taken from each individual feature's property. For example 'radius' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'Radius' field.",
+              "type": "text",
+              "width": 4
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "shape",
+              "name": "Shape",
+              "description": "A marker symbol for point features for this layer. When set to 'None', a simple circle is used. Marker icons and other attachments may override this setting.",
+              "type": "dropdown",
+              "width": 4,
+              "options": [
+                "none",
+                "circle",
+                "directional-circle",
+                "triangle",
+                "triangle-flipped",
+                "square",
+                "diamond",
+                "pentagon",
+                "hexagon",
+                "star",
+                "plus",
+                "pin"
+              ]
+            }
+          ]
+        },
+        {
+          "subname": "Marker Icons",
+          "subdescription": "Uses an icon image instead of an svg for all of the layer's point markers. If you're using this as a bearing marker, make sure the base icon is pointing north.",
+          "components": [
+            {
+              "field": "variables.markerIcon.iconUrl",
+              "name": "Icon URL",
+              "description": "A URL to an image to use as a marker icon.",
+              "type": "text",
+              "width": 12
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.markerIcon.shadowUrl",
+              "name": "Shadow URL",
+              "description": "An optional URL to an image to use as a marker icon's shadow..",
+              "type": "text",
+              "width": 12
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.markerIcon.iconSize.0",
+              "name": "Icon X Size",
+              "description": "Pixel width of the icon's image.",
+              "type": "number",
+              "min": 0,
+              "step": 1,
+              "width": 3
+            },
+            {
+              "field": "variables.markerIcon.iconSize.1",
+              "name": "Icon Y Size",
+              "description": "Pixel height of the icon's image.",
+              "type": "number",
+              "min": 0,
+              "step": 1,
+              "width": 3
+            },
+            {
+              "field": "variables.markerIcon.shadowSize.0",
+              "name": "Shadow X Size",
+              "description": "Pixel width of the icon's shadow.",
+              "type": "number",
+              "min": 0,
+              "step": 1,
+              "width": 3
+            },
+            {
+              "field": "variables.markerIcon.shadowSize.1",
+              "name": "Shadow Y Size",
+              "description": "Pixel height of the icon's shadow.",
+              "type": "number",
+              "min": 0,
+              "step": 1,
+              "width": 3
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.markerIcon.iconAnchor.0",
+              "name": "Icon X Anchor",
+              "description": "X point of the icon which will correspond to marker's center location.",
+              "type": "number",
+              "width": 3
+            },
+            {
+              "field": "variables.markerIcon.iconAnchor.1",
+              "name": "Icon Y Anchor",
+              "description": "Y point of the icon which will correspond to marker's center location.",
+              "type": "number",
+              "width": 3
+            },
+            {
+              "field": "variables.markerIcon.shadowAnchor.0",
+              "name": "Shadow X Anchor",
+              "description": "X point of the shadow which will correspond to marker's center location.",
+              "type": "number",
+              "width": 3
+            },
+            {
+              "field": "variables.markerIcon.shadowAnchor.1",
+              "name": "Shadow Y Anchor",
+              "description": "Y point of the shadow which will correspond to marker's center location.",
+              "type": "number",
+              "width": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Time",
+      "rows": [
+        {
+          "name": "Time",
+          "components": [
+            {
+              "field": "time.enabled",
+              "name": "Time Enabled",
+              "description": "True if the layer is time enabled. URLs that contain {starttime} or {endtime} will be dynamically replaced by their set values when the layer is fetched. If true and a URL is set and Controlled is true, only the initial url query will be performed.",
+              "type": "switch",
+              "width": 3,
+              "defaultChecked": false
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "time.type",
+              "name": "Time Type",
+              "description": "When the time changes, whether the layer should requery the source or filter the layer locally based on feature properties.",
+              "type": "dropdown",
+              "width": 3,
+              "options": ["requery", "local"]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "time.format",
+              "name": "Time Format",
+              "description": "The string format to be used in the URL for {starttime} and {endtime}. Uses D3 time format specifiers: https://github.com/d3/d3-time-format. Default: %Y-%m-%dT%H:%M:%SZ",
+              "type": "text",
+              "width": 6
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "time.startProp",
+              "name": "Start Time Property Name",
+              "description": "Optional and only in use if Time Enabled = true and Time Type = Local. The starting time property path. Setting this is addition to Main Time Property Name casts the feature's time over a range instead of as a single point in time. Can use dot-notation for nested path. Can be a unix timestamp or an ISO time (end the ISO with a Z to designate that it should be treated as a UTC time).",
+              "type": "text",
+              "width": 6
+            },
+            {
+              "field": "time.endProp",
+              "name": "Main/End Time Property Name",
+              "description": "Required in Time Enabled = true and Time Type = Local. The main time property path. Can use dot-notation for nested path. Can be a unix timestamp or an ISO time (end the ISO with a Z to designate that it should be treated as a UTC time).",
+              "type": "text",
+              "width": 6
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Legend",
+      "rows": [
+        {
+          "name": "Legend",
+          "components": [
+            {
+              "new": true,
+              "field": "legend",
+              "name": "Legend From URL",
+              "description": "A URL to a .csv with the following header: 'color,strokecolor,shape,value'. If the path is relative, it will be relative to the mission's directory. This legend is overridden if a legend is also configured below.",
+              "type": "text",
+              "width": 12
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.legend",
+              "name": "Legend",
+              "description": "Configures a legend for the layer. The Legend Tool renders symbologies and gradient scales for any properly configured layer that is on.",
+              "type": "objectarray",
+              "width": 12,
+              "object": [
+                {
+                  "field": "color",
+                  "name": "Fill Color",
+                  "description": "A color for the main fill of the symbol.",
+                  "type": "colorpicker",
+                  "width": 2
+                },
+                {
+                  "field": "strokecolor",
+                  "name": "Border Color",
+                  "description": "A stroke/border color. Note that 'discreet' and 'continuous' shapes have no borders.",
+                  "type": "colorpicker",
+                  "width": 2
+                },
+                {
+                  "field": "shape",
+                  "name": "Shape",
+                  "description": "The symbol for which to us for this legend entry. Discreet and continuous describe scales. These scales are broken into groups by a change in shape value. For instance, 'discreet, discreet, discreet, circle, discreet, discreet' represents a discreet scales of three colors, a circle and then a discreet scale of two colors.",
+                  "type": "dropdown",
+                  "width": 5,
+                  "options": [
+                    "circle",
+                    "square",
+                    "rect",
+                    "triangle",
+                    "continuous",
+                    "discreet"
+                  ]
+                },
+                {
+                  "field": "value",
+                  "name": "Label",
+                  "description": "A label description for this legend entry.",
+                  "type": "text",
+                  "width": 3
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Interface",
+      "rows": [
+        {
+          "name": "Interface",
+          "subname": "Hover Feature Label",
+          "subdescription": "The property key whose value should be the hover text of each feature. If left unset, the hover key and value will be the first one listed in the feature's properties.",
+          "components": [
+            {
+              "new": true,
+              "field": "variables.useKeyAsName.0",
+              "name": "Property 1",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "new": true,
+              "field": "variables.useKeyAsName.1",
+              "name": "Property 2",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "new": true,
+              "field": "variables.useKeyAsName.2",
+              "name": "Property 3",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "new": true,
+              "field": "variables.useKeyAsName.3",
+              "name": "Property 4",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "new": true,
+              "field": "variables.useKeyAsName.4",
+              "name": "Property 5",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "new": true,
+              "field": "variables.useKeyAsName.5",
+              "name": "Property 6",
+              "description": "",
+              "type": "text",
+              "width": 2
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "new": true,
+              "field": "variables.useKeyAsName.6",
+              "name": "Property 7",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "new": true,
+              "field": "variables.useKeyAsName.7",
+              "name": "Property 8",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "new": true,
+              "field": "variables.useKeyAsName.8",
+              "name": "Property 9",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "new": true,
+              "field": "variables.useKeyAsName.9",
+              "name": "Property 10",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "new": true,
+              "field": "variables.useKeyAsName.10",
+              "name": "Property 11",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "new": true,
+              "field": "variables.useKeyAsName.11",
+              "name": "Property 12",
+              "description": "",
+              "type": "text",
+              "width": 2
+            }
+          ]
+        },
+        {
+          "subname": "Key Bindings",
+          "components": [
+            {
+              "field": "variables.shortcutSuffix",
+              "name": "Alt + {letter} Toggle Shortcut",
+              "description": "A single letter to 'ALT + {letter}' toggle the layer on and off. Please verify that your chosen shortcut does not conflict with other system or browser-level keyboard shortcuts.",
+              "type": "text",
+              "width": 6
+            }
+          ]
+        },
+        {
+          "subname": "Search",
+          "components": [
+            {
+              "field": "variables.search",
+              "name": "Search Construct",
+              "description": "When set, this layer will become searchable through the search bar at the top. The search will look for and autocomplete on the properties specified. All properties are enclosed by parentheses and space-separated. 'round()' can be used like a function to round the property beforehand. 'rmunder()' works similarly but removes all underscores instead. For example: '(RMC) rmunder(sol)'",
+              "type": "text",
+              "width": 12
+            }
+          ]
+        },
+        {
+          "subname": "Links",
+          "components": [
+            {
+              "field": "variables.links",
+              "name": "External Links",
+              "description": "Configure deep links to other sites based on the properties on a selected feature. Upon clicking a feature, a list of deep links are put into the top bar and can be clicked on to navigate to any other page.",
+              "type": "objectarray",
+              "width": 12,
+              "object": [
+                {
+                  "field": "name",
+                  "name": "Display Name",
+                  "description": "The name of the deep link. It should be unique.",
+                  "type": "text",
+                  "width": 3
+                },
+                {
+                  "field": "link",
+                  "name": "URL",
+                  "description": "A url template. Curly brackets are included. On feature click, all '{prop}' are replaced with the corresponding features[i].properties.prop value. Multiple '{prop}' are supported as an access to nested props using dot notation '{stores.food.candy}'.",
+                  "type": "text",
+                  "width": 9
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "subname": "Information",
+          "components": [
+            {
+              "field": "variables.info",
+              "name": "TopBar Information",
+              "description": "Creates an informational record at the top of the page. The first use case was showing the value of the latest sol. Clicking this record pans to the feature specified by 'which'. This is used on startup and not when a user selects a feature in this layer.",
+              "type": "objectarray",
+              "width": 12,
+              "object": [
+                {
+                  "field": "value",
+                  "name": "Information Construct",
+                  "description": "A name to display. All '{prop}'s will be replaced by their corresponding features[which].properties[prop] value.",
+                  "type": "text",
+                  "width": 4
+                },
+                {
+                  "field": "icon",
+                  "name": "Icon Name",
+                  "description": "Any Material Design Icon name: https://pictogrammers.com/library/mdi/",
+                  "type": "text",
+                  "width": 3
+                },
+                {
+                  "field": "which",
+                  "name": "From Feature",
+                  "description": "This only supports the value 'last' at this point meaning that the properties from the last feature in the layer while be used to populate the information in the TopBar. ",
+                  "type": "dropdown",
+                  "width": 3,
+                  "options": ["last"]
+                },
+                {
+                  "field": "go",
+                  "name": "Go",
+                  "description": "if true, pans and zooms to the feature of which on initial load. The zoom used is Map Scale Zoom or the current zoom. In the case of multiple layers configured with 'Go', only the first feature with info.go is gone to.",
+                  "type": "checkbox",
+                  "width": 2,
+                  "defaultChecked": false
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Information",
+      "rows": [
+        {
+          "name": "Information",
+          "subname": "Layer Tags",
+          "subdescription": "Assign tags to this layer so that they may be searched upon through the LayersTool. A category may be specified with the following pattern: 'category:tag'",
+          "components": [
+            {
+              "field": "tags.0",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.1",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.2",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.3",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.4",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.5",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "tags.6",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.7",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.8",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.9",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.10",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.11",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            }
+          ]
+        },
+        {
+          "subname": "Description",
+          "subdescription": "A freeform markdown description of the layer. In the LayersTool, users may click the information icon beside the layer's name to view this information.",
+          "components": [
+            {
+              "field": "description",
+              "name": "Description",
+              "description": "",
+              "type": "markdown",
+              "width": 12
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Datasets",
+      "rows": [
+        {
+          "name": "Datasets",
+          "subname": "Dataset Connections",
+          "components": [
+            {
+              "field": "variables.datasetLinks",
+              "name": "Connections",
+              "description": "Datasets are csvs uploaded from the 'Manage Datasets' page accessible on the lower left. Every time a feature from this layer is clicked with datasetLinks configured, it will request the data from the server and include it with it's regular geojson properties. This is especially useful when single features need a lot of metadata to perform a task as it loads it only as needed. A unique value needs to be present in both the feature's 'prop'erties and in the dataset's 'column' in order to combine the metadata.",
+              "type": "objectarray",
+              "width": 12,
+              "object": [
+                {
+                  "field": "dataset",
+                  "name": "Dataset Name",
+                  "description": "The name of a dataset to link to. A list of datasets can be found in the 'Manage Datasets' page.",
+                  "type": "text",
+                  "width": 3
+                },
+                {
+                  "field": "column",
+                  "name": "Connecting Dataset Column",
+                  "description": "This is a column/csv header name within the dataset. If the value of the prop key matches the value in this column, the entire row will be return. All rows that match are returned.",
+                  "type": "text",
+                  "width": 3
+                },
+                {
+                  "field": "prop",
+                  "name": "Connecting Feature Property",
+                  "description": "This is a property key already within the features properties. It's value will be searched for in the specified dataset column.",
+                  "type": "text",
+                  "width": 3
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Attachment - Layers",
+      "rows": [
+        {
+          "name": "Attachment - Layers",
+          "subname": "Labels",
+          "components": [
+            {
+              "field": "variables.layerAttachments.labels.enabled",
+              "name": "Enabled",
+              "description": "Place a label beside each feature. Also applies to 'Coordinate Attachments -> Marker' features.",
+              "type": "switch",
+              "width": 3,
+              "defaultChecked": false
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.layerAttachments.labels.initialVisibility",
+              "name": "Initial Visibility",
+              "description": "Whether the label sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.",
+              "type": "checkbox",
+              "width": 2,
+              "defaultChecked": false
+            },
+            {
+              "field": "variables.layerAttachments.labels.theme",
+              "name": "Theme",
+              "description": "Label theme. Either default or solid. Default is white text with a black border. Solid is white text with a dark-grey background box.",
+              "type": "dropdown",
+              "width": 2,
+              "options": ["default", "solid"]
+            },
+            {
+              "field": "variables.layerAttachments.labels.size",
+              "name": "Size",
+              "description": "Label size. Either default or large. Default is 14px, large is 16px.",
+              "type": "dropdown",
+              "width": 2,
+              "options": ["default", "large"]
+            }
+          ]
+        },
+        {
+          "subname": "Pairings",
+          "components": [
+            {
+              "field": "variables.layerAttachments.pairings.enabled",
+              "name": "Enabled",
+              "description": "Links cross-layer features together. Features paired to this layer will attempt to compute the azimuth-elevation relationship between the two to draw in the Viewer's PhotoSphere. Additionally, on the Map, a line will be drawn between the two features.",
+              "type": "switch",
+              "width": 3,
+              "defaultChecked": false
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.layerAttachments.pairings.initialVisibility",
+              "name": "Initial Visibility",
+              "description": "Whether the pairing line sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.",
+              "type": "checkbox",
+              "width": 2,
+              "defaultChecked": false
+            },
+            {
+              "field": "variables.layerAttachments.pairings.layers",
+              "name": "Layers with which to Pair",
+              "description": "An comma-separated array of names or UUIDs of other layers.",
+              "type": "textarray",
+              "width": 6
+            },
+            {
+              "field": "variables.layerAttachments.pairings.pairProp",
+              "name": "Pair Property",
+              "description": "The dot.notated path to the feature properties that contains the property to pair on. This layer and all paired layers need this property to properly pair up. A feature in this layer is said to be paired with a feature of one of the other specified layers, if and only if the values of this property in both features matches.",
+              "type": "text",
+              "width": 4
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.layerAttachments.pairings.layerAzProp",
+              "name": "Layer Azimuth Property",
+              "description": "The dot.notated path to the feature properties that contains the features' azimuth. If unset, the azimuth will be calculated through the feature's longitude, latitude, elevation coordinates.",
+              "type": "text",
+              "width": 4
+            },
+            {
+              "field": "variables.layerAttachments.pairings.layerElProp",
+              "name": "Layer Elevation Property",
+              "description": "The dot notated path to the feature properties that contains the features' elevation. If unset, the elevation will be calculated through the feature's longitude, latitude, elevation coordinates.",
+              "type": "text",
+              "width": 4
+            },
+            {
+              "field": "variables.layerAttachments.pairings.originOffsetOrder",
+              "name": "Origin Offset Order",
+              "description": "In many cases, a marker's center is not the camera's center. Within a feature's 'properties.images' objects, 'originOffset' can be defined. 'originOffsetOrder' describes the XYZ order and signage that 'originOffset' should be read in. Possible values are X, -X, Y, -Y, Z, -Z. Example value: 'X,Y,-Z'",
+              "type": "textarray",
+              "width": 4
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.layerAttachments.pairings.style.color",
+              "name": "Pairing Line Color",
+              "description": "The color of the line to drawn between paired features that indicate their connectivity.",
+              "type": "colorpicker",
+              "width": 2
+            },
+            {
+              "field": "variables.layerAttachments.pairings.style.weight",
+              "name": "Pairing Line Weight",
+              "description": "The weight (thickness) of the line to drawn between paired features that indicate their connectivity.",
+              "type": "number",
+              "min": 1,
+              "width": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Attachment - Coordinates",
+      "rows": [
+        {
+          "name": "Attachment - Coordinates",
+          "subname": "Marker",
+          "components": [
+            {
+              "field": "variables.coordinateAttachments.marker.enabled",
+              "name": "Enabled",
+              "description": "Place a marker at every coordinate of every feature.",
+              "type": "switch",
+              "width": 3,
+              "defaultChecked": false
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.coordinateAttachments.marker.initialVisibility",
+              "name": "Initial Visibility",
+              "description": "Whether the coordinate marker sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.",
+              "type": "checkbox",
+              "width": 2,
+              "defaultChecked": false
+            },
+            {
+              "field": "variables.coordinateAttachments.marker.color",
+              "name": "Color",
+              "description": "A stroke/border color for the markers.",
+              "type": "colorpicker",
+              "width": 2
+            },
+            {
+              "field": "variables.coordinateAttachments.marker.opacity",
+              "name": "Opacity",
+              "description": "A stroke/border opacity for the markers.",
+              "type": "number",
+              "min": 0,
+              "max": 1,
+              "width": 2
+            },
+            {
+              "field": "variables.coordinateAttachments.marker.fillColor",
+              "name": "Fill Color",
+              "description": "A fill color for the markers.",
+              "type": "colorpicker",
+              "width": 2
+            },
+            {
+              "field": "variables.coordinateAttachments.marker.fillOpacity",
+              "name": "Fill Opacity",
+              "description": "A fill opacity for the markers.",
+              "type": "number",
+              "min": 0,
+              "max": 1,
+              "width": 2
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.coordinateAttachments.marker.weight",
+              "name": "Weight",
+              "description": "A stroke thickness in pixels for the markers.",
+              "type": "number",
+              "min": 1,
+              "step": 1,
+              "width": 3
+            },
+            {
+              "field": "variables.coordinateAttachments.marker.radius",
+              "name": "Radius",
+              "description": "A radius in pixels for the markers.",
+              "type": "number",
+              "min": 1,
+              "step": 1,
+              "width": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Attachment - Markers",
+      "rows": [
+        {
+          "name": "Attachment - Markers",
+          "subname": "Bearings",
+          "components": [
+            {
+              "field": "variables.markerAttachments.bearing.enabled",
+              "name": "Enabled",
+              "description": "Sets a bearing direction (clockwise from north) of this layer's point markers (or markerIcons if set). Overrides the layer's shape dropdown value.",
+              "type": "switch",
+              "width": 3,
+              "defaultChecked": false
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.markerAttachments.bearing.angleProp",
+              "name": "Angle Property",
+              "description": "The dot.notated path to the feature properties that contains the desired rotation angle. Ex. headings.yaw.",
+              "type": "text",
+              "width": 6
+            },
+            {
+              "field": "variables.markerAttachments.bearing.angleUnit",
+              "name": "Angle Unit",
+              "description": "Unit of the value of 'angleProp'.",
+              "type": "dropdown",
+              "width": 2,
+              "options": ["deg", "rad"]
+            },
+            {
+              "field": "variables.markerAttachments.bearing.color",
+              "name": "Color",
+              "description": "A color for the directional arrow for non-markerIcon bearings.",
+              "type": "colorpicker",
+              "width": 4
+            }
+          ]
+        },
+        {
+          "subname": "Image",
+          "components": [
+            {
+              "field": "variables.markerAttachments.image.enabled",
+              "name": "Enabled",
+              "description": "Places a scaled and orientated image under each marker.",
+              "type": "switch",
+              "width": 3,
+              "defaultChecked": false
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.markerAttachments.image.path",
+              "name": "Image URL",
+              "description": "A url to a (preferably) top-down north-facing orthographic image.",
+              "type": "text",
+              "width": 9
+            },
+            {
+              "field": "variables.markerAttachments.image.pathProp",
+              "name": "Image URL Property",
+              "description": "A prop.path to an image url. This takes priority over 'Image URL' and is useful if the path is feature specific.",
+              "type": "text",
+              "width": 3
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.markerAttachments.image.initialVisibility",
+              "name": "Initial Visibility",
+              "description": "Whether the image sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.",
+              "type": "checkbox",
+              "width": 2,
+              "defaultChecked": false
+            },
+            {
+              "field": "variables.markerAttachments.image.initialOpacity",
+              "name": "Initial Opacity",
+              "description": "The initial image opacity. Users can change sublayer opacity n the layer settings in the LayersTool. From 0 to 1.",
+              "type": "number",
+              "min": 0,
+              "max": 1,
+              "width": 2
+            },
+            {
+              "field": "variables.markerAttachments.image.widthMeters",
+              "name": "Width in Meters",
+              "description": "Width of image in meters in order to calculate scale.",
+              "type": "number",
+              "min": 0,
+              "max": 1,
+              "width": 2
+            },
+            {
+              "field": "variables.markerAttachments.image.widthPixels",
+              "name": "Pixels Wide",
+              "description": "Image width in pixels.",
+              "type": "number",
+              "min": 0,
+              "max": 1,
+              "width": 2
+            },
+            {
+              "field": "variables.markerAttachments.image.heightPixels",
+              "name": "Pixels High",
+              "description": "Image height in pixels.",
+              "type": "number",
+              "min": 0,
+              "max": 1,
+              "width": 2
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.markerAttachments.image.angleProp",
+              "name": "Angle Property",
+              "description": "Prop path to the rotation of the image",
+              "type": "text",
+              "width": 6
+            },
+            {
+              "field": "variables.markerAttachments.image.angleUnit",
+              "name": "Angle Unit",
+              "description": "The units of 'Angle Property'.",
+              "type": "dropdown",
+              "width": 2,
+              "options": ["deg", "rad"]
+            },
+            {
+              "field": "variables.markerAttachments.image.show",
+              "name": "Shown",
+              "description": "If set to 'always', overrides the Waypoints Kind (if set) and always renders the image under the marker. 'click' just shows the image on click and requires the layer to have the Waypoints Kind.",
+              "type": "dropdown",
+              "width": 2,
+              "options": ["click", "always"]
+            }
+          ]
+        },
+        {
+          "subname": "Model",
+          "components": [
+            {
+              "field": "variables.markerAttachments.model.enabled",
+              "name": "Enabled",
+              "description": "Render a model in the 3D Globe for the point features of this layer.",
+              "type": "switch",
+              "width": 3,
+              "defaultChecked": false
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.markerAttachments.model.path",
+              "name": "Model URL",
+              "description": "A path to model. The following model formats are supported: .dae, .glb, .gltf, and .obj.",
+              "type": "text",
+              "width": 9
+            },
+            {
+              "field": "variables.markerAttachments.model.pathProp",
+              "name": "Model URL Property",
+              "description": "A prop.path to a model. This takes priority over 'Model URL' and is useful if model is feature specific.",
+              "type": "text",
+              "width": 3
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.markerAttachments.model.yawProp",
+              "name": "Yaw Property",
+              "description": "Prop path to the model's yaw. If this value is a number, uses it directly.",
+              "type": "text",
+              "width": 8
+            },
+            {
+              "field": "variables.markerAttachments.model.yawUnit",
+              "name": "Yaw Unit",
+              "description": "The units of 'Yaw Property'.",
+              "type": "dropdown",
+              "width": 2,
+              "options": ["deg", "rad"]
+            },
+            {
+              "field": "variables.markerAttachments.model.invertYaw",
+              "name": "Invert Yaw",
+              "description": "If true, multiplies yaw by -1.",
+              "type": "checkbox",
+              "width": 2,
+              "defaultChecked": false
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.markerAttachments.model.pitchProp",
+              "name": "Pitch Property",
+              "description": "Prop path to the model's pitch. If this value is a number, uses it directly.",
+              "type": "text",
+              "width": 8
+            },
+            {
+              "field": "variables.markerAttachments.model.pitchUnit",
+              "name": "Pitch Unit",
+              "description": "The units of 'Pitch Property'.",
+              "type": "dropdown",
+              "width": 2,
+              "options": ["deg", "rad"]
+            },
+            {
+              "field": "variables.markerAttachments.model.invertPitch",
+              "name": "Invert Pitch",
+              "description": "If true, multiplies pitch by -1.",
+              "type": "checkbox",
+              "width": 2,
+              "defaultChecked": false
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.markerAttachments.model.rollProp",
+              "name": "Roll Property",
+              "description": "Prop path to the model's roll. If this value is a number, uses it directly.",
+              "type": "text",
+              "width": 8
+            },
+            {
+              "field": "variables.markerAttachments.model.rollUnit",
+              "name": "Roll Unit",
+              "description": "The units of 'Roll Property'.",
+              "type": "dropdown",
+              "width": 2,
+              "options": ["deg", "rad"]
+            },
+            {
+              "field": "variables.markerAttachments.model.invertRoll",
+              "name": "Invert Roll",
+              "description": "If true, multiplies roll by -1.",
+              "type": "checkbox",
+              "width": 2,
+              "defaultChecked": false
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.markerAttachments.model.elevationProp",
+              "name": "Elevation Property",
+              "description": "Prop path to the model's elevation (in meters). If this value is a number, uses it directly. Default 0.",
+              "type": "text",
+              "width": 4
+            },
+            {
+              "field": "variables.markerAttachments.model.scaleProp",
+              "name": "Scale Property",
+              "description": "Prop path to the model's scale. If this value is a number, uses it directly. Default 1.",
+              "type": "text",
+              "width": 4
+            },
+            {
+              "field": "variables.markerAttachments.model.show",
+              "name": "Shown",
+              "description": "If set to 'always', always renders the model at the marker. 'click' just shows the model on-click",
+              "type": "dropdown",
+              "width": 2,
+              "options": ["click", "always"]
+            },
+            {
+              "field": "variables.markerAttachments.model.onlyLastN",
+              "name": "Only on Last N",
+              "description": "If 0, shows models at all points. If a number, only shows models for the last n points of the layer.",
+              "type": "number",
+              "min": 0,
+              "width": 2
+            }
+          ]
+        },
+        {
+          "subname": "Uncertainty Ellipses",
+          "components": [
+            {
+              "field": "variables.markerAttachments.uncertainty.enabled",
+              "name": "Enabled",
+              "description": "Turns on a sublayer feature that places ellipses about point features in order to indicate positional uncertainties.",
+              "type": "switch",
+              "width": 3,
+              "defaultChecked": false
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.markerAttachments.uncertainty.initialVisibility",
+              "name": "Initial Visibility",
+              "description": "Whether the uncertainty sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.",
+              "type": "checkbox",
+              "width": 2,
+              "defaultChecked": false
+            },
+            {
+              "field": "variables.markerAttachments.uncertainty.strokeColor",
+              "name": "Stroke Color",
+              "description": "A stroke/border color for the uncertainty ellipse. Defaults to 'black'.",
+              "type": "colorpicker",
+              "width": 2
+            },
+            {
+              "field": "variables.markerAttachments.uncertainty.opacity",
+              "name": "Stroke Opacity",
+              "description": "A stroke/border opacity for the uncertainty ellipse. 0 (transparent) to 1 (opaque).",
+              "type": "number",
+              "min": 0,
+              "max": 1,
+              "width": 2
+            },
+            {
+              "field": "variables.markerAttachments.uncertainty.color",
+              "name": "Fill Color",
+              "description": "A fill color for the uncertainty ellipse. It will appear more transparent than set. Defaults to 'white'.",
+              "type": "colorpicker",
+              "width": 2
+            },
+            {
+              "field": "variables.markerAttachments.uncertainty.fillOpacity",
+              "name": "Fill Opacity",
+              "description": "A fill opacity for the uncertainty ellipse. 0 (transparent) to 1 (opaque).",
+              "type": "number",
+              "min": 0,
+              "max": 1,
+              "width": 2
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.markerAttachments.uncertainty.weight",
+              "name": "Weight",
+              "description": "A stroke/border weight for the uncertainty ellipse.",
+              "type": "number",
+              "min": 1,
+              "width": 2
+            },
+            {
+              "field": "variables.markerAttachments.uncertainty.color3d",
+              "name": "3D Color",
+              "description": "A color for the ellipse's vertical curtain in the 3D Globe. Can be an array for a vertical gradient: 'rgba(0,0,0,0), #26A8FF'.",
+              "type": "textarray",
+              "width": 4
+            },
+            {
+              "field": "variables.markerAttachments.uncertainty.opacity3d",
+              "name": "3D Opacity",
+              "description": "A fill opacity for the ellipse's vertical curtain in the 3D Globe. 0 (transparent) to 1 (opaque).",
+              "type": "number",
+              "min": 0,
+              "max": 1,
+              "width": 2
+            },
+            {
+              "field": "variables.markerAttachments.uncertainty.depth3d",
+              "name": "3D Depth",
+              "description": "A depth, in meters, for the ellipse's vertical curtain in the 3D Globe. Defaults to 2.",
+              "type": "number",
+              "min": 0,
+              "width": 2
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.markerAttachments.uncertainty.xAxisProp",
+              "name": "X-Axis Property",
+              "description": "Prop path to the x-axis radius value of the ellipse.",
+              "type": "text",
+              "width": 5
+            },
+            {
+              "field": "variables.markerAttachments.uncertainty.yAxisProp",
+              "name": "Y-Axis Property",
+              "description": "Prop path to the y-axis radius value of the ellipse.",
+              "type": "text",
+              "width": 5
+            },
+            {
+              "field": "variables.markerAttachments.uncertainty.axisUnit",
+              "name": "Axis Unit",
+              "description": "The units of 'X-Axis Property' and 'Y-Axis Property'.",
+              "type": "dropdown",
+              "width": 2,
+              "options": ["meters", "kilometers"]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.markerAttachments.uncertainty.angleProp",
+              "name": "Angle Property",
+              "description": "Prop path to the rotation of the ellipse.",
+              "type": "text",
+              "width": 5
+            },
+            {
+              "field": "variables.markerAttachments.uncertainty.angleUnit",
+              "name": "Angle Unit",
+              "description": "The units of 'Angle Property'.",
+              "type": "dropdown",
+              "width": 2,
+              "options": ["deg", "rad"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Attachment - Paths",
+      "rows": [
+        {
+          "name": "Attachment - Paths",
+          "subname": "Gradient",
+          "components": [
+            {
+              "field": "variables.pathAttachments.gradient.enabled",
+              "name": "Enabled",
+              "description": "Renders a 'hotline' gradient for visualizing value changes along a path. Useful with 'Miscellaneous -> Hide Main Features'. Look into 'Enhanced GeoJSON' in the docs on how to format layers with properties-per-coordinate.",
+              "type": "switch",
+              "width": 3,
+              "defaultChecked": false
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.pathAttachments.gradient.colorWithProp",
+              "name": "Color With Property",
+              "description": "Prop path to the value's key to visualize.",
+              "type": "text",
+              "width": 3
+            },
+            {
+              "field": "variables.pathAttachments.gradient.dropdownColorWithProp",
+              "name": "Dropdown Color With Properties",
+              "description": "Array of additional prop paths. Users can toggle between value properties in the LayersTool. 'Color With Property's path is automatically added here if not already included.",
+              "type": "textarray",
+              "width": 9
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.pathAttachments.gradient.colorRamp",
+              "name": "Color Ramp",
+              "description": "Array of css colors indicating the color ramp. The first color represents the min value and the last color represents the max value in the layer.",
+              "type": "textarray",
+              "width": 10
+            },
+            {
+              "field": "variables.pathAttachments.gradient.weight",
+              "name": "Weight",
+              "description": "Line thickness in pixels.",
+              "type": "number",
+              "min": 1,
+              "width": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Miscellaneous",
+      "rows": [
+        {
+          "name": "Miscellaneous",
+          "subname": "Chemistry",
+          "components": [
+            {
+              "field": "variables.chemistry",
+              "name": "Chemistry Values",
+              "description": "Comma-separated chemistry columns to use as percentages and in what order. Should be used with a Dataset. Ex. 'Al2O3,CaO,FeOT,K2O,MgO,Na2O,SiO2,TiO2'. Look into the docs for the ChemistryTool for more information.",
+              "type": "textarray",
+              "width": 12
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.hideMainFeature",
+              "name": "Hide Main Features",
+              "description": " If true, hides all typically rendered features. This is useful if showing only the 'Attachments' of layers is desired and not their features themselves. ",
+              "type": "checkbox",
+              "width": 3,
+              "defaultChecked": false
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

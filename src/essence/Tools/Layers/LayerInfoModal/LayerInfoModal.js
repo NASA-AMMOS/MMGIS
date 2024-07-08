@@ -42,17 +42,19 @@ const LayerInfo = {
                                     `<div id='LayerInfoModalTags'>`,
                                         `<div id='LayerInfoModalTagsContent'>`,
                                             layer.tags.map((tag) => {
-                                                let catname, tagname
-                                                if( tag.indexOf(':') > -1)
-                                                    [catname, ...tagname] = tag.split(":");
-                                                else tagname = tag
+                                                if( typeof tag === 'string' && tag.length > 0) {
+                                                    let catname, tagname
+                                                    if( tag.indexOf(':') > -1)
+                                                        [catname, ...tagname] = tag.split(":");
+                                                    else tagname = tag
 
-                                                return [
-                                                    `<div class='LayerInfoModalTag'>`,
-                                                        catname != null ? `<div class='LayerInfoModalTagCat'>${catname}</div>` : '',
-                                                        `<div class='LayerInfoModalTagName'>${tagname}</div>`,
-                                                    `</div>`
-                                                ].join('\n')
+                                                    return [
+                                                        `<div class='LayerInfoModalTag'>`,
+                                                            catname != null ? `<div class='LayerInfoModalTagCat'>${catname}</div>` : '',
+                                                            `<div class='LayerInfoModalTagName'>${tagname}</div>`,
+                                                        `</div>`
+                                                    ].join('\n')
+                                                }
                                             }).join('\n'),
                                         `</div>`,
                                     `</div>`

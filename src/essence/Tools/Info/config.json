@@ -1,8 +1,8 @@
 {
     "defaultIcon": "information-variant",
-    "description": "Display the geojson properties field of a clicked point.",
+    "description": "Display the geojson properties field of a clicked feature.",
     "descriptionFull": {
-        "title": "",
+        "title": "Lists out the geojson properties of any clicked feature. Any clicked feature will open the Info tool and display the data in JSON formatting. Some layer 'kinds' disable opening the Info tool and displaying data automatically, like the 'Waypoints' kind layer.",
         "example": {
             "sortAlphabetically": true
         }
@@ -13,5 +13,21 @@
     "paths": {
         "InfoTool": "essence/Tools/Info/InfoTool"
     },
-    "expandable": true
+    "expandable": true,
+    "config": {
+        "rows": [
+            {
+                "components": [
+                    {
+                        "field": "variables.sortAlphabetically",
+                        "name": "Sort Alphabetically",
+                        "description": "Whether to sort the feature's fields alphabetically instead of listing them in their native order.",
+                        "type": "checkbox",
+                        "width": 3,
+                        "defaultChecked": false
+                    }
+                ]
+            }
+        ]
+    }
 }

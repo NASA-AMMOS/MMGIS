@@ -16,12 +16,8 @@
                     },
                     { "...": "..." }
                 ],
-                "slope": [
-                    { "...": "..." }
-                ],
-                "cost": [
-                    { "...": "..." }
-                ]
+                "slope": [{ "...": "..." }],
+                "cost": [{ "...": "..." }]
             },
             "interpolateSeams": false,
             "models": ["Traverse Time", "Isodistance", "..."]
@@ -32,5 +28,350 @@
     "toolbarPriority": 10,
     "paths": {
         "IsochroneTool": "essence/Tools/Isochrone/IsochroneTool"
+    },
+    "config": {
+        "rows": [
+            {
+                "name": "Data Sources",
+                "components": [
+                    {
+                        "field": "variables.data.DEM",
+                        "name": "Elevation (DEM)",
+                        "description": "Configure DEM data tilesets to be used by the specified models for computations.",
+                        "type": "objectarray",
+                        "width": 12,
+                        "object": [
+                            {
+                                "field": "name",
+                                "name": "Name",
+                                "description": "A unique name.",
+                                "type": "text",
+                                "width": 4
+                            },
+                            {
+                                "field": "tileurl",
+                                "name": "DEM Tile URL",
+                                "description": "",
+                                "type": "text",
+                                "width": 8
+                            },
+                            {
+                                "field": "minZoom",
+                                "name": "Minimum Zoom",
+                                "description": "Minimum zoom of the specified tileset.",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "width": 2
+                            },
+                            {
+                                "field": "maxNativeZoom",
+                                "name": "Max Native Zoom",
+                                "description": "Maximum (native) zoom of the specified tileset.",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "max": 40,
+                                "width": 2
+                            },
+                            {
+                                "field": "resolution",
+                                "name": "Resolution",
+                                "description": "Pixel dimension of the side of the tiles in the tileset. Generally a power of 2 between 32 and 256.",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "width": 2
+                            },
+                            {
+                                "field": "interpolateSeams",
+                                "name": "Interpolate Seams",
+                                "description": "Because '1bto4b' (the DEM tiling script) generates tiles with matching edges, data loaded and passed to models may have “seams,” or regularly-spaced pairs of identical rows and columns. Depending on the data type and model, these seams may or may not cause inaccurate results. The default behavior of the tool is therefore to attempt to correct these seams.",
+                                "type": "checkbox",
+                                "width": 3,
+                                "defaultChecked": false
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.data.slope",
+                        "name": "Slope",
+                        "description": "Configure Slope data tilesets to be used by the specified models for computations.",
+                        "type": "objectarray",
+                        "width": 12,
+                        "object": [
+                            {
+                                "field": "name",
+                                "name": "Name",
+                                "description": "A unique name.",
+                                "type": "text",
+                                "width": 4
+                            },
+                            {
+                                "field": "tileurl",
+                                "name": "DEM Tile URL",
+                                "description": "",
+                                "type": "text",
+                                "width": 8
+                            },
+                            {
+                                "field": "minZoom",
+                                "name": "Minimum Zoom",
+                                "description": "Minimum zoom of the specified tileset.",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "width": 2
+                            },
+                            {
+                                "field": "maxNativeZoom",
+                                "name": "Max Native Zoom",
+                                "description": "Maximum (native) zoom of the specified tileset.",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "max": 40,
+                                "width": 2
+                            },
+                            {
+                                "field": "resolution",
+                                "name": "Resolution",
+                                "description": "Pixel dimension of the side of the tiles in the tileset. Generally a power of 2 between 32 and 256.",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "width": 2
+                            },
+                            {
+                                "field": "interpolateSeams",
+                                "name": "Interpolate Seams",
+                                "description": "Because '1bto4b' (the DEM tiling script) generates tiles with matching edges, data loaded and passed to models may have “seams,” or regularly-spaced pairs of identical rows and columns. Depending on the data type and model, these seams may or may not cause inaccurate results. The default behavior of the tool is therefore to attempt to correct these seams.",
+                                "type": "checkbox",
+                                "width": 3,
+                                "defaultChecked": false
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.data.obstacle",
+                        "name": "Obstacle",
+                        "description": "Configure Obstacle map data tilesets to be used by the specified models for computations.",
+                        "type": "objectarray",
+                        "width": 12,
+                        "object": [
+                            {
+                                "field": "name",
+                                "name": "Name",
+                                "description": "A unique name.",
+                                "type": "text",
+                                "width": 4
+                            },
+                            {
+                                "field": "tileurl",
+                                "name": "DEM Tile URL",
+                                "description": "",
+                                "type": "text",
+                                "width": 8
+                            },
+                            {
+                                "field": "minZoom",
+                                "name": "Minimum Zoom",
+                                "description": "Minimum zoom of the specified tileset.",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "width": 2
+                            },
+                            {
+                                "field": "maxNativeZoom",
+                                "name": "Max Native Zoom",
+                                "description": "Maximum (native) zoom of the specified tileset.",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "max": 40,
+                                "width": 2
+                            },
+                            {
+                                "field": "resolution",
+                                "name": "Resolution",
+                                "description": "Pixel dimension of the side of the tiles in the tileset. Generally a power of 2 between 32 and 256.",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "width": 2
+                            },
+                            {
+                                "field": "interpolateSeams",
+                                "name": "Interpolate Seams",
+                                "description": "Because '1bto4b' (the DEM tiling script) generates tiles with matching edges, data loaded and passed to models may have “seams,” or regularly-spaced pairs of identical rows and columns. Depending on the data type and model, these seams may or may not cause inaccurate results. The default behavior of the tool is therefore to attempt to correct these seams.",
+                                "type": "checkbox",
+                                "width": 3,
+                                "defaultChecked": false
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.data.cost",
+                        "name": "Cost",
+                        "description": "Configure Cost data tilesets to be used by the specified models for computations.",
+                        "type": "objectarray",
+                        "width": 12,
+                        "object": [
+                            {
+                                "field": "name",
+                                "name": "Name",
+                                "description": "A unique name.",
+                                "type": "text",
+                                "width": 4
+                            },
+                            {
+                                "field": "tileurl",
+                                "name": "DEM Tile URL",
+                                "description": "",
+                                "type": "text",
+                                "width": 8
+                            },
+                            {
+                                "field": "minZoom",
+                                "name": "Minimum Zoom",
+                                "description": "Minimum zoom of the specified tileset.",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "width": 2
+                            },
+                            {
+                                "field": "maxNativeZoom",
+                                "name": "Max Native Zoom",
+                                "description": "Maximum (native) zoom of the specified tileset.",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "max": 40,
+                                "width": 2
+                            },
+                            {
+                                "field": "resolution",
+                                "name": "Resolution",
+                                "description": "Pixel dimension of the side of the tiles in the tileset. Generally a power of 2 between 32 and 256.",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "width": 2
+                            },
+                            {
+                                "field": "interpolateSeams",
+                                "name": "Interpolate Seams",
+                                "description": "Because '1bto4b' (the DEM tiling script) generates tiles with matching edges, data loaded and passed to models may have “seams,” or regularly-spaced pairs of identical rows and columns. Depending on the data type and model, these seams may or may not cause inaccurate results. The default behavior of the tool is therefore to attempt to correct these seams.",
+                                "type": "checkbox",
+                                "width": 3,
+                                "defaultChecked": false
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.data.shade",
+                        "name": "Shade",
+                        "description": "Configure Shade data tilesets to be used by the specified models for computations.",
+                        "type": "objectarray",
+                        "width": 12,
+                        "object": [
+                            {
+                                "field": "name",
+                                "name": "Name",
+                                "description": "A unique name.",
+                                "type": "text",
+                                "width": 4
+                            },
+                            {
+                                "field": "tileurl",
+                                "name": "DEM Tile URL",
+                                "description": "",
+                                "type": "text",
+                                "width": 8
+                            },
+                            {
+                                "field": "minZoom",
+                                "name": "Minimum Zoom",
+                                "description": "Minimum zoom of the specified tileset.",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "width": 2
+                            },
+                            {
+                                "field": "maxNativeZoom",
+                                "name": "Max Native Zoom",
+                                "description": "Maximum (native) zoom of the specified tileset.",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "max": 40,
+                                "width": 2
+                            },
+                            {
+                                "field": "resolution",
+                                "name": "Resolution",
+                                "description": "Pixel dimension of the side of the tiles in the tileset. Generally a power of 2 between 32 and 256.",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "width": 2
+                            },
+                            {
+                                "field": "interpolateSeams",
+                                "name": "Interpolate Seams",
+                                "description": "Because '1bto4b' (the DEM tiling script) generates tiles with matching edges, data loaded and passed to models may have “seams,” or regularly-spaced pairs of identical rows and columns. Depending on the data type and model, these seams may or may not cause inaccurate results. The default behavior of the tool is therefore to attempt to correct these seams.",
+                                "type": "checkbox",
+                                "width": 3,
+                                "defaultChecked": false
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "name": "Models",
+                "components": [
+                    {
+                        "field": "variables.models",
+                        "name": "Enabled Models",
+                        "description": "Comma-separated list of isochrone models to enable. Possible values are: 'Traverse Time', 'Isodistance', 'Example' ",
+                        "type": "textarray",
+                        "width": 12
+                    }
+                ]
+            },
+            {
+                "name": "Settings",
+                "components": [
+                    {
+                        "field": "variables.interpolateSeams",
+                        "name": "Interpolate Seams (Global)",
+                        "description": "Because '1bto4b' (the DEM tiling script) generates tiles with matching edges, data loaded and passed to models may have “seams,” or regularly-spaced pairs of identical rows and columns. Depending on the data type and model, these seams may or may not cause inaccurate results. The default behavior of the tool is therefore to attempt to correct these seams. Set this property to false to disable this behavior for all sources that do not explicitly set their own 'interpolateSeams' property to true.",
+                        "type": "checkbox",
+                        "width": 3,
+                        "defaultChecked": false
+                    }
+                ]
+            }
+        ]
     }
 }

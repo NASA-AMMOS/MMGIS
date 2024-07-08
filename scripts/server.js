@@ -177,13 +177,11 @@ function checkHeadersCodeInjection(req, res, next) {
     "pass",
     "pw",
     "password",
-    "delete",
     "insert",
     "select",
     "disable",
     "enable",
     "drop",
-    "set",
     "script",
     "<script>",
   ];
@@ -584,6 +582,16 @@ setups.getBackendSetups(function (setups) {
     `${ROOT_PATH}/config/fonts`,
     ensureUser(),
     express.static(path.join(rootDir, "/config/fonts"))
+  );
+  app.use(
+    `${ROOT_PATH}/configure/build`,
+    ensureUser(),
+    express.static(path.join(rootDir, "/configure/build"))
+  );
+  app.use(
+    `${ROOT_PATH}/configure/public`,
+    ensureUser(),
+    express.static(path.join(rootDir, "/configure/public"))
   );
 
   if (process.argv.includes("--with_examples"))

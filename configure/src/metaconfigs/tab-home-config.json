@@ -1,0 +1,59 @@
+{
+  "rows": [
+    {
+      "name": "Initial View",
+      "components": [
+        {
+          "field": "msv.view.0",
+          "name": "Initial Latitude",
+          "description": "",
+          "type": "number",
+          "min": -90,
+          "max": 90,
+          "width": 4
+        },
+        {
+          "field": "msv.view.1",
+          "name": "Initial Longitude",
+          "description": "",
+          "type": "number",
+          "min": -180,
+          "max": 180,
+          "width": 4
+        },
+        {
+          "field": "msv.view.2",
+          "name": "Initial Zoom Level",
+          "description": "",
+          "type": "number",
+          "min": 0,
+          "max": 40,
+          "width": 4
+        }
+      ]
+    },
+    {
+      "name": "Planet Radii",
+      "components": [
+        {
+          "field": "msv.radius.major",
+          "name": "Planet Radius Major",
+          "description": "",
+          "type": "number",
+          "width": 4,
+          "min": 0,
+          "units": "meters"
+        },
+        {
+          "field": "msv.radius.minor",
+          "name": "Planet Radius Minor",
+          "description": "",
+          "type": "number",
+          "width": 4,
+          "min": 0,
+          "units": "meters"
+        }
+      ]
+    }
+  ]
+}

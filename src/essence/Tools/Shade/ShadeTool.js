@@ -1833,6 +1833,11 @@ function interfaceWithMMGIS() {
         separateFromMMGIS()
     }
 
+    if (TimeControl.enabled != true) {
+        console.error('ERROR: ShadeTool - Time must be enabled.')
+        return
+    }
+
     const rawTime = ShadeTool.parseToUTCTime(TimeControl.getEndTime())
     // prettier-ignore
     let markup = [

@@ -1,0 +1,150 @@
+{
+  "tabs": [
+    {
+      "name": "Core",
+      "rows": [
+        {
+          "name": "Core",
+          "components": [
+            {
+              "field": "type",
+              "name": "Layer Type",
+              "description": "",
+              "type": "dropdown",
+              "width": 2,
+              "options": [
+                "data",
+                "header",
+                "model",
+                "query",
+                "tile",
+                "vector",
+                "vectortile"
+              ]
+            },
+            {
+              "field": "name",
+              "name": "Layer Name",
+              "description": "",
+              "type": "text",
+              "width": 8
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Information",
+      "rows": [
+        {
+          "name": "Information",
+          "subname": "Layer Tags",
+          "subdescription": "Assign tags to this layer so that they may be searched upon through the LayersTool. A category may be specified with the following pattern: 'category:tag'",
+          "components": [
+            {
+              "field": "tags.0",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.1",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.2",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.3",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.4",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.5",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "tags.6",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.7",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.8",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.9",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.10",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.11",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            }
+          ]
+        },
+        {
+          "subname": "Description",
+          "subdescription": "A freeform markdown description of the layer. In the LayersTool, users may click the information icon beside the layer's name to view this information.",
+          "components": [
+            {
+              "field": "description",
+              "name": "Description",
+              "description": "",
+              "type": "markdown",
+              "width": 12
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

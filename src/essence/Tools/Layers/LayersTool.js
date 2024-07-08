@@ -1057,8 +1057,9 @@ function interfaceWithMMGIS(fromInit) {
     Object.keys(L_.layers.data).forEach((l) => {
         if (L_.layers.data[l].tags) tags = tags.concat(L_.layers.data[l].tags)
     })
-    // Remove duplicates
+    // Remove duplicates, nulls and ""
     tags = tags.filter((c, idx) => {
+        if (c == null || c === '') return false
         return tags.indexOf(c) === idx
     })
 

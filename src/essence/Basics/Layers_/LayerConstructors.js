@@ -38,10 +38,36 @@ export const constructVectorLayer = (
     Map_
 ) => {
     let col = layerObj.style.color
+    if (layerObj.style.colorProp != null && layerObj.style.colorProp !== '')
+        col = `prop:${layerObj.style.colorProp}`
+
     let opa = String(layerObj.style.opacity)
+    if (layerObj.style.opacityProp != null && layerObj.style.opacityProp !== '')
+        opa = `prop:${layerObj.style.opacityProp}`
+
     let wei = String(layerObj.style.weight)
+    if (layerObj.style.weightProp != null && layerObj.style.weightProp !== '')
+        wei = `prop:${layerObj.style.weightProp}`
+
     let fiC = layerObj.style.fillColor
+    if (
+        layerObj.style.fillColorProp != null &&
+        layerObj.style.fillColorProp !== ''
+    )
+        fiC = `prop:${layerObj.style.fillColorProp}`
+
     let fiO = String(layerObj.style.fillOpacity)
+    if (
+        layerObj.style.fillOpacityProp != null &&
+        layerObj.style.fillOpacityProp !== ''
+    )
+        fiO = `prop:${layerObj.style.fillOpacityProp}`
+
+    let rad = String(layerObj.style.radius)
+    if (rad === 'undefined') rad = '8'
+    if (layerObj.style.radiusProp != null && layerObj.style.radiusProp !== '')
+        rad = `prop:${layerObj.style.radiusProp}`
+
     let leafletLayerObject = {
         style: function (feature, preferredStyle) {
             if (preferredStyle) {
@@ -62,6 +88,10 @@ export const constructVectorLayer = (
                     preferredStyle.fillOpacity != null
                         ? String(preferredStyle.fillOpacity)
                         : fiO
+                rad =
+                    preferredStyle.radius != null
+                        ? String(preferredStyle.radius)
+                        : rad
             }
 
             if (feature.properties.hasOwnProperty('style')) {
@@ -111,14 +141,17 @@ export const constructVectorLayer = (
                         ? feature.style.fillopacity
                         : fiO
 
-                // Check for radius property if radius=1 (default/prop:radius)
-                layerObj.style.radius =
-                    layerObj.radius == 1
-                        ? parseFloat(feature.properties['radius'])
-                        : layerObj.radius
+                var finalRad =
+                    rad.toLowerCase().substring(0, 4) === 'prop'
+                        ? feature.properties[rad.substring(5)] || '8'
+                        : feature.style &&
+                          feature.style.radius != null &&
+                          feature.style.radius != 'undefined'
+                        ? feature.style.radius
+                        : rad
+                if (!isNaN(parseInt(finalRad))) finalRad = parseInt(finalRad)
 
-                if (preferredStyle && preferredStyle.radius != null)
-                    layerObj.style.radius = preferredStyle.radius
+                // Check for radius property if radius=1 (default/prop:radius)
 
                 var noPointerEventsClass =
                     feature.style && feature.style.nointeraction
@@ -130,6 +163,7 @@ export const constructVectorLayer = (
                 layerObj.style.weight = finalWei
                 layerObj.style.fillColor = finalFiC
                 layerObj.style.fillOpacity = finalFiO
+                layerObj.style.radius = finalRad || 8
             }
             if (
                 noPointerEventsClass != null &&
@@ -167,7 +201,6 @@ export const constructVectorLayer = (
                     Map_.map
                 )
             }
-
             return layerObj.style
         },
         onEachFeature: (function (layerObjName) {
@@ -212,7 +245,10 @@ export const constructVectorLayer = (
                 layerObj,
                 'variables.markerAttachments.bearing'
             )
-            if (bearingVar) {
+            if (
+                bearingVar &&
+                (bearingVar.enabled === true || bearingVar.enabled == null)
+            ) {
                 const unit = bearingVar.angleUnit || 'deg'
                 const bearingProp = bearingVar.angleProp || false
 
@@ -221,7 +257,7 @@ export const constructVectorLayer = (
                     if (unit === 'rad') {
                         yaw = yaw * (180 / Math.PI)
                     }
-                    layerObj.shape = 'directional_circle'
+                    layerObj.shape = 'directional-circle'
                 }
 
                 const markerXY = Map_.map.latLngToLayerPoint(latlong)
@@ -241,7 +277,21 @@ export const constructVectorLayer = (
                 yaw = -((360 - yaw) % 360)
             }
 
-            switch (layerObj.shape) {
+            // Use style.shapeProp
+            let finalShape = layerObj.shape
+            if (
+                layerObj.style.shapeProp != null &&
+                layerObj.style.shapeProp != ''
+            ) {
+                const candidateShape = F_.getIn(
+                    feature.properties,
+                    layerObj.style.shapeProp,
+                    null
+                )
+                if (candidateShape) finalShape = candidateShape
+            }
+
+            switch (finalShape) {
                 case 'circle':
                     svg = [
                         `<svg style="height=100%;width=100%" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
@@ -249,7 +299,7 @@ export const constructVectorLayer = (
                         `</svg>`,
                     ].join('\n')
                     break
-                case 'directional_circle':
+                case 'directional-circle':
                     svg = [
                         `<div style="height: 100%; width: 100%;transform: rotateZ(${yaw}deg); transform-origin: center;">`,
                         `<svg style="overflow: visible;" viewBox="0 0 24 24" fill="${featureStyle.fillColor}" stroke="${featureStyle.color}" stroke-width="${featureStyle.weight}">`,
@@ -336,7 +386,7 @@ export const constructVectorLayer = (
                     layer = L.circleMarker(
                         latlong,
                         leafletLayerObject.style
-                    ).setRadius(layerObj.radius)
+                    ).setRadius(layerObj.style.radius || layerObj.radius || 8)
                     break
             }
 
@@ -550,7 +600,10 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
     //LABELS
     const labelsVar = F_.getIn(layerObj, 'variables.layerAttachments.labels')
 
-    if (labelsVar) {
+    if (
+        labelsVar &&
+        (labelsVar.enabled === true || labelsVar.enabled == null)
+    ) {
         let theme = ['solid'].includes(labelsVar.theme)
             ? labelsVar.theme
             : 'default'
@@ -785,7 +838,10 @@ const pairings = (geojson, layerObj, leafletLayerObject) => {
         'variables.layerAttachments.pairings'
     )
 
-    if (pairingsVar) {
+    if (
+        pairingsVar &&
+        (pairingsVar.enabled === true || pairingsVar.enabled == null)
+    ) {
         const layers = (pairingsVar.layers || []).map((l) => L_.asLayerUUID(l))
 
         const pairProp = pairingsVar.pairProp
@@ -966,7 +1022,10 @@ const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {
     let clampedUncertaintyOptions
     let leafletLayerObjectUncertaintyEllipse
 
-    if (uncertaintyVar) {
+    if (
+        uncertaintyVar &&
+        (uncertaintyVar.enabled === true || uncertaintyVar.enabled == null)
+    ) {
         let existingOn = null
         let existingOpacity =
             uncertaintyVar.initialOpacity != null
@@ -1133,7 +1192,7 @@ const imageOverlays = (geojson, layerObj, leafletLayerObject) => {
     // IMAGE
     const imageVar = F_.getIn(layerObj, 'variables.markerAttachments.image')
 
-    if (imageVar) {
+    if (imageVar && (imageVar.enabled === true || imageVar.enabled == null)) {
         const imageShow = F_.getIn(
             layerObj,
             'variables.markerAttachments.image.show',
@@ -1303,7 +1362,7 @@ const models = (geojson, layerObj, leafletLayerObject) => {
     // MODEL
     const modelVar = F_.getIn(layerObj, 'variables.markerAttachments.model')
 
-    if (modelVar) {
+    if (modelVar && (modelVar.enabled === true || modelVar.enabled == null)) {
         const modelShow = F_.getIn(modelVar, 'show', 'click')
         const modelPaths = []
         const modelMtlPaths = []
@@ -1477,7 +1536,10 @@ const coordinateMarkers = (geojson, layerObj, leafletLayerObject) => {
         'variables.coordinateAttachments.marker'
     )
 
-    if (coordMarkerVar) {
+    if (
+        coordMarkerVar &&
+        (coordMarkerVar.enabled === true || coordMarkerVar.enabled == null)
+    ) {
         const coordMarkerSettings = {
             initialVisibility: F_.getIn(
                 coordMarkerVar,
@@ -1533,7 +1595,11 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
             layerObj,
             'variables.pathAttachments.gradient'
         )
-        if (pathGradientVar) {
+        if (
+            pathGradientVar &&
+            (pathGradientVar.enabled === true ||
+                pathGradientVar.enabled == null)
+        ) {
             const pathGradientSettings = {
                 initialVisibility: F_.getIn(
                     pathGradientVar,

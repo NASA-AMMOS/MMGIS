@@ -1,0 +1,59 @@
+.Routes {
+  width: 100%;
+  height: 100%;
+  display: flex;
+}
+.Routes .routeContent {
+  height: 100%;
+  display: flex;
+  flex-flow: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+  flex: 1;
+}
+.Routes .routeContentWide {
+  height: 100%;
+  display: flex;
+  flex-flow: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+  flex: 1;
+  position: relative;
+  left: -41px;
+  width: calc(100% + 41px);
+}
+
+.Routes .routeMain {
+  width: calc(100vw);
+  height: 100%;
+  display: flex;
+  flex-flow: column;
+}
+
+.Routes > .nav {
+  position: absolute;
+  bottom: 0px;
+  left: 0px;
+  height: 48px;
+  padding: 10px;
+  width: 100%;
+  overflow: auto;
+  box-sizing: border-box;
+  font-family: "sourcesans_semibold";
+}
+
+.Routes > .nav > ul {
+  list-style-type: none;
+  display: flex;
+  margin: 0px;
+  padding: 0;
+  line-height: 27px;
+}
+.Routes > .nav > ul > li {
+  padding: 0px 10px;
+  margin: 0px 10px 0px 0px;
+}
+.Routes > .nav > ul a {
+  color: var(--dark-grey);
+  text-decoration: none;
+}
