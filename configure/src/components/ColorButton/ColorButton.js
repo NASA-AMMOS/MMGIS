@@ -1,6 +1,8 @@
 import React, { useCallback, useRef, useState } from "react";
 import { ChromePicker } from "react-color";
 
+import Button from "@mui/material/Button";
+
 import useClickOutside from "./useClickOutside";
 
 import { makeStyles } from "@mui/styles";
@@ -35,6 +37,12 @@ const useStyles = makeStyles((theme) => ({
     "& > div": {
       fontFamily: "Roboto !important",
     },
+  },
+  clear: {
+    width: "225px",
+    boxShadow:
+      "rgba(0, 0, 0, 0.3) 0px 0px 2px, rgba(0, 0, 0, 0.3) 0px 4px 8px !important",
+    background: "white !important",
   },
 }));
 
@@ -72,6 +80,16 @@ const ColorButton = ({ label, color, onChange }) => {
               }, 50);
             }}
           />
+          <Button
+            className={c.clear}
+            variant="contained"
+            disableElevation
+            onClick={() => {
+              onChange(null);
+            }}
+          >
+            Clear Selection
+          </Button>
         </div>
       )}
     </div>

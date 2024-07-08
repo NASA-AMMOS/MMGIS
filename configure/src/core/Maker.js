@@ -627,6 +627,8 @@ const getComponent = (
                 colorStr = `rgba(${color.rgb.r}, ${color.rgb.g}, ${color.rgb.b}, ${color.rgb.a})`;
               }
               updateConfiguration(forceField || com.field, colorStr, layer);
+            } else {
+              updateConfiguration(forceField || com.field, null, layer);
             }
           }}
         />
