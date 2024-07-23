@@ -278,7 +278,8 @@ export const constructVectorLayer = (
             }
 
             // Use style.shapeProp
-            let finalShape = layerObj.shape
+            let finalShape = layerObj.style.shapeIcon || layerObj.shape
+
             if (
                 layerObj.style.shapeProp != null &&
                 layerObj.style.shapeProp != ''
@@ -382,12 +383,36 @@ export const constructVectorLayer = (
                     ].join('\n')
                     break
                 case 'none':
-                default:
                     layer = L.circleMarker(
                         latlong,
                         leafletLayerObject.style
                     ).setRadius(layerObj.style.radius || layerObj.radius || 8)
                     break
+                default:
+                    svg = [
+                        `<div style="color: ${
+                            featureStyle.fillColor
+                        }; transform: scale(${
+                            ((layerObj.style.radius || layerObj.radius || 8) *
+                                2) /
+                            24
+                        }); text-shadow:  
+                            1px 1px 0px ${featureStyle.color}, 
+                            -1px -1px 0px ${featureStyle.color}, 
+                            1px -1px 0px ${featureStyle.color}, 
+                            -1px 1px 0px ${featureStyle.color},
+
+                            0px 1px 0px ${featureStyle.color}, 
+                            -1px 0px 0px ${featureStyle.color}, 
+                            0px -1px 0px ${featureStyle.color}, 
+                            1px 0px 0px ${featureStyle.color};
+                            display: block;
+                            text-align: center;"
+                            ><i class='mdi mdi-${finalShape.replace(
+                                /[^a-zA-Z-]/g,
+                                ''
+                            )} mdi-24px'></i></div>`,
+                    ]
             }
 
             if (markerIcon) {
