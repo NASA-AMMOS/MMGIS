@@ -1938,13 +1938,19 @@ const L_ = {
             console.warn('Failed to set Last Active Feature.')
         }
     },
-    selectFeature(layerName, feature) {
+    // relation and field are optional
+    // relation is null, -1, or 1
+    // if relation is 1 it'll select the next feature, -1 the previous
+    // if field is null, relation is relative to initial geojson order
+    // otherwise sort by field first
+    selectFeature(layerName, feature, relation, field) {
         layerName = L_.asLayerUUID(layerName)
-
         const layer = L_.layers.layer[layerName]
         if (layer) {
             const layers = layer._layers
-            for (let l in layers) {
+            const layerKeys = Object.keys(layers)
+            for (let i = 0; i < layerKeys.length; i++) {
+                const l = layerKeys[i]
                 if (
                     F_.isEqual(
                         layers[l].feature.geometry,
@@ -1957,7 +1963,10 @@ const L_ = {
                         true
                     )
                 ) {
-                    layers[l].fireEvent('click')
+                    if (layers[layerKeys[i + (relation || 0)]] != null)
+                        layers[layerKeys[i + (relation || 0)]].fireEvent(
+                            'click'
+                        )
                     return
                 }
             }

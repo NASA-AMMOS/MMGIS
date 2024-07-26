@@ -7,6 +7,8 @@ import calls from '../../pre/calls'
 
 import tippy from 'tippy.js'
 
+import './Description.css'
+
 const Description = {
     inited: false,
     waitingOnUpdate: false,
@@ -14,12 +16,15 @@ const Description = {
     descMission: null,
     descPoint: null,
     tippyDesc: null,
+    tippyMenu: null,
+    tippyPrevious: null,
+    tippyNext: null,
     L_: null,
     _infoAlreadyGone: false,
     init: function (mission, site, Map_, L_) {
         this.L_ = L_
         this.Map_ = Map_
-        this.descCont = d3.select('.mainDescription')
+        this.descCont = d3.select('.mainDescription').attr('title', '')
         this.descInfoCont = d3.select('.mainInfo')
         /*
             this.descMission = descCont
@@ -35,7 +40,109 @@ const Description = {
                 .style('cursor', 'pointer')
                 .html(mission)
             var missionWidth = $('#mainDescMission').width() + 3
-            */
+        */
+
+        // prettier-ignore
+        const navMarkup = [
+            `<div id="mainDescNavBar">`,
+                `<div id="mainDescNavBarMenu" title="">`,
+                    `<i class='mdi mdi-dots-vertical mdi-18px'></i>`,
+                `</div>`,
+                `<div id="mainDescNavBarPrevious" title="">`,
+                    `<i class='mdi mdi-chevron-left mdi-24px'></i>`,
+                `</div>`,
+                `<div id="mainDescNavBarNext" title="">`,
+                    `<i class='mdi mdi-chevron-right mdi-24px'></i>`,
+                `</div>`,
+            `</div>`
+        ].join('\n')
+
+        // prettier-ignore
+        const navPopoverMarkup = [
+            `<div id="mainDescNavPopover">`,
+                `<div id="mainDescNavPopoverTitle">Feature Navigation</div>`,
+                `<div id="mainDescNavPopoverField">`,
+                    `<div id="mainDescNavPopoverFieldField" class="ui dropdown short"></div>`,
+                `</div>`,
+                `<div id="mainDescNavPopoverExtent">`,
+                    `<div>Current Extent</div>`,
+                    `<div class="mmgis-checkbox"><input type="checkbox" ${false ? 'checked ' : ''}id="checkbox_dp1" value='topbar'/><label for="checkbox_dp1"></label></div>`,
+                `</div>`,
+                `<div id="mainDescNavPopoverPanTo">`,
+                    `<div>Pan To</div>`,
+                    `<div class="mmgis-checkbox"><input type="checkbox" ${false ? 'checked ' : ''}id="checkbox_dp2" value='topbar'/><label for="checkbox_dp2"></label></div>`,
+                `</div>`,
+                `<div id="mainDescNavPopoverBottom">`,
+                    `<div id="mainDescNavPopoverBottomFirst">`,
+                        `<i class='mdi mdi-page-first mdi-24px'></i>`,
+                    `</div>`,
+                    `<div id="mainDescNavPopoverBottomPrevious">`,
+                        `<i class='mdi mdi-chevron-left mdi-24px'></i>`,
+                    `</div>`,
+                    `<div id="mainDescNavPopoverBottomNext">`,
+                        `<i class='mdi mdi-chevron-right mdi-24px'></i>`,
+                    `</div>`,
+                    `<div id="mainDescNavPopoverBottomLast">`,
+                        `<i class='mdi mdi-page-last mdi-24px'></i>`,
+                    `</div>`,
+                `</div>`,
+            `</div>`,
+        ].join('\n')
+        this.descNav = this.descCont
+            .append('div')
+            .attr('id', 'mainDescNav')
+            .html(navMarkup)
+
+        d3.select('body')
+            .append('div')
+            .attr('id', 'mainDescNavPopover_global')
+            .html(navPopoverMarkup)
+
+        $('#mainDescNavPopoverFieldField').html(
+            Dropy.construct(['0', '1'], 'Field')
+        )
+        Dropy.init($('#mainDescNavPopoverFieldField'), function (idx, a, b) {
+            console.log(idx, a, b)
+        })
+
+        $(`#mainDescNavBarMenu`).on('click', () => {
+            const pop = $(`#mainDescNavPopover`)
+            const willOpen = pop.css('display') === 'none'
+            pop.css({
+                display: willOpen ? 'block' : 'none',
+            })
+            $(`#mainDescNavBarMenu`).css({
+                background: willOpen ? 'var(--color-c)' : 'var(--color-a)',
+            })
+            if (willOpen) {
+                const bcr = $(`#mainDescNavBarMenu`)
+                    .get(0)
+                    .getBoundingClientRect()
+                pop.css({
+                    position: 'fixed',
+                    left: bcr.left,
+                    right: bcr.right,
+                    top: bcr.top + 30,
+                })
+            }
+        })
+
+        $(`#mainDescNavBarPrevious`).on('click', () => {
+            if (L_.activeFeature)
+                L_.selectFeature(
+                    L_.activeFeature.layerName,
+                    L_.activeFeature.feature,
+                    -1
+                )
+        })
+        $(`#mainDescNavBarNext`).on('click', () => {
+            if (L_.activeFeature)
+                L_.selectFeature(
+                    L_.activeFeature.layerName,
+                    L_.activeFeature.feature,
+                    1
+                )
+        })
 
         this.descPoint = this.descCont.append('p').attr('id', 'mainDescPoint')
 
@@ -336,6 +443,25 @@ const Description = {
                 Description.tippyDesc = tippy('#mainDescPointInner', {
                     content: activeLayer.feature.properties[key],
                     placement: 'bottom',
+                    theme: 'blue',
+                })
+
+            if (Description.tippyMenu == null)
+                Description.tippyMenu = tippy('#mainDescNavBarMenu', {
+                    content: 'Feature Navigation',
+                    placement: 'bottom',
+                    theme: 'blue',
+                })
+            if (Description.tippyPrevious == null)
+                Description.tippyPrevious = tippy('#mainDescNavBarPrevious', {
+                    content: 'Previous Feature',
+                    placement: 'left',
+                    theme: 'blue',
+                })
+            if (Description.tippyNext == null)
+                Description.tippyNext = tippy('#mainDescNavBarNext', {
+                    content: 'Next Feature',
+                    placement: 'right',
                     theme: 'blue',
                 })
         }
