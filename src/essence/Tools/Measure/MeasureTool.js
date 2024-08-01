@@ -673,6 +673,7 @@ let MeasureTool = {
         MeasureTool.data = []
         MeasureTool.lastData = []
         MeasureTool.datasetMapping = []
+        MeasureTool.uniformData = []
         distDisplayUnit = 'meters'
         steps = 100
 
