@@ -3,11 +3,14 @@ import $ from 'jquery'
 import * as d3 from 'd3'
 import F_ from '../Basics/Formulae_/Formulae_'
 import Dropy from '../../external/Dropy/dropy'
+import flat from 'flat'
 import calls from '../../pre/calls'
 
 import tippy from 'tippy.js'
 
 import './Description.css'
+
+const NAV_DEFAULT_FIELD = 'None/Index'
 
 const Description = {
     inited: false,
@@ -20,6 +23,7 @@ const Description = {
     tippyPrevious: null,
     tippyNext: null,
     L_: null,
+    navPopoverField: NAV_DEFAULT_FIELD,
     _infoAlreadyGone: false,
     init: function (mission, site, Map_, L_) {
         this.L_ = L_
@@ -64,6 +68,10 @@ const Description = {
                 `<div id="mainDescNavPopoverField">`,
                     `<div id="mainDescNavPopoverFieldField" class="ui dropdown short"></div>`,
                 `</div>`,
+                `<div id="mainDescNavPopoverFieldInfo">`,
+                    `<div id="mainDescNavPopoverFieldKey">Value</div>`,
+                    `<div id="mainDescNavPopoverFieldValue"></div>`,
+                `</div>`,
                 `<div id="mainDescNavPopoverExtent">`,
                     `<div>Current Extent</div>`,
                     `<div class="mmgis-checkbox"><input type="checkbox" ${false ? 'checked ' : ''}id="checkbox_dp1" value='topbar'/><label for="checkbox_dp1"></label></div>`,
@@ -98,13 +106,6 @@ const Description = {
             .attr('id', 'mainDescNavPopover_global')
             .html(navPopoverMarkup)
 
-        $('#mainDescNavPopoverFieldField').html(
-            Dropy.construct(['0', '1'], 'Field')
-        )
-        Dropy.init($('#mainDescNavPopoverFieldField'), function (idx, a, b) {
-            console.log(idx, a, b)
-        })
-
         $(`#mainDescNavBarMenu`).on('click', () => {
             const pop = $(`#mainDescNavPopover`)
             const willOpen = pop.css('display') === 'none'
@@ -124,24 +125,73 @@ const Description = {
                     right: bcr.right,
                     top: bcr.top + 30,
                 })
+
+                // Populate Fields dropdown
+                const geojson = L_.layers.layer[
+                    L_.activeFeature.layerName
+                ].toGeoJSON(L_.GEOJSON_PRECISION)
+                const properties = [NAV_DEFAULT_FIELD]
+                geojson.features.forEach((feature, idx) => {
+                    const flatProps = flat.flatten(feature.properties)
+
+                    for (let p in flatProps) {
+                        if (
+                            properties.indexOf(p) === -1 &&
+                            p.indexOf('images') !== 0
+                        )
+                            properties.push(p)
+                    }
+                })
+
+                $('#mainDescNavPopoverFieldField').html(
+                    Dropy.construct(properties.sort(), 'Field')
+                )
+                Dropy.init(
+                    $('#mainDescNavPopoverFieldField'),
+                    function (idx, val) {
+                        Description.navPopoverField = val
+                        $('#mainDescNavPopoverFieldValue').text(
+                            F_.getIn(
+                                L_.activeFeature.feature.properties,
+                                Description.navPopoverField
+                            )
+                        )
+                    }
+                )
             }
         })
 
         $(`#mainDescNavBarPrevious`).on('click', () => {
-            if (L_.activeFeature)
+            if (L_.activeFeature) {
                 L_.selectFeature(
                     L_.activeFeature.layerName,
                     L_.activeFeature.feature,
-                    -1
+                    Description.navPopoverField === NAV_DEFAULT_FIELD
+                        ? -1
+                        : Description.getFeatureDistance(
+                              L_.activeFeature,
+                              Description.navPopoverField,
+                              'previous'
+                          )
                 )
+                Description.onNextPrev()
+            }
         })
         $(`#mainDescNavBarNext`).on('click', () => {
-            if (L_.activeFeature)
+            if (L_.activeFeature) {
                 L_.selectFeature(
                     L_.activeFeature.layerName,
                     L_.activeFeature.feature,
-                    1
+                    Description.navPopoverField === NAV_DEFAULT_FIELD
+                        ? 1
+                        : Description.getFeatureDistance(
+                              L_.activeFeature,
+                              Description.navPopoverField,
+                              'next'
+                          )
                 )
+                Description.onNextPrev()
+            }
         })
 
         this.descPoint = this.descCont.append('p').attr('id', 'mainDescPoint')
@@ -184,6 +234,70 @@ const Description = {
             $('#mainDescPointLinks > dl.dropy').removeClass('open')
             $(`#mainDescPointLinks_global`).empty()
         })
+    },
+    onNextPrev() {
+        $('#mainDescNavPopoverFieldValue').text(
+            F_.getIn(
+                Description.L_.activeFeature.feature.properties,
+                Description.navPopoverField
+            )
+        )
+    },
+    getFeatureDistance(active, field, direction) {
+        if (active) {
+            const layerName = Description.L_.asLayerUUID(active.layerName)
+            const layer = Description.L_.layers.layer[layerName]
+            if (layer) {
+                const geojson = Description.L_.layers.layer[
+                    layerName
+                ].toGeoJSON(Description.L_.GEOJSON_PRECISION)
+
+                let features = geojson.features
+
+                let currentIdx = null
+                for (let i = 0; i < features.length; i++) {
+                    if (
+                        F_.isEqual(
+                            active.feature.geometry,
+                            features[i].geometry,
+                            true
+                        ) &&
+                        F_.isEqual(
+                            active.feature.properties,
+                            features[i].properties,
+                            true
+                        )
+                    ) {
+                        currentIdx = i
+                    }
+                    features[i].properties.__i__ = i
+                }
+                console.log('her', currentIdx, active)
+                if (currentIdx == null) return 0
+
+                if (field != null && field != NAV_DEFAULT_FIELD) {
+                    features = features.sort((a, b) => {
+                        let sign = 1
+                        if (direction === 'previous') sign = -1
+                        const af = F_.getIn(a, field, 0)
+                        const bf = F_.getIn(b, field, 1)
+                        if (typeof af === 'string' || typeof bf === 'string') {
+                            return af.localeCompare(bf) * sign
+                        } else return (af - bf) * sign
+                    })
+                }
+
+                for (let i = 0; i < features.length; i++) {
+                    if (features[i].properties.__i__ === currentIdx) {
+                        return (
+                            features[i].properties.__i__ -
+                            features[i + 1].properties.__i__
+                        )
+                    }
+                }
+            }
+            return 0
+        }
     },
     updateInfo(force, forceFeature, skipRequery) {
         if (force !== true) {

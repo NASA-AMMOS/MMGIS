@@ -14,7 +14,7 @@
     transition: background 0.2s ease-in-out;
 }
 #mainDescNavBarMenu:hover {
-    background: rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.1);
 }
 #mainDescNavBarPrevious {
     width: 30px;
@@ -26,7 +26,7 @@
     transition: background 0.2s ease-in-out;
 }
 #mainDescNavBarPrevious:hover {
-    background: rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.1);
 }
 #mainDescNavBarNext {
     width: 30px;
@@ -37,13 +37,13 @@
     transition: background 0.2s ease-in-out;
 }
 #mainDescNavBarNext:hover {
-    background: rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.1);
 }
 
 #mainDescNavPopover {
     display: none;
     background: var(--color-a);
-    box-shadow: 0px 2px 4px 0px rgba(0,0,0,0.4);
+    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.4);
     width: 200px;
     border-top: 1px solid var(--color-a1);
 }
@@ -65,6 +65,19 @@
 }
 #mainDescNavPopoverFieldField {
     width: 100%;
+}
+#mainDescNavPopoverFieldInfo {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 6px 2px 32px;
+    font-size: 12px;
+}
+#mainDescNavPopoverFieldInfo > div:first-child {
+    color: var(--color-a5);
+}
+#mainDescNavPopoverFieldInfo > div:last-child {
+    color: var(--color-c);
+    font-weight: bold;
 }
 #mainDescNavPopoverExtent {
     display: flex;
@@ -101,13 +114,12 @@
     background: var(--color-a1);
 }
 
-
 #mainDescNavPopoverFieldField .dropy__title {
     height: 30px;
     border: none;
     background: var(--color-a1);
     line-height: 14px;
-    font-size: 14px;;
+    font-size: 14px;
 }
 #mainDescNavPopoverFieldField .dropy__title > i {
     line-height: 15px;
