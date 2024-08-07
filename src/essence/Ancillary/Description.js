@@ -4,6 +4,7 @@ import * as d3 from 'd3'
 import F_ from '../Basics/Formulae_/Formulae_'
 import Dropy from '../../external/Dropy/dropy'
 import flat from 'flat'
+import { booleanIntersects } from '@turf/turf'
 import calls from '../../pre/calls'
 
 import tippy from 'tippy.js'
@@ -106,6 +107,8 @@ const Description = {
             .attr('id', 'mainDescNavPopover_global')
             .html(navPopoverMarkup)
 
+        document.addEventListener('toolChange', Description.alignNavPopover)
+
         $(`#mainDescNavBarMenu`).on('click', () => {
             const pop = $(`#mainDescNavPopover`)
             const willOpen = pop.css('display') === 'none'
@@ -116,15 +119,7 @@ const Description = {
                 background: willOpen ? 'var(--color-c)' : 'var(--color-a)',
             })
             if (willOpen) {
-                const bcr = $(`#mainDescNavBarMenu`)
-                    .get(0)
-                    .getBoundingClientRect()
-                pop.css({
-                    position: 'fixed',
-                    left: bcr.left,
-                    right: bcr.right,
-                    top: bcr.top + 30,
-                })
+                Description.alignNavPopover()
 
                 // Populate Fields dropdown
                 const geojson = L_.layers.layer[
@@ -161,38 +156,44 @@ const Description = {
             }
         })
 
-        $(`#mainDescNavBarPrevious`).on('click', () => {
-            if (L_.activeFeature) {
-                L_.selectFeature(
-                    L_.activeFeature.layerName,
-                    L_.activeFeature.feature,
-                    Description.navPopoverField === NAV_DEFAULT_FIELD
-                        ? -1
-                        : Description.getFeatureDistance(
-                              L_.activeFeature,
-                              Description.navPopoverField,
-                              'previous'
-                          )
-                )
-                Description.onNextPrev()
+        $(`#mainDescNavBarPrevious, #mainDescNavPopoverBottomPrevious`).on(
+            'click',
+            () => {
+                if (L_.activeFeature) {
+                    L_.selectFeature(
+                        L_.activeFeature.layerName,
+                        L_.activeFeature.feature,
+                        Description.navPopoverField === NAV_DEFAULT_FIELD
+                            ? -1
+                            : Description.getFeatureDistance(
+                                  L_.activeFeature,
+                                  Description.navPopoverField,
+                                  'previous'
+                              )
+                    )
+                    Description.onNextPrev()
+                }
             }
-        })
-        $(`#mainDescNavBarNext`).on('click', () => {
-            if (L_.activeFeature) {
-                L_.selectFeature(
-                    L_.activeFeature.layerName,
-                    L_.activeFeature.feature,
-                    Description.navPopoverField === NAV_DEFAULT_FIELD
-                        ? 1
-                        : Description.getFeatureDistance(
-                              L_.activeFeature,
-                              Description.navPopoverField,
-                              'next'
-                          )
-                )
-                Description.onNextPrev()
+        )
+        $(`#mainDescNavBarNext, #mainDescNavPopoverBottomNext`).on(
+            'click',
+            () => {
+                if (L_.activeFeature) {
+                    L_.selectFeature(
+                        L_.activeFeature.layerName,
+                        L_.activeFeature.feature,
+                        Description.navPopoverField === NAV_DEFAULT_FIELD
+                            ? 1
+                            : Description.getFeatureDistance(
+                                  L_.activeFeature,
+                                  Description.navPopoverField,
+                                  'next'
+                              )
+                    )
+                    Description.onNextPrev()
+                }
             }
-        })
+        )
 
         this.descPoint = this.descCont.append('p').attr('id', 'mainDescPoint')
 
@@ -221,10 +222,7 @@ const Description = {
             .style('overflow', 'hidden')
 
         Description.descPointInner.on('click', function () {
-            if (typeof Map_.activeLayer.getBounds === 'function')
-                Map_.map.fitBounds(Map_.activeLayer.getBounds())
-            else if (Map_.activeLayer._latlng)
-                Map_.map.panTo(Map_.activeLayer._latlng)
+            Description.panToActive()
         })
 
         this.inited = true
@@ -235,6 +233,14 @@ const Description = {
             $(`#mainDescPointLinks_global`).empty()
         })
     },
+    panToActive() {
+        if (typeof Description.Map_.activeLayer.getBounds === 'function')
+            Description.Map_.map.fitBounds(
+                Description.Map_.activeLayer.getBounds()
+            )
+        else if (Description.Map_.activeLayer._latlng)
+            Description.Map_.map.panTo(Description.Map_.activeLayer._latlng)
+    },
     onNextPrev() {
         $('#mainDescNavPopoverFieldValue').text(
             F_.getIn(
@@ -242,6 +248,25 @@ const Description = {
                 Description.navPopoverField
             )
         )
+
+        if ($('#mainDescNavPopoverPanTo input').is(':checked')) {
+            Description.panToActive()
+        }
+    },
+    alignNavPopover(e) {
+        if (e == null) {
+            const bcr = $(`#mainDescNavBarMenu`).get(0).getBoundingClientRect()
+            $(`#mainDescNavPopover`).css({
+                position: 'fixed',
+                left: bcr.left,
+                right: bcr.right,
+                top: bcr.top + 30,
+            })
+        } else {
+            setTimeout(() => {
+                Description.alignNavPopover()
+            }, 200)
+        }
     },
     getFeatureDistance(active, field, direction) {
         if (active) {
@@ -272,26 +297,49 @@ const Description = {
                     }
                     features[i].properties.__i__ = i
                 }
-                console.log('her', currentIdx, active)
                 if (currentIdx == null) return 0
 
+                // Limit to current map extent if checkbox is true
+                if ($('#mainDescNavPopoverExtent input').is(':checked')) {
+                    const b = Description.Map_.map.getBounds()
+                    const bounds = {
+                        type: 'Feature',
+                        properties: {},
+                        geometry: {
+                            type: 'Polygon',
+                            coordinates: [
+                                [
+                                    [b._northEast.lng, b._northEast.lat],
+                                    [b._southWest.lng, b._northEast.lat],
+                                    [b._southWest.lng, b._southWest.lat],
+                                    [b._northEast.lng, b._southWest.lat],
+                                    [b._northEast.lng, b._northEast.lat],
+                                ],
+                            ],
+                        },
+                    }
+                    features = features.filter((f) => {
+                        return booleanIntersects(bounds, f)
+                    })
+                }
+
                 if (field != null && field != NAV_DEFAULT_FIELD) {
-                    features = features.sort((a, b) => {
+                    features.sort((a, b) => {
                         let sign = 1
                         if (direction === 'previous') sign = -1
-                        const af = F_.getIn(a, field, 0)
-                        const bf = F_.getIn(b, field, 1)
+                        const af = F_.getIn(a, `properties.${field}`, 0)
+                        const bf = F_.getIn(b, `properties.${field}`, 1)
                         if (typeof af === 'string' || typeof bf === 'string') {
                             return af.localeCompare(bf) * sign
                         } else return (af - bf) * sign
                     })
                 }
 
-                for (let i = 0; i < features.length; i++) {
+                for (let i = 0; i < features.length - 1; i++) {
                     if (features[i].properties.__i__ === currentIdx) {
                         return (
-                            features[i].properties.__i__ -
-                            features[i + 1].properties.__i__
+                            features[i + 1].properties.__i__ -
+                            features[i].properties.__i__
                         )
                     }
                 }
@@ -587,6 +635,14 @@ const Description = {
 
         // Reset the style
         this.descCont.attr('style', null)
+
+        // Close Nav Popover
+        $(`#mainDescNavBarMenu`).css({
+            background: 'var(--color-a)',
+        })
+        $(`#mainDescNavPopover`).css({
+            display: 'none',
+        })
     },
 }
 
