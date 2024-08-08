@@ -74,12 +74,16 @@ const Description = {
                     `<div id="mainDescNavPopoverFieldValue"></div>`,
                 `</div>`,
                 `<div id="mainDescNavPopoverExtent">`,
-                    `<div>Current Extent</div>`,
-                    `<div class="mmgis-checkbox"><input type="checkbox" ${false ? 'checked ' : ''}id="checkbox_dp1" value='topbar'/><label for="checkbox_dp1"></label></div>`,
+                    `<div>Restrict to Map Extent</div>`,
+                    `<div class="mmgis-checkbox"><input type="checkbox" ${false ? 'checked ' : ''}id="checkbox_dp1"/><label for="checkbox_dp1"></label></div>`,
+                `</div>`,
+                `<div id="mainDescNavPopoverTimeExtent">`,
+                    `<div>Restrict to Time Range</div>`,
+                    `<div class="mmgis-checkbox"><input type="checkbox" ${false ? 'checked ' : ''}id="checkbox_dp15"/><label for="checkbox_dp15"></label></div>`,
                 `</div>`,
                 `<div id="mainDescNavPopoverPanTo">`,
-                    `<div>Pan To</div>`,
-                    `<div class="mmgis-checkbox"><input type="checkbox" ${false ? 'checked ' : ''}id="checkbox_dp2" value='topbar'/><label for="checkbox_dp2"></label></div>`,
+                    `<div>Pan To Feature</div>`,
+                    `<div class="mmgis-checkbox"><input type="checkbox" ${false ? 'checked ' : ''}id="checkbox_dp2"/><label for="checkbox_dp2"></label></div>`,
                 `</div>`,
                 `<div id="mainDescNavPopoverBottom">`,
                     `<div id="mainDescNavPopoverBottomFirst">`,
@@ -139,7 +143,14 @@ const Description = {
                 })
 
                 $('#mainDescNavPopoverFieldField').html(
-                    Dropy.construct(properties.sort(), 'Field')
+                    Dropy.construct(
+                        properties.sort(),
+                        Description.navPopoverField &&
+                            properties.indexOf(Description.navPopoverField) !=
+                                -1
+                            ? Description.navPopoverField
+                            : 'Field'
+                    )
                 )
                 Dropy.init(
                     $('#mainDescNavPopoverFieldField'),
@@ -156,44 +167,54 @@ const Description = {
             }
         })
 
+        $(`#mainDescNavPopoverBottomFirst`).on('click', () => {
+            if (L_.activeFeature) {
+                L_.selectFeature(
+                    L_.activeFeature.layerName,
+                    L_.activeFeature.feature,
+                    Description.getFeatureDistance(
+                        L_.activeFeature,
+                        Description.navPopoverField,
+                        'first'
+                    )
+                )
+                Description.onNextPrev()
+            }
+        })
         $(`#mainDescNavBarPrevious, #mainDescNavPopoverBottomPrevious`).on(
             'click',
             () => {
-                if (L_.activeFeature) {
-                    L_.selectFeature(
-                        L_.activeFeature.layerName,
-                        L_.activeFeature.feature,
-                        Description.navPopoverField === NAV_DEFAULT_FIELD
-                            ? -1
-                            : Description.getFeatureDistance(
-                                  L_.activeFeature,
-                                  Description.navPopoverField,
-                                  'previous'
-                              )
-                    )
-                    Description.onNextPrev()
-                }
+                Description.navPrevious()
             }
         )
         $(`#mainDescNavBarNext, #mainDescNavPopoverBottomNext`).on(
             'click',
             () => {
-                if (L_.activeFeature) {
-                    L_.selectFeature(
-                        L_.activeFeature.layerName,
-                        L_.activeFeature.feature,
-                        Description.navPopoverField === NAV_DEFAULT_FIELD
-                            ? 1
-                            : Description.getFeatureDistance(
-                                  L_.activeFeature,
-                                  Description.navPopoverField,
-                                  'next'
-                              )
-                    )
-                    Description.onNextPrev()
-                }
+                Description.navNext()
             }
         )
+        $(`#mainDescNavPopoverBottomLast`).on('click', () => {
+            if (L_.activeFeature) {
+                L_.selectFeature(
+                    L_.activeFeature.layerName,
+                    L_.activeFeature.feature,
+                    Description.getFeatureDistance(
+                        L_.activeFeature,
+                        Description.navPopoverField,
+                        'last'
+                    )
+                )
+                Description.onNextPrev()
+            }
+        })
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'ArrowLeft') {
+                Description.navPrevious()
+            } else if (event.key === 'ArrowRight') {
+                Description.navNext()
+            }
+        })
 
         this.descPoint = this.descCont.append('p').attr('id', 'mainDescPoint')
 
@@ -240,6 +261,38 @@ const Description = {
             )
         else if (Description.Map_.activeLayer._latlng)
             Description.Map_.map.panTo(Description.Map_.activeLayer._latlng)
+    },
+    navPrevious() {
+        if (Description.L_.activeFeature) {
+            Description.L_.selectFeature(
+                Description.L_.activeFeature.layerName,
+                Description.L_.activeFeature.feature,
+                Description.navPopoverField === NAV_DEFAULT_FIELD
+                    ? -1
+                    : Description.getFeatureDistance(
+                          Description.L_.activeFeature,
+                          Description.navPopoverField,
+                          'previous'
+                      )
+            )
+            Description.onNextPrev()
+        }
+    },
+    navNext() {
+        if (Description.L_.activeFeature) {
+            Description.L_.selectFeature(
+                Description.L_.activeFeature.layerName,
+                Description.L_.activeFeature.feature,
+                Description.navPopoverField === NAV_DEFAULT_FIELD
+                    ? 1
+                    : Description.getFeatureDistance(
+                          Description.L_.activeFeature,
+                          Description.navPopoverField,
+                          'next'
+                      )
+            )
+            Description.onNextPrev()
+        }
     },
     onNextPrev() {
         $('#mainDescNavPopoverFieldValue').text(
@@ -299,6 +352,8 @@ const Description = {
                 }
                 if (currentIdx == null) return 0
 
+                let minIndex = Infinity
+                let maxIndex = -Infinity
                 // Limit to current map extent if checkbox is true
                 if ($('#mainDescNavPopoverExtent input').is(':checked')) {
                     const b = Description.Map_.map.getBounds()
@@ -319,14 +374,22 @@ const Description = {
                         },
                     }
                     features = features.filter((f) => {
-                        return booleanIntersects(bounds, f)
+                        const keep = booleanIntersects(bounds, f)
+                        if (keep) {
+                            let i = f.properties.__i__
+                            if (i < minIndex) minIndex = i
+                            if (i > maxIndex) maxIndex = i
+                        }
+
+                        return keep
                     })
                 }
 
                 if (field != null && field != NAV_DEFAULT_FIELD) {
                     features.sort((a, b) => {
                         let sign = 1
-                        if (direction === 'previous') sign = -1
+                        if (direction === 'previous' || direction === 'first')
+                            sign = -1
                         const af = F_.getIn(a, `properties.${field}`, 0)
                         const bf = F_.getIn(b, `properties.${field}`, 1)
                         if (typeof af === 'string' || typeof bf === 'string') {
@@ -335,12 +398,18 @@ const Description = {
                     })
                 }
 
-                for (let i = 0; i < features.length - 1; i++) {
-                    if (features[i].properties.__i__ === currentIdx) {
-                        return (
-                            features[i + 1].properties.__i__ -
-                            features[i].properties.__i__
-                        )
+                if (direction === 'first') {
+                    return minIndex - currentIdx
+                } else if (direction === 'last') {
+                    return maxIndex - currentIdx
+                } else {
+                    for (let i = 0; i < features.length - 1; i++) {
+                        if (features[i].properties.__i__ === currentIdx) {
+                            return (
+                                features[i + 1].properties.__i__ -
+                                features[i].properties.__i__
+                            )
+                        }
                     }
                 }
             }
@@ -617,13 +686,13 @@ const Description = {
             if (Description.tippyPrevious == null)
                 Description.tippyPrevious = tippy('#mainDescNavBarPrevious', {
                     content: 'Previous Feature',
-                    placement: 'left',
+                    placement: 'bottom',
                     theme: 'blue',
                 })
             if (Description.tippyNext == null)
                 Description.tippyNext = tippy('#mainDescNavBarNext', {
                     content: 'Next Feature',
-                    placement: 'right',
+                    placement: 'bottom',
                     theme: 'blue',
                 })
         }

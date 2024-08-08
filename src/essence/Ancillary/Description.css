@@ -70,8 +70,9 @@
 #mainDescNavPopoverFieldInfo {
     display: flex;
     justify-content: space-between;
-    padding: 4px 6px 2px 32px;
+    padding: 8px 6px 6px 32px;
     font-size: 12px;
+    border-bottom: 1px solid var(--color-a1);
 }
 #mainDescNavPopoverFieldInfo > div:first-child {
     color: var(--color-a5);
@@ -80,15 +81,8 @@
     color: var(--color-c);
     font-weight: bold;
 }
-#mainDescNavPopoverExtent {
-    display: flex;
-    justify-content: space-between;
-    height: 30px;
-    line-height: 30px;
-    font-size: 14px;
-    padding-left: 8px;
-    border-bottom: 1px solid var(--color-a1);
-}
+#mainDescNavPopoverExtent,
+#mainDescNavPopoverTimeExtent,
 #mainDescNavPopoverPanTo {
     display: flex;
     justify-content: space-between;
