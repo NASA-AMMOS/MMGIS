@@ -53,7 +53,7 @@ function get(reqtype, req, res, next) {
       if (result) {
         let table = result.dataValues.table;
         if (type == "geojson") {
-          let q = `SELECT properties, ST_AsGeoJSON(geom) FROM ${table}`;
+          let q = `SELECT properties, ST_AsGeoJSON(geom), id FROM ${table}`;
 
           if (req.query?.limited) {
             q += ` ORDER BY id DESC LIMIT 3`;
@@ -124,6 +124,8 @@ function get(reqtype, req, res, next) {
               let geojson = { type: "FeatureCollection", features: [] };
               for (let i = 0; i < results.length; i++) {
                 let properties = results[i].properties;
+                properties._ = properties._ || {};
+                properties._.idx = results[i].id;
                 let feature = {};
                 feature.type = "Feature";
                 feature.properties = properties;
@@ -365,6 +367,9 @@ router.post("/entries", function (req, res, next) {
  * req.body.layer
  * req.body.key
  * req.body.value
+ * req.body.id (specific feature id instead of key:value)
+ * req.body.orderBy
+ * req.body.offset (i.e. if -1, then return feature previous to key:val)
  */
 router.post("/search", function (req, res, next) {
   //First Find the table name
@@ -373,32 +378,87 @@ router.post("/search", function (req, res, next) {
       if (result) {
         let table = result.dataValues.table;
 
+        let offset = req.body.offset;
+        let featureId = req.body.id;
+
+        if (offset != null && featureId == null) {
+          res.send({
+            status: "failure",
+            message: "If 'offset' is set, 'id' must also be set.",
+          });
+          return;
+        }
+        offset = parseInt(offset);
+        featureId = parseInt(featureId);
+
+        let orderBy = "id";
+        if (req.body.orderBy != null)
+          orderBy = `properties->>'${req.body.orderBy}'`;
+
+        let minx = req.body?.minx;
+        let miny = req.body?.miny;
+        let maxx = req.body?.maxx;
+        let maxy = req.body?.maxy;
+        let where = "";
+        if (minx != null && miny != null && maxx != null && maxy != null) {
+          // ST_MakeEnvelope is (xmin, ymin, xmax, ymax, srid)
+          where = ` WHERE ST_Intersects(ST_MakeEnvelope(${parseFloat(
+            minx
+          )}, ${parseFloat(miny)}, ${parseFloat(maxx)}, ${parseFloat(
+            maxy
+          )}, 4326), geom)`;
+        }
+
+        let q =
+          "SELECT properties, ST_AsGeoJSON(geom), id FROM " +
+          table +
+          (req.body.last || offset != null
+            ? `${where} ORDER BY id ${offset != null ? "ASC" : "DESC LIMIT 1"}`
+            : " WHERE properties ->> :key = :value");
+
         sequelize
-          .query(
-            "SELECT properties, ST_AsGeoJSON(geom) FROM " +
-              table +
-              (req.body.last
-                ? " ORDER BY id DESC LIMIT 1;"
-                : " WHERE properties ->> :key = :value;"),
-            {
-              replacements: {
-                key: req.body.key,
-                value:
-                  typeof req.body.value === "string"
-                    ? req.body.value.replace(/[`;'"]/gi, "")
-                    : null,
-              },
-            }
-          )
+          .query(q + ";", {
+            replacements: {
+              key: req.body.key,
+              value:
+                typeof req.body.value === "string"
+                  ? req.body.value.replace(/[`;'"]/gi, "")
+                  : null,
+            },
+          })
           .then(([results]) => {
             let r = [];
             for (let i = 0; i < results.length; i++) {
               let properties = results[i].properties;
+              properties._ = properties._ || {};
+              properties._.idx = results[i].id;
               let feature = {};
               feature.type = "Feature";
               feature.properties = properties;
               feature.geometry = JSON.parse(results[i].st_asgeojson);
               r.push(feature);
+            }
+
+            if (offset != null) {
+              if (orderBy != "id") {
+                r.sort((a, b) => {
+                  let sign = 1;
+                  if (offset > 0) sign = -1;
+                  const af = Utils.getIn(a, `properties.${orderBy}`, 0);
+                  const bf = Utils.getIn(b, `properties.${orderBy}`, 1);
+                  if (typeof af === "string" || typeof bf === "string") {
+                    return af.localeCompare(bf) * sign;
+                  } else return (af - bf) * sign;
+                });
+              }
+
+              const rLen = r.length;
+              for (let i = 0; i < rLen; i++) {
+                if (r[i].properties._.idx === featureId) {
+                  r = [r[Math.min(Math.max(0, i + offset), rLen - 1)]];
+                  break;
+                }
+              }
             }
 
             res.send({

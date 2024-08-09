@@ -267,13 +267,11 @@ const Description = {
             Description.L_.selectFeature(
                 Description.L_.activeFeature.layerName,
                 Description.L_.activeFeature.feature,
-                Description.navPopoverField === NAV_DEFAULT_FIELD
-                    ? -1
-                    : Description.getFeatureDistance(
-                          Description.L_.activeFeature,
-                          Description.navPopoverField,
-                          'previous'
-                      )
+                Description.getFeatureDistance(
+                    Description.L_.activeFeature,
+                    Description.navPopoverField,
+                    'previous'
+                )
             )
             Description.onNextPrev()
         }
@@ -283,13 +281,11 @@ const Description = {
             Description.L_.selectFeature(
                 Description.L_.activeFeature.layerName,
                 Description.L_.activeFeature.feature,
-                Description.navPopoverField === NAV_DEFAULT_FIELD
-                    ? 1
-                    : Description.getFeatureDistance(
-                          Description.L_.activeFeature,
-                          Description.navPopoverField,
-                          'next'
-                      )
+                Description.getFeatureDistance(
+                    Description.L_.activeFeature,
+                    Description.navPopoverField,
+                    'next'
+                )
             )
             Description.onNextPrev()
         }
@@ -325,12 +321,19 @@ const Description = {
         if (active) {
             const layerName = Description.L_.asLayerUUID(active.layerName)
             const layer = Description.L_.layers.layer[layerName]
+            const layerData = Description.L_.layers.data[layerName]
+
+            const isTimeEnabled = layerData.time?.enabled === true
+            const isDynamicExtent =
+                isTimeEnabled && layerData.variables.dynamicExtent === true
+
             if (layer) {
                 const geojson = Description.L_.layers.layer[
                     layerName
                 ].toGeoJSON(Description.L_.GEOJSON_PRECISION)
 
                 let features = geojson.features
+                const numFeatures = features.length
 
                 let currentIdx = null
                 for (let i = 0; i < features.length; i++) {
@@ -348,16 +351,16 @@ const Description = {
                     ) {
                         currentIdx = i
                     }
-                    features[i].properties.__i__ = i
+                    features[i].properties._ = features[i].properties._ || {}
+                    features[i].properties._.id = i
                 }
                 if (currentIdx == null) return 0
 
-                let minIndex = Infinity
-                let maxIndex = -Infinity
                 // Limit to current map extent if checkbox is true
+                let bounds
                 if ($('#mainDescNavPopoverExtent input').is(':checked')) {
                     const b = Description.Map_.map.getBounds()
-                    const bounds = {
+                    bounds = {
                         type: 'Feature',
                         properties: {},
                         geometry: {
@@ -374,16 +377,66 @@ const Description = {
                         },
                     }
                     features = features.filter((f) => {
-                        const keep = booleanIntersects(bounds, f)
-                        if (keep) {
-                            let i = f.properties.__i__
-                            if (i < minIndex) minIndex = i
-                            if (i > maxIndex) maxIndex = i
-                        }
-
-                        return keep
+                        return booleanIntersects(bounds, f)
                     })
                 }
+
+                let minIndex = Infinity
+                let maxIndex = -Infinity
+                for (let i = 0; i < features.length; i++) {
+                    let idx = features[i].properties._.id
+                    if (idx < minIndex) minIndex = idx
+                    if (idx > maxIndex) maxIndex = idx
+                }
+
+                if (isTimeEnabled) {
+                    let offset = 0
+                    console.log(currentIdx, minIndex, maxIndex, active)
+                    if (currentIdx == minIndex) {
+                        offset = -1
+                    } else if (currentIdx === maxIndex) {
+                        offset = 1
+                    }
+                    if (offset != 0) {
+                        let geodatasetName = layerData.url
+                        if (geodatasetName.indexOf('geodatasets:') === 0) {
+                            geodatasetName = geodatasetName.replace(
+                                'geodatasets:',
+                                ''
+                            )
+                            const body = {
+                                layer: geodatasetName,
+                                id: active.feature.properties._.idx,
+                                orderBy:
+                                    field === NAV_DEFAULT_FIELD ? null : field,
+                                offset,
+                            }
+
+                            if (bounds) {
+                                const c = bounds.geometry.coordinates
+                                body.minx = c[0][1][0]
+                                body.miny = c[0][2][1]
+                                body.maxx = c[0][0][0]
+                                body.maxy = c[0][0][1]
+                            }
+                            calls.api('geodatasets_search', body, function (d) {
+                                console.log(active.feature.properties)
+                                console.log(d)
+                            })
+                        }
+                    }
+                }
+
+                if (
+                    Description.navPopoverField === NAV_DEFAULT_FIELD &&
+                    direction === 'previous'
+                )
+                    return -1
+                if (
+                    Description.navPopoverField === NAV_DEFAULT_FIELD &&
+                    direction === 'next'
+                )
+                    return 1
 
                 if (field != null && field != NAV_DEFAULT_FIELD) {
                     features.sort((a, b) => {
@@ -404,10 +457,10 @@ const Description = {
                     return maxIndex - currentIdx
                 } else {
                     for (let i = 0; i < features.length - 1; i++) {
-                        if (features[i].properties.__i__ === currentIdx) {
+                        if (features[i].properties._.id === currentIdx) {
                             return (
-                                features[i + 1].properties.__i__ -
-                                features[i].properties.__i__
+                                features[i + 1].properties._.id -
+                                features[i].properties._.id
                             )
                         }
                     }
