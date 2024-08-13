@@ -1071,16 +1071,19 @@ const L_ = {
                 )
             } else {
                 const savedOptions = JSON.parse(JSON.stringify(layer.options))
-
                 layer.setStyle({
                     color: color,
                     stroke: color,
+                    weight: 4,
                 })
                 layer.options = savedOptions
 
                 // For some odd reason sometimes the first style does not work
                 // This makes sure it does
                 setTimeout(() => {
+                    const savedOptions2 = JSON.parse(
+                        JSON.stringify(layer.options)
+                    )
                     if (
                         layer.options.color != color &&
                         layer.options.stroke != color
@@ -1088,8 +1091,9 @@ const L_ = {
                         layer.setStyle({
                             color: color,
                             stroke: color,
+                            weight: 4,
                         })
-                        layer.options = savedOptions
+                        layer.options = savedOptions2
                     }
                 }, 1)
             }

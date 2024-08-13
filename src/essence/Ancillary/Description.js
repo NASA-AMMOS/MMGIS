@@ -11,7 +11,7 @@ import tippy from 'tippy.js'
 
 import './Description.css'
 
-const NAV_DEFAULT_FIELD = 'None/Index'
+const NAV_DEFAULT_FIELD = 'Feature Order'
 
 const Description = {
     inited: false,
@@ -334,26 +334,33 @@ const Description = {
 
                 let features = geojson.features
                 const numFeatures = features.length
-
                 let currentIdx = null
+
+                const activeFeatureGeom = active.layer.toGeoJSON(
+                    Description.L_.GEOJSON_PRECISION
+                ).geometry
                 for (let i = 0; i < features.length; i++) {
                     if (
                         F_.isEqual(
-                            active.feature.geometry,
+                            activeFeatureGeom,
                             features[i].geometry,
-                            true
-                        ) &&
-                        F_.isEqual(
-                            active.feature.properties,
-                            features[i].properties,
                             true
                         )
                     ) {
-                        currentIdx = i
+                        if (
+                            F_.isEqual(
+                                active.feature.properties,
+                                features[i].properties,
+                                true
+                            )
+                        ) {
+                            currentIdx = i
+                        }
                     }
                     features[i].properties._ = features[i].properties._ || {}
                     features[i].properties._.id = i
                 }
+
                 if (currentIdx == null) return 0
 
                 // Limit to current map extent if checkbox is true
@@ -420,7 +427,7 @@ const Description = {
                                 body.maxy = c[0][0][1]
                             }
                             calls.api('geodatasets_search', body, function (d) {
-                                console.log(active.feature.properties)
+                                console.log(active, layerData)
                                 console.log(d)
                             })
                         }
