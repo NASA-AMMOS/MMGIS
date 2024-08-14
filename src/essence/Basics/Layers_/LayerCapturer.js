@@ -170,6 +170,15 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                     L_.updateVectorLayer(layerObj.name, data)
                                     _geodatasetRequestLastLoc[layerObj.name] =
                                         nowLoc
+
+                                    if (L_?._timeLayerReloadFinishSubscriptions)
+                                        Object.keys(
+                                            L_._timeLayerReloadFinishSubscriptions
+                                        ).forEach((k) => {
+                                            L_._timeLayerReloadFinishSubscriptions[
+                                                k
+                                            ]()
+                                        })
                                 }
                             },
                             (data) => {

@@ -202,6 +202,15 @@ const L_ = {
         if (L_._timeChangeSubscriptions[fid] != null)
             delete L_._timeChangeSubscriptions[fid]
     },
+    _timeLayerReloadFinishSubscriptions: {},
+    subscribeTimeLayerReloadFinish: function (fid, func) {
+        if (typeof func === 'function')
+            L_._timeLayerReloadFinishSubscriptions[fid] = func
+    },
+    unsubscribeTimeLayerReloadFinish: function (fid) {
+        if (L_._timeLayerReloadFinishSubscriptions[fid] != null)
+            delete L_._timeLayerReloadFinishSubscriptions[fid]
+    },
     _onTimeUIToggleSubscriptions: {},
     subscribeOnTimeUIToggle: function (fid, func) {
         if (typeof func === 'function')
@@ -1938,8 +1947,6 @@ const L_ = {
                 key: null,
                 value: null,
             }
-        } else {
-            console.warn('Failed to set Last Active Feature.')
         }
     },
     // relation and field are optional
@@ -1953,8 +1960,19 @@ const L_ = {
         if (layer) {
             const layers = layer._layers
             const layerKeys = Object.keys(layers)
+
+            const featureWithout_ = JSON.parse(JSON.stringify(feature))
+            if (featureWithout_.properties?._ != null)
+                delete featureWithout_.properties._
+
             for (let i = 0; i < layerKeys.length; i++) {
                 const l = layerKeys[i]
+                const lfeatureWithout_ = JSON.parse(
+                    JSON.stringify(layers[l].feature)
+                )
+                if (lfeatureWithout_.properties?._ != null)
+                    delete lfeatureWithout_.properties._
+
                 if (
                     F_.isEqual(
                         layers[l].feature.geometry,
@@ -1962,8 +1980,8 @@ const L_ = {
                         true
                     ) &&
                     F_.isEqual(
-                        layers[l].feature.properties,
-                        feature.properties,
+                        lfeatureWithout_.properties,
+                        featureWithout_.properties,
                         true
                     )
                 ) {
@@ -1974,6 +1992,23 @@ const L_ = {
                     return
                 }
             }
+
+            // If not found, best fit a relation
+            if (relation != null)
+                if (relation < 0) {
+                    // Meaning were going forward, so select the first feature because we went so far forward that we no longer see the active feature
+                    if (layers[layerKeys[0]] != null) {
+                        layers[layerKeys[0]].fireEvent('click')
+                        return
+                    }
+                } else if (relation > 0) {
+                    if (layers[layerKeys[layerKeys.length - 1]] != null) {
+                        layers[layerKeys[layerKeys.length - 1]].fireEvent(
+                            'click'
+                        )
+                        return
+                    }
+                }
         }
     },
     /**
