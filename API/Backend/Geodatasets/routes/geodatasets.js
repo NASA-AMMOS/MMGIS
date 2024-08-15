@@ -369,7 +369,7 @@ router.post("/entries", function (req, res, next) {
  * req.body.value
  * req.body.id (specific feature id instead of key:value)
  * req.body.orderBy
- * req.body.offset (i.e. if -1, then return feature previous to key:val)
+ * req.body.offset (i.e. if -1, then return feature previous to key:val) (can also be 'first' or 'last')
  */
 router.post("/search", function (req, res, next) {
   //First Find the table name
@@ -379,6 +379,10 @@ router.post("/search", function (req, res, next) {
         let table = result.dataValues.table;
 
         let offset = req.body.offset;
+        const origOffset = offset;
+        if (offset === "first") offset = -1;
+        else if (offset === "last") offset = 1;
+
         let featureId = req.body.id;
 
         if (offset != null && featureId == null) {
@@ -453,10 +457,16 @@ router.post("/search", function (req, res, next) {
               }
 
               const rLen = r.length;
-              for (let i = 0; i < rLen; i++) {
-                if (r[i].properties._.idx === featureId) {
-                  r = [r[Math.min(Math.max(0, i + offset), rLen - 1)]];
-                  break;
+              if (origOffset === "first" || origOffset === "last") {
+                r = [r[rLen - 1]];
+              } else {
+                for (let i = 0; i < rLen; i++) {
+                  if (r[i].properties._.idx === featureId) {
+                    r = [
+                      r[Math.min(Math.max(0, i + Math.abs(offset)), rLen - 1)],
+                    ]; //abs because we already sort differently by it
+                    break;
+                  }
                 }
               }
             }

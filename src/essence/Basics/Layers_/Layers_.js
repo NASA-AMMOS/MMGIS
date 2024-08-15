@@ -1955,13 +1955,23 @@ const L_ = {
     // if field is null, relation is relative to initial geojson order
     // otherwise sort by field first
     selectFeature(layerName, feature, relation, field) {
+        console.log('selecting feature')
+        let f = JSON.parse(JSON.stringify(feature))
         layerName = L_.asLayerUUID(layerName)
         const layer = L_.layers.layer[layerName]
+
+        // If relation is a feature, override feature
+        if (typeof relation === 'object' && relation.type != null) {
+            f = relation
+            relation = 0
+        }
+
         if (layer) {
+            console.log('sf len:', L_.layers.layer[layerName].length)
             const layers = layer._layers
             const layerKeys = Object.keys(layers)
 
-            const featureWithout_ = JSON.parse(JSON.stringify(feature))
+            const featureWithout_ = JSON.parse(JSON.stringify(f))
             if (featureWithout_.properties?._ != null)
                 delete featureWithout_.properties._
 
@@ -1974,41 +1984,21 @@ const L_ = {
                     delete lfeatureWithout_.properties._
 
                 if (
-                    F_.isEqual(
-                        layers[l].feature.geometry,
-                        feature.geometry,
-                        true
-                    ) &&
+                    F_.isEqual(layers[l].feature.geometry, f.geometry, true) &&
                     F_.isEqual(
                         lfeatureWithout_.properties,
                         featureWithout_.properties,
                         true
                     )
                 ) {
-                    if (layers[layerKeys[i + (relation || 0)]] != null)
+                    if (layers[layerKeys[i + (relation || 0)]] != null) {
                         layers[layerKeys[i + (relation || 0)]].fireEvent(
                             'click'
                         )
+                    }
                     return
                 }
             }
-
-            // If not found, best fit a relation
-            if (relation != null)
-                if (relation < 0) {
-                    // Meaning were going forward, so select the first feature because we went so far forward that we no longer see the active feature
-                    if (layers[layerKeys[0]] != null) {
-                        layers[layerKeys[0]].fireEvent('click')
-                        return
-                    }
-                } else if (relation > 0) {
-                    if (layers[layerKeys[layerKeys.length - 1]] != null) {
-                        layers[layerKeys[layerKeys.length - 1]].fireEvent(
-                            'click'
-                        )
-                        return
-                    }
-                }
         }
     },
     /**

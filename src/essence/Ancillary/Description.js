@@ -12,7 +12,7 @@ import tippy from 'tippy.js'
 
 import './Description.css'
 
-const NAV_DEFAULT_FIELD = 'Feature Order'
+const NAV_DEFAULT_FIELD = '(Default) Feature Order'
 
 const Description = {
     inited: false,
@@ -137,20 +137,20 @@ const Description = {
                     for (let p in flatProps) {
                         if (
                             properties.indexOf(p) === -1 &&
-                            p.indexOf('images') !== 0
+                            p.indexOf('images') !== 0 &&
+                            p[0] != '_'
                         )
                             properties.push(p)
                     }
                 })
-
                 $('#mainDescNavPopoverFieldField').html(
                     Dropy.construct(
                         properties.sort(),
-                        Description.navPopoverField &&
-                            properties.indexOf(Description.navPopoverField) !=
-                                -1
-                            ? Description.navPopoverField
-                            : 'Field'
+                        'Field to Sort By',
+                        Math.max(
+                            0,
+                            properties.indexOf(Description.navPopoverField)
+                        )
                     )
                 )
                 Dropy.init(
@@ -327,9 +327,6 @@ const Description = {
             let passThrough = true
 
             if (active) {
-                const popoverOpen =
-                    $(`#mainDescNavPopover`).css('display') === 'block'
-
                 const layerName = Description.L_.asLayerUUID(active.layerName)
                 const layer = Description.L_.layers.layer[layerName]
                 const layerData = Description.L_.layers.data[layerName]
@@ -338,18 +335,22 @@ const Description = {
                 const isDynamicExtent =
                     isTimeEnabled && layerData.variables.dynamicExtent === true
 
+                let sortedFields = false
                 if (layer) {
-                    const geojson = Description.L_.layers.layer[
-                        layerName
-                    ].toGeoJSON(Description.L_.GEOJSON_PRECISION)
+                    let geojson
+
+                    geojson = Description.L_.layers.layer[layerName].toGeoJSON(
+                        Description.L_.GEOJSON_PRECISION
+                    )
 
                     let features = geojson.features
-                    const numFeatures = features.length
+
                     let currentIdx = null
 
                     const activeFeatureGeom = active.layer.toGeoJSON(
                         Description.L_.GEOJSON_PRECISION
                     ).geometry
+
                     for (let i = 0; i < features.length; i++) {
                         if (
                             F_.isEqual(
@@ -372,9 +373,14 @@ const Description = {
                             features[i].properties._ || {}
                         features[i].properties._.id = i
                     }
-
                     if (currentIdx == null) return 0
 
+                    let hasTimeBounds = false
+                    if (
+                        $('#mainDescNavPopoverTimeExtent input').is(':checked')
+                    ) {
+                        hasTimeBounds = true
+                    }
                     // Limit to current map extent if checkbox is true
                     let hasBounds = false
                     const b = Description.Map_.map.getBounds()
@@ -423,9 +429,17 @@ const Description = {
                         ) {
                             offset = 1
                         }
-                        if (offset != 0) {
+
+                        if (hasBounds && hasTimeBounds) {
+                            // If the user is restricting the query to within the
+                            // map and existing time range, then we already have
+                            // every feature and don't need to query more data
+                        } else if (offset != 0) {
                             let geodatasetName = layerData.url
-                            if (geodatasetName.indexOf('geodatasets:') === 0) {
+                            if (
+                                geodatasetName.indexOf('geodatasets:') === 0 &&
+                                isDynamicExtent
+                            ) {
                                 passThrough = false
                                 geodatasetName = geodatasetName.replace(
                                     'geodatasets:',
@@ -438,7 +452,11 @@ const Description = {
                                         field === NAV_DEFAULT_FIELD
                                             ? null
                                             : field,
-                                    offset,
+                                    offset:
+                                        direction === 'first' ||
+                                        direction === 'last'
+                                            ? direction
+                                            : offset,
                                 }
 
                                 if (hasBounds) {
@@ -455,125 +473,140 @@ const Description = {
                                     body,
                                     function (d) {
                                         if (d.body && d.body.length > 0) {
-                                            const f = d.body[0]
-
-                                            // Make sure feature geometry is within screen bounds,
-                                            // If not, we pan to is regardless of the checkbox
-                                            if (!booleanIntersects(bounds, f)) {
-                                                const bboxf = bbox(f)
-                                                const southWest = new L.LatLng(
-                                                    bboxf[1],
-                                                    bboxf[0]
-                                                )
-                                                const northEast = new L.LatLng(
-                                                    bboxf[3],
-                                                    bboxf[2]
-                                                )
-                                                Description.Map_.map.fitBounds(
-                                                    new L.LatLngBounds(
-                                                        southWest,
-                                                        northEast
-                                                    )
-                                                )
-                                            }
-
-                                            // Next adjust time
-                                            let startTime
-                                            let endTime
-                                            if (layerData.time.startProp) {
-                                                startTime = F_.getIn(
-                                                    f.properties,
-                                                    layerData.time.startProp
-                                                )
-                                            }
-                                            if (layerData.time.endProp) {
-                                                endTime = F_.getIn(
-                                                    f.properties,
-                                                    layerData.time.endProp
-                                                )
-                                            }
-                                            const currentStart = new Date(
-                                                TimeControl.getStartTime()
-                                            ).getTime()
-                                            const currentEnd = new Date(
-                                                TimeControl.getEndTime()
-                                            ).getTime()
-
-                                            const desiredStart =
-                                                startTime != null
-                                                    ? new Date(
-                                                          startTime
-                                                      ).getTime()
-                                                    : currentStart
-                                            const desiredEnd =
-                                                endTime != null
-                                                    ? new Date(
-                                                          endTime
-                                                      ).getTime()
-                                                    : currentEnd
-
-                                            let nextStart =
-                                                startTime != null &&
-                                                desiredStart < currentStart
-                                                    ? starTime
-                                                    : TimeControl.getStartTime()
-                                            let nextEnd =
-                                                endTime != null &&
-                                                desiredEnd > currentEnd
-                                                    ? endTime
-                                                    : TimeControl.getEndTime()
-
-                                            Description.L_.subscribeTimeLayerReloadFinish(
+                                            Description._featureNavTimeUpdate(
                                                 layerName,
-                                                () => {
-                                                    Description.L_.unsubscribeTimeLayerReloadFinish(
-                                                        layerName
-                                                    )
-                                                    // Then reopen popover
-                                                    if (popoverOpen) {
-                                                        $(
-                                                            `#mainDescNavBarMenu`
-                                                        ).css({
-                                                            background:
-                                                                'var(--color-c)',
-                                                        })
-                                                        $(
-                                                            `#mainDescNavPopover`
-                                                        ).css({
-                                                            display: 'block',
-                                                        })
-                                                    }
-                                                    resolve(offset)
-                                                    return
+                                                d.body[0],
+                                                bounds,
+                                                (f) => {
+                                                    resolve(f)
                                                 }
-                                            )
-                                            // Disable active feature so that the layer reload doesn't reselect it
-                                            L_.setActiveFeature(null)
-                                            TimeControl.setTime(
-                                                nextStart,
-                                                nextEnd
                                             )
                                         }
                                     }
                                 )
+                            } else {
+                                // It's a regular time layer and we have all its data locally
+
+                                // Use full geojson this time and refind currentIndex
+                                if (
+                                    isTimeEnabled &&
+                                    !isDynamicExtent &&
+                                    Description.L_._localTimeFilterCache[
+                                        layerName
+                                    ] != null
+                                ) {
+                                    features = L.geoJson({
+                                        type: 'FeatureCollection',
+                                        features:
+                                            Description.L_
+                                                ._localTimeFilterCache[
+                                                layerName
+                                            ].features,
+                                    }).toGeoJSON(
+                                        Description.L_.GEOJSON_PRECISION
+                                    ).features
+
+                                    currentIdx = null
+                                    const aP = JSON.parse(
+                                        JSON.stringify(
+                                            active.feature.properties
+                                        )
+                                    )
+                                    if (aP._ != null) delete aP._
+                                    for (let i = 0; i < features.length; i++) {
+                                        if (
+                                            F_.isEqual(
+                                                activeFeatureGeom,
+                                                features[i].geometry,
+                                                true
+                                            )
+                                        ) {
+                                            const fP = features[i].properties
+                                            if (fP._ != null) delete fP._
+                                            if (F_.isEqual(aP, fP, true)) {
+                                                currentIdx = i
+                                            }
+                                        }
+                                        features[i].properties._ =
+                                            features[i].properties._ || {}
+                                        features[i].properties._.id = i
+                                    }
+                                }
+
+                                if (
+                                    field != null &&
+                                    field != NAV_DEFAULT_FIELD
+                                ) {
+                                    features.sort((a, b) => {
+                                        let sign = 1
+                                        if (
+                                            direction === 'previous' ||
+                                            direction === 'first'
+                                        )
+                                            sign = -1
+                                        const af = F_.getIn(
+                                            a,
+                                            `properties.${field}`,
+                                            0
+                                        )
+                                        const bf = F_.getIn(
+                                            b,
+                                            `properties.${field}`,
+                                            1
+                                        )
+                                        if (
+                                            typeof af === 'string' ||
+                                            typeof bf === 'string'
+                                        ) {
+                                            return af.localeCompare(bf) * sign
+                                        } else return (af - bf) * sign
+                                    })
+                                    sortedFields = true
+                                }
+                                // parse through leaflet to ensure matching precision
+                                // Find feature
+                                let nextFeature
+                                if (direction === 'first')
+                                    nextFeature = features[0]
+                                else if (direction === 'last')
+                                    nextFeature = features[features.length - 1]
+                                else {
+                                    for (
+                                        let i = 0;
+                                        i < features.length - 1;
+                                        i++
+                                    ) {
+                                        if (
+                                            features[i].properties._.id ===
+                                            currentIdx
+                                        ) {
+                                            nextFeature =
+                                                features[
+                                                    i +
+                                                        (sortedFields
+                                                            ? 1
+                                                            : direction ===
+                                                              'previous'
+                                                            ? -1
+                                                            : 1)
+                                                ]
+                                            break
+                                        }
+                                    }
+                                }
+
+                                if (nextFeature) {
+                                    Description._featureNavTimeUpdate(
+                                        layerName,
+                                        nextFeature,
+                                        bounds
+                                    )
+                                }
                             }
                         }
                     }
+
                     if (passThrough === true) {
-                        if (
-                            Description.navPopoverField === NAV_DEFAULT_FIELD &&
-                            direction === 'previous'
-                        ) {
-                            resolve(-1)
-                            return
-                        }
-                        if (
-                            Description.navPopoverField === NAV_DEFAULT_FIELD &&
-                            direction === 'next'
-                        ) {
-                            resolve(1)
-                            return
-                        }
                         if (field != null && field != NAV_DEFAULT_FIELD) {
                             features.sort((a, b) => {
                                 let sign = 1
@@ -591,23 +624,83 @@ const Description = {
                                     return af.localeCompare(bf) * sign
                                 } else return (af - bf) * sign
                             })
+                            sortedFields = true
+                        }
+
+                        let minFieldIndex = minIndex
+                        let maxFieldIndex = maxIndex
+                        if (sortedFields) {
+                            if (
+                                direction === 'previous' ||
+                                direction === 'first'
+                            ) {
+                                minFieldIndex =
+                                    features[features.length - 1].properties._
+                                        .id
+                                maxFieldIndex = features[0].properties._.id
+                            } else {
+                                minFieldIndex = features[0].properties._.id
+                                maxFieldIndex =
+                                    features[features.length - 1].properties._
+                                        .id
+                            }
+                        }
+
+                        if (
+                            hasBounds &&
+                            ((currentIdx == minFieldIndex &&
+                                (direction === 'previous' ||
+                                    direction === 'first')) ||
+                                (currentIdx === maxFieldIndex &&
+                                    (direction === 'next' ||
+                                        direction === 'last')))
+                        ) {
+                            // Stop the selectFeature function from making a relative selection
+                            // if we're already at one of its limits
+                            resolve(0)
+                            return
+                        }
+                        if (
+                            Description.navPopoverField === NAV_DEFAULT_FIELD &&
+                            direction === 'previous'
+                        ) {
+                            resolve(-1)
+                            return
+                        }
+                        if (
+                            Description.navPopoverField === NAV_DEFAULT_FIELD &&
+                            direction === 'next'
+                        ) {
+                            resolve(1)
+                            return
                         }
 
                         if (direction === 'first') {
-                            resolve(minIndex - currentIdx)
+                            resolve(minFieldIndex - currentIdx)
                             return
                         } else if (direction === 'last') {
-                            resolve(maxIndex - currentIdx)
+                            resolve(maxFieldIndex - currentIdx)
                             return
                         } else {
-                            for (let i = 0; i < features.length - 1; i++) {
+                            for (let i = 0; i < features.length; i++) {
                                 if (
                                     features[i].properties._.id === currentIdx
                                 ) {
-                                    resolve(
-                                        features[i + 1].properties._.id -
-                                            features[i].properties._.id
-                                    )
+                                    const nextFeature =
+                                        features[
+                                            i +
+                                                (sortedFields
+                                                    ? 1
+                                                    : direction === 'previous'
+                                                    ? -1
+                                                    : 1)
+                                        ]
+                                    if (nextFeature != null) {
+                                        resolve(
+                                            nextFeature.properties._.id -
+                                                features[i].properties._.id
+                                        )
+                                    }
                                     return
                                 }
                             }
@@ -618,6 +711,72 @@ const Description = {
             }
             if (passThrough) resolve(0)
         })
+    },
+    _featureNavTimeUpdate(layerName, feature, bounds, cb) {
+        const f = feature
+
+        const layerData = Description.L_.layers.data[layerName]
+
+        // Make sure feature geometry is within screen bounds,
+        // If not, we pan to is regardless of the checkbox
+        if (!booleanIntersects(bounds, f)) {
+            const bboxf = bbox(f)
+            const southWest = new L.LatLng(bboxf[1], bboxf[0])
+            const northEast = new L.LatLng(bboxf[3], bboxf[2])
+            Description.Map_.map.fitBounds(
+                new L.LatLngBounds(southWest, northEast)
+            )
+        }
+
+        // Next adjust time
+        let startTime
+        let endTime
+        if (layerData.time.startProp) {
+            startTime = F_.getIn(f.properties, layerData.time.startProp)
+        }
+        if (layerData.time.endProp) {
+            endTime = F_.getIn(f.properties, layerData.time.endProp)
+        }
+        const currentStart = new Date(TimeControl.getStartTime()).getTime()
+        const currentEnd = new Date(TimeControl.getEndTime()).getTime()
+
+        const desiredStart =
+            startTime != null ? new Date(startTime).getTime() : currentStart
+        const desiredEnd =
+            endTime != null ? new Date(endTime).getTime() : currentEnd
+
+        let nextStart =
+            startTime != null && desiredStart < currentStart
+                ? startTime
+                : TimeControl.getStartTime()
+        let nextEnd =
+            endTime != null && desiredEnd > currentEnd
+                ? endTime
+                : TimeControl.getEndTime()
+
+        // If this is an endTime only feature, account for bumping back the start if needed
+        if (startTime == null && endTime != null && desiredEnd < currentStart) {
+            nextStart = endTime
+            nextEnd = TimeControl.getEndTime()
+        }
+
+        Description.L_.subscribeTimeLayerReloadFinish(layerName, () => {
+            Description.L_.unsubscribeTimeLayerReloadFinish(layerName)
+            // Then reopen popover
+            if ($(`#mainDescNavPopover`).css('display') === 'block') {
+                $(`#mainDescNavBarMenu`).css({
+                    background: 'var(--color-c)',
+                })
+                $(`#mainDescNavPopover`).css({
+                    display: 'block',
+                })
+            }
+            cb(f)
+            return
+        })
+        // Disable active feature so that the layer reload doesn't reselect it
+        Description.L_.setActiveFeature(null)
+        TimeControl.setTime(nextStart, nextEnd)
     },
     updateInfo(force, forceFeature, skipRequery) {
         if (force !== true) {
@@ -898,6 +1057,17 @@ const Description = {
                     placement: 'bottom',
                     theme: 'blue',
                 })
+
+            // Hide/Show feature popover nav time extent check if appropriate
+            const popoverTimeExtentDiv = $('#mainDescNavPopoverTimeExtent')
+            if (popoverTimeExtentDiv) {
+                const ld = this.L_.layers.data[activeLayer.options.layerName]
+                if (ld && ld.time && ld.time.enabled === true) {
+                    popoverTimeExtentDiv.css('display', 'flex')
+                } else {
+                    popoverTimeExtentDiv.css('display', 'none')
+                }
+            }
         }
     },
     clearDescription: function () {
