@@ -1955,7 +1955,6 @@ const L_ = {
     // if field is null, relation is relative to initial geojson order
     // otherwise sort by field first
     selectFeature(layerName, feature, relation, field) {
-        console.log('selecting feature')
         let f = JSON.parse(JSON.stringify(feature))
         layerName = L_.asLayerUUID(layerName)
         const layer = L_.layers.layer[layerName]
@@ -1967,7 +1966,6 @@ const L_ = {
         }
 
         if (layer) {
-            console.log('sf len:', L_.layers.layer[layerName].length)
             const layers = layer._layers
             const layerKeys = Object.keys(layers)
 

@@ -26,6 +26,7 @@ const Description = {
     tippyNext: null,
     L_: null,
     navPopoverField: NAV_DEFAULT_FIELD,
+    _popoverOpen: false,
     _infoAlreadyGone: false,
     init: function (mission, site, Map_, L_) {
         this.L_ = L_
@@ -124,47 +125,12 @@ const Description = {
                 background: willOpen ? 'var(--color-c)' : 'var(--color-a)',
             })
             if (willOpen) {
+                Description._popoverOpen = true
                 Description.alignNavPopover()
 
-                // Populate Fields dropdown
-                const geojson = L_.layers.layer[
-                    L_.activeFeature.layerName
-                ].toGeoJSON(L_.GEOJSON_PRECISION)
-                const properties = [NAV_DEFAULT_FIELD]
-                geojson.features.forEach((feature, idx) => {
-                    const flatProps = flat.flatten(feature.properties)
-
-                    for (let p in flatProps) {
-                        if (
-                            properties.indexOf(p) === -1 &&
-                            p.indexOf('images') !== 0 &&
-                            p[0] != '_'
-                        )
-                            properties.push(p)
-                    }
-                })
-                $('#mainDescNavPopoverFieldField').html(
-                    Dropy.construct(
-                        properties.sort(),
-                        'Field to Sort By',
-                        Math.max(
-                            0,
-                            properties.indexOf(Description.navPopoverField)
-                        )
-                    )
-                )
-                Dropy.init(
-                    $('#mainDescNavPopoverFieldField'),
-                    function (idx, val) {
-                        Description.navPopoverField = val
-                        $('#mainDescNavPopoverFieldValue').text(
-                            F_.getIn(
-                                L_.activeFeature.feature.properties,
-                                Description.navPopoverField
-                            )
-                        )
-                    }
-                )
+                Description._updatePopoverDropy()
+            } else {
+                Description._popoverOpen = false
             }
         })
 
@@ -255,6 +221,54 @@ const Description = {
             $(`#mainDescPointLinks_global`).empty()
         })
     },
+    _updatePopoverDropy() {
+        // Populate Fields dropdown
+        const geojson = Description.L_.layers.layer[
+            Description.L_.activeFeature.layerName
+        ].toGeoJSON(Description.L_.GEOJSON_PRECISION)
+        const properties = [NAV_DEFAULT_FIELD]
+        geojson.features.forEach((feature, idx) => {
+            const flatProps = flat.flatten(feature.properties)
+
+            for (let p in flatProps) {
+                if (
+                    properties.indexOf(p) === -1 &&
+                    p.indexOf('images') !== 0 &&
+                    p[0] !== '_'
+                )
+                    properties.push(p)
+            }
+        })
+
+        let propIndex = properties.indexOf(Description.navPopoverField)
+        if (propIndex === -1) {
+            Description.navPopoverField = NAV_DEFAULT_FIELD
+            propIndex = 0
+        }
+        $('#mainDescNavPopoverFieldField').html(
+            Dropy.construct(properties.sort(), 'Field to Sort By', propIndex)
+        )
+        Dropy.init($('#mainDescNavPopoverFieldField'), function (idx, val) {
+            Description.navPopoverField = val
+            Description._updateFieldValueText()
+        })
+        Description._updateFieldValueText()
+    },
+    _updateFieldValueText() {
+        $('#mainDescNavPopoverFieldValue').text(
+            Description.navPopoverField === NAV_DEFAULT_FIELD
+                ? F_.getIn(
+                      Description.L_.activeFeature.feature.properties,
+                      '_.id',
+                      '--'
+                  )
+                : F_.getIn(
+                      Description.L_.activeFeature.feature.properties,
+                      Description.navPopoverField,
+                      '--'
+                  )
+        )
+    },
     panToActive() {
         if (typeof Description.Map_.activeLayer.getBounds === 'function')
             Description.Map_.map.fitBounds(
@@ -294,10 +308,15 @@ const Description = {
     onNextPrev() {
         if (Description.L_.activeFeature) {
             $('#mainDescNavPopoverFieldValue').text(
-                F_.getIn(
-                    Description.L_.activeFeature.feature.properties,
-                    Description.navPopoverField
-                )
+                Description.navPopoverField === NAV_DEFAULT_FIELD
+                    ? F_.getIn(
+                          Description.L_.activeFeature.feature.properties,
+                          '_.id'
+                      )
+                    : F_.getIn(
+                          Description.L_.activeFeature.feature.properties,
+                          Description.navPopoverField
+                      )
             )
 
             if ($('#mainDescNavPopoverPanTo input').is(':checked')) {
@@ -563,6 +582,78 @@ const Description = {
                                     })
                                     sortedFields = true
                                 }
+
+                                if (hasTimeBounds) {
+                                    features = features.map((f) => {
+                                        let startTime
+                                        let endTime
+                                        if (layerData.time.startProp) {
+                                            startTime = F_.getIn(
+                                                f.properties,
+                                                layerData.time.startProp
+                                            )
+                                        }
+                                        if (layerData.time.endProp) {
+                                            endTime = F_.getIn(
+                                                f.properties,
+                                                layerData.time.endProp
+                                            )
+                                        }
+                                        const currentStart = new Date(
+                                            TimeControl.getStartTime()
+                                        ).getTime()
+                                        const currentEnd = new Date(
+                                            TimeControl.getEndTime()
+                                        ).getTime()
+
+                                        startTime =
+                                            startTime != null
+                                                ? new Date(startTime).getTime()
+                                                : null
+                                        endTime =
+                                            endTime != null
+                                                ? new Date(endTime).getTime()
+                                                : null
+
+                                        if (
+                                            startTime == null &&
+                                            endTime == null
+                                        ) {
+                                            return false
+                                        } else if (
+                                            startTime == null &&
+                                            endTime != null
+                                        ) {
+                                            if (
+                                                endTime >= currentStart &&
+                                                endTime <= currentEnd
+                                            )
+                                                return true
+                                        } else if (
+                                            startTime != null &&
+                                            endTime == null
+                                        ) {
+                                            if (
+                                                startTime >= currentStart &&
+                                                startTime <= currentEnd
+                                            )
+                                                return true
+                                        } else if (
+                                            startTime != null &&
+                                            endTime != null
+                                        ) {
+                                            if (
+                                                !(
+                                                    endTime < currentStart ||
+                                                    startTime > currentEnd
+                                                )
+                                            )
+                                                return true
+                                        }
+                                        return false
+                                    })
+                                }
+
                                 // parse through leaflet to ensure matching precision
                                 // Find feature
                                 let nextFeature
@@ -577,8 +668,9 @@ const Description = {
                                         i++
                                     ) {
                                         if (
+                                            features[i].properties &&
                                             features[i].properties._.id ===
-                                            currentIdx
+                                                currentIdx
                                         ) {
                                             nextFeature =
                                                 features[
@@ -759,11 +851,12 @@ const Description = {
             nextStart = endTime
             nextEnd = TimeControl.getEndTime()
         }
+        const popoverOpen = $(`#mainDescNavPopover`).css('display') === 'block'
 
         Description.L_.subscribeTimeLayerReloadFinish(layerName, () => {
             Description.L_.unsubscribeTimeLayerReloadFinish(layerName)
             // Then reopen popover
-            if ($(`#mainDescNavPopover`).css('display') === 'block') {
+            if (popoverOpen) {
                 $(`#mainDescNavBarMenu`).css({
                     background: 'var(--color-c)',
                 })
@@ -774,6 +867,13 @@ const Description = {
             cb(f)
             return
         })
+
+        // Ignore the next dynamicExtent move thresholds
+        if (
+            layerData.variables?.dynamicExtent === true &&
+            layerData.variables?.dynamicExtentMoveThreshold != null
+        )
+            layerData._ignoreDynamicExtentMoveThreshold = true
         // Disable active feature so that the layer reload doesn't reselect it
         Description.L_.setActiveFeature(null)
         TimeControl.setTime(nextStart, nextEnd)
@@ -837,7 +937,8 @@ const Description = {
                 let newInfo = ''
 
                 for (let i = 0; i < l.variables.info.length; i++) {
-                    let which =
+                    let which = 0
+                    which =
                         l.variables.info[i].which != null &&
                         !isNaN(l.variables.info[i].which)
                             ? Math.max(
@@ -929,6 +1030,15 @@ const Description = {
         )
             return
 
+        if (Description._popoverOpen) {
+            Description._updatePopoverDropy()
+            $(`#mainDescNavBarMenu`).css({
+                background: 'var(--color-c)',
+            })
+            $(`#mainDescNavPopover`).css({
+                display: 'block',
+            })
+        }
         this.descCont.style('display', 'flex')
         $('.mainDescription').animate(
             {
@@ -1071,20 +1181,26 @@ const Description = {
         }
     },
     clearDescription: function () {
-        // Clear the description
-        $('#mainDescPointInner').empty()
-        $('#mainDescPointLinks').empty()
+        // Use delay timeout to avoid flickering in the case the next feature needs to be loaded
+        clearTimeout(Description._clearDescTimeout)
+        Description._clearDescTimeout = setTimeout(() => {
+            if (Description.L_.activeFeature == null) {
+                // Clear the description
+                $('#mainDescPointInner').empty()
+                $('#mainDescPointLinks').empty()
 
-        // Reset the style
-        this.descCont.attr('style', null)
+                // Reset the style
+                this.descCont.attr('style', null)
 
-        // Close Nav Popover
-        $(`#mainDescNavBarMenu`).css({
-            background: 'var(--color-a)',
-        })
-        $(`#mainDescNavPopover`).css({
-            display: 'none',
-        })
+                // Close Nav Popover
+                $(`#mainDescNavBarMenu`).css({
+                    background: 'var(--color-a)',
+                })
+                $(`#mainDescNavPopover`).css({
+                    display: 'none',
+                })
+            }
+        }, 1000)
     },
 }
 

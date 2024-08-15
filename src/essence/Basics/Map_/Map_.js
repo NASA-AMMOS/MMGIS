@@ -861,9 +861,6 @@ async function makeVectorLayer(
 
             allLayersLoaded()
             resolve()
-
-            if (L_.layers.layer[layerObj.name])
-                console.log('mvl len:', L_.layers.layer[layerObj.name].length)
         }
     })
 }
