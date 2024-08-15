@@ -1541,6 +1541,7 @@ var Formulae_ = {
             })
             d = nextData
         }
+
         return d == null ? data : d
     },
     // Gets all tiles with tile xyz at zoom z

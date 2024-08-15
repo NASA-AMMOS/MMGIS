@@ -202,6 +202,15 @@ const L_ = {
         if (L_._timeChangeSubscriptions[fid] != null)
             delete L_._timeChangeSubscriptions[fid]
     },
+    _timeLayerReloadFinishSubscriptions: {},
+    subscribeTimeLayerReloadFinish: function (fid, func) {
+        if (typeof func === 'function')
+            L_._timeLayerReloadFinishSubscriptions[fid] = func
+    },
+    unsubscribeTimeLayerReloadFinish: function (fid) {
+        if (L_._timeLayerReloadFinishSubscriptions[fid] != null)
+            delete L_._timeLayerReloadFinishSubscriptions[fid]
+    },
     _onTimeUIToggleSubscriptions: {},
     subscribeOnTimeUIToggle: function (fid, func) {
         if (typeof func === 'function')
@@ -1071,16 +1080,19 @@ const L_ = {
                 )
             } else {
                 const savedOptions = JSON.parse(JSON.stringify(layer.options))
-
                 layer.setStyle({
                     color: color,
                     stroke: color,
+                    weight: 4,
                 })
                 layer.options = savedOptions
 
                 // For some odd reason sometimes the first style does not work
                 // This makes sure it does
                 setTimeout(() => {
+                    const savedOptions2 = JSON.parse(
+                        JSON.stringify(layer.options)
+                    )
                     if (
                         layer.options.color != color &&
                         layer.options.stroke != color
@@ -1088,8 +1100,9 @@ const L_ = {
                         layer.setStyle({
                             color: color,
                             stroke: color,
+                            weight: 4,
                         })
-                        layer.options = savedOptions
+                        layer.options = savedOptions2
                     }
                 }, 1)
             }
@@ -1934,30 +1947,53 @@ const L_ = {
                 key: null,
                 value: null,
             }
-        } else {
-            console.warn('Failed to set Last Active Feature.')
         }
     },
-    selectFeature(layerName, feature) {
+    // relation and field are optional
+    // relation is null, -1, or 1
+    // if relation is 1 it'll select the next feature, -1 the previous
+    // if field is null, relation is relative to initial geojson order
+    // otherwise sort by field first
+    selectFeature(layerName, feature, relation, field) {
+        let f = JSON.parse(JSON.stringify(feature))
         layerName = L_.asLayerUUID(layerName)
-
         const layer = L_.layers.layer[layerName]
+
+        // If relation is a feature, override feature
+        if (typeof relation === 'object' && relation.type != null) {
+            f = relation
+            relation = 0
+        }
+
         if (layer) {
             const layers = layer._layers
-            for (let l in layers) {
+            const layerKeys = Object.keys(layers)
+
+            const featureWithout_ = JSON.parse(JSON.stringify(f))
+            if (featureWithout_.properties?._ != null)
+                delete featureWithout_.properties._
+
+            for (let i = 0; i < layerKeys.length; i++) {
+                const l = layerKeys[i]
+                const lfeatureWithout_ = JSON.parse(
+                    JSON.stringify(layers[l].feature)
+                )
+                if (lfeatureWithout_.properties?._ != null)
+                    delete lfeatureWithout_.properties._
+
                 if (
+                    F_.isEqual(layers[l].feature.geometry, f.geometry, true) &&
                     F_.isEqual(
-                        layers[l].feature.geometry,
-                        feature.geometry,
-                        true
-                    ) &&
-                    F_.isEqual(
-                        layers[l].feature.properties,
-                        feature.properties,
+                        lfeatureWithout_.properties,
+                        featureWithout_.properties,
                         true
                     )
                 ) {
-                    layers[l].fireEvent('click')
+                    if (layers[layerKeys[i + (relation || 0)]] != null) {
+                        layers[layerKeys[i + (relation || 0)]].fireEvent(
+                            'click'
+                        )
+                    }
                     return
                 }
             }

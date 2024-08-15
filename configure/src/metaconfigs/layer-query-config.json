@@ -938,7 +938,7 @@
               "defaultChecked": false
             },
             {
-              "field": "variables.dynamicExtentThreshold",
+              "field": "variables.dynamicExtentMoveThreshold",
               "name": "Threshold",
               "description": "If dynamicExtent is true, only requery if the map was panned past the stated threshold. Unit is in meters. If a zoom-dependent threshold is desired, set this value to a string ending in '/z'. This will then internally use 'dynamicExtentMoveThreshold / Math.pow(2, zoom)' as the threshold value.",
               "type": "text",

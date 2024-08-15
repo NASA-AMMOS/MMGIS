@@ -113,6 +113,7 @@ let Map_ = {
             this.map = L.map('map', {
                 zoomControl: hasZoomControl,
                 editable: true,
+                keyboard: false,
                 crs: crs,
                 zoomDelta: 0.05,
                 zoomSnap: 0,
@@ -126,6 +127,7 @@ let Map_ = {
             this.map = L.map('map', {
                 zoomControl: hasZoomControl,
                 editable: true,
+                keyboard: false,
                 fadeAnimation: shouldFade,
                 //crs: crs,
                 //zoomDelta: 0.05,

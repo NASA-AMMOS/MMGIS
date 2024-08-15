@@ -373,10 +373,8 @@ var mmgisAPI_ = {
         const listener = mmgisAPI_.getLeafletMapEvent(eventName)
         const mmgisListener = mmgisAPI_.checkMMGISEvent(eventName)
         if (listener) {
-            console.log('Add listener:', listener)
             mmgisAPI_.map.addEventListener(listener, functionReference)
         } else if (mmgisListener) {
-            console.log('Add listener', eventName)
             document.addEventListener(eventName, functionReference)
         } else {
             //mmgisAPI_.customListeners[eventName] = mmgisAPI_.customListeners[eventName] || []

@@ -54,8 +54,8 @@ var IdentifierTool = {
         }
     },
     make: function (targetId) {
-        this.MMWebGISInterface = new interfaceWithMMWebGIS()
         this.targetId = targetId
+        this.MMWebGISInterface = new interfaceWithMMWebGIS()
         this.activeLayerNames = []
 
         L_.subscribeOnLayerToggle('IdentifierTool', () => {
@@ -483,16 +483,18 @@ function interfaceWithMMWebGIS() {
     }
 
     //MMWebGIS should always have a div with id 'tools'
-    var tools = d3.select('#tools')
-    //Clear it
-    tools.selectAll('*').remove()
-    //Add a semantic container
-    tools = tools
-        .append('div')
-        .attr('class', 'center aligned ui padded grid')
-        .style('height', '100%')
-    //Add the markup to tools or do it manually
-    //tools.html( markup );
+    if (IdentifierTool.targetId !== 'toolContentSeparated_Identifier') {
+        var tools = d3.select('#tools')
+        //Clear it
+        tools.selectAll('*').remove()
+        //Add a semantic container
+        tools = tools
+            .append('div')
+            .attr('class', 'center aligned ui padded grid')
+            .style('height', '100%')
+        //Add the markup to tools or do it manually
+        //tools.html( markup );
+    }
 
     //Add event functions and whatnot
     var previousCursor = d3.select('#map').style('cursor')
