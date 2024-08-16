@@ -240,13 +240,15 @@ const Description = {
             }
         })
 
+        properties.sort()
         let propIndex = properties.indexOf(Description.navPopoverField)
         if (propIndex === -1) {
             Description.navPopoverField = NAV_DEFAULT_FIELD
             propIndex = 0
         }
+
         $('#mainDescNavPopoverFieldField').html(
-            Dropy.construct(properties.sort(), 'Field to Sort By', propIndex)
+            Dropy.construct(properties, 'Field to Sort By', propIndex)
         )
         Dropy.init($('#mainDescNavPopoverFieldField'), function (idx, val) {
             Description.navPopoverField = val
