@@ -80,6 +80,7 @@ export const palette = {
     query: "#87b051",
     data: "#c43541",
     model: "#dbb658",
+    image: "#b0518f",
   },
 };
 

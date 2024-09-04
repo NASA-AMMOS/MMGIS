@@ -1,0 +1,109 @@
+{
+  "tabs": [
+    {
+      "name": "Core",
+      "rows": [
+        {
+          "forceHeight": "64px",
+          "components": [
+            {
+              "field": "type",
+              "name": "Layer Type",
+              "description": "",
+              "type": "dropdown",
+              "width": 2,
+              "options": [
+                "data",
+                "header",
+                "image",
+                "model",
+                "query",
+                "tile",
+                "vector",
+                "vectortile"
+              ]
+            },
+            {
+              "field": "name",
+              "name": "Layer Name",
+              "description": "",
+              "type": "text",
+              "width": 8
+            },
+            {
+              "field": "visibility",
+              "name": "Initially On",
+              "description": "",
+              "type": "checkbox",
+              "width": 2,
+              "defaultChecked": false
+            }
+          ]
+        },
+        {
+          "name": "Image",
+          "components": [
+            {
+              "field": "url",
+              "name": "URL",
+              "description": "",
+              "type": "text",
+              "width": 10
+            },
+            {
+              "field": "demparser",
+              "name": "DEM Parser",
+              "description": "",
+              "type": "dropdown",
+              "width": 2,
+              "options": ["rgba", "tif"]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "minZoom",
+              "name": "Minimum Zoom",
+              "description": "",
+              "type": "number",
+              "min": 0,
+              "step": 1,
+              "width": 3
+            },
+            {
+              "field": "maxNativeZoom",
+              "name": "Maximum Native Zoom",
+              "description": "",
+              "type": "number",
+              "min": 0,
+              "step": 1,
+              "width": 2
+            },
+            {
+              "field": "maxZoom",
+              "name": "Maximum Zoom",
+              "description": "",
+              "type": "number",
+              "min": 0,
+              "step": 1,
+              "width": 3
+            }
+          ]
+        },
+        {
+          "name": "Other",
+          "components": [
+            {
+              "field": "boundingBox",
+              "name": "Bounding Box",
+              "description": "minx,miny,maxx,maxy",
+              "type": "textarray",
+              "width": 12
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
