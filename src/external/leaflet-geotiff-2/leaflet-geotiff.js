@@ -1,4 +1,4 @@
-import * as GeoTIFF from "geotiff/dist-browser/geotiff";
+import * as GeoTIFF from "geotiff";
 // Ideas from:
 // https://github.com/ScanEx/Leaflet.imageTransform/blob/master/src/L.ImageTransform.js
 // https://github.com/BenjaminVadant/leaflet-ugeojson
