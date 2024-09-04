@@ -74,6 +74,7 @@
     "flat": "^5.0.2",
     "fs-extra": "^8.1.0",
     "geojson-validation": "^1.0.2",
+    "geotiff": "^2.1.3",
     "hammerjs": "^2.0.8",
     "helmet": "^4.1.1",
     "hotkeys-js": "^3.12.0",
