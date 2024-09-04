@@ -21,6 +21,9 @@ import TimeControl from '../../Ancillary/TimeControl'
 
 import gjv from 'geojson-validation'
 
+import '../../../external/leaflet-geotiff-2/leaflet-geotiff.js'
+import '../../../external/leaflet-geotiff-2/leaflet-geotiff-rgb.js'
+
 let L = window.L
 
 let essenceFina = function () {}
@@ -578,6 +581,9 @@ async function makeLayer(
                     break
                 case 'data':
                     makeDataLayer(layerObj)
+                    break
+                case 'image':
+                    makeImageLayer(layerObj)
                     break
                 case 'model':
                     //Globe only
@@ -1140,6 +1146,30 @@ function makeDataLayer(layerObj) {
     L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
     allLayersLoaded()
 }
+
+function makeImageLayer(layerObj) {
+    let layerUrl = layerObj.url
+    if (!F_.isUrlAbsolute(layerUrl)) layerUrl = L_.missionPath + layerUrl
+
+    let bb = null
+    if (layerObj.hasOwnProperty('boundingBox')) {
+        bb = L.latLngBounds(
+            L.latLng(layerObj.boundingBox[3], layerObj.boundingBox[2]),
+            L.latLng(layerObj.boundingBox[1], layerObj.boundingBox[0])
+        )
+    }
+
+    var options = {
+        renderer: L.LeafletGeotiff.rgb(),
+    }
+    L_.layers.layer[layerObj.name] = L.leafletGeotiff(layerUrl, options)
+
+    L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
+
+    L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
+    allLayersLoaded()
+}
+
 
 //Because some layers load faster than others, check to see if
 // all our layers were loaded before moving on
