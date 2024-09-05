@@ -21,12 +21,12 @@ import TimeControl from '../../Ancillary/TimeControl'
 
 import gjv from 'geojson-validation'
 
-import '../../../external/leaflet-geotiff-2/leaflet-geotiff.js'
-import '../../../external/leaflet-geotiff-2/leaflet-geotiff-rgb.js'
-
 let L = window.L
 
 let essenceFina = function () {}
+
+import GeoRasterLayer from '../../../external/georaster-layer-for-leaflet/georaster-layer-for-leaflet.ts'
+import georaster from 'georaster'
 
 let Map_ = {
     //Our main leaflet map variable
@@ -38,6 +38,7 @@ let Map_ = {
     player: { arrow: null, lookat: null },
     //Initialize a map based on a config file
     init: function (essenceFinal) {
+        console.log("init map_")
         essenceFina = essenceFinal
 
         //Repair Leaflet and plugin incongruities
@@ -138,6 +139,8 @@ let Map_ = {
                 //wheelPxPerZoomLevel: 500,
             })
             // Default CRS
+
+            console.log("L.Proj", L.Proj) 
             const projString = `+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=${F_.radiusOfPlanetMajor} +b=${F_.radiusOfPlanetMinor} +towgs84=0,0,0,0,0,0,0 +units=m +no_defs`
             window.mmgisglobal.customCRS = new L.Proj.CRS(
                 'EPSG:3857',
@@ -1159,15 +1162,47 @@ function makeImageLayer(layerObj) {
         )
     }
 
-    var options = {
-        renderer: L.LeafletGeotiff.rgb(),
-    }
-    L_.layers.layer[layerObj.name] = L.leafletGeotiff(layerUrl, options)
 
-    L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
+    console.log("layerUrl", layerUrl)
+    fetch(layerUrl)
+        .then(response => response.arrayBuffer())
+        .then(arrayBuffer => {
+            parseGeoraster(arrayBuffer).then(georaster => {
+                console.log("georaster:", georaster);
 
-    L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
-    allLayersLoaded()
+                console.log("layerObj.name", layerObj.name)
+                L_.layers.layer[layerObj.name] = new GeoRasterLayer({
+                    georaster: georaster,
+                    resolution: 128
+                });
+
+                L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
+
+                L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
+                allLayersLoaded()
+            });
+
+    });
+
+
+/*
+
+      parseGeoraster(layerUrl).then(georaster => {
+        console.log("georaster:", georaster);
+
+        L_.layers.layer[layerObj.name] = new GeoRasterLayer({
+            georaster: georaster,
+            resolution: 128
+        });
+
+        L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
+
+        L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
+        allLayersLoaded()
+    });
+*/
+
+
 }
 
 
