@@ -8,6 +8,7 @@ const packagejson = require("../package.json");
 var bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const express = require("express");
+const { createProxyMiddleware } = require("http-proxy-middleware");
 var swaggerUi = require("swagger-ui-express");
 var swaggerDocumentMain = require("../documentation/pages/swaggers/swaggerMain.json");
 var exec = require("child_process").exec;
@@ -125,6 +126,56 @@ if (process.env.SPICE_SCHEDULED_KERNEL_DOWNLOAD === "true")
     process.env.SPICE_SCHEDULED_KERNEL_DOWNLOAD_ON_START,
     process.env.SPICE_SCHEDULED_KERNEL_CRON_EXPR
   );
+
+///////////////////////////
+// Proxies
+//// STAC
+if (process.env.WITH_STAC === "true") {
+  app.use(
+    "/stac",
+    createProxyMiddleware({
+      target: `http://localhost:${process.env.STAC_PORT || 8881}`,
+      changeOrigin: true,
+      pathRewrite: { "^/stac": "" },
+    })
+  );
+}
+
+//// Tipg
+if (process.env.WITH_TIPG === "true") {
+  app.use(
+    "/tipg",
+    createProxyMiddleware({
+      target: `http://localhost:${process.env.TIPG_PORT || 8882}`,
+      changeOrigin: true,
+      pathRewrite: { "^/tipg": "" },
+    })
+  );
+}
+
+//// TiTiler
+if (process.env.WITH_TITILER === "true") {
+  app.use(
+    "/titiler",
+    createProxyMiddleware({
+      target: `http://localhost:${process.env.TITLER_PORT || 8883}`,
+      changeOrigin: true,
+      pathRewrite: { "^/titiler": "" },
+    })
+  );
+}
+
+/// TiTiler-pgSTAC
+if (process.env.WITH_TITILER_PGSTAC === "true") {
+  app.use(
+    "/titilerpgstac",
+    createProxyMiddleware({
+      target: `http://localhost:${process.env.TITLER_PGSTAC_PORT || 8884}`,
+      changeOrigin: true,
+      pathRewrite: { "^/titilerpgstac": "" },
+    })
+  );
+}
 
 ///////////////////////////
 
