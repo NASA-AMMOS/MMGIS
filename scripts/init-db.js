@@ -1,5 +1,6 @@
 const Sequelize = require("sequelize");
 const logger = require("../API/logger");
+const execSync = require("child_process").execSync;
 require("dotenv").config({ path: __dirname + "/../.env" });
 
 initializeDatabase()
@@ -30,6 +31,46 @@ async function initializeDatabase() {
         },
       }
     );
+
+    // mmgis-stac
+    await baseSequelize
+      .query(`CREATE DATABASE "mmgis-stac";`)
+      .then(() => {
+        logger("info", `Created mmgis-stac database.`, "connection");
+
+        keepGoingSTAC();
+        return null;
+      })
+      .catch((err) => {
+        logger(
+          "info",
+          `Database mmgis-stac already exists. Nothing to do...`,
+          "connection"
+        );
+        keepGoingStac();
+        return null;
+      });
+
+    function keepGoingStac() {
+      try {
+        const output = execSync(
+          `cross-env PYTHONUTF8=1 PGHOST=${process.env.DB_HOST} PGPORT=${process.env.DB_PORT} PGUSER=${process.env.DB_USER} PGDATABASE=mmgis-stac PGPASSWORD=${process.env.DB_PASS} pypgstac migrate`
+        );
+        logger(
+          "info",
+          `Conformed the mmgis-stac database to pgstac.`,
+          "connection"
+        );
+      } catch (err) {
+        logger(
+          "warning",
+          `Failed to conformed the mmgis-stac database to pgstac.`,
+          "connection",
+          err
+        );
+      }
+    }
+
     await baseSequelize
       .query(`CREATE DATABASE "${process.env.DB_NAME}";`)
       .then(() => {
@@ -147,6 +188,7 @@ async function initializeDatabase() {
           return null;
         });
     }
+
     return null;
   });
 }

@@ -1,6 +1,7 @@
 numpy==1.26.4
 spiceypy==5.1.2
 pymap3d==3.0.1
+pypgstac==0.8.6
 python-dotenv[cli]==1.0.1
 uvicorn==0.30.6
 psycopg[binary,pool]==3.2.1

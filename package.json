@@ -37,7 +37,8 @@
   ],
   "scripts": {
     "start": "node scripts/init-db.js && concurrently --kill-others --names adj-srv,mmgis \"node adjacent-servers/adjacent-servers.js\" \"node scripts/server.js\"",
-    "start:prod": "node scripts/init-db.js && cross-env NODE_ENV=production node scripts/server.js",
+    "start:prod": "node scripts/init-db.js && concurrently --kill-others --names adj-srv,mmgis \"node adjacent-servers/adjacent-servers.js\" && cross-env NODE_ENV=production node scripts/server.js",
+    "start:prod-docker": "node scripts/init-db.js && cross-env NODE_ENV=production node scripts/server.js",
     "start:prod:with_examples": "cross-env NODE_ENV=production node scripts/server.js --with_examples",
     "start:docs": "cd ./docs && bundle exec jekyll serve",
     "start:analyzer": "node scripts/server.js --analyze",
