@@ -62,8 +62,16 @@
               "name": "Tile Format",
               "description": "",
               "type": "dropdown",
-              "width": 4,
+              "width": 2,
               "options": ["tms", "wmts", "wms"]
+            },
+            {
+              "field": "throughTileServer",
+              "name": "Use TiTiler",
+              "description": "Uses the TiTiler service to serve tiles if URL is a Cloud-Optimized GeoTiff (COG). TiTiler must be configured via the .env.",
+              "type": "switch",
+              "width": 2,
+              "defaultChecked": false
             },
             {
               "field": "controlled",

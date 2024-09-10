@@ -304,20 +304,22 @@ function interfaceWithMMGIS(fromInit) {
                 case 'tile':
                     layerExport = ''
                     // Add download URL for raster layers
-                    if(node[i].hasOwnProperty('variables')) {
-                        if(node[i].variables.hasOwnProperty('downloadURL')) {
+                    if (node[i].hasOwnProperty('variables')) {
+                        if (node[i].variables.hasOwnProperty('downloadURL')) {
                             layerExport = [
                                 '<ul>',
-                                    '<li>',
-                                        '<div class="layersToolExportSourceGeoJSON">',
-                                            `<div><a href="` + node[i].variables.downloadURL + `" target="_blank">Download Data</a></div>`,
-                                        '</div>',
-                                    '</li>',
+                                '<li>',
+                                '<div class="layersToolExportSourceGeoJSON">',
+                                `<div><a href="` +
+                                    node[i].variables.downloadURL +
+                                    `" target="_blank">Download Data</a></div>`,
+                                '</div>',
+                                '</li>',
                                 '</ul>',
                             ].join('\n')
                         }
                     }
-                    break 
+                    break
                 default:
                     layerExport = ''
             }
@@ -967,10 +969,11 @@ function interfaceWithMMGIS(fromInit) {
                     }
                 )
             } else {
-                let layerUrl = layerData.url
-
-                if (!F_.isUrlAbsolute(layerUrl))
-                    layerUrl = L_.missionPath + layerUrl
+                let layerUrl = L_.getUrl(
+                    layerData.type,
+                    layerData.url,
+                    layerData
+                )
                 $.getJSON(layerUrl, function (data) {
                     if (data.hasOwnProperty('Features')) {
                         data.features = data.Features

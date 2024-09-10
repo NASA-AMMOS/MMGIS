@@ -866,8 +866,7 @@ async function makeVectorLayer(
 }
 
 async function makeTileLayer(layerObj) {
-    let layerUrl = layerObj.url
-    if (!F_.isUrlAbsolute(layerUrl)) layerUrl = L_.missionPath + layerUrl
+    let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
     let bb = null
     if (layerObj.hasOwnProperty('boundingBox')) {
         bb = L.latLngBounds(
@@ -917,8 +916,7 @@ async function makeTileLayer(layerObj) {
 }
 
 function makeVectorTileLayer(layerObj) {
-    var layerUrl = layerObj.url
-    if (!F_.isUrlAbsolute(layerUrl)) layerUrl = L_.missionPath + layerUrl
+    let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
 
     let urlSplit = layerObj.url.split(':')
 
@@ -1100,8 +1098,7 @@ function makeModelLayer(layerObj) {
 }
 
 function makeDataLayer(layerObj) {
-    let layerUrl = layerObj.demtileurl
-    if (!F_.isUrlAbsolute(layerUrl)) layerUrl = L_.missionPath + layerUrl
+    let layerUrl = L_.getUrl(layerObj.type, layerObj.demtileurl, layerObj)
 
     let bb = null
     if (layerObj.hasOwnProperty('boundingBox')) {

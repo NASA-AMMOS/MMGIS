@@ -192,8 +192,11 @@ var IdentifierTool = {
             if (L_.layers.on[n] == true) {
                 //We only want the tile layers
                 if (L_.layers.data[n].type == 'tile') {
-                    var url = L_.layers.data[n].url
-                    if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
+                    let url = L_.getUrl(
+                        L_.layers.data[n].type,
+                        L_.layers.data[n].url,
+                        L_.layers.data[n]
+                    )
                     IdentifierTool.activeLayerURLs.push(url)
                     IdentifierTool.activeLayerNames.push(n)
                     IdentifierTool.zoomLevels.push(

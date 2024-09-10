@@ -126,6 +126,10 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
 
 1. Go back to the root `/` directory
 
+1. Run `python -m pip install -r python-requirements.txt`
+
+1. If using adjacent-servers (titiler, stac, ...) make `.env` files from the samples within the `/adjacent-servers/{servers}/` directory.
+
 1. Run `npm run start:prod`
 
 1. Setup the admin account:

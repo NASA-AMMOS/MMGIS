@@ -233,8 +233,11 @@ let ViewshedTool_Manager = {
             .floor()
     },
     queryDesiredTiles: function (viewshedId, progcb, cb) {
-        let url = this.data[viewshedId].dataLayer.demtileurl
-        if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
+        let url = L_.getUrl(
+            this.data[viewshedId].dataLayer.type,
+            this.data[viewshedId].dataLayer.demtileurl,
+            this.data[viewshedId].dataLayer
+        )
 
         let totalTiles = this.data[viewshedId].desiredTiles.length
         let tilesLoaded = 0
