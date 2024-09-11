@@ -25,6 +25,8 @@ const apiRouter = require("../API/Backend/APIs/routes/apis");
 
 const testEnv = require("../API/testEnv");
 
+const utils = require("../API/utils");
+
 const { sequelize } = require("../API/connection");
 
 const setups = require("../API/setups");
@@ -72,6 +74,8 @@ const rootDir = `${__dirname}/..`;
 
 ///////////////////////////
 const app = express();
+
+const isDocker = utils.isDocker();
 
 const apilimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
@@ -134,7 +138,9 @@ if (process.env.WITH_STAC === "true") {
   app.use(
     "/stac",
     createProxyMiddleware({
-      target: `http://localhost:${process.env.STAC_PORT || 8881}`,
+      target: `http://${isDocker ? "stac" : "localhost"}${
+        process.env.STAC_PORT || 8881
+      }`,
       changeOrigin: true,
       pathRewrite: { "^/stac": "" },
     })
@@ -146,7 +152,9 @@ if (process.env.WITH_TIPG === "true") {
   app.use(
     "/tipg",
     createProxyMiddleware({
-      target: `http://localhost:${process.env.TIPG_PORT || 8882}`,
+      target: `http://${isDocker ? "tipg" : "localhost"}:${
+        process.env.TIPG_PORT || 8882
+      }`,
       changeOrigin: true,
       pathRewrite: { "^/tipg": "" },
     })
@@ -158,7 +166,9 @@ if (process.env.WITH_TITILER === "true") {
   app.use(
     "/titiler",
     createProxyMiddleware({
-      target: `http://localhost:${process.env.TITLER_PORT || 8883}`,
+      target: `http://${isDocker ? "titiler" : "localhost"}:${
+        process.env.TITLER_PORT || 8883
+      }`,
       changeOrigin: true,
       pathRewrite: { "^/titiler": "" },
     })
@@ -170,7 +180,9 @@ if (process.env.WITH_TITILER_PGSTAC === "true") {
   app.use(
     "/titilerpgstac",
     createProxyMiddleware({
-      target: `http://localhost:${process.env.TITLER_PGSTAC_PORT || 8884}`,
+      target: `http://${isDocker ? "titiler-pgstac" : "localhost"}:${
+        process.env.TITLER_PGSTAC_PORT || 8884
+      }`,
       changeOrigin: true,
       pathRewrite: { "^/titilerpgstac": "" },
     })
