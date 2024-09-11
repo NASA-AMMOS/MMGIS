@@ -30,7 +30,7 @@ sessions
 .terraform/
 .terraform.lock.hcl
 
-.docker-compose.yml
-.docker-compose.env.yml
+docker-compose.yml
+docker-compose.env.yml
 
 #tools

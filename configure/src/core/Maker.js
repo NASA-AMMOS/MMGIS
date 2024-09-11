@@ -130,6 +130,7 @@ const useStyles = makeStyles((theme) => ({
     width: "100%",
     marginBottom: "8px !important",
     color: theme.palette.swatches.grey[400],
+    whiteSpace: "pre-wrap",
   },
   text: {
     width: "100%",
