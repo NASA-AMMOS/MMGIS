@@ -138,7 +138,7 @@ if (process.env.WITH_STAC === "true") {
   app.use(
     "/stac",
     createProxyMiddleware({
-      target: `http://${isDocker ? "stac" : "localhost"}${
+      target: `http://${isDocker ? "stac-fastapi" : "localhost"}${
         process.env.STAC_PORT || 8881
       }`,
       changeOrigin: true,
