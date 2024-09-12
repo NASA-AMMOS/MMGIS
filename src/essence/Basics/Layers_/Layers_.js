@@ -243,9 +243,9 @@ const L_ = {
     },
     getUrl: function (type, url, layerData) {
         let nextUrl = url
-        if (type === 'tile') {
-            if (!F_.isUrlAbsolute(nextUrl)) {
-                nextUrl = L_.missionPath + nextUrl
+        if (!F_.isUrlAbsolute(nextUrl)) {
+            nextUrl = L_.missionPath + nextUrl
+            if (type === 'tile') {
                 if (layerData && layerData.throughTileServer === true)
                     nextUrl = `../../${nextUrl}`
             }
