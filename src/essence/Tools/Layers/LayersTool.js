@@ -519,6 +519,23 @@ function interfaceWithMMGIS(fromInit) {
                         '</ul>',
                     ].join('\n')
                     break
+                case 'image':
+                    currentOpacity = L_.getLayerOpacity(node[i].name)
+                    if (currentOpacity == null)
+                        currentOpacity = L_.layers.opacity[node[i].name]
+
+                    // prettier-ignore
+                    settings = [
+                        '<ul>',
+                            '<li>',
+                                '<div>',
+                                    '<div>Opacity</div>',
+                                    '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.layers.opacity[node[i].name] + '">',
+                                '</div>',
+                            '</li>',
+                        '</ul>'
+                    ].join('\n')
+                    break
                 default:
                     settings = ''
             }
