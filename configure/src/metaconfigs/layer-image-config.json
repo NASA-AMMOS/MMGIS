@@ -57,6 +57,14 @@
               "type": "dropdown",
               "width": 2,
               "options": ["rgba", "tif"]
+            },
+            {
+              "field": "initialOpacity",
+              "name": "Initial Opacity",
+              "description": "0 (transparent) to 1 (opaque)",
+              "type": "number",
+              "min": 0,
+              "width": 2
             }
           ]
         },
