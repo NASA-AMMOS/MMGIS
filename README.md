@@ -221,3 +221,5 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 Dr. Fred J. Calef III - fred.calef@jpl.nasa.gov  
 Tariq K. Soliman - tariq.k.soliman@jpl.nasa.gov
+
+Or join us on **[Slack](https://nasa-ammos.slack.com/archives/C076L0Q1P4H)**
