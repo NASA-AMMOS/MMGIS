@@ -23,51 +23,6 @@ export const Routings = () => {
                 </div>
               }
             />
-            {/*
-                        <Route
-                            exact
-                            path={HASH_PATHS.search}
-                            component={() => {
-                                return (
-                                    <div className="routeContent">
-                                        <Search />
-                                    </div>
-                                )
-                            }}
-                        />
-                        <Route
-                            exact
-                            path={HASH_PATHS.record}
-                            component={() => {
-                                return (
-                                    <div className="routeContent">
-                                        <Record />
-                                    </div>
-                                )
-                            }}
-                        />
-                        <Route
-                            exact
-                            path={HASH_PATHS.cart}
-                            component={() => {
-                                return (
-                                    <div className="routeContent">
-                                        <Cart />
-                                    </div>
-                                )
-                            }}
-                        />
-                        <Route
-                            path={HASH_PATHS.fileExplorer}
-                            component={() => {
-                                return (
-                                    <div className="routeContent">
-                                        <FileExplorer />
-                                    </div>
-                                )
-                            }}
-                        />
-                        */}
           </Routes>
         </div>
       </Router>

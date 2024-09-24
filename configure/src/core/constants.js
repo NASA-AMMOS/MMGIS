@@ -1,5 +1,7 @@
-export const publicUrl =
-  /*process.env.REACT_APP_PUBLIC_URL ||*/ "configure-beta";
+export const publicUrl = `${(window.mmgisglobal.ROOT_PATH || "").replace(
+  /^\/|\/$/g,
+  ""
+)}/configure-beta`;
 
 export const endpoints = {};
 
