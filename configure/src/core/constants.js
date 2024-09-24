@@ -1,7 +1,6 @@
-export const publicUrl = `${(window.mmgisglobal.ROOT_PATH || "").replace(
-  /^\/|\/$/g,
-  ""
-)}/configure-beta`;
+export const publicUrl = `${window.location.pathname
+  .replace(`configure-beta`, "")
+  .replace(/^\//g, "")}configure-beta`;
 
 export const endpoints = {};
 

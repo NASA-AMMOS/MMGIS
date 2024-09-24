@@ -15,7 +15,6 @@ export const Routings = () => {
         <div className="routeMain">
           <Routes>
             <Route
-              exact
               path={HASH_PATHS.home}
               element={
                 <div className="routeContent">
