@@ -1164,16 +1164,64 @@ function makeImageLayer(layerObj) {
 
 
     console.log("layerUrl", layerUrl)
+
+        layerUrl = 'http://localhost:8889/' + layerUrl;
+            parseGeoraster(layerUrl).then((georaster) => {
+                console.log("georaster:", georaster);
+
+                console.log("layerObj.display_name", layerObj.display_name)
+                L_.layers.layer[layerObj.name] = new GeoRasterLayer({
+                    georaster: georaster,
+                    resolution: 256, //128
+
+/*
+                    pixelValuesToColorFn: (values) => {
+                        if (georaster.mins.length === 1) {
+
+                        }
+                        // https://github.com/GeoTIFF/georaster-layer-for-leaflet/issues/16
+                        //return values[0] === georaster.noDataValue ? null : `rgb(${values[0]},${values[1]},${values[2]})`
+                        if (values[0] === georaster.noDataValue) {
+                            console.log("value", `rgb(${values[0]},${values[1]},${values[2]})`)
+                        }
+                        return values[0] === georaster.noDataValue ? null : `rgb(${values[0]},${values[1]},${values[2]})`
+                    },
+*/
+                    debugLevel: 1,
+                });
+
+                L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
+
+
+            });
+
+                L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
+                allLayersLoaded()
+
+/*
     fetch(layerUrl)
         .then(response => response.arrayBuffer())
         .then(arrayBuffer => {
-            parseGeoraster(arrayBuffer).then(georaster => {
+            parseGeoraster(arrayBuffer, { readOnDemand: true }).then((georaster) => {
                 console.log("georaster:", georaster);
 
-                console.log("layerObj.name", layerObj.name)
+                console.log("layerObj.display_name", layerObj.display_name)
                 L_.layers.layer[layerObj.name] = new GeoRasterLayer({
                     georaster: georaster,
-                    resolution: 128
+                    resolution: 256, //128
+
+                    pixelValuesToColorFn: (values) => {
+                        if (georaster.mins.length === 1) {
+
+                        }
+                        // https://github.com/GeoTIFF/georaster-layer-for-leaflet/issues/16
+                        //return values[0] === georaster.noDataValue ? null : `rgb(${values[0]},${values[1]},${values[2]})`
+                        if (values[0] === georaster.noDataValue) {
+                            console.log("value", `rgb(${values[0]},${values[1]},${values[2]})`)
+                        }
+                        return values[0] === georaster.noDataValue ? null : `rgb(${values[0]},${values[1]},${values[2]})`
+                    },
+                    debugLevel: 1,
                 });
 
                 L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
@@ -1183,26 +1231,7 @@ function makeImageLayer(layerObj) {
             });
 
     });
-
-
-/*
-
-      parseGeoraster(layerUrl).then(georaster => {
-        console.log("georaster:", georaster);
-
-        L_.layers.layer[layerObj.name] = new GeoRasterLayer({
-            georaster: georaster,
-            resolution: 128
-        });
-
-        L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
-
-        L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
-        allLayersLoaded()
-    });
 */
-
-
 }
 
 
