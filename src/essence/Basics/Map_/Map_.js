@@ -311,7 +311,7 @@ let Map_ = {
     removeTempTileLayer: function () {
         this.rmNotNull(this.tempTileLayer)
     },
-    //Removes the map layer if it isnt null
+    //Removes the map layer if it isn't null
     rmNotNull: function (layer) {
         if (layer != null) {
             this.map.removeLayer(layer)
@@ -395,7 +395,7 @@ let Map_ = {
             )
         }
     },
-    refreshLayer: async function (layerObj, cb) {
+    refreshLayer: async function (layerObj, cb, skipOrderedBringToFront) {
         // We need to find and remove all points on the map that belong to the layer
         // Not sure if there is a cleaner way of doing this
         for (var i = L_._layersOrdered.length - 1; i >= 0; i--) {
@@ -406,7 +406,11 @@ let Map_ = {
             ) {
                 if (L_._layersBeingMade[layerObj.name] !== true) {
                     const wasOn = L_.layers.on[layerObj.name]
-                    if (wasOn) L_.toggleLayer(L_.layers.data[layerObj.name]) // turn off if on
+                    if (wasOn)
+                        L_.toggleLayer(
+                            L_.layers.data[layerObj.name],
+                            skipOrderedBringToFront
+                        ) // turn off if on
                     // fake on
                     L_.layers.on[layerObj.name] = true
                     await makeLayer(layerObj, true, null)
@@ -414,7 +418,10 @@ let Map_ = {
 
                     // turn off if was off
                     if (wasOn) L_.layers.on[layerObj.name] = false
-                    L_.toggleLayer(L_.layers.data[layerObj.name]) // turn back on/off
+                    L_.toggleLayer(
+                        L_.layers.data[layerObj.name],
+                        skipOrderedBringToFront
+                    ) // turn back on/off
 
                     L_.enforceVisibilityCutoffs()
                 } else {

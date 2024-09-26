@@ -180,7 +180,13 @@ var TimeControl = {
         if (layer.time) return layer.time.end
         return false
     },
-    reloadLayer: async function (layer, evenIfOff, evenIfControlled) {
+    reloadLayer: async function (
+        layer,
+        evenIfOff,
+        evenIfControlled,
+        forceRequery,
+        skipOrderedBringToFront
+    ) {
         // reload layer
         if (typeof layer == 'string') {
             layer = L_.asLayerUUID(layer)
@@ -199,7 +205,8 @@ var TimeControl = {
 
         layer.url = await TimeControl.performTimeUrlReplacements(
             layer.url,
-            layer
+            layer,
+            forceRequery
         )
         let changedUrl = null
         if (layer.url !== originalUrl) changedUrl = layer.url
@@ -218,7 +225,8 @@ var TimeControl = {
             if (layer.time && layer.time.enabled === true) {
                 if (
                     layer.time.type === 'global' ||
-                    layer.time.type === 'requery'
+                    layer.time.type === 'requery' ||
+                    forceRequery
                 ) {
                     layer.url = layer.url
                         .replace(
@@ -250,7 +258,8 @@ var TimeControl = {
             if (
                 layer.type === 'vector' &&
                 layer.time.type === 'local' &&
-                layer.time.endProp != null
+                layer.time.endProp != null &&
+                forceRequery !== true
             ) {
                 if (evenIfControlled === true || layer.controlled !== true)
                     L_.timeFilterVectorLayer(
@@ -262,11 +271,38 @@ var TimeControl = {
                 // refresh map
                 if (evenIfControlled === true || layer.controlled !== true)
                     if (L_.layers.on[layer.name] || evenIfOff) {
-                        return await Map_.refreshLayer(layer, () => {
-                            // put start/endtime keywords back
-                            if (layer.time && layer.time.enabled === true)
-                                layer.url = originalUrl
-                        })
+                        return await Map_.refreshLayer(
+                            layer,
+                            () => {
+                                if (layer.time && layer.time.enabled === true) {
+                                    // put start/endtime keywords back
+                                    layer.url = originalUrl
+
+                                    // if requery was force, remember to timeFilter after load
+                                    if (
+                                        layer.type === 'vector' &&
+                                        layer.time.type === 'local' &&
+                                        layer.time.endProp != null &&
+                                        forceRequery === true
+                                    ) {
+                                        if (
+                                            evenIfControlled === true ||
+                                            layer.controlled !== true
+                                        )
+                                            L_.timeFilterVectorLayer(
+                                                layer.name,
+                                                new Date(
+                                                    layer.time.start
+                                                ).getTime(),
+                                                new Date(
+                                                    layer.time.end
+                                                ).getTime()
+                                            )
+                                    }
+                                }
+                            },
+                            skipOrderedBringToFront
+                        )
                     }
             }
         }
@@ -274,7 +310,7 @@ var TimeControl = {
         if (layer.time && layer.time.enabled === true) layer.url = originalUrl
         return true
     },
-    performTimeUrlReplacements: async function (url, layer) {
+    performTimeUrlReplacements: async function (url, layer, forceRequery) {
         return new Promise(async (resolve, reject) => {
             let layerTimeFormat =
                 layer.time?.format == null
@@ -315,12 +351,17 @@ var TimeControl = {
                     }
                 }
             }
+            if (forceRequery === true) {
+                nextUrl += `${
+                    nextUrl.indexOf('?') === -1 ? '?' : '&'
+                }nocache=${new Date().getTime()}`
+            }
             resolve(nextUrl)
         })
     },
     reloadTimeLayers: function () {
         // refresh time enabled layers
-        var reloadedLayers = []
+        let reloadedLayers = []
         for (let layerName in L_.layers.data) {
             const layer = L_.layers.data[layerName]
             if (
@@ -335,7 +376,7 @@ var TimeControl = {
         return reloadedLayers
     },
     updateLayersTime: function () {
-        var updatedLayers = []
+        let updatedLayers = []
         for (let layerName in L_.layers.data) {
             const layer = L_.layers.data[layerName]
             if (layer.time && layer.time.enabled === true) {
