@@ -433,7 +433,7 @@
             {
               "field": "time.refreshIntervalAmount",
               "name": "Refresh Every N Seconds",
-              "description": "If 'Time Enabled' and 'Refresh Interval Enabled', this layer will automatically refresh/requery its data every n seconds.",
+              "description": "If 'Time Enabled' and 'Refresh Interval Enabled', this layer will automatically refresh/requery its data every n seconds. If null or 0, defaults to 60.",
               "type": "number",
               "min": 1,
               "width": 3
