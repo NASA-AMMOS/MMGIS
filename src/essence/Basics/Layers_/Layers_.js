@@ -3580,7 +3580,7 @@ function parseConfig(configData, urlOnLayers) {
                             }
                         }
                     },
-                    (d[i].time.refreshIntervalAmount || 30) * 1000
+                    (d[i].time.refreshIntervalAmount || 60) * 1000
                 )
             }
             //Save the prevName for easy tracing back

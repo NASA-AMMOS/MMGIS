@@ -364,7 +364,7 @@ function interfaceWithMMGIS(fromInit) {
                                 '<label class="autoRefreshInterval ' +
                                     F_.getSafeName(node[i].name) +
                                     '">' +
-                                    (node[i].time.refreshIntervalAmount || 30) +
+                                    (node[i].time.refreshIntervalAmount || 60) +
                                     ' Seconds</label>',
                                 '</div>',
                             '</li>'
