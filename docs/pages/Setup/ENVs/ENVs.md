@@ -163,3 +163,7 @@ If true, then also triggers the kernel download when MMGIS starts | boolean | de
 #### `SPICE_SCHEDULED_KERNEL_CRON_EXPR=`
 
 A cron schedule expression for use in the [node-schedule npm library](https://www.npmjs.com/package/node-schedule) | string | default `"0 0 */2 * *"` (every other day)
+
+#### `COMPOSITE_TILE_DIR_STORE_MAX_AGE_MS=`
+
+When using composited time tiles, MMGIS queries the tileset's folder for existing time folders. It caches the results of the these folder listings every COMPOSITE_TILE_DIR_STORE_MAX_AGE_MS milliseconds. Defaults to requerying every 30 minutes. If 0, no caching. If null or NaN, uses default. | number | default `1800000`

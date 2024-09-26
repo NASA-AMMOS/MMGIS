@@ -34,6 +34,7 @@ const L_ = {
         opacity: {}, // opacityArray
         filters: {}, // layerFilters
         nameToUUID: {},
+        refreshIntervals: {}, // In order to reloadLayer
     },
     // ===== Private ======
     //Index -> layer name
@@ -1104,7 +1105,7 @@ const L_ = {
                         })
                         layer.options = savedOptions2
                     }
-                }, 1)
+                }, 100)
             }
         } catch (err) {
             if (layer._icon)
@@ -3528,6 +3529,60 @@ function parseConfig(configData, urlOnLayers) {
 
             //Create parsed layers named
             L_.layers.data[d[i].name] = d[i]
+
+            if (
+                d[i].time &&
+                d[i].time.enabled === true &&
+                d[i].time.refreshIntervalEnabled === true
+            ) {
+                if (L_.layers.refreshIntervals[d[i].name])
+                    clearInterval(L_.layers.refreshIntervals[d[i].name])
+                L_.layers.refreshIntervals[d[i].name] = setInterval(
+                    async () => {
+                        if (L_.layers.on[d[i].name] === true) {
+                            console.log(
+                                JSON.stringify(
+                                    L_.activeFeature
+                                        ? L_.activeFeature.layerName
+                                        : ''
+                                )
+                            )
+                            let savedActiveFeature
+                            if (
+                                L_.activeFeature &&
+                                L_.activeFeature.layerName === d[i].name
+                            ) {
+                                savedActiveFeature = {
+                                    layerName: L_.activeFeature.layerName,
+                                    feature: JSON.parse(
+                                        JSON.stringify(L_.activeFeature.feature)
+                                    ),
+                                }
+                            }
+                            await L_.TimeControl_.reloadLayer(
+                                d[i].name,
+                                false,
+                                false,
+                                true
+                            )
+                            // Reselect activeFeature
+
+                            setTimeout(() => {
+                                if (
+                                    savedActiveFeature &&
+                                    savedActiveFeature.layerName === d[i].name
+                                ) {
+                                    L_.selectFeature(
+                                        savedActiveFeature.layerName,
+                                        savedActiveFeature.feature
+                                    )
+                                }
+                            }, 800)
+                        }
+                    },
+                    d[i].time.refreshIntervalAmount * 1000
+                )
+            }
             //Save the prevName for easy tracing back
             L_._layersParent[d[i].name] = prevName
 

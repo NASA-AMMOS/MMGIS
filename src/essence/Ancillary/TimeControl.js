@@ -180,7 +180,12 @@ var TimeControl = {
         if (layer.time) return layer.time.end
         return false
     },
-    reloadLayer: async function (layer, evenIfOff, evenIfControlled) {
+    reloadLayer: async function (
+        layer,
+        evenIfOff,
+        evenIfControlled,
+        forceRequery
+    ) {
         // reload layer
         if (typeof layer == 'string') {
             layer = L_.asLayerUUID(layer)
@@ -218,7 +223,8 @@ var TimeControl = {
             if (layer.time && layer.time.enabled === true) {
                 if (
                     layer.time.type === 'global' ||
-                    layer.time.type === 'requery'
+                    layer.time.type === 'requery' ||
+                    forceRequery
                 ) {
                     layer.url = layer.url
                         .replace(
@@ -250,7 +256,8 @@ var TimeControl = {
             if (
                 layer.type === 'vector' &&
                 layer.time.type === 'local' &&
-                layer.time.endProp != null
+                layer.time.endProp != null &&
+                forceRequery !== true
             ) {
                 if (evenIfControlled === true || layer.controlled !== true)
                     L_.timeFilterVectorLayer(
@@ -320,7 +327,7 @@ var TimeControl = {
     },
     reloadTimeLayers: function () {
         // refresh time enabled layers
-        var reloadedLayers = []
+        let reloadedLayers = []
         for (let layerName in L_.layers.data) {
             const layer = L_.layers.data[layerName]
             if (
@@ -335,7 +342,7 @@ var TimeControl = {
         return reloadedLayers
     },
     updateLayersTime: function () {
-        var updatedLayers = []
+        let updatedLayers = []
         for (let layerName in L_.layers.data) {
             const layer = L_.layers.data[layerName]
             if (layer.time && layer.time.enabled === true) {

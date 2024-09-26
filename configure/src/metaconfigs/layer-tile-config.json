@@ -198,6 +198,26 @@
               "defaultChecked": false
             }
           ]
+        },
+        {
+          "components": [
+            {
+              "field": "time.refreshIntervalEnabled",
+              "name": "Refresh Interval Enabled",
+              "description": "If 'Time Enabled' and 'Refresh Interval Enabled', this layer will automatically refresh/requery its data every 'Refresh Every N Seconds'. This is useful when the layer's data updates at some uniform cadence. Be aware that this may be an expensive operation depending on the amount of data a layer needs and the number of layers that have this enabled.",
+              "type": "switch",
+              "width": 5,
+              "defaultChecked": false
+            },
+            {
+              "field": "time.refreshIntervalAmount",
+              "name": "Refresh Every N Seconds",
+              "description": "If 'Time Enabled' and 'Refresh Interval Enabled', this layer will automatically refresh/requery its data every n seconds.",
+              "type": "number",
+              "min": 1,
+              "width": 3
+            }
+          ]
         }
       ]
     },
