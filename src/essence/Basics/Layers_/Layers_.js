@@ -245,7 +245,7 @@ const L_ = {
     //Takes in config layer obj
     //Toggles a layer on and off and accounts for sublayers
     //Takes in a config layer object
-    toggleLayer: async function (s) {
+    toggleLayer: async function (s, skipOrderedBringToFront) {
         if (s == null) return
 
         const wasNeverOn = L_.layers.layer[s.name] === false
@@ -254,7 +254,7 @@ const L_ = {
         if (L_.layers.on[s.name] === true) on = true
         else on = false
 
-        await L_.toggleLayerHelper(s, on)
+        await L_.toggleLayerHelper(s, on, null, null, skipOrderedBringToFront)
 
         Object.keys(L_._onLayerToggleSubscriptions).forEach((k) => {
             L_._onLayerToggleSubscriptions[k](s.name, !on)
@@ -292,7 +292,8 @@ const L_ = {
         s,
         on,
         ignoreToggleStateChange,
-        globeOnly
+        globeOnly,
+        skipOrderedBringToFront
     ) {
         if (s.type !== 'header') {
             if (on) {
@@ -303,7 +304,7 @@ const L_ = {
                     try {
                         $('.drawToolContextMenuHeaderClose').click()
                     } catch (err) {}
-                    L_.Map_.map.removeLayer(L_.layers.layer[s.name])
+                    L_.Map_.rmNotNull(L_.layers.layer[s.name])
                     if (L_.layers.attachments[s.name]) {
                         for (let sub in L_.layers.attachments[s.name]) {
                             switch (L_.layers.attachments[s.name][sub].type) {
@@ -588,7 +589,11 @@ const L_ = {
 
             if (s.type === 'vector') L_._updatePairings(s.name, !on)
 
-            if (!on && s.type === 'vector') {
+            if (
+                !on &&
+                s.type === 'vector' &&
+                skipOrderedBringToFront !== true
+            ) {
                 L_.Map_.orderedBringToFront()
             }
             L_._refreshAnnotationEvents()
@@ -1639,6 +1644,10 @@ const L_ = {
             }
         }
         L_.layers.opacity[name] = newOpacity
+
+        if (L_.activeFeature?.layer && L_.activeFeature.layerName === name) {
+            L_.highlight(L_.activeFeature.layer)
+        }
     },
     getLayerOpacity: function (name) {
         var l = L_.layers.layer[name]
@@ -3540,13 +3549,6 @@ function parseConfig(configData, urlOnLayers) {
                 L_.layers.refreshIntervals[d[i].name] = setInterval(
                     async () => {
                         if (L_.layers.on[d[i].name] === true) {
-                            console.log(
-                                JSON.stringify(
-                                    L_.activeFeature
-                                        ? L_.activeFeature.layerName
-                                        : ''
-                                )
-                            )
                             let savedActiveFeature
                             if (
                                 L_.activeFeature &&
@@ -3563,24 +3565,22 @@ function parseConfig(configData, urlOnLayers) {
                                 d[i].name,
                                 false,
                                 false,
+                                true,
                                 true
                             )
                             // Reselect activeFeature
-
-                            setTimeout(() => {
-                                if (
-                                    savedActiveFeature &&
-                                    savedActiveFeature.layerName === d[i].name
-                                ) {
-                                    L_.selectFeature(
-                                        savedActiveFeature.layerName,
-                                        savedActiveFeature.feature
-                                    )
-                                }
-                            }, 800)
+                            if (
+                                savedActiveFeature &&
+                                savedActiveFeature.layerName === d[i].name
+                            ) {
+                                L_.selectFeature(
+                                    savedActiveFeature.layerName,
+                                    savedActiveFeature.feature
+                                )
+                            }
                         }
                     },
-                    d[i].time.refreshIntervalAmount * 1000
+                    (d[i].time.refreshIntervalAmount || 30) * 1000
                 )
             }
             //Save the prevName for easy tracing back

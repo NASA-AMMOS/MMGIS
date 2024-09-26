@@ -304,20 +304,22 @@ function interfaceWithMMGIS(fromInit) {
                 case 'tile':
                     layerExport = ''
                     // Add download URL for raster layers
-                    if(node[i].hasOwnProperty('variables')) {
-                        if(node[i].variables.hasOwnProperty('downloadURL')) {
+                    if (node[i].hasOwnProperty('variables')) {
+                        if (node[i].variables.hasOwnProperty('downloadURL')) {
                             layerExport = [
                                 '<ul>',
-                                    '<li>',
-                                        '<div class="layersToolExportSourceGeoJSON">',
-                                            `<div><a href="` + node[i].variables.downloadURL + `" target="_blank">Download Data</a></div>`,
-                                        '</div>',
-                                    '</li>',
+                                '<li>',
+                                '<div class="layersToolExportSourceGeoJSON">',
+                                `<div><a href="` +
+                                    node[i].variables.downloadURL +
+                                    `" target="_blank">Download Data</a></div>`,
+                                '</div>',
+                                '</li>',
                                 '</ul>',
                             ].join('\n')
                         }
                     }
-                    break 
+                    break
                 default:
                     layerExport = ''
             }
@@ -326,28 +328,48 @@ function interfaceWithMMGIS(fromInit) {
             var timeDisplay = ''
             if (node[i].time != null) {
                 if (node[i].time.enabled == true) {
+                    // prettier-ignore
                     timeDisplay = [
                         '<ul>',
-                        '<li>',
-                        '<div>',
-                        '<div>Start Time</div>',
-                        '<label class="starttime ' +
-                            F_.getSafeName(node[i].name) +
-                            '">' +
-                            node[i].time.start +
-                            '</label>',
-                        '</div>',
-                        '</li>',
-                        '<li>',
-                        '<div>',
-                        '<div>End Time</div>',
-                        '<label class="endtime ' +
-                            F_.getSafeName(node[i].name) +
-                            '">' +
-                            node[i].time.end +
-                            '</label>',
-                        '</div>',
-                        '</li>',
+                            '<li class="layerTimeTitle">',
+                                '<div>Time</div>',
+                            '</li>',
+                            '<li>',
+                                '<div>',
+                                '<div>Start Time</div>',
+                                '<label class="starttime ' +
+                                    F_.getSafeName(node[i].name) +
+                                    '">' +
+                                    node[i].time.start +
+                                    '</label>',
+                                '</div>',
+                            '</li>',
+                            '<li>',
+                                '<div>',
+                                '<div>End Time</div>',
+                                '<label class="endtime ' +
+                                    F_.getSafeName(node[i].name) +
+                                    '">' +
+                                    node[i].time.end +
+                                    '</label>',
+                                '</div>',
+                            '</li>',
+                            (
+                                node[i].time.refreshIntervalEnabled === true
+                            ) ? 
+                            [
+                            '<li>',
+                                '<div>',
+                                '<div>Auto-Refreshes Every</div>',
+                                '<label class="autoRefreshInterval ' +
+                                    F_.getSafeName(node[i].name) +
+                                    '">' +
+                                    (node[i].time.refreshIntervalAmount || 30) +
+                                    ' Seconds</label>',
+                                '</div>',
+                            '</li>'
+                            ].join('\n')
+                            : null,
                         '</ul>',
                     ].join('\n')
                 }

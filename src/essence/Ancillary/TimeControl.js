@@ -184,7 +184,8 @@ var TimeControl = {
         layer,
         evenIfOff,
         evenIfControlled,
-        forceRequery
+        forceRequery,
+        skipOrderedBringToFront
     ) {
         // reload layer
         if (typeof layer == 'string') {
@@ -204,7 +205,8 @@ var TimeControl = {
 
         layer.url = await TimeControl.performTimeUrlReplacements(
             layer.url,
-            layer
+            layer,
+            forceRequery
         )
         let changedUrl = null
         if (layer.url !== originalUrl) changedUrl = layer.url
@@ -269,11 +271,38 @@ var TimeControl = {
                 // refresh map
                 if (evenIfControlled === true || layer.controlled !== true)
                     if (L_.layers.on[layer.name] || evenIfOff) {
-                        return await Map_.refreshLayer(layer, () => {
-                            // put start/endtime keywords back
-                            if (layer.time && layer.time.enabled === true)
-                                layer.url = originalUrl
-                        })
+                        return await Map_.refreshLayer(
+                            layer,
+                            () => {
+                                if (layer.time && layer.time.enabled === true) {
+                                    // put start/endtime keywords back
+                                    layer.url = originalUrl
+
+                                    // if requery was force, remember to timeFilter after load
+                                    if (
+                                        layer.type === 'vector' &&
+                                        layer.time.type === 'local' &&
+                                        layer.time.endProp != null &&
+                                        forceRequery === true
+                                    ) {
+                                        if (
+                                            evenIfControlled === true ||
+                                            layer.controlled !== true
+                                        )
+                                            L_.timeFilterVectorLayer(
+                                                layer.name,
+                                                new Date(
+                                                    layer.time.start
+                                                ).getTime(),
+                                                new Date(
+                                                    layer.time.end
+                                                ).getTime()
+                                            )
+                                    }
+                                }
+                            },
+                            skipOrderedBringToFront
+                        )
                     }
             }
         }
@@ -281,7 +310,7 @@ var TimeControl = {
         if (layer.time && layer.time.enabled === true) layer.url = originalUrl
         return true
     },
-    performTimeUrlReplacements: async function (url, layer) {
+    performTimeUrlReplacements: async function (url, layer, forceRequery) {
         return new Promise(async (resolve, reject) => {
             let layerTimeFormat =
                 layer.time?.format == null
@@ -321,6 +350,11 @@ var TimeControl = {
                             )
                     }
                 }
+            }
+            if (forceRequery === true) {
+                nextUrl += `${
+                    nextUrl.indexOf('?') === -1 ? '?' : '&'
+                }nocache=${new Date().getTime()}`
             }
             resolve(nextUrl)
         })

@@ -202,6 +202,17 @@
     padding: 0;
     margin: 0;
 }
+#layersTool .settings .layerTimeTitle {
+    display: flex;
+    height: 30px;
+    line-height: 30px;
+}
+#layersTool .settings .layerTimeTitle > div:first-child {
+    color: var(--color-h);
+    text-transform: uppercase;
+    font-size: 12px;
+}
+
 #layersTool .settings .layerSettingsTitle {
     display: flex;
     height: 30px;
@@ -213,7 +224,6 @@
     font-size: 12px;
 }
 #layersTool .settings .layerSettingsTitle > div:last-child {
-    
 }
 #layersTool .settings ul > li {
     line-height: 30px;
@@ -619,7 +629,6 @@
         transform: rotate(360deg);
     }
 }
-
 
 .layersToolExport {
     cursor: default;
