@@ -950,7 +950,7 @@ setups.getBackendSetups(function (setups) {
             CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER,
             ENABLE_MMGIS_WEBSOCKETS: process.env.ENABLE_MMGIS_WEBSOCKETS,
             MAIN_MISSION: process.env.MAIN_MISSION,
-            IS_DOCKER: "test",
+            IS_DOCKER: process.env.IS_DOCKER,
             SKIP_CLIENT_INITIAL_LOGIN: process.env.SKIP_CLIENT_INITIAL_LOGIN,
             THIRD_PARTY_COOKIES: process.env.THIRD_PARTY_COOKIES,
             PORT: process.env.PORT,
