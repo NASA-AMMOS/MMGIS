@@ -29,7 +29,7 @@ services:
     command: bash -c "bash /tmp/scripts/wait-for-it.sh -t 120 -h db -p 5432 && uvicorn stac_fastapi.pgstac.app:app --host 0.0.0.0 --port 8881"
     volumes:
       - ./adjacent-servers/docker-scripts:/tmp/scripts
-      - ./Missions:/usr/src/app/Missions
+      - ./Missions:/app/Missions
 
   tipg:
     image: ghcr.io/developmentseed/tipg:0.7.1
@@ -58,7 +58,7 @@ services:
       - db
     volumes:
       - ./adjacent-servers/docker-scripts:/tmp/scripts
-      - ./Missions:/usr/src/app/Missions
+      - ./Missions:/app/Missions
 
   titiler:
     # TODO: remove once https://github.com/rasterio/rasterio-wheels/issues/69 is resolved
@@ -102,7 +102,7 @@ services:
       # rio-tiler config
       # - RIO_TILER_MAX_THREADS=
     volumes:
-      - ./Missions:/usr/src/app/Missions
+      - ./Missions:/app/Missions
 
   titiler-pgstac:
     # At the time of writing, rasterio and psycopg wheels are not available for arm64 arch
@@ -150,7 +150,7 @@ services:
       - db
     command: bash -c "bash /tmp/scripts/wait-for-it.sh -t 120 -h db -p 5432 && /start.sh"
     volumes:
-      - ./Missions:/usr/src/app/Missions
+      - ./Missions:/app/Missions
       - ./adjacent-servers/docker-scripts:/tmp/scripts
 
   db:

@@ -245,13 +245,21 @@ const L_ = {
         let nextUrl = url
         if (!F_.isUrlAbsolute(nextUrl)) {
             nextUrl = L_.missionPath + nextUrl
-            if (type === 'tile') {
-                if (layerData && layerData.throughTileServer === true)
-                    nextUrl = `../../${nextUrl}`
-            }
-            if (layerData && layerData.throughTileServer === true)
-                nextUrl = `${window.location.origin}/titiler/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.webp?url=${nextUrl}`
         }
+        if (
+            type === 'tile' &&
+            layerData &&
+            layerData.throughTileServer === true
+        ) {
+            if (
+                !F_.isUrlAbsolute(nextUrl) &&
+                window.mmgisglobal.IS_DOCKER !== 'true'
+            ) {
+                nextUrl = `../../${nextUrl}`
+            }
+        }
+        if (layerData && layerData.throughTileServer === true)
+            nextUrl = `${window.location.origin}/titiler/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.webp?url=${nextUrl}`
         return nextUrl
     },
     //Takes in config layer obj

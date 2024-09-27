@@ -76,6 +76,7 @@ const rootDir = `${__dirname}/..`;
 const app = express();
 
 const isDocker = utils.isDocker();
+process.env.IS_DOCKER = isDocker ? "true" : "false";
 
 const apilimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
@@ -936,7 +937,7 @@ setups.getBackendSetups(function (setups) {
           let permission = "000";
           if (process.env.AUTH === "csso") permission = "001";
           if (req.session.permission) permission = req.session.permission;
-
+          console.log("process.env.IS_DOCKER", process.env.IS_DOCKER);
           const groups = req.groups ? Object.keys(req.groups) : [];
           res.render("../build/index.pug", {
             user: user,
@@ -949,6 +950,7 @@ setups.getBackendSetups(function (setups) {
             CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER,
             ENABLE_MMGIS_WEBSOCKETS: process.env.ENABLE_MMGIS_WEBSOCKETS,
             MAIN_MISSION: process.env.MAIN_MISSION,
+            IS_DOCKER: "test",
             SKIP_CLIENT_INITIAL_LOGIN: process.env.SKIP_CLIENT_INITIAL_LOGIN,
             THIRD_PARTY_COOKIES: process.env.THIRD_PARTY_COOKIES,
             PORT: process.env.PORT,
