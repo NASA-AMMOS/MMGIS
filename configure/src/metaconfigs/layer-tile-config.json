@@ -158,11 +158,11 @@
           "name": "Actions",
           "components": [
             {
-              "name": "Populate Fields From tilemapresource.xml",
-              "description": "If the above URL is relative to the Missions/{mission} directory and the tileset contains a tilemapresource.xml within it, queries that xml and auto-fills the 'Minimum Zoom', 'Maximum Native Zoom' and 'Bounding Box' fields above.",
+              "name": "Populate Fields From tilemapresource.xml or from cog/info",
+              "description": "If the above URL is relative to the Missions/{mission} directory and the tileset contains a tilemapresource.xml within it, queries that xml and auto-fills the 'Minimum Zoom', 'Maximum Native Zoom' and 'Bounding Box' fields above. If it is a COG and TiTiler is true, the COG's data will be queried instead.",
               "type": "button",
-              "action": "tile-populate-from-xml",
-              "width": 4
+              "action": "tile-populate-from-x",
+              "width": 6
             }
           ]
         }

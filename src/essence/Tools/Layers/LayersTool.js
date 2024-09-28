@@ -582,6 +582,9 @@ function interfaceWithMMGIS(fromInit) {
                                     '<div title="Settings" class="gears" id="layersettings' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
                                         '<i class="mdi mdi-tune mdi-18px" name="layersettings"></i>',
                                     '</div>',
+                                    '<div title="Locate" class="locate" id="layerlocate' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
+                                        '<i class="mdi mdi-crosshairs-gps mdi-18px" name="layerlocate"></i>',
+                                    '</div>',
                                     '<div title="Information" class="LayersToolInfo" id="layerinfo' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
                                         '<i class="mdi mdi-information-outline mdi-18px" name="layerinfo"></i>',
                                     '</div>',
@@ -824,6 +827,69 @@ function interfaceWithMMGIS(fromInit) {
             if (['vector', 'query'].includes(type)) {
                 if (!wasOn) Filtering.make($(this).parent().parent(), layerName)
             }
+        }
+    })
+
+    // Locates/zooms to fill extent of layer
+    $('#layersTool .locate').on('click', function (e) {
+        e.stopPropagation()
+        const layerName = $(this).attr('layername')
+        const data = L_.layers.data[layerName]
+        const layer = L_.layers.layer[layerName]
+
+        if (!data || !layer) {
+            CursorInfo.update(
+                'Unable to locate layer.',
+                4000,
+                true,
+                { x: 385, y: 6 },
+                '#e9ff26',
+                'black'
+            )
+            return
+        }
+
+        if (L_.layers.on[layerName] !== true) {
+            CursorInfo.update(
+                'Please turn the layer on before locating.',
+                4000,
+                true,
+                { x: 385, y: 6 },
+                '#e9ff26',
+                'black'
+            )
+            return
+        }
+
+        try {
+            if (typeof layer.getBounds === 'function') {
+                Map_.map.fitBounds(layer.getBounds())
+            } else if (data.boundingBox) {
+                Map_.map.fitBounds([
+                    [data.boundingBox[1], data.boundingBox[0]],
+                    [data.boundingBox[3], data.boundingBox[2]],
+                ])
+            } else {
+                CursorInfo.update(
+                    'Unable to locate layer.',
+                    4000,
+                    true,
+                    { x: 385, y: 6 },
+                    '#e9ff26',
+                    'black'
+                )
+                return
+            }
+        } catch (err) {
+            CursorInfo.update(
+                'Unable to locate layer.',
+                4000,
+                true,
+                { x: 385, y: 6 },
+                '#e9ff26',
+                'black'
+            )
+            return
         }
     })
     //Enables the time dialogue box

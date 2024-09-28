@@ -4,6 +4,12 @@ import { saveAs } from "file-saver";
 export const isNumeric = (value) => {
   return /^\d+$/.test(value);
 };
+
+export const isUrlAbsolute = (url) => {
+  const r = new RegExp("^(?:[a-z]+:)?//", "i");
+  return r.test(url);
+};
+
 /**
  * Traverses an object with an array of keys
  * @param {*} obj

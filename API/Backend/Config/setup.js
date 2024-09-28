@@ -53,6 +53,7 @@ let setup = {
               process.env.NODE_ENV === "development"
                 ? ""
                 : process.env.WEBSOCKET_ROOT_PATH || "",
+            IS_DOCKER: process.env.IS_DOCKER,
           });
         }
       );
