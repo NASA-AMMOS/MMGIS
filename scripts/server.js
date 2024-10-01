@@ -8,7 +8,10 @@ const packagejson = require("../package.json");
 var bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const express = require("express");
-const { createProxyMiddleware } = require("http-proxy-middleware");
+const {
+  createProxyMiddleware,
+  responseInterceptor,
+} = require("http-proxy-middleware");
 var swaggerUi = require("swagger-ui-express");
 var swaggerDocumentMain = require("../documentation/pages/swaggers/swaggerMain.json");
 var exec = require("child_process").exec;
@@ -132,6 +135,25 @@ if (process.env.SPICE_SCHEDULED_KERNEL_DOWNLOAD === "true")
     process.env.SPICE_SCHEDULED_KERNEL_CRON_EXPR
   );
 
+///
+const createSwaggerInterceptor = (path) => {
+  return responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
+    if (req.originalUrl.endsWith(`/${path}/api`)) {
+      const response = JSON.parse(responseBuffer.toString("utf8")); // convert buffer to string
+      response.servers = [{ url: `/${path}` }];
+      return JSON.stringify(response); // manipulate response and return the result
+    } else if (req.originalUrl.endsWith(`/${path}/api.html`)) {
+      const response = responseBuffer.toString("utf8"); // convert buffer to string
+      return response
+        .replace("'/api'", `'${process.env.ROOT_PATH || ""}/${path}/api'`)
+        .replace(
+          "'/docs/oauth2-redirect'",
+          `'${process.env.ROOT_PATH || ""}/${path}/docs/oauth2-redirect'`
+        ); // manipulate response and return the result
+    }
+    return responseBuffer;
+  });
+};
 ///////////////////////////
 // Proxies
 //// STAC
@@ -144,6 +166,10 @@ if (process.env.WITH_STAC === "true") {
       }`,
       changeOrigin: true,
       pathRewrite: { "^/stac": "" },
+      selfHandleResponse: true,
+      on: {
+        proxyRes: createSwaggerInterceptor("stac"),
+      },
     })
   );
 }
@@ -158,6 +184,10 @@ if (process.env.WITH_TIPG === "true") {
       }`,
       changeOrigin: true,
       pathRewrite: { "^/tipg": "" },
+      selfHandleResponse: true,
+      on: {
+        proxyRes: createSwaggerInterceptor("tipg"),
+      },
     })
   );
 }
@@ -168,10 +198,14 @@ if (process.env.WITH_TITILER === "true") {
     "/titiler",
     createProxyMiddleware({
       target: `http://${isDocker ? "titiler" : "localhost"}:${
-        process.env.TITLER_PORT || 8883
+        process.env.TITILER_PORT || 8883
       }`,
       changeOrigin: true,
       pathRewrite: { "^/titiler": "" },
+      selfHandleResponse: true,
+      on: {
+        proxyRes: createSwaggerInterceptor("titiler"),
+      },
     })
   );
 }
@@ -182,10 +216,14 @@ if (process.env.WITH_TITILER_PGSTAC === "true") {
     "/titilerpgstac",
     createProxyMiddleware({
       target: `http://${isDocker ? "titiler-pgstac" : "localhost"}:${
-        process.env.TITLER_PGSTAC_PORT || 8884
+        process.env.TITILER_PGSTAC_PORT || 8884
       }`,
       changeOrigin: true,
       pathRewrite: { "^/titilerpgstac": "" },
+      selfHandleResponse: true,
+      on: {
+        proxyRes: createSwaggerInterceptor("titilerpgstac"),
+      },
     })
   );
 }
