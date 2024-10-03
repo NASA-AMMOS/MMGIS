@@ -1163,20 +1163,23 @@ function makeImageLayer(layerObj) {
     }
 
     parseGeoraster(layerUrl).then((georaster) => {
-        console.log("layerObj.display_name", layerObj.display_name)
         L_.layers.layer[layerObj.name] = new GeoRasterLayer({
             georaster: georaster,
             resolution: 256,
-            debugLevel: 1,
-        });
+        })
+
+        L_.layers.layer[layerObj.name].setZIndex(
+            L_._layersOrdered.length +
+                1 -
+                L_._layersOrdered.indexOf(layerObj.name)
+        )
 
         L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
+
+        L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
+        allLayersLoaded()
     });
-
-    L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
-    allLayersLoaded()
 }
-
 
 //Because some layers load faster than others, check to see if
 // all our layers were loaded before moving on
