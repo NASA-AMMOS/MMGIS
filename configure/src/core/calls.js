@@ -81,6 +81,14 @@ const c = {
     type: "GET",
     url: "api/datasets/download",
   },
+  stac_collections: {
+    type: "GET",
+    url: "stac/collections",
+  },
+  stac_create_collection: {
+    type: "POST",
+    url: "stac/collections",
+  },
   longtermtoken_get: {
     type: "GET",
     url: "api/longtermtoken/get",
@@ -104,6 +112,10 @@ const c = {
   webhooks_config: {
     type: "POST",
     url: "api/webhooks/config",
+  },
+  titiler_tileMatrixSets: {
+    type: "GET",
+    url: "titiler/tileMatrixSets",
   },
 };
 

@@ -8,10 +8,6 @@ const packagejson = require("../package.json");
 var bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const express = require("express");
-const {
-  createProxyMiddleware,
-  responseInterceptor,
-} = require("http-proxy-middleware");
 var swaggerUi = require("swagger-ui-express");
 var swaggerDocumentMain = require("../documentation/pages/swaggers/swaggerMain.json");
 var exec = require("child_process").exec;
@@ -39,6 +35,8 @@ const { updateTools } = require("../API/updateTools");
 const { websocket } = require("../API/websocket");
 
 const { setSPICEKernelDownloadSchedule } = require("../spice/getKernels");
+
+const initAdjacentServersProxy = require("../adjacent-servers/adjacent-servers-proxy");
 
 const WebSocket = require("isomorphic-ws");
 
@@ -136,97 +134,6 @@ if (process.env.SPICE_SCHEDULED_KERNEL_DOWNLOAD === "true")
   );
 
 ///
-const createSwaggerInterceptor = (path) => {
-  return responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
-    if (req.originalUrl.endsWith(`/${path}/api`)) {
-      const response = JSON.parse(responseBuffer.toString("utf8")); // convert buffer to string
-      response.servers = [{ url: `/${path}` }];
-      return JSON.stringify(response); // manipulate response and return the result
-    } else if (req.originalUrl.endsWith(`/${path}/api.html`)) {
-      const response = responseBuffer.toString("utf8"); // convert buffer to string
-      return response
-        .replace("'/api'", `'${process.env.ROOT_PATH || ""}/${path}/api'`)
-        .replace(
-          "'/docs/oauth2-redirect'",
-          `'${process.env.ROOT_PATH || ""}/${path}/docs/oauth2-redirect'`
-        ); // manipulate response and return the result
-    }
-    return responseBuffer;
-  });
-};
-///////////////////////////
-// Proxies
-//// STAC
-if (process.env.WITH_STAC === "true") {
-  app.use(
-    "/stac",
-    createProxyMiddleware({
-      target: `http://${isDocker ? "stac-fastapi" : "localhost"}:${
-        process.env.STAC_PORT || 8881
-      }`,
-      changeOrigin: true,
-      pathRewrite: { "^/stac": "" },
-      selfHandleResponse: true,
-      on: {
-        proxyRes: createSwaggerInterceptor("stac"),
-      },
-    })
-  );
-}
-
-//// Tipg
-if (process.env.WITH_TIPG === "true") {
-  app.use(
-    "/tipg",
-    createProxyMiddleware({
-      target: `http://${isDocker ? "tipg" : "localhost"}:${
-        process.env.TIPG_PORT || 8882
-      }`,
-      changeOrigin: true,
-      pathRewrite: { "^/tipg": "" },
-      selfHandleResponse: true,
-      on: {
-        proxyRes: createSwaggerInterceptor("tipg"),
-      },
-    })
-  );
-}
-
-//// TiTiler
-if (process.env.WITH_TITILER === "true") {
-  app.use(
-    "/titiler",
-    createProxyMiddleware({
-      target: `http://${isDocker ? "titiler" : "localhost"}:${
-        process.env.TITILER_PORT || 8883
-      }`,
-      changeOrigin: true,
-      pathRewrite: { "^/titiler": "" },
-      selfHandleResponse: true,
-      on: {
-        proxyRes: createSwaggerInterceptor("titiler"),
-      },
-    })
-  );
-}
-
-/// TiTiler-pgSTAC
-if (process.env.WITH_TITILER_PGSTAC === "true") {
-  app.use(
-    "/titilerpgstac",
-    createProxyMiddleware({
-      target: `http://${isDocker ? "titiler-pgstac" : "localhost"}:${
-        process.env.TITILER_PGSTAC_PORT || 8884
-      }`,
-      changeOrigin: true,
-      pathRewrite: { "^/titilerpgstac": "" },
-      selfHandleResponse: true,
-      on: {
-        proxyRes: createSwaggerInterceptor("titilerpgstac"),
-      },
-    })
-  );
-}
 
 ///////////////////////////
 
@@ -386,7 +293,7 @@ function ensureGroup(allowedGroups) {
   };
 }
 
-function ensureAdmin(toLoginPage, denyLongTermTokens) {
+function ensureAdmin(toLoginPage, denyLongTermTokens, allowGets, disallow) {
   return (req, res, next) => {
     let url = req.originalUrl.split("?")[0].toLowerCase();
     const remoteAddress =
@@ -399,10 +306,27 @@ function ensureAdmin(toLoginPage, denyLongTermTokens) {
       url.endsWith("/api/geodatasets/search") ||
       url.endsWith("/api/datasets/get") ||
       req.session.permission === "111"
-    )
+    ) {
       next();
-    else if (toLoginPage) res.render("adminlogin", { user: req.user });
-    else if (!denyLongTermTokens && req.headers.authorization) {
+      return;
+    }
+
+    if (allowGets === true && req.method === "GET") {
+      if (
+        disallow == null ||
+        disallow.filter((path) => url.endsWith(path)).length == 0
+      ) {
+        next();
+        return;
+      }
+    }
+
+    if (toLoginPage) {
+      res.render("adminlogin", { user: req.user });
+      return;
+    }
+
+    if (!denyLongTermTokens && req.headers.authorization) {
       validateLongTermToken(
         req.headers.authorization,
         () => {
@@ -419,15 +343,16 @@ function ensureAdmin(toLoginPage, denyLongTermTokens) {
           );
         }
       );
-    } else {
-      res.send({ status: "failure", message: "Unauthorized!" });
-      logger(
-        "warn",
-        `Unauthorized call made and rejected (from ${remoteAddress})`,
-        req.originalUrl,
-        req
-      );
+      return;
     }
+
+    res.send({ status: "failure", message: "Unauthorized!" });
+    logger(
+      "warn",
+      `Unauthorized call made and rejected (from ${remoteAddress})`,
+      req.originalUrl,
+      req
+    );
     return;
   };
 }
@@ -510,6 +435,9 @@ const useSwaggerSchema =
   (schema) =>
   (...args) =>
     swaggerUi.setup(schema, swaggerOptions)(...args);
+
+///
+initAdjacentServersProxy(app, isDocker, ensureAdmin);
 
 let s = {
   app: app,

@@ -38,6 +38,7 @@ import APITokens from "../../pages/APITokens/APITokens";
 import GeoDatasets from "../../pages/GeoDatasets/GeoDatasets";
 import Datasets from "../../pages/Datasets/Datasets";
 import WebHooks from "../../pages/WebHooks/WebHooks";
+import STAC from "../../pages/STAC/STAC";
 
 const useStyles = makeStyles((theme) => ({
   Main: {
@@ -166,6 +167,9 @@ export default function Main() {
       break;
     case "webhooks":
       Page = <WebHooks />;
+      break;
+    case "stac":
+      Page = <STAC />;
       break;
     default:
   }

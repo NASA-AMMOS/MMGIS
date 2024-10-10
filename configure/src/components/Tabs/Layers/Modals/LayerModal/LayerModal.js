@@ -13,6 +13,8 @@ import {
   setConfiguration,
 } from "../../../../../core/ConfigureStore";
 
+import { inject } from "../../../../../core/injectables";
+
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -195,6 +197,10 @@ const LayerModal = (props) => {
     default:
       break;
   }
+
+  config = inject(config);
+
+  console.log(config);
 
   return (
     <Dialog

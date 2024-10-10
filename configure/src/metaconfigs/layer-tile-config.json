@@ -62,16 +62,8 @@
               "name": "Tile Format",
               "description": "See URL description above. If a COG and 'Use TiTiler' is enabled, this format is overrided to be 'WMTS'.",
               "type": "dropdown",
-              "width": 2,
+              "width": 4,
               "options": ["tms", "wmts", "wms"]
-            },
-            {
-              "field": "throughTileServer",
-              "name": "Use TiTiler",
-              "description": "Uses the TiTiler service to serve tiles if URL is a Cloud-Optimized GeoTiff (COG). TiTiler must be configured via the .env.",
-              "type": "switch",
-              "width": 2,
-              "defaultChecked": false
             },
             {
               "field": "controlled",
@@ -88,6 +80,26 @@
               "type": "number",
               "min": 0,
               "width": 2
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "throughTileServer",
+              "name": "Use TiTiler",
+              "description": "Uses the TiTiler service to serve tiles if URL is a Cloud-Optimized GeoTiff (COG). TiTiler must be configured via the .env.",
+              "type": "switch",
+              "width": 4,
+              "defaultChecked": false
+            },
+            {
+              "field": "tileMatrixSet",
+              "name": "Tile Matrix Set",
+              "description": "If using TiTiler, specify the projection for which to serve the tiles.",
+              "type": "dropdown",
+              "width": 4,
+              "options": "{{TILE_MATRIX_SETS}}"
             }
           ]
         },

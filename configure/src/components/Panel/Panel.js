@@ -18,6 +18,7 @@ import KeyIcon from "@mui/icons-material/Key";
 import PhishingIcon from "@mui/icons-material/Phishing";
 import ApiIcon from "@mui/icons-material/Api";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import HorizontalSplitIcon from "@mui/icons-material/HorizontalSplit";
 
 const useStyles = makeStyles((theme) => ({
   Panel: {
@@ -221,6 +222,22 @@ export default function Panel() {
           >
             Webhooks
           </Button>
+
+          {window.mmgisglobal.WITH_STAC === "true" ? (
+            <Button
+              className={c.pageButton}
+              variant="contained"
+              disableElevation
+              startIcon={<HorizontalSplitIcon size="small" />}
+              onClick={() => {
+                dispatch(setMission(null));
+                dispatch(setPage({ page: "stac" }));
+              }}
+            >
+              STAC
+            </Button>
+          ) : null}
+
           {window.mmgisglobal.WITH_STAC === "true" ? (
             <Button
               className={c.pageButton}

@@ -9,6 +9,7 @@ import Panel from "../components/Panel/Panel";
 import { calls } from "../core/calls";
 import { setMissions, setSnackBarText } from "./ConfigureStore";
 import Websocket from "./Websocket";
+import { getInjectables } from "./injectables";
 
 const useStyles = makeStyles((theme) => ({
   Configure: {
@@ -46,6 +47,8 @@ export default function Configure() {
         );
       }
     );
+
+    getInjectables();
   }, [dispatch]);
 
   return (
