@@ -541,6 +541,7 @@ function interfaceWithMMGIS(fromInit) {
                         '</ul>',
                     ].join('\n')
                     break
+                case 'velocity':
                 default:
                     settings = ''
             }

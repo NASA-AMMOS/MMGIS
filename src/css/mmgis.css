@@ -124,6 +124,7 @@ body {
     --color-query: var(--color-p3);
     --color-data: var(--color-p4);
     --color-model: var(--color-p0);
+    --color-velocity: var(--color-p7);
 }
 
 #nodeenv {

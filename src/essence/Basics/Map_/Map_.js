@@ -574,6 +574,14 @@ async function makeLayer(
                         forceGeoJSON
                     )
                     break
+                case 'velocity':
+                    await makeVelocityLayer(
+                        layerObj,
+                        evenIfOff,
+                        null,
+                        forceGeoJSON
+                    )
+                    break
                 case 'tile':
                     makeTileLayer(layerObj)
                     break
@@ -869,6 +877,87 @@ async function makeVectorLayer(
             allLayersLoaded()
             resolve()
         }
+    })
+}
+
+
+//For vector velocity layers
+async function makeVelocityLayer(
+    layerObj,
+    evenIfOff,
+    useEmptyGeoJSON,
+    forceGeoJSON
+) {
+    return new Promise((resolve, reject) => {
+        if (forceGeoJSON) add(forceGeoJSON)
+        else
+            captureVector(
+                layerObj,
+                { evenIfOff: evenIfOff, useEmptyGeoJSON: useEmptyGeoJSON },
+                add,
+                (f) => {
+                    Map_.map.on('moveend', f)
+                    if (
+                        layerObj.time?.enabled === true &&
+                        layerObj.controlled !== true
+                    )
+                        L_.subscribeTimeChange(
+                            `dynamicgeodataset_${layerObj.name}`,
+                            f
+                        )
+                    L_.subscribeOnSpecificLayerToggle(
+                        `dynamicgeodataset_${layerObj.name}`,
+                        layerObj.name,
+                        f
+                    )
+                }
+            )
+
+        function add(data, allowInvalid) {
+
+            if ( layerObj.type == 'velocity' ) {
+                if (layerObj.kind == 'streamlines') {
+                    L.velocityLayer({
+                        displayValues: true,
+                        displayOptions: {
+                        position: "bottomleft",
+                        emptyString: "No data"
+                        },
+                        data: data,
+                        minVelocity: 0,
+                        maxVelocity: 0.6,
+                        velocityScale: 0.01,
+                        particleAge: 90,
+                        lineWidth: 1,
+                        particleMultiplier: 1/300,
+                        frameRate: 15,
+                        colorScale: ["rgb(36,104, 180)", "rgb(60,157, 194)", "rgb(128,205,193 )", "rgb(151,218,168 )", "rgb(198,231,181)", "rgb(238,247,217)", "rgb(255,238,159)", "rgb(252,217,125)", "rgb(255,182,100)", "rgb(252,150,75)", "rgb(250,112,52)", "rgb(245,64,32)", "rgb(237,45,28)", "rgb(220,24,32)", "rgb(180,0,35)"]
+                    }).addTo(Map_.map)
+                } else if (layerObj.kind == 'particles') {
+                    let points = []
+                    if (data.features) {
+                        data.features.forEach(function (feature) {
+                            points.push([feature.geometry.coordinates[1], feature.geometry.coordinates[0]])
+                        })
+                    }
+                    let options = {
+                        angle: 80,
+                        width: 1,
+                        spacing: 10,
+                        length: 4,
+                        interval: 10,
+                        speed: 1,
+                        color: 'Oxa6b3e9'
+                    }
+                    L.rain(points, options).addTo(Map_.map);
+                }
+
+                L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
+                L_.layers.layer[layerObj.name] = data == null ? null : false
+			}
+        }
+        allLayersLoaded()
+        resolve()
     })
 }
 

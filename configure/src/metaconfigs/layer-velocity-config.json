@@ -37,12 +37,10 @@
               "type": "dropdown",
               "width": 2,
               "options": [
-                "none",
-                "info",
-                "waypoint",
-                "chemistry_tool",
-                "draw_tool",
-                "edl_wedge"
+                "particles",
+                "streamlines",
+                "arrows",
+                "windbarbs"
               ]
             },
             {
@@ -87,14 +85,6 @@
               "width": 2
             },
             {
-              "field": "layer3dType",
-              "name": "3D Layer Type",
-              "description": "Whether, in the Globe, to clamp this layer onto the ground textures or to represent with sprites and line objects.",
-              "type": "dropdown",
-              "width": 2,
-              "options": ["clamped", "vector"]
-            },
-            {
               "field": "initialOpacity",
               "name": "Initial Opacity",
               "description": "A value from 0 (transparent) to 1 (opaque) of the layer's initial opacity.",
@@ -102,6 +92,14 @@
               "min": 0,
               "max": 1,
               "width": 2
+            },
+            {
+              "field": "controlled",
+              "name": "Controlled",
+              "description": "Whether the layer can be dynamically updated via the JavaScript API or not. If true, the layer can be dynamically updated and the URL is not required. If true and a URL is set and Time Enabled is true, the initial url query will be performed.",
+              "type": "checkbox",
+              "width": 4,
+              "defaultChecked": false
             }
           ]
         }
@@ -206,7 +204,7 @@
               "description": "Radius in pixels of point features.",
               "type": "slider",
               "min": 0,
-              "max": 24,
+              "max": 32,
               "step": 1,
               "width": 2
             },
@@ -222,25 +220,11 @@
         {
           "components": [
             {
-              "field": "style.vtId",
-              "name": "Vector Tile Feature Unique Id Key",
-              "description": "Each feature of the vector tileset needs a property with a unique value to identify it. This required field is the name of that property.",
-              "type": "text",
-              "width": 4
-            },
-            {
-              "field": "style.vtKey",
-              "name": "Vector Tile Use Key as Name",
-              "description": "(Optional) The property key whose value should be the hover text of each feature.",
-              "type": "text",
-              "width": 4
-            },
-            {
               "field": "shape",
               "name": "Shape",
               "description": "A marker symbol for point features for this layer. When set to 'None', a simple circle is used. Marker icons and other attachments may override this setting.",
               "type": "dropdown",
-              "width": 4,
+              "width": 3,
               "options": [
                 "none",
                 "circle",
@@ -255,20 +239,20 @@
                 "plus",
                 "pin"
               ]
-            }
-          ]
-        },
-
-        {
-          "subname": "Vector Tile Stylings",
-          "subdescription": "Like: { \"<internal_vector_tile_layer_name>\": { \"color\": \"#FFFFFF\", \"fill\": true, \"fillColor\": \"rgb(0, 125, 200)\", \"fillOpacity\": 0.5, \"opacity\": 1,\"radius\": 4,\"weight\": 2} }",
-          "components": [
+            },
             {
-              "field": "style.vtLayer",
-              "name": "Vector Tile Style",
-              "description": "Vector Tiles are styled differently than Vectors. Raw variables here takes an object that maps internal vector tile layer names to styles. All raw variables are optional.",
-              "type": "json",
-              "width": 12
+              "field": "style.shapeIcon",
+              "name": "Shape From Icon",
+              "description": "Shape but taken from the Material Design Icon (mdi) library. akes priority over the value in the 'shape' field. See https://pictogrammers.com/library/mdi/",
+              "type": "text",
+              "width": 3
+            },
+            {
+              "field": "style.shapeProp",
+              "name": "Shape From Property",
+              "description": "Shape but taken from each individual feature's property. For example 'shape' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'shape' and 'shape from icon' fields. Shape values are formatted like the dropdown options but all lowercase. Material Design Icon (mdi) icon names are also supported values.",
+              "type": "text",
+              "width": 3
             }
           ]
         },
@@ -424,6 +408,26 @@
               "description": "Required in Time Enabled = true and Time Type = Local. The main time property path. Can use dot-notation for nested path. Can be a unix timestamp or an ISO time (end the ISO with a Z to designate that it should be treated as a UTC time).",
               "type": "text",
               "width": 6
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "time.refreshIntervalEnabled",
+              "name": "Refresh Interval Enabled",
+              "description": "If 'Time Enabled' and 'Refresh Interval Enabled', this layer will automatically refresh/requery its data every 'Refresh Every N Seconds'. This is useful when the layer's data updates at some uniform cadence. Be aware that this may be an expensive operation depending on the amount of data a layer needs and the number of layers that have this enabled.",
+              "type": "switch",
+              "width": 5,
+              "defaultChecked": false
+            },
+            {
+              "field": "time.refreshIntervalAmount",
+              "name": "Refresh Every N Seconds",
+              "description": "If 'Time Enabled' and 'Refresh Interval Enabled', this layer will automatically refresh/requery its data every n seconds. If null or 0, defaults to 60.",
+              "type": "number",
+              "min": 1,
+              "width": 3
             }
           ]
         }
@@ -837,6 +841,18 @@
               "field": "variables.dynamicExtentMoveThreshold",
               "name": "Threshold",
               "description": "If dynamicExtent is true, only requery if the map was panned past the stated threshold. Unit is in meters. If a zoom-dependent threshold is desired, set this value to a string ending in '/z'. This will then internally use 'dynamicExtentMoveThreshold / Math.pow(2, zoom)' as the threshold value.",
+              "type": "text",
+              "width": 3
+            }
+          ]
+        },
+        {
+          "subname": "Identification",
+          "components": [
+            {
+              "field": "variables.useKeyAsId",
+              "name": "Property Key of Unique Id",
+              "description": "In the case of deep-linking to certain features, a feature.properties key/field name is needed that points to a unique id in order to reselect it. dot.notation.is.supported for nested fields. You must make sure unique key values exist per feature for this to function properly. It is advised to set this if 'Dynamic Extent' is enabled.",
               "type": "text",
               "width": 3
             }

@@ -1,0 +1,5 @@
+.webgl-canvas {
+    -webkit-transform-origin': '0 0';
+    -ms-transform-origin': '0 0';
+    transform-origin: '0 0';
+}

@@ -1066,6 +1066,18 @@ function makeLayerBarAndModal(d, level, options) {
         xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
         timeEl = "block"; timeTypeEl = "block"; timeStartPropEl = "block"; timeEndPropEl = "block"; timeFormatEl = "block"; timeCompositeTileEl = "none"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "block";
       break;
+    case "velocity":
+        nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; controlledEl = "block"; demtileurlEl = "none";  demparserEl = "none";
+        descriptionEl = "block"; tagsEl = "block"; legendEl = "block";
+        visEl = "block"; viscutEl = "block"; initOpacEl = "block"; togwheadEl = "none"; minzEl = "block"; layer3dEl = "block";
+        tileformatEl = "none";
+        modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
+        modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
+        maxnzEl = "none"; maxzEl = "block"; strcolEl = "block"; filcolEl = "block";
+        weightEl = "block"; opacityEl = "block"; radiusEl = "block"; variableEl = "block";
+        xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
+        timeEl = "block"; timeTypeEl = "block"; timeStartPropEl = "block"; timeEndPropEl = "block"; timeFormatEl = "block"; timeCompositeTileEl = "none"; timeRefreshEl = "none"; timeIncrementEl = "none"; shapeEl = "block";
+      break;
     case "model":
         nameEl = "block"; kindEl = "none"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; demparserEl = "none"; controlledEl = "none";
         descriptionEl = "block"; tagsEl = "block"; legendEl = "none";
@@ -1090,7 +1102,8 @@ function makeLayerBarAndModal(d, level, options) {
     dataSel = "",
     querySel = "",
     vectorSel = "",
-    modelSel = "";
+    modelSel = "",
+    velocitySel = "";
 
   switch (d.type) {
     case "header":
@@ -1120,6 +1133,10 @@ function makeLayerBarAndModal(d, level, options) {
     case "model":
       barColor = "rgb(189, 189, 15)";
       modelSel = "selected";
+      break;
+    case "velocity":
+      barColor = "rgb(11, 187, 222)";
+      velocitySel = "selected";
       break;
     default:
       console.warn(`Unknown layer type: ${d.type}`);
@@ -1376,6 +1393,7 @@ function makeLayerBarAndModal(d, level, options) {
                   "<option value='query' " + querySel + ">Query</option>" +
                   "<option value='vector' " + vectorSel + ">Vector</option>" +
                   "<option value='model' " + modelSel + ">Model</option>" +
+                  "<option value='velocity' " + velocitySel + ">Velocity</option>" +
                 "</optgroup>" +
               "</select>" +
               "<label>Layer Type</label>" +
@@ -1857,6 +1875,18 @@ function mmgisLinkModalsToLayersTypeChange(e) {
         shapeEl = 'none'; queryEndpointEl = "block"; queryTypeEl = "block";
       break;
     case "vector": barColor = "rgb(15, 119, 189)";
+        nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; demparserEl = "none"; controlledEl = "block";
+        descriptionEl = "block"; tagsEl = "block"; legendEl = "block";
+        tileformatEl = "none"; visEl = "block"; viscutEl = "block"; initOpacEl = "block"; togwheadEl = "none"; minzEl = "block"; maxnzEl = "none"; layer3dEl = "block";
+        modelLonEl = "none"; modelLatEl = "none"; modelElevEl = "none";
+        modelRotXEl = "none"; modelRotYEl = "none"; modelRotZEl = "none"; modelScaleEl = "none";
+        maxzEl = "block"; strcolEl = "block"; filcolEl = "block"; weightEl = "block";
+        opacityEl = "block"; radiusEl = "block"; variableEl = "block";
+        xmlEl = "none"; bbEl = "none"; vtLayerEl = "none"; vtIdEl = "none"; vtKeyEl = "none"; vtLayerSetStylesEl = "none";
+        timeEl = 'block'; timeTypeEl = 'block'; timeStartPropEl = 'block'; timeEndPropEl = 'block'; timeFormatEl = 'block'; timeCompositeTileEl = 'none'; timeRefreshEl = 'none'; timeIncrementEl = 'none';
+        shapeEl = 'block'; queryEndpointEl = "none"; queryTypeEl = "none";
+      break;
+    case "vector": barColor = "rgb(11, 187, 222)";
         nameEl = "block"; kindEl = "block"; typeEl = "block"; urlEl = "block"; demtileurlEl = "none"; demparserEl = "none"; controlledEl = "block";
         descriptionEl = "block"; tagsEl = "block"; legendEl = "block";
         tileformatEl = "none"; visEl = "block"; viscutEl = "block"; initOpacEl = "block"; togwheadEl = "none"; minzEl = "block"; maxnzEl = "none"; layer3dEl = "block";
