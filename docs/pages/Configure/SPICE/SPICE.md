@@ -50,7 +50,7 @@ The schema works as follows:
 {
   "body": {
     "{NAIF_BODY_NAME_OR_ID}": {
-      "desciption": "If a function uses this BODY, it will furnsh() all these direct kernels.",
+      "description": "If a function uses this BODY, it will furnsh() all these direct kernels.",
       "kernels": [
         "Full URL to kernel to download",
         "Or an object that indicates a meta-kernel (a kernel that lists out other kernels to download):",

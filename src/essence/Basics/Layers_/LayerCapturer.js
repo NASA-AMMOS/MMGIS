@@ -57,6 +57,18 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
             .replace(/{starttime}/g, startTime)
             .replace(/{endtime}/g, endTime)
             .replace(/{time}/g, endTime)
+
+        if (
+            TimeControl.customTimes?.times &&
+            TimeControl.customTimes.times.length > 0
+        ) {
+            for (let i = 0; i < TimeControl.customTimes.times.length; i++) {
+                layerUrl = layerUrl.replace(
+                    new RegExp(`{customtime.${i}}`, 'g'),
+                    TimeControl.customTimes.times[i]
+                )
+            }
+        }
     }
     if (!F_.isUrlAbsolute(layerUrl)) layerUrl = L_.missionPath + layerUrl
 
@@ -133,6 +145,8 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                         layerData?.variables
                                             ?.dynamicExtentMoveThreshold ==
                                             null ||
+                                        layerData._ignoreDynamicExtentMoveThreshold ===
+                                            true ||
                                         F_.lngLatDistBetween(
                                             lastLoc.lng,
                                             lastLoc.lat,
@@ -154,10 +168,20 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                                       )
                                                     : 1))
                                 ) {
+                                    layerData._ignoreDynamicExtentMoveThreshold = false
                                     L_.clearVectorLayer(layerObj.name)
                                     L_.updateVectorLayer(layerObj.name, data)
                                     _geodatasetRequestLastLoc[layerObj.name] =
                                         nowLoc
+
+                                    if (L_?._timeLayerReloadFinishSubscriptions)
+                                        Object.keys(
+                                            L_._timeLayerReloadFinishSubscriptions
+                                        ).forEach((k) => {
+                                            L_._timeLayerReloadFinishSubscriptions[
+                                                k
+                                            ]()
+                                        })
                                 }
                             },
                             (data) => {
@@ -240,6 +264,22 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                             .replace(/{maxx}/g, body.maxx)
                             .replace(/{maxy}/g, body.maxy)
 
+                        if (
+                            TimeControl.customTimes?.times &&
+                            TimeControl.customTimes.times.length > 0
+                        ) {
+                            for (
+                                let i = 0;
+                                i < TimeControl.customTimes.times.length;
+                                i++
+                            ) {
+                                dynamicLayerUrl = dynamicLayerUrl.replace(
+                                    new RegExp(`{customtime.${i}}`, 'g'),
+                                    TimeControl.customTimes.times[i]
+                                )
+                            }
+                        }
+
                         if (!F_.isUrlAbsolute(dynamicLayerUrl))
                             dynamicLayerUrl = L_.missionPath + dynamicLayerUrl
 
@@ -248,6 +288,8 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                 data.features = data.Features
                                 delete data.Features
                             }
+
+                            data = F_.parseIntoGeoJSON(data)
 
                             const lastLoc = _layerRequestLastLoc[layerObj.name]
                             const nowLoc = L_.Map_.map.getCenter()
@@ -258,6 +300,8 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                 (lastLoc == null ||
                                     layerData?.variables
                                         ?.dynamicExtentMoveThreshold == null ||
+                                    layerData._ignoreDynamicExtentMoveThreshold ===
+                                        true ||
                                     F_.lngLatDistBetween(
                                         lastLoc.lng,
                                         lastLoc.lat,
@@ -279,9 +323,19 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                                   )
                                                 : 1))
                             ) {
+                                layerData._ignoreDynamicExtentMoveThreshold = false
                                 L_.clearVectorLayer(layerObj.name)
                                 L_.updateVectorLayer(layerObj.name, data)
                                 _layerRequestLastLoc[layerObj.name] = nowLoc
+
+                                if (L_?._timeLayerReloadFinishSubscriptions)
+                                    Object.keys(
+                                        L_._timeLayerReloadFinishSubscriptions
+                                    ).forEach((k) => {
+                                        L_._timeLayerReloadFinishSubscriptions[
+                                            k
+                                        ]()
+                                    })
                             }
                         }).fail(function (jqXHR, textStatus, errorThrown) {
                             //Tell the console council about what happened

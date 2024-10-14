@@ -723,7 +723,7 @@ var DrawTool = {
                                         }
                                     }
 
-                                    L_.setLastActivePoint(layer)
+                                    L_.setLastActiveFeature(layer)
                                     L_.resetLayerFills()
                                     L_.highlight(layer)
                                     Map_.activeLayer = layer
@@ -741,6 +741,7 @@ var DrawTool = {
                                         d
                                     )
 
+                                    Viewer_.changeImages(layer.feature, layer)
                                     Globe_.highlight(
                                         Globe_.findSpriteObject(
                                             layer.options.layerName,

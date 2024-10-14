@@ -10,7 +10,7 @@ grand_parent: Configure
 
 A remote virtual layer can be supported via various GDAL drivers. The most common is the [GDAL WMS Driver](https://gdal.org/drivers/raster/wms.html). This allows MMGIS to treat remote datasets as if they were local.
 
-## GDAL XML Desciption File Template
+## GDAL XML Description File Template
 
 Here is a template of a GDAL XML Description file that may be used to access a remote DEM for the [Measure Tool](/MMGIS/tools/measure).
 

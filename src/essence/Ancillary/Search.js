@@ -470,7 +470,8 @@ function getSearchFieldStringForFeature(name, props) {
                     str += Math.round(F_.getIn(props, sf[i][1]))
                     break
                 case 'rmunder':
-                    str += F_.getIn(props, sf[i][1]).replace('_', ' ')
+                    if (F_.getIn(props, sf[i][1]))
+                        str += F_.getIn(props, sf[i][1]).replace('_', ' ')
                     break
             }
             if (i != sf.length - 1) str += ' '

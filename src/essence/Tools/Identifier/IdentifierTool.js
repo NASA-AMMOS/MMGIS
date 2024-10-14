@@ -26,9 +26,49 @@ var IdentifierTool = {
     MMWebGISInterface: null,
     mousemoveTimeout: null,
     mousemoveTimeoutMap: null,
+    targetId: null,
+    made: false,
+    justification: 'left',
     vars: {},
-    make: function () {
+    initialize: function () {
+        //Get tool variables and UI adjustments
+        this.justification = L_.getToolVars('identifier')['justification']
+        var toolContent = d3.select('#toolSeparated_Identifier')
+        var toolController = d3.select('#toolcontroller_sepdiv')
+        if (this.justification === 'right') {
+            toolController.style('top', '110px')
+            toolController.style('left', null)
+            toolController.style('right', '5px')
+            toolContent.style('left', null)
+            toolContent.style('right', '0px')
+        } else if (
+            this.justification !== L_.getToolVars('legend')['justification']
+        ) {
+            toolController.clone(false).attr('id', 'toolcontroller_sepdiv_left')
+            $('#toolSeparated_Identifier').appendTo(
+                '#toolcontroller_sepdiv_left'
+            )
+            toolController.style('top', '40px')
+            toolController.style('left', '5px')
+            toolController.style('right', null)
+        }
+    },
+    make: function (targetId) {
+        this.targetId = targetId
         this.MMWebGISInterface = new interfaceWithMMWebGIS()
+        this.activeLayerNames = []
+
+        L_.subscribeOnLayerToggle('IdentifierTool', () => {
+            this.MMWebGISInterface = new interfaceWithMMWebGIS()
+        })
+
+        this.made = true
+
+        L_.subscribeOnLayerToggle('IdentifierTool', () => {
+            this.MMWebGISInterface = new interfaceWithMMWebGIS()
+        })
+
+        this.made = true
 
         //Get tool variables
         this.varsRaw = L_.getToolVars('identifier', true)
@@ -69,6 +109,9 @@ var IdentifierTool = {
     },
     destroy: function () {
         this.MMWebGISInterface.separateFromMMWebGIS()
+        this.targetId = null
+        L_.unsubscribeOnLayerToggle('IdentifierTool')
+        this.made = false
     },
     fillURLParameters: function (url, layerUUID) {
         if (IdentifierTool.vars.data?.[layerUUID]?.data?.[0]) {
@@ -304,17 +347,25 @@ var IdentifierTool = {
                                             var valueParsed =
                                                 parseValue(
                                                     value[v][1],
-                                                    d2.sigfigs
+                                                    d2.sigfigs,
+                                                    d2.scalefactor
                                                 ) +
                                                 '' +
                                                 unit
 
-                                            htmlValues +=
-                                                '<div style="display: flex; justify-content: space-between;"><div style="margin-right: 15px; color: var(--color-a5); font-size: 12px;">' +
-                                                value[v][0] +
-                                                '</div><div style="color: var(--color-a6); font-size: 14px;">' +
-                                                valueParsed +
-                                                '</div></div>'
+                                            if (value.length > 1) {
+                                                htmlValues +=
+                                                    '<div style="display: flex; justify-content: space-between;"><div style="margin-right: 15px; color: var(--color-a5); font-size: 12px;">' +
+                                                    value[v][0] +
+                                                    '</div><div style="color: var(--color-a6); font-size: 14px;">' +
+                                                    valueParsed +
+                                                    '</div></div>'
+                                            } else {
+                                                htmlValues +=
+                                                    '<div style="display: flex; justify-content: space-between;"><div style="color: var(--color-a6); font-size: 16px;">' +
+                                                    valueParsed +
+                                                    '</div></div>'
+                                            }
                                             cnt++
                                         }
                                         $(
@@ -394,7 +445,7 @@ var IdentifierTool = {
             }, 150)
         }
 
-        function parseValue(v, sigfigs) {
+        function parseValue(v, sigfigs, scalefactor) {
             var ed = 10
             if (typeof v === 'string') {
                 return v
@@ -403,6 +454,7 @@ var IdentifierTool = {
                 return v
             } else if (v.toString().indexOf('e') != -1) {
                 if (sigfigs != undefined) ed = sigfigs
+                if (scalefactor != undefined) v = v * parseFloat(scalefactor)
                 v = parseFloat(v)
                 return v.toExponential(ed)
             } else {
@@ -410,6 +462,8 @@ var IdentifierTool = {
                 var decPlacesBefore = decSplit[0] ? decSplit[0].length : 0
                 var decPlacesAfter = decSplit[1] ? decSplit[1].length : 0
                 if (decPlacesBefore <= 5) {
+                    if (scalefactor != undefined)
+                        v = v * parseFloat(scalefactor)
                     if (sigfigs != undefined) v = v.toFixed(sigfigs)
                 }
                 v = parseFloat(v)
@@ -429,16 +483,18 @@ function interfaceWithMMWebGIS() {
     }
 
     //MMWebGIS should always have a div with id 'tools'
-    var tools = d3.select('#tools')
-    //Clear it
-    tools.selectAll('*').remove()
-    //Add a semantic container
-    tools = tools
-        .append('div')
-        .attr('class', 'center aligned ui padded grid')
-        .style('height', '100%')
-    //Add the markup to tools or do it manually
-    //tools.html( markup );
+    if (IdentifierTool.targetId !== 'toolContentSeparated_Identifier') {
+        var tools = d3.select('#tools')
+        //Clear it
+        tools.selectAll('*').remove()
+        //Add a semantic container
+        tools = tools
+            .append('div')
+            .attr('class', 'center aligned ui padded grid')
+            .style('height', '100%')
+        //Add the markup to tools or do it manually
+        //tools.html( markup );
+    }
 
     //Add event functions and whatnot
     var previousCursor = d3.select('#map').style('cursor')
@@ -456,11 +512,17 @@ function interfaceWithMMWebGIS() {
 
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
+
+    var newActive = $('#toolcontroller_sepdiv #' + 'Identifier' + 'Tool')
+    newActive.addClass('active').css({
+        color: ToolController_.activeColor,
+    })
+    newActive.parent().css({
+        background: ToolController_.activeBG,
+    })
+
     function separateFromMMWebGIS() {
         CursorInfo.hide()
-
-        d3.select('#map').style('cursor', previousCursor)
-
         Map_.map.off('mousemove', IdentifierTool.idPixelMap)
         //Globe_.shouldRaycastSprites = true
         if (L_.hasGlobe) {
@@ -468,6 +530,30 @@ function interfaceWithMMWebGIS() {
             Globe_.litho
                 .getContainer()
                 .removeEventListener('mousemove', IdentifierTool.idPixelGlobe)
+        }
+
+        if (IdentifierTool.targetId === 'toolContentSeparated_Identifier') {
+            d3.select('#map').style('cursor', 'grab')
+            let tools = d3.select(
+                IdentifierTool.targetId
+                    ? `#${IdentifierTool.targetId}`
+                    : '#toolPanel'
+            )
+            tools.style('background', 'var(--color-k)')
+            //Clear it
+            tools.selectAll('*').remove()
+            var prevActive = $(
+                '#toolcontroller_sepdiv #' + 'Identifier' + 'Tool'
+            )
+            prevActive.removeClass('active').css({
+                color: ToolController_.defaultColor,
+                background: 'none',
+            })
+            prevActive.parent().css({
+                background: 'none',
+            })
+        } else {
+            d3.select('#map').style('cursor', previousCursor)
         }
     }
 }

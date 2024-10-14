@@ -71,26 +71,42 @@ router.post("/shorten", function (req, res, next) {
 });
 
 router.post("/expand", function (req, res, next) {
+  if (req.body.short == null) {
+    res.send({
+      status: "failure",
+      message: "Short URL not defined in body.",
+      body: {},
+    });
+    return;
+  }
   UrlShortener.findOne({
     where: {
       short: req.body.short,
     },
-  }).then((url) => {
-    if (!url) {
-      logger("error", "Failed to find short URL.", req.originalUrl, req);
+  })
+    .then((url) => {
+      if (!url) {
+        logger("error", "Failed to find short URL.", req.originalUrl, req);
+        res.send({
+          status: "failure",
+          message: "Failure to find URL.",
+          body: {},
+        });
+      } else {
+        res.send({
+          status: "success",
+          message: "Successfully shortened URL.",
+          body: { url: decodeURIComponent(url.full) },
+        });
+      }
+    })
+    .catch((err) => {
       res.send({
         status: "failure",
-        message: "Failure to find URL.",
+        message: "Failed to expand URL.",
         body: {},
       });
-    } else {
-      res.send({
-        status: "success",
-        message: "Successfully shortened URL.",
-        body: { url: decodeURIComponent(url.full) },
-      });
-    }
-  });
+    });
 });
 
 module.exports = router;

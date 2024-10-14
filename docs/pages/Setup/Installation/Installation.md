@@ -12,6 +12,14 @@ nav_order: 1
 
 ## Installing with Docker
 
+`/` will always refer to the repo's root directory
+
+1. Clone the repo  
+   `git clone https://github.com/NASA-AMMOS/MMGIS`
+
+1. From within `/`  
+   `npm install`
+
 ### Building
 
 To build the Docker image, run:
@@ -19,7 +27,7 @@ To build the Docker image, run:
 
 ### Running
 
-This repo contains a `docker-compose.yml` file that defines a service for the application and a PostgreSQL database with PostGIS installed
+This repo contains a `/docker-compose.yml` file that defines a service for the application and a PostgreSQL database with PostGIS installed
 
 - Copy `/sample.env` to `.env`  
    `cp sample.env .env`
@@ -46,7 +54,7 @@ This repo contains a `docker-compose.yml` file that defines a service for the ap
   - On the host machine, create a `Missions` directory and copy the contents of `./Missions` to your directory.
   - Via the docker-compose.yml, map this directory to `/usr/src/app/Missions` in the container. For example, if the host directory is `./Missions`, the volume mapping would be `- ./Missions:/usr/src/app/Missions`
 
-Run: `docker-compose up`
+Run: `docker-compose up -d`
 
 ### First Time UI Setup
 
@@ -59,7 +67,7 @@ Run: `docker-compose up`
 
 1. Click `NEW MISSION`  
    Enter a new mission name and click `MAKE MISSION`  
-   Optiona;" (Use the mission name `"Test"` (case-sensitive) to make the sample mission)
+   Optional: (Use the mission name `"Test"` (case-sensitive) to make the sample mission)
 
 Navigate to `http://localhost:8888`.
 
@@ -113,6 +121,10 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
    ```
 
 1. Run `npm run build` to bundle up the code (first time or if there are any changes)
+
+1. Go into /configure and run `npm install` followed by `npm run build` to build the beta configuration site.
+
+1. Go back to the root `/` directory
 
 1. Run `npm run start:prod`
 

@@ -15,7 +15,7 @@ Environment variables are set within `MMGIS/.env`. A sample file `MMGIS/sample.e
 
 The kind of server running (apache is deprecated) | string enum | default `''`
 
-- _node:_ A node express server running NodeJS > 10.10
+- _node:_ A node express server running NodeJS v20.11.1+
 - _apache (deprecated):_ Served through Apache. Some or all functionality may not work
 
 #### `AUTH=`
@@ -58,6 +58,12 @@ User of Postgres database | string | default `null`
 
 Password of Postgres database | string | default `null`
 
+## Optional Variables
+
+#### `PORT=`
+
+Port to run on | positive integer | default `3000`
+
 #### `DB_POOL_MAX=`
 
 Max number connections in the database's pool. CPUs \* 4 is a good number | integer | default `10`
@@ -73,12 +79,6 @@ How many milliseconds for an incoming connection to wait for a DB connection bef
 #### `CSSO_GROUPS=`
 
 A list of CSSO LDAP groups that have access | string[] | default `[]`
-
-## Optional Variables
-
-#### `PORT=`
-
-Port to run on | positive integer | default `3000`
 
 #### `VERBOSE_LOGGING=`
 
@@ -163,3 +163,7 @@ If true, then also triggers the kernel download when MMGIS starts | boolean | de
 #### `SPICE_SCHEDULED_KERNEL_CRON_EXPR=`
 
 A cron schedule expression for use in the [node-schedule npm library](https://www.npmjs.com/package/node-schedule) | string | default `"0 0 */2 * *"` (every other day)
+
+#### `COMPOSITE_TILE_DIR_STORE_MAX_AGE_MS=`
+
+When using composited time tiles, MMGIS queries the tileset's folder for existing time folders. It caches the results of the these folder listings every COMPOSITE_TILE_DIR_STORE_MAX_AGE_MS milliseconds. Defaults to requerying every 30 minutes. If 0, no caching. If null or NaN, uses default. | number | default `1800000`

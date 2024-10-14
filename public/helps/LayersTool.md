@@ -9,7 +9,7 @@ A hierarchical list of available layers.
 - Layers above (closer to the top) render on top of layers below them.
 - Vector layers _always_ render on top of raster layers (regardless of position).
 - Layers can be reordered by dragging their left-side color handles.
-- Layers can be toggled by clicking the chceckboxes to the left of their names.
+- Layers can be toggled by clicking the checkboxes to the left of their names.
 - Hovering over a layer exposes buttons to download the layer, change its settings and view more information.
 - In addition to the various filters at the top of the tool, enter a "#" in the 'Search Layers' box to filter on layer tags (if any).
 

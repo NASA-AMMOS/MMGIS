@@ -3002,6 +3002,7 @@ function layerPopulateVariable(modalId, layerType) {
           which: "last",
           icon: "material design icon",
           value: "Prop: {prop}",
+          go: false,
         },
       ];
       currentLayerVars.markerIcon = currentLayerVars.markerIcon || {

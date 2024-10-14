@@ -20,14 +20,25 @@ var LegendTool = {
         this.displayOnStart = L_.getToolVars('legend')['displayOnStart']
         this.justification = L_.getToolVars('legend')['justification']
         if (this.justification == 'right') {
-            var toolController = d3.select('#toolcontroller_sepdiv')
-            var toolContent = d3.select('#toolContentSeparated_Legend')
+            const toolController = d3.select('#toolcontroller_sepdiv')
+            const toolContent = d3.select('#toolContentSeparated_Legend')
             toolController.style('top', '110px')
             toolController.style('left', null)
             toolController.style('right', '5px')
             toolContent.style('left', null)
             toolContent.style('right', '0px')
-        }        
+        } else if (
+            this.justification != L_.getToolVars('identifier')['justification']
+        ) {
+            const toolController = d3
+                .select('#toolcontroller_sepdiv')
+                .clone(false)
+                .attr('id', 'toolcontroller_sepdiv_left')
+            $('#toolSeparated_Legend').appendTo('#toolcontroller_sepdiv_left')
+            toolController.style('top', '40px')
+            toolController.style('left', '5px')
+            toolController.style('right', null)
+        }
     },
     make: function (targetId) {
         this.targetId = targetId
@@ -134,7 +145,10 @@ function drawLegendHeader() {
         .style('line-height', '30px')
         .style('font-size', '13px')
         .style('padding-right', '8px')
-        .style('padding-left', '30px')
+        .style(
+            'padding-left',
+            LegendTool.justification === 'right' ? '10px' : '30px'
+        )
         .style('color', 'var(--color-l)')
         .style('background', 'var(--color-i)')
         .style('font-family', 'lato-light')

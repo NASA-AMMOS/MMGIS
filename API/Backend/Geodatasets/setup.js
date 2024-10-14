@@ -1,5 +1,7 @@
 const router = require("./routes/geodatasets");
 
+const geodatasets = require("./models/geodatasets");
+
 let setup = {
   //Once the app initializes
   onceInit: (s) => {
@@ -14,7 +16,11 @@ let setup = {
   //Once the server starts
   onceStarted: (s) => {},
   //Once all tables sync
-  onceSynced: (s) => {},
+  onceSynced: (s) => {
+    if (typeof geodatasets.up === "function") {
+      geodatasets.up();
+    }
+  },
 };
 
 module.exports = setup;

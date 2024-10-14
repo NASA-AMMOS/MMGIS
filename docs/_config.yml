@@ -34,6 +34,8 @@ plugins:
   - jekyll-feed
 # Aux links for the upper right navigation
 aux_links:
+  "MMGIS on Slack":
+    - "https://nasa-ammos.slack.com/archives/C076L0Q1P4H"
   "MMGIS on GitHub":
     - "https://github.com/NASA-AMMOS/MMGIS"
 # Exclude from processing.

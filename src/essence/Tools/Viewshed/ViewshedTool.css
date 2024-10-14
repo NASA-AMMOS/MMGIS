@@ -8,6 +8,11 @@
     box-shadow: inset 2px 0px 10px 0px rgba(0, 0, 0, 0.2);
 }
 
+
+#viewshedTool #helpModal_ViewshedTool {
+    margin-top: 11px;
+}
+
 #infoToolHeader {
     display: flex;
     height: 40px;

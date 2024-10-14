@@ -53,7 +53,11 @@ function get(reqtype, req, res, next) {
       if (result) {
         let table = result.dataValues.table;
         if (type == "geojson") {
-          let q = `SELECT properties, ST_AsGeoJSON(geom) FROM ${table}`;
+          let q = `SELECT properties, ST_AsGeoJSON(geom), id FROM ${table}`;
+
+          if (req.query?.limited) {
+            q += ` ORDER BY id DESC LIMIT 3`;
+          }
 
           let hasBounds = false;
           let minx = req.query?.minx;
@@ -120,6 +124,8 @@ function get(reqtype, req, res, next) {
               let geojson = { type: "FeatureCollection", features: [] };
               for (let i = 0; i < results.length; i++) {
                 let properties = results[i].properties;
+                properties._ = properties._ || {};
+                properties._.idx = results[i].id;
                 let feature = {};
                 feature.type = "Feature";
                 feature.properties = properties;
@@ -275,12 +281,68 @@ router.post("/entries", function (req, res, next) {
       if (sets && sets.length > 0) {
         let entries = [];
         for (let i = 0; i < sets.length; i++) {
-          entries.push({ name: sets[i].name, updated: sets[i].updatedAt });
+          entries.push({
+            name: sets[i].name,
+            updated: sets[i].updatedAt,
+            filename: sets[i].filename,
+            num_features: sets[i].num_features,
+            start_time_field: sets[i].start_time_field,
+            end_time_field: sets[i].end_time_field,
+          });
         }
-        res.send({
-          status: "success",
-          body: { entries: entries },
-        });
+        // For each entry, list all occurrences in latest configuration objects
+        sequelize
+          .query(
+            `
+            SELECT t1.*
+            FROM configs AS t1
+            INNER JOIN (
+                SELECT mission, MAX(version) AS max_version
+                FROM configs
+                GROUP BY mission
+            ) AS t2
+            ON t1.mission = t2.mission AND t1.version = t2.max_version ORDER BY mission ASC;
+            `
+          )
+          .then(([results]) => {
+            // Populate occurrences
+            results.forEach((m) => {
+              Utils.traverseLayers(m.config.layers, (layer, path) => {
+                entries.forEach((entry) => {
+                  entry.occurrences = entry.occurrences || {};
+                  entry.occurrences[m.mission] =
+                    entry.occurrences[m.mission] || [];
+                  if (layer.url === `geodatasets:${entry.name}`) {
+                    entry.occurrences[m.mission].push({
+                      name: layer.name,
+                      uuid: layer.uuid,
+                      path: path,
+                    });
+                  }
+                });
+              });
+            });
+
+            res.send({
+              status: "success",
+              body: { entries: entries },
+            });
+            return null;
+          })
+          .catch((err) => {
+            logger(
+              "error",
+              "Failed to find missions.",
+              req.originalUrl,
+              req,
+              err
+            );
+            res.send({
+              status: "failure",
+              message: "Failed to find missions.",
+            });
+            return null;
+          });
       } else {
         res.send({
           status: "failure",
@@ -305,6 +367,9 @@ router.post("/entries", function (req, res, next) {
  * req.body.layer
  * req.body.key
  * req.body.value
+ * req.body.id (specific feature id instead of key:value)
+ * req.body.orderBy
+ * req.body.offset (i.e. if -1, then return feature previous to key:val) (can also be 'first' or 'last')
  */
 router.post("/search", function (req, res, next) {
   //First Find the table name
@@ -313,24 +378,97 @@ router.post("/search", function (req, res, next) {
       if (result) {
         let table = result.dataValues.table;
 
+        let offset = req.body.offset;
+        const origOffset = offset;
+        if (offset === "first") offset = -1;
+        else if (offset === "last") offset = 1;
+
+        let featureId = req.body.id;
+
+        if (offset != null && featureId == null) {
+          res.send({
+            status: "failure",
+            message: "If 'offset' is set, 'id' must also be set.",
+          });
+          return;
+        }
+        offset = parseInt(offset);
+        featureId = parseInt(featureId);
+
+        let orderBy = "id";
+        if (req.body.orderBy != null)
+          orderBy = `properties->>'${req.body.orderBy}'`;
+
+        let minx = req.body?.minx;
+        let miny = req.body?.miny;
+        let maxx = req.body?.maxx;
+        let maxy = req.body?.maxy;
+        let where = "";
+        if (minx != null && miny != null && maxx != null && maxy != null) {
+          // ST_MakeEnvelope is (xmin, ymin, xmax, ymax, srid)
+          where = ` WHERE ST_Intersects(ST_MakeEnvelope(${parseFloat(
+            minx
+          )}, ${parseFloat(miny)}, ${parseFloat(maxx)}, ${parseFloat(
+            maxy
+          )}, 4326), geom)`;
+        }
+
+        let q =
+          "SELECT properties, ST_AsGeoJSON(geom), id FROM " +
+          table +
+          (req.body.last || offset != null
+            ? `${where} ORDER BY id ${offset != null ? "ASC" : "DESC LIMIT 1"}`
+            : " WHERE properties ->> :key = :value");
+
         sequelize
-          .query(
-            "SELECT properties, ST_AsGeoJSON(geom) FROM " +
-              table +
-              " WHERE properties ->> :key = :value;",
-            {
-              replacements: {
-                key: req.body.key,
-                value: req.body.value.replace(/[`;'"]/gi, ""),
-              },
-            }
-          )
+          .query(q + ";", {
+            replacements: {
+              key: req.body.key,
+              value:
+                typeof req.body.value === "string"
+                  ? req.body.value.replace(/[`;'"]/gi, "")
+                  : null,
+            },
+          })
           .then(([results]) => {
             let r = [];
             for (let i = 0; i < results.length; i++) {
-              let feature = JSON.parse(results[i].st_asgeojson);
-              feature.properties = results[i].properties;
+              let properties = results[i].properties;
+              properties._ = properties._ || {};
+              properties._.idx = results[i].id;
+              let feature = {};
+              feature.type = "Feature";
+              feature.properties = properties;
+              feature.geometry = JSON.parse(results[i].st_asgeojson);
               r.push(feature);
+            }
+
+            if (offset != null) {
+              if (orderBy != "id") {
+                r.sort((a, b) => {
+                  let sign = 1;
+                  if (offset > 0) sign = -1;
+                  const af = Utils.getIn(a, `properties.${orderBy}`, 0);
+                  const bf = Utils.getIn(b, `properties.${orderBy}`, 1);
+                  if (typeof af === "string" || typeof bf === "string") {
+                    return af.localeCompare(bf) * sign;
+                  } else return (af - bf) * sign;
+                });
+              }
+
+              const rLen = r.length;
+              if (origOffset === "first" || origOffset === "last") {
+                r = [r[rLen - 1]];
+              } else {
+                for (let i = 0; i < rLen; i++) {
+                  if (r[i].properties._.idx === featureId) {
+                    r = [
+                      r[Math.min(Math.max(0, i + Math.abs(offset)), rLen - 1)],
+                    ]; //abs because we already sort differently by it
+                    break;
+                  }
+                }
+              }
             }
 
             res.send({
@@ -373,9 +511,10 @@ router.post("/search", function (req, res, next) {
 router.post("/append/:name", function (req, res, next) {
   req.body = {
     name: req.params.name,
-    startProp: null,
-    endProp: null,
-    geojson: req.body,
+    startProp: req.query.start_prop || null,
+    endProp: req.query.end_prop || null,
+    filename: req.query.filename || null,
+    geojson: typeof req.body === "string" ? JSON.parse(req.body) : req.body,
     action: "append",
   };
   recreate(req, res, next);
@@ -421,6 +560,7 @@ router.post("/recreate", function (req, res, next) {
 function recreate(req, res, next) {
   let startProp = req.body.startProp;
   let endProp = req.body.endProp;
+  let filename = req.body.filename;
 
   let features = null;
   try {
@@ -446,6 +586,11 @@ function recreate(req, res, next) {
 
   makeNewGeodatasetTable(
     req.body.name,
+    filename,
+    features.length,
+    startProp,
+    endProp,
+    res?.body?.action || null,
     function (result) {
       let checkEnding = result.table.split("_");
       if (checkEnding[checkEnding.length - 1] !== "geodatasets") {
@@ -512,18 +657,18 @@ function populateGeodatasetTable(Table, features, startProp, endProp, cb) {
       end_time = new Date(end_time).getTime();
       end_time = isNaN(end_time) ? null : end_time;
     }
-
-    rows.push({
+    const row = {
       properties: features[i].properties,
       geometry_type: features[i].geometry.type,
-      start_time,
-      end_time,
       geom: {
         crs: { type: "name", properties: { name: "EPSG:4326" } },
         type: features[i].geometry.type,
         coordinates: features[i].geometry.coordinates,
       },
-    });
+    };
+    if (startProp) row.start_time = start_time;
+    if (endProp) row.end_time = end_time;
+    rows.push(row);
   }
 
   Table.bulkCreate(rows, { returning: true })
@@ -566,10 +711,7 @@ router.delete("/remove/:name", function (req, res, next) {
         sequelize
           .query(`DROP TABLE IF EXISTS ${result.dataValues.table};`)
           .then(() => {
-            Geodatasets.update(
-              { name: "__deleted__" },
-              { where: { name: req.params.name } }
-            )
+            Geodatasets.destroy({ where: { name: req.params.name } })
               .then(() => {
                 logger(
                   "info",

@@ -30,24 +30,24 @@ Default: `%Y-%m-%dT%H:%M:%SZ`
 
 ## Initial Start Time
 
-The initial start time. Should be before `Initial End Time`.
+The initial start time. Should be before `Initial End Time`. Can be made relative by appending ` {+/-} {seconds}` - for instance: "2024-03-04T14:05:00Z + 864000".
 
 Default: 1 month before `Initial End Time`
 
 ## Initial End Time
 
-The initial end time. Should be after `Initial Start Time`. Use `now` to have the end time be the present.
+The initial end time. Should be after `Initial Start Time`. Use `now` to have the end time be the present. Can be made relative by appending ` {+/-} {seconds}` - for instance: "2024-03-04T14:05:00Z + 864000".
 
 Default: `now`
 
 ## Initial Window Start Time
 
-This does not control the time range for queries. This only allows the initial time window of the time line to differ from just being the Start Time to the End Time. A use-case for this would be to set the window times to fit the full extent of the temporal data but only set the Initial Start and End Times as a subset of that so as not to query everything on load.
+This does not control the time range for queries. This only allows the initial time window of the time line to differ from just being the Start Time to the End Time. A use-case for this would be to set the window times to fit the full extent of the temporal data but only set the Initial Start and End Times as a subset of that so as not to query everything on load. Can be made relative by appending ` {+/-} {seconds}` - for instance: "2024-03-04T14:05:00Z + 864000".
 
 Default: `Initial Start Time`
 
 ## Initial Window End Time
 
-This does not control the time range for queries. This only allows the initial time window of the time line to differ from just being the Start Time to the End Time. Should be after `Initial Window End Time` Use `now` to have the end time be the present.
+This does not control the time range for queries. This only allows the initial time window of the time line to differ from just being the Start Time to the End Time. Should be after `Initial Window End Time` Use `now` to have the end time be the present. Can be made relative by appending ` {+/-} {seconds}` - for instance: "2024-03-04T14:05:00Z + 864000".
 
 Default: `Initial End Time`

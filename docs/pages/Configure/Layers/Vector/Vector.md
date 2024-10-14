@@ -79,6 +79,17 @@ Required in `Time Enabled = true` and `Time Type = Local`. The main time propert
 _type:_ string _optional_  
 The string format to be used in the URL for `{starttime}` and `{endtime}`. Defaults to `YYYY-MM-DDTHH:mm:ssZ`.
 
+#### Refresh Interval Enabled
+
+_type:_ boolean
+If 'Time Enabled' and 'Refresh Interval Enabled', this layer will automatically refresh/requery its data every 'Refresh Every N Seconds'. This is useful when the layer's data updates at some uniform cadence. Be aware that this may be an expensive operation depending on the amount of data a layer needs and the number of layers that have this enabled.
+
+#### Refresh Every N Seconds
+
+_type:_ number
+_default:_ 60
+If 'Time Enabled' and 'Refresh Interval Enabled', this layer will automatically refresh/requery its data every n seconds.
+
 #### Stroke Color
 
 _type:_ CSS color string or a prop _optional_  
@@ -127,6 +138,7 @@ Example:
 ```javascript
 {
     "useKeyAsName": "propKey || [propKey1, propKey2, ...]",
+    "useKeyAsId": "propKey",
     "dynamicExtent": false,
     "dynamicExtentMoveThreshold": "100000000/z",
     "shortcutSuffix": "single letter to 'ATL + {letter}' toggle the layer on and off",
@@ -149,7 +161,8 @@ Example:
         {
             "which": "last",
             "icon": "material design icon",
-            "value": "Prop: {prop}"
+            "value": "Prop: {prop}",
+            "go": false
         }
     ],
     "layerAttachments": {
@@ -256,6 +269,7 @@ Example:
 ```
 
 - `useKeyAsName`: The property key whose value should be the hover text of each feature. If left unset, the hover key and value will be the first one listed in the feature's properties. This may also be an array of keys.
+- `useKeyAsId`: In the case of deeplinking to certain features, a properties key/field name is needed that points to a unique id in order to reselect it.
 - `dynamicExtent`: If true, tries to only query the vector features present in the user's current map viewport. Pan and zooming causes requeries. If used with a geodataset, the time and extent queries will work out-of-the-box. Otherwise, if using an external server, the following parameters in `{}` will be automatically replaced on query in the url: `starttime={starttime}&endtime={endtime}&startprop={startprop}&endprop={endprop}&crscode={crscode}&zoom={zoom}&minx={minx}&miny={miny}&maxx={maxx}&maxy={maxy}`
 - `dynamicExtentMoveThreshold`: If `dynamicExtent` is true, only requery if the map was panned past the stated threshold. Unit is in meters. If a zoom-dependent threshold is desired, set this value to a string ending in `/z`. This will then internally use `dynamicExtentMoveThreshold / Math.pow(2, zoom)` as the threshold value.
 - `shortcutSuffix`: A single letter to 'ALT + {letter}' toggle the layer on and off. Please verify that your chosen shortcut does not conflict with other system or browser-level keyboard shortcuts.
@@ -272,6 +286,7 @@ Example:
   - `which`: This only supports the value `last` at this point.
   - `icon`: Any [Material Design Icon](http://materialdesignicons.com/) name
   - `value`: A name to display. All `{prop}`s will be replaced by their corresponding `features[which].properties[prop]` value.
+  - `go`: Boolean that, if true, pans and zooms to the feature of `which` on intial load. The zoom used is Map Scale Zoom or the current zoom. Only the first feature with info.go is gone to.
 - `layerAttachments`: Attachments that may apply to the entire layer.
   - `labels`: Place a label beside each feature. Also applies to `coordinateAttachments.marker` features.
     - `initialVisibility`: Whether the label sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.

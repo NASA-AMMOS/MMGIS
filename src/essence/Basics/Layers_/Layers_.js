@@ -34,6 +34,7 @@ const L_ = {
         opacity: {}, // opacityArray
         filters: {}, // layerFilters
         nameToUUID: {},
+        refreshIntervals: {}, // In order to reloadLayer
     },
     // ===== Private ======
     //Index -> layer name
@@ -61,10 +62,13 @@ const L_ = {
     toolsLoaded: false,
     addedfiles: {}, //filename -> null (not null if added)
     activeFeature: null,
-    lastActivePoint: {
+    lastActiveFeature: {
         layerName: null,
+        type: null, // point, line, polygon
         lat: null,
         lon: null,
+        key: null, // if not a point, a property field to a unique value
+        value: null,
     },
     // features manually turned off
     toggledOffFeatures: [],
@@ -128,10 +132,12 @@ const L_ = {
         L_.searchFile = null
         L_.toolsLoaded = false
         L_.activeFeature = null
-        L_.lastActivePoint = {
+        L_.lastActiveFeature = {
             layerName: null,
             lat: null,
             lon: null,
+            key: null,
+            value: null,
         }
     },
     fina: function (
@@ -197,6 +203,15 @@ const L_ = {
         if (L_._timeChangeSubscriptions[fid] != null)
             delete L_._timeChangeSubscriptions[fid]
     },
+    _timeLayerReloadFinishSubscriptions: {},
+    subscribeTimeLayerReloadFinish: function (fid, func) {
+        if (typeof func === 'function')
+            L_._timeLayerReloadFinishSubscriptions[fid] = func
+    },
+    unsubscribeTimeLayerReloadFinish: function (fid) {
+        if (L_._timeLayerReloadFinishSubscriptions[fid] != null)
+            delete L_._timeLayerReloadFinishSubscriptions[fid]
+    },
     _onTimeUIToggleSubscriptions: {},
     subscribeOnTimeUIToggle: function (fid, func) {
         if (typeof func === 'function')
@@ -230,7 +245,7 @@ const L_ = {
     //Takes in config layer obj
     //Toggles a layer on and off and accounts for sublayers
     //Takes in a config layer object
-    toggleLayer: async function (s) {
+    toggleLayer: async function (s, skipOrderedBringToFront) {
         if (s == null) return
 
         const wasNeverOn = L_.layers.layer[s.name] === false
@@ -239,7 +254,7 @@ const L_ = {
         if (L_.layers.on[s.name] === true) on = true
         else on = false
 
-        await L_.toggleLayerHelper(s, on)
+        await L_.toggleLayerHelper(s, on, null, null, skipOrderedBringToFront)
 
         Object.keys(L_._onLayerToggleSubscriptions).forEach((k) => {
             L_._onLayerToggleSubscriptions[k](s.name, !on)
@@ -277,7 +292,8 @@ const L_ = {
         s,
         on,
         ignoreToggleStateChange,
-        globeOnly
+        globeOnly,
+        skipOrderedBringToFront
     ) {
         if (s.type !== 'header') {
             if (on) {
@@ -288,7 +304,7 @@ const L_ = {
                     try {
                         $('.drawToolContextMenuHeaderClose').click()
                     } catch (err) {}
-                    L_.Map_.map.removeLayer(L_.layers.layer[s.name])
+                    L_.Map_.rmNotNull(L_.layers.layer[s.name])
                     if (L_.layers.attachments[s.name]) {
                         for (let sub in L_.layers.attachments[s.name]) {
                             switch (L_.layers.attachments[s.name][sub].type) {
@@ -536,11 +552,17 @@ const L_ = {
                                             weight: s.style.weight,
                                             radius: s.radius,
                                         },
-                                        bearing: s.variables?.markerAttachments
-                                            ?.bearing
-                                            ? s.variables.markerAttachments
-                                                  .bearing
-                                            : null,
+                                        bearing:
+                                            (s.variables?.markerAttachments
+                                                ?.bearing &&
+                                                s.variables?.markerAttachments
+                                                    ?.bearing.enabled ==
+                                                    null) ||
+                                            s.variables?.markerAttachments
+                                                ?.bearing?.enabled === true
+                                                ? s.variables.markerAttachments
+                                                      .bearing
+                                                : null,
                                     },
                                     opacity: L_.layers.opacity[s.name],
                                     minZoom:
@@ -567,7 +589,11 @@ const L_ = {
 
             if (s.type === 'vector') L_._updatePairings(s.name, !on)
 
-            if (!on && s.type === 'vector') {
+            if (
+                !on &&
+                s.type === 'vector' &&
+                skipOrderedBringToFront !== true
+            ) {
                 L_.Map_.orderedBringToFront()
             }
             L_._refreshAnnotationEvents()
@@ -892,10 +918,16 @@ const L_ = {
                                         weight: s.style.weight,
                                         radius: s.radius,
                                     },
-                                    bearing: s.variables?.markerAttachments
-                                        ?.bearing
-                                        ? s.variables.markerAttachments.bearing
-                                        : null,
+                                    bearing:
+                                        (s.variables?.markerAttachments
+                                            ?.bearing &&
+                                            s.variables?.markerAttachments
+                                                ?.bearing.enabled == null) ||
+                                        s.variables?.markerAttachments?.bearing
+                                            ?.enabled === true
+                                            ? s.variables.markerAttachments
+                                                  .bearing
+                                            : null,
                                 },
                                 opacity: L_.layers.opacity[s.name],
                                 minZoom:
@@ -914,7 +946,7 @@ const L_ = {
 
         L_._refreshAnnotationEvents()
     },
-    addGeoJSONData: function (layer, geojson, keepLastN) {
+    addGeoJSONData: function (layer, geojson, keepLastN, stopLoops) {
         if (layer._sourceGeoJSON) {
             if (layer._sourceGeoJSON.features)
                 if (geojson.features)
@@ -953,7 +985,10 @@ const L_ = {
         L_.Map_.makeLayer(
             L_.layers.data[layer._layerName],
             true,
-            layer._sourceGeoJSON
+            layer._sourceGeoJSON,
+            null,
+            null,
+            stopLoops
         )
 
         if (initialOn) {
@@ -1001,7 +1036,7 @@ const L_ = {
             }
         else L_.activeFeature = null
 
-        L_.setLastActivePoint(layer)
+        L_.setLastActiveFeature(layer)
         L_.resetLayerFills()
         L_.highlight(layer)
         L_.Map_.activeLayer = layer
@@ -1051,16 +1086,19 @@ const L_ = {
                 )
             } else {
                 const savedOptions = JSON.parse(JSON.stringify(layer.options))
-
                 layer.setStyle({
                     color: color,
                     stroke: color,
+                    weight: 4,
                 })
                 layer.options = savedOptions
 
                 // For some odd reason sometimes the first style does not work
                 // This makes sure it does
                 setTimeout(() => {
+                    const savedOptions2 = JSON.parse(
+                        JSON.stringify(layer.options)
+                    )
                     if (
                         layer.options.color != color &&
                         layer.options.stroke != color
@@ -1068,10 +1106,11 @@ const L_ = {
                         layer.setStyle({
                             color: color,
                             stroke: color,
+                            weight: 4,
                         })
-                        layer.options = savedOptions
+                        layer.options = savedOptions2
                     }
-                }, 1)
+                }, 100)
             }
         } catch (err) {
             if (layer._icon)
@@ -1219,9 +1258,11 @@ const L_ = {
         ) {
             if (l._path) l._path.style.display = 'inherit'
             if (l._container) l._container.style.display = 'inherit'
+            if (l._icon) l._icon.style.display = 'inherit'
         } else {
             if (l._path) l._path.style.display = 'none'
             if (l._container) l._container.style.display = 'none'
+            if (l._icon) l._icon.style.display = 'none'
         }
     },
     addArrowToMap: function (
@@ -1603,6 +1644,10 @@ const L_ = {
             }
         }
         L_.layers.opacity[name] = newOpacity
+
+        if (L_.activeFeature?.layer && L_.activeFeature.layerName === name) {
+            L_.highlight(L_.activeFeature.layer)
+        }
     },
     getLayerOpacity: function (name) {
         var l = L_.layers.layer[name]
@@ -1880,50 +1925,85 @@ const L_ = {
     /**
      * @param {object} layer - leaflet layer object
      */
-    setLastActivePoint: function (layer) {
-        let layerName, lat, lon
+    setLastActiveFeature: function (layer) {
+        let layerName, lat, lon, key, value
         if (layer) {
             layerName = layer.hasOwnProperty('options')
                 ? layer.options.layerName
                 : null
             lat = layer.hasOwnProperty('_latlng') ? layer._latlng.lat : null
             lon = layer.hasOwnProperty('_latlng') ? layer._latlng.lng : null
+
+            if (L_.layers.data[layerName]?.variables?.useKeyAsId) {
+                key = L_.layers.data[layerName].variables.useKeyAsId
+
+                value = F_.getIn(layer.feature.properties, key)
+            }
         }
 
-        if (layerName != null && lat != null && layerName != null) {
-            L_.lastActivePoint = {
+        if (layerName != null && key != null && value != null) {
+            L_.lastActiveFeature = {
+                layerName: layerName,
+                lat: null,
+                lon: null,
+                key: key,
+                value: value,
+            }
+        } else if (layerName != null && lat != null && lon != null) {
+            L_.lastActiveFeature = {
                 layerName: layerName,
                 lat: lat,
                 lon: lon,
-            }
-        } else {
-            L_.lastActivePoint = {
-                layerName: null,
-                lat: null,
-                lon: null,
+                key: null,
+                value: null,
             }
         }
     },
-    selectFeature(layerName, feature) {
+    // relation and field are optional
+    // relation is null, -1, or 1
+    // if relation is 1 it'll select the next feature, -1 the previous
+    // if field is null, relation is relative to initial geojson order
+    // otherwise sort by field first
+    selectFeature(layerName, feature, relation, field) {
+        let f = JSON.parse(JSON.stringify(feature))
         layerName = L_.asLayerUUID(layerName)
-
         const layer = L_.layers.layer[layerName]
+
+        // If relation is a feature, override feature
+        if (typeof relation === 'object' && relation.type != null) {
+            f = relation
+            relation = 0
+        }
+
         if (layer) {
             const layers = layer._layers
-            for (let l in layers) {
+            const layerKeys = Object.keys(layers)
+
+            const featureWithout_ = JSON.parse(JSON.stringify(f))
+            if (featureWithout_.properties?._ != null)
+                delete featureWithout_.properties._
+
+            for (let i = 0; i < layerKeys.length; i++) {
+                const l = layerKeys[i]
+                const lfeatureWithout_ = JSON.parse(
+                    JSON.stringify(layers[l].feature)
+                )
+                if (lfeatureWithout_.properties?._ != null)
+                    delete lfeatureWithout_.properties._
+
                 if (
+                    F_.isEqual(layers[l].feature.geometry, f.geometry, true) &&
                     F_.isEqual(
-                        layers[l].feature.geometry,
-                        feature.geometry,
-                        true
-                    ) &&
-                    F_.isEqual(
-                        layers[l].feature.properties,
-                        feature.properties,
+                        lfeatureWithout_.properties,
+                        featureWithout_.properties,
                         true
                     )
                 ) {
-                    layers[l].fireEvent('click')
+                    if (layers[layerKeys[i + (relation || 0)]] != null) {
+                        layers[layerKeys[i + (relation || 0)]].fireEvent(
+                            'click'
+                        )
+                    }
                     return
                 }
             }
@@ -2007,6 +2087,8 @@ const L_ = {
                 let g = L_.layers.layer[activePoint.layerUUID]._layers
                 for (let l in g) {
                     if (
+                        g[l]?.feature?.geometry?.type &&
+                        g[l].feature.geometry.type.toLowerCase() === 'point' &&
                         g[l]._latlng.lat == activePoint.lat &&
                         g[l]._latlng.lng == activePoint.lon
                     ) {
@@ -2693,7 +2775,7 @@ const L_ = {
         }
         return true
     },
-    updateVectorLayer: function (layerName, inputData, keepLastN) {
+    updateVectorLayer: function (layerName, inputData, keepLastN, stopLoops) {
         layerName = L_.asLayerUUID(layerName)
 
         if (layerName in L_.layers.layer) {
@@ -2708,7 +2790,7 @@ const L_ = {
             const updateLayer = L_.layers.layer[layerName]
 
             try {
-                L_.addGeoJSONData(updateLayer, inputData, keepLastN)
+                L_.addGeoJSONData(updateLayer, inputData, keepLastN, stopLoops)
             } catch (e) {
                 console.log(e)
                 console.warn(
@@ -2732,6 +2814,12 @@ const L_ = {
     // Make a layer's sublayer match the layers data again
     syncSublayerData: async function (layerName, onlyClear) {
         layerName = L_.asLayerUUID(layerName)
+
+        if (
+            L_.layers.layer[layerName] == null ||
+            L_.layers.layer[layerName] == false
+        )
+            return
 
         try {
             let geojson = L_.layers.layer[layerName].toGeoJSON(
@@ -3256,6 +3344,109 @@ const L_ = {
         }
         return features
     },
+    propertiesToImages(props, baseUrl) {
+        baseUrl = baseUrl || ''
+        var images = []
+        //Use "images" key first
+        if (props.hasOwnProperty('images')) {
+            for (var i = 0; i < props.images.length; i++) {
+                if (props.images[i].url) {
+                    var url = baseUrl + props.images[i].url
+                    if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
+                    if (props.images[i].isModel) {
+                        images.push({
+                            url: url,
+                            texture: props.images[i].texture,
+                            name:
+                                (props.images[i].name ||
+                                    props.images[i].url.match(
+                                        /([^\/]*)\/*$/
+                                    )[1]) + ' [Model]',
+                            type: 'model',
+                            isPanoramic: false,
+                            isModel: true,
+                            values: props.images[i].values || {},
+                            master: props.images[i].master,
+                        })
+                    } else {
+                        if (props.images[i].isPanoramic) {
+                            images.push({
+                                ...props.images[i],
+                                url: url,
+                                name:
+                                    (props.images[i].name ||
+                                        props.images[i].url.match(
+                                            /([^\/]*)\/*$/
+                                        )[1]) + ' [Panoramic]',
+                                type: 'photosphere',
+                                isPanoramic: true,
+                                isModel: false,
+                                values: props.images[i].values || {},
+                                master: props.images[i].master,
+                            })
+                        }
+                        images.push({
+                            url: url,
+                            name:
+                                props.images[i].name ||
+                                props.images[i].url.match(/([^\/]*)\/*$/)[1],
+                            type: props.images[i].type || 'image',
+                            isPanoramic: false,
+                            isModel: false,
+                            values: props.images[i].values || {},
+                            master: props.images[i].master,
+                        })
+                    }
+                }
+            }
+        }
+        //Now search all string valued props for image urls
+
+        for (let p in props) {
+            if (
+                typeof props[p] === 'string' &&
+                props[p].toLowerCase().match(/\.(jpeg|jpg|gif|png|xml)$/) !=
+                    null
+            ) {
+                let url = props[p]
+                if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
+                images.push({
+                    url: url,
+                    name: p,
+                    isPanoramic: false,
+                    isModel: false,
+                })
+            } else if (
+                typeof props[p] === 'string' &&
+                props[p].toLowerCase().match(/\.(pdf)$/) != null
+            ) {
+                let url = props[p]
+                if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
+                images.push({
+                    url: url,
+                    name: p,
+                    type: 'document',
+                    isPanoramic: false,
+                    isModel: false,
+                })
+            } else if (
+                typeof props[p] === 'string' &&
+                (props[p].toLowerCase().match(/\.(obj)$/) != null ||
+                    props[p].toLowerCase().match(/\.(dae)$/) != null)
+            ) {
+                let url = props[p]
+                if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
+                images.push({
+                    url: url,
+                    name: p,
+                    isPanoramic: false,
+                    isModel: true,
+                })
+            }
+        }
+
+        return images
+    },
 }
 
 //Takes in a configData object and does a depth-first search through its
@@ -3310,12 +3501,21 @@ function parseConfig(configData, urlOnLayers) {
     L_.radius = L_.configData.msv.radius
     L_.masterdb = L_.configData.msv.masterdb || false
 
-    L_.tools = L_.configData.tools
+    // Remove tools that start have on: false (on null still allowed)
+    L_.tools = []
+    L_.configData.tools.forEach((t) => {
+        if (t.on !== false) L_.tools.push(t)
+    })
 
-    L_.hasMap = L_.configData.panels.indexOf('map') > -1
-    L_.hasMap = true //Should always have map;
-    L_.hasViewer = L_.configData.panels.indexOf('viewer') > -1
-    L_.hasGlobe = L_.configData.panels.indexOf('globe') > -1
+    if (L_.configData?.panels?.length != null) {
+        L_.hasMap = L_.configData.panels.indexOf('map') > -1
+        L_.hasMap = true //Should always have map;
+        L_.hasViewer = L_.configData.panels.indexOf('viewer') > -1
+        L_.hasGlobe = L_.configData.panels.indexOf('globe') > -1
+    } else {
+        L_.hasViewer = L_.configData.panels.viewer === true
+        L_.hasGlobe = L_.configData.panels.globe === true
+    }
     //We only care about the layers now
     const layers = L_.configData.layers
 
@@ -3338,6 +3538,51 @@ function parseConfig(configData, urlOnLayers) {
 
             //Create parsed layers named
             L_.layers.data[d[i].name] = d[i]
+
+            if (
+                d[i].time &&
+                d[i].time.enabled === true &&
+                d[i].time.refreshIntervalEnabled === true
+            ) {
+                if (L_.layers.refreshIntervals[d[i].name])
+                    clearInterval(L_.layers.refreshIntervals[d[i].name])
+                L_.layers.refreshIntervals[d[i].name] = setInterval(
+                    async () => {
+                        if (L_.layers.on[d[i].name] === true) {
+                            let savedActiveFeature
+                            if (
+                                L_.activeFeature &&
+                                L_.activeFeature.layerName === d[i].name
+                            ) {
+                                savedActiveFeature = {
+                                    layerName: L_.activeFeature.layerName,
+                                    feature: JSON.parse(
+                                        JSON.stringify(L_.activeFeature.feature)
+                                    ),
+                                }
+                            }
+                            await L_.TimeControl_.reloadLayer(
+                                d[i].name,
+                                false,
+                                false,
+                                true,
+                                true
+                            )
+                            // Reselect activeFeature
+                            if (
+                                savedActiveFeature &&
+                                savedActiveFeature.layerName === d[i].name
+                            ) {
+                                L_.selectFeature(
+                                    savedActiveFeature.layerName,
+                                    savedActiveFeature.feature
+                                )
+                            }
+                        }
+                    },
+                    (d[i].time.refreshIntervalAmount || 60) * 1000
+                )
+            }
             //Save the prevName for easy tracing back
             L_._layersParent[d[i].name] = prevName
 
@@ -3367,6 +3612,11 @@ function parseConfig(configData, urlOnLayers) {
                             }
                         })(d[i].name)
                     )
+                }
+
+                // Set disabled time object if missing
+                if (d[i].time == null) {
+                    d[i].time = { enabled: false }
                 }
             }
 

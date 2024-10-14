@@ -11,6 +11,7 @@ import Map_ from '../../Basics/Map_/Map_'
 import Globe_ from '../../Basics/Globe_/Globe_'
 import CursorInfo from '../../Ancillary/CursorInfo'
 import DataShaders from '../../Ancillary/DataShaders'
+import Help from '../../Ancillary/Help'
 
 import arc from '../../../external/Arc/arc'
 import '../../../external/ColorPicker/jqColorPicker'
@@ -22,12 +23,17 @@ import ViewshedTool_Algorithm from './ViewshedTool_Algorithm'
 
 import './ViewshedTool.css'
 
+const helpKey = 'ViewshedTool'
+
 // prettier-ignore
 let markup = [
     "<div id='viewshedTool'>",
         "<div id='vstHeader'>",
             "<div>",
-                "<div id='vstTitle'>Viewshed</div>",
+                "<div style='display: flex;'>",
+                    "<div id='vstTitle'>Viewshed</div>",
+                    Help.getComponent(helpKey),
+                "</div>",
                 "<div id='vstNew'>",
                     "<div>New</div>",
                     "<i class='mdi mdi-plus mdi-18px'></i>",
@@ -263,8 +269,17 @@ let ViewshedTool = {
             resolution: initObj.resolution != null ? initObj.resolution : 1,
             invert: initObj.invert != null ? initObj.invert : 0,
             targetHeight:
-                initObj.targetHeight != null ? initObj.targetHeight : 0,
-            height: initObj.height != null ? initObj.height : 2,
+                initObj.targetHeight != null
+                    ? initObj.targetHeight
+                    : ViewshedTool?.vars?.defaultTargetHeight != null
+                    ? ViewshedTool.vars.defaultTargetHeight
+                    : 0,
+            height:
+                initObj.height != null
+                    ? initObj.height
+                    : ViewshedTool?.vars?.defaultObserverHeight != null
+                    ? ViewshedTool.vars.defaultObserverHeight
+                    : 2,
             centerAzimuth: initObj.centerAzimuth || 0,
             FOVAzimuth: initObj.FOVAzimuth != null ? initObj.FOVAzimuth : 360,
             centerElevation: initObj.centerElevation || 0,
@@ -1564,6 +1579,8 @@ function interfaceWithMMGIS() {
     tools = tools.append('div').style('height', '100%')
     //Add the markup to tools or do it manually
     tools.html(markup)
+
+    Help.finalize(helpKey)
 
     if (!ViewshedTool.firstOpen && ViewshedTool.lastViewshedsUl != null) {
         for (let id in ViewshedTool.lastViewshedsUl) {

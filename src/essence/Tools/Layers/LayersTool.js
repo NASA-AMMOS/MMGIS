@@ -7,7 +7,7 @@ import Map_ from '../../Basics/Map_/Map_'
 
 import DataShaders from '../../Ancillary/DataShaders'
 import LayerInfoModal from './LayerInfoModal/LayerInfoModal'
-import Filtering from './Filtering/Filtering'
+import Filtering from '../../Basics/Layers_/Filtering/Filtering'
 import Help from '../../Ancillary/Help'
 import CursorInfo from '../../Ancillary/CursorInfo'
 
@@ -68,6 +68,7 @@ var LayersTool = {
     vars: {},
     MMGISInterface: null,
     orderingHistory: [],
+    _maxDepth: 0,
     initialize: function () {
         //Get tool variables
         this.vars = L_.getToolVars('layers')
@@ -137,9 +138,16 @@ var LayersTool = {
                 if (t.attr('depth') <= elmDepth[currentHeaderIdx]) {
                     if (currentHeaderIdx <= 0) done = true
                     else {
-                        elmDepth.pop()
-                        wasOn.pop()
-                        currentHeaderIdx--
+                        while (t.attr('depth') <= elmDepth[currentHeaderIdx]) {
+                            elmDepth.pop()
+                            wasOn.pop()
+                            currentHeaderIdx--
+
+                            if (currentHeaderIdx < 0) {
+                                done = true
+                                break
+                            }
+                        }
                     }
                 }
                 if (!done) {
@@ -217,10 +225,13 @@ function interfaceWithMMGIS(fromInit) {
 
     let headerI = 0
 
+    LayersTool._maxDepth = 0
+
     //This is where the layers list is created in the tool panel.
     depthTraversal(L_.configData.layers, {}, 0)
 
     function depthTraversal(node, parent, depth) {
+        LayersTool._maxDepth = Math.max(LayersTool._maxDepth, depth)
         for (var i = 0; i < node.length; i++) {
             let currentOpacity
             let currentBrightness
@@ -289,6 +300,26 @@ function interfaceWithMMGIS(fromInit) {
                         '</ul>',
                     ].join('\n')
                     break
+                case 'data':
+                case 'tile':
+                    layerExport = ''
+                    // Add download URL for raster layers
+                    if (node[i].hasOwnProperty('variables')) {
+                        if (node[i].variables.hasOwnProperty('downloadURL')) {
+                            layerExport = [
+                                '<ul>',
+                                '<li>',
+                                '<div class="layersToolExportSourceGeoJSON">',
+                                `<div><a href="` +
+                                    node[i].variables.downloadURL +
+                                    `" target="_blank">Download Data</a></div>`,
+                                '</div>',
+                                '</li>',
+                                '</ul>',
+                            ].join('\n')
+                        }
+                    }
+                    break
                 default:
                     layerExport = ''
             }
@@ -297,28 +328,48 @@ function interfaceWithMMGIS(fromInit) {
             var timeDisplay = ''
             if (node[i].time != null) {
                 if (node[i].time.enabled == true) {
+                    // prettier-ignore
                     timeDisplay = [
                         '<ul>',
-                        '<li>',
-                        '<div>',
-                        '<div>Start Time</div>',
-                        '<label class="starttime ' +
-                            F_.getSafeName(node[i].name) +
-                            '">' +
-                            node[i].time.start +
-                            '</label>',
-                        '</div>',
-                        '</li>',
-                        '<li>',
-                        '<div>',
-                        '<div>End Time</div>',
-                        '<label class="endtime ' +
-                            F_.getSafeName(node[i].name) +
-                            '">' +
-                            node[i].time.end +
-                            '</label>',
-                        '</div>',
-                        '</li>',
+                            '<li class="layerTimeTitle">',
+                                '<div>Time</div>',
+                            '</li>',
+                            '<li>',
+                                '<div>',
+                                '<div>Start Time</div>',
+                                '<label class="starttime ' +
+                                    F_.getSafeName(node[i].name) +
+                                    '">' +
+                                    node[i].time.start +
+                                    '</label>',
+                                '</div>',
+                            '</li>',
+                            '<li>',
+                                '<div>',
+                                '<div>End Time</div>',
+                                '<label class="endtime ' +
+                                    F_.getSafeName(node[i].name) +
+                                    '">' +
+                                    node[i].time.end +
+                                    '</label>',
+                                '</div>',
+                            '</li>',
+                            (
+                                node[i].time.refreshIntervalEnabled === true
+                            ) ? 
+                            [
+                            '<li>',
+                                '<div>',
+                                '<div>Auto-Refreshes Every</div>',
+                                '<label class="autoRefreshInterval ' +
+                                    F_.getSafeName(node[i].name) +
+                                    '">' +
+                                    (node[i].time.refreshIntervalAmount || 60) +
+                                    ' Seconds</label>',
+                                '</div>',
+                            '</li>'
+                            ].join('\n')
+                            : null,
                         '</ul>',
                     ].join('\n')
                 }
@@ -1028,8 +1079,9 @@ function interfaceWithMMGIS(fromInit) {
     Object.keys(L_.layers.data).forEach((l) => {
         if (L_.layers.data[l].tags) tags = tags.concat(L_.layers.data[l].tags)
     })
-    // Remove duplicates
+    // Remove duplicates, nulls and ""
     tags = tags.filter((c, idx) => {
+        if (c == null || c === '') return false
         return tags.indexOf(c) === idx
     })
 
@@ -1170,14 +1222,19 @@ function interfaceWithMMGIS(fromInit) {
     })
 
     $('#searchLayers > #collapse').on('click', function () {
-        $('#layersToolList > li').each(function () {
-            if (
-                $(this).attr('type') == 'header' &&
-                $(this).attr('childrenon') == 'true'
-            ) {
-                LayersTool.toggleHeader($(this).attr('id'))
-            }
-        })
+        // Collapse deepest first
+        for (let depth = LayersTool._maxDepth; depth >= 0; depth--) {
+            $(`#layersToolList > li[type="header"][depth="${depth}"]`).each(
+                function () {
+                    if (
+                        $(this).attr('type') == 'header' &&
+                        $(this).attr('childrenon') == 'true'
+                    ) {
+                        LayersTool.toggleHeader($(this).attr('id'))
+                    }
+                }
+            )
+        }
     })
 
     $('#filterLayers .right > div').on('click', function () {

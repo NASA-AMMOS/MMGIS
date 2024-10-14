@@ -21,7 +21,7 @@ There are two SPICE python scripts that require these backend kernel setups:
 - `/private/api/spice/ll2aer11.py`
   - Turns a lnglat and target into a directional azimuth, elevation, range, and lntlat
   - Reads in all kernels `/private/api/spice/kernels`.
-  - `/private/api/spice/getKernelUtils` has some wget scripts as examples for downloadign new kernels (however these resources will quickly become outdated)
+  - `/private/api/spice/getKernelUtils` has some wget scripts as examples for downloading new kernels (however these resources will quickly become outdated)
 
 ## Tool Configuration
 
@@ -88,7 +88,7 @@ _**utcTimeFormat**_ - Sets the placeholder information for when the observer tim
 
 ## Tool Use
 
-**Note:** Terrain beyond the screen's current extent is **not** factored into the displayed visiblity map — only observer-target direction and on-screen terrain is considered. A distant off-screen mountain will **not** cast shadows.
+**Note:** Terrain beyond the screen's current extent is **not** factored into the displayed visibility map — only observer-target direction and on-screen terrain is considered. A distant off-screen mountain will **not** cast shadows.
 
 ### Interface
 
@@ -109,7 +109,7 @@ _**utcTimeFormat**_ - Sets the placeholder information for when the observer tim
 - _Time_
   - Offers the ability to set the current working time using a mission/spacecraft's custom date type.
 - _Height_
-  - Height in meters above the surface to use when calculating line-of-sight shading. For instance, a point on the surface (0m) may not be visible to a 'Source Entity', say the Mars Reconnaissance Orbiter (MRO), but 2m above that point may be. This value does not _only_ apply to the center longtitude and latitude but to all points on the visible terrain. Gradually increaing this value shows the shade map n-meters above the surface.
+  - Height in meters above the surface to use when calculating line-of-sight shading. For instance, a point on the surface (0m) may not be visible to a 'Source Entity', say the Mars Reconnaissance Orbiter (MRO), but 2m above that point may be. This value does not _only_ apply to the center longitude and latitude but to all points on the visible terrain. Gradually increasing this value shows the shade map n-meters above the surface.
 
 #### Shaded Region Options
 
@@ -118,7 +118,7 @@ _**utcTimeFormat**_ - Sets the placeholder information for when the observer tim
 - _Opacity_
   - The opaqueness to shade the shadowed regions on the map. A value of 0 is fully transparent and a value of 1 is fully opaque.
 - _Resolution_
-  - MMGIS downloads terrain data needed for the shading alogrithm. Increasing the resolution improves the quality of the shade map and the cost of download and render speed. Each higher option is 4x the resolution of the previous one (i.e. 'ultra' is 4x more terrain data than 'high' and 16x more data than 'medium'). To save on performance, if the resolution is 'high' or 'ultra', the Shade Tool will no longer regenerate the shaded map whenever any parameter changes and instead 'Generate/Regenerate' must manually be pressed.
+  - MMGIS downloads terrain data needed for the shading algorithm. Increasing the resolution improves the quality of the shade map and the cost of download and render speed. Each higher option is 4x the resolution of the previous one (i.e. 'ultra' is 4x more terrain data than 'high' and 16x more data than 'medium'). To save on performance, if the resolution is 'high' or 'ultra', the Shade Tool will no longer regenerate the shaded map whenever any parameter changes and instead 'Generate/Regenerate' must manually be pressed.
 - _Elevation Map_
 
   - Specifies the terrain dataset to use.

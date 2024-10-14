@@ -27,5 +27,7 @@
 *__pycache__
 
 sessions
+.terraform/
+.terraform.lock.hcl
 
 #tools

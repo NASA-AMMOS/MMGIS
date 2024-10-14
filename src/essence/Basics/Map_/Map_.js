@@ -7,6 +7,7 @@ import {
     constructVectorLayer,
     constructSublayers,
 } from '../Layers_/LayerConstructors'
+import Filtering from '../Layers_/Filtering/Filtering'
 import Viewer_ from '../Viewer_/Viewer_'
 import Globe_ from '../Globe_/Globe_'
 import ToolController_ from '../ToolController_/ToolController_'
@@ -112,6 +113,7 @@ let Map_ = {
             this.map = L.map('map', {
                 zoomControl: hasZoomControl,
                 editable: true,
+                keyboard: false,
                 crs: crs,
                 zoomDelta: 0.05,
                 zoomSnap: 0,
@@ -125,6 +127,7 @@ let Map_ = {
             this.map = L.map('map', {
                 zoomControl: hasZoomControl,
                 editable: true,
+                keyboard: false,
                 fadeAnimation: shouldFade,
                 //crs: crs,
                 //zoomDelta: 0.05,
@@ -308,7 +311,7 @@ let Map_ = {
     removeTempTileLayer: function () {
         this.rmNotNull(this.tempTileLayer)
     },
-    //Removes the map layer if it isnt null
+    //Removes the map layer if it isn't null
     rmNotNull: function (layer) {
         if (layer != null) {
             this.map.removeLayer(layer)
@@ -392,7 +395,7 @@ let Map_ = {
             )
         }
     },
-    refreshLayer: async function (layerObj) {
+    refreshLayer: async function (layerObj, cb, skipOrderedBringToFront) {
         // We need to find and remove all points on the map that belong to the layer
         // Not sure if there is a cleaner way of doing this
         for (var i = L_._layersOrdered.length - 1; i >= 0; i--) {
@@ -403,7 +406,11 @@ let Map_ = {
             ) {
                 if (L_._layersBeingMade[layerObj.name] !== true) {
                     const wasOn = L_.layers.on[layerObj.name]
-                    if (wasOn) L_.toggleLayer(L_.layers.data[layerObj.name]) // turn off if on
+                    if (wasOn)
+                        L_.toggleLayer(
+                            L_.layers.data[layerObj.name],
+                            skipOrderedBringToFront
+                        ) // turn off if on
                     // fake on
                     L_.layers.on[layerObj.name] = true
                     await makeLayer(layerObj, true, null)
@@ -411,15 +418,20 @@ let Map_ = {
 
                     // turn off if was off
                     if (wasOn) L_.layers.on[layerObj.name] = false
-                    L_.toggleLayer(L_.layers.data[layerObj.name]) // turn back on/off
+                    L_.toggleLayer(
+                        L_.layers.data[layerObj.name],
+                        skipOrderedBringToFront
+                    ) // turn back on/off
 
                     L_.enforceVisibilityCutoffs()
                 } else {
                     console.error(
                         `ERROR - refreshLayer: Cannot make layer ${layerObj.display_name}/${layerObj.name} as it's already being made!`
                     )
+                    if (typeof cb === 'function') cb()
                     return false
                 }
+                if (typeof cb === 'function') cb()
                 return true
             }
         }
@@ -530,7 +542,14 @@ function makeLayers(layersObj) {
     }
 }
 //Takes the layer object and makes it a map layer
-async function makeLayer(layerObj, evenIfOff, forceGeoJSON, id, forceMake) {
+async function makeLayer(
+    layerObj,
+    evenIfOff,
+    forceGeoJSON,
+    id,
+    forceMake,
+    stopLoops
+) {
     return new Promise(async (resolve, reject) => {
         const layerName = L_.asLayerUUID(layerObj.name)
         if (forceMake !== true && L_._layersBeingMade[layerName] === true) {
@@ -578,6 +597,11 @@ async function makeLayer(layerObj, evenIfOff, forceGeoJSON, id, forceMake) {
 
         // release hold on layer
         L_._layersBeingMade[layerName] = false
+
+        if (stopLoops !== true && layerObj.type === 'vector') {
+            Filtering.updateGeoJSON(layerObj.name)
+            Filtering.triggerFilter(layerObj.name)
+        }
 
         resolve(true)
     })
@@ -685,19 +709,13 @@ function featureDefaultClick(feature, layer, e) {
     }
 
     function keepGoing() {
-        //View images
-        var propImages = propertiesToImages(
-            feature.properties,
-            layer.options.metadata ? layer.options.metadata.base_url || '' : ''
-        )
-
         Kinds.use(
             L_.layers.data[layer.options.layerName].kind,
             Map_,
             feature,
             layer,
             layer.options.layerName,
-            propImages,
+            null,
             e
         )
 
@@ -711,13 +729,7 @@ function featureDefaultClick(feature, layer, e) {
             }
         }
 
-        Viewer_.changeImages(propImages, feature, layer)
-        for (var i in propImages) {
-            if (propImages[i].type == 'radargram') {
-                //Globe_.radargram( layer.options.layerName, feature.geometry, propImages[i].url, propImages[i].length, propImages[i].depth );
-                break
-            }
-        }
+        Viewer_.changeImages(feature, layer)
 
         //figure out how to construct searchStr in URL. For example: a ChemCam target can sometime
         //be searched by "target sol", or it can be searched by "sol target" depending on config file.
@@ -784,10 +796,14 @@ async function makeVectorLayer(
                 add,
                 (f) => {
                     Map_.map.on('moveend', f)
-                    L_.subscribeTimeChange(
-                        `dynamicgeodataset_${layerObj.name}`,
-                        f
+                    if (
+                        layerObj.time?.enabled === true &&
+                        layerObj.controlled !== true
                     )
+                        L_.subscribeTimeChange(
+                            `dynamicgeodataset_${layerObj.name}`,
+                            f
+                        )
                     L_.subscribeOnSpecificLayerToggle(
                         `dynamicgeodataset_${layerObj.name}`,
                         layerObj.name,
@@ -797,25 +813,7 @@ async function makeVectorLayer(
             )
 
         function add(data, allowInvalid) {
-            // []
-            if (Array.isArray(data) && data.length === 0) {
-                data = { type: 'FeatureCollection', features: [] }
-            }
-            // [<FeatureCollection>]
-            else if (
-                Array.isArray(data) &&
-                data[0] &&
-                data[0].type === 'FeatureCollection'
-            ) {
-                const nextData = { type: 'FeatureCollection', features: [] }
-                data.forEach((fc) => {
-                    if (fc.type === 'FeatureCollection')
-                        nextData.features = nextData.features.concat(
-                            fc.features
-                        )
-                })
-                data = nextData
-            }
+            data = F_.parseIntoGeoJSON(data)
 
             let invalidGeoJSONTrace = gjv.valid(data, true)
             const allowableErrors = [`position must only contain numbers`]
@@ -867,6 +865,7 @@ async function makeVectorLayer(
                 data.features
             )
             L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
+
             allLayersLoaded()
             resolve()
         }
@@ -911,6 +910,10 @@ async function makeTileLayer(layerObj) {
         starttime:
             typeof layerObj.time === 'undefined' ? '' : layerObj.time.start,
         endtime: typeof layerObj.time === 'undefined' ? '' : layerObj.time.end,
+        customTimes:
+            typeof layerObj.time === 'undefined'
+                ? null
+                : layerObj.time.customTimes,
         variables: layerObj.variables || {},
     })
 
@@ -1175,6 +1178,7 @@ function allLayersLoaded() {
                 ToolController_.toolModules['LegendTool'].make(
                     'toolContentSeparated_Legend'
                 )
+                ToolController_.activeSeparatedTools.push('LegendTool')
                 let _event = new CustomEvent('toggleSeparatedTool', {
                     detail: {
                         toggledToolName: 'LegendTool',
@@ -1185,98 +1189,6 @@ function allLayersLoaded() {
             }
         }
     }
-}
-
-function propertiesToImages(props, baseUrl) {
-    baseUrl = baseUrl || ''
-    var images = []
-    //Use "images" key first
-    if (props.hasOwnProperty('images')) {
-        for (var i = 0; i < props.images.length; i++) {
-            if (props.images[i].url) {
-                var url = baseUrl + props.images[i].url
-                if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
-                if (props.images[i].isModel) {
-                    images.push({
-                        url: url,
-                        texture: props.images[i].texture,
-                        name:
-                            (props.images[i].name ||
-                                props.images[i].url.match(/([^\/]*)\/*$/)[1]) +
-                            ' [Model]',
-                        type: 'model',
-                        isPanoramic: false,
-                        isModel: true,
-                        values: props.images[i].values || {},
-                        master: props.images[i].master,
-                    })
-                } else {
-                    if (props.images[i].isPanoramic) {
-                        images.push({
-                            ...props.images[i],
-                            url: url,
-                            name:
-                                (props.images[i].name ||
-                                    props.images[i].url.match(
-                                        /([^\/]*)\/*$/
-                                    )[1]) + ' [Panoramic]',
-                            type: 'photosphere',
-                            isPanoramic: true,
-                            isModel: false,
-                            values: props.images[i].values || {},
-                            master: props.images[i].master,
-                        })
-                    }
-                    images.push({
-                        url: url,
-                        name:
-                            props.images[i].name ||
-                            props.images[i].url.match(/([^\/]*)\/*$/)[1],
-                        type: props.images[i].type || 'image',
-                        isPanoramic: false,
-                        isModel: false,
-                        values: props.images[i].values || {},
-                        master: props.images[i].master,
-                    })
-                }
-            }
-        }
-    }
-    //If there isn't one, search all string valued props for image urls
-    else {
-        for (var p in props) {
-            if (
-                typeof props[p] === 'string' &&
-                props[p].toLowerCase().match(/\.(jpeg|jpg|gif|png|xml)$/) !=
-                    null
-            ) {
-                var url = props[p]
-                if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
-                images.push({
-                    url: url,
-                    name: p,
-                    isPanoramic: false,
-                    isModel: false,
-                })
-            }
-            if (
-                typeof props[p] === 'string' &&
-                (props[p].toLowerCase().match(/\.(obj)$/) != null ||
-                    props[p].toLowerCase().match(/\.(dae)$/) != null)
-            ) {
-                var url = props[p]
-                if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
-                images.push({
-                    url: url,
-                    name: p,
-                    isPanoramic: false,
-                    isModel: true,
-                })
-            }
-        }
-    }
-
-    return images
 }
 
 function buildToolBar() {

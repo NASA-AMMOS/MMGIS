@@ -76,7 +76,7 @@ _Notes:_
 
 ## Compositing Tiles:
 
-Adds the resampling algorithm `near-composite` that uses nearest-neighbor resampling and overlays the new tile onto the old tile (if any in output directory). This makes it possible to accumulate or combine tilesets at the indivdual tile image level. Data in tiles can be overwritten by this process so be cognizant of run order and input extents.
+Adds the resampling algorithm `near-composite` that uses nearest-neighbor resampling and overlays the new tile onto the old tile (if any in output directory). This makes it possible to accumulate or combine tilesets at the individual tile image level. Data in tiles can be overwritten by this process so be cognizant of run order and input extents.
 
 **Example:**
 
@@ -95,7 +95,7 @@ _Notes:_
 
 _Python 3.10.5_
 
-A convience script that wraps gda2customtiles.py. Translates the input data into EPSG:4326 and sets proper ground control points. Might be outdated. Use gdal2customtiles directly for the most control.
+A convenience script that wraps gda2customtiles.py. Translates the input data into EPSG:4326 and sets proper ground control points. Might be outdated. Use gdal2customtiles directly for the most control.
 
 **Usage:**
 `rasters2customtiles.py [options] input_file [output]` or see `--help`

@@ -104,6 +104,10 @@ function updateTools() {
   // (configure page is still old school)
   try {
     fs.writeFileSync("./config/pre/toolConfigs.json", JSON.stringify(tools));
+    fs.writeFileSync(
+      "./configure/public/toolConfigs.json",
+      JSON.stringify(tools)
+    );
     logger(
       "success",
       "Successfully updated source tool configurations.",

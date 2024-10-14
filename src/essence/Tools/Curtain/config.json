@@ -1,0 +1,31 @@
+{
+    "defaultIcon": "waves",
+    "description": "Curtain views of Ground Penetrating Radar data.",
+    "descriptionFull": {
+        "title": "Vertical imagery aligned under terrain for visualizing data from ground penetrating radar.",
+        "example": {
+            "withCredentials": false
+        }
+    },
+    "hasVars": true,
+    "name": "Curtain",
+    "paths": {
+        "CurtainTool": "essence/Tools/Curtain/CurtainTool"
+    },
+    "config": {
+        "rows": [
+            {
+                "components": [
+                    {
+                        "field": "variables.withCredentials",
+                        "name": "With Credentials",
+                        "description": "",
+                        "type": "checkbox",
+                        "width": 3,
+                        "defaultChecked": false
+                    }
+                ]
+            }
+        ]
+    }
+}

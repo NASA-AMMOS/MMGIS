@@ -64,7 +64,11 @@
             canvas.width = 1
             canvas.height = 256
             for (var i in palette) {
-                gradient.addColorStop(i, palette[i])
+                try {
+                    gradient.addColorStop(i, palette[i])
+                } catch (err) {
+                    console.warn(`Hotline gradient - Bad color: ${palette[i]}`)
+                }
             }
             ctx.fillStyle = gradient
             ctx.fillRect(0, 0, 1, 256)

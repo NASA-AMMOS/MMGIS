@@ -6,9 +6,9 @@ Click any vector feature in the Map to view its properties.
 
 ### Header Actions
 
-- _Eye:_ This hides (or unhides) the active feature. This is useful if you want a very specific and individually curated view for, say, a screenshot and the Fitlering functionality in the Layers Tool doesn't quite cut it. Deep Links do not store which features are hidden nor do they persist through page reload. If any number of features are hidden, a green eye button will appear next to this one to provide the way to reshow all hidden features.
+- _Eye:_ This hides (or unhides) the active feature. This is useful if you want a very specific and individually curated view for, say, a screenshot and the Filtering functionality in the Layers Tool doesn't quite cut it. Deep Links do not store which features are hidden nor do they persist through page reload. If any number of features are hidden, a green eye button will appear next to this one to provide the way to reshow all hidden features.
 - _Clipboard:_ Copies the current feature's geometry and properties to your clipboard.
-- _Target:_ Pans and zooms to the cuurent feature in the Map.
+- _Target:_ Pans and zooms to the current feature in the Map.
 
 ### Feature Dropdown
 

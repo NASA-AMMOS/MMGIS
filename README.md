@@ -103,7 +103,7 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
 
 1. GDAL and Python are weaker dependencies (desirable but, without them, not everything will work)
 
-   - GDAL [2.+](https://gdal.org/download.html) with Python bindings (Windows users may find [these](https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal) helpful)
+   - GDAL [2.+](https://gdal.org/download.html) with Python bindings (Windows users may find [these](https://github.com/cgohlke/geospatial-wheels/releases) helpful)
    - Python [3.6+](https://www.python.org/downloads/release/python-396/)
      - `python -m pip install numpy`
      - Note: MMGIS expects and uses the command `python` only and not `python3` or variations.
@@ -138,6 +138,10 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
    ```
 
 1. Run `npm run build` to bundle up the code (first time or if there are any changes)
+
+1. Go into /configure and run `npm install` followed by `npm run build` to build the beta configuration site.
+
+1. Go back to the root `/` directory
 
 1. Run `npm run start:prod`
 
@@ -217,3 +221,5 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 Dr. Fred J. Calef III - fred.calef@jpl.nasa.gov  
 Tariq K. Soliman - tariq.k.soliman@jpl.nasa.gov
+
+Or join us on **[Slack](https://nasa-ammos.slack.com/archives/C076L0Q1P4H)**

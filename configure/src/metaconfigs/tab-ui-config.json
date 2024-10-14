@@ -1,0 +1,308 @@
+{
+  "rows": [
+    {
+      "name": "Rebranding",
+      "components": [
+        {
+          "field": "look.pagename",
+          "name": "Page Name",
+          "description": "Sets the browser tab title and, if the UI is not minimalist, sets the title in the top bar. Defaults to MMGIS",
+          "type": "text",
+          "width": 3,
+          "default": "MMGIS"
+        },
+        {
+          "field": "look.logourl",
+          "name": "Square Logo Image URL",
+          "description": "",
+          "type": "text",
+          "width": 9
+        }
+      ]
+    },
+    {
+      "name": "Map Panel",
+      "components": [
+        {
+          "field": "msv.mapscale",
+          "name": "Zoom Level of Map Scale",
+          "description": "An integer to be the default map zoom level. This is not the initial zoom but rather a preferred zoom level that functions as a default if an ideal zoom for a function cannot be determined. Setting this value also adds a button above the scale bar to quickly zoom to it. In terms of drawing features, this is the preferred zoom level at which users should draw.",
+          "type": "number",
+          "min": 0,
+          "max": 40,
+          "width": 4
+        }
+      ]
+    },
+    {
+      "name": "Viewer Panel",
+      "components": [
+        {
+          "field": "panels.viewer",
+          "name": "Enabled",
+          "description": "",
+          "type": "switch",
+          "width": 4,
+          "defaultChecked": true
+        }
+      ]
+    },
+    {
+      "name": "Globe Panel",
+      "components": [
+        {
+          "field": "panels.globe",
+          "name": "Enabled",
+          "description": "",
+          "type": "switch",
+          "width": 4,
+          "defaultChecked": true
+        }
+      ]
+    },
+    {
+      "components": [
+        {
+          "field": "panelSettings.demFallbackPath",
+          "name": "DEM Fallback URL",
+          "description": "A URL to an underlying and ever-present DEM terrain tileset to fill in any missing elevation tiles of active layers.",
+          "type": "text",
+          "width": 8
+        },
+        {
+          "field": "panelSettings.demFallbackFormat",
+          "name": "DEM Fallback Format",
+          "description": "",
+          "type": "dropdown",
+          "width": 2,
+          "options": ["tms", "wmts", "wms"]
+        },
+        {
+          "field": "panelSettings.demFallbackType",
+          "name": "DEM Fallback Type",
+          "description": "",
+          "type": "dropdown",
+          "width": 2,
+          "options": ["rgba", "tif"]
+        }
+      ]
+    },
+    {
+      "name": "Interface",
+      "components": [
+        {
+          "field": "look.topbar",
+          "name": "Top Bar",
+          "description": "",
+          "type": "checkbox",
+          "width": 3,
+          "defaultChecked": true
+        },
+        {
+          "field": "look.toolbar",
+          "name": "Tool Bar",
+          "description": "",
+          "type": "checkbox",
+          "width": 3,
+          "defaultChecked": true
+        },
+        {
+          "field": "look.scalebar",
+          "name": "Scale Bar",
+          "description": "",
+          "type": "checkbox",
+          "width": 3,
+          "defaultChecked": true
+        },
+        {
+          "field": "look.coordinates",
+          "name": "Coordinates",
+          "description": "",
+          "type": "checkbox",
+          "width": 3,
+          "defaultChecked": true
+        }
+      ]
+    },
+    {
+      "components": [
+        {
+          "field": "look.zoomcontrol",
+          "name": "Map Zoom Control",
+          "description": "",
+          "type": "checkbox",
+          "width": 3,
+          "defaultChecked": true
+        },
+        {
+          "field": "look.graticule",
+          "name": "Map Graticule",
+          "description": "",
+          "type": "checkbox",
+          "width": 3,
+          "defaultChecked": false
+        },
+        {
+          "field": "look.miscellaneous",
+          "name": "Miscellaneous",
+          "description": "",
+          "type": "checkbox",
+          "width": 3,
+          "defaultChecked": true
+        },
+        {
+          "field": "look.settings",
+          "name": "Settings",
+          "description": "",
+          "type": "checkbox",
+          "width": 3,
+          "defaultChecked": true
+        }
+      ]
+    },
+
+    {
+      "name": "Colors",
+      "components": [
+        {
+          "field": "look.primarycolor",
+          "name": "Primary Color",
+          "description": "Colors various buttons, components, panels, feature hover text.",
+          "type": "colorpicker",
+          "width": 3
+        },
+        {
+          "field": "look.secondarycolor",
+          "name": "Secondary Color",
+          "description": "Colors some panels and UI borders and is used as the background of the Viewer Panel.",
+          "type": "colorpicker",
+          "width": 3
+        },
+        {
+          "field": "look.tertiarycolor",
+          "name": "Tertiary Color",
+          "description": "Colors many icons and text.",
+          "type": "colorpicker",
+          "width": 3
+        },
+        {
+          "field": "look.accentcolor",
+          "name": "Accent Color",
+          "description": "Colors things like the active tool indicator.",
+          "type": "colorpicker",
+          "width": 3
+        }
+      ]
+    },
+    {
+      "components": [
+        {
+          "field": "look.bodycolor",
+          "name": "Body Color",
+          "description": "Colors the overall body but might have little impact.",
+          "type": "colorpicker",
+          "width": 3
+        },
+        {
+          "field": "look.topbarcolor",
+          "name": "TopBar Color",
+          "description": "Colors the top horizontal bar.",
+          "type": "colorpicker",
+          "width": 3
+        },
+        {
+          "field": "look.toolbarcolor",
+          "name": "ToolBar Color",
+          "description": "Colors the left vertical toolbar",
+          "type": "colorpicker",
+          "width": 3
+        },
+        {
+          "field": "look.mapcolor",
+          "name": "Map Color",
+          "description": "Colors the background of the map. The color is seen in regions of the 2D map where there is no data.",
+          "type": "colorpicker",
+          "width": 3
+        }
+      ]
+    },
+    {
+      "components": [
+        {
+          "field": "look.hightlightcolor",
+          "name": "Highlight Color",
+          "description": "The color with which to highlight selected features in the map.",
+          "type": "colorpicker",
+          "width": 3
+        }
+      ]
+    },
+    {
+      "name": "Secondary/Bottom Tools",
+      "components": [
+        {
+          "field": "look.copylink",
+          "name": "Copy Link",
+          "description": "Allows users to click a button to generate a deep-link to the current state of their view of MMGIS.",
+          "type": "checkbox",
+          "width": 2,
+          "defaultChecked": true
+        },
+        {
+          "field": "look.screenshot",
+          "name": "Screenshot",
+          "description": "Allows users to click a button to save a screenshot of the current 2D map.",
+          "type": "checkbox",
+          "width": 2,
+          "defaultChecked": true
+        },
+        {
+          "field": "look.fullscreen",
+          "name": "Fullscreen",
+          "description": "Allows users to enter and exit fullscreen mode.",
+          "type": "checkbox",
+          "width": 2,
+          "defaultChecked": true
+        }
+      ]
+    },
+    {
+      "components": [
+        {
+          "field": "look.info",
+          "name": "User Info",
+          "description": "Add a button to take users to a link that provides more information.",
+          "type": "checkbox",
+          "width": 2,
+          "defaultChecked": false
+        },
+        {
+          "field": "look.infourl",
+          "name": "User Info URL Link",
+          "description": "Required in order to enable button.",
+          "type": "text",
+          "width": 10
+        }
+      ]
+    },
+    {
+      "components": [
+        {
+          "field": "look.help",
+          "name": "User Help",
+          "description": "Add a button to take users to a link that provides custom help on how to use MMGIS.",
+          "type": "checkbox",
+          "width": 2,
+          "defaultChecked": false
+        },
+        {
+          "field": "look.helpurl",
+          "name": "User Help URL Link",
+          "description": "Required in order to enable button.",
+          "type": "text",
+          "width": 10
+        }
+      ]
+    }
+  ]
+}

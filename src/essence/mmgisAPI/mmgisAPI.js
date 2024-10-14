@@ -22,6 +22,10 @@ var mmgisAPI_ = {
             mmgisAPI_.onLoadCallback = null
         }
     },
+    setConfiguration: function (configuration) {
+        if (window.mmgisglobal.setConfiguration)
+            window.mmgisglobal.setConfiguration(configuration)
+    },
     // Adds a layer to the map. For a more "temporary" layer, use Leaflet directly through `mmgisAPI.map`
     addLayer: function (layerObj, placement) {
         return new Promise(async (resolve, reject) => {
@@ -300,6 +304,27 @@ var mmgisAPI_ = {
         }
         return null
     },
+    getActiveTools: function () {
+        if (ToolController_) {
+            const activeTool = mmgisAPI_.getActiveTool()
+            return {
+                activeToolNames: [ToolController_.activeToolName]
+                    .concat(ToolController_.activeSeparatedTools)
+                    .filter(Boolean),
+                activeTools: [activeTool.activeTool != null ? activeTool : null]
+                    .concat(
+                        ToolController_.activeSeparatedTools.map((a) => {
+                            return {
+                                activeTool: ToolController_.getTool(a),
+                                activeToolName: a,
+                            }
+                        })
+                    )
+                    .filter(Boolean),
+            }
+        }
+        return null
+    },
     getLayerConfigs: function (match) {
         if (match) {
             const matchedLayers = {}
@@ -348,10 +373,8 @@ var mmgisAPI_ = {
         const listener = mmgisAPI_.getLeafletMapEvent(eventName)
         const mmgisListener = mmgisAPI_.checkMMGISEvent(eventName)
         if (listener) {
-            console.log('Add listener:', listener)
             mmgisAPI_.map.addEventListener(listener, functionReference)
         } else if (mmgisListener) {
-            console.log('Add listener', eventName)
             document.addEventListener(eventName, functionReference)
         } else {
             //mmgisAPI_.customListeners[eventName] = mmgisAPI_.customListeners[eventName] || []
@@ -441,6 +464,11 @@ var mmgisAPI_ = {
 }
 
 var mmgisAPI = {
+    /**
+     * Sets a new configuration object for MMGIS to use
+     * @param {object} configurationObj - The new configuration JSON object (what the configuration CMS creates)
+     */
+    setConfiguration: mmgisAPI_.setConfiguration,
     /**
      * Adds a layer to the map. For a more "temporary" layer, use Leaflet directly through `mmgisAPI.map`
      * @param {object} layerObj - See schema in configData
@@ -640,6 +668,11 @@ var mmgisAPI = {
      * @returns {object} - The currently active tool and the name of the active tool as an object.
      */
     getActiveTool: mmgisAPI_.getActiveTool,
+
+    /** getActiveTools - returns the currently active tool
+     * @returns {object} - The currently active tool and the name of the active tool as an object.
+     */
+    getActiveTools: mmgisAPI_.getActiveTools,
 
     /** getLayerConfigs - returns an object with the visibility state of all layers
      * @returns {object} - an object containing the visibility state of each layer

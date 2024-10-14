@@ -115,7 +115,7 @@ const LocalFilterer = {
             refreshFunction(filteredGeoJSON)
         } else {
             L_.clearVectorLayer(layerName)
-            L_.updateVectorLayer(layerName, filteredGeoJSON)
+            L_.updateVectorLayer(layerName, filteredGeoJSON, null, true)
         }
     },
     match: function (feature, filter) {

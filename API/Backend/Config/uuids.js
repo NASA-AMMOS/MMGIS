@@ -9,13 +9,17 @@ const populateUUIDs = (config) => {
 
   // Track of all of the previously defined UUIDs (i.e. ignore the UUIDs of the newly added layers)
   Utils.traverseLayers(config.layers, (layer) => {
-    if (layer.uuid != null && !layer.proposed_uuid) {
+    if (
+      layer.uuid != null &&
+      typeof layer.uuid !== "number" &&
+      !layer.proposed_uuid
+    ) {
       definedUUIDs.push(layer.uuid);
     }
   });
 
   Utils.traverseLayers(config.layers, (layer) => {
-    if (layer.uuid == null) {
+    if (layer.uuid == null || typeof layer.uuid === "number") {
       layer.uuid = uuidv4();
       newlyAddedUUIDs.push({
         name: layer.name,

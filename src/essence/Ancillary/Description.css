@@ -1,0 +1,131 @@
+#mainDescNavBar {
+    display: flex;
+    background: var(--color-a1);
+    margin-right: 8px;
+}
+#mainDescNavBarMenu {
+    width: 22px;
+    height: 30px;
+    text-align: center;
+    line-height: 30px;
+    background: var(--color-a);
+    color: var(--color-a6);
+    cursor: pointer;
+    transition: background 0.2s ease-in-out;
+}
+#mainDescNavBarMenu:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+#mainDescNavBarPrevious {
+    width: 30px;
+    height: 30px;
+    text-align: center;
+    line-height: 30px;
+    border-right: 1px solid var(--color-a);
+    cursor: pointer;
+    transition: background 0.2s ease-in-out;
+}
+#mainDescNavBarPrevious:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+#mainDescNavBarNext {
+    width: 30px;
+    height: 30px;
+    text-align: center;
+    line-height: 30px;
+    cursor: pointer;
+    transition: background 0.2s ease-in-out;
+}
+#mainDescNavBarNext:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+#mainDescNavPopover {
+    display: none;
+    background: var(--color-a);
+    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.4);
+    width: 240px;
+    border-top: 1px solid var(--color-a1);
+    transition: left 0.2s ease-out;
+}
+#mainDescNavPopoverTitle {
+    background: var(--color-a2);
+    text-align: center;
+    padding: 4px 0px;
+    font-size: 14px;
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--color-a);
+}
+#mainDescNavPopoverField {
+    display: flex;
+    justify-content: space-between;
+    height: 30px;
+    line-height: 30px;
+    font-size: 14px;
+    border-bottom: 1px solid var(--color-a1);
+}
+#mainDescNavPopoverFieldField {
+    width: 100%;
+}
+#mainDescNavPopoverFieldInfo {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 6px 6px 16px;
+    border-bottom: 1px solid var(--color-a1);
+}
+#mainDescNavPopoverFieldInfo > div:first-child {
+    color: var(--color-a6);
+    margin-right: 8px;
+    font-size: 12px;
+    line-height: 18px;
+}
+#mainDescNavPopoverFieldInfo > div:last-child {
+    color: var(--color-h);
+    font-size: 14px;
+    font-weight: bold;
+    font-family: monospace;
+    word-break: break-all;
+}
+#mainDescNavPopoverExtent,
+#mainDescNavPopoverTimeExtent,
+#mainDescNavPopoverPanTo {
+    display: flex;
+    justify-content: space-between;
+    height: 30px;
+    line-height: 30px;
+    font-size: 14px;
+    padding-left: 8px;
+    border-bottom: 1px solid var(--color-a1);
+}
+#mainDescNavPopoverBottom {
+    display: flex;
+    justify-content: center;
+    height: 30px;
+    line-height: 30px;
+}
+#mainDescNavPopoverBottom > div {
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.2s ease-in-out;
+}
+#mainDescNavPopoverBottom > div:hover {
+    background: var(--color-a1);
+}
+
+#mainDescNavPopoverFieldField .dropy__title {
+    height: 30px;
+    border: none;
+    background: var(--color-a1);
+    line-height: 14px;
+    font-size: 14px;
+}
+#mainDescNavPopoverFieldField .dropy__title > i {
+    line-height: 15px;
+}
+#mainDescNavPopoverFieldField .dropy__content a {
+    height: 30px;
+    line-height: 30px;
+    padding: 2px 8px;
+}

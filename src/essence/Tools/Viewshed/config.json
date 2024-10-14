@@ -24,7 +24,9 @@
                     "elFOV": 30
                 },
                 { "...": "..." }
-            ]
+            ],
+            "defaultObserverHeight": 2,
+            "defaultTargetHeight": 0
         }
     },
     "hasVars": true,
@@ -34,5 +36,122 @@
         "ViewshedTool": "essence/Tools/Viewshed/ViewshedTool",
         "ViewshedTool_Manager": "essence/Tools/Viewshed/ViewshedTool_Manager",
         "ViewshedTool_Algorithm": "essence/Tools/Viewshed/ViewshedTool_Algorithm"
+    },
+    "config": {
+        "rows": [
+            {
+                "components": [
+                    {
+                        "field": "variables.data",
+                        "name": "Layer specific DEMs",
+                        "description": "Only show DEM if associated layer is on.",
+                        "type": "objectarray",
+                        "width": 12,
+                        "object": [
+                            {
+                                "field": "name",
+                                "name": "Name",
+                                "description": "User-friendly name for DEM",
+                                "type": "text",
+                                "width": 2
+                            },
+                            {
+                                "field": "demtileurl",
+                                "name": "DEM Path",
+                                "description": "",
+                                "type": "text",
+                                "width": 8
+                            },
+                            {
+                                "field": "minZoom",
+                                "name": "Minimum Zoom",
+                                "description": "",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "width": 1
+                            },
+                            {
+                                "field": "maxNativeZoom",
+                                "name": "Maximum Native Zoom",
+                                "description": "",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "width": 1
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.cameraPresets",
+                        "name": "Camera Presets",
+                        "description": "Only show DEM if associated layer is on.",
+                        "type": "objectarray",
+                        "width": 12,
+                        "object": [
+                            {
+                                "field": "name",
+                                "name": "Name",
+                                "description": "Camera Name",
+                                "type": "text",
+                                "width": 10
+                            },
+                            {
+                                "field": "height",
+                                "name": "Height",
+                                "description": "Height in meters",
+                                "type": "number",
+                                "min": 0,
+                                "width": 2
+                            },
+                            {
+                                "field": "azCenter",
+                                "name": "Azimuth Center",
+                                "description": "",
+                                "type": "number",
+                                "width": 3
+                            },
+                            {
+                                "field": "azFOV",
+                                "name": "Azimuth FOV",
+                                "description": "",
+                                "type": "number",
+                                "width": 3
+                            },
+                            {
+                                "field": "elCenter",
+                                "name": "Elevation Center",
+                                "description": "",
+                                "type": "number",
+                                "width": 3
+                            },
+                            {
+                                "field": "elFOV",
+                                "name": "Elevation FOV",
+                                "description": "",
+                                "type": "number",
+                                "width": 3
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.curvature",
+                        "name": "Curvature",
+                        "description": "Whether to account for planetary curvature while computing viewsheds.",
+                        "type": "checkbox",
+                        "width": 3,
+                        "defaultChecked": false
+                    }
+                ]
+            }
+        ]
     }
 }

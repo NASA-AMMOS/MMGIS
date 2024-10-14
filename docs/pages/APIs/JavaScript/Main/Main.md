@@ -27,7 +27,7 @@ The `src/essence/mmgisAPI/mmgisAPI.js` file exposes functions that can be called
   - [asLayerUUID(uuid)](#asLayerUUIDuuid)
 - [Time Control](#time-control)
   - [toggleTimeUI(visibility)](#toggletimeuivisibility)
-  - [setTime(startTime, endTime, isRelative, timeOffset, currentTime)](#settimestarttime-endtime-isrelative-timeoffset-currenttime)
+  - [setTime(startTime, endTime, isRelative, timeOffset, currentTime, customTimes)](#settimestarttime-endtime-isrelative-timeoffset-currenttime-customtimes)
   - [setLayerTime(layer, startTime, endTime)](#setlayertimelayer-starttime-endtime)
   - [getTime()](#gettime)
   - [getStartTime()](#getstarttime)
@@ -54,6 +54,7 @@ The `src/essence/mmgisAPI/mmgisAPI.js` file exposes functions that can be called
   - [writeCoordinateURL()](#writecoordinateurl)
   - [onLoaded(onLoadCallback)](#onloadedonloadcallback)
   - [getActiveTool()](#getactivetool)
+  - [getActiveTools()](#getactivetools)
   - [setLoginToken(username, token)](#setlogintoken)
   - [project(lnglat)](#projectlnglat)
   - [unproject(xy)](#unprojectxy)
@@ -421,7 +422,7 @@ The following is an example of how to call the `toggleTimeUI` function:
 window.mmgisAPI.toggleTimeUI(false);
 ```
 
-### setTime(startTime, endTime, isRelative, timeOffset, currentTime)
+### setTime(startTime, endTime, isRelative, timeOffset, currentTime, customTimes)
 
 This function sets the global time properties for all of MMGIS. All time enabled layers that are configured to use the `Global` time type will be updated by this function.
 
@@ -434,6 +435,11 @@ Note that layers will not be refreshed on the map until `reloadTimeLayers()` (or
 - `isRelative` - If true, startTime and endTime are relative to the current UTC time
 - `timeOffset` - An offset to use for the current UTC time; can be either a string in `hh:mm:ss` format or an integer value in seconds
 - `currentTime` - If set, offset is ignored and the current working time is set to this currentTime
+- `customTimes` - Sets an array of times of format `YYYY-MM-DDThh:mm:ssZ` to be used while replacing `{customtime.0}`, `{customtime.1}`, ... in the tile or vector layer url in order to inject custom times.
+  - If value is a `string`, puts it into the 0th index of the internal customtimes array.
+  - If value is a `[string]`, replaces the current internal customtimes array with it.
+  - If value is the empty array `[]`, clears the internal customtimes array.
+  - If value is `null`, does not modify the existing internal customtimes array.
 
 The following are examples of how to call the `setTime` function:
 
@@ -824,6 +830,26 @@ The following is an example of how to call the `getActiveTool` function:
 
 ```javascript
 window.mmgisAPI.getActiveTool();
+```
+
+### getActiveTools()
+
+This function returns an object with the currently active tool and the name of the active tool in addition to any active separated tools (such as the Identifier and Legend Tools).
+
+The following is an example of how to call the `getActiveTools` function:
+
+```javascript
+window.mmgisAPI.getActiveTools();
+/* returns (example)
+{
+  activeToolNames: ['InfoTool', 'LegendTool', 'IdentifierTool']
+  activeTools: [
+    {activeTool: {…}, activeToolName: 'InfoTool'},
+    {activeTool: {…}, activeToolName: 'LegendTool'},
+    {activeTool: {…}, activeToolName: 'IdentifierTool'}
+  ]
+}
+*/
 ```
 
 ### initialLogin()

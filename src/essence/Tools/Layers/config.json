@@ -2,7 +2,7 @@
     "defaultIcon": "layers",
     "description": "Hierarchically toggle layers on and off and alter their opacities.",
     "descriptionFull": {
-        "title": "Hierarchically toggle layers on and off and alter their opacities.",
+        "title": "Allows users to toggle on and off layers, download them, filter their features and change some parameters such as opacity.",
         "example": {
             "expanded": "(bool) is initial state expanded [default false]"
         }
@@ -13,5 +13,21 @@
     "paths": {
         "LayersTool": "essence/Tools/Layers/LayersTool"
     },
-    "expandable": true
+    "expandable": true,
+    "config": {
+        "rows": [
+            {
+                "components": [
+                    {
+                        "field": "variables.expanded",
+                        "name": "Expanded",
+                        "description": "Whether all layer groupings default to being expanded (as opposed to being collapsed).",
+                        "type": "checkbox",
+                        "width": 3,
+                        "defaultChecked": false
+                    }
+                ]
+            }
+        ]
+    }
 }

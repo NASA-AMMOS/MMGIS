@@ -40,6 +40,17 @@ The format of the tiles.
 - WMS: Web Map Service tiles are a popular way of publishing maps by professional GIS software. This format is similar to the previous two formats, but more generic and not so well optimized for use in web maps. A WMS image is defined by the coordinates of its corners. A layer (or list of layers) should be provided as an options by appending `?layers=<your_layer_name><,another_if_you _want>` to your `URL`. To override WMS parameters append `&<wms_param>=<value>` again to the `URL` after the "layers" parameters. If desired, use `&TILESIZE=` to change the tile size of the request and layer away from the default of 256.
   _Example URL: `http://ows.mundialis.de/services/service?layers=TOPO-WMS,OSM-Overlay-WMS`_
 
+#### Refresh Interval Enabled
+
+_type:_ boolean
+If 'Time Enabled' and 'Refresh Interval Enabled', this layer will automatically refresh/requery its data every 'Refresh Every N Seconds'. This is useful when the layer's data updates at some uniform cadence. Be aware that this may be an expensive operation depending on the amount of data a layer needs and the number of layers that have this enabled.
+
+#### Refresh Every N Seconds
+
+_type:_ number
+_default:_ 60
+If 'Time Enabled' and 'Refresh Interval Enabled', this layer will automatically refresh/requery its data every n seconds.
+
 #### Initial Visibility
 
 _type:_ bool  
@@ -115,6 +126,7 @@ Example:
           "value_in_response_to_replace_with.use.dot.notation.to.traverse.objects",
       },
     },
+    "downloadURL": "(str) url_to_data/data.tif",
     "tools": {
       "measure": {
         "layerDems": [
@@ -141,3 +153,4 @@ Example:
 
 - `shortcutSuffix`: A single letter to 'ALT + {letter}' toggle the layer on and off. Please verify that your chosen shortcut does not conflict with other system or browser-level keyboard shortcuts.
 - `urlReplacements`: For the case where parts or all of a tileset's url comes from intermediary endpoints. For example a service may require sending a query to a server that then returns a uuid and that uuid is required in the tileset's url to query it.
+- `downloadURL`: Provides a menu option for users to download the specified source data file for the layer.
