@@ -112,6 +112,23 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Miscellaneous",
+      "rows": [
+        {
+          "components": [
+            {
+              "field": "variables.hideNoDataValue",
+              "name": "Hide No Data Value",
+              "description": " If true, hides all values where there is no data. ",
+              "type": "checkbox",
+              "width": 3,
+              "defaultChecked": false
+            }
+          ]
+        }
+      ]
     }
   ]
 }

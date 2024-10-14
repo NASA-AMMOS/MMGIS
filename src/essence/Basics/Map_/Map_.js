@@ -1163,9 +1163,21 @@ function makeImageLayer(layerObj) {
     }
 
     parseGeoraster(layerUrl).then((georaster) => {
+        let pixelValuesToColorFn = null;
+        if (F_.getIn(
+            L_.layers.data[layerObj.name],
+            'variables.hideNoDataValue'
+        ) === true) {
+            pixelValuesToColorFn = (values) => {
+                // https://github.com/GeoTIFF/georaster-layer-for-leaflet/issues/16
+                return values[0] === georaster.noDataValue ? null : `rgb(${values[0]},${values[1]},${values[2]})`
+            }
+        }
+
         L_.layers.layer[layerObj.name] = new GeoRasterLayer({
             georaster: georaster,
             resolution: 256,
+            pixelValuesToColorFn: pixelValuesToColorFn,
         })
 
         L_.layers.layer[layerObj.name].setZIndex(
