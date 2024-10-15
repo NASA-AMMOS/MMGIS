@@ -208,8 +208,6 @@ const clipOver = function (
     })
     .then((historyObj) => {
       let history = historyObj.history;
-      history = history.join(",");
-      history = history || "NULL";
       //RETURN ALL THE CHANGED SHAPE IDs AND GEOMETRIES
       let q = [
         "SELECT clipped.id, ST_AsGeoJSON( (ST_Dump(clipped.newgeom)).geom ) AS newgeom FROM",
@@ -229,7 +227,7 @@ const clipOver = function (
           (req.body.test === "true" ? "_tests" : "") +
           " AS r",
         "WHERE r.file_id = :file_id AND r.id != :added_id AND r.id IN (" +
-          history +
+          ":history" +
           ")",
         ") data",
         "WHERE data.newgeom IS NOT NULL",
@@ -240,6 +238,7 @@ const clipOver = function (
           replacements: {
             file_id: file_id,
             added_id: added_id,
+            history: history,
           },
         })
         .then(([results]) => {
@@ -340,8 +339,6 @@ const clipUnder = function (
     })
     .then((historyObj) => {
       let history = historyObj.history;
-      history = history.join(",");
-      history = history || "NULL";
 
       //Continually clip the added feature with the other features of the file
       let q = [
@@ -359,7 +356,7 @@ const clipUnder = function (
           (req.body.test === "true" ? "_tests" : "") +
           " AS a",
         "WHERE a.id IN (" +
-          history +
+          ":history" +
           ") AND ST_INTERSECTS(a.geom, clippedgeom)",
         "))",
         "),",
@@ -381,6 +378,7 @@ const clipUnder = function (
         .query(q, {
           replacements: {
             geom: JSON.stringify(newFeature.geom),
+            history: history,
           },
         })
         .then(([results]) => {
@@ -492,6 +490,8 @@ const _templateConform = (req, from) => {
     });
 
     function _getNextIncrement(value, t, layer, existingProperties) {
+      if (value == null) return 0;
+
       const response = {
         newValue: value,
         error: null,
@@ -1299,137 +1299,160 @@ router.post("/merge", function (req, res, next) {
         },
       ],
     },
-  }).then((file) => {
-    if (!file) {
-      logger("error", "Failed to access file.", req.originalUrl, req);
+  })
+    .then((file) => {
+      if (!file) {
+        logger("error", "Failed to access file.", req.originalUrl, req);
+        res.send({
+          status: "failure",
+          message: "Failed to access file.",
+          body: {},
+        });
+      } else {
+        Features.findOne({
+          where: {
+            id: req.body.prop_id,
+          },
+        }).then((feature) => {
+          let ids = req.body.ids;
+          if (ids == null) ids = null;
+          if (!Array.isArray(ids)) ids = [ids];
+          if (ids.length === 0) ids = null;
+
+          let q;
+          if (feature.geom.type == "LineString") {
+            q = [
+              "SELECT ST_AsGeoJSON( (ST_Dump(mergedgeom.geom)).geom ) AS merged FROM",
+              "(",
+              "SELECT ST_LineMerge(ST_Union(geom)) AS geom",
+              "FROM user_features" +
+                (req.body.test === "true" ? "_tests" : "") +
+                " AS a",
+              "WHERE a.id IN (:ids) AND a.file_id = :file_id",
+              ") AS mergedgeom",
+            ].join(" ");
+          } else {
+            q = [
+              "SELECT ST_AsGeoJSON( (ST_Dump(mergedgeom.geom)).geom ) as merged FROM",
+              "(",
+              "SELECT ST_BUFFER(ST_UNION(",
+              "ARRAY((",
+              "SELECT ST_BUFFER(geom, 0.000001, 'join=mitre')",
+              "FROM user_features" +
+                (req.body.test === "true" ? "_tests" : "") +
+                " AS a",
+              "WHERE a.id IN (:ids)",
+              "))",
+              "), -0.000001,'join=mitre') AS geom",
+              ") AS mergedgeom",
+            ].join(" ");
+          }
+          sequelize
+            .query(q, {
+              replacements: {
+                file_id: req.body.file_id,
+                ids: ids,
+              },
+            })
+            .then(([results]) => {
+              let oldIds = req.body.ids.map(function (id) {
+                return parseInt(id, 10);
+              });
+
+              let newIds = [];
+
+              addLoop(0);
+              function addLoop(i) {
+                if (i >= results.length) {
+                  pushToHistory(
+                    Histories,
+                    res,
+                    req.body.file_id,
+                    newIds,
+                    oldIds,
+                    time,
+                    null,
+                    6,
+                    req.user,
+                    () => {
+                      logger(
+                        "info",
+                        "Successfully merged " +
+                          req.body.ids.length +
+                          " features.",
+                        req.originalUrl,
+                        req
+                      );
+                      res.send({
+                        status: "success",
+                        message:
+                          "Successfully merged " +
+                          req.body.ids.length +
+                          " features.",
+                        body: { ids: newIds },
+                      });
+                    },
+                    (err) => {
+                      logger(
+                        "error",
+                        "Merge failure.",
+                        req.originalUrl,
+                        req,
+                        err
+                      );
+                      res.send({
+                        status: "failure",
+                        message: "Merge failure.",
+                        body: {},
+                      });
+                    }
+                  );
+                  return null;
+                }
+                let mergedFeature = JSON.parse(JSON.stringify(feature));
+                mergedFeature.geom = JSON.parse(results[i].merged);
+                mergedFeature.geom.crs = {
+                  type: "name",
+                  properties: { name: "EPSG:4326" },
+                };
+                delete mergedFeature.id;
+
+                Features.create(mergedFeature)
+                  .then((created) => {
+                    newIds.push(created.id);
+                    addLoop(i + 1);
+                    return null;
+                  })
+                  .catch((err) => {
+                    addLoop(i + 1);
+                    return null;
+                    //failureCallback();
+                  });
+              }
+            })
+            .catch((err) => {
+              logger("error", "Failed to merge.", req.originalUrl, req, err);
+              res.send({
+                status: "failure",
+                message: "Failed to merge.",
+                body: {},
+              });
+
+              return null;
+            });
+        });
+      }
+    })
+    .catch((err) => {
+      logger("error", "Failed to merge.", req.originalUrl, req, err);
       res.send({
         status: "failure",
-        message: "Failed to access file.",
+        message: "Failed to merge.",
         body: {},
       });
-    } else {
-      Features.findOne({
-        where: {
-          id: req.body.prop_id,
-        },
-      }).then((feature) => {
-        let ids = req.body.ids;
-        ids = ids.join(",");
-        ids = ids || "NULL";
 
-        let q;
-        if (feature.geom.type == "LineString") {
-          q = [
-            "SELECT ST_AsGeoJSON( (ST_Dump(mergedgeom.geom)).geom ) AS merged FROM",
-            "(",
-            "SELECT ST_LineMerge(ST_Union(geom)) AS geom",
-            "FROM user_features" +
-              (req.body.test === "true" ? "_tests" : "") +
-              " AS a",
-            "WHERE a.id IN (" + ids + ") AND a.file_id = :file_id",
-            ") AS mergedgeom",
-          ].join(" ");
-        } else {
-          q = [
-            "SELECT ST_AsGeoJSON( (ST_Dump(mergedgeom.geom)).geom ) as merged FROM",
-            "(",
-            "SELECT ST_BUFFER(ST_UNION(",
-            "ARRAY((",
-            "SELECT ST_BUFFER(geom, 0.000001, 'join=mitre')",
-            "FROM user_features" +
-              (req.body.test === "true" ? "_tests" : "") +
-              " AS a",
-            "WHERE a.id IN (" + ids + ")",
-            "))",
-            "), -0.000001,'join=mitre') AS geom",
-            ") AS mergedgeom",
-          ].join(" ");
-        }
-        sequelize
-          .query(q, {
-            replacements: {
-              file_id: req.body.file_id,
-            },
-          })
-          .then(([results]) => {
-            let oldIds = req.body.ids.map(function (id) {
-              return parseInt(id, 10);
-            });
-
-            let newIds = [];
-
-            addLoop(0);
-            function addLoop(i) {
-              if (i >= results.length) {
-                pushToHistory(
-                  Histories,
-                  res,
-                  req.body.file_id,
-                  newIds,
-                  oldIds,
-                  time,
-                  null,
-                  6,
-                  req.user,
-                  () => {
-                    logger(
-                      "info",
-                      "Successfully merged " +
-                        req.body.ids.length +
-                        " features.",
-                      req.originalUrl,
-                      req
-                    );
-                    res.send({
-                      status: "success",
-                      message:
-                        "Successfully merged " +
-                        req.body.ids.length +
-                        " features.",
-                      body: { ids: newIds },
-                    });
-                  },
-                  (err) => {
-                    logger(
-                      "error",
-                      "Merge failure.",
-                      req.originalUrl,
-                      req,
-                      err
-                    );
-                    res.send({
-                      status: "failure",
-                      message: "Merge failure.",
-                      body: {},
-                    });
-                  }
-                );
-                return null;
-              }
-              let mergedFeature = JSON.parse(JSON.stringify(feature));
-              mergedFeature.geom = JSON.parse(results[i].merged);
-              mergedFeature.geom.crs = {
-                type: "name",
-                properties: { name: "EPSG:4326" },
-              };
-              delete mergedFeature.id;
-
-              Features.create(mergedFeature)
-                .then((created) => {
-                  newIds.push(created.id);
-                  addLoop(i + 1);
-                  return null;
-                })
-                .catch((err) => {
-                  addLoop(i + 1);
-                  return null;
-                  //failureCallback();
-                });
-            }
-          });
-      });
-    }
-  });
+      return null;
+    });
 });
 
 /**
@@ -1490,8 +1513,10 @@ router.post("/split", function (req, res, next) {
         });
       } else {
         let ids = req.body.ids;
-        ids = ids.join(",");
-        ids = ids || "NULL";
+
+        if (ids == null) ids = null;
+        if (!Array.isArray(ids)) ids = [ids];
+        if (ids.length === 0) ids = null;
 
         let geom = splitFeature.geometry;
         geom.crs = { type: "name", properties: { name: "EPSG:4326" } };
@@ -1501,7 +1526,7 @@ router.post("/split", function (req, res, next) {
           "(",
           "SELECT id, file_id, level, intent, properties, geom",
           "FROM user_features AS a",
-          "WHERE a.id IN (" + ids + ") AND a.file_id = :file_id",
+          "WHERE a.id IN (:ids) AND a.file_id = :file_id",
           ") AS g",
         ].join(" ");
         sequelize
@@ -1509,6 +1534,7 @@ router.post("/split", function (req, res, next) {
             replacements: {
               file_id: parseInt(req.body.file_id),
               geom: JSON.stringify(geom),
+              ids: ids,
             },
           })
           .then(([results]) => {

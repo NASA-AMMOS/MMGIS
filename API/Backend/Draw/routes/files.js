@@ -631,716 +631,765 @@ const compile = function (req, res, callback) {
         ],
       },
     },
-  }).then((files) => {
-    let featureIds = [];
-    let finished = 0;
-    for (let f = 0; f < files.length; f++) {
-      sequelize
-        .query(
-          "SELECT history" +
-            " " +
-            "FROM file_histories" +
-            (isTest ? "_tests" : "") +
-            " " +
-            "WHERE file_id=" +
-            files[f].dataValues.id +
-            " " +
-            "AND time<=" +
-            atThisTime +
-            " " +
-            "ORDER BY time DESC" +
-            " " +
-            "FETCH first 1 rows only"
-        )
-        .then(([results]) => {
-          let bestHistory = results.length > 0 ? results[0].history : [];
-          featureIds = featureIds.concat(bestHistory);
-          finished++;
-          tryProcessFeatures(finished);
-        });
-    }
-    function tryProcessFeatures(finished) {
-      if (finished == files.length) {
-        featureIds = featureIds.join(",") || "NULL";
-        //get all features
+  })
+    .then((files) => {
+      let featureIds = [];
+      let finished = 0;
+      for (let f = 0; f < files.length; f++) {
         sequelize
           .query(
-            "SELECT " +
-              "id, file_id, level, intent, properties, ST_AsGeoJSON(geom)" +
+            "SELECT history" +
+              " " +
+              "FROM file_histories" +
+              (isTest ? "_tests" : "") +
+              " " +
+              "WHERE file_id=" +
+              ":id" +
+              " " +
+              "AND time<=" +
+              ":atThisTime" +
+              " " +
+              "ORDER BY time DESC" +
+              " " +
+              "FETCH first 1 rows only",
+            {
+              replacements: {
+                id: files[f].dataValues.id,
+                atThisTime: atThisTime,
+              },
+            }
+          )
+          .then(([results]) => {
+            let bestHistory = results.length > 0 ? results[0].history : [];
+            featureIds = featureIds.concat(bestHistory);
+            finished++;
+            tryProcessFeatures(finished);
+          })
+          .catch((err) => {
+            logger("error", "Failed to compile.", req.originalUrl, req, err);
+            callback();
+            return null;
+          });
+      }
+      function tryProcessFeatures(finished) {
+        if (finished == files.length) {
+          //get all features
+          sequelize
+            .query(
+              "SELECT " +
+                "id, file_id, level, intent, properties, ST_AsGeoJSON(geom)" +
+                " " +
+                "FROM user_features" +
+                (isTest ? "_tests" : "") +
+                " " +
+                "WHERE id IN (" +
+                ":featureIds" +
+                ")",
+              {
+                replacements: {
+                  featureIds:
+                    featureIds.length == 0 ? null : featureIds || null,
+                },
+              }
+            )
+            .then(([features]) => {
+              processFeatures(features);
+            })
+            .catch((err) => {
+              logger("error", "Failed to compile.", req.originalUrl, req, err);
+              callback();
+              return null;
+            });
+        }
+      }
+      function processFeatures(features) {
+        sequelize
+          .query(
+            "SELECT" +
+              " " +
+              '\'intersects\' as "association", a.id, a.intent, b.id AS "associated_id", b.intent AS "associated_intent", b.properties AS "associated_properties"' +
               " " +
               "FROM user_features" +
               (isTest ? "_tests" : "") +
+              " a," +
               " " +
-              "WHERE id IN (" +
-              featureIds +
-              ")"
-          )
-          .then(([features]) => {
-            processFeatures(features);
-          });
-      }
-    }
-    function processFeatures(features) {
-      sequelize
-        .query(
-          "SELECT" +
-            " " +
-            '\'intersects\' as "association", a.id, a.intent, b.id AS "associated_id", b.intent AS "associated_intent", b.properties AS "associated_properties"' +
-            " " +
-            "FROM user_features" +
-            (isTest ? "_tests" : "") +
-            " a," +
-            " " +
-            "user_features" +
-            (isTest ? "_tests" : "") +
-            " b" +
-            " " +
-            "WHERE a.id IN (" +
-            featureIds +
-            ")" +
-            " " +
-            "AND b.id IN (" +
-            featureIds +
-            ")" +
-            " " +
-            "AND a.id != b.id" +
-            " " +
-            "AND ((ST_OVERLAPS(ST_BUFFER(a.geom, -0.000005, 'join=mitre'), b.geom)" +
-            " " +
-            "AND NOT ST_Touches(a.geom, b.geom))" +
-            " " +
-            "OR ST_CROSSES(ST_BUFFER(a.geom, -0.000005, 'join=mitre'), b.geom))" +
-            " " +
-            "UNION ALL" +
-            " " +
-            "SELECT" +
-            " " +
-            '\'contains\' as "association", a.id, a.intent, b.id AS "associated_id", b.intent AS "associated_intent", b.properties AS "associated_properties"' +
-            " " +
-            "FROM user_features" +
-            (isTest ? "_tests" : "") +
-            " a," +
-            " " +
-            "user_features" +
-            (isTest ? "_tests" : "") +
-            " b" +
-            " " +
-            "WHERE a.id IN (" +
-            featureIds +
-            ")" +
-            " " +
-            "AND b.id IN (" +
-            featureIds +
-            ")" +
-            " " +
-            "AND a.id != b.id" +
-            " " +
-            "AND ST_Contains(a.geom, b.geom)"
-        )
-        .then(([results]) => {
-          let hierarchy = [];
-          let intentOrder = ["roi", "campaign", "campsite", "signpost"];
-          let excludeIntents = ["polygon", "line", "point", "text", "arrow"];
-          let flatHierarchy = [];
-          let issues = [];
-          let changes = [];
-
-          //Get all immediate children of everything
-          for (let f = 0; f < features.length; f++) {
-            let intersects = [];
-            let contains = [];
-            let children = [];
-
-            if (!excludeIntents.includes(features[f].intent)) {
-              for (let r = 0; r < results.length; r++) {
-                if (results[r].id == features[f].id) {
-                  let childProps = JSON.parse(results[r].associated_properties);
-                  if (results[r].association === "intersects") {
-                    intersects.push({
-                      name: childProps.name,
-                      uuid: childProps.uuid,
-                      id: results[r].associated_id,
-                      intent: results[r].associated_intent,
-                    });
-                  } else if (results[r].association === "contains") {
-                    contains.push({
-                      name: childProps.name,
-                      uuid: childProps.uuid,
-                      id: results[r].associated_id,
-                      intent: results[r].associated_intent,
-                    });
-                    children.push({
-                      name: childProps.name,
-                      uuid: childProps.uuid,
-                      id: results[r].associated_id,
-                      intent: results[r].associated_intent,
-                    });
-                  }
-                }
-              }
-            }
-
-            let featureProps = JSON.parse(features[f].properties);
-            flatHierarchy.push({
-              feature: features[f],
-              id: features[f].id,
-              name: featureProps.name,
-              uuid: featureProps.uuid,
-              intent: features[f].intent,
-              children: children,
-              possibleChildren: {
-                intersects: intersects,
-                contains: contains,
-                directIntersects: [],
+              "user_features" +
+              (isTest ? "_tests" : "") +
+              " b" +
+              " " +
+              "WHERE a.id IN (" +
+              ":featureIds" +
+              ")" +
+              " " +
+              "AND b.id IN (" +
+              ":featureIds" +
+              ")" +
+              " " +
+              "AND a.id != b.id" +
+              " " +
+              "AND ((ST_OVERLAPS(ST_BUFFER(a.geom, -0.000005, 'join=mitre'), b.geom)" +
+              " " +
+              "AND NOT ST_Touches(a.geom, b.geom))" +
+              " " +
+              "OR ST_CROSSES(ST_BUFFER(a.geom, -0.000005, 'join=mitre'), b.geom))" +
+              " " +
+              "UNION ALL" +
+              " " +
+              "SELECT" +
+              " " +
+              '\'contains\' as "association", a.id, a.intent, b.id AS "associated_id", b.intent AS "associated_intent", b.properties AS "associated_properties"' +
+              " " +
+              "FROM user_features" +
+              (isTest ? "_tests" : "") +
+              " a," +
+              " " +
+              "user_features" +
+              (isTest ? "_tests" : "") +
+              " b" +
+              " " +
+              "WHERE a.id IN (" +
+              ":featureIds" +
+              ")" +
+              " " +
+              "AND b.id IN (" +
+              ":featureIds" +
+              ")" +
+              " " +
+              "AND a.id != b.id" +
+              " " +
+              "AND ST_Contains(a.geom, b.geom)",
+            {
+              replacements: {
+                featureIds: featureIds.length == 0 ? null : featureIds || null,
               },
-            });
-          }
-          //Now attach parents to flatHierarchy
-          for (let i = 0; i < flatHierarchy.length; i++) {
-            flatHierarchy[i].parent = {};
-            flatHierarchy[i].possibleParents = [];
-            for (let j = 0; j < flatHierarchy.length; j++) {
-              if (i != j) {
-                for (
-                  let k = 0;
-                  k < flatHierarchy[j].possibleChildren.contains.length;
-                  k++
-                ) {
-                  if (
-                    flatHierarchy[i].id ==
-                    flatHierarchy[j].possibleChildren.contains[k].id
-                  ) {
-                    flatHierarchy[i].possibleParents.push({
-                      name: flatHierarchy[j].name,
-                      uuid: flatHierarchy[j].uuid,
-                      id: flatHierarchy[j].id,
-                      intent: flatHierarchy[j].intent,
-                    });
+            }
+          )
+          .then(([results]) => {
+            let hierarchy = [];
+            let intentOrder = ["roi", "campaign", "campsite", "signpost"];
+            let excludeIntents = ["polygon", "line", "point", "text", "arrow"];
+            let flatHierarchy = [];
+            let issues = [];
+            let changes = [];
+
+            //Get all immediate children of everything
+            for (let f = 0; f < features.length; f++) {
+              let intersects = [];
+              let contains = [];
+              let children = [];
+
+              if (!excludeIntents.includes(features[f].intent)) {
+                for (let r = 0; r < results.length; r++) {
+                  if (results[r].id == features[f].id) {
+                    let childProps = JSON.parse(
+                      results[r].associated_properties
+                    );
+                    if (results[r].association === "intersects") {
+                      intersects.push({
+                        name: childProps.name,
+                        uuid: childProps.uuid,
+                        id: results[r].associated_id,
+                        intent: results[r].associated_intent,
+                      });
+                    } else if (results[r].association === "contains") {
+                      contains.push({
+                        name: childProps.name,
+                        uuid: childProps.uuid,
+                        id: results[r].associated_id,
+                        intent: results[r].associated_intent,
+                      });
+                      children.push({
+                        name: childProps.name,
+                        uuid: childProps.uuid,
+                        id: results[r].associated_id,
+                        intent: results[r].associated_intent,
+                      });
+                    }
                   }
                 }
-              }
-            }
-          }
-          removeIndirectChildren();
-          function removeIndirectChildren() {
-            for (let i = 0; i < flatHierarchy.length; i++) {
-              let node = flatHierarchy[i];
-              let intent = node.intent;
-              if (intentOrder.indexOf(intent) === -1) continue;
-              let associationIntent =
-                intentOrder[intentOrder.indexOf(intent) + 1];
-              if (associationIntent == null) {
-                node.children = [];
-              } else {
-                for (let j = node.children.length - 1; j >= 0; j--) {
-                  if (node.children[j].intent != associationIntent) {
-                    node.children.splice(j, 1);
-                  }
-                }
-                node.possibleChildren.directIntersects = JSON.parse(
-                  JSON.stringify(node.possibleChildren.intersects)
-                );
-                for (
-                  let i = node.possibleChildren.directIntersects.length - 1;
-                  i >= 0;
-                  i--
-                )
-                  if (
-                    node.possibleChildren.directIntersects[i].intent !=
-                      associationIntent &&
-                    node.possibleChildren.directIntersects[i].intent != intent
-                  )
-                    node.possibleChildren.directIntersects.splice(i, 1);
-              }
-            }
-          }
-          addParents();
-          function addParents() {
-            for (let i = 0; i < flatHierarchy.length; i++) {
-              for (let j = 0; j < flatHierarchy[i].children.length; j++) {
-                //Each child
-                //Iterate back through to child and add this flatHierarchy[i] as parent
-                for (let k = 0; k < flatHierarchy.length; k++)
-                  if (flatHierarchy[k].id === flatHierarchy[i].children[j].id)
-                    flatHierarchy[k].parent = {
-                      name: flatHierarchy[i].name,
-                      uuid: flatHierarchy[i].uuid,
-                      id: flatHierarchy[i].id,
-                      intent: flatHierarchy[i].intent,
-                    };
               }
 
-              //If no parents at this point try to find the best possible parent
-              if (
-                Object.keys(flatHierarchy[i].parent).length === 0 &&
-                flatHierarchy[i].possibleParents.length > 0
-              ) {
-                let intentOrderReversed = JSON.parse(
-                  JSON.stringify(intentOrder)
-                );
-                intentOrderReversed.reverse();
-                let intentId = intentOrderReversed.indexOf(
-                  flatHierarchy[i].intent
-                );
-                if (intentId != -1) {
+              let featureProps = JSON.parse(features[f].properties);
+              flatHierarchy.push({
+                feature: features[f],
+                id: features[f].id,
+                name: featureProps.name,
+                uuid: featureProps.uuid,
+                intent: features[f].intent,
+                children: children,
+                possibleChildren: {
+                  intersects: intersects,
+                  contains: contains,
+                  directIntersects: [],
+                },
+              });
+            }
+            //Now attach parents to flatHierarchy
+            for (let i = 0; i < flatHierarchy.length; i++) {
+              flatHierarchy[i].parent = {};
+              flatHierarchy[i].possibleParents = [];
+              for (let j = 0; j < flatHierarchy.length; j++) {
+                if (i != j) {
                   for (
-                    let l = intentId + 1;
-                    l < intentOrderReversed.length;
-                    l++
+                    let k = 0;
+                    k < flatHierarchy[j].possibleChildren.contains.length;
+                    k++
                   ) {
-                    for (
-                      let m = 0;
-                      m < flatHierarchy[i].possibleParents.length;
-                      m++
+                    if (
+                      flatHierarchy[i].id ==
+                      flatHierarchy[j].possibleChildren.contains[k].id
                     ) {
-                      if (
-                        Object.keys(flatHierarchy[i].parent).length === 0 &&
-                        flatHierarchy[i].possibleParents[m].intent ===
-                          intentOrderReversed[l]
+                      flatHierarchy[i].possibleParents.push({
+                        name: flatHierarchy[j].name,
+                        uuid: flatHierarchy[j].uuid,
+                        id: flatHierarchy[j].id,
+                        intent: flatHierarchy[j].intent,
+                      });
+                    }
+                  }
+                }
+              }
+            }
+            removeIndirectChildren();
+            function removeIndirectChildren() {
+              for (let i = 0; i < flatHierarchy.length; i++) {
+                let node = flatHierarchy[i];
+                let intent = node.intent;
+                if (intentOrder.indexOf(intent) === -1) continue;
+                let associationIntent =
+                  intentOrder[intentOrder.indexOf(intent) + 1];
+                if (associationIntent == null) {
+                  node.children = [];
+                } else {
+                  for (let j = node.children.length - 1; j >= 0; j--) {
+                    if (node.children[j].intent != associationIntent) {
+                      node.children.splice(j, 1);
+                    }
+                  }
+                  node.possibleChildren.directIntersects = JSON.parse(
+                    JSON.stringify(node.possibleChildren.intersects)
+                  );
+                  for (
+                    let i = node.possibleChildren.directIntersects.length - 1;
+                    i >= 0;
+                    i--
+                  )
+                    if (
+                      node.possibleChildren.directIntersects[i].intent !=
+                        associationIntent &&
+                      node.possibleChildren.directIntersects[i].intent != intent
+                    )
+                      node.possibleChildren.directIntersects.splice(i, 1);
+                }
+              }
+            }
+            addParents();
+            function addParents() {
+              for (let i = 0; i < flatHierarchy.length; i++) {
+                for (let j = 0; j < flatHierarchy[i].children.length; j++) {
+                  //Each child
+                  //Iterate back through to child and add this flatHierarchy[i] as parent
+                  for (let k = 0; k < flatHierarchy.length; k++)
+                    if (flatHierarchy[k].id === flatHierarchy[i].children[j].id)
+                      flatHierarchy[k].parent = {
+                        name: flatHierarchy[i].name,
+                        uuid: flatHierarchy[i].uuid,
+                        id: flatHierarchy[i].id,
+                        intent: flatHierarchy[i].intent,
+                      };
+                }
+
+                //If no parents at this point try to find the best possible parent
+                if (
+                  Object.keys(flatHierarchy[i].parent).length === 0 &&
+                  flatHierarchy[i].possibleParents.length > 0
+                ) {
+                  let intentOrderReversed = JSON.parse(
+                    JSON.stringify(intentOrder)
+                  );
+                  intentOrderReversed.reverse();
+                  let intentId = intentOrderReversed.indexOf(
+                    flatHierarchy[i].intent
+                  );
+                  if (intentId != -1) {
+                    for (
+                      let l = intentId + 1;
+                      l < intentOrderReversed.length;
+                      l++
+                    ) {
+                      for (
+                        let m = 0;
+                        m < flatHierarchy[i].possibleParents.length;
+                        m++
                       ) {
-                        flatHierarchy[i].parent =
-                          flatHierarchy[i].possibleParents[m];
+                        if (
+                          Object.keys(flatHierarchy[i].parent).length === 0 &&
+                          flatHierarchy[i].possibleParents[m].intent ===
+                            intentOrderReversed[l]
+                        ) {
+                          flatHierarchy[i].parent =
+                            flatHierarchy[i].possibleParents[m];
+                        }
                       }
                     }
                   }
                 }
               }
             }
-          }
 
-          //Build the root of the trees
-          for (let f = 0; f < features.length; f++) {
-            let isCovered = false;
-            if (!excludeIntents.includes(features[f].intent)) {
-              for (let r = 0; r < results.length; r++) {
-                if (
-                  !excludeIntents.includes(results[r].intent) &&
-                  results[r].association === "contains" &&
-                  results[r].associated_id == features[f].id
-                ) {
-                  isCovered = true;
-                  break;
+            //Build the root of the trees
+            for (let f = 0; f < features.length; f++) {
+              let isCovered = false;
+              if (!excludeIntents.includes(features[f].intent)) {
+                for (let r = 0; r < results.length; r++) {
+                  if (
+                    !excludeIntents.includes(results[r].intent) &&
+                    results[r].association === "contains" &&
+                    results[r].associated_id == features[f].id
+                  ) {
+                    isCovered = true;
+                    break;
+                  }
                 }
-              }
 
-              if (!isCovered) {
-                let featureProps = JSON.parse(features[f].properties);
-                hierarchy.push({
-                  intent: features[f].intent,
-                  id: features[f].id,
-                  name: featureProps.name,
-                  uuid: featureProps.uuid,
-                  children: {
-                    intersects: [],
-                    contains: [],
-                  },
-                });
-                continue;
-              }
-            }
-          }
-
-          //From those roots do a depth traversal, adding the flat children each time
-          depthTraversal(hierarchy, 0);
-          function depthTraversal(node, depth) {
-            for (var i = 0; i < node.length; i++) {
-              //Add other feature information while we're at it
-              addFeatureData(node[i], depth);
-
-              addRelationships(node[i]);
-              if (node[i].children.length > 0)
-                depthTraversal(node[i].children, depth + 1);
-            }
-          }
-          function addRelationships(node) {
-            for (let i = 0; i < flatHierarchy.length; i++)
-              if (node.id == flatHierarchy[i].id) {
-                node.parent = JSON.parse(
-                  JSON.stringify(flatHierarchy[i].parent)
-                );
-                node.children = JSON.parse(
-                  JSON.stringify(flatHierarchy[i].children)
-                );
-                return;
-              }
-          }
-          function addFeatureData(node, depth) {
-            for (let i = 0; i < features.length; i++) {
-              let f = features[i];
-              if (node.id == f.id) {
-                let properties = JSON.parse(f.properties);
-                let feature = {};
-                properties._ = {
-                  id: f.id,
-                  file_id: f.file_id,
-                  level: f.level,
-                  intent: f.intent,
-                };
-                feature.type = "Feature";
-                feature.properties = properties;
-                feature.geometry = JSON.parse(f.st_asgeojson);
-                //id, file_id, level, intent, properties, ST_AsGeoJSON(geom)' + ' ' +
-                node.file_id = f.file_id;
-                node.level = f.level;
-                node.depth = depth;
-                node.intent = f.intent;
-                node.name = properties.name;
-                node.uuid = properties.uuid;
-                node.properties = JSON.parse(f.properties);
-                node.geometry = JSON.parse(f.st_asgeojson);
-                node.feature = feature;
-                return;
-              }
-            }
-          }
-
-          let saviors = {};
-          //Not always do all features fit in the hierarchy at this point, one last chance to fit them in
-          addOutcasts();
-          function addOutcasts() {
-            let includedIds = [];
-            let allIds = [];
-            let outcastIds = [];
-
-            //populate includedIds
-            depthTraversalA(hierarchy, 0);
-            function depthTraversalA(node, depth) {
-              for (let i = 0; i < node.length; i++) {
-                includedIds.push(node[i].id);
-                if (node[i].children.length > 0) {
-                  depthTraversalA(node[i].children, depth + 1);
+                if (!isCovered) {
+                  let featureProps = JSON.parse(features[f].properties);
+                  hierarchy.push({
+                    intent: features[f].intent,
+                    id: features[f].id,
+                    name: featureProps.name,
+                    uuid: featureProps.uuid,
+                    children: {
+                      intersects: [],
+                      contains: [],
+                    },
+                  });
+                  continue;
                 }
               }
             }
 
-            //populate allIds
-            for (let i = 0; i < flatHierarchy.length; i++) {
-              allIds.push(flatHierarchy[i].id);
-            }
+            //From those roots do a depth traversal, adding the flat children each time
+            depthTraversal(hierarchy, 0);
+            function depthTraversal(node, depth) {
+              for (var i = 0; i < node.length; i++) {
+                //Add other feature information while we're at it
+                addFeatureData(node[i], depth);
 
-            //populate outcasts
-            for (let i = 0; i < allIds.length; i++) {
-              if (includedIds.indexOf(allIds[i]) == -1)
-                outcastIds.push(allIds[i]);
+                addRelationships(node[i]);
+                if (node[i].children.length > 0)
+                  depthTraversal(node[i].children, depth + 1);
+              }
             }
-
-            // parentId: child
-            //let saviors = {}
-            for (let i = 0; i < flatHierarchy.length; i++) {
-              if (outcastIds.indexOf(flatHierarchy[i].id) != -1) {
-                if (
-                  flatHierarchy[i].parent &&
-                  flatHierarchy[i].parent.id != null
-                ) {
-                  let outcast = JSON.parse(JSON.stringify(flatHierarchy[i]));
-                  saviors[flatHierarchy[i].parent.id] = outcast;
+            function addRelationships(node) {
+              for (let i = 0; i < flatHierarchy.length; i++)
+                if (node.id == flatHierarchy[i].id) {
+                  node.parent = JSON.parse(
+                    JSON.stringify(flatHierarchy[i].parent)
+                  );
+                  node.children = JSON.parse(
+                    JSON.stringify(flatHierarchy[i].children)
+                  );
+                  return;
+                }
+            }
+            function addFeatureData(node, depth) {
+              for (let i = 0; i < features.length; i++) {
+                let f = features[i];
+                if (node.id == f.id) {
+                  let properties = JSON.parse(f.properties);
+                  let feature = {};
+                  properties._ = {
+                    id: f.id,
+                    file_id: f.file_id,
+                    level: f.level,
+                    intent: f.intent,
+                  };
+                  feature.type = "Feature";
+                  feature.properties = properties;
+                  feature.geometry = JSON.parse(f.st_asgeojson);
+                  //id, file_id, level, intent, properties, ST_AsGeoJSON(geom)' + ' ' +
+                  node.file_id = f.file_id;
+                  node.level = f.level;
+                  node.depth = depth;
+                  node.intent = f.intent;
+                  node.name = properties.name;
+                  node.uuid = properties.uuid;
+                  node.properties = JSON.parse(f.properties);
+                  node.geometry = JSON.parse(f.st_asgeojson);
+                  node.feature = feature;
+                  return;
                 }
               }
             }
 
-            //The Savioring
-            depthTraversalB(hierarchy, 0);
-            function depthTraversalB(node, depth) {
-              for (let i = 0; i < node.length; i++) {
-                if (saviors[node[i].id] != null) {
-                  node[i].children = Array.isArray(node[i].children)
-                    ? node[i].children
-                    : [];
-                  for (let j = 0; j < features.length; j++) {
-                    let f = features[j];
-                    if (saviors[node[i].id].id == f.id) {
-                      let outcast = {};
-                      let properties = JSON.parse(f.properties);
-                      let feature = {};
-                      properties._ = {
-                        id: f.id,
-                        file_id: f.file_id,
-                        level: f.level,
-                        intent: f.intent,
-                      };
-                      feature.type = "Feature";
-                      feature.properties = properties;
-                      feature.geometry = JSON.parse(f.st_asgeojson);
+            let saviors = {};
+            //Not always do all features fit in the hierarchy at this point, one last chance to fit them in
+            addOutcasts();
+            function addOutcasts() {
+              let includedIds = [];
+              let allIds = [];
+              let outcastIds = [];
 
-                      outcast.name = properties.name;
-                      outcast.uuid = properties.uuid;
-                      outcast.id = f.id;
-                      outcast.intent = f.intent;
-                      outcast.file_id = f.file_id;
-                      outcast.level = f.level;
-                      outcast.depth = depth + 1;
-                      outcast.properties = JSON.parse(f.properties);
-                      outcast.geometry = JSON.parse(f.st_asgeojson);
-                      outcast.feature = feature;
-                      outcast.children = saviors[node[i].id] || [];
-                      outcast.parent = saviors[node[i].id].parent || {};
-                      node[i].children.push(outcast);
+              //populate includedIds
+              depthTraversalA(hierarchy, 0);
+              function depthTraversalA(node, depth) {
+                for (let i = 0; i < node.length; i++) {
+                  includedIds.push(node[i].id);
+                  if (node[i].children.length > 0) {
+                    depthTraversalA(node[i].children, depth + 1);
+                  }
+                }
+              }
+
+              //populate allIds
+              for (let i = 0; i < flatHierarchy.length; i++) {
+                allIds.push(flatHierarchy[i].id);
+              }
+
+              //populate outcasts
+              for (let i = 0; i < allIds.length; i++) {
+                if (includedIds.indexOf(allIds[i]) == -1)
+                  outcastIds.push(allIds[i]);
+              }
+
+              // parentId: child
+              //let saviors = {}
+              for (let i = 0; i < flatHierarchy.length; i++) {
+                if (outcastIds.indexOf(flatHierarchy[i].id) != -1) {
+                  if (
+                    flatHierarchy[i].parent &&
+                    flatHierarchy[i].parent.id != null
+                  ) {
+                    let outcast = JSON.parse(JSON.stringify(flatHierarchy[i]));
+                    saviors[flatHierarchy[i].parent.id] = outcast;
+                  }
+                }
+              }
+
+              //The Savioring
+              depthTraversalB(hierarchy, 0);
+              function depthTraversalB(node, depth) {
+                for (let i = 0; i < node.length; i++) {
+                  if (saviors[node[i].id] != null) {
+                    node[i].children = Array.isArray(node[i].children)
+                      ? node[i].children
+                      : [];
+                    for (let j = 0; j < features.length; j++) {
+                      let f = features[j];
+                      if (saviors[node[i].id].id == f.id) {
+                        let outcast = {};
+                        let properties = JSON.parse(f.properties);
+                        let feature = {};
+                        properties._ = {
+                          id: f.id,
+                          file_id: f.file_id,
+                          level: f.level,
+                          intent: f.intent,
+                        };
+                        feature.type = "Feature";
+                        feature.properties = properties;
+                        feature.geometry = JSON.parse(f.st_asgeojson);
+
+                        outcast.name = properties.name;
+                        outcast.uuid = properties.uuid;
+                        outcast.id = f.id;
+                        outcast.intent = f.intent;
+                        outcast.file_id = f.file_id;
+                        outcast.level = f.level;
+                        outcast.depth = depth + 1;
+                        outcast.properties = JSON.parse(f.properties);
+                        outcast.geometry = JSON.parse(f.st_asgeojson);
+                        outcast.feature = feature;
+                        outcast.children = saviors[node[i].id] || [];
+                        outcast.parent = saviors[node[i].id].parent || {};
+                        node[i].children.push(outcast);
+                      }
                     }
                   }
-                }
-                if (node[i].children && node[i].children.length > 0) {
-                  depthTraversalB(node[i].children, depth + 1);
+                  if (node[i].children && node[i].children.length > 0) {
+                    depthTraversalB(node[i].children, depth + 1);
+                  }
                 }
               }
             }
-          }
 
-          findIssues();
-          function findIssues() {
-            let uuidsFound = {};
-            let namesFound = {};
+            findIssues();
+            function findIssues() {
+              let uuidsFound = {};
+              let namesFound = {};
 
-            for (let i = 0; i < flatHierarchy.length; i++) {
-              let node = flatHierarchy[i];
-              let intent = node.intent;
-              let props = JSON.parse(node.feature.properties);
+              for (let i = 0; i < flatHierarchy.length; i++) {
+                let node = flatHierarchy[i];
+                let intent = node.intent;
+                let props = JSON.parse(node.feature.properties);
 
-              if (excludeIntents.includes(intent)) continue;
+                if (excludeIntents.includes(intent)) continue;
 
-              //Check for duplicate uuids
-              if (props.uuid == null) {
-                issues.push({
-                  severity: "error",
-                  antecedent: {
-                    id: node.id,
-                    intent: node.intent,
-                  },
-                  message: "{antecedent} is missing a uuid.",
-                });
-              } else {
-                let uuidKeys = Object.keys(uuidsFound);
-                let uuidI = uuidKeys.indexOf(props.uuid);
-                if (uuidI >= 0) {
+                //Check for duplicate uuids
+                if (props.uuid == null) {
                   issues.push({
                     severity: "error",
                     antecedent: {
                       id: node.id,
                       intent: node.intent,
                     },
-                    message: "{antecedent} has the same uuid as {consequent}",
-                    consequent: {
-                      id: uuidsFound[uuidKeys[uuidI]].id,
-                      intent: uuidsFound[uuidKeys[uuidI]].intent,
-                    },
+                    message: "{antecedent} is missing a uuid.",
                   });
                 } else {
-                  uuidsFound[props.uuid] = {
-                    id: node.id,
-                    intent: node.intent,
-                  };
+                  let uuidKeys = Object.keys(uuidsFound);
+                  let uuidI = uuidKeys.indexOf(props.uuid);
+                  if (uuidI >= 0) {
+                    issues.push({
+                      severity: "error",
+                      antecedent: {
+                        id: node.id,
+                        intent: node.intent,
+                      },
+                      message: "{antecedent} has the same uuid as {consequent}",
+                      consequent: {
+                        id: uuidsFound[uuidKeys[uuidI]].id,
+                        intent: uuidsFound[uuidKeys[uuidI]].intent,
+                      },
+                    });
+                  } else {
+                    uuidsFound[props.uuid] = {
+                      id: node.id,
+                      intent: node.intent,
+                    };
+                  }
                 }
-              }
 
-              //Check for duplicate names
-              if (props.name == null) {
-                issues.push({
-                  severity: "error",
-                  antecedent: {
-                    id: node.id,
-                    intent: node.intent,
-                  },
-                  message: "{antecedent} is missing a name.",
-                });
-              } else {
-                let nameKeys = Object.keys(namesFound);
-                let nameI = nameKeys.indexOf(props.name);
-                if (nameI >= 0) {
+                //Check for duplicate names
+                if (props.name == null) {
                   issues.push({
                     severity: "error",
                     antecedent: {
                       id: node.id,
                       intent: node.intent,
                     },
-                    message: "{antecedent} has the same name as {consequent}",
-                    consequent: {
-                      id: namesFound[nameKeys[nameI]].id,
-                      intent: namesFound[nameKeys[nameI]].intent,
-                    },
+                    message: "{antecedent} is missing a name.",
                   });
                 } else {
-                  namesFound[props.name] = {
-                    id: node.id,
-                    intent: node.intent,
-                  };
+                  let nameKeys = Object.keys(namesFound);
+                  let nameI = nameKeys.indexOf(props.name);
+                  if (nameI >= 0) {
+                    issues.push({
+                      severity: "error",
+                      antecedent: {
+                        id: node.id,
+                        intent: node.intent,
+                      },
+                      message: "{antecedent} has the same name as {consequent}",
+                      consequent: {
+                        id: namesFound[nameKeys[nameI]].id,
+                        intent: namesFound[nameKeys[nameI]].intent,
+                      },
+                    });
+                  } else {
+                    namesFound[props.name] = {
+                      id: node.id,
+                      intent: node.intent,
+                    };
+                  }
                 }
-              }
 
-              if (intentOrder.indexOf(intent) === -1) continue;
-              let parentIntent = intentOrder[intentOrder.indexOf(intent) - 1];
-              if (parentIntent != null && intent != "signpost") {
-                //Check that it has a valid parent
-                if (node.parent.intent != parentIntent) {
-                  issues.push({
-                    severity: "error",
-                    antecedent: {
-                      id: node.id,
-                      intent: node.intent,
-                    },
-                    message:
-                      "{antecedent} does not have a parent of type: " +
-                      parentIntent +
-                      ".",
-                  });
-                } else if (Object.keys(node.parent).length === 0) {
-                  issues.push({
-                    severity: "error",
-                    antecedent: {
-                      id: node.id,
-                      intent: node.intent,
-                    },
-                    message: "{antecedent} does not have a parent.",
-                  });
+                if (intentOrder.indexOf(intent) === -1) continue;
+                let parentIntent = intentOrder[intentOrder.indexOf(intent) - 1];
+                if (parentIntent != null && intent != "signpost") {
+                  //Check that it has a valid parent
+                  if (node.parent.intent != parentIntent) {
+                    issues.push({
+                      severity: "error",
+                      antecedent: {
+                        id: node.id,
+                        intent: node.intent,
+                      },
+                      message:
+                        "{antecedent} does not have a parent of type: " +
+                        parentIntent +
+                        ".",
+                    });
+                  } else if (Object.keys(node.parent).length === 0) {
+                    issues.push({
+                      severity: "error",
+                      antecedent: {
+                        id: node.id,
+                        intent: node.intent,
+                      },
+                      message: "{antecedent} does not have a parent.",
+                    });
+                  }
                 }
-              }
 
-              let ints = node.possibleChildren.directIntersects;
-              for (let j = 0; j < ints.length; j++) {
-                if (node.intent == "trail") {
-                } else if (node.intent != ints[j].intent)
-                  issues.push({
-                    severity: "error",
-                    antecedent: {
-                      id: node.id,
-                      intent: node.intent,
-                    },
-                    message:
-                      "{antecedent} does not fully contain possible child {consequent}",
-                    consequent: {
-                      id: ints[j].id,
-                      intent: ints[j].intent,
-                    },
-                  });
-                else
-                  issues.push({
-                    severity: "error",
-                    antecedent: {
-                      id: node.id,
-                      intent: node.intent,
-                    },
-                    message:
-                      "{antecedent} intersects {consequent} of same intent.",
-                    consequent: {
-                      id: ints[j].id,
-                      intent: ints[j].intent,
-                    },
-                  });
+                let ints = node.possibleChildren.directIntersects;
+                for (let j = 0; j < ints.length; j++) {
+                  if (node.intent == "trail") {
+                  } else if (node.intent != ints[j].intent)
+                    issues.push({
+                      severity: "error",
+                      antecedent: {
+                        id: node.id,
+                        intent: node.intent,
+                      },
+                      message:
+                        "{antecedent} does not fully contain possible child {consequent}",
+                      consequent: {
+                        id: ints[j].id,
+                        intent: ints[j].intent,
+                      },
+                    });
+                  else
+                    issues.push({
+                      severity: "error",
+                      antecedent: {
+                        id: node.id,
+                        intent: node.intent,
+                      },
+                      message:
+                        "{antecedent} intersects {consequent} of same intent.",
+                      consequent: {
+                        id: ints[j].id,
+                        intent: ints[j].intent,
+                      },
+                    });
+                }
               }
             }
-          }
 
-          function findChanges(cb) {
-            //Get published_family_tree from our store
-            sequelize
-              .query(
-                "SELECT value" +
-                  " " +
-                  "FROM published_stores" +
-                  " " +
-                  "WHERE time<=:time" +
-                  " " +
-                  "ORDER BY time DESC" +
-                  " " +
-                  "FETCH first 1 rows only",
-                {
-                  replacements: {
-                    time: Math.floor(Date.now()),
-                  },
-                }
-              )
-              .then(([published_family_tree]) => {
-                if (
-                  !published_family_tree ||
-                  !published_family_tree[0] ||
-                  !published_family_tree[0].value
-                ) {
-                  cb(false);
-                  return;
-                } else {
-                  let tree = JSON.parse(published_family_tree[0].value);
-                  let fh = tree.flatHierarchy;
-                  let oldFeatures = {};
-                  let newFeatures = {};
-                  let added = [];
-                  let changed = [];
-                  let removed = [];
+            function findChanges(cb) {
+              //Get published_family_tree from our store
+              sequelize
+                .query(
+                  "SELECT value" +
+                    " " +
+                    "FROM published_stores" +
+                    " " +
+                    "WHERE time<=:time" +
+                    " " +
+                    "ORDER BY time DESC" +
+                    " " +
+                    "FETCH first 1 rows only",
+                  {
+                    replacements: {
+                      time: Math.floor(Date.now()),
+                    },
+                  }
+                )
+                .then(([published_family_tree]) => {
+                  if (
+                    !published_family_tree ||
+                    !published_family_tree[0] ||
+                    !published_family_tree[0].value
+                  ) {
+                    cb(false);
+                    return;
+                  } else {
+                    let tree = JSON.parse(published_family_tree[0].value);
+                    let fh = tree.flatHierarchy;
+                    let oldFeatures = {};
+                    let newFeatures = {};
+                    let added = [];
+                    let changed = [];
+                    let removed = [];
 
-                  //Find all the old and new uuids and names first
-                  for (let i = 0; i < fh.length; i++) {
-                    let node = fh[i];
-                    let props = JSON.parse(node.feature.properties);
-                    oldFeatures[props.uuid] = { name: props.name, id: node.id };
-                  }
-                  for (let i = 0; i < flatHierarchy.length; i++) {
-                    let node = flatHierarchy[i];
-                    let props = JSON.parse(node.feature.properties);
-                    newFeatures[props.uuid] = { name: props.name, id: node.id };
-                  }
-                  let newFeatureUUIDs = Object.keys(newFeatures);
-                  let oldFeatureUUIDs = Object.keys(oldFeatures);
+                    //Find all the old and new uuids and names first
+                    for (let i = 0; i < fh.length; i++) {
+                      let node = fh[i];
+                      let props = JSON.parse(node.feature.properties);
+                      oldFeatures[props.uuid] = {
+                        name: props.name,
+                        id: node.id,
+                      };
+                    }
+                    for (let i = 0; i < flatHierarchy.length; i++) {
+                      let node = flatHierarchy[i];
+                      let props = JSON.parse(node.feature.properties);
+                      newFeatures[props.uuid] = {
+                        name: props.name,
+                        id: node.id,
+                      };
+                    }
+                    let newFeatureUUIDs = Object.keys(newFeatures);
+                    let oldFeatureUUIDs = Object.keys(oldFeatures);
 
-                  //Added
-                  for (let i = 0; i < newFeatureUUIDs.length; i++) {
-                    if (oldFeatureUUIDs.indexOf(newFeatureUUIDs[i]) == -1)
-                      added.push({
-                        uuid: newFeatureUUIDs[i],
-                        name: newFeatures[newFeatureUUIDs[i]].name,
-                        id: newFeatures[newFeatureUUIDs[i]].id,
-                      });
-                  }
-                  //Removed
-                  for (let i = 0; i < oldFeatureUUIDs.length; i++) {
-                    if (newFeatureUUIDs.indexOf(oldFeatureUUIDs[i]) == -1)
-                      removed.push({
-                        uuid: oldFeatureUUIDs[i],
-                        name: oldFeatures[oldFeatureUUIDs[i]].name,
-                        id: oldFeatures[oldFeatureUUIDs[i]].id,
-                      });
-                  }
-                  //Changed
-                  for (let i = 0; i < newFeatureUUIDs.length; i++) {
-                    if (oldFeatureUUIDs.indexOf(newFeatureUUIDs[i]) != -1) {
-                      if (
-                        oldFeatures[newFeatureUUIDs[i]].name !=
-                        newFeatures[newFeatureUUIDs[i]].name
-                      ) {
-                        changed.push({
+                    //Added
+                    for (let i = 0; i < newFeatureUUIDs.length; i++) {
+                      if (oldFeatureUUIDs.indexOf(newFeatureUUIDs[i]) == -1)
+                        added.push({
                           uuid: newFeatureUUIDs[i],
-                          old_name: oldFeatures[newFeatureUUIDs[i]].name,
-                          new_name: newFeatures[newFeatureUUIDs[i]].name,
+                          name: newFeatures[newFeatureUUIDs[i]].name,
                           id: newFeatures[newFeatureUUIDs[i]].id,
                         });
+                    }
+                    //Removed
+                    for (let i = 0; i < oldFeatureUUIDs.length; i++) {
+                      if (newFeatureUUIDs.indexOf(oldFeatureUUIDs[i]) == -1)
+                        removed.push({
+                          uuid: oldFeatureUUIDs[i],
+                          name: oldFeatures[oldFeatureUUIDs[i]].name,
+                          id: oldFeatures[oldFeatureUUIDs[i]].id,
+                        });
+                    }
+                    //Changed
+                    for (let i = 0; i < newFeatureUUIDs.length; i++) {
+                      if (oldFeatureUUIDs.indexOf(newFeatureUUIDs[i]) != -1) {
+                        if (
+                          oldFeatures[newFeatureUUIDs[i]].name !=
+                          newFeatures[newFeatureUUIDs[i]].name
+                        ) {
+                          changed.push({
+                            uuid: newFeatureUUIDs[i],
+                            old_name: oldFeatures[newFeatureUUIDs[i]].name,
+                            new_name: newFeatures[newFeatureUUIDs[i]].name,
+                            id: newFeatures[newFeatureUUIDs[i]].id,
+                          });
+                        }
                       }
                     }
+
+                    cb({ added, changed, removed });
                   }
+                });
+            }
 
-                  cb({ added, changed, removed });
-                }
-              });
-          }
-
-          findChanges(function (changes) {
-            let body = {
-              hierarchy: hierarchy,
-              issues: issues,
-              changes: changes,
-            };
-            if (req.query.verbose) {
-              body = {
+            findChanges(function (changes) {
+              let body = {
                 hierarchy: hierarchy,
-                flatHierarchy: flatHierarchy,
                 issues: issues,
                 changes: changes,
-                saviors: saviors,
               };
-            }
-            callback(body);
+              if (req.query.verbose) {
+                body = {
+                  hierarchy: hierarchy,
+                  flatHierarchy: flatHierarchy,
+                  issues: issues,
+                  changes: changes,
+                  saviors: saviors,
+                };
+              }
+              callback(body);
+            });
+          })
+          .catch((err) => {
+            logger("error", "Failed to compile.", req.originalUrl, req, err);
+            callback();
+            return null;
           });
-        });
-    }
-  });
+      }
+    })
+    .catch((err) => {
+      logger("error", "Failed to compile.", req.originalUrl, req, err);
+      callback();
+      return null;
+    });
 };
 router.get("/compile", function (req, res, next) {
+  let sent = false;
   compile(req, res, (body) => {
+    if (sent === true) return;
+    sent = true;
+
     if (body == null) {
       logger("error", "Failed compile file.", req.originalUrl, req);
     }
