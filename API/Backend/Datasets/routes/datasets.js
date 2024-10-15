@@ -466,7 +466,7 @@ router.post("/upload", function (req, res, next) {
         sequelize
           .query(
             "TRUNCATE TABLE " +
-              Utils.forceAlphaNumUnder(table) +
+              Utils.forceAlphaNumUnder(result.table) +
               " RESTART IDENTITY",
             {
               replacements: {},
@@ -526,7 +526,7 @@ router.post("/recreate", function (req, res, next) {
         sequelize
           .query(
             "TRUNCATE TABLE " +
-              Utils.forceAlphaNumUnder(table) +
+              Utils.forceAlphaNumUnder(result.table) +
               " RESTART IDENTITY",
             {
               replacements: {},
