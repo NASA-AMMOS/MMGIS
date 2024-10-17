@@ -13,7 +13,6 @@ export const getInjectables = () => {
 };
 
 export const inject = (configJson) => {
-  console.log(injectables);
   let injected = JSON.stringify(configJson);
   Object.keys(injectables).forEach((inj) => {
     injected = injected.replaceAll(

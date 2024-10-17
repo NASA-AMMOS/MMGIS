@@ -193,28 +193,12 @@ const useStyles = makeStyles((theme) => ({
 
 const headCells = [
   {
-    id: "name",
-    label: "Name",
+    id: "id",
+    label: "Collection Id",
   },
   {
-    id: "updated",
-    label: "Last Updated",
-  },
-  {
-    id: "filename",
-    label: "Uploaded From",
-  },
-  {
-    id: "num_features",
-    label: "# of Features",
-  },
-  {
-    id: "start_time_field",
-    label: "Start Time Field",
-  },
-  {
-    id: "end_time_field",
-    label: "End Time Field",
+    id: "description",
+    label: "Description",
   },
   {
     id: "actions",
@@ -421,18 +405,8 @@ export default function STAC() {
                       key={row.id}
                       selected={false}
                     >
-                      <TableCell align="left">{row.name}</TableCell>
-                      <TableCell align="right">
-                        {row.updated
-                          ? new Date(row.updated).toLocaleString()
-                          : row.updated}
-                      </TableCell>
-                      <TableCell align="right">{row.filename}</TableCell>
-                      <TableCell align="right">{row.num_features}</TableCell>
-                      <TableCell align="right">
-                        {row.start_time_field}
-                      </TableCell>
-                      <TableCell align="right">{row.end_time_field}</TableCell>
+                      <TableCell align="left">{row.id}</TableCell>
+                      <TableCell align="right">{row.description}</TableCell>
                       <TableCell align="right">
                         <div className={c.actions}>
                           <Tooltip title={"Used By"} placement="top" arrow>
