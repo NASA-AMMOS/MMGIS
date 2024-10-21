@@ -58,7 +58,7 @@
             {
               "field": "url",
               "name": "URL",
-              "description": "A file path that points to a geojson. If the path is relative, it will be relative to the mission's directory. The URL must contain a proper placeholder ending such as: {z}/{x}/{y}.png. Alternatively vectors can be served with Geodatasets. Simply go to 'Manage Geodatasets' at the bottom left, upload a geojson and link to it in this URL field with 'geodatasets:{geodataset*name}'",
+              "description": "A file path that points to a geojson, gribjson (streamlines only), or geotiff (arrows only). If the path is relative, it will be relative to the mission's directory. The URL must contain a proper placeholder ending such as: {z}/{x}/{y}.png.",
               "type": "text",
               "width": 12
             }
@@ -257,98 +257,142 @@
           ]
         },
         {
-          "subname": "Marker Icons",
-          "subdescription": "Uses an icon image instead of an svg for all of the layer's point markers. If you're using this as a bearing marker, make sure the base icon is pointing north.",
+          "subname": "Streamlines",
+          "subdescription": "Styling options for streamlines.",
           "components": [
             {
-              "field": "variables.markerIcon.iconUrl",
-              "name": "Icon URL",
-              "description": "A URL to an image to use as a marker icon.",
+              "field": "variables.streamlines.minVelocity",
+              "name": "Min Velocity",
+              "description": "Velocity at which particle intensity is minimum (m/s)",
+              "default": 0,
+              "type": "number",
+              "width": 3
+            },
+            {
+              "field": "variables.streamlines.maxVelocity",
+              "name": "Max Velocity",
+              "description": "Velocity at which particle intensity is maximum (m/s)",
+              "type": "number",
+              "width": 3
+            },
+            {
+              "field": "variables.streamlines.velocityScale",
+              "name": "Velocity Scale",
+              "description": "Scale for wind velocity",
+              "type": "number",
+              "width": 3
+            },
+            {
+              "field": "variables.streamlines.particleAge",
+              "name": "Particle Age",
+              "description": "Max number of frames a particle is drawn before regeneration",
+              "type": "number",
+              "width": 3
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.streamlines.lineWidth",
+              "name": "Line Width",
+              "description": "Line width of a drawn particle.",
+              "type": "number",
+              "min": 0,
+              "step": 1,
+              "width": 3
+            },
+            {
+              "field": "variables.streamlines.particleMultiplier",
+              "name": "Particle Multiplier",
+              "description": "Particle count scalar.",
+              "type": "number",
+              "width": 3
+            },
+            {
+              "field": "variables.streamlines.frameRate",
+              "name": "Frame Rate",
+              "description": "Particle frame rate.",
+              "type": "number",
+              "min": 0,
+              "step": 1,
+              "width": 3
+            },
+            {
+              "field": "variables.streamlines.displayValues",
+              "name": "Display Values",
+              "description": "Display pixel values.",
+              "type": "switch",
+              "width": 3,
+              "defaultChecked": true
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.streamlines.colorScale",
+              "name": "Color Scale",
+              "description": "A comma separated list of rgb color triplets in quotes for the color scale, e.g., \"rgb(36,104, 180)\", \"rgb(60,157, 194)\" ...",
               "type": "text",
-              "width": 12
+              "width": 9
+            },
+            {
+              "field": "variables.streamlines.displayPosition",
+              "name": "Display Position",
+              "description": "Where to display data values.",
+              "type": "dropdown",
+              "width": 3,
+              "options": ["bottomleft", "bottomright", "topleft", "topright" ]
             }
           ]
         },
         {
+          "subname": "Particles",
+          "subdescription": "Styling options for particles.",
           "components": [
             {
-              "field": "variables.markerIcon.shadowUrl",
-              "name": "Shadow URL",
-              "description": "An optional URL to an image to use as a marker icon's shadow..",
-              "type": "text",
-              "width": 12
-            }
-          ]
-        },
-        {
-          "components": [
-            {
-              "field": "variables.markerIcon.iconSize.0",
-              "name": "Icon X Size",
-              "description": "Pixel width of the icon's image.",
+              "field": "variables.particles.angle",
+              "name": "Particle Angle",
+              "description": "Particle angle (degrees).",
+              "default": 0,
               "type": "number",
-              "min": 0,
-              "step": 1,
-              "width": 3
+              "width": 2
             },
             {
-              "field": "variables.markerIcon.iconSize.1",
-              "name": "Icon Y Size",
-              "description": "Pixel height of the icon's image.",
+              "field": "variables.particles.width",
+              "name": "Particle Width",
+              "description": "Particle width (px).",
               "type": "number",
-              "min": 0,
-              "step": 1,
-              "width": 3
+              "width": 2
             },
             {
-              "field": "variables.markerIcon.shadowSize.0",
-              "name": "Shadow X Size",
-              "description": "Pixel width of the icon's shadow.",
+              "field": "variables.particles.spacing",
+              "name": "Particle Spacing",
+              "description": "X-spacing between particles (px).",
               "type": "number",
-              "min": 0,
-              "step": 1,
-              "width": 3
+              "width": 2
             },
             {
-              "field": "variables.markerIcon.shadowSize.1",
-              "name": "Shadow Y Size",
-              "description": "Pixel height of the icon's shadow.",
+              "field": "variables.particles.length",
+              "name": "Particle Length",
+              "description": "Particle length (px).",
               "type": "number",
-              "min": 0,
-              "step": 1,
-              "width": 3
-            }
-          ]
-        },
-        {
-          "components": [
-            {
-              "field": "variables.markerIcon.iconAnchor.0",
-              "name": "Icon X Anchor",
-              "description": "X point of the icon which will correspond to marker's center location.",
-              "type": "number",
-              "width": 3
+              "width": 2
             },
             {
-              "field": "variables.markerIcon.iconAnchor.1",
-              "name": "Icon Y Anchor",
-              "description": "Y point of the icon which will correspond to marker's center location.",
+              "field": "variables.particles.interval",
+              "name": "Paritcle Interval",
+              "description": "Y-spacing between particles (px).",
               "type": "number",
-              "width": 3
+              "width": 2
             },
             {
-              "field": "variables.markerIcon.shadowAnchor.0",
-              "name": "Shadow X Anchor",
-              "description": "X point of the shadow which will correspond to marker's center location.",
+              "field": "variables.particles.speed",
+              "name": "Particle Speed",
+              "description": "Particle speed factor. Values greater 1 increase speed.",
               "type": "number",
-              "width": 3
-            },
-            {
-              "field": "variables.markerIcon.shadowAnchor.1",
-              "name": "Shadow Y Anchor",
-              "description": "Y point of the shadow which will correspond to marker's center location.",
-              "type": "number",
-              "width": 3
+              "width": 2
             }
           ]
         }
