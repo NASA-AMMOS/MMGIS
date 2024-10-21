@@ -394,6 +394,20 @@ let Map_ = {
         }
     },
     refreshLayer: async function (layerObj, cb) {
+        // If it's a dynamic extent layer, just re-call its function
+        if (
+            L_._onSpecificLayerToggleSubscriptions[
+                `dynamicextent_${layerObj.name}`
+            ] != null
+        ) {
+            if (L_.layers.on[layerObj.name])
+                L_._onSpecificLayerToggleSubscriptions[
+                    `dynamicextent_${layerObj.name}`
+                ].func(layerObj.name)
+            if (typeof cb === 'function') cb()
+            return true
+        }
+
         // We need to find and remove all points on the map that belong to the layer
         // Not sure if there is a cleaner way of doing this
         for (var i = L_._layersOrdered.length - 1; i >= 0; i--) {
@@ -792,11 +806,11 @@ async function makeVectorLayer(
                         layerObj.controlled !== true
                     )
                         L_.subscribeTimeChange(
-                            `dynamicgeodataset_${layerObj.name}`,
+                            `dynamicextent_${layerObj.name}`,
                             f
                         )
                     L_.subscribeOnSpecificLayerToggle(
-                        `dynamicgeodataset_${layerObj.name}`,
+                        `dynamicextent_${layerObj.name}`,
                         layerObj.name,
                         f
                     )
