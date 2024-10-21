@@ -393,6 +393,9 @@ require=(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c=
         },
     
         _reset: function () {
+            if (this._map == null) {
+                return;
+            }
             var topLeft = this._map.containerPointToLayerPoint([0, 0]);
             L.DomUtil.setPosition(this._canvas, topLeft);
     

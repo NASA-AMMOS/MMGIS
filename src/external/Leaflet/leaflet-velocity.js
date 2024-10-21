@@ -43,6 +43,10 @@ L.CanvasLayer = (L.Layer ? L.Layer : L.Class).extend({
   },
   //-------------------------------------------------------------
   _onLayerDidMove: function _onLayerDidMove() {
+    if (this._map == null) {
+      return;
+    }
+
     var topLeft = this._map.containerPointToLayerPoint([0, 0]);
 
     L.DomUtil.setPosition(this._canvas, topLeft);
@@ -101,6 +105,10 @@ L.CanvasLayer = (L.Layer ? L.Layer : L.Class).extend({
   //------------------------------------------------------------------------------
   drawLayer: function drawLayer() {
     // -- todo make the viewInfo properties  flat objects.
+    if (this._map == null) {
+      return;
+    }
+
     var size = this._map.getSize();
 
     var bounds = this._map.getBounds();
@@ -545,26 +553,45 @@ var Windy = function Windy(params) {
     var uComp = null,
         vComp = null,
         scalar = null;
-    data.forEach(function (record) {
-      switch (record.header.parameterCategory + "," + record.header.parameterNumber) {
-        case "1,2":
-        case "2,2":
-          uComp = record;
-          break;
 
-        case "1,3":
-        case "2,3":
-          vComp = record;
-          break;
+        uComp = {"data": [], "header": {}}
+        vComp = {"data": [], "header": {}}
+        if (data.features) {
+          data.features.forEach(function (feature) {
+            uComp.data.push(feature.properties.u);
+            vComp.data.push(feature.properties.v);
 
-        default:
-          scalar = record;
-      }
-    });
+          });
+        } else {
+          if (data != null && data != 'off') {
+            data.forEach(function (record) {
+              switch (record.header.parameterCategory + "," + record.header.parameterNumber) {
+                case "1,2":
+                case "2,2":
+                  uComp = record;
+                  break;
+    
+                case "1,3":
+                case "2,3":
+                  vComp = record;
+                  break;
+    
+                default:
+                  scalar = record;
+              }
+            });
+          }
+          else {
+            return
+          }
+        }
     return createWindBuilder(uComp, vComp);
   };
 
   var buildGrid = function buildGrid(data, callback) {
+    if (data == null || data == 'off') {
+      return
+    }
     var supported = true;
     if (data.length < 2) supported = false;
     if (!supported) console.log("Windy Error: data must have at least two components (u,v)");
@@ -575,7 +602,20 @@ var Windy = function Windy(params) {
     if (!supported) {
       console.log("Windy Error: Only data with Latitude_Longitude coordinates is supported");
     }
-
+    if ("lo1" in header == false) {
+      // assume global 360x180
+      var d = 64800/data.features.length
+      header = {"numberPoints": data.features.length,
+        "lo1": -180,
+        "lo2": 180,
+        "la1": 90,
+        "la2": -90,
+        "dx": d,
+        "dy": d,
+        "nx": 360/d,
+        "ny": 180/d
+      }
+    }
     supported = true; // reset for futher checks
 
     λ0 = header.lo1;

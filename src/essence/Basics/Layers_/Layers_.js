@@ -346,7 +346,7 @@ const L_ = {
                     L_.Globe_.litho.toggleLayer(s.name, false)
                 } else L_.Globe_.litho.removeLayer(s.name)
             } else {
-                if (L_.layers.layer[s.name] && globeOnly != true) {
+                if (L_.layers.layer[s.name] && globeOnly != true && s.type !== 'velocity') {
                     if (L_.layers.attachments[s.name]) {
                         for (let sub in L_.layers.attachments[s.name]) {
                             if (L_.layers.attachments[s.name][sub].on) {
@@ -484,6 +484,18 @@ const L_ = {
                             },
                         })
                     }
+                } else if (s.type === 'velocity') {
+                    if (['streamlines', 'particles'].includes(s.kind)) {
+                        L_.Map_.rmNotNull(L_.layers.layer[s.name])
+                    }
+                    await L_.Map_.makeLayer(s, true, null, null, true)
+                    Description.updateInfo()
+                    L_.Map_.map.addLayer(L_.layers.layer[s.name])
+                    L_.layers.layer[s.name].setZIndex(
+                        L_._layersOrdered.length +
+                            1 -
+                            L_._layersOrdered.indexOf(s.name)
+                    )
                 } else {
                     let hadToMake = false
                     if (
