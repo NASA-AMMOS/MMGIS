@@ -59,7 +59,7 @@
             {
               "field": "url",
               "name": "URL",
-              "description": "A file path that points to a geojson. If the path is relative, it will be relative to the mission's directory. The URL must contain a proper placeholder ending such as: {z}/{x}/{y}.png. Alternatively vectors can be served with Geodatasets. Simply go to 'Manage Geodatasets' at the bottom left, upload a geojson and link to it in this URL field with 'geodatasets:{geodataset*name}'",
+              "description": "A file path that points to a geojson. If the path is relative, it will be relative to the mission's directory. The URL must contain a proper placeholder ending such as: {z}/{x}/{y}.png.\nAlternatively vectors can be served with Geodatasets or through API calls via the following constructed URLs:\n\t<strong>• 'geodatasets:{geodataset_name}'</strong> - Simply go to 'Manage Geodatasets' at the bottom left, upload a geojson and link to it in this URL field with 'geodatasets:{geodataset_name}'\n\t<strong>• 'api:publishedall'</strong> - Grabs all features published via the DrawTool.\n\t<strong>• 'api:published:{file_intent}'</strong> - Grabs all features published via the DrawTool of a certain intent. Possible values are: roi, campaign, campsite, signpost, trail, all\n\t<strong>• 'api:drawn:{file_id}'</strong> - Grabs a user drawn file from the DrawTool. The file_id is an integer and can be found by hovering over the desired file in the DrawTool. Note that if the file chosen is still private, the file owner will be the only user who can view it.",
               "type": "text",
               "width": 12
             }
@@ -252,7 +252,7 @@
             {
               "field": "style.shapeIcon",
               "name": "Shape From Icon",
-              "description": "Shape but taken from the Material Design Icon (mdi) library. akes priority over the value in the 'shape' field. See https://pictogrammers.com/library/mdi/",
+              "description": "Shape but taken from the Material Design Icon (mdi) library. akes priority over the value in the 'shape' field. See <a target='__blank' href='https://pictogrammers.com/library/mdi/'>https://pictogrammers.com/library/mdi/</a>",
               "type": "text",
               "width": 3
             },
@@ -396,7 +396,7 @@
             {
               "field": "time.format",
               "name": "Time Format",
-              "description": "The string format to be used in the URL for {starttime} and {endtime}. Uses D3 time format specifiers: https://github.com/d3/d3-time-format. Default: %Y-%m-%dT%H:%M:%SZ",
+              "description": "The string format to be used in the URL for {starttime} and {endtime}. Uses D3 time format specifiers: <a target='__blank' href='https://github.com/d3/d3-time-format'>https://github.com/d3/d3-time-format</a>. Default: %Y-%m-%dT%H:%M:%SZ",
               "type": "text",
               "width": 6
             }
@@ -671,7 +671,7 @@
                 {
                   "field": "icon",
                   "name": "Icon Name",
-                  "description": "Any Material Design Icon name: https://pictogrammers.com/library/mdi/",
+                  "description": "Any Material Design Icon name: <a target='__blank' href='https://pictogrammers.com/library/mdi/'>https://pictogrammers.com/library/mdi/</a>",
                   "type": "text",
                   "width": 3
                 },
@@ -821,7 +821,7 @@
             {
               "field": "variables.dynamicExtent",
               "name": "Enabled",
-              "description": " If true, tries to only query the vector features present in the user's current map viewport. This can be very performant for large vector datasets especially if minimum and maximum zooms are set for the layer. Pan and zooming causes requeries. If used with a geodataset, the time and extent queries will work out-of-the-box. Otherwise, if using an external server, the following parameters in {} will be automatically replaced on query in the url: 'starttime={starttime}&endtime={endtime}&startprop={startprop}&endprop={endprop}&crscode={crscode}&zoom={zoom}&minx={minx}&miny={miny}&maxx={maxx}&maxy={maxy}'. This setting is not advised if the data source is a straight geojson file because it expects a server that can crop the data to given extents.",
+              "description": "If true, tries to only query the vector features present in the user's current map viewport. This can be very performant for large vector datasets especially if minimum and maximum zooms are set for the layer. Pan and zooming causes requeries. If used with a geodataset, the time and extent queries will work out-of-the-box. Otherwise, if using an external server, the following parameters in {} will be automatically replaced on query in the url: 'starttime={starttime}&endtime={endtime}&startprop={startprop}&endprop={endprop}&crscode={crscode}&zoom={zoom}&minx={minx}&miny={miny}&maxx={maxx}&maxy={maxy}'. This setting is not advised if the data source is a straight geojson file because it expects a server that can crop the data to given extents.",
               "type": "switch",
               "width": 3,
               "defaultChecked": false

@@ -126,12 +126,14 @@ const useStyles = makeStyles((theme) => ({
     margin: "40px 20px 0px 20px",
   },
   subtitle2: {
-    fontSize: "12px !important",
-    fontStyle: "italic",
+    fontSize: "13px !important",
     width: "100%",
+    marginTop: "2px !important",
     marginBottom: "8px !important",
     color: theme.palette.swatches.grey[400],
     whiteSpace: "pre-wrap",
+    lineHeight: 1.33,
+    letterSpacing: "0.00938em",
   },
   text: {
     width: "100%",
@@ -249,9 +251,10 @@ const getComponent = (
           {inlineHelp ? (
             <>
               {inner}
-              <Typography className={c.subtitle2}>
-                {com.description || ""}
-              </Typography>
+              <div
+                className={c.subtitle2}
+                dangerouslySetInnerHTML={{ __html: com.description || "" }}
+              ></div>
             </>
           ) : (
             <Tooltip title={com.description || ""} placement="top" arrow>
@@ -872,9 +875,11 @@ const makeConfig = (
       );
       if (row.description) {
         made.push(
-          <div className={clsx(c.rowDescription)} key={`${idx}_desc`}>
-            {row.description}
-          </div>
+          <div
+            className={clsx(c.rowDescription)}
+            key={`${idx}_desc`}
+            dangerouslySetInnerHTML={{ __html: row.description || "" }}
+          ></div>
         );
       }
     }
@@ -889,9 +894,11 @@ const makeConfig = (
       );
       if (row.subdescription) {
         made.push(
-          <div className={clsx(c.rowDescription)} key={`${idx}_desc`}>
-            {row.subdescription}
-          </div>
+          <div
+            className={clsx(c.rowDescription)}
+            key={`${idx}_desc`}
+            dangerouslySetInnerHTML={{ __html: row.subdescription || "" }}
+          ></div>
         );
       }
     }

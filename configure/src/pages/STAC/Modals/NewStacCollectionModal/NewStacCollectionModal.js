@@ -467,7 +467,7 @@ const config = {
 
 const MODAL_NAME = "newStacCollection";
 const NewStacCollectionModal = (props) => {
-  const { queryGeoDatasets } = props;
+  const { querySTAC } = props;
   const c = useStyles();
 
   const modal = useSelector((state) => state.core.modal[MODAL_NAME]);
@@ -523,8 +523,14 @@ const NewStacCollectionModal = (props) => {
       "stac_create_collection",
       nextStacCollection || {},
       (res) => {
-        if (res?.collections != null) {
-          queryGeoDatasets();
+        if (res?.type === "Collection") {
+          querySTAC();
+          dispatch(
+            setSnackBarText({
+              text: "Successfully made a new STAC Collection!",
+              severity: "success",
+            })
+          );
           handleClose();
         } else
           dispatch(

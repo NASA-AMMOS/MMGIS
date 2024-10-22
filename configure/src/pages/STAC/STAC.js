@@ -587,7 +587,7 @@ export default function STAC() {
           />
         </Paper>
       </Box>
-      <NewStacCollectionModal />
+      <NewStacCollectionModal querySTAC={querySTAC} />
       <DeleteGeoDatasetModal querySTAC={querySTAC} />
       <LayersUsedByModal />
       <PreviewGeoDatasetModal />

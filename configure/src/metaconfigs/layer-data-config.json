@@ -186,7 +186,7 @@
         },
         {
           "subname": "Color Ramps",
-          "description": "Color ramps for which to dynamically color the data tiles. A good site for color ramps is: https://developers.arcgis.com/javascript/latest/visualization/symbols-color-ramps/esri-color-ramps/",
+          "description": "Color ramps for which to dynamically color the data tiles. A good site for color ramps is: <a target='__blank' href='https://developers.arcgis.com/javascript/latest/visualization/symbols-color-ramps/esri-color-ramps/'>https://developers.arcgis.com/javascript/latest/visualization/symbols-color-ramps/esri-color-ramps/</a>",
           "components": [
             {
               "field": "variables.shader.ramps.0",

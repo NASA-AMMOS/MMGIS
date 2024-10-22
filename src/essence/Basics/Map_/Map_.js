@@ -867,6 +867,23 @@ async function makeVectorLayer(
 
 async function makeTileLayer(layerObj) {
     let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
+
+    const splitColonLayerUrl = layerObj.url.split(':')
+    if (splitColonLayerUrl[1] != null)
+        switch (splitColonLayerUrl[0]) {
+            case 'stac-collection':
+                const splitParams = splitColonLayerUrl[1].split('?')
+                layerUrl = `/titilerpgstac/collections/${
+                    splitParams[0]
+                }/tiles/${
+                    layerObj.tileMatrixSet || 'WebMercatorQuad'
+                }/{z}/{x}/{y}?assets=asset`
+                layerObj.tileformat = 'wmts'
+                break
+            default:
+                break
+        }
+
     let bb = null
     if (layerObj.hasOwnProperty('boundingBox')) {
         bb = L.latLngBounds(

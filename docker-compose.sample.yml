@@ -108,7 +108,7 @@ services:
     # At the time of writing, rasterio and psycopg wheels are not available for arm64 arch
     # so we force the image to be built with linux/amd64
     platform: linux/amd64
-    image: ghcr.io/stac-utils/titiler-pgstac:1.3.1
+    image: ghcr.io/stac-utils/titiler-pgstac:1.4.0
     ports:
       - 8884:8884
     environment:
@@ -146,6 +146,9 @@ services:
       # AWS S3 endpoint config
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      # TiTiler pgSTAC
+      - TITILER_PGSTAC_SEARCH_EXITWHENFULL=FALSE
+      - TITILER_PGSTAC_SEARCH_SKIPCOVERED=FALSE
     depends_on:
       - db
     command: bash -c "bash /tmp/scripts/wait-for-it.sh -t 120 -h db -p 5432 && /start.sh"
