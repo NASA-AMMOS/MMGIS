@@ -29,7 +29,7 @@ All adjacent services are proxied through MMGIS and endpoints that perform write
 
 **If using docker, this is unneeded.**
 
-1. Make sure you are using python >=3.10 and <3.13 (3.13 is not supported).
+1. Make sure you are using python >=3.10 to <3.13 (3.13 is not supported).
 1. In the root MMGIS directory `/`, run `python -m pip install -r python-requirements.txt`
 
 ### Setting the Adjacent Server ENVs
