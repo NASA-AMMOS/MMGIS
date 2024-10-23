@@ -18,7 +18,7 @@ Version 3.x.x => 4.0.0 adds support for the following adjacent services:
 - titiler - [https://github.com/developmentseed/titiler](https://github.com/developmentseed/titiler)
 - titiler-pgstac - [https://github.com/stac-utils/titiler-pgstac](https://github.com/stac-utils/titiler-pgstac)
 
-All adjacent services are proxied through MMGIS and endpoints that write and locked between MMGIS' authentication.
+All adjacent services are proxied through MMGIS and endpoints that perform writes are locked behind MMGIS' authentication.
 
 - https://{mmgis-domain}/stac
 - https://{mmgis-domain}/tipg
