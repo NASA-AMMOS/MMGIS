@@ -1,6 +1,5 @@
 const routeWebhooks = require("./routes/webhooks");
 const routerWebhooks = routeWebhooks.router;
-const fetch = require("node-fetch");
 const routerTestWebhooks = require("./routes/testwebhooks");
 
 let setup = {

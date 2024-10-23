@@ -252,7 +252,7 @@
             {
               "field": "style.shapeIcon",
               "name": "Shape From Icon",
-              "description": "Shape but taken from the Material Design Icon (mdi) library. akes priority over the value in the 'shape' field. See <a target='__blank' href='https://pictogrammers.com/library/mdi/'>https://pictogrammers.com/library/mdi/</a>",
+              "description": "Shape but taken from the Material Design Icon (mdi) library. akes priority over the value in the 'shape' field. See <a target='_blank' href='https://pictogrammers.com/library/mdi/'>https://pictogrammers.com/library/mdi/</a>",
               "type": "text",
               "width": 3
             },
@@ -396,7 +396,7 @@
             {
               "field": "time.format",
               "name": "Time Format",
-              "description": "The string format to be used in the URL for {starttime} and {endtime}. Uses D3 time format specifiers: <a target='__blank' href='https://github.com/d3/d3-time-format'>https://github.com/d3/d3-time-format</a>. Default: %Y-%m-%dT%H:%M:%SZ",
+              "description": "The string format to be used in the URL for {starttime} and {endtime}. Uses D3 time format specifiers: <a target='_blank' href='https://github.com/d3/d3-time-format'>https://github.com/d3/d3-time-format</a>. Default: %Y-%m-%dT%H:%M:%SZ",
               "type": "text",
               "width": 6
             }
@@ -671,7 +671,7 @@
                 {
                   "field": "icon",
                   "name": "Icon Name",
-                  "description": "Any Material Design Icon name: <a target='__blank' href='https://pictogrammers.com/library/mdi/'>https://pictogrammers.com/library/mdi/</a>",
+                  "description": "Any Material Design Icon name: <a target='_blank' href='https://pictogrammers.com/library/mdi/'>https://pictogrammers.com/library/mdi/</a>",
                   "type": "text",
                   "width": 3
                 },

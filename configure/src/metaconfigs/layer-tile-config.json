@@ -490,7 +490,7 @@
                 {
                   "field": "timeFormat",
                   "name": "Time Format",
-                  "description": "A string for formatting the injected '{starttime}' and '{endtime}' in the url. See syntax in <a target='__blank' href='https://d3js.org/d3-time-format#locale_format'>https://d3js.org/d3-time-format#locale_format</a>",
+                  "description": "A string for formatting the injected '{starttime}' and '{endtime}' in the url. See syntax in <a target='_blank' href='https://d3js.org/d3-time-format#locale_format'>https://d3js.org/d3-time-format#locale_format</a>",
                   "type": "text",
                   "width": 4
                 }

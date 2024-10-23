@@ -161,40 +161,39 @@ const useStyles = makeStyles((theme) => ({
   cancel: {},
 }));
 
-const MODAL_NAME = "deleteGeoDataset";
-const DeleteGeoDatasetModal = (props) => {
-  const { queryGeoDatasets } = props;
+const MODAL_NAME = "deleteStacCollection";
+const DeleteStacCollectionModal = (props) => {
+  const { querySTAC } = props;
   const c = useStyles();
 
   const modal = useSelector((state) => state.core.modal[MODAL_NAME]);
-  const geodatasets = useSelector((state) => state.core.geodatasets);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const dispatch = useDispatch();
 
-  const [geoDatasetName, setGeoDatasetName] = useState(null);
+  const [stacCollectionName, setStacCollectionName] = useState(null);
 
   const handleClose = () => {
     // close modal
     dispatch(setModal({ name: MODAL_NAME, on: false }));
   };
   const handleSubmit = () => {
-    if (!modal?.geoDataset?.name) {
+    if (!modal?.stacCollection?.id) {
       dispatch(
         setSnackBarText({
-          text: "Cannot delete undefined GeoDataset.",
+          text: "Cannot delete undefined STAC Collection.",
           severity: "error",
         })
       );
       return;
     }
 
-    if (geoDatasetName !== modal.geoDataset.name) {
+    if (stacCollectionName !== modal.stacCollection.id) {
       dispatch(
         setSnackBarText({
-          text: "Confirmation GeoDataset name does not match.",
+          text: "Confirmation STAC Collection name does not match.",
           severity: "error",
         })
       );
@@ -202,26 +201,26 @@ const DeleteGeoDatasetModal = (props) => {
     }
 
     calls.api(
-      "geodatasets_remove",
+      "stac_delete_collection",
       {
         urlReplacements: {
-          name: modal.geoDataset.name,
+          collection: modal.stacCollection.id,
         },
       },
       (res) => {
-        if (res.status === "success") {
+        if (res["deleted collection"] === modal.stacCollection.id) {
           dispatch(
             setSnackBarText({
-              text: `Successfully deleted the '${modal.geoDataset.name}' GeoDataset.`,
+              text: `Successfully deleted the '${modal.stacCollection.id}' STAC Collection.`,
               severity: "success",
             })
           );
-          queryGeoDatasets();
+          querySTAC();
           handleClose();
         } else {
           dispatch(
             setSnackBarText({
-              text: `Failed to delete the '${modal.geoDataset.name}' GeoDataset.`,
+              text: `Failed to delete the '${modal.stacCollection.id}' STAC Collection.`,
               severity: "error",
             })
           );
@@ -230,7 +229,7 @@ const DeleteGeoDatasetModal = (props) => {
       (res) => {
         dispatch(
           setSnackBarText({
-            text: `Failed to delete the '${modal.geoDataset.name}' GeoDataset.`,
+            text: `Failed to delete the '${modal.stacCollection.id}' STAC Collection.`,
             severity: "error",
           })
         );
@@ -240,10 +239,10 @@ const DeleteGeoDatasetModal = (props) => {
 
   let occurrences = [];
 
-  if (modal?.geoDataset?.occurrences)
-    occurrences = Object.keys(modal?.geoDataset?.occurrences)
+  if (modal?.stacCollection?.occurrences)
+    occurrences = Object.keys(modal?.stacCollection?.occurrences)
       .map((mission) => {
-        const m = modal?.geoDataset?.occurrences[mission];
+        const m = modal?.stacCollection?.occurrences[mission];
         if (m.length == 0) return null;
         else {
           const items = [<div className={c.mission}>{mission}</div>];
@@ -277,7 +276,7 @@ const DeleteGeoDatasetModal = (props) => {
         <div className={c.flexBetween}>
           <div className={c.flexBetween}>
             <ShapeLineIcon className={c.backgroundIcon} />
-            <div className={c.title}>Delete a GeoDataset</div>
+            <div className={c.title}>Delete a STAC Collection</div>
           </div>
           <IconButton
             className={c.closeIcon}
@@ -292,13 +291,13 @@ const DeleteGeoDatasetModal = (props) => {
       <DialogContent className={c.content}>
         <Typography
           className={c.layerName}
-        >{`Deleting: ${modal?.geoDataset?.name}`}</Typography>
+        >{`Deleting: ${modal?.stacCollection?.id}`}</Typography>
         {occurrences.length > 0 && (
           <>
             <div className={c.hasOccurrencesTitle}>
               <WarningIcon />
               <Typography className={c.hasOccurrences}>
-                {`This GeoDataset is currently in use in the following layers:`}
+                {`This STAC Collection is currently in use in the following layers:`}
               </Typography>
             </div>
             <div className={c.occurrences}>{occurrences}</div>
@@ -306,16 +305,16 @@ const DeleteGeoDatasetModal = (props) => {
         )}
         <TextField
           className={c.confirmInput}
-          label="Confirm GeoDataset Name"
+          label="Confirm STAC Collection Name"
           variant="filled"
-          value={geoDatasetName}
+          value={stacCollectionName}
           onChange={(e) => {
-            setGeoDatasetName(e.target.value);
+            setStacCollectionName(e.target.value);
           }}
         />
         <Typography
           className={c.confirmMessage}
-        >{`Enter '${modal?.geoDataset?.name}' above and click 'Delete' to confirm the permanent deletion of this GeoDataset.`}</Typography>
+        >{`Enter '${modal?.stacCollection?.id}' above and click 'Delete' to confirm the permanent deletion of this STAC Collection.`}</Typography>
       </DialogContent>
       <DialogActions className={c.dialogActions}>
         <Button
@@ -334,4 +333,4 @@ const DeleteGeoDatasetModal = (props) => {
   );
 };
 
-export default DeleteGeoDatasetModal;
+export default DeleteStacCollectionModal;

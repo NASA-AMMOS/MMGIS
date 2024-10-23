@@ -12,7 +12,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 
 import CloseSharpIcon from "@mui/icons-material/CloseSharp";
-import ShapeLineIcon from "@mui/icons-material/ShapeLine";
+import HorizontalSplitIcon from "@mui/icons-material/HorizontalSplit";
 
 import { makeStyles, useTheme } from "@mui/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -121,7 +121,7 @@ const useStyles = makeStyles((theme) => ({
   close: {},
 }));
 
-const MODAL_NAME = "layersUsedByGeoDataset";
+const MODAL_NAME = "layersUsedByStacCollection";
 const LayersUsedByModal = (props) => {
   const {} = props;
   const c = useStyles();
@@ -140,10 +140,10 @@ const LayersUsedByModal = (props) => {
 
   let occurrences = [];
 
-  if (modal?.geoDataset?.occurrences)
-    occurrences = Object.keys(modal?.geoDataset?.occurrences)
+  if (modal?.stacCollection?.occurrences)
+    occurrences = Object.keys(modal?.stacCollection?.occurrences)
       .map((mission) => {
-        const m = modal?.geoDataset?.occurrences[mission];
+        const m = modal?.stacCollection?.occurrences[mission];
         if (m.length == 0) return null;
         else {
           const items = [<div className={c.mission}>{mission}</div>];
@@ -176,8 +176,8 @@ const LayersUsedByModal = (props) => {
       <DialogTitle className={c.heading}>
         <div className={c.flexBetween}>
           <div className={c.flexBetween}>
-            <ShapeLineIcon className={c.backgroundIcon} />
-            <div className={c.title}>GeoDataset is Used By</div>
+            <HorizontalSplitIcon className={c.backgroundIcon} />
+            <div className={c.title}>STAC Collection is Used By</div>
           </div>
           <IconButton
             className={c.closeIcon}
@@ -192,12 +192,12 @@ const LayersUsedByModal = (props) => {
       <DialogContent className={c.content}>
         <Typography
           className={c.layerName}
-        >{`${modal?.geoDataset?.name}`}</Typography>
+        >{`${modal?.stacCollection?.id}`}</Typography>
         {occurrences.length > 0 ? (
           <>
             <div className={c.hasOccurrencesTitle}>
               <Typography className={c.hasOccurrences}>
-                {`This GeoDataset is currently in use in the following layers:`}
+                {`This STAC Collection is currently in use in the following layers:`}
               </Typography>
             </div>
             <div className={c.occurrences}>{occurrences}</div>
@@ -205,7 +205,7 @@ const LayersUsedByModal = (props) => {
         ) : (
           <div className={c.hasOccurrencesTitle}>
             <Typography className={c.hasOccurrences}>
-              {`This GeoDataset is not in use.`}
+              {`This STAC Collection is not in use.`}
             </Typography>
           </div>
         )}

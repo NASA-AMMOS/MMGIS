@@ -33,15 +33,15 @@ import { visuallyHidden } from "@mui/utils";
 
 import InventoryIcon from "@mui/icons-material/Inventory";
 import PreviewIcon from "@mui/icons-material/Preview";
+import WidgetsIcon from "@mui/icons-material/Widgets";
 import DownloadIcon from "@mui/icons-material/Download";
 import UploadIcon from "@mui/icons-material/Upload";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import AddIcon from "@mui/icons-material/Add";
 import HorizontalSplitIcon from "@mui/icons-material/HorizontalSplit";
-import ControlPointDuplicateIcon from "@mui/icons-material/ControlPointDuplicate";
 
 import NewStacCollectionModal from "./Modals/NewStacCollectionModal/NewStacCollectionModal";
-import DeleteGeoDatasetModal from "./Modals/DeleteGeoDatasetModal/DeleteGeoDatasetModal";
+import DeleteStacCollectionModal from "./Modals/DeleteStacCollectionModal/DeleteStacCollectionModal";
 import LayersUsedByModal from "./Modals/LayersUsedByModal/LayersUsedByModal";
 import PreviewGeoDatasetModal from "./Modals/PreviewGeoDatasetModal/PreviewGeoDatasetModal";
 import AppendGeoDatasetModal from "./Modals/AppendGeoDatasetModal/AppendGeoDatasetModal";
@@ -185,7 +185,6 @@ const useStyles = makeStyles((theme) => ({
     fontWeight: "bold !important",
     textTransform: "uppercase",
     letterSpacing: "1px !important",
-    color: `${theme.palette.accent.main} !important`,
     backgroundColor: `${theme.palette.swatches.grey[1000]} !important`,
     borderRight: `1px solid ${theme.palette.swatches.grey[900]}`,
   },
@@ -261,12 +260,24 @@ function EnhancedTableToolbar(props) {
       <div className={c.topbarTitle}>
         <HorizontalSplitIcon />
         <Typography
-          sx={{ flex: "1 1 100%" }}
           style={{ fontWeight: "bold", fontSize: "16px", lineHeight: "29px" }}
           variant="h6"
           component="div"
         >
           STAC
+        </Typography>
+
+        <Typography
+          style={{
+            fontWeight: "bold",
+            fontSize: "14px",
+            lineHeight: "29px",
+            paddingLeft: "20px",
+          }}
+          variant="h6"
+          component="div"
+        >
+          {`1) Create a Collection. 2) Add COG Items to the Collection. See MMGIS/auxiliary/stac for scripts. 3) Set a Tile Layer URL to 'stac-collection:{collection_name}'`}
         </Typography>
       </div>
 
@@ -304,18 +315,8 @@ export default function STAC() {
       "stac_collections",
       {},
       (res) => {
-        if (res?.collections != null)
-          dispatch(
-            setStacCollections(
-              res.collections
-              /*
-              .map((en, idx) => {
-                en.id = idx;
-                return en;
-              })
-                */
-            )
-          );
+        if (res?.body?.collections != null)
+          dispatch(setStacCollections(res.body.collections));
         else
           dispatch(
             setSnackBarText({
@@ -417,8 +418,8 @@ export default function STAC() {
                               onClick={() => {
                                 dispatch(
                                   setModal({
-                                    name: "layersUsedByGeoDataset",
-                                    geoDataset: row,
+                                    name: "layersUsedByStacCollection",
+                                    stacCollection: row,
                                   })
                                 );
                               }}
@@ -432,113 +433,40 @@ export default function STAC() {
                               </Badge>
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title={"Preview"} placement="top" arrow>
+
+                          <Tooltip title={"Info"} placement="top" arrow>
                             <IconButton
                               className={c.previewIcon}
-                              title="Preview"
-                              aria-label="preview"
+                              title="Info"
+                              aria-label="info"
                               onClick={() => {
-                                dispatch(
-                                  setModal({
-                                    name: "previewGeoDataset",
-                                    geoDataset: row,
-                                  })
-                                );
+                                window
+                                  .open(`/stac/collections/${row.id}`, "_blank")
+                                  .focus();
                               }}
                             >
                               <PreviewIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title={"Download"} placement="top" arrow>
+
+                          <Tooltip title={"Items"} placement="top" arrow>
                             <IconButton
-                              className={c.downloadIcon}
-                              title="Download"
-                              aria-label="download"
+                              className={c.previewIcon}
+                              title="Items"
+                              aria-label="items"
                               onClick={() => {
-                                if (row.name)
-                                  calls.api(
-                                    "stac_get",
-                                    {
-                                      layer: row.name,
-                                    },
-                                    (res) => {
-                                      downloadObject(
-                                        res,
-                                        `${row.name}-geodataset`,
-                                        ".geojson"
-                                      );
-                                      dispatch(
-                                        setSnackBarText({
-                                          text:
-                                            res?.message ||
-                                            "Successfully downloaded GeoDataset.",
-                                          severity: "success",
-                                        })
-                                      );
-                                    },
-                                    (res) => {
-                                      dispatch(
-                                        setSnackBarText({
-                                          text:
-                                            res?.message ||
-                                            "Failed to download GeoDataset.",
-                                          severity: "error",
-                                        })
-                                      );
-                                    }
-                                  );
+                                window
+                                  .open(
+                                    `/stac/collections/${row.id}/items`,
+                                    "_blank"
+                                  )
+                                  .focus();
                               }}
                             >
-                              <DownloadIcon fontSize="small" />
+                              <WidgetsIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          <Divider orientation="vertical" flexItem />
-                          <Tooltip title={"Append"} placement="top" arrow>
-                            <IconButton
-                              className={c.appendIcon}
-                              title="Append"
-                              aria-label="append"
-                              onClick={() => {
-                                dispatch(
-                                  setModal({
-                                    name: "appendGeoDataset",
-                                    geoDataset: row,
-                                  })
-                                );
-                              }}
-                            >
-                              <ControlPointDuplicateIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          {/*
-                          <Tooltip title={"Rename"} placement="top" arrow>
-                            <IconButton
-                              className={c.renameIcon}
-                              title="Rename"
-                              aria-label="rename"
-                              onClick={() => {}}
-                            >
-                              <DriveFileRenameOutlineIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                            */}
-                          <Tooltip title={"Update"} placement="top" arrow>
-                            <IconButton
-                              className={c.updateIcon}
-                              title="Update"
-                              aria-label="update"
-                              onClick={() => {
-                                dispatch(
-                                  setModal({
-                                    name: "updateGeoDataset",
-                                    geoDataset: row,
-                                  })
-                                );
-                              }}
-                            >
-                              <UploadIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+
                           <Divider orientation="vertical" flexItem />
 
                           <Tooltip title={"Delete"} placement="top" arrow>
@@ -549,8 +477,8 @@ export default function STAC() {
                               onClick={() => {
                                 dispatch(
                                   setModal({
-                                    name: "deleteGeoDataset",
-                                    geoDataset: row,
+                                    name: "deleteStacCollection",
+                                    stacCollection: row,
                                   })
                                 );
                               }}
@@ -588,7 +516,7 @@ export default function STAC() {
         </Paper>
       </Box>
       <NewStacCollectionModal querySTAC={querySTAC} />
-      <DeleteGeoDatasetModal querySTAC={querySTAC} />
+      <DeleteStacCollectionModal querySTAC={querySTAC} />
       <LayersUsedByModal />
       <PreviewGeoDatasetModal />
       <AppendGeoDatasetModal querySTAC={querySTAC} />

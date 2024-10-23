@@ -198,30 +198,6 @@ export default function Panel() {
           >
             Datasets
           </Button>
-          <Button
-            className={c.pageButton}
-            variant="contained"
-            disableElevation
-            startIcon={<KeyIcon size="small" />}
-            onClick={() => {
-              dispatch(setMission(null));
-              dispatch(setPage({ page: "api_tokens" }));
-            }}
-          >
-            API Tokens
-          </Button>
-          <Button
-            className={c.pageButton}
-            variant="contained"
-            disableElevation
-            startIcon={<PhishingIcon size="small" />}
-            onClick={() => {
-              dispatch(setMission(null));
-              dispatch(setPage({ page: "webhooks" }));
-            }}
-          >
-            Webhooks
-          </Button>
 
           {window.mmgisglobal.WITH_STAC === "true" ? (
             <Button
@@ -238,93 +214,44 @@ export default function Panel() {
             </Button>
           ) : null}
 
-          {window.mmgisglobal.WITH_STAC === "true" ? (
-            <Button
-              className={c.pageButton}
-              variant="contained"
-              disableElevation
-              startIcon={<ApiIcon size="small" />}
-              endIcon={<OpenInNewIcon size="small" />}
-              onClick={() => {
-                window
-                  .open(
-                    `${window.location.pathname
-                      .replace(`configure-beta`, "")
-                      .replace(/^\//g, "")}stac/api.html`,
-                    "_mmgis_adj_api"
-                  )
-                  .focus();
-              }}
-            >
-              STAC API
-            </Button>
-          ) : null}
+          <Button
+            className={c.pageButton}
+            variant="contained"
+            disableElevation
+            startIcon={<KeyIcon size="small" />}
+            onClick={() => {
+              dispatch(setMission(null));
+              dispatch(setPage({ page: "api_tokens" }));
+            }}
+          >
+            API Tokens
+          </Button>
 
-          {window.mmgisglobal.WITH_TIPG === "true" ? (
-            <Button
-              className={c.pageButton}
-              variant="contained"
-              disableElevation
-              startIcon={<ApiIcon size="small" />}
-              endIcon={<OpenInNewIcon size="small" />}
-              onClick={() => {
-                window
-                  .open(
-                    `${window.location.pathname
-                      .replace(`configure-beta`, "")
-                      .replace(/^\//g, "")}tipg/api.html`,
-                    "_mmgis_adj_api"
-                  )
-                  .focus();
-              }}
-            >
-              TIPG API
-            </Button>
-          ) : null}
+          <Button
+            className={c.pageButton}
+            variant="contained"
+            disableElevation
+            startIcon={<ApiIcon size="small" />}
+            onClick={() => {
+              dispatch(setMission(null));
+              dispatch(setPage({ page: "apis" }));
+            }}
+          >
+            APIs
+          </Button>
 
-          {window.mmgisglobal.WITH_TITILER === "true" ? (
-            <Button
-              className={c.pageButton}
-              variant="contained"
-              disableElevation
-              startIcon={<ApiIcon size="small" />}
-              endIcon={<OpenInNewIcon size="small" />}
-              onClick={() => {
-                window
-                  .open(
-                    `${window.location.pathname
-                      .replace(`configure-beta`, "")
-                      .replace(/^\//g, "")}titiler/api.html`,
-                    "_mmgis_adj_api"
-                  )
-                  .focus();
-              }}
-            >
-              TITILER API
-            </Button>
-          ) : null}
-
-          {window.mmgisglobal.WITH_TITILER_PGSTAC === "true" ? (
-            <Button
-              className={c.pageButton}
-              variant="contained"
-              disableElevation
-              startIcon={<ApiIcon size="small" />}
-              endIcon={<OpenInNewIcon size="small" />}
-              onClick={() => {
-                window
-                  .open(
-                    `${window.location.pathname
-                      .replace(`configure-beta`, "")
-                      .replace(/^\//g, "")}titilerpgstac/api.html`,
-                    "_mmgis_adj_api"
-                  )
-                  .focus();
-              }}
-            >
-              TITILER PGSTAC API
-            </Button>
-          ) : null}
+          <Button
+            className={c.pageButton}
+            variant="contained"
+            disableElevation
+            startIcon={<PhishingIcon size="small" />}
+            onClick={() => {
+              dispatch(setMission(null));
+              dispatch(setPage({ page: "webhooks" }));
+            }}
+          >
+            Webhooks
+          </Button>
         </div>
       </div>
       <NewMissionModal />

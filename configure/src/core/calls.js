@@ -83,11 +83,15 @@ const c = {
   },
   stac_collections: {
     type: "GET",
-    url: "stac/collections",
+    url: "api/stac/collections",
   },
   stac_create_collection: {
     type: "POST",
     url: "stac/collections",
+  },
+  stac_delete_collection: {
+    type: "DELETE",
+    url: "stac/collections/:collection",
   },
   longtermtoken_get: {
     type: "GET",

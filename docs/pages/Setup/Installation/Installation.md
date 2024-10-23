@@ -89,16 +89,17 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
 
 1. Install the latest version of [Node.js v20.11.1+](https://nodejs.org/en/download/).
 
-1. Install [PostgreSQL v10.14+](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads). Detailed [install instructions](https://www.postgresqltutorial.com/postgresql-getting-started/) for all platforms.
-1. Install [PostGIS 2.5+](https://postgis.net/install/). From the above install, you can use the 'Application Stack Builder' to install PostGIS or the default [PostGIS install instructions](https://postgis.net/install/) for all platforms.
+1. Install [PostgreSQL v16+](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads). Detailed [install instructions](https://www.postgresqltutorial.com/postgresql-getting-started/) for all platforms.
+1. Install [PostGIS 3+](https://postgis.net/install/). From the above install, you can use the 'Application Stack Builder' to install PostGIS or the default [PostGIS install instructions](https://postgis.net/install/) for all platforms.
 1. Make a new PostgreSQL database and remember the user, password and database name.
-   Use 'pgsl' or the 'SQL Shell' to log into Postgres. It will prompt you for the username and password made during the install.
+   Use 'psql' or the 'SQL Shell' to log into Postgres. It will prompt you for the username and password made during the install.
 
 1. GDAL and Python are weaker dependencies (desirable but, without them, not everything will work)
 
-   - GDAL [2.+](https://gdal.org/download.html) with Python bindings (Windows users may find [these](https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal) helpful)
-   - Python [3.6+](https://www.python.org/downloads/release/python-396/)
-     - `python -m pip install numpy`
+   - GDAL [3.4+](https://gdal.org/download.html) with Python bindings (Windows users may find [these](https://github.com/cgohlke/geospatial-wheels/releases) helpful)
+   - Python [>=3.10 and <3.13](https://www.python.org/downloads/)
+     - From root MMGIS directory: `python -m pip install -r python-requirements.txt`
+     - Ensure your `PROJ_LIB` system ENV points to the proj.db install through python.
      - Note: MMGIS expects and uses the command `python` only and not `python3` or variations.
 
 ### Setup

@@ -180,7 +180,6 @@ const useStyles = makeStyles((theme) => ({
     fontWeight: "bold !important",
     textTransform: "uppercase",
     letterSpacing: "1px !important",
-    color: `${theme.palette.accent.main} !important`,
     backgroundColor: `${theme.palette.swatches.grey[1000]} !important`,
     borderRight: `1px solid ${theme.palette.swatches.grey[900]}`,
   },
@@ -256,12 +255,24 @@ function EnhancedTableToolbar(props) {
       <div className={c.topbarTitle}>
         <TextSnippetIcon />
         <Typography
-          sx={{ flex: "1 1 100%" }}
           style={{ fontWeight: "bold", fontSize: "16px", lineHeight: "29px" }}
           variant="h6"
           component="div"
         >
           DATASETS
+        </Typography>
+
+        <Typography
+          style={{
+            fontWeight: "bold",
+            fontSize: "14px",
+            lineHeight: "29px",
+            paddingLeft: "20px",
+          }}
+          variant="h6"
+          component="div"
+        >
+          {`1) Create a New Dataset. 2) Connect to it through a Vector Layer's Datasets tab.`}
         </Typography>
       </div>
 
