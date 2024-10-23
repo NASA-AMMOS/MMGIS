@@ -56,7 +56,7 @@ Depending on how outdated your MMGIS database is, you may need to upgrade it. Th
    pg_dump --host="{host}.rds.amazonaws.com" --username={username} -F c -b -v mmgisdb -f "./mmgisdb.backup"
 3. Create a new postgres v16 DB
    Initialize a default DB while creating
-   ( I had to set create a new Parameter Group for this DB and set rds.force_ssl = 0 and then reboot. Otherwise the following error occurs: FATAL: no pg_hba.conf entry for host )
+   (I had to create a new Parameter Group for this DB and set rds.force_ssl = 0 and then reboot. Otherwise the following error occurs: FATAL: no pg_hba.conf entry for host)
 4. Point MMGIS to the new DB and start MMGIS
 5. Bring MMGIS down
 6. Restore DB
