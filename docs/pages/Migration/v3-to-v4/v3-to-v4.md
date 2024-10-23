@@ -48,7 +48,7 @@ All adjacent services are proxied through MMGIS and endpoints that perform write
 
 ## Upgrading Postgres
 
-Depending on how outdated your MMGIS database is, you may need to upgrade it. The following example was taken from upgrading MMGIS's database from v10 to v16 on AWS.
+Depending on how outdated your MMGIS database is, you may need to upgrade it. v16+ is required now. The following example was taken from upgrading MMGIS's database from v10 to v16 on AWS.
 
 1. Take a snapshot of the existing DB
 2. Create a dump of the existing DB
