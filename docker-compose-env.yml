@@ -36,3 +36,5 @@ services:
     restart: on-failure
     volumes:
       - mmgis-db:/var/lib/postgresql/data
+volumes:
+  mmgis-db:
