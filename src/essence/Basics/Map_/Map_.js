@@ -27,6 +27,7 @@ let essenceFina = function () {}
 
 import GeoRasterLayer from '../../../external/georaster-layer-for-leaflet/georaster-layer-for-leaflet.ts'
 import georaster from 'georaster'
+import { evaluate_cmap } from '../../../external/js-colormaps/js-colormaps.js'
 
 let Map_ = {
     //Our main leaflet map variable
@@ -1171,6 +1172,39 @@ function makeImageLayer(layerObj) {
             pixelValuesToColorFn = (values) => {
                 // https://github.com/GeoTIFF/georaster-layer-for-leaflet/issues/16
                 return values[0] === georaster.noDataValue ? null : `rgb(${values[0]},${values[1]},${values[2]})`
+            }
+        }
+
+        const imageInfo =  F_.getIn(
+            L_.layers.data[layerObj.name],
+            'variables.image'
+        )
+
+        let min = null;
+        let max = null;
+        if (imageInfo && imageInfo.bands === 1 && georaster.numberOfRasters === 1
+                &&!isNaN(parseFloat(imageInfo.defaults[1].min))
+                && !isNaN(parseFloat(imageInfo.defaults[1].max))) {
+            min = parseFloat(imageInfo.defaults[1].min);
+            max = parseFloat(imageInfo.defaults[1].max);
+            var range = max - min
+
+            pixelValuesToColorFn = (values) => {
+                var pixelValue = values[0]; // single band
+
+                // don't return a color
+                if (pixelValue <= 0) {
+                    return null;
+                }
+
+                // scale from 0 - 1
+                var scaledPixelValue = (pixelValue - min) / range;
+
+                if (!(0 <= scaledPixelValue && scaledPixelValue <= 1)) {
+                    return null
+                }
+
+                return evaluate_cmap(scaledPixelValue, 'viridis', false)
             }
         }
 

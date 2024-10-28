@@ -48,15 +48,7 @@
               "name": "URL",
               "description": "",
               "type": "text",
-              "width": 10
-            },
-            {
-              "field": "demparser",
-              "name": "DEM Parser",
-              "description": "",
-              "type": "dropdown",
-              "width": 2,
-              "options": ["rgba", "tif"]
+              "width": 12
             },
             {
               "field": "initialOpacity",
@@ -96,6 +88,27 @@
               "min": 0,
               "step": 1,
               "width": 3
+            }
+          ]
+        },
+        {
+          "name": "Data",
+          "components": [
+            {
+              "field": "variables.image.bands",
+              "name": "Bands",
+              "description": "Number of bands in the image",
+              "type": "number",
+              "min": 1,
+              "max": 3,
+              "width": 2
+            },
+            {
+              "field": "variables.image.defaults",
+              "name": "",
+              "description": "Default min and max values of each band. Like: { \"1\": {\"min\": 0, \"max\": 255 }, \"2\": { \"min\": 0,\"max\": 255 } }",
+              "type": "json",
+              "width": 12
             }
           ]
         },

@@ -17,6 +17,8 @@ import calls from '../../../pre/calls'
 import * as tokml from '@maphubs/tokml'
 import shpwrite from '@mapbox/shp-write'
 
+import { evaluate_cmap } from '../../../external/js-colormaps/js-colormaps.js'
+
 import './LayersTool.css'
 
 const helpKey = 'LayersTool'
@@ -533,6 +535,32 @@ function interfaceWithMMGIS(fromInit) {
                                     '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.layers.opacity[node[i].name] + '">',
                                 '</div>',
                             '</li>',
+                    ]
+
+                    let min = null, max = null
+                    if (node[i].variables && node[i].variables.image) {
+                        min = node[i].variables.image.defaults[1].min
+                        max = node[i].variables.image.defaults[1].max
+                        if (min !== null && max !== null) {
+                            settings = [
+                                    settings.join('\n'),
+                                    '<li>',
+                                        '<div>',
+                                            '<div>Min</div>',
+                                            '<div>',
+                                                '<div v="' + (min || "0") + "," + (max || "255") + '" pick="imagerangepick" class="picker imagerange stylevalue" style="float: right;">' + (min || "0") + " ➝ " + (max || "255") + '</div>',
+                                                '<div class="picking imagerangepick small visibilityRangePicker" style="display: true">',
+                                                    '<div id="image-slider-range-' + node[i].name + '" class="svelteSlider" style="width: 130px; overflow: hidden; margin-right: -5px; height: 100%;"></div>',
+                                                '</div>',
+                                            '</div>',
+                                        '</div>',
+                                    '</li>',
+                            ]
+                        }
+                    }
+
+                    settings = [
+                        settings.join('\n'),
                         '</ul>'
                     ].join('\n')
                     break
@@ -622,6 +650,56 @@ function interfaceWithMMGIS(fromInit) {
                             '</li>',
                         ].join('\n')
                     )
+
+                    let min = null;
+                    let max = null;
+                    if (node[i].variables && node[i].variables.image) {
+                        min = node[i].variables.image.defaults[1].min
+                        max = node[i].variables.image.defaults[1].max
+                        if (min !== null && max !== null) {
+                            // Make sliders
+                            const mySlider = new RangeSliderPips({
+                                target: document.querySelector('#image-slider-range-' + node[i].name),
+                                props: {
+                                    values: [min || 0, max || 255],
+                                    min: min,
+                                    max: max,
+                                    range: true,
+                                    pushy: false,
+                                },
+                            })
+
+                            mySlider.$on('change', function (e) {
+                                updateImageRange(e.detail.values[0], e.detail.values[1])
+                            })
+
+                            var layerName = node[i].name;
+                            function updateImageRange(vMin, vMax) {
+                                if (vMin == null || vMax == null) return
+
+                                $('.imagerange.stylevalue').text(vMin + ' ➝ ' + vMax)
+                                $('.imagerange.stylevalue').attr('v', vMin + ',' + vMax)
+                                var range = vMax - vMin
+                                let pixelValuesToColorFn = (values) => {
+                                    var pixelValue = values[0]; // single band
+                                    // don't return a color
+                                    if (pixelValue <= 0) {
+                                        return null;
+                                    }
+
+                                    // scale from 0 - 1
+                                    var scaledPixelValue = (pixelValue - vMin) / range;
+                                    if (!(0 <= scaledPixelValue  && scaledPixelValue <= 1)) {
+                                        return null
+                                    }
+                                    return evaluate_cmap(scaledPixelValue, 'viridis', false)
+                                }
+
+                                const layer = L_.layers.layer[layerName]
+                                layer.updateColors(pixelValuesToColorFn)
+                            }
+                        }
+                    }
 
                     //Attach DataShader events
                     if (node[i].type === 'data') {
