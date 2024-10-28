@@ -1200,8 +1200,15 @@ function makeImageLayer(layerObj) {
                 // scale from 0 - 1
                 var scaledPixelValue = (pixelValue - min) / range;
 
-                if (!(0 <= scaledPixelValue && scaledPixelValue <= 1)) {
-                    return null
+                if (!(0 <= scaledPixelValue  && scaledPixelValue <= 1)
+                        && imageInfo.fillMinMax) {
+                    if (scaledPixelValue <= 0) {
+                        scaledPixelValue = 0
+                    } else if (scaledPixelValue >= 1) {
+                        scaledPixelValue = 1
+                    } else {
+                        return null
+                    }
                 }
 
                 return evaluate_cmap(scaledPixelValue, 'viridis', false)

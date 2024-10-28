@@ -674,6 +674,11 @@ function interfaceWithMMGIS(fromInit) {
                             })
 
                             var layerName = node[i].name;
+                            const imageInfo =  F_.getIn(
+                                L_.layers.data[layerName],
+                                'variables.image'
+                            )
+
                             function updateImageRange(vMin, vMax) {
                                 if (vMin == null || vMax == null) return
 
@@ -689,9 +694,17 @@ function interfaceWithMMGIS(fromInit) {
 
                                     // scale from 0 - 1
                                     var scaledPixelValue = (pixelValue - vMin) / range;
-                                    if (!(0 <= scaledPixelValue  && scaledPixelValue <= 1)) {
-                                        return null
+                                    if (!(0 <= scaledPixelValue  && scaledPixelValue <= 1)
+                                            && imageInfo.fillMinMax) {
+                                        if (scaledPixelValue <= 0) {
+                                            scaledPixelValue = 0
+                                        } else if (scaledPixelValue >= 1) {
+                                            scaledPixelValue = 1
+                                        } else {
+                                            return null
+                                        }
                                     }
+
                                     return evaluate_cmap(scaledPixelValue, 'viridis', false)
                                 }
 

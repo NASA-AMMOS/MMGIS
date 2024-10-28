@@ -104,6 +104,14 @@
               "width": 2
             },
             {
+              "field": "variables.image.fillMinMax",
+              "name": "Fill min/max",
+              "description": "Fill in with the maximum color or minimum color value if below min and/or above max of the band",
+              "type": "checkbox",
+              "width": 2,
+              "defaultChecked": true
+            },
+            {
               "field": "variables.image.defaults",
               "name": "",
               "description": "Default min and max values of each band. Like: { \"1\": {\"min\": 0, \"max\": 255 }, \"2\": { \"min\": 0,\"max\": 255 } }",
