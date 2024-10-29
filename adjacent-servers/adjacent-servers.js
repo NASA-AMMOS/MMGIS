@@ -65,7 +65,10 @@ let running = true;
 function killProcess() {
   logger("info", `Terminating adjacent servers...`, "adjacent-servers");
   serverProcesses.forEach((process) => {
-    process.kill();
+    // Concurrently actually handles this
+    // I suspect killing here, makes concurrently hang because
+    // it's the one who wants to kill them MAYBE!?
+    process.kill("SIGKILL");
   });
   logger(
     "success",
@@ -77,6 +80,7 @@ function killProcess() {
 
 process.on("SIGTERM", killProcess);
 process.on("SIGINT", killProcess);
+process.on("SIGKILL", killProcess);
 process.on("uncaughtException", function (e) {
   logger(
     "error",
