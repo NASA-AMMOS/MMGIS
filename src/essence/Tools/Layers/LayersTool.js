@@ -328,28 +328,48 @@ function interfaceWithMMGIS(fromInit) {
             var timeDisplay = ''
             if (node[i].time != null) {
                 if (node[i].time.enabled == true) {
+                    // prettier-ignore
                     timeDisplay = [
                         '<ul>',
-                        '<li>',
-                        '<div>',
-                        '<div>Start Time</div>',
-                        '<label class="starttime ' +
-                            F_.getSafeName(node[i].name) +
-                            '">' +
-                            node[i].time.start +
-                            '</label>',
-                        '</div>',
-                        '</li>',
-                        '<li>',
-                        '<div>',
-                        '<div>End Time</div>',
-                        '<label class="endtime ' +
-                            F_.getSafeName(node[i].name) +
-                            '">' +
-                            node[i].time.end +
-                            '</label>',
-                        '</div>',
-                        '</li>',
+                            '<li class="layerTimeTitle">',
+                                '<div>Time</div>',
+                            '</li>',
+                            '<li>',
+                                '<div>',
+                                '<div>Start Time</div>',
+                                '<label class="starttime ' +
+                                    F_.getSafeName(node[i].name) +
+                                    '">' +
+                                    node[i].time.start +
+                                    '</label>',
+                                '</div>',
+                            '</li>',
+                            '<li>',
+                                '<div>',
+                                '<div>End Time</div>',
+                                '<label class="endtime ' +
+                                    F_.getSafeName(node[i].name) +
+                                    '">' +
+                                    node[i].time.end +
+                                    '</label>',
+                                '</div>',
+                            '</li>',
+                            (
+                                node[i].time.refreshIntervalEnabled === true
+                            ) ? 
+                            [
+                            '<li>',
+                                '<div>',
+                                '<div>Auto-Refreshes Every</div>',
+                                '<label class="autoRefreshInterval ' +
+                                    F_.getSafeName(node[i].name) +
+                                    '">' +
+                                    (node[i].time.refreshIntervalAmount || 60) +
+                                    ' Seconds</label>',
+                                '</div>',
+                            '</li>'
+                            ].join('\n')
+                            : null,
                         '</ul>',
                     ].join('\n')
                 }

@@ -32,6 +32,7 @@ let setup = {
           });
         }
       );
+
       s.app.get(
         s.ROOT_PATH + "/configure-beta",
         s.ensureGroup(s.permissions.users),

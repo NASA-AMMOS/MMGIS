@@ -79,6 +79,17 @@ Required in `Time Enabled = true` and `Time Type = Local`. The main time propert
 _type:_ string _optional_  
 The string format to be used in the URL for `{starttime}` and `{endtime}`. Defaults to `YYYY-MM-DDTHH:mm:ssZ`.
 
+#### Refresh Interval Enabled
+
+_type:_ boolean
+If 'Time Enabled' and 'Refresh Interval Enabled', this layer will automatically refresh/requery its data every 'Refresh Every N Seconds'. This is useful when the layer's data updates at some uniform cadence. Be aware that this may be an expensive operation depending on the amount of data a layer needs and the number of layers that have this enabled.
+
+#### Refresh Every N Seconds
+
+_type:_ number
+_default:_ 60
+If 'Time Enabled' and 'Refresh Interval Enabled', this layer will automatically refresh/requery its data every n seconds.
+
 #### Stroke Color
 
 _type:_ CSS color string or a prop _optional_  

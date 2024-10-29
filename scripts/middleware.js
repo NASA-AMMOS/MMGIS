@@ -6,7 +6,11 @@ const rootDir = `${__dirname}/..`;
 const rootDirMissions = `${rootDir}/Missions`;
 
 const dirStore = {};
-const DIR_STORE_MAX_AGE = 3600000 / 2; // 1hours / 2
+const DIR_STORE_MAX_AGE =
+  process.env.COMPOSITE_TILE_DIR_STORE_MAX_AGE_MS == null ||
+  isNaN(parseInt(process.env.COMPOSITE_TILE_DIR_STORE_MAX_AGE_MS))
+    ? 3600000 / 2
+    : parseInt(process.env.COMPOSITE_TILE_DIR_STORE_MAX_AGE_MS); // defaults to 1hours / 2
 
 async function compositeImageUrls(urls) {
   try {
