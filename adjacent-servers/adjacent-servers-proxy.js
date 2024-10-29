@@ -92,10 +92,17 @@ const createSwaggerInterceptor = (path) => {
     } else if (req.originalUrl.endsWith(`/${path}/api.html`)) {
       const response = responseBuffer.toString("utf8"); // convert buffer to string
       return response
-        .replace("'/api'", `'${process.env.ROOT_PATH || ""}/${path}/api'`)
+        .replace(
+          "'/api'",
+          `window.location.pathname.replace('/${path}/api.html', '${
+            process.env.ROOT_PATH || ""
+          }/${path}/api')`
+        )
         .replace(
           "'/docs/oauth2-redirect'",
-          `'${process.env.ROOT_PATH || ""}/${path}/docs/oauth2-redirect'`
+          `window.location.pathname.replace('/${path}/api.html', '${
+            process.env.ROOT_PATH || ""
+          }/${path}/docs/oauth2-redirect')`
         ); // manipulate response and return the result
     }
     return responseBuffer;
