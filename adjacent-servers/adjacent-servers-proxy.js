@@ -94,15 +94,11 @@ const createSwaggerInterceptor = (path) => {
       return response
         .replace(
           "'/api'",
-          `window.location.pathname.replace('/${path}/api.html', '${
-            process.env.ROOT_PATH || ""
-          }/${path}/api')`
+          `window.location.pathname.replace('/${path}/api.html', '/${path}/api')`
         )
         .replace(
           "'/docs/oauth2-redirect'",
-          `window.location.pathname.replace('/${path}/api.html', '${
-            process.env.ROOT_PATH || ""
-          }/${path}/docs/oauth2-redirect')`
+          `window.location.pathname.replace('/${path}/api.html', '/${path}/docs/oauth2-redirect')`
         ); // manipulate response and return the result
     }
     return responseBuffer;
