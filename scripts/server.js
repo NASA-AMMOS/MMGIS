@@ -296,6 +296,7 @@ function ensureGroup(allowedGroups) {
 function ensureAdmin(toLoginPage, denyLongTermTokens, allowGets, disallow) {
   return (req, res, next) => {
     let url = req.originalUrl.split("?")[0].toLowerCase();
+    console.log("Original URL ======================== ", req.originalUrl);
     const remoteAddress =
       req.headers["x-forwarded-for"] || req.connection.remoteAddress;
 

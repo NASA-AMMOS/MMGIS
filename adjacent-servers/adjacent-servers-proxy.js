@@ -9,7 +9,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
   //// STAC
   if (process.env.WITH_STAC === "true") {
     app.use(
-      "/stac",
+      `${process.env.ROOT_PATH || ""}/stac`,
       ensureAdmin(false, false, true), // true to allow all GETs - others require admin auth
       createProxyMiddleware({
         target: `http://${isDocker ? "stac-fastapi" : "localhost"}:${
@@ -17,10 +17,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
         }`,
         changeOrigin: true,
         pathRewrite: {
-          [`^${
-            (process.env.EXTERNAL_ROOT_PATH || "") +
-            (process.env.ROOT_PATH || "")
-          }/stac`]: "",
+          [`^${process.env.ROOT_PATH || ""}/stac`]: "",
         },
         selfHandleResponse: true,
         on: {
@@ -33,7 +30,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
   //// Tipg
   if (process.env.WITH_TIPG === "true") {
     app.use(
-      "/tipg",
+      `${process.env.ROOT_PATH || ""}/tipg`,
       ensureAdmin(false, false, true), // true to allow all GETs - others require admin auth
       createProxyMiddleware({
         target: `http://${isDocker ? "tipg" : "localhost"}:${
@@ -41,10 +38,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
         }`,
         changeOrigin: true,
         pathRewrite: {
-          [`^${
-            (process.env.EXTERNAL_ROOT_PATH || "") +
-            (process.env.ROOT_PATH || "")
-          }/tipg`]: "",
+          [`^${process.env.ROOT_PATH || ""}/tipg`]: "",
         },
         selfHandleResponse: true,
         on: {
@@ -57,7 +51,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
   //// TiTiler
   if (process.env.WITH_TITILER === "true") {
     app.use(
-      "/titiler",
+      `${process.env.ROOT_PATH || ""}/titiler`,
       ensureAdmin(false, false, true, ["/cog/stac"]), // true to allow all GETs (except /cog/stac) - others require admin auth
       createProxyMiddleware({
         target: `http://${isDocker ? "titiler" : "localhost"}:${
@@ -65,10 +59,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
         }`,
         changeOrigin: true,
         pathRewrite: {
-          [`^${
-            (process.env.EXTERNAL_ROOT_PATH || "") +
-            (process.env.ROOT_PATH || "")
-          }/titiler`]: "",
+          [`^${process.env.ROOT_PATH || ""}/titiler`]: "",
         },
         selfHandleResponse: true,
         on: {
@@ -81,7 +72,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
   /// TiTiler-pgSTAC
   if (process.env.WITH_TITILER_PGSTAC === "true") {
     app.use(
-      "/titilerpgstac",
+      `${process.env.ROOT_PATH || ""}/titilerpgstac`,
       ensureAdmin(false, false, true), // true to allow all GETs - others require admin auth
       createProxyMiddleware({
         target: `http://${isDocker ? "titiler-pgstac" : "localhost"}:${
@@ -89,10 +80,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
         }`,
         changeOrigin: true,
         pathRewrite: {
-          [`^${
-            (process.env.EXTERNAL_ROOT_PATH || "") +
-            (process.env.ROOT_PATH || "")
-          }/titilerpgstac`]: "",
+          [`^${process.env.ROOT_PATH || ""}/titilerpgstac`]: "",
         },
         selfHandleResponse: true,
         on: {
