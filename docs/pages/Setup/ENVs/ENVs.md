@@ -98,7 +98,11 @@ Sets "SameSite=None; Secure" on the login cookie. Useful when using AUTH=local a
 
 #### `ROOT_PATH=`
 
-Set MMGIS to be deployed under a subpath. For example if serving at the subpath 'https://{domain}/path/where/I/serve/mmgis' is desired, set `ROOT_PATH=/path/where/I/serve/mmgis`. If no subpath, leave blank. | string | default `""`
+Set MMGIS to be deployed under a subpath. For example if serving at the subpath 'https://{domain}/path/where/I/serve/mmgis' is desired, set `ROOT_PATH=/path/where/I/serve/mmgis`. Should always begin with a `/`. If no subpath, leave blank. | string | default `""`
+
+#### `EXTERNAL_ROOT_PATH=`
+
+Tell MMGIS that it's already deployed under a subpath. For example if already proxying to the subpath 'https://{domain}/path/where/I/serve/mmgis' is desired, set `ROOT_PATH=/path/where/I/serve/mmgis`. This differs from ROOT_PATH in that MMGIS will not place any of it's endpoints under this path but will still query as if it did. Should always begin with a `/`. If `ROOT_PATH` is also set, requests will use `EXTERNAL_ROOT_PATH` + `ROOT_PATH`. If no external subpath, leave blank. | string | default `""`
 
 #### `WEBSOCKET_ROOT_PATH=`
 

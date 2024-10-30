@@ -87,25 +87,31 @@ const createSwaggerInterceptor = (path) => {
   return responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
     if (req.originalUrl.endsWith(`/${path}/api`)) {
       const response = JSON.parse(responseBuffer.toString("utf8")); // convert buffer to string
-
       response.servers = [
-        { url: `${req.originalUrl.replace(`/${path}/api`, "")}/${path}` },
+        {
+          url: `${
+            (process.env.EXTERNAL_ROOT_PATH || "") +
+            (process.env.ROOT_PATH || "")
+          }/${path}`,
+        },
       ];
       return JSON.stringify(response); // manipulate response and return the result
     } else if (req.originalUrl.endsWith(`/${path}/api.html`)) {
       const response = responseBuffer.toString("utf8"); // convert buffer to string
-
       return response
         .replace(
           "'/api'",
-          `'${req.originalUrl.replace(`/${path}/api.html`, `/${path}/api`)}'`
+          `window.location.pathname.replace('/${path}/api.html', '${
+            (process.env.EXTERNAL_ROOT_PATH || "") +
+            (process.env.ROOT_PATH || "")
+          }/${path}/api')`
         )
         .replace(
           "'/docs/oauth2-redirect'",
-          `'${req.originalUrl.replace(
-            `/${path}/api.html`,
-            `/${path}/docs/oauth2-redirect`
-          )}'`
+          `window.location.pathname.replace('/${path}/api.html', '${
+            (process.env.EXTERNAL_ROOT_PATH || "") +
+            (process.env.ROOT_PATH || "")
+          }/${path}/docs/oauth2-redirect')`
         ); // manipulate response and return the result
     }
     return responseBuffer;

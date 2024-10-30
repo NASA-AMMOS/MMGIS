@@ -24,7 +24,8 @@ let setup = {
             ROOT_PATH:
               process.env.NODE_ENV === "development"
                 ? ""
-                : process.env.ROOT_PATH || "",
+                : /*(process.env.EXTERNAL_ROOT_PATH || "") +*/
+                  process.env.ROOT_PATH || "",
             WEBSOCKET_ROOT_PATH:
               process.env.NODE_ENV === "development"
                 ? ""
@@ -49,7 +50,8 @@ let setup = {
             ROOT_PATH:
               process.env.NODE_ENV === "development"
                 ? ""
-                : process.env.ROOT_PATH || "",
+                : /*(process.env.EXTERNAL_ROOT_PATH || "") +*/
+                  process.env.ROOT_PATH || "",
             WEBSOCKET_ROOT_PATH:
               process.env.NODE_ENV === "development"
                 ? ""

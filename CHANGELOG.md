@@ -148,7 +148,7 @@ This release makes Layer IDs based on UUIDs instead of their layer names, greatl
 #### Changed
 
 - Layers use UUIDs and identifiers instead of their layer names (backwards-compatibility still maintained)
-- The ENV `PUBLIC_URL` is deprecated in fovar of the new `ROOT_PATH`. Unlike `PUBLIC_URL`, `ROOT_PATH` can fully be changed at runtime
+- The ENV `PUBLIC_URL` is deprecated in favor of the new `ROOT_PATH`. Unlike `PUBLIC_URL`, `ROOT_PATH` can fully be changed at runtime
 - Database and POSTGIS extension are automatically created if they don't exist
 - Upgraded the configure page's jquery from `1.11.1` to `3.6.1`
 
