@@ -16,7 +16,12 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
           process.env.STAC_PORT || 8881
         }`,
         changeOrigin: true,
-        pathRewrite: { "^/stac": "" },
+        pathRewrite: {
+          [`^${
+            (process.env.EXTERNAL_ROOT_PATH || "") +
+            (process.env.ROOT_PATH || "")
+          }/stac`]: "",
+        },
         selfHandleResponse: true,
         on: {
           proxyRes: createSwaggerInterceptor("stac"),
@@ -35,7 +40,12 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
           process.env.TIPG_PORT || 8882
         }`,
         changeOrigin: true,
-        pathRewrite: { "^/tipg": "" },
+        pathRewrite: {
+          [`^${
+            (process.env.EXTERNAL_ROOT_PATH || "") +
+            (process.env.ROOT_PATH || "")
+          }/tipg`]: "",
+        },
         selfHandleResponse: true,
         on: {
           proxyRes: createSwaggerInterceptor("tipg"),
@@ -54,7 +64,12 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
           process.env.TITILER_PORT || 8883
         }`,
         changeOrigin: true,
-        pathRewrite: { "^/titiler": "" },
+        pathRewrite: {
+          [`^${
+            (process.env.EXTERNAL_ROOT_PATH || "") +
+            (process.env.ROOT_PATH || "")
+          }/titiler`]: "",
+        },
         selfHandleResponse: true,
         on: {
           proxyRes: createSwaggerInterceptor("titiler"),
@@ -73,7 +88,12 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
           process.env.TITILER_PGSTAC_PORT || 8884
         }`,
         changeOrigin: true,
-        pathRewrite: { "^/titilerpgstac": "" },
+        pathRewrite: {
+          [`^${
+            (process.env.EXTERNAL_ROOT_PATH || "") +
+            (process.env.ROOT_PATH || "")
+          }/titilerpgstac`]: "",
+        },
         selfHandleResponse: true,
         on: {
           proxyRes: createSwaggerInterceptor("titilerpgstac"),
