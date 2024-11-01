@@ -36,8 +36,8 @@
     "cesium"
   ],
   "scripts": {
-    "start": "node scripts/init-db.js && concurrently --names adj-srv,mmgis \"node adjacent-servers/adjacent-servers.js\" \"node scripts/server.js\"",
-    "start:prod": "node scripts/init-db.js && concurrently --names adj-srv,mmgis \"node adjacent-servers/adjacent-servers.js\" \"cross-env NODE_ENV=production node scripts/server.js\"",
+    "start": "node scripts/init-db.js && node scripts/server.js",
+    "start:prod": "node scripts/init-db.js && cross-env NODE_ENV=production node scripts/server.js",
     "start:prod-docker": "node scripts/init-db.js && cross-env NODE_ENV=production node scripts/server.js",
     "start:prod:with_examples": "cross-env NODE_ENV=production node scripts/server.js --with_examples",
     "start:docs": "cd ./docs && bundle exec jekyll serve",
@@ -59,7 +59,6 @@
     "chart.js": "^3.6.0",
     "chartjs-plugin-zoom": "^1.2.1",
     "compression": "^1.7.4",
-    "concurrently": "^8.2.2",
     "connect-pg-simple": "^8.0.0",
     "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",

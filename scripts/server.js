@@ -37,6 +37,7 @@ const { websocket } = require("../API/websocket");
 const { setSPICEKernelDownloadSchedule } = require("../spice/getKernels");
 
 const initAdjacentServersProxy = require("../adjacent-servers/adjacent-servers-proxy");
+const adjacentServers = require("../adjacent-servers/adjacent-servers");
 
 const WebSocket = require("isomorphic-ws");
 
@@ -438,7 +439,9 @@ const useSwaggerSchema =
     swaggerUi.setup(schema, swaggerOptions)(...args);
 
 ///
+adjacentServers();
 initAdjacentServersProxy(app, isDocker, ensureAdmin);
+//
 
 let s = {
   app: app,
