@@ -60,33 +60,6 @@ function adjacentServers() {
       });
     }
   });
-
-  function killProcess() {
-    logger("info", `Terminating adjacent servers...`, "adjacent-servers");
-    serverProcesses.forEach((process) => {
-      // Concurrently actually handles this
-      // I suspect killing here, makes concurrently hang because
-      // it's the one who wants to kill them MAYBE!?
-      process.kill("SIGKILL");
-    });
-    logger(
-      "success",
-      `Successfully terminated all adjacent servers.`,
-      "adjacent-servers"
-    );
-  }
-
-  process.on("SIGTERM", killProcess);
-  process.on("SIGINT", killProcess);
-  process.on("SIGKILL", killProcess);
-  process.on("uncaughtException", function (e) {
-    logger(
-      "error",
-      `[uncaughtException] app will be terminated: ${e.stack}`,
-      "adjacent-servers"
-    );
-    killProcess();
-  });
 }
 
 module.exports = adjacentServers;
