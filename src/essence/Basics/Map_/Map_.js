@@ -1191,20 +1191,18 @@ function makeImageLayer(layerObj) {
 
             pixelValuesToColorFn = (values) => {
                 var pixelValue = values[0]; // single band
-
                 // don't return a color
-                if (pixelValue <= 0) {
+                if (georaster.noDataValue && georaster.noDataValue === pixelValue) {
                     return null;
                 }
 
                 // scale from 0 - 1
                 var scaledPixelValue = (pixelValue - min) / range;
-
-                if (!(0 <= scaledPixelValue  && scaledPixelValue <= 1)
+                if (!(0 <= scaledPixelValue && scaledPixelValue <= 1)
                         && imageInfo.fillMinMax) {
                     if (scaledPixelValue <= 0) {
                         scaledPixelValue = 0
-                    } else if (scaledPixelValue >= 1) {
+                    } else if (scaledPixelValue >= 1.0) {
                         scaledPixelValue = 1
                     } else {
                         return null
@@ -1231,6 +1229,10 @@ function makeImageLayer(layerObj) {
 
         L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
         allLayersLoaded()
+    })
+    .catch((e) => {
+        console.warn('Unable to load image')
+        return null
     });
 }
 

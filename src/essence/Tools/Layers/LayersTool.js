@@ -673,32 +673,35 @@ function interfaceWithMMGIS(fromInit) {
                                 updateImageRange(e.detail.values[0], e.detail.values[1])
                             })
 
-                            var layerName = node[i].name;
+                            let layerName = node[i].name;
+
                             const imageInfo =  F_.getIn(
                                 L_.layers.data[layerName],
                                 'variables.image'
                             )
 
                             function updateImageRange(vMin, vMax) {
+                                const layer = L_.layers.layer[layerName]
                                 if (vMin == null || vMax == null) return
 
                                 $('.imagerange.stylevalue').text(vMin + ' ➝ ' + vMax)
                                 $('.imagerange.stylevalue').attr('v', vMin + ',' + vMax)
                                 var range = vMax - vMin
                                 let pixelValuesToColorFn = (values) => {
+                                    let georaster = layer.options.georaster
                                     var pixelValue = values[0]; // single band
+
                                     // don't return a color
-                                    if (pixelValue <= 0) {
+                                    if (georaster.noDataValue && georaster.noDataValue === pixelValue) {
                                         return null;
                                     }
-
                                     // scale from 0 - 1
                                     var scaledPixelValue = (pixelValue - vMin) / range;
-                                    if (!(0 <= scaledPixelValue  && scaledPixelValue <= 1)
+                                    if (!(0 <= scaledPixelValue && scaledPixelValue <= 1)
                                             && imageInfo.fillMinMax) {
                                         if (scaledPixelValue <= 0) {
                                             scaledPixelValue = 0
-                                        } else if (scaledPixelValue >= 1) {
+                                        } else if (scaledPixelValue >= 1.0) {
                                             scaledPixelValue = 1
                                         } else {
                                             return null
@@ -708,7 +711,6 @@ function interfaceWithMMGIS(fromInit) {
                                     return evaluate_cmap(scaledPixelValue, 'viridis', false)
                                 }
 
-                                const layer = L_.layers.layer[layerName]
                                 layer.updateColors(pixelValuesToColorFn)
                             }
                         }
