@@ -1,4 +1,4 @@
-FROM node:20
+FROM oraclelinux:8.9
 
 ARG PUBLIC_URL_ARG=
 ENV PUBLIC_URL=$PUBLIC_URL_ARG
@@ -9,35 +9,25 @@ WORKDIR /usr/src/app
 # Bundle app source
 COPY . .
 
+
 #############################
 # Python
 #############################
 
-
-RUN curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -C  -xvj bin/micromamba
-RUN eval "$(micromamba shell hook --shell bash)"
+# micromamba
+RUN dnf install -y bzip2
+RUN mkdir -p /opt/micromamba/bin
+RUN curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -C /opt/micromamba -xvj bin/micromamba
+RUN MAMBA_ROOT_PREFIX="/opt/micromamba"; /opt/micromamba/bin/micromamba shell init -s bash
 RUN echo 'export PATH="/opt/micromamba/bin:$PATH"' >> /root/.bashrc && echo 'export MAMBA_ROOT_PREFIX="/opt/micromamba"' >> /root/.bashrc
 
-RUN . ~/.bashrc && micromamba env create -y --name mmgis --file=python-environment.yml
-RUN . ~/.bashrc && micromamba activate mmgis
+RUN source ~/.bashrc && micromamba env create -y --name mmgis --file=python-environment.yml
 
-#RUN mkdir -p /opt/micromamba/bin
-#RUN curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -C /opt/micromamba -xvj bin/micromamba
-#RUN MAMBA_ROOT_PREFIX="/opt/micromamba"; /opt/micromamba/bin/micromamba shell hook -s posix
-#RUN echo 'export PATH="/opt/micromamba/bin:$PATH"' >> /root/.bashrc && echo 'export MAMBA_ROOT_PREFIX="/opt/micromamba"' >> /root/.bashrc
+#############################
+# Node
+#############################
 
-#COPY python-environment.yml ./
-#RUN . ~/.bashrc && micromamba env create -y --name mmgis --file=python-environment.yml
-#RUN . ~/.bashrc && /opt/micromamba/bin/micromamba shell init -s bash -r /opt/micromamba
-#RUN . ~/.bashrc && micromamba activate mmgis
-
-#RUN mkdir -p /opt/micromamba/bin
-#ENV MAMBA_ROOT_PREFIX="/opt/micromamba"
-#RUN curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -C /opt/micromamba -xvj bin/micromamba
-#RUN /opt/micromamba/bin/micromamba shell init -s bash -r /opt/micromamba/bin/micromamba
-
-#RUN /opt/micromamba/bin/micromamba env create -y --name mmgis --file=python-environment.yml
-#RUN /opt/micromamba/bin/micromamba activate mmgis
+RUN dnf module install nodejs:20
 
 
 #############################
@@ -71,4 +61,4 @@ WORKDIR /usr/src/app/
 # 
 
 EXPOSE 8888
-CMD [ "npm", "run", "start:prod-docker" ]
+CMD [ "./_docker-entrypoint.sh" ]
