@@ -60,5 +60,7 @@ WORKDIR /usr/src/app/
 
 # 
 
+RUN chmod 755 _docker-entrypoint.sh
+
 EXPOSE 8888
 CMD [ "./_docker-entrypoint.sh" ]

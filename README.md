@@ -186,7 +186,7 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
 
 1. Go back to the root `/` directory
 
-1. Run `python -m pip install -r python-requirements.txt`
+1. Run `micromamba activate mmgis` or `python -m pip install -r python-requirements.txt` (if not using python environments)
 
 1. If using adjacent-servers (titiler, stac, ...) make `.env` files from the samples within the `/adjacent-servers/{servers}/` directory.
 
@@ -215,9 +215,13 @@ _Note:_ The development environment (`npm start`) and only the development envir
 
 1. Run `npm run build` to bundle up the code (first time or if there are any changes)
 
+1. Run `micromamba activate mmgis`(if applicable)
+
 1. Run `npm run start:prod`
 
 ### Development
+
+1. Run `micromamba activate mmgis`(if applicable)
 
 1. Run `npm start`
 

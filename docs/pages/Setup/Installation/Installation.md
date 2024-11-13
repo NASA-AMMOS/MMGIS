@@ -94,13 +94,37 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
 1. Make a new PostgreSQL database and remember the user, password and database name.
    Use 'psql' or the 'SQL Shell' to log into Postgres. It will prompt you for the username and password made during the install.
 
-1. GDAL and Python are weaker dependencies (desirable but, without them, not everything will work)
+#### Python Environment
 
+1. Install [micromamba 2+](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html)
+   #### Windows:
+   1. In powershell run:
+      ```
+      Invoke-Expression ((Invoke-WebRequest -Uri https://micro.mamba.pm/install.ps1).Content)
+      ```
+   1. In a command window in the MMGIS root directory run:
+      ```
+      micromamba env create -y --name mmgis --file=python-environment.yml
+      ```
+      - If you encounter an error like: `..\mamba\condabin\micromamba"' is not recognized as an internal or external command, operable program or batch file.`, then copy the `mamba.bat` file in that directory to `micromamba.bat`
+   1. Confirm the installation and initialization went well with:
+      ```
+      micromamba run -n mmgis gdalinfo --version
+      ```
+   1. Initialize the shell with:
+      ```
+      micromamba shell init --shell cmd.exe --root-prefix=your\path\to\mamba
+      ```
+   1. Activate the environment before running `npm start`
+      ```
+      micromamba activate mmgis
+      ```
+   #### Legacy (without micromamba):
    - GDAL [3.4+](https://gdal.org/download.html) with Python bindings (Windows users may find [these](https://github.com/cgohlke/geospatial-wheels/releases) helpful)
    - Python [>=3.10 and <3.13](https://www.python.org/downloads/)
-     - From root MMGIS directory: `python -m pip install -r python-requirements.txt`
-     - Ensure your `PROJ_LIB` system ENV points to the proj.db install through python.
-     - Note: MMGIS expects and uses the command `python` only and not `python3` or variations.
+   - From root MMGIS directory: `python -m pip install -r python-requirements.txt`
+   - Ensure your `PROJ_LIB` system ENV points to the proj.db install through python.
+   - Note: MMGIS expects and uses the command `python` only and not `python3` or variations.
 
 ### Setup
 
@@ -137,7 +161,7 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
 
 1. Go back to the root `/` directory
 
-1. Run `python -m pip install -r python-requirements.txt`
+1. Run `micromamba activate mmgis` or `python -m pip install -r python-requirements.txt` (if not using python environments)
 
 1. If using adjacent-servers (titiler, stac, ...) make `.env` files from the samples within the `/adjacent-servers/{servers}/` directory.
 
