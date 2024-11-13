@@ -36,7 +36,7 @@
     "cesium"
   ],
   "scripts": {
-    "start": "conda activate mmgis && node scripts/init-db.js && node scripts/server.js",
+    "start": "node scripts/init-db.js && node scripts/server.js",
     "start:prod": "node scripts/init-db.js && cross-env NODE_ENV=production node scripts/server.js",
     "start:prod-docker": "node scripts/init-db.js && cross-env NODE_ENV=production node scripts/server.js",
     "start:prod:with_examples": "cross-env NODE_ENV=production node scripts/server.js --with_examples",

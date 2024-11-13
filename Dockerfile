@@ -3,10 +3,6 @@ FROM node:20
 ARG PUBLIC_URL_ARG=
 ENV PUBLIC_URL=$PUBLIC_URL_ARG
 
-# Install GDAL with Python bindings
-RUN apt-get -y update
-RUN apt-get install -y gdal-bin libgdal-dev python3-pip python3-gdal
-
 # Create app directory
 WORKDIR /usr/src/app
 
@@ -14,21 +10,45 @@ WORKDIR /usr/src/app
 COPY . .
 
 #############################
-# MMGIS
+# Python
 #############################
 
-# Install app dependencies
-COPY python-requirements.txt ./
-RUN rm /usr/lib/python*/EXTERNALLY-MANAGED && \
-    pip3 install -r ./python-requirements.txt
 
-# Use python3 for python
-RUN ln -s /usr/bin/python3 /usr/bin/python
+RUN curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -C  -xvj bin/micromamba
+RUN eval "$(micromamba shell hook --shell bash)"
+RUN echo 'export PATH="/opt/micromamba/bin:$PATH"' >> /root/.bashrc && echo 'export MAMBA_ROOT_PREFIX="/opt/micromamba"' >> /root/.bashrc
+
+RUN . ~/.bashrc && micromamba env create -y --name mmgis --file=python-environment.yml
+RUN . ~/.bashrc && micromamba activate mmgis
+
+#RUN mkdir -p /opt/micromamba/bin
+#RUN curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -C /opt/micromamba -xvj bin/micromamba
+#RUN MAMBA_ROOT_PREFIX="/opt/micromamba"; /opt/micromamba/bin/micromamba shell hook -s posix
+#RUN echo 'export PATH="/opt/micromamba/bin:$PATH"' >> /root/.bashrc && echo 'export MAMBA_ROOT_PREFIX="/opt/micromamba"' >> /root/.bashrc
+
+#COPY python-environment.yml ./
+#RUN . ~/.bashrc && micromamba env create -y --name mmgis --file=python-environment.yml
+#RUN . ~/.bashrc && /opt/micromamba/bin/micromamba shell init -s bash -r /opt/micromamba
+#RUN . ~/.bashrc && micromamba activate mmgis
+
+#RUN mkdir -p /opt/micromamba/bin
+#ENV MAMBA_ROOT_PREFIX="/opt/micromamba"
+#RUN curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -C /opt/micromamba -xvj bin/micromamba
+#RUN /opt/micromamba/bin/micromamba shell init -s bash -r /opt/micromamba/bin/micromamba
+
+#RUN /opt/micromamba/bin/micromamba env create -y --name mmgis --file=python-environment.yml
+#RUN /opt/micromamba/bin/micromamba activate mmgis
+
+
+#############################
+# MMGIS
+#############################
 
 RUN npm install
 
 # build
 RUN npm run build
+
 
 #############################
 # MMGIS Configure
