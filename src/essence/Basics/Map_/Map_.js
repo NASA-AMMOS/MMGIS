@@ -892,10 +892,12 @@ async function makeVectorLayer(
 async function makeTileLayer(layerObj) {
     let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
 
+    let splitColonType
     const splitColonLayerUrl = layerObj.url.split(':')
     if (splitColonLayerUrl[1] != null)
         switch (splitColonLayerUrl[0]) {
             case 'stac-collection':
+                splitColonType = splitColonLayerUrl[0]
                 const splitParams = splitColonLayerUrl[1].split('?')
                 layerUrl = `/titilerpgstac/collections/${
                     splitParams[0]
@@ -915,7 +917,11 @@ async function makeTileLayer(layerObj) {
             L.latLng(layerObj.boundingBox[1], layerObj.boundingBox[0])
         )
     }
-    layerUrl = await TimeControl.performTimeUrlReplacements(layerUrl, layerObj)
+    layerUrl = await TimeControl.performTimeUrlReplacements(
+        layerUrl,
+        layerObj,
+        null
+    )
 
     let tileFormat = 'tms'
     // For backward compatibility with the .tms option
@@ -930,6 +936,7 @@ async function makeTileLayer(layerObj) {
         maxNativeZoom: layerObj.maxNativeZoom,
         tileFormat: tileFormat,
         tms: tileFormat === 'tms',
+        splitColonType: splitColonType,
         //noWrap: true,
         continuousWorld: true,
         reuseTiles: true,

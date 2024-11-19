@@ -200,8 +200,6 @@ const LayerModal = (props) => {
 
   config = inject(config);
 
-  console.log(config);
-
   return (
     <Dialog
       className={c.Modal}

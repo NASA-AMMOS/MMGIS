@@ -310,7 +310,12 @@ var TimeControl = {
         if (layer.time && layer.time.enabled === true) layer.url = originalUrl
         return true
     },
-    performTimeUrlReplacements: async function (url, layer, forceRequery) {
+    performTimeUrlReplacements: async function (
+        url,
+        layer,
+        forceRequery,
+        type
+    ) {
         return new Promise(async (resolve, reject) => {
             let layerTimeFormat =
                 layer.time?.format == null
@@ -351,6 +356,7 @@ var TimeControl = {
                     }
                 }
             }
+
             if (forceRequery === true) {
                 nextUrl += `${
                     nextUrl.indexOf('?') === -1 ? '?' : '&'

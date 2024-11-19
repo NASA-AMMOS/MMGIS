@@ -57,6 +57,7 @@ function adjacentServers() {
 
       cmd.on("error", (err) => {
         process.stdout.write(`${s.name} ERROR - ${err}`);
+        logger("error", `[${s.name}] ${err}`, "adjacent-servers");
       });
     }
   });

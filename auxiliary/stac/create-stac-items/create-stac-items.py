@@ -1,27 +1,30 @@
 # Developed on python 3.11.4
 # python create-stac-items.py [mmgis_url] [mmgis_token] [collection_id] [file_or_folder_path] [--regex]
+# ex: python create-stac-items.py "http://localhost:8888" stac-201fb492061f9fe3575e18f76d8d3823 myCollection C:\Users\Documents\Projects\MMGIS\Missions\Earth\COGs
 
 
 import requests
 import json
 import os
+from datetime import datetime 
 from rio_stac import create_stac_item
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
 def parse_args():
     # Parse input arguments
     parser = ArgumentParser(description=__doc__, formatter_class=ArgumentDefaultsHelpFormatter)
-    parser.add_argument('mmgis_url', help='Input file')
-    parser.add_argument('mmgis_token', help='Input file')
-    parser.add_argument('collection_id', help='Input file')
-    parser.add_argument('file_or_folder_path', help='Input file')
-    parser.add_argument('-u', '--upsert', help='If folder, only create stac items for files that match this regex', action='store_true')
+    parser.add_argument('mmgis_url', help='URL to MMGIS')
+    parser.add_argument('mmgis_token', help='MMGIS API Token')
+    parser.add_argument('collection_id', help='Pre-existing STAC collection id')
+    parser.add_argument('file_or_folder_path', help='Input file or folder path')
+    parser.add_argument('-u', '--upsert', help='Allow overwriting existing STAC items', action='store_true')
     parser.add_argument('-r', '--regex', help='If folder, only create stac items for files that match this regex')
+    parser.add_argument('-d', '--dev', help='dev mode that does other things', action='store_true')
 
     args = parser.parse_args()
     return args
 
-def create_stac_items(mmgis_url, mmgis_token, collection_id, file_or_folder_path, upsert=False, regex=None):
+def create_stac_items(mmgis_url, mmgis_token, collection_id, file_or_folder_path, upsert=False, regex=None, dev=False):
 
     isDir = os.path.isdir(file_or_folder_path)
     
@@ -47,30 +50,49 @@ def create_stac_items(mmgis_url, mmgis_token, collection_id, file_or_folder_path
 
     for idx, file in enumerate(files, start=1):
         print(f'Gathering metadata {idx}/{len(files)}...', end='\r', flush=True)
-        item = create_stac_item(
-            file,
-            #input_datetime=input_datetime,
-            #extensions=extensions,
-            #collection=collection,
-            #collection_url=collection_url,
-            #properties=property,
-            #id=id,
-            #asset_name=asset_name,
-            #asset_href=asset_href,
-            #asset_media_type=asset_mediatype,
-            with_proj=True,
-            with_raster=True,
-            with_eo=True,
-            #raster_max_size=max_raster_size,
-            #geom_densify_pts=densify_geom,
-            #geom_precision=geom_precision,
-        )
+        if dev:
+            item = create_stac_item(
+                file,
+                input_datetime=datetime.fromisoformat(f"2024-11-0{(idx % 9) + 1}T00:00:00Z"),
+                #extensions=extensions,
+                #collection=collection,
+                #collection_url=collection_url,
+                #properties=property,
+                #id=id,
+                #asset_name=asset_name,
+                #asset_href=asset_href,
+                #asset_media_type=asset_mediatype,
+                with_proj=True,
+                with_raster=True,
+                with_eo=True,
+                #raster_max_size=max_raster_size,
+                #geom_densify_pts=densify_geom,
+                #geom_precision=geom_precision,
+            )
+        else: 
+            item = create_stac_item(
+                file,
+                #input_datetime=input_datetime,
+                #extensions=extensions,
+                #collection=collection,
+                #collection_url=collection_url,
+                #properties=property,
+                #id=id,
+                #asset_name=asset_name,
+                #asset_href=asset_href,
+                #asset_media_type=asset_mediatype,
+                with_proj=True,
+                with_raster=True,
+                with_eo=True,
+                #raster_max_size=max_raster_size,
+                #geom_densify_pts=densify_geom,
+                #geom_precision=geom_precision,
+            )
         item_dict = item.to_dict()
 
         items[item_dict.get('id')] = item_dict
 
     print(f'Gathering metadata {len(files)}/{len(files)}...')
-
     
     print('Sending bulk item creation request...')
 
@@ -90,5 +112,5 @@ def create_stac_items(mmgis_url, mmgis_token, collection_id, file_or_folder_path
 
 if __name__ == '__main__':
     args = parse_args()
-    create_stac_items(args.mmgis_url, args.mmgis_token, args.collection_id, args.file_or_folder_path, args.upsert, args.regex)
+    create_stac_items(args.mmgis_url, args.mmgis_token, args.collection_id, args.file_or_folder_path, args.upsert, args.regex, args.dev)
     exit()

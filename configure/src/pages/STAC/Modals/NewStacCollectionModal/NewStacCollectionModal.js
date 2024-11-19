@@ -154,21 +154,18 @@ const config = {
           description:
             "Identifier for the Collection that is unique across all collections in the root catalog.",
           type: "text",
-          width: 8,
+          width: 12,
         },
-        {
-          field: "temp.newStacCollection.license",
-          name: "License",
-          description:
-            "License(s) of the data collection as SPDX License identifier, SPDX License expression, or other.",
-          type: "text",
-          width: 4,
-        },
+      ],
+    },
+    {
+      name: "Optional",
+      components: [
         {
           field: "temp.newStacCollection.description",
           name: "Description",
           description:
-            "Detailed multi-line description to fully explain the Collection.",
+            "Detailed multi-line description to fully explain the Collection. Defaults to: 'A STAC Collection'",
           type: "text",
           width: 12,
         },
@@ -379,21 +376,28 @@ const config = {
           field: "temp.newStacCollection.extent.spatial.bbox",
           name: "Spatial Extent Bounding Box",
           description:
-            "Potential spatial extents covered by the Collection. Example that covers the whole Earth: [[-180.0, -90.0, 180.0, 90.0]]",
+            "Potential spatial extents covered by the Collection. Defaults to: [[-180.0, -90.0, 180.0, 90.0]]",
           type: "text",
           width: 12,
         },
         {
           field: "temp.newStacCollection.extent.temporal.interval",
           name: "Temporal Extent Interval",
-          description: `Potential temporal extents covered by the Collection. Each inner array consists of exactly two elements, either a UTC date timestamp or null. Example for data from the beginning of 1970 until now: [["1970-01-01T00:00:00Z", null]]`,
+          description: `Potential temporal extents covered by the Collection. Each inner array consists of exactly two elements, either a UTC date timestamp or null. Defaults to: [["1970-01-01T00:00:00Z", null]]`,
           type: "text",
           width: 12,
+        },
+        {
+          field: "temp.newStacCollection.license",
+          name: "License",
+          description:
+            "License(s) of the data collection as SPDX License identifier, SPDX License expression, or other. Defaults to MIT",
+          type: "text",
+          width: 4,
         },
       ],
     },
     {
-      name: "Optional",
       components: [
         {
           field: "temp.newStacCollection.title",
@@ -496,14 +500,10 @@ const NewStacCollectionModal = (props) => {
     nextStacCollection.stac_version = "1.0.0";
 
     nextStacCollection.links = nextStacCollection.links || [];
-    if (
-      nextStacCollection == null ||
-      nextStacCollection.id == null ||
-      nextStacCollection.description == null ||
-      nextStacCollection.license == null ||
-      nextStacCollection.extent?.spatial?.bbox == null ||
-      nextStacCollection.extent?.temporal?.interval == null
-    ) {
+    nextStacCollection.description =
+      nextStacCollection.description || "A STAC Collection";
+    nextStacCollection.license = nextStacCollection.license || "MIT";
+    if (nextStacCollection == null || nextStacCollection.id == null) {
       dispatch(
         setSnackBarText({
           text: "Please fill out all Required Fields.",
@@ -512,11 +512,19 @@ const NewStacCollectionModal = (props) => {
       );
       return;
     }
+
+    nextStacCollection.extent = nextStacCollection.extent || {};
+
+    nextStacCollection.extent.spatial = nextStacCollection.extent.spatial || {};
     nextStacCollection.extent.spatial.bbox = JSON.parse(
-      nextStacCollection.extent.spatial.bbox
+      nextStacCollection.extent.spatial.bbox || "[[-180.0, -90.0, 180.0, 90.0]]"
     );
+
+    nextStacCollection.extent.temporal =
+      nextStacCollection.extent.temporal || {};
     nextStacCollection.extent.temporal.interval = JSON.parse(
-      nextStacCollection.extent.temporal.interval
+      nextStacCollection.extent.temporal.interval ||
+        '[["1970-01-01T00:00:00Z", null]]'
     );
 
     calls.api(
