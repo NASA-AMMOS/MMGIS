@@ -296,6 +296,14 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
     L.GridLayer.prototype.onAdd.call(this, map);
   },
 
+  _updateOpacity: function () {
+    L.GridLayer.prototype._updateOpacity.call(this);
+    for (var key in this._tiles) {
+        var tile = this._tiles[key];
+        L.DomUtil.setOpacity(tile.el, 1.0);
+    }
+  },
+
   initialize_mask: function (options: any) {
     if (options.mask && options.mask !== "auto") {
       if (typeof options.mask === "string") {
