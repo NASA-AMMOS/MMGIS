@@ -1,0 +1,32 @@
+DB_NAME=mmgis
+DB_USER=postgres
+DB_PASS=<password> 
+DB_NAME=<name>
+DB_USER=<user>
+DB_PASS=<password>
+on
+  push
+    branches
+  pull_request
+    branches
+ijunxyz123:master
+jobs
+  build
+    runs-on
+curl -i -X POST -H "Authorization:Bearer <token>" -F "name={dataset_name}" -F "upsert=true" -F "header=["File","Target","ShotNumber","Distance(m)","LaserPower","SpectrumTotal","SiO2","TiO2","Al2O3","FeOT","MgO","CaO","Na2O","K2O","Total","SiO2_RMSEP","TiO2_RMSEP","Al2O3_RMSEP","FeOT_RMSEP","MgO_RMSEP","CaO_RMSEP","Na2O_RMSEP","K2O_RMSEP"]" -F "data=@{path/to.csv};type=text/csv" http://localhost:8888/api/datasets/upload
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Build
+      run: |
+        npm install
+        npx webpack
