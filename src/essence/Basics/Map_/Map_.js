@@ -1180,6 +1180,11 @@ function makeImageLayer(layerObj) {
             'variables.image'
         )
 
+        const colorRampInfo = F_.getIn(
+            L_.layers.data[layerObj.name],
+            'variables.shader.ramps.0'
+        )
+
         let min = null;
         let max = null;
         if (imageInfo && imageInfo.bands === 1 && georaster.numberOfRasters === 1
@@ -1209,13 +1214,17 @@ function makeImageLayer(layerObj) {
                     }
                 }
 
-                return evaluate_cmap(scaledPixelValue, 'viridis', false)
+                // FIXME What should the default color ramp be?
+                return evaluate_cmap(scaledPixelValue, colorRampInfo || 'viridis', false)
             }
         }
 
+        console.log("pixelValuesToColorFn", pixelValuesToColorFn)
         L_.layers.layer[layerObj.name] = new GeoRasterLayer({
             georaster: georaster,
             resolution: 256,
+            //debugLevel: 1,
+            opacity: 1.0,
             pixelValuesToColorFn: pixelValuesToColorFn,
         })
 

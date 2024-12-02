@@ -46,6 +46,8 @@ import CodeMirror from "@uiw/react-codemirror";
 import { json } from "@codemirror/lang-json";
 import { Button } from "@mui/material";
 
+import { evaluate_cmap, data as colormapData } from '../external/js-colormaps.js'
+
 const useStyles = makeStyles((theme) => ({
   Maker: {
     width: "100%",
@@ -141,6 +143,12 @@ const useStyles = makeStyles((theme) => ({
     width: "20px",
     height: "20px",
     margin: "4px",
+    borderRadius: "4px",
+  },
+  colorDropdownArrayHex: {
+    width: "20px",
+    height: "20px",
+    margin: "0px",
     borderRadius: "4px",
   },
   dropdown: {
@@ -598,6 +606,59 @@ const getComponent = (
           {inlineHelp ? (
             <>
               {inner}
+              <Typography className={c.subtitle2}>
+                {com.description || ""}
+              </Typography>
+            </>
+          ) : (
+            <Tooltip title={com.description || ""} placement="top" arrow>
+              {inner}
+            </Tooltip>
+          )}
+        </div>
+      );
+    case "colordropdown":
+      let dropdown_value = value || getIn(directConf, com.field, com.options?.[0]);
+      inner = (
+        <FormControl className={c.dropdown} variant="filled" size="small">
+          <InputLabel>{com.name}</InputLabel>
+          <Select
+            value={dropdown_value}
+            onChange={(e) => {
+              updateConfiguration(
+                forceField || com.field,
+                e.target.value,
+                layer
+              );
+            }}
+          >
+            {com.options.map((o) => {
+              return <MenuItem value={o}>{o.toUpperCase()}</MenuItem>;
+            })}
+          </Select>
+        </FormControl>
+      );
+
+        // !!!!!
+      return (
+        <div>
+          {inlineHelp ? (
+            <>
+              {inner}
+              <div className={c.textArrayHexes}>
+                {typeof dropdown_value === "string"
+                  ? (colormapData[dropdown_value].colors).map(
+                      (hex) => {
+                        return (
+                          <div
+                            className={c.colorDropdownArrayHex}
+                            style={{ background: `rgb(${hex.map(v => {return Math.floor(v * 255)}).join(',')})` }}
+                          ></div>
+                        );
+                      }
+                    )
+                  : null}
+              </div>
               <Typography className={c.subtitle2}>
                 {com.description || ""}
               </Typography>

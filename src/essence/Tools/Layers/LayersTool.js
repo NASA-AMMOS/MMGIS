@@ -680,6 +680,11 @@ function interfaceWithMMGIS(fromInit) {
                                 'variables.image'
                             )
 
+                            const colorRampInfo = F_.getIn(
+                                L_.layers.data[layerName],
+                                'variables.shader.ramps.0'
+                            )
+
                             function updateImageRange(vMin, vMax) {
                                 const layer = L_.layers.layer[layerName]
                                 if (vMin == null || vMax == null) return
@@ -708,7 +713,8 @@ function interfaceWithMMGIS(fromInit) {
                                         }
                                     }
 
-                                    return evaluate_cmap(scaledPixelValue, 'viridis', false)
+                                    // FIXME What should the default color ramp be?
+                                    return evaluate_cmap(scaledPixelValue, colorRampInfo || 'viridis', false)
                                 }
 
                                 layer.updateColors(pixelValuesToColorFn)
