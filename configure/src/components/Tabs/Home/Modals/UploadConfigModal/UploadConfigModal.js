@@ -187,7 +187,10 @@ const UploadConfigModal = (props) => {
               text:
                 status === "success"
                   ? "Uploaded and Saved!"
-                  : "Failed to save configuration!",
+                  : "Failed to save configuration!" +
+                    (resp?.errors?.[0]?.reason
+                      ? ` — ${resp?.errors?.[0]?.reason}`
+                      : ""),
               severity: status,
             })
           );

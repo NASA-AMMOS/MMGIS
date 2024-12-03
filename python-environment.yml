@@ -7,6 +7,7 @@ dependencies:
   - pip
   - pip:
       - numpy==2.1.0
+      - requests==2.32.3
       - spiceypy==5.1.2
       - pymap3d==3.0.1
       - pypgstac==0.8.6

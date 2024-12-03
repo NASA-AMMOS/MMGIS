@@ -277,7 +277,7 @@ function EnhancedTableToolbar(props) {
           variant="h6"
           component="div"
         >
-          {`1) Create a Collection. 2) Add COG Items to the Collection. See MMGIS/auxiliary/stac for scripts. 3) Set a Tile Layer URL to 'stac-collection:{collection_name}'`}
+          {`1) Create a Collection. 2) Add COG Items to the Collection. See MMGIS/auxiliary/stac for script examples. 3) Set a Tile Layer URL to 'stac-collection:{collection_name}'`}
         </Typography>
       </div>
 

@@ -30,9 +30,14 @@ var colorFilterExtension = {
                     datetime = `../${this.options.endtime}`
                 }
             }
-            url += `${
-                url.indexOf('?') === -1 ? '?' : '&'
-            }datetime=${datetime}&exitwhenfull=false&skipcovered=false`
+            if (datetime != null)
+                url += `${
+                    url.indexOf('?') === -1 ? '?' : '&'
+                }datetime=${datetime}&exitwhenfull=false&skipcovered=false`
+            else
+                url += `${
+                    url.indexOf('?') === -1 ? '?' : '&'
+                }exitwhenfull=false&skipcovered=false`
         }
 
         url = url

@@ -43,7 +43,7 @@ const SnackBar = (props) => {
         horizontal: "right",
       }}
       open={openSnackbar}
-      autoHideDuration={4000}
+      autoHideDuration={5000}
       onClose={handleCloseSnackbar}
     >
       <MuiAlert
