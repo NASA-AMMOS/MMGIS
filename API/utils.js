@@ -123,6 +123,23 @@ const Utils = {
       return true;
     }
   },
+  forceAlphaNumUnder: function (str) {
+    if (typeof str === "string") {
+      return str
+        .replace(/[`~!@#$%^&*|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, "")
+        .replace(/[^ -~]+/g, "");
+    } else if (typeof str === "number") {
+      return str;
+    } else if (Array.isArray(str)) {
+      return str
+        .join(",")
+        .replace(/[`~!@#$%^&*|+\-=?;:'".<>\{\}\[\]\\\/]/gi, "")
+        .replace(/[^ -~]+/g, "")
+        .split(",");
+    } else {
+      return "";
+    }
+  },
 };
 
 module.exports = Utils;
