@@ -10,6 +10,7 @@ const inspect = require("util").inspect;
 
 const { sequelize } = require("../../../connection");
 
+const Utils = require("../../../utils.js");
 const logger = require("../../../logger");
 const datasets = require("../models/datasets");
 const csvtojson = require("csvtojson");
@@ -38,15 +39,13 @@ function get(req, res, next) {
     Datasets.findOne({ where: { name: queries[i].dataset } })
       .then((result) => {
         if (result) {
-          const column = queries[i].column
-            .replace(/[`~!@#$%^&*|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, "")
-            .replace(/[^ -~]+/g, "");
+          const column = queries[i].column;
           sequelize
             .query(
               "SELECT * FROM " +
-                result.dataValues.table +
+                Utils.forceAlphaNumUnder(result.dataValues.table) +
                 ' WHERE "' +
-                column +
+                Utils.forceAlphaNumUnder(column) +
                 '"=:search ORDER BY id ASC LIMIT 100',
               {
                 replacements: {
@@ -121,7 +120,7 @@ router.post("/search", function (req, res, next) {
         sequelize
           .query(
             "SELECT properties, ST_AsGeoJSON(geom) FROM " +
-              table +
+              Utils.forceAlphaNumUnder(table) +
               " WHERE properties ->> :key = :value;",
             {
               replacements: {
@@ -239,7 +238,7 @@ router.post("/upload", function (req, res, next) {
         if (fields.upsert === "true") {
           let condition = "";
           fields.header.forEach((elm) => {
-            elm = elm.replace(/[`~!@#$%^&*|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, "");
+            elm = Utils.forceAlphaNumUnder(elm);
             condition +=
               ' AND ( a."' +
               elm +
@@ -255,12 +254,15 @@ router.post("/upload", function (req, res, next) {
           sequelize
             .query(
               "DELETE FROM " +
-                tableName +
+                Utils.forceAlphaNumUnder(tableName) +
                 " a USING " +
-                tableName +
+                Utils.forceAlphaNumUnder(tableName) +
                 " b " +
                 "WHERE b.id < a.id" +
-                condition
+                condition,
+              {
+                replacements: {},
+              }
             )
             .then(() => {
               res.send({
@@ -357,7 +359,14 @@ router.post("/upload", function (req, res, next) {
         tableObj = result.tableObj;
       } else {
         sequelize
-          .query("TRUNCATE TABLE " + result.table + " RESTART IDENTITY")
+          .query(
+            "TRUNCATE TABLE " +
+              Utils.forceAlphaNumUnder(result.table) +
+              " RESTART IDENTITY",
+            {
+              replacements: {},
+            }
+          )
           .then(() => {
             tableObj = result.tableObj;
           })
@@ -410,7 +419,14 @@ router.post("/recreate", function (req, res, next) {
 
       if (req.body.mode == "full") {
         sequelize
-          .query("TRUNCATE TABLE " + result.table + " RESTART IDENTITY")
+          .query(
+            "TRUNCATE TABLE " +
+              Utils.forceAlphaNumUnder(result.table) +
+              " RESTART IDENTITY",
+            {
+              replacements: {},
+            }
+          )
           .then(() => {
             populateDatasetTable(
               result.tableObj,

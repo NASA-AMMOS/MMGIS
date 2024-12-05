@@ -4,6 +4,7 @@
 const Sequelize = require("sequelize");
 const { sequelize } = require("../../../connection");
 const logger = require("../../../logger");
+const Utils = require("../../../utils.js");
 
 const attributes = {
   name: {
@@ -72,12 +73,30 @@ function makeNewGeodatasetTable(name, success, failure) {
           .then((r) => {
             sequelize
               .query(
-                `CREATE INDEX IF NOT EXISTS ${result.dataValues.table}_geom_idx on ${result.dataValues.table} USING gist (geom);`
+                `CREATE INDEX IF NOT EXISTS ${Utils.forceAlphaNumUnder(
+                  `${result.dataValues.table}_geom_idx`
+                )} on ${Utils.forceAlphaNumUnder(
+                  result.dataValues.table
+                )} USING gist (geom);`,
+                {
+                  replacements: {},
+                }
               )
               .then(() => {
                 sequelize
                   .query(
-                    `CREATE INDEX IF NOT EXISTS ${result.dataValues.table}_time_idx on ${result.dataValues.table} USING gist (start_time, end_time);`
+                    `CREATE INDEX IF NOT EXISTS ${Utils.forceAlphaNumUnder(
+                      `${result.dataValues.table}_time_idx`
+                    )} on ${Utils.forceAlphaNumUnder(
+                      result.dataValues.table
+                    )} USING gist ${
+                      startProp != null && endProp != null
+                        ? "(start_time, end_time)"
+                        : "(end_time)"
+                    };`,
+                    {
+                      replacements: {},
+                    }
                   )
                   .then(() => {
                     success({
@@ -151,12 +170,26 @@ function makeNewGeodatasetTable(name, success, failure) {
                   .then(() => {
                     sequelize
                       .query(
-                        `CREATE INDEX ${newTable}_geom_idx on ${newTable} USING gist (geom);`
+                        `CREATE INDEX ${Utils.forceAlphaNumUnder(
+                          `${newTable}_geom_idx`
+                        )} on ${Utils.forceAlphaNumUnder(
+                          newTable
+                        )} USING gist (geom);`,
+                        {
+                          replacements: {},
+                        }
                       )
                       .then(() => {
                         sequelize
                           .query(
-                            `CREATE INDEX ${newTable}_time_idx on ${newTable} USING gist (start_time, end_time);`
+                            `CREATE INDEX ${Utils.forceAlphaNumUnder(
+                              `${newTable}_time_idx`
+                            )} on ${Utils.forceAlphaNumUnder(
+                              newTable
+                            )} USING gist (start_time, end_time);`,
+                            {
+                              replacements: {},
+                            }
                           )
                           .then(() => {
                             success({
