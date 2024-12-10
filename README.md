@@ -127,6 +127,10 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
       ```
       Invoke-Expression ((Invoke-WebRequest -Uri https://micro.mamba.pm/install.ps1).Content)
       ```
+   1. Initialize the shell with:
+      ```
+      micromamba shell init --shell cmd.exe --root-prefix=your\path\to\mamba
+      ```
    1. In a command window in the MMGIS root directory run:
       ```
       micromamba env create -y --name mmgis --file=python-environment.yml
@@ -135,10 +139,6 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
    1. Confirm the installation and initialization went well with:
       ```
       micromamba run -n mmgis gdalinfo --version
-      ```
-   1. Initialize the shell with:
-      ```
-      micromamba shell init --shell cmd.exe --root-prefix=your\path\to\mamba
       ```
    1. Activate the environment before running `npm start`
       ```
