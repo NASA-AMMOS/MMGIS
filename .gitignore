@@ -20,7 +20,7 @@
 /spice/kernels/*
 !/spice/kernels/.gitkeep
 /Missions/spice-kernels-conf.json
-!/Missions/spice-kernels-conf.example.json
+!/Missions/spice-kernels-conf.example*json
 
 /build/*
 /data/*

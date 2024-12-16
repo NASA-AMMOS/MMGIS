@@ -210,8 +210,8 @@ function makeNewGeodatasetTable(
         sequelize
           .query("SELECT MAX(id) FROM geodatasets")
           .then(([results]) => {
-            let newTable =
-              "g" + (parseInt(results[0].max) + 1) + "_geodatasets";
+            const max = parseInt(results[0].max);
+            let newTable = "g" + ((isNaN(max) ? 0 : max) + 1) + "_geodatasets";
 
             Geodatasets.create({
               name: name,

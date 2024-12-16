@@ -379,6 +379,7 @@ router.post("/entries", function (req, res, next) {
  * req.body.value
  * req.body.id (specific feature id instead of key:value)
  * req.body.orderBy
+ * req.body.restrictToGeometryType
  * req.body.offset (i.e. if -1, then return feature previous to key:val) (can also be 'first' or 'last')
  */
 router.post("/search", function (req, res, next) {
@@ -424,19 +425,36 @@ router.post("/search", function (req, res, next) {
           )}, ${Utils.forceAlphaNumUnder(parseFloat(maxy))}, 4326), geom)`;
         }
 
+        const geometryTypes = [
+          "Point",
+          "LineString",
+          "Polygon",
+          "MultiPoint",
+          "MultiLineString",
+          "MultiPolygon",
+        ];
+
+        const geomTypeWhere =
+          geometryTypes.indexOf(req.body.restrictToGeometryType) != -1
+            ? " AND geometry_type = :geomtype"
+            : "";
+
         let q =
           `SELECT properties, ST_AsGeoJSON(geom), id FROM ${Utils.forceAlphaNumUnder(
             table
           )}` +
           (req.body.last || offset != null
-            ? `${where} ORDER BY id ${offset != null ? "ASC" : "DESC LIMIT 1"}`
-            : " WHERE properties ->> :key = :value");
+            ? `${where}${geomTypeWhere} ORDER BY id ${
+                offset != null && !req.body.last ? "ASC" : "DESC LIMIT 1"
+              }`
+            : ` WHERE properties ->> :key = :value${geomTypeWhere}`);
 
         sequelize
           .query(q + ";", {
             replacements: {
               orderBy: orderBy || "id",
               key: req.body.key,
+              geomType: req.body.restrictToGeometryType,
               value:
                 typeof req.body.value === "string"
                   ? req.body.value.replace(/[`;'"]/gi, "")

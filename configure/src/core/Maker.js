@@ -291,6 +291,14 @@ const getComponent = (
                     true,
                     conf
                   );
+
+                  conf = updateConfiguration(
+                    "maxZoom",
+                    maxNativeZoom,
+                    layer,
+                    true,
+                    conf
+                  );
                   updateConfiguration(
                     "boundingBox",
                     boundingBox,
@@ -1102,7 +1110,11 @@ function tilePopulateFromX(
             "," +
             xml.getElementsByTagName("BoundingBox")[0].attributes["maxy"].value;
 
-          cb(minZoom, maxNativeZoom, boundingBox);
+          cb(
+            parseInt(minZoom),
+            parseInt(maxNativeZoom),
+            boundingBox.split(",")
+          );
         } catch (err) {
           errorCallback(err);
         }

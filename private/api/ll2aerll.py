@@ -4,6 +4,8 @@
 # !!! Currently only designed for Mars
 
 # example: python ll2aerll.py [lng] [lat] [height] [target] [time] [obsRefFrame] [obsBody] [includeSunEarth] [isCustom] [customAz] [customEl] [customRange]
+# python ll2aerll.py 77.36885547637941 18.481028548936987 -2410.2507 MRO "2023 NOV 10 00:21:31 UTC" IAU_MARS MARS false false
+
 import sys
 import json
 import os

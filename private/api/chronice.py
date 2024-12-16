@@ -63,6 +63,9 @@ def chronice(body, target, fromFormat, time):
     targetId = 0
     if targetLow == 'msl':
         targetId = -76900
+    elif targetLow == 'mars2020':
+        targetId = -168900
+
     # LMST
     if fromFormat == 'utc':
         et = spiceypy.utc2et(time)
@@ -78,7 +81,7 @@ def chronice(body, target, fromFormat, time):
     })
 
 def sclk2lmst(sclk, target):
-    if target == 'msl':
+    if target == 'msl' or target == 'mars2020':
         s = sclk.split('/')[1].split(':')
         sol = int(s[0])
         hour = int(s[1])
@@ -100,7 +103,7 @@ def sclk2lmst(sclk, target):
         seconds = str(seconds).zfill(2)
         return f'SOL-{sol}M{hour}:{minute}:{seconds}'
 def lmst2sclk(lmst, target, partition = 1):
-    if target == 'msl':
+    if target == 'msl' or target == 'mars2020':
         s = lmst.replace(' ', ':').replace('-', ':').replace('M', ':').split(':')
         return f'{partition}/{s[1].zfill(5)}:{s[2].zfill(2)}:{s[3].zfill(2)}:{s[4].zfill(2)}:00000'
 

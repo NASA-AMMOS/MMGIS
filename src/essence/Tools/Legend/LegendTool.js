@@ -27,21 +27,28 @@ var LegendTool = {
             toolController.style('right', '5px')
             toolContent.style('left', null)
             toolContent.style('right', '0px')
-        } else if (
-            this.justification != L_.getToolVars('identifier')['justification']
-        ) {
+        } else {
             const toolController = d3
                 .select('#toolcontroller_sepdiv')
                 .clone(false)
                 .attr('id', 'toolcontroller_sepdiv_left')
             $('#toolSeparated_Legend').appendTo('#toolcontroller_sepdiv_left')
-            toolController.style('top', '40px')
+            toolController.style(
+                'top',
+                (L_.getToolVars('identifier')['justification'] || 'left') ==
+                    'left'
+                    ? '75px'
+                    : '40px'
+            )
             toolController.style('left', '5px')
             toolController.style('right', null)
         }
     },
     make: function (targetId) {
-        this.targetId = targetId
+        this.targetId =
+            typeof targetId === 'string'
+                ? targetId
+                : '__LegendTool_missing_targetId'
         this.MMWebGISInterface = new interfaceWithMMWebGIS()
         this.activeLayerNames = []
 

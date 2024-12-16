@@ -161,9 +161,17 @@ router.post("/login", function (req, res) {
   clearLoginSession(req);
 
   req.session.regenerate((err) => {
-    let MMGISUser = req.cookies.MMGISUser
-      ? JSON.parse(req.cookies.MMGISUser)
-      : false;
+    let MMGISUser;
+    try {
+      let userCookie = req.cookies.MMGISUser;
+      if (typeof userCookie === "string" && userCookie.endsWith("}undefined"))
+        userCookie = userCookie.substring(0, userCookie.length - 9);
+
+      MMGISUser = userCookie ? JSON.parse(userCookie) : false;
+    } catch (err) {
+      res.send({ status: "failure", message: "Malformed MMGISUser cookie." });
+      return;
+    }
     let username = req.body.username || (MMGISUser ? MMGISUser.username : null);
 
     if (username == null) {

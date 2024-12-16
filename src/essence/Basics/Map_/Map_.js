@@ -931,9 +931,9 @@ async function makeTileLayer(layerObj) {
     } else tileFormat = layerObj.tileformat
 
     L_.layers.layer[layerObj.name] = L.tileLayer.colorFilter(layerUrl, {
-        minZoom: layerObj.minZoom,
-        maxZoom: layerObj.maxZoom,
-        maxNativeZoom: layerObj.maxNativeZoom,
+        minZoom: parseInt(layerObj.minZoom),
+        maxZoom: parseInt(layerObj.maxZoom),
+        maxNativeZoom: parseInt(layerObj.maxNativeZoom),
         tileFormat: tileFormat,
         tms: tileFormat === 'tms',
         splitColonType: splitColonType,

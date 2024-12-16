@@ -95,7 +95,7 @@ Disable Globe more thoroughly when off
 Additional Body Metadata for Draw Webhooks
 Remove restriction on Layer names
 Check for empty time configs in TimeControl
-Dropdown in the topbar for a selected feature’s properties links
+Dropdown in the topbar for a selected feature's properties links
 
 #### Fixed
 
