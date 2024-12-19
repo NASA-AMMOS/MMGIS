@@ -64,6 +64,18 @@ Password of Postgres database | string | default `null`
 
 Port to run on | positive integer | default `8888`
 
+#### `HTTPS=`
+
+If true, MMGIS will use an https server with the, now required, `HTTPS_KEY` and `HTTPS_CERT` envs. If false, use a wrapping https proxy server instead and block `PORT` from being public | boolean | false
+
+#### `HTTPS_KEY=`
+
+Relative path to key. If using docker, make sure the key is mounted. Everything under 'ssl/' is gitignored.
+
+#### `HTTPS_CERT=`
+
+Relative path to cert. If using docker, make sure the cert is mounted. Everything under 'ssl/' is gitignored.
+
 #### `DB_POOL_MAX=`
 
 Max number connections in the database's pool. CPUs \* 4 is a good number | integer | default `10`

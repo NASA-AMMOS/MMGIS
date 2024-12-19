@@ -3,6 +3,8 @@
 .env
 
 /node_modules/
+/ssl/*
+!/ssl/.gitkeep
 /API/logs/*
 /Missions/*
 !/Missions/.gitkeep

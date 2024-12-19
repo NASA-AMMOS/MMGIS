@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const fs = require("fs");
 const http = require("http");
+const https = require("https");
 const { Pool } = require("pg");
 var path = require("path");
 const packagejson = require("../package.json");
@@ -881,7 +882,16 @@ setups.getBackendSetups(function (setups) {
   //////Setups Init//////
   setups.init(s);
 
-  const httpServer = http.createServer(app);
+  let httpServer;
+  if (process.env.HTTPS == "true") {
+    httpServer = https.createServer(
+      {
+        key: fs.readFileSync("test/fixtures/keys/agent2-key.pem"),
+        cert: fs.readFileSync("test/fixtures/keys/agent2-cert.cert"),
+      },
+      app
+    );
+  } else httpServer = http.createServer(app);
 
   // Start listening for requests.
   httpServer.listen(port, (err) => {
