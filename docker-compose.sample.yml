@@ -9,6 +9,7 @@ services:
     restart: on-failure
     volumes:
       - ./Missions:/usr/src/app/Missions
+      - ./ssl:/usr/src/app/ssl
 
   stac-fastapi:
     image: ghcr.io/stac-utils/stac-fastapi-pgstac:3.0.0

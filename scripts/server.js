@@ -886,8 +886,8 @@ setups.getBackendSetups(function (setups) {
   if (process.env.HTTPS == "true") {
     httpServer = https.createServer(
       {
-        key: fs.readFileSync("test/fixtures/keys/agent2-key.pem"),
-        cert: fs.readFileSync("test/fixtures/keys/agent2-cert.cert"),
+        key: fs.readFileSync(process.env.HTTPS_KEY),
+        cert: fs.readFileSync(process.env.HTTPS_CERT),
       },
       app
     );

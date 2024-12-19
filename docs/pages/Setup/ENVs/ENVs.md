@@ -70,11 +70,11 @@ If true, MMGIS will use an https server with the, now required, `HTTPS_KEY` and 
 
 #### `HTTPS_KEY=`
 
-Relative path to key. If using docker, make sure the key is mounted. Everything under 'ssl/' is gitignored.
+Relative path to key. If using docker, make sure the key is mounted. Everything under './ssl/' is gitignored and './ssl/' is mounted into docker.
 
 #### `HTTPS_CERT=`
 
-Relative path to cert. If using docker, make sure the cert is mounted. Everything under 'ssl/' is gitignored.
+Relative path to cert. If using docker, make sure the cert is mounted. Everything under './ssl/' is gitignored and './ssl/' is mounted into docker.
 
 #### `DB_POOL_MAX=`
 
