@@ -956,6 +956,11 @@ async function makeTileLayer(layerObj) {
             typeof layerObj.time === 'undefined'
                 ? null
                 : layerObj.time.customTimes,
+        cogMin: layerObj.cogMin,
+        currentCogMin: layerObj.currentCogMin,
+        cogMax: layerObj.cogMax,
+        currentCogMax: layerObj.currentCogMax,
+        cogColormap: layerObj.cogColormap,
         variables: layerObj.variables || {},
     })
 

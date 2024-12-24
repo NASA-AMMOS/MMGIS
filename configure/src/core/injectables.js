@@ -2,14 +2,17 @@ import { calls } from "./calls";
 
 const injectablesDefaults = {
   TILE_MATRIX_SETS: ["WebMercatorQuad"],
+  COLORMAP_NAMES: ["viridis"],
 };
 // Initialize with reasonable defaults
 const injectables = {
   TILE_MATRIX_SETS: injectablesDefaults["TILE_MATRIX_SETS"],
+  COLORMAP_NAMES: injectablesDefaults["COLORMAP_NAMES"],
 };
 
 export const getInjectables = () => {
   getTileMatrixSets();
+  getColormapNames();
 };
 
 export const inject = (configJson) => {
@@ -57,6 +60,47 @@ function getTileMatrixSets() {
           "WGS1984Quad",
           "WorldCRS84Quad",
           "WorldMercatorWGS84Quad",
+        ];
+      }
+    );
+  }
+}
+
+function getColormapNames() {
+  const injectableName = "COLORMAP_NAMES";
+  if (window.mmgisglobal.WITH_TITILER === "true") {
+    calls.api(
+      "titiler_colormapNames",
+      null,
+      (res) => {
+        // ... new Set removes duplicates
+        injectables[injectableName] = [
+          ...new Set(
+            injectablesDefaults["COLORMAP_NAMES"].concat(res.colorMaps)
+          ),
+        ];
+      },
+      (res) => {
+        console.warn(`Failed to query for ${injectableName}. Using defaults.`);
+        injectables[injectableName] = [
+          "gist_earth",
+          "gist_earth_r",
+          "gist_gray",
+          "gist_gray_r",
+          "gist_heat",
+          "gist_heat_r",
+          "gist_ncar",
+          "gist_ncar_r",
+          "gist_rainbow",
+          "gist_rainbow_r",
+          "gist_stern",
+          "gist_stern_r",
+          "gist_yarg",
+          "gist_yarg_r",
+          "terrain",
+          "terrain_r",
+          "viridis",
+          "viridis_r",
         ];
       }
     );

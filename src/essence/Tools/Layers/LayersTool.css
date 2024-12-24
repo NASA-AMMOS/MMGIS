@@ -290,6 +290,28 @@
     top: -9px;
 }
 
+#layersTool .tileCogColormap > div {
+    position: relative;
+    margin-top: 2px;
+}
+#layersTool .tileCogColormap > div > div:first-child {
+    position: absolute;
+    left: 0;
+    mix-blend-mode: difference;
+}
+#layersTool .tileCogColormap > div > div:nth-child(2) {
+    position: absolute;
+    right: 5px;
+    letter-spacing: 1px;
+    text-transform: capitalize;
+    mix-blend-mode: difference;
+}
+#layersTool .tileCogColormap img {
+    width: 325px;
+    height: 28px;
+    margin-left: -12px;
+}
+
 #layersTool #layersToolList > li.download_on,
 #layersTool #layersToolList > li.gears_on {
     height: auto;
@@ -305,6 +327,7 @@
 
 #layersTool .reload,
 #layersTool .reset,
+#layersTool .resetCog,
 #layersTool .layerDownload,
 #layersTool .gears,
 #layersTool .locate,
@@ -333,13 +356,16 @@
 #layersTool .LayersToolInfo:hover {
     background: var(--color-k);
 }
-#layersTool .reset:hover {
+#layersTool .reset:hover,
+#layersTool .resetCog:hover {
     color: white;
 }
-#layersTool .reset {
+#layersTool .reset,
+#layersTool .resetCog {
     display: none;
 }
-#layersTool #layersToolList > li.gears_on .reset {
+#layersTool #layersToolList > li.gears_on .reset,
+#layersTool #layersToolList > li.gears_on .resetCog {
     display: block;
 }
 

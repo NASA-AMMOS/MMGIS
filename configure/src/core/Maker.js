@@ -602,7 +602,11 @@ const getComponent = (
             }}
           >
             {com.options.map((o) => {
-              return <MenuItem value={o}>{o.toUpperCase()}</MenuItem>;
+              return (
+                <MenuItem value={o}>
+                  {typeof o === "string" ? o.toUpperCase() : o}
+                </MenuItem>
+              );
             })}
           </Select>
         </FormControl>

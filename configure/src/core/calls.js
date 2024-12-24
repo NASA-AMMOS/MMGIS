@@ -122,6 +122,10 @@ const c = {
     type: "GET",
     url: "titiler/tileMatrixSets",
   },
+  titiler_colormapNames: {
+    type: "GET",
+    url: "titiler/colorMaps",
+  },
 };
 
 function api(call, data, success, error) {

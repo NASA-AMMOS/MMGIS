@@ -377,6 +377,7 @@ function interfaceWithMMGIS(fromInit) {
 
             //Build settings object
             var settings
+            let additionalSettings = ''
             switch (node[i].type) {
                 case 'vector':
                 case 'vectortile':
@@ -412,6 +413,43 @@ function interfaceWithMMGIS(fromInit) {
                                 : f['mix-blend-mode']
                     }
 
+                    additionalSettings = ''
+                    if (
+                        node[i].cogTransform === true &&
+                        typeof node[i].url === 'string' &&
+                        node[i].url.split(':')[0] === 'stac-collection'
+                    ) {
+                        // prettier-ignore
+                        additionalSettings = [
+                            '<div class="layerSettingsTitle">',
+                                '<div>COG Settings</div>',
+                                `<div class="resetCog" title="Reset COG Settings" layername="${node[i].name}">`,
+                                    '<i class="mdi mdi-restore mdi-18px"></i>',
+                                '</div>',
+                            '</div>',
+                            `<li class="tileCogMin">`,
+                                '<div>',
+                                    '<div>Rescale Min Value</div>',
+                                    `<input class='tilerescalecogmin' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${node[i].name}" parameter="min" type="number" value="${node[i].currentCogMin != null ? node[i].currentCogMin : node[i].cogMin}" default="0">`,
+                                '</div>',
+                            '</li>',
+                            `<li class="tileCogMax">`,
+                                '<div>',
+                                    '<div>Rescale Max Value</div>',
+                                    `<input class='tilerescalecogmax' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${node[i].name}" parameter="max" type="number" value="${node[i].currentCogMin != null ? node[i].currentCogMax : node[i].cogMax}" default="255">`,
+                                '</div>',
+                            '</li>',
+                            `<li class="tileCogColormap">`,
+                                '<div>',
+                                    '<div>Colormap</div>',
+                                        `<div>${node[i].cogColormap}</div>`,
+                                        `<img src="${window.location.origin}${(
+                                                window.location.pathname || ''
+                                            ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap}?format=png"></img>`,
+                                '</div>',
+                            '</li>'
+                        ].join('\n')
+                    }
                     // prettier-ignore
                     settings = [
                         '<ul>',
@@ -462,6 +500,7 @@ function interfaceWithMMGIS(fromInit) {
                                     '</select>',
                                 '</div>',
                             '</li>',
+                            additionalSettings,
                             /*
                             '<li>',
                                 '<div>',
@@ -494,7 +533,7 @@ function interfaceWithMMGIS(fromInit) {
                                 : f['mix-blend-mode']
                     }
 
-                    let additionalSettings = ''
+                    additionalSettings = ''
                     const shader = F_.getIn(node[i], 'variables.shader')
 
                     if (shader && DataShaders[shader.type]) {
@@ -1120,6 +1159,33 @@ function interfaceWithMMGIS(fromInit) {
         li.find('.tileblender').val('unset')
     })
 
+    $('.resetCog').on('click', function () {
+        let layer = $(this).attr('layername')
+        layer = L_.asLayerUUID(layer)
+        layer = L_.layers.data[layer]
+
+        if (L_.layers.layer[layer.name] === null) return
+
+        layer.currentCogMin = layer.cogMin
+        layer.currentCogMax = layer.cogMax
+
+        $(this)
+            .parent()
+            .parent()
+            .find('.tilerescalecogmin')
+            .val(layer.currentCogMin)
+        $(this)
+            .parent()
+            .parent()
+            .find('.tilerescalecogmax')
+            .val(layer.currentCogMax)
+
+        L_.layers.layer[layer.name].refresh(null, true, {
+            currentCogMin: layer.currentCogMin,
+            currentCogMax: layer.currentCogMax,
+        })
+    })
+
     //Applies slider values to map layers
     $('.tilefilterslider').on('input', function () {
         var val = $(this).val()
@@ -1140,6 +1206,28 @@ function interfaceWithMMGIS(fromInit) {
             'mix-blend-mode',
             $(this).val()
         )
+    })
+
+    $('.tilerescalecogmin').on('change', function () {
+        let layer = $(this).attr('layername')
+        layer = L_.asLayerUUID(layer)
+        layer = L_.layers.data[layer]
+        if (L_.layers.layer[layer.name] === null) return
+        layer.currentCogMin = parseFloat($(this).val())
+        L_.layers.layer[layer.name].refresh(null, true, {
+            currentCogMin: layer.currentCogMin,
+        })
+    })
+
+    $('.tilerescalecogmax').on('change', function () {
+        let layer = $(this).attr('layername')
+        layer = L_.asLayerUUID(layer)
+        layer = L_.layers.data[layer]
+        if (L_.layers.layer[layer.name] === null) return
+        layer.currentCogMax = parseFloat($(this).val())
+        L_.layers.layer[layer.name].refresh(null, true, {
+            currentCogMax: layer.currentCogMax,
+        })
     })
 
     let tags = []

@@ -22,7 +22,6 @@ var colorFilterExtension = {
 
         if (this.options.splitColonType === 'stac-collection') {
             let datetime
-
             if (this.options.endtime != null) {
                 if (this.options.starttime != null) {
                     datetime = `${this.options.starttime}/${this.options.endtime}`
@@ -38,6 +37,22 @@ var colorFilterExtension = {
                 url += `${
                     url.indexOf('?') === -1 ? '?' : '&'
                 }exitwhenfull=false&skipcovered=false`
+            if (this.options.cogMin != null && this.options.cogMax != null) {
+                url += `${url.indexOf('?') === -1 ? '?' : '&'}rescale=[${
+                    this.options.currentCogMin != null
+                        ? this.options.currentCogMin
+                        : this.options.cogMin
+                },${
+                    this.options.currentCogMax != null
+                        ? this.options.currentCogMax
+                        : this.options.cogMax
+                }]`
+                if (this.options.cogColormap != null) {
+                    url += `${
+                        url.indexOf('?') === -1 ? '?' : '&'
+                    }colormap_name=${this.options.cogColormap}`
+                }
+            }
         }
 
         url = url
@@ -161,7 +176,13 @@ var colorFilterExtension = {
         }
         img.src = url
     },
-    refresh: function (newUrl) {
+    refresh: function (newUrl, force, updateOptions) {
+        if (updateOptions) {
+            Object.keys(updateOptions).forEach((o) => {
+                this.options[o] = updateOptions[o]
+            })
+        }
+
         if (newUrl) this._url = newUrl
         if (this._map == null) return
         for (let key in this._tiles) {
@@ -170,7 +191,7 @@ var colorFilterExtension = {
                 const oldsrc = tile.el.src
                 const newsrc = this.getTileUrl(tile.coords)
 
-                if (oldsrc != newsrc) {
+                if (oldsrc != newsrc || force) {
                     //L.DomEvent.off(tile, 'load', this._tileOnLoad); ... this doesnt work!
                     this._refreshTileUrl(tile, newsrc)
                 }

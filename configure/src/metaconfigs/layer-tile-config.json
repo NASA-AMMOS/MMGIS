@@ -86,26 +86,6 @@
         {
           "components": [
             {
-              "field": "throughTileServer",
-              "name": "Use TiTiler",
-              "description": "Uses the TiTiler service to serve tiles if URL is a Cloud-Optimized GeoTiff (COG). TiTiler must be configured via the .env.",
-              "type": "switch",
-              "width": 4,
-              "defaultChecked": false
-            },
-            {
-              "field": "tileMatrixSet",
-              "name": "Tile Matrix Set",
-              "description": "If using TiTiler or if using a 'stac-collection:{collection}' URL, specify the projection for which to serve the tiles. Defaults to 'WebMercatorQuad'.",
-              "type": "dropdown",
-              "width": 4,
-              "options": "{{TILE_MATRIX_SETS}}"
-            }
-          ]
-        },
-        {
-          "components": [
-            {
               "field": "minZoom",
               "name": "Minimum Zoom",
               "description": "The lowest (smallest number) zoom level of the tile set.\nNote: This field can be automatically populate with 'Populate from XML'. 'Populate from XML' uses looks for a tilemapresource.xml in the tileset directory specified by the URL field.",
@@ -131,6 +111,61 @@
               "min": 0,
               "step": 1,
               "width": 3
+            }
+          ]
+        },
+        {
+          "name": "Cloud-Optimized GeoTiffs (COG)",
+          "components": [
+            {
+              "field": "throughTileServer",
+              "name": "Use TiTiler",
+              "description": "Uses the TiTiler service to serve tiles if URL is a Cloud-Optimized GeoTiff (COG). TiTiler must be configured via the .env.",
+              "type": "switch",
+              "width": 4,
+              "defaultChecked": false
+            },
+            {
+              "field": "tileMatrixSet",
+              "name": "Tile Matrix Set",
+              "description": "If using TiTiler or if using a 'stac-collection:{collection}' URL, specify the projection for which to serve the tiles. Defaults to 'WebMercatorQuad'.",
+              "type": "dropdown",
+              "width": 4,
+              "options": "{{TILE_MATRIX_SETS}}"
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "cogTransform",
+              "name": "Transform COG",
+              "description": "Enable rescaling and coloring 32-bit COGs on the fly.",
+              "type": "switch",
+              "width": 3,
+              "defaultChecked": false
+            },
+            {
+              "field": "cogMin",
+              "name": "Minimum Pixel Data Value",
+              "description": "If using TiTiler, STAC and 32-bit COGs, the default minimum value for which to rescale.",
+              "type": "number",
+              "width": 3
+            },
+            {
+              "field": "cogMax",
+              "name": "Maximum Pixel Data Value",
+              "description": "If using TiTiler, STAC and 32-bit COGs, the default maximum value for which to rescale.",
+              "type": "number",
+              "width": 3
+            },
+            {
+              "field": "cogColormap",
+              "name": "Colormap",
+              "description": "",
+              "type": "dropdown",
+              "width": 3,
+              "options": "{{COLORMAP_NAMES}}"
             }
           ]
         },
