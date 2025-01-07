@@ -26,7 +26,7 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def create_stac_items(mmgis_url, mmgis_token, collection_id, file_or_folder_path, path_remove, path_replace_with, upsert=False, regex=None, dev=False):
+def create_stac_items(mmgis_url, mmgis_token, collection_id, file_or_folder_path, path_remove, path_replace_with, upsert=False, regex=None, time_from_fn=False):
 
     isDir = os.path.isdir(file_or_folder_path)
     
@@ -104,5 +104,5 @@ def create_stac_items(mmgis_url, mmgis_token, collection_id, file_or_folder_path
 
 if __name__ == '__main__':
     args = parse_args()
-    create_stac_items(args.mmgis_url, args.mmgis_token, args.collection_id, args.file_or_folder_path, args.path_remove, args.path_replace_with, args.upsert, args.regex, args.dev)
+    create_stac_items(args.mmgis_url, args.mmgis_token, args.collection_id, args.file_or_folder_path, args.path_remove, args.path_replace_with, args.upsert, args.regex, args.time_from_fn)
     exit()
