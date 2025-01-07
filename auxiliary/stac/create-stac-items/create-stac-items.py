@@ -21,7 +21,7 @@ def parse_args():
     parser.add_argument('-rp', '--path_replace_with', help='If --path_remove, instead of setting that portion of the internal path to "", replaces it with this value.')
     parser.add_argument('-u', '--upsert', help='Allow overwriting existing STAC items', action='store_true')
     parser.add_argument('-r', '--regex', help='If folder, only create stac items for files that match this regex')
-    parser.add_argument('-d', '--dev', help='dev mode that does other things', action='store_true')
+    parser.add_argument('-t', '--time_from_fn', help='time format to read from filename', type=str, default=None)
 
     args = parser.parse_args()
     return args
@@ -59,44 +59,27 @@ def create_stac_items(mmgis_url, mmgis_token, collection_id, file_or_folder_path
             else:
                 asset_href = file.replace(path_remove, "")
 
-        if dev:
-            item = create_stac_item(
-                file,
-                input_datetime=datetime.fromisoformat(f"2024-11-0{(idx % 9) + 1}T00:00:00Z"),
-                #extensions=extensions,
-                #collection=collection,
-                #collection_url=collection_url,
-                #properties=property,
-                #id=id,
-                #asset_name=asset_name,
-                asset_href=asset_href,
-                #asset_media_type=asset_mediatype,
-                with_proj=True,
-                with_raster=True,
-                with_eo=True,
-                #raster_max_size=max_raster_size,
-                #geom_densify_pts=densify_geom,
-                #geom_precision=geom_precision,
-            )
-        else: 
-            item = create_stac_item(
-                file,
-                #input_datetime=input_datetime,
-                #extensions=extensions,
-                #collection=collection,
-                #collection_url=collection_url,
-                #properties=property,
-                #id=id,
-                #asset_name=asset_name,
-                asset_href=asset_href,
-                #asset_media_type=asset_mediatype,
-                with_proj=True,
-                with_raster=True,
-                with_eo=True,
-                #raster_max_size=max_raster_size,
-                #geom_densify_pts=densify_geom,
-                #geom_precision=geom_precision,
-            )
+        input_datetime = None
+        if args.time_from_fn is not None:
+            input_datetime = datetime.strptime(os.path.basename(file),args.time_from_fn) 
+        item = create_stac_item(
+            file,
+            input_datetime=input_datetime,
+            #extensions=extensions,
+            #collection=collection,
+            #collection_url=collection_url,
+            #properties=property,
+            #id=id,
+            #asset_name=asset_name,
+            asset_href=asset_href,
+            #asset_media_type=asset_mediatype,
+            with_proj=True,
+            with_raster=True,
+            with_eo=True,
+            #raster_max_size=max_raster_size,
+            #geom_densify_pts=densify_geom,
+            #geom_precision=geom_precision,
+        )
         item_dict = item.to_dict()
 
         items[item_dict.get('id')] = item_dict
