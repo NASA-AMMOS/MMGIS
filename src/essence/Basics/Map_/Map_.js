@@ -967,6 +967,14 @@ async function makeTileLayer(layerObj) {
     L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
 
     L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
+    L_.layers.layer[layerObj.name].off('loading')
+    L_.layers.layer[layerObj.name].on('loading', () => {
+        L_.setGlobalLoading(layerObj.name)
+    })
+    L_.layers.layer[layerObj.name].off('load')
+    L_.layers.layer[layerObj.name].on('load', () => {
+        L_.setGlobalLoaded(layerObj.name)
+    })
     allLayersLoaded()
 }
 

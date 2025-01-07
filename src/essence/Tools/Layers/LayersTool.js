@@ -705,8 +705,10 @@ function interfaceWithMMGIS(fromInit) {
             const layerName = li.attr('name')
 
             checkbox.addClass('loading')
+            L_.setGlobalLoading(layerName)
             await L_.toggleLayer(L_.layers.data[layerName])
             checkbox.removeClass('loading')
+            L_.setGlobalLoaded(layerName)
 
             if (
                 quasiLayers.includes(li.attr('type')) ||

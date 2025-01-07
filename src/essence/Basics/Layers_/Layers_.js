@@ -3465,6 +3465,25 @@ const L_ = {
 
         return images
     },
+    _globalLoadings: [],
+    _globalLoadingsTimeout: null,
+    setGlobalLoading(uuid) {
+        L_._globalLoadings.push(uuid)
+        L_._globalLoadings = [...new Set(L_._globalLoadings)]
+        clearTimeout(L_._globalLoadingsTimeout)
+        L_._globalLoadingsTimeout = setTimeout(() => {
+            $('#dataLoadingSpinner').css({ opacity: 1 })
+        }, 500)
+    },
+    setGlobalLoaded(uuid) {
+        L_._globalLoadings = L_._globalLoadings.filter(function (id) {
+            return id !== uuid
+        })
+        if (L_._globalLoadings.length === 0) {
+            clearTimeout(L_._globalLoadingsTimeout)
+            $('#dataLoadingSpinner').css({ opacity: 0 })
+        }
+    },
 }
 
 //Takes in a configData object and does a depth-first search through its

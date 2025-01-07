@@ -619,6 +619,26 @@ var UserInterface = {
             )
             .on('click', F_.toHostForceLanding)
 
+        this.dataLoadingSpinner = d3
+            .select('#main-container')
+            .append('div')
+            .attr('id', 'dataLoadingSpinner')
+            .style('opacity', 0)
+            .style('transition', 'opacity 0.3s ease-in-out')
+            .style('pointer-events', 'none')
+            .style('width', '40px')
+            .style('height', '40px')
+            .style('background', 'var(--color-a)')
+            .style('position', 'absolute')
+            .style('top', '0px')
+            .style('left', '0px')
+            .style('z-index', '2005')
+            .append('div')
+            .attr('class', 'mmgis-spinner2')
+            .style('position', 'absolute')
+            .style('top', '4px')
+            .style('left', '4px')
+
         //ViewerSplit is immovable
         //$( '#viewerSplit' ).mousedown( viewerSplitOnMouseDown );
         $('#mapSplit').mousedown(mapSplitOnMouseDown)
