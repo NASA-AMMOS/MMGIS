@@ -6,6 +6,9 @@ const express = require("express");
 const router = express.Router();
 const fs = require("fs");
 const path = require("path");
+const Sequelize = require("sequelize");
+const { sequelize } = require("../../../connection");
+
 const rootDir = `${__dirname}/../../../..`;
 
 const dirStore = {};
@@ -23,6 +26,7 @@ function getDirsInRange(prepath, starttime, endtime) {
   }
   return false;
 }
+
 /*
   path must begin with /Missions
   ex.
@@ -37,7 +41,7 @@ function getDirsInRange(prepath, starttime, endtime) {
     }
   }
 */
-router.get("/queryTilesetTimes", function (req, res, next) {
+function queryTilesetTimesDir(req, res) {
   const originalUrl = req.query.path;
   if (!originalUrl.startsWith("/Missions")) {
     res.send({
@@ -148,6 +152,47 @@ router.get("/queryTilesetTimes", function (req, res, next) {
     });
     return;
   }
+}
+function queryTilesetTimesStac(req, res) {
+  // prettier-ignore
+  sequelize
+  .query(
+    `SELECT
+      date_trunc ('month', datetime) AS month,
+      COUNT(*) AS total
+    FROM pgstac.items
+    WHERE collection = ':collection_id' && datetime >= :starttime && end_datetime <= :endtime
+    GROUP BY 1
+    ORDER BY month`,
+    {
+      replacements: {
+        collection_id: req.query.stacCollection,
+        starttime: req.query.starttime,
+        endtime: req.query.endtime
+      },
+    }
+  )
+  .then(([results]) => {
+    res.send({
+      status: "success",
+      body: {
+        times: results,
+      },
+    });
+    return;
+  })
+  .catch((err) => {
+    res.send({
+      status: "failure",
+      message: "Failed to get times in range.",
+    });
+    return;
+  });
+}
+
+router.get("/queryTilesetTimes", function (req, res) {
+  if (req.query.stacCollection != null) queryTilesetTimesStac(req, res);
+  else queryTilesetTimesDir(req, res);
 });
 
 module.exports = router;
