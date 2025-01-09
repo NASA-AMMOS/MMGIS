@@ -843,7 +843,15 @@ const TimeUI = {
                 L_.layers.on[name] === true
             ) {
                 let layerUrl = l.url
-                if (!F_.isUrlAbsolute(layerUrl)) {
+                if (layerUrl.indexOf('stac-collection:') === 0) {
+                    sparklineLayers.push({
+                        name: name,
+                        stacCollection: layerUrl.replace(
+                            'stac-collection:',
+                            ''
+                        ),
+                    })
+                } else if (!F_.isUrlAbsolute(layerUrl)) {
                     layerUrl = L_.missionPath + layerUrl
                     if (layerUrl.indexOf('{t}') > -1)
                         sparklineLayers.push({
@@ -863,31 +871,74 @@ const TimeUI = {
             Math.min(endTimestamp - startTimestamp, 360),
             1
         )
-        const bins = new Array(NUM_BINS).fill(0)
+        let bins = new Array(NUM_BINS).fill(0)
+        let numBins = 0
 
         sparklineLayers.forEach((l) => {
             calls.api(
                 'query_tileset_times',
-                {
-                    path: l.path,
-                    starttime: starttimeISO,
-                    endtime: endtimeISO,
-                },
+                l.stacCollection != null
+                    ? {
+                          stacCollection: l.stacCollection,
+                          starttime: starttimeISO,
+                          endtime: endtimeISO,
+                      }
+                    : {
+                          path: l.path,
+                          starttime: starttimeISO,
+                          endtime: endtimeISO,
+                      },
                 function (data) {
                     if (data.body && data.body.times) {
-                        data.body.times.forEach((time) => {
-                            bins[
-                                Math.floor(
+                        if (l.stacCollection != null) {
+                            for (let i = 0; i < NUM_BINS; i++) {
+                                bins[i] = Math.floor(
                                     F_.linearScale(
-                                        [startTimestamp, endTimestamp],
                                         [0, NUM_BINS],
-                                        TimeUI.removeOffset(
-                                            new Date(time.t).getTime()
-                                        )
+                                        [
+                                            TimeUI._timelineStartTimestamp,
+                                            TimeUI._timelineEndTimestamp,
+                                        ],
+                                        i
                                     )
                                 )
-                            ]++
-                        })
+                            }
+
+                            const nextBins = []
+                            let ti = 0
+                            for (let bi = 1; bi < bins.length; bi++) {
+                                nextBins[bi - 1] = 0
+                                while (
+                                    data.body.times[ti] &&
+                                    new Date(data.body.times[ti].t).getTime() >=
+                                        bins[bi - 1] &&
+                                    new Date(data.body.times[ti].t).getTime() <
+                                        bins[bi]
+                                ) {
+                                    nextBins[bi - 1] += parseInt(
+                                        data.body.times[ti].total
+                                    )
+                                    ti++
+                                }
+                            }
+                            bins = nextBins
+                            numBins = bins.length
+                        } else {
+                            data.body.times.forEach((time) => {
+                                bins[
+                                    Math.floor(
+                                        F_.linearScale(
+                                            [startTimestamp, endTimestamp],
+                                            [0, NUM_BINS],
+                                            TimeUI.removeOffset(
+                                                new Date(time.t).getTime()
+                                            )
+                                        )
+                                    )
+                                ]++
+                            })
+                            numBins = NUM_BINS
+                        }
 
                         const minmax = F_.getMinMaxOfArray(bins)
 
@@ -897,7 +948,7 @@ const TimeUI = {
                             bins.forEach((b) => {
                                 histoElm.append(
                                     `<div style="width:${
-                                        (1 / NUM_BINS) * 100
+                                        (1 / numBins) * 100
                                     }%; margin-top:${
                                         40 - (b / minmax.max) * 40
                                     }px"></div>`

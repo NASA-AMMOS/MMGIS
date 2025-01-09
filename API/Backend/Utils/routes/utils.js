@@ -7,7 +7,7 @@ const router = express.Router();
 const fs = require("fs");
 const path = require("path");
 const Sequelize = require("sequelize");
-const { sequelize } = require("../../../connection");
+const { sequelizeSTAC } = require("../../../connection");
 
 const rootDir = `${__dirname}/../../../..`;
 
@@ -154,21 +154,51 @@ function queryTilesetTimesDir(req, res) {
   }
 }
 function queryTilesetTimesStac(req, res) {
+  if (sequelizeSTAC == null) {
+    res.send({
+      status: "failure",
+      message: "No STAC Database",
+    });
+    return;
+  }
+  const range = new Date(req.query.endtime) - new Date(req.query.starttime);
+  let binBy = "milliseconds";
+  let minNumBins = 100;
+  // find ideal bin size
+  if (range > 31557600000 * minNumBins) {
+    binBy = "year";
+  } else if (range > 7889400000 * minNumBins) {
+    binBy = "quarter";
+  } else if (range > 2629746000 * minNumBins) {
+    binBy = "month";
+  } else if (range > 604800000 * minNumBins) {
+    binBy = "week";
+  } else if (range > 86400000 * minNumBins) {
+    binBy = "day";
+  } else if (range > 3600000 * minNumBins) {
+    binBy = "hour";
+  } else if (range > 60000 * minNumBins) {
+    binBy = "minute";
+  } else if (range > 1000 * minNumBins) {
+    binBy = "second";
+  }
+
   // prettier-ignore
-  sequelize
+  sequelizeSTAC
   .query(
     `SELECT
-      date_trunc ('month', datetime) AS month,
+      date_trunc (:binBy, datetime) AS t,
       COUNT(*) AS total
     FROM pgstac.items
-    WHERE collection = ':collection_id' && datetime >= :starttime && end_datetime <= :endtime
+    WHERE collection = :collection_id AND datetime >= :starttime AND end_datetime <= :endtime
     GROUP BY 1
-    ORDER BY month`,
+    ORDER BY t`,
     {
       replacements: {
         collection_id: req.query.stacCollection,
         starttime: req.query.starttime,
-        endtime: req.query.endtime
+        endtime: req.query.endtime,
+        binBy: binBy
       },
     }
   )
@@ -177,11 +207,13 @@ function queryTilesetTimesStac(req, res) {
       status: "success",
       body: {
         times: results,
+        binBy: binBy
       },
     });
     return;
   })
   .catch((err) => {
+    console.log(err)
     res.send({
       status: "failure",
       message: "Failed to get times in range.",
