@@ -717,6 +717,8 @@ function interfaceWithMMGIS(fromInit) {
                                     return evaluate_cmap(scaledPixelValue, colorRampInfo || 'viridis', false)
                                 }
 
+                                // Clear the cache so when zooming in/out, the old pixel colors are not cached
+                                layer.clearCache()
                                 layer.updateColors(pixelValuesToColorFn)
                             }
                         }
