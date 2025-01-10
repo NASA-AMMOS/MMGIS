@@ -140,7 +140,7 @@
             {
               "field": "cogTransform",
               "name": "Transform COG",
-              "description": "Enable rescaling and coloring 32-bit COGs on the fly.",
+              "description": "Enable rescaling and coloring 32-bit COGs on the fly. Will use TiTiler.",
               "type": "switch",
               "width": 3,
               "defaultChecked": false
@@ -150,14 +150,21 @@
               "name": "Minimum Pixel Data Value",
               "description": "If using TiTiler, STAC and 32-bit COGs, the default minimum value for which to rescale.",
               "type": "number",
-              "width": 3
+              "width": 2
             },
             {
               "field": "cogMax",
               "name": "Maximum Pixel Data Value",
               "description": "If using TiTiler, STAC and 32-bit COGs, the default maximum value for which to rescale.",
               "type": "number",
-              "width": 3
+              "width": 2
+            },
+            {
+              "field": "cogUnits",
+              "name": "Units",
+              "description": "Units string by which to suffix values. For instance if the units are meters, use 'm' so that values are displayed as '100m'.",
+              "type": "text",
+              "width": 2
             },
             {
               "field": "cogColormap",

@@ -177,6 +177,11 @@ var IdentifierTool = {
                 Globe_.litho.zoom,
             ])
     },
+    clearCursor: function (e) {
+        clearTimeout(IdentifierTool.mousemoveTimeout)
+        clearTimeout(IdentifierTool.mousemoveTimeoutMap)
+        CursorInfo.hide()
+    },
     //lnglatzoom is [lng,lat,zoom]
     //if trueValue is true, query the data layer for the value, else us the legend if possible
     idPixel: function (e, lnglatzoom, trueValue, selfish) {
@@ -430,6 +435,7 @@ var IdentifierTool = {
                 }
             }
         }
+
         CursorInfo.update(
             htmlInfoString + liEls.join('') + '</ul>',
             null,
@@ -504,10 +510,14 @@ function interfaceWithMMWebGIS() {
     d3.select('#map').style('cursor', 'crosshair')
 
     Map_.map.on('mousemove', IdentifierTool.idPixelMap)
+    Map_.map.on('mouseout', IdentifierTool.clearCursor)
     if (L_.hasGlobe) {
         Globe_.litho
             .getContainer()
             .addEventListener('mousemove', IdentifierTool.idPixelGlobe, false)
+        Globe_.litho
+            .getContainer()
+            .addEventListener('mouseout', IdentifierTool.clearCursor, false)
         //Globe_.shouldRaycastSprites = false
 
         Globe_.litho.getContainer().style.cursor = 'crosshair'
@@ -527,12 +537,16 @@ function interfaceWithMMWebGIS() {
     function separateFromMMWebGIS() {
         CursorInfo.hide()
         Map_.map.off('mousemove', IdentifierTool.idPixelMap)
+        Map_.map.off('mouseout', IdentifierTool.clearCursor)
         //Globe_.shouldRaycastSprites = true
         if (L_.hasGlobe) {
             Globe_.litho.getContainer().style.cursor = 'default'
             Globe_.litho
                 .getContainer()
                 .removeEventListener('mousemove', IdentifierTool.idPixelGlobe)
+            Globe_.litho
+                .getContainer()
+                .removeEventListener('mousemove', IdentifierTool.clearCursor)
         }
 
         if (IdentifierTool.targetId === 'toolContentSeparated_Identifier') {
