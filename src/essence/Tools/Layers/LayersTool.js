@@ -11,6 +11,8 @@ import Filtering from '../../Basics/Layers_/Filtering/Filtering'
 import Help from '../../Ancillary/Help'
 import CursorInfo from '../../Ancillary/CursorInfo'
 
+import LegendTool from '../Legend/LegendTool.js'
+
 import tippy from 'tippy.js'
 import 'markjs'
 import calls from '../../../pre/calls'
@@ -455,7 +457,7 @@ function interfaceWithMMGIS(fromInit) {
                             '<div class="tileCogColor">',
                                 `<li class="tileCogColormap">`,
                                     `<div class="tileCogColormapMap">`,
-                                        `<img src="${window.location.origin}${(
+                                        `<img id="titlerCogColormapImage" src="${window.location.origin}${(
                                                     window.location.pathname || ''
                                                 ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap}?format=png"></img>`,
                                         `<ul id="tileCogColormapMapLines"></ul>`,
@@ -1712,18 +1714,45 @@ function interfaceWithMMGIS(fromInit) {
         let layer = L_.asLayerUUID(layerName)
         layer = L_.layers.data[layer]
         if (L_.layers.layer[layer.name] === null) return
+
+        const dynamicLegendConf = []
+        const imgElement = document.getElementById('titlerCogColormapImage')
+        const canvasElement = document.createElement('canvas')
+        document.body.appendChild(canvasElement)
+        canvasElement.style.display = 'none'
+        canvasElement.width = 256
+        canvasElement.height = 1
+        const context = canvasElement.getContext('2d')
+        context.drawImage(imgElement, 0, 0, 256, 1, 0, 0, 256, 1)
+
         const min =
             layer.currentCogMin == null ? layer.cogMin : layer.currentCogMin
         const max =
             layer.currentCogMax == null ? layer.cogMax : layer.currentCogMax
-        for (let i = 1; i < 8; i++) {
-            $(`#tileCogLegend_${i}`).text(
-                `${
-                    Math.round(F_.linearScale([0, 8], [min, max], i) * 100) /
-                    100
-                }${layer.cogUnits || ''}`
-            )
+        for (let i = 0; i < 9; i++) {
+            let label = `${
+                Math.round(F_.linearScale([0, 8], [min, max], i) * 100) / 100
+            }${layer.cogUnits || ''}`
+            if (i !== 0 && i !== 8) {
+                $(`#tileCogLegend_${i}`).text(label)
+            }
+            const c = context.getImageData(
+                parseInt((255 / 9) * i),
+                0,
+                1,
+                1
+            ).data
+            dynamicLegendConf.push({
+                color: `rgb(${c[0]}, ${c[1]}, ${c[2]})`,
+                strokecolor: null,
+                shape: 'continuous',
+                value: label,
+            })
         }
+        document.body.removeChild(canvasElement)
+
+        L_.layers.data[layer.name]._legend = dynamicLegendConf
+        LegendTool.refreshLegends()
 
         $('#tileCogColormapMapLines').empty()
         for (let i = 0; i < 9; i++) {

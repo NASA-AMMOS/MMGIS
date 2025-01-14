@@ -868,7 +868,7 @@ const TimeUI = {
         const endtimeISO = new Date(TimeUI._timelineEndTimestamp).toISOString()
 
         const NUM_BINS = Math.max(
-            Math.min(endTimestamp - startTimestamp, 360),
+            Math.min(endTimestamp - startTimestamp, 255),
             1
         )
         let bins = new Array(NUM_BINS).fill(0)
@@ -949,9 +949,9 @@ const TimeUI = {
                                 histoElm.append(
                                     `<div style="width:${
                                         (1 / numBins) * 100
-                                    }%; margin-top:${
-                                        40 - (b / minmax.max) * 40
-                                    }px"></div>`
+                                    }%; opacity:${
+                                        (b > 0 ? 20 : 0) + (b / minmax.max) * 80
+                                    }%;"></div>`
                                 )
                             })
                     }

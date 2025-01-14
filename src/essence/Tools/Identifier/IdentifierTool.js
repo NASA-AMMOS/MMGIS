@@ -197,11 +197,14 @@ var IdentifierTool = {
             if (L_.layers.on[n] == true) {
                 //We only want the tile layers
                 if (L_.layers.data[n].type == 'tile') {
-                    let url = L_.getUrl(
-                        L_.layers.data[n].type,
-                        L_.layers.data[n].url,
-                        L_.layers.data[n]
-                    )
+                    let url =
+                        L_.layers.data[n].url.indexOf('stac-collection:') === 0
+                            ? L_.layers.data[n].url
+                            : L_.getUrl(
+                                  L_.layers.data[n].type,
+                                  L_.layers.data[n].url,
+                                  L_.layers.data[n]
+                              )
                     IdentifierTool.activeLayerURLs.push(url)
                     IdentifierTool.activeLayerNames.push(n)
                     IdentifierTool.zoomLevels.push(
@@ -216,71 +219,85 @@ var IdentifierTool = {
 
         //get the xyz and images of those layers
         for (var i = 0; i < IdentifierTool.activeLayerURLs.length; i++) {
-            var activeZ =
-                IdentifierTool.activeTiles[i] && IdentifierTool.activeTiles[i].z
-                    ? IdentifierTool.activeTiles[i].z
-                    : IdentifierTool.zoomLevels[i]
-            var az = Math.min(activeZ, IdentifierTool.zoomLevels[i])
-            var ax = F_.lon2tileUnfloored(lnglatzoom[0], az)
-            var ay = F_.lat2tileUnfloored(lnglatzoom[1], az)
-            var tz = az
-            var tx = Math.floor(ax)
-            var ty = Math.floor(ay)
-            //Invert y
-            if (IdentifierTool.tileFormats[i] == 'tms')
-                ty = Math.pow(2, tz) - 1 - ty
-
-            IdentifierTool.currentTiles[i] = { x: tx, y: ty, z: tz }
-            //Default activeTiles if none;
-            if (!IdentifierTool.activeTiles[i])
-                IdentifierTool.activeTiles[i] = { x: 0, y: 0, z: -1 }
-
-            //pixel on canvas. decimal part * imageWidth
-            var px = Math.round((ax % 1) * (IdentifierTool.tileImageWidth - 1))
-            var py = Math.round((ay % 1) * (IdentifierTool.tileImageWidth - 1))
-
-            IdentifierTool.pxXYs[i] = { x: px, y: py }
-
-            //Tile mouse is over has changed so update the image on our canvas
             if (
-                IdentifierTool.currentTiles[i].x !=
-                    IdentifierTool.activeTiles[i].x ||
-                IdentifierTool.currentTiles[i].y !=
-                    IdentifierTool.activeTiles[i].y ||
-                IdentifierTool.currentTiles[i].z !=
-                    IdentifierTool.activeTiles[i].z
+                IdentifierTool.activeLayerURLs[i].indexOf(
+                    'stac-collection:'
+                ) === 0
             ) {
-                //update active tile
-                //TODO: Capitalize previous comment
-                IdentifierTool.activeTiles[i].x =
-                    IdentifierTool.currentTiles[i].x
-                IdentifierTool.activeTiles[i].y =
-                    IdentifierTool.currentTiles[i].y
-                IdentifierTool.activeTiles[i].z =
-                    IdentifierTool.currentTiles[i].z
+                IdentifierTool.imageData[i] = false
+                trueValue = true
+            } else {
+                var activeZ =
+                    IdentifierTool.activeTiles[i] &&
+                    IdentifierTool.activeTiles[i].z
+                        ? IdentifierTool.activeTiles[i].z
+                        : IdentifierTool.zoomLevels[i]
+                var az = Math.min(activeZ, IdentifierTool.zoomLevels[i])
+                var ax = F_.lon2tileUnfloored(lnglatzoom[0], az)
+                var ay = F_.lat2tileUnfloored(lnglatzoom[1], az)
+                var tz = az
+                var tx = Math.floor(ax)
+                var ty = Math.floor(ay)
+                //Invert y
+                if (IdentifierTool.tileFormats[i] == 'tms')
+                    ty = Math.pow(2, tz) - 1 - ty
 
-                IdentifierTool.images[i] = new Image()
-                IdentifierTool.images[i].onload = (function (i) {
-                    return function () {
-                        IdentifierTool.imageData[i] =
-                            IdentifierTool.getImageData(
-                                IdentifierTool.images[i]
-                            )
-                    }
-                })(i)
-                IdentifierTool.images[i].onerror = (function (i) {
-                    return function () {
-                        IdentifierTool.imageData[i] = false
-                    }
-                })(i)
-                IdentifierTool.images[i].setAttribute('crossOrigin', '')
+                IdentifierTool.currentTiles[i] = { x: tx, y: ty, z: tz }
+                //Default activeTiles if none;
+                if (!IdentifierTool.activeTiles[i])
+                    IdentifierTool.activeTiles[i] = { x: 0, y: 0, z: -1 }
 
-                IdentifierTool.images[i].src = (
-                    IdentifierTool.activeLayerURLs[i] + ''
+                //pixel on canvas. decimal part * imageWidth
+                var px = Math.round(
+                    (ax % 1) * (IdentifierTool.tileImageWidth - 1)
                 )
-                    .replaceAll('{z}', tz)
-                    .replaceAll('{x}', tx)
-                    .replaceAll('{y}', ty)
+                var py = Math.round(
+                    (ay % 1) * (IdentifierTool.tileImageWidth - 1)
+                )
+
+                IdentifierTool.pxXYs[i] = { x: px, y: py }
+
+                //Tile mouse is over has changed so update the image on our canvas
+                if (
+                    IdentifierTool.currentTiles[i].x !=
+                        IdentifierTool.activeTiles[i].x ||
+                    IdentifierTool.currentTiles[i].y !=
+                        IdentifierTool.activeTiles[i].y ||
+                    IdentifierTool.currentTiles[i].z !=
+                        IdentifierTool.activeTiles[i].z
+                ) {
+                    //update active tile
+                    //TODO: Capitalize previous comment
+                    IdentifierTool.activeTiles[i].x =
+                        IdentifierTool.currentTiles[i].x
+                    IdentifierTool.activeTiles[i].y =
+                        IdentifierTool.currentTiles[i].y
+                    IdentifierTool.activeTiles[i].z =
+                        IdentifierTool.currentTiles[i].z
+
+                    IdentifierTool.images[i] = new Image()
+                    IdentifierTool.images[i].onload = (function (i) {
+                        return function () {
+                            IdentifierTool.imageData[i] =
+                                IdentifierTool.getImageData(
+                                    IdentifierTool.images[i]
+                                )
+                        }
+                    })(i)
+                    IdentifierTool.images[i].onerror = (function (i) {
+                        return function () {
+                            IdentifierTool.imageData[i] = false
+                        }
+                    })(i)
+                    IdentifierTool.images[i].setAttribute('crossOrigin', '')
+
+                    IdentifierTool.images[i].src = (
+                        IdentifierTool.activeLayerURLs[i] + ''
+                    )
+                        .replaceAll('{z}', tz)
+                        .replaceAll('{x}', tx)
+                        .replaceAll('{y}', ty)
+                }
             }
         }
 
@@ -295,7 +312,7 @@ var IdentifierTool = {
             value = ''
             liEls.push('')
 
-            var pxRGBA = { r: 0, g: 0, b: 0, a: 0 }
+            var pxRGBA = { r: 0, g: 0, b: 0, a: 255 }
             if (IdentifierTool.imageData[i]) {
                 pxRGBA = IdentifierTool.getPixel(
                     IdentifierTool.imageData[i],
@@ -303,16 +320,34 @@ var IdentifierTool = {
                     IdentifierTool.pxXYs[i].y
                 )
             }
+
             //Oh IdentifierTool is the same as X != undefined
+            if (
+                IdentifierTool.activeLayerURLs[i].startsWith('stac-collection:')
+            ) {
+                IdentifierTool.vars.data[
+                    IdentifierTool.activeLayerNames[i]
+                ].data = [
+                    {
+                        url: IdentifierTool.activeLayerURLs[i],
+                        bands: 1,
+                        units:
+                            L_.layers.data[IdentifierTool.activeLayerNames[i]]
+                                .cogUnits || '',
+                        sigfigs: 2,
+                        scalefactor: 1,
+                    },
+                ]
+            }
             if (
                 IdentifierTool.vars.data[IdentifierTool.activeLayerNames[i]]
                     ?.data
             ) {
                 const data =
                     IdentifierTool.vars.data[IdentifierTool.activeLayerNames[i]]
+
                 for (let j = 0; j < data.data.length; j++) {
                     const d = data.data[j]
-
                     if (pxRGBA) {
                         if (trueValue) {
                             queryDataValue(
@@ -323,13 +358,14 @@ var IdentifierTool = {
                                 IdentifierTool.activeLayerNames[i],
                                 (function (pxRGBA, i, j) {
                                     return function (value) {
+                                        console.log(value)
                                         const d2 =
                                             IdentifierTool.vars.data[
                                                 IdentifierTool.activeLayerNames[
                                                     i
                                                 ]
                                             ].data[j]
-                                        var htmlValues = ''
+                                        let htmlValues = ''
                                         // first empty it
                                         $(
                                             `#identifierToolIdPixelCursorInfo_${i}_${j}`
@@ -341,9 +377,9 @@ var IdentifierTool = {
                                                 '</div>',
                                             ].join('')
                                         )
-                                        var cnt = 0
-                                        for (var v in value) {
-                                            var unit = d2.unit || ''
+                                        let cnt = 0
+                                        for (let v in value) {
+                                            let unit = d2.units || ''
                                             if (
                                                 d2.units &&
                                                 d2.units.constructor ===
@@ -352,7 +388,7 @@ var IdentifierTool = {
                                             ) {
                                                 unit = d2.units[cnt]
                                             }
-                                            var valueParsed =
+                                            let valueParsed =
                                                 parseValue(
                                                     value[v][1],
                                                     d2.sigfigs,
@@ -361,7 +397,10 @@ var IdentifierTool = {
                                                 '' +
                                                 unit
 
-                                            if (value.length > 1) {
+                                            if (
+                                                value.length > 1 ||
+                                                value[v][2] != null
+                                            ) {
                                                 htmlValues +=
                                                     '<div style="display: flex; justify-content: space-between;"><div style="margin-right: 15px; color: var(--color-a5); font-size: 12px;">' +
                                                     value[v][0] +
@@ -526,7 +565,7 @@ function interfaceWithMMWebGIS() {
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
 
-    var newActive = $('#toolcontroller_sepdiv #' + 'Identifier' + 'Tool')
+    var newActive = $('#toolcontroller_sepdiv #IdentifierTool')
     newActive.addClass('active').css({
         color: ToolController_.activeColor,
     })
@@ -604,7 +643,35 @@ function bestMatchInLegend(rgba, legendData) {
 function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
     numBands = numBands || 1
     var dataPath
-    if (url.startsWith('/vsicurl/')) {
+    if (url.startsWith('stac-collection:')) {
+        fetch(
+            `${
+                mmgisglobal.NODE_ENV === 'development'
+                    ? 'http://localhost:8888'
+                    : ''
+            }/titilerpgstac/collections/${
+                url.split('stac-collection:')[1]
+            }/point/${lng},${lat}?assets=asset&items_limit=10`,
+            {
+                method: 'GET',
+                headers: {
+                    accept: 'application/json',
+                },
+            }
+        )
+            .then((res) => {
+                if (res.status === 200) {
+                    return res.json()
+                }
+            })
+            .then((json) => {
+                if (json.values) {
+                    if (typeof callback === 'function') callback(json.values)
+                }
+            })
+            .catch((err) => {})
+        return
+    } else if (url.startsWith('/vsicurl/')) {
         dataPath = url
     } else {
         dataPath = 'Missions/' + L_.mission + '/' + url

@@ -64,6 +64,7 @@ var LegendTool = {
         L_.unsubscribeOnLayerToggle('LegendTool')
         this.made = false
     },
+    refreshLegends: refreshLegends,
     overwriteLegends: overwriteLegends,
 }
 
@@ -74,30 +75,14 @@ function interfaceWithMMWebGIS() {
     }
     separateFromMMWebGIS()
 
-    let tools = drawLegendHeader()
+    LegendTool.tools = drawLegendHeader()
 
     //Add the markup to tools or do it manually
     //tools.html( markup );
 
     //Add event functions and whatnot
     //Draw legends
-    var first = true
-    for (let l in L_.layers.on) {
-        if (L_.layers.on[l] == true) {
-            if (L_.layers.data[l].type != 'header') {
-                if (L_.layers.data[l]?._legend != undefined) {
-                    drawLegends(
-                        tools,
-                        L_.layers.data[l]?._legend,
-                        l,
-                        L_.layers.data[l].display_name,
-                        L_.layers.opacity[l]
-                    )
-                }
-            }
-        }
-    }
-
+    LegendTool.refreshLegends()
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
     function separateFromMMWebGIS() {
@@ -107,6 +92,26 @@ function interfaceWithMMWebGIS() {
         tools.style('background', 'var(--color-k)')
         //Clear it
         tools.selectAll('*').remove()
+    }
+}
+
+function refreshLegends() {
+    $('#LegendTool').empty()
+
+    for (let l in L_.layers.on) {
+        if (L_.layers.on[l] == true) {
+            if (L_.layers.data[l].type != 'header') {
+                if (L_.layers.data[l]?._legend != undefined) {
+                    drawLegends(
+                        LegendTool.tools,
+                        L_.layers.data[l]?._legend,
+                        l,
+                        L_.layers.data[l].display_name,
+                        L_.layers.opacity[l]
+                    )
+                }
+            }
+        }
     }
 }
 
