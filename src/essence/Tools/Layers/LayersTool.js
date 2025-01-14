@@ -1714,6 +1714,7 @@ function interfaceWithMMGIS(fromInit) {
         let layer = L_.asLayerUUID(layerName)
         layer = L_.layers.data[layer]
         if (L_.layers.layer[layer.name] === null) return
+        if (!layer.url.startsWith('stac-collection:')) return
 
         const dynamicLegendConf = []
         const imgElement = document.getElementById('titlerCogColormapImage')

@@ -41,6 +41,7 @@ var IdentifierTool = {
             toolController.style('right', '5px')
             toolContent.style('left', null)
             toolContent.style('right', '0px')
+            toolContent.style('margin-bottom', '5px')
         } else if (
             this.justification !== L_.getToolVars('legend')['justification']
         ) {
@@ -302,8 +303,6 @@ var IdentifierTool = {
         }
 
         //Output the data somehow
-        var htmlInfoString =
-            "<ul style='list-style-type: none; padding: 0; margin: 0;'>"
         var value
         var liEls = []
         var colorString
@@ -358,7 +357,6 @@ var IdentifierTool = {
                                 IdentifierTool.activeLayerNames[i],
                                 (function (pxRGBA, i, j) {
                                     return function (value) {
-                                        console.log(value)
                                         const d2 =
                                             IdentifierTool.vars.data[
                                                 IdentifierTool.activeLayerNames[
@@ -418,6 +416,11 @@ var IdentifierTool = {
                                         $(
                                             `#identifierToolIdPixelCursorInfo_${i}_${j}`
                                         ).html(htmlValues)
+
+                                        $('#cursorInfo ul').css({
+                                            width: '',
+                                            height: '',
+                                        })
                                     }
                                 })(pxRGBA, i, j)
                             )
@@ -476,7 +479,13 @@ var IdentifierTool = {
         }
 
         CursorInfo.update(
-            htmlInfoString + liEls.join('') + '</ul>',
+            `<ul style='list-style-type: none; padding: 0; margin: 0; width:${
+                $('#cursorInfo').width() ? $('#cursorInfo').width() + 'px' : ''
+            }; height:${
+                $('#cursorInfo').height()
+                    ? $('#cursorInfo').height() + 'px'
+                    : ''
+            };'>${liEls.join('')}</ul>`,
             null,
             false,
             null,

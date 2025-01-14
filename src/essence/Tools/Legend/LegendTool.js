@@ -156,7 +156,10 @@ function drawLegendHeader() {
         .style('height', '30px')
         .style('line-height', '30px')
         .style('font-size', '13px')
-        .style('padding-right', '8px')
+        .style(
+            'padding-right',
+            LegendTool.justification === 'right' ? '30px' : '8px'
+        )
         .style(
             'padding-left',
             LegendTool.justification === 'right' ? '10px' : '30px'
