@@ -19,7 +19,7 @@
         {
           "field": "projection.epsg",
           "name": "EPSG Code",
-          "description": "An EPSG (or similar) code representing the spatial reference system. See https://spatialreference.org/ref/epsg/ for examples. For instance: 'IAU2000:30120'",
+          "description": "An EPSG (or similar) code representing the spatial reference system. See <a target='_blank' href='https://spatialreference.org/ref/epsg/'>https://spatialreference.org/ref/epsg/</a> for examples. For instance: 'IAU2000:30120'",
           "type": "text",
           "width": 2
         },
@@ -27,7 +27,7 @@
         {
           "field": "projection.proj",
           "name": "Proj4 (v2.3.14) String",
-          "description": "A Proj4 String that defines the projection. See https://proj.org/en/9.4/operations/projections/index.html for examples. Here is an example value of a lunar south-pole stereographic proj4 string: '+proj=stere +lat_0=-90 +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=1737400 +b=1737400 +units=m +no_defs'",
+          "description": "A Proj4 String that defines the projection. See <a target='_blank' href='https://proj.org/en/9.4/operations/projections/index.html'>https://proj.org/en/9.4/operations/projections/index.html</a> for examples. Here is an example value of a lunar south-pole stereographic proj4 string: '+proj=stere +lat_0=-90 +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=1737400 +b=1737400 +units=m +no_defs'",
           "type": "text",
           "width": 10
         }

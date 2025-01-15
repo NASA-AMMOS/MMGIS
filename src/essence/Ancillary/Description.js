@@ -83,6 +83,10 @@ const Description = {
                     `<div>Restrict to Time Range</div>`,
                     `<div class="mmgis-checkbox"><input type="checkbox" ${false ? 'checked ' : ''}id="checkbox_dp15"/><label for="checkbox_dp15"></label></div>`,
                 `</div>`,
+                `<div id="mainDescNavPopoverGeometryType">`,
+                    `<div>Restrict to Geometry Type</div>`,
+                    `<div class="mmgis-checkbox"><input type="checkbox" ${false ? 'checked ' : ''}id="checkbox_dp155"/><label for="checkbox_dp155"></label></div>`,
+                `</div>`,
                 `<div id="mainDescNavPopoverPanTo">`,
                     `<div>Pan To Feature</div>`,
                     `<div class="mmgis-checkbox"><input type="checkbox" ${false ? 'checked ' : ''}id="checkbox_dp2"/><label for="checkbox_dp2"></label></div>`,
@@ -234,6 +238,7 @@ const Description = {
                 if (
                     properties.indexOf(p) === -1 &&
                     p.indexOf('images') !== 0 &&
+                    p.indexOf('style') !== 0 &&
                     p[0] !== '_'
                 )
                     properties.push(p)
@@ -402,6 +407,22 @@ const Description = {
                     ) {
                         hasTimeBounds = true
                     }
+
+                    let geomTypeRestriction = false
+                    if (
+                        $('#mainDescNavPopoverGeometryType input').is(
+                            ':checked'
+                        )
+                    ) {
+                        geomTypeRestriction =
+                            active?.feature?.geometry?.type || false
+                    }
+                    if (geomTypeRestriction) {
+                        features = features.filter((f) => {
+                            return geomTypeRestriction === f?.geometry?.type
+                        })
+                    }
+
                     // Limit to current map extent if checkbox is true
                     let hasBounds = false
                     const b = Description.Map_.map.getBounds()
@@ -478,6 +499,7 @@ const Description = {
                                         direction === 'last'
                                             ? direction
                                             : offset,
+                                    restrictToGeometryType: geomTypeRestriction,
                                 }
 
                                 if (hasBounds) {
@@ -551,6 +573,22 @@ const Description = {
                                         features[i].properties._ =
                                             features[i].properties._ || {}
                                         features[i].properties._.id = i
+                                    }
+
+                                    // Reapply restrictions in this case
+                                    if (geomTypeRestriction) {
+                                        features = features.filter((f) => {
+                                            return (
+                                                geomTypeRestriction ===
+                                                f?.geometry?.type
+                                            )
+                                        })
+                                    }
+
+                                    if (hasBounds) {
+                                        features = features.filter((f) => {
+                                            return booleanIntersects(bounds, f)
+                                        })
                                     }
                                 }
 
@@ -755,6 +793,7 @@ const Description = {
                             return
                         }
                         if (
+                            !hasBounds &&
                             Description.navPopoverField === NAV_DEFAULT_FIELD &&
                             direction === 'previous'
                         ) {
@@ -762,6 +801,7 @@ const Description = {
                             return
                         }
                         if (
+                            !hasBounds &&
                             Description.navPopoverField === NAV_DEFAULT_FIELD &&
                             direction === 'next'
                         ) {

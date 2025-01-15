@@ -205,6 +205,17 @@
     padding: 0;
     margin: 0;
 }
+#layersTool .settings .layerTimeTitle {
+    display: flex;
+    height: 30px;
+    line-height: 30px;
+}
+#layersTool .settings .layerTimeTitle > div:first-child {
+    color: var(--color-h);
+    text-transform: uppercase;
+    font-size: 12px;
+}
+
 #layersTool .settings .layerSettingsTitle {
     display: flex;
     height: 30px;
@@ -216,7 +227,6 @@
     font-size: 12px;
 }
 #layersTool .settings .layerSettingsTitle > div:last-child {
-    
 }
 #layersTool .settings ul > li {
     line-height: 30px;
@@ -283,6 +293,83 @@
     top: -9px;
 }
 
+#layersTool .tileCogMin,
+#layersTool .tileCogMax {
+    margin-right: 34px;
+    z-index: 1;
+    position: relative;
+}
+
+#layersTool .tileCogMin > div:first-child > div:nth-child(2),
+#layersTool .tileCogMax > div:first-child > div:nth-child(2) {
+    display: flex;
+}
+#layersTool .tileCogUnits {
+    background: #222;
+    padding: 0px 2px 0px 2px;
+    height: 28px;
+    margin-top: 1px;
+    color: #ccc;
+    font-size: 12px;
+    border-left: 1px solid #575d60;
+}
+
+#layersTool .tileCogColor {
+    position: relative;
+    top: -269px;
+    margin-bottom: -235px;
+}
+#layersTool .tileCogColormap {
+    display: flex;
+}
+#layersTool .tileCogLegend {
+    line-height: 28px !important;
+    display: flex;
+    justify-content: flex-end;
+    margin-right: 38px;
+    font-size: 13px;
+    color: white;
+}
+#layersTool .tileCogColormapMap {
+    width: 100%;
+    height: 266px;
+    margin-bottom: -29px;
+}
+#layersTool #tileCogColormapMapLines {
+    height: 254px;
+    margin-left: 280px;
+    margin-top: -7px;
+    position: relative;
+}
+#layersTool #tileCogColormapMapLines li {
+    width: 28px;
+    border-top: 2px solid var(--color-a2);
+    float: right;
+}
+#layersTool .tileCogColormap > div {
+    position: relative;
+    margin-top: 2px;
+}
+#layersTool .tileCogColormap > div > div:first-child {
+    position: absolute;
+    left: 0;
+    mix-blend-mode: difference;
+}
+#layersTool .tileCogColormap > div > div:nth-child(2) {
+    position: absolute;
+    right: 5px;
+    letter-spacing: 1px;
+    text-transform: capitalize;
+    mix-blend-mode: difference;
+}
+#layersTool .tileCogColormap img {
+    width: 254px;
+    height: 28px;
+    transform: rotateZ(90deg) translateX(125px) translateY(-167px);
+    border-left: 14px solid #222;
+    border-right: 14px solid #222;
+}
+
 #layersTool #layersToolList > li.download_on,
 #layersTool #layersToolList > li.gears_on {
     height: auto;
@@ -298,8 +385,10 @@
 
 #layersTool .reload,
 #layersTool .reset,
+#layersTool .resetCog,
 #layersTool .layerDownload,
 #layersTool .gears,
+#layersTool .locate,
 #layersTool .LayersToolInfo,
 #layersTool .time {
     width: 30px;
@@ -314,22 +403,27 @@
 #layersTool .reload,
 #layersTool .layerDownload,
 #layersTool .gears,
+#layersTool .locate,
 #layersTool .LayersToolInfo {
     color: transparent;
 }
 #layersTool .reload:hover,
 #layersTool .layerDownload:hover,
 #layersTool .gears:hover,
+#layersTool .locate:hover,
 #layersTool .LayersToolInfo:hover {
     background: var(--color-k);
 }
-#layersTool .reset:hover {
+#layersTool .reset:hover,
+#layersTool .resetCog:hover {
     color: white;
 }
-#layersTool .reset {
+#layersTool .reset,
+#layersTool .resetCog {
     display: none;
 }
-#layersTool #layersToolList > li.gears_on .reset {
+#layersTool #layersToolList > li.gears_on .reset,
+#layersTool #layersToolList > li.gears_on .resetCog {
     display: block;
 }
 
@@ -339,6 +433,7 @@
 #layersTool li.gears_on .gears,
 #layersTool li:hover .reload,
 #layersTool li:hover .gears,
+#layersTool li:hover .locate,
 #layersTool li:hover .LayersToolInfo {
     color: #fff;
 }
@@ -625,7 +720,6 @@
         transform: rotate(360deg);
     }
 }
-
 
 .layersToolExport {
     cursor: default;

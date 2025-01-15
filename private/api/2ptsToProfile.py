@@ -9,6 +9,7 @@
 
 import sys
 import math
+import numpy as np
 from osgeo import gdal
 from osgeo import osr
 from osgeo.gdalconst import *
@@ -47,7 +48,7 @@ def getRasterDataValues(pointArray):
             if abs(value) >= abs(noData / decPlaces) and abs(value) <= abs(noData * decPlaces):
                 value = NODATA_VALUE
         valuesArray.append(value)
-    return valuesArray
+    return np.array(valuesArray).tolist()
 
 # Takes in a [[x,y],[x,y],[x,y],[x,y]...[x,y],[x,y]]
 # and returns an array of values on the raster OF those points in order
@@ -86,7 +87,7 @@ def getRasterDataCoords(pointArray):
 
         coordsArray.append([valueX, valueY])
 
-    return coordsArray
+    return np.array(coordsArray).tolist()
 
 # Takes in a [[x1,y1],[x2,y2]]
 # and returns [[x1,y1] + (steps - 2) interpolated pairs + [x2,y2]]

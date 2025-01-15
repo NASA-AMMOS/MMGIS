@@ -243,8 +243,11 @@ let ShadeTool_Manager = {
         this.data[shadeId].dataSource = source
     },
     queryDesiredTiles: function (shadeId, progcb, cb) {
-        let url = this.data[shadeId].dataLayer.demtileurl
-        if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
+        let url = L_.getUrl(
+            this.data[shadeId].dataLayer.type,
+            this.data[shadeId].dataLayer.demtileurl,
+            this.data[shadeId].dataLayer
+        )
 
         let totalTiles = this.data[shadeId].desiredTiles.length
         let tilesLoaded = 0

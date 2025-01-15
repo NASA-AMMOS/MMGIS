@@ -53,7 +53,9 @@ function get(reqtype, req, res, next) {
       if (result) {
         let table = result.dataValues.table;
         if (type == "geojson") {
-          let q = `SELECT properties, ST_AsGeoJSON(geom), id FROM ${table}`;
+          let q = `SELECT properties, ST_AsGeoJSON(geom), id FROM ${Utils.forceAlphaNumUnder(
+            table
+          )}`;
 
           if (req.query?.limited) {
             q += ` ORDER BY id DESC LIMIT 3`;
@@ -66,13 +68,17 @@ function get(reqtype, req, res, next) {
           let maxy = req.query?.maxy;
           if (minx != null && miny != null && maxx != null && maxy != null) {
             // ST_MakeEnvelope is (xmin, ymin, xmax, ymax, srid)
-            q += ` WHERE ST_Intersects(ST_MakeEnvelope(${parseFloat(
-              minx
-            )}, ${parseFloat(miny)}, ${parseFloat(maxx)}, ${parseFloat(
-              maxy
-            )}, 4326), geom)`;
+            q += ` WHERE ST_Intersects(ST_MakeEnvelope(${Utils.forceAlphaNumUnder(
+              parseFloat(minx)
+            )}, ${Utils.forceAlphaNumUnder(
+              parseFloat(miny)
+            )}, ${Utils.forceAlphaNumUnder(
+              parseFloat(maxx)
+            )}, ${Utils.forceAlphaNumUnder(parseFloat(maxy))}, 4326), geom)`;
             hasBounds = true;
           }
+          let start_time = "";
+          let end_time = "";
           if (req.query?.endtime != null) {
             const format = req.query?.format || "YYYY-MM-DDTHH:MI:SSZ";
             let t = ` `;
@@ -97,21 +103,23 @@ function get(reqtype, req, res, next) {
               return;
             }
 
-            const start_time = new Date(req.query.starttime).getTime();
-            const end_time = new Date(req.query.endtime).getTime();
+            start_time = new Date(req.query.starttime).getTime();
+            end_time = new Date(req.query.endtime).getTime();
 
+            const startProp = Utils.forceAlphaNumUnder(req.query.startProp);
+            const endProp = Utils.forceAlphaNumUnder(req.query.endProp);
             // prettier-ignore
             t += [
                 `(`,
-                  `${req.query.startProp} IS NOT NULL AND ${req.query.endProp} IS NOT NULL AND`, 
-                    ` ${req.query.startProp} >= ${start_time}`,
-                    ` AND ${req.query.endProp} <= ${end_time}`,
+                  `${startProp} IS NOT NULL AND ${endProp} IS NOT NULL AND`, 
+                    ` ${startProp} >= ${start_time}`,
+                    ` AND ${endProp} <= ${end_time}`,
                 `)`,
                 ` OR `,
                 `(`,
-                  `${req.query.startProp} IS NULL AND ${req.query.endProp} IS NOT NULL AND`,
-                    ` ${req.query.endProp} >= ${start_time}`,
-                    ` AND ${req.query.endProp} >= ${end_time}`,
+                  `${startProp} IS NULL AND ${endProp} IS NOT NULL AND`,
+                    ` ${endProp} >= ${start_time}`,
+                    ` AND ${endProp} >= ${end_time}`,
                 `)`
             ].join('')
             q += t;
@@ -119,7 +127,9 @@ function get(reqtype, req, res, next) {
           q += `;`;
 
           sequelize
-            .query(q)
+            .query(q, {
+              replacements: {},
+            })
             .then(([results]) => {
               let geojson = { type: "FeatureCollection", features: [] };
               for (let i = 0; i < results.length; i++) {
@@ -182,9 +192,9 @@ function get(reqtype, req, res, next) {
 
           sequelize
             .query(
-              "SELECT ST_AsMVT(q, '" +
-                layer +
-                "', 4096, 'geommvt') " +
+              "SELECT ST_AsMVT(q, " +
+                ":layer" +
+                ", 4096, 'geommvt') " +
                 "FROM (" +
                 "SELECT " +
                 "id, " +
@@ -192,43 +202,43 @@ function get(reqtype, req, res, next) {
                 "ST_AsMvtGeom(" +
                 "geom," +
                 "ST_MakeEnvelope(" +
-                sw.lng +
+                Utils.forceAlphaNumUnder(parseFloat(sw.lng)) +
                 "," +
-                sw.lat +
+                Utils.forceAlphaNumUnder(parseFloat(sw.lat)) +
                 "," +
-                ne.lng +
+                Utils.forceAlphaNumUnder(parseFloat(ne.lng)) +
                 "," +
-                ne.lat +
+                Utils.forceAlphaNumUnder(parseFloat(ne.lat)) +
                 ", 4326)," +
                 "4096," +
                 "256," +
                 "true" +
                 ") AS geommvt " +
                 "FROM " +
-                table +
+                Utils.forceAlphaNumUnder(table) +
                 " " +
                 "WHERE geom && ST_MakeEnvelope(" +
-                sw2.lng +
+                Utils.forceAlphaNumUnder(parseFloat(sw2.lng)) +
                 "," +
-                sw2.lat +
+                Utils.forceAlphaNumUnder(parseFloat(sw2.lat)) +
                 "," +
-                ne2.lng +
+                Utils.forceAlphaNumUnder(parseFloat(ne2.lng)) +
                 "," +
-                ne2.lat +
+                Utils.forceAlphaNumUnder(parseFloat(ne2.lat)) +
                 ", 4326) " +
                 "AND ST_Intersects(geom, ST_MakeEnvelope(" +
-                sw2.lng +
+                Utils.forceAlphaNumUnder(parseFloat(sw2.lng)) +
                 "," +
-                sw2.lat +
+                Utils.forceAlphaNumUnder(parseFloat(sw2.lat)) +
                 "," +
-                ne2.lng +
+                Utils.forceAlphaNumUnder(parseFloat(ne2.lng)) +
                 "," +
-                ne2.lat +
+                Utils.forceAlphaNumUnder(parseFloat(ne2.lat)) +
                 ", 4326))" +
                 ") AS q;",
               {
                 replacements: {
-                  table: table,
+                  layer: layer,
                 },
               }
             )
@@ -369,6 +379,7 @@ router.post("/entries", function (req, res, next) {
  * req.body.value
  * req.body.id (specific feature id instead of key:value)
  * req.body.orderBy
+ * req.body.restrictToGeometryType
  * req.body.offset (i.e. if -1, then return feature previous to key:val) (can also be 'first' or 'last')
  */
 router.post("/search", function (req, res, next) {
@@ -396,8 +407,7 @@ router.post("/search", function (req, res, next) {
         featureId = parseInt(featureId);
 
         let orderBy = "id";
-        if (req.body.orderBy != null)
-          orderBy = `properties->>'${req.body.orderBy}'`;
+        if (req.body.orderBy != null) orderBy = `properties->>:orderBy`;
 
         let minx = req.body?.minx;
         let miny = req.body?.miny;
@@ -406,24 +416,45 @@ router.post("/search", function (req, res, next) {
         let where = "";
         if (minx != null && miny != null && maxx != null && maxy != null) {
           // ST_MakeEnvelope is (xmin, ymin, xmax, ymax, srid)
-          where = ` WHERE ST_Intersects(ST_MakeEnvelope(${parseFloat(
-            minx
-          )}, ${parseFloat(miny)}, ${parseFloat(maxx)}, ${parseFloat(
-            maxy
-          )}, 4326), geom)`;
+          where = ` WHERE ST_Intersects(ST_MakeEnvelope(${Utils.forceAlphaNumUnder(
+            parseFloat(minx)
+          )}, ${Utils.forceAlphaNumUnder(
+            parseFloat(miny)
+          )}, ${Utils.forceAlphaNumUnder(
+            parseFloat(maxx)
+          )}, ${Utils.forceAlphaNumUnder(parseFloat(maxy))}, 4326), geom)`;
         }
 
+        const geometryTypes = [
+          "Point",
+          "LineString",
+          "Polygon",
+          "MultiPoint",
+          "MultiLineString",
+          "MultiPolygon",
+        ];
+
+        const geomTypeWhere =
+          geometryTypes.indexOf(req.body.restrictToGeometryType) != -1
+            ? " AND geometry_type = :geomtype"
+            : "";
+
         let q =
-          "SELECT properties, ST_AsGeoJSON(geom), id FROM " +
-          table +
+          `SELECT properties, ST_AsGeoJSON(geom), id FROM ${Utils.forceAlphaNumUnder(
+            table
+          )}` +
           (req.body.last || offset != null
-            ? `${where} ORDER BY id ${offset != null ? "ASC" : "DESC LIMIT 1"}`
-            : " WHERE properties ->> :key = :value");
+            ? `${where}${geomTypeWhere} ORDER BY id ${
+                offset != null && !req.body.last ? "ASC" : "DESC LIMIT 1"
+              }`
+            : ` WHERE properties ->> :key = :value${geomTypeWhere}`);
 
         sequelize
           .query(q + ";", {
             replacements: {
+              orderBy: orderBy || "id",
               key: req.body.key,
+              geomType: req.body.restrictToGeometryType,
               value:
                 typeof req.body.value === "string"
                   ? req.body.value.replace(/[`;'"]/gi, "")
@@ -602,13 +633,17 @@ function recreate(req, res, next) {
         return;
       }
 
-      let drop_qry = "TRUNCATE TABLE " + result.table + " RESTART IDENTITY";
+      let drop_qry = `TRUNCATE TABLE ${Utils.forceAlphaNumUnder(
+        result.table
+      )} RESTART IDENTITY`;
       if (req.body.hasOwnProperty("action") && req.body.action == "append") {
         drop_qry = "";
       }
 
       sequelize
-        .query(drop_qry)
+        .query(drop_qry, {
+          replacements: {},
+        })
         .then(() => {
           populateGeodatasetTable(
             result.tableObj,
@@ -674,7 +709,9 @@ function populateGeodatasetTable(Table, features, startProp, endProp, cb) {
   Table.bulkCreate(rows, { returning: true })
     .then(function (response) {
       sequelize
-        .query(`VACUUM ANALYZE ${Table.tableName};`)
+        .query(`VACUUM ANALYZE ${Utils.forceAlphaNumUnder(Table.tableName)};`, {
+          replacements: {},
+        })
         .then(() => {
           cb(true);
           return null;
@@ -709,7 +746,14 @@ router.delete("/remove/:name", function (req, res, next) {
     .then((result) => {
       if (result) {
         sequelize
-          .query(`DROP TABLE IF EXISTS ${result.dataValues.table};`)
+          .query(
+            `DROP TABLE IF EXISTS ${Utils.forceAlphaNumUnder(
+              result.dataValues.table
+            )};`,
+            {
+              replacements: {},
+            }
+          )
           .then(() => {
             Geodatasets.destroy({ where: { name: req.params.name } })
               .then(() => {

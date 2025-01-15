@@ -1,5 +1,6 @@
-export const publicUrl =
-  /*process.env.REACT_APP_PUBLIC_URL ||*/ "configure-beta";
+export const publicUrl = `${window.location.pathname
+  .replace(`configure-beta`, "")
+  .replace(/^\//g, "")}configure-beta`;
 
 export const endpoints = {};
 

@@ -6,6 +6,9 @@ const express = require("express");
 const router = express.Router();
 const fs = require("fs");
 const path = require("path");
+const Sequelize = require("sequelize");
+const { sequelizeSTAC } = require("../../../connection");
+
 const rootDir = `${__dirname}/../../../..`;
 
 const dirStore = {};
@@ -23,6 +26,7 @@ function getDirsInRange(prepath, starttime, endtime) {
   }
   return false;
 }
+
 /*
   path must begin with /Missions
   ex.
@@ -37,7 +41,7 @@ function getDirsInRange(prepath, starttime, endtime) {
     }
   }
 */
-router.get("/queryTilesetTimes", function (req, res, next) {
+function queryTilesetTimesDir(req, res) {
   const originalUrl = req.query.path;
   if (!originalUrl.startsWith("/Missions")) {
     res.send({
@@ -148,6 +152,79 @@ router.get("/queryTilesetTimes", function (req, res, next) {
     });
     return;
   }
+}
+function queryTilesetTimesStac(req, res) {
+  if (sequelizeSTAC == null) {
+    res.send({
+      status: "failure",
+      message: "No STAC Database",
+    });
+    return;
+  }
+  const range = new Date(req.query.endtime) - new Date(req.query.starttime);
+  let binBy = "milliseconds";
+  let minNumBins = 100;
+  // find ideal bin size
+  if (range > 31557600000 * minNumBins) {
+    binBy = "year";
+  } else if (range > 7889400000 * minNumBins) {
+    binBy = "quarter";
+  } else if (range > 2629746000 * minNumBins) {
+    binBy = "month";
+  } else if (range > 604800000 * minNumBins) {
+    binBy = "week";
+  } else if (range > 86400000 * minNumBins) {
+    binBy = "day";
+  } else if (range > 3600000 * minNumBins) {
+    binBy = "hour";
+  } else if (range > 60000 * minNumBins) {
+    binBy = "minute";
+  } else if (range > 1000 * minNumBins) {
+    binBy = "second";
+  }
+
+  // prettier-ignore
+  sequelizeSTAC
+  .query(
+    `SELECT
+      date_trunc (:binBy, datetime) AS t,
+      COUNT(*) AS total
+    FROM pgstac.items
+    WHERE collection = :collection_id AND datetime >= :starttime AND end_datetime <= :endtime
+    GROUP BY 1
+    ORDER BY t`,
+    {
+      replacements: {
+        collection_id: req.query.stacCollection,
+        starttime: req.query.starttime,
+        endtime: req.query.endtime,
+        binBy: binBy
+      },
+    }
+  )
+  .then(([results]) => {
+    res.send({
+      status: "success",
+      body: {
+        times: results,
+        binBy: binBy
+      },
+    });
+    return;
+  })
+  .catch((err) => {
+    console.log(err)
+    res.send({
+      status: "failure",
+      message: "Failed to get times in range.",
+    });
+    return;
+  });
+}
+
+router.get("/queryTilesetTimes", function (req, res) {
+  if (req.query.stacCollection != null) queryTilesetTimesStac(req, res);
+  else queryTilesetTimesDir(req, res);
 });
 
 module.exports = router;

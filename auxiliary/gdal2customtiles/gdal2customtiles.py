@@ -56,8 +56,12 @@ from uuid import uuid4
 from xml.etree import ElementTree
 
 from osgeo import gdal, osr
+gdal.UseExceptions()
 
 Options = Any
+
+# Unfortunately modifying this breaks other things
+PLANET_RADIUS = 6378137
 
 # MMGIS
 def binary(num):
@@ -252,7 +256,6 @@ class TileMatrixSet(object):
 
     def PixelsToMeters(self, px, py, zoom, overriden_tile_size):
         "Converts pixel coordinates in given zoom level of pyramid to EPSG:3857"
-
         res = self.resolution * self.tile_size / \
             overriden_tile_size / (2**zoom)
         mx = px * res + self.topleft_x
@@ -511,9 +514,9 @@ class GlobalMercator(object):
     def __init__(self, tile_size: int = 256) -> None:
         "Initialize the TMS Global Mercator pyramid"
         self.tile_size = tile_size
-        self.initialResolution = 2 * math.pi * 6378137 / self.tile_size
+        self.initialResolution = 2 * math.pi * PLANET_RADIUS / self.tile_size
         # 156543.03392804062 for tile_size 256 pixels
-        self.originShift = 2 * math.pi * 6378137 / 2.0
+        self.originShift = 2 * math.pi * PLANET_RADIUS / 2.0
         # 20037508.342789244
 
     def LatLonToMeters(self, lat, lon):
@@ -541,7 +544,6 @@ class GlobalMercator(object):
 
     def PixelsToMeters(self, px, py, zoom):
         "Converts pixel coordinates in given zoom level of pyramid to EPSG:3857"
-
         res = self.Resolution(zoom)
         mx = px * res - self.originShift
         my = py * res - self.originShift
@@ -596,7 +598,7 @@ class GlobalMercator(object):
     def Resolution(self, zoom):
         "Resolution (meters/pixel) for given zoom level (measured at Equator)"
 
-        # return (2 * math.pi * 6378137) / (self.tile_size * 2**zoom)
+        # return (2 * math.pi * PLANET_RADIUS) / (self.tile_size * 2**zoom)
         return self.initialResolution / (2**zoom)
 
     def ZoomForPixelSize(self, pixelSize):
@@ -1856,6 +1858,12 @@ def optparse_init() -> optparse.OptionParser:
         help="Resampling method (%s) - default 'average'" % ",".join(resampling_list),
     )
     p.add_option(
+        "--base_every_zoom",
+        dest="base_every_zoom",
+        action="store_true",
+        help="Instead of making base tiles and then overview tiles from them, generate every zoom level as if it was the base zoom level. This may prevent inevitable rounding errors from deeper zoom levels from accumulating and propagating to lower zoom levels.",
+    )
+    p.add_option(
         "-s",
         "--s_srs",
         dest="s_srs",
@@ -2366,7 +2374,6 @@ class GDAL2Tiles(object):
             )
 
         # Open the input file
-
         if self.input_file:
             input_dataset: gdal.Dataset = gdal.Open(
                 self.input_file, gdal.GA_ReadOnly)
@@ -3062,7 +3069,7 @@ class GDAL2Tiles(object):
         """
 
         if not self.options.quiet:
-            print("Generating Base Tiles:")
+            print("Generating Base Tiles at zoom " + str(self.tmaxz) + ":")
 
         if self.options.verbose:
             print("")
@@ -3144,6 +3151,7 @@ class GDAL2Tiles(object):
 
                     rx, ry, rxsize, rysize = rb
                     wx, wy, wxsize, wysize = wb
+                    # print(tx, ty, tz, b, rb, wb, querysize)
 
                 # MMGIS
                 elif self.isRasterBounded: # 'raster' profile:
@@ -3295,7 +3303,7 @@ class GDAL2Tiles(object):
         ry = int((uly - geotran[3]) / geotran[5] + 0.001)
         rxsize = max(1, int((lrx - ulx) / geotran[1] + 0.5))
         rysize = max(1, int((lry - uly) / geotran[5] + 0.5))
-
+        
         if not querysize:
             wxsize, wysize = rxsize, rysize
         else:
@@ -4743,14 +4751,79 @@ function ExtDraggableObject(src, opt_drag) {
 
         return ty
 
+def ZoomForPixelSize(pixelSize):
+    MAXZOOMLEVEL = 32
+    tile_size = 256
+    initialResolution = 2 * math.pi * PLANET_RADIUS / tile_size
+    for i in range(MAXZOOMLEVEL):
+        if pixelSize > initialResolution / (2**i):
+            return max(0, i)  # We don't want to scale up
+    return MAXZOOMLEVEL
 
 def worker_tile_details(
-    input_file: str, output_folder: str, options: Options
+    input_file: str, output_folder: str, options: Options, pool
 ) -> Tuple[TileJobInfo, List[TileDetail]]:
-    gdal2tiles = GDAL2Tiles(input_file, output_folder, options)
-    gdal2tiles.open_input()
-    gdal2tiles.generate_metadata()
-    tile_job_info, tile_details = gdal2tiles.generate_base_tiles()
+    
+    tile_job_info = []
+    tile_details = []
+     
+    if options.base_every_zoom:
+
+        print("Tiling each zoom level as if it is the base zoom level...")
+        
+        minZoom = options.zoom[0]
+        maxZoom = options.zoom[1]
+        if minZoom is None:
+            if maxZoom is None:
+                minZoom = 0
+            else:
+                minZoom = maxZoom
+        if maxZoom is None:
+            ds = gdal.Open(input_file)
+            gt = ds.GetGeoTransform()
+            maxZoom = ZoomForPixelSize(gt[1])
+
+        print("Tiling zoom " + str(minZoom) + " - " + str(maxZoom) + "...")
+
+        firstPass = True
+        for base_tz in range(minZoom, maxZoom + 1, 1):
+            options.zoom[1] = base_tz
+            gdal2tiles = GDAL2Tiles(input_file, output_folder, options)
+            gdal2tiles.open_input()
+            if firstPass:
+                gdal2tiles.generate_metadata()
+
+            tile_job_info_bez, tile_details_bez = gdal2tiles.generate_base_tiles()
+            
+            if not options.verbose and not options.quiet:
+                base_progress_bar = ProgressBar(len(tile_details_bez))
+                base_progress_bar.start()
+
+            if pool:
+                nb_processes = options.nb_processes or 1
+                chunksize = max(1, min(128, len(tile_details) // nb_processes))
+                for _ in pool.imap_unordered(
+                    partial(create_base_tile, tile_job_info_bez), tile_details_bez, chunksize=chunksize
+                ):
+                    if not options.verbose and not options.quiet:
+                        base_progress_bar.log_progress()
+            else:
+                for tile_detail in tile_details_bez:
+                    create_base_tile(tile_job_info_bez, tile_detail)
+
+                    if not options.verbose and not options.quiet:
+                        base_progress_bar.log_progress()
+
+            if getattr(threadLocal, "cached_ds", None):
+                del threadLocal.cached_ds
+
+            firstPass = True
+    else:
+        gdal2tiles = GDAL2Tiles(input_file, output_folder, options)
+        gdal2tiles.open_input()
+        gdal2tiles.generate_metadata()
+        tile_job_info, tile_details = gdal2tiles.generate_base_tiles()
+
     return tile_job_info, tile_details
 
 
@@ -4852,6 +4925,10 @@ def single_threaded_tiling(
     conf, tile_details = worker_tile_details(
         input_file, output_folder, options)
 
+    if options.base_every_zoom:
+        sys.exit('Done!')
+        return
+    
     if options.verbose:
         print("Tiles details calc complete.")
 
@@ -4900,8 +4977,13 @@ def multi_threaded_tiling(
         print("Begin tiles details calc")
 
     conf, tile_details = worker_tile_details(
-        input_file, output_folder, options)
+        input_file, output_folder, options, pool)
 
+    if options.base_every_zoom:
+        shutil.rmtree(os.path.dirname(conf.src_file))
+        sys.exit('Done!')
+        return
+    
     if options.verbose:
         print("Tiles details calc complete.")
 

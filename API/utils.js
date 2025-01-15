@@ -1,3 +1,5 @@
+const fs = require("fs");
+
 const Utils = {
   getIn: function (obj, keyArray, notSetValue, assumeLayerHierarchy) {
     if (obj == null) return notSetValue != null ? notSetValue : null;
@@ -121,6 +123,50 @@ const Utils = {
         }
       }
       return true;
+    }
+  },
+  isDocker() {
+    let isDockerCached;
+
+    function hasDockerEnv() {
+      try {
+        fs.statSync("/.dockerenv");
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    function hasDockerCGroup() {
+      try {
+        return fs.readFileSync("/proc/self/cgroup", "utf8").includes("docker");
+      } catch {
+        return false;
+      }
+    }
+
+    // TODO: Use `??=` when targeting Node.js 16.
+    if (isDockerCached === undefined) {
+      isDockerCached = hasDockerEnv() || hasDockerCGroup();
+    }
+
+    return isDockerCached;
+  },
+  forceAlphaNumUnder: function (str) {
+    if (typeof str === "string") {
+      return str
+        .replace(/[`~!@#$%^&*|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, "")
+        .replace(/[^ -~]+/g, "");
+    } else if (typeof str === "number") {
+      return str;
+    } else if (Array.isArray(str)) {
+      return str
+        .join(",")
+        .replace(/[`~!@#$%^&*|+\-=?;:'".<>\{\}\[\]\\\/]/gi, "")
+        .replace(/[^ -~]+/g, "")
+        .split(",");
+    } else {
+      return "";
     }
   },
 };

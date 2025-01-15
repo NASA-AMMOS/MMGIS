@@ -1,11 +1,11 @@
 ---
 layout: page
-title: Scripts
+title: Auxiliary Scripts
 permalink: /scripts
 nav_order: 8
 ---
 
-# Scripts
+# Auxiliary Scripts
 
 On the supporting scripts inside `/auxiliary`.
 

@@ -6,6 +6,7 @@ import { makeStyles } from "@mui/styles";
 import clsx from "clsx";
 
 import { reorderArray, insertLayerAfterUUID } from "../../../core/utils";
+import ConfigureStore from "../../../core/ConfigureStore";
 import { setModal, setConfiguration } from "../../../core/ConfigureStore";
 
 import LayerModal from "./Modals/LayerModal/LayerModal";
@@ -164,7 +165,8 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-let savedLayersConfiguration = "";
+let configuration = {};
+let savedMinLayers = "";
 export default function Layers() {
   const c = useStyles();
 
@@ -172,11 +174,30 @@ export default function Layers() {
   const [flatLayers, setFlatLayers] = useState([]);
 
   const mission = useSelector((state) => state.core.mission);
-  const configuration = useSelector((state) => state.core.configuration);
+  const minLayersStr = useSelector((state) => {
+    if (state.core.configuration?.layers == null) return "[]";
+
+    configuration = state.core.configuration;
+
+    const minLayers = [];
+    traverseLayers(state.core.configuration.layers, (layer, path, i, depth) => {
+      minLayers.push({
+        layer: {
+          name: layer.name,
+          uuid: layer.uuid,
+          type: layer.type,
+          visibility: layer.visibility,
+        },
+        depth,
+      });
+    });
+    return JSON.stringify(minLayers);
+  });
+  const minLayers = JSON.parse(minLayersStr);
 
   useEffect(() => {
     return () => {
-      savedLayersConfiguration = "";
+      savedMinLayers = "";
     };
   }, []);
 
@@ -195,14 +216,14 @@ export default function Layers() {
     return <div className={c.Layers}>Not found</div>;
   }
 
-  const strConf = JSON.stringify(configuration.layers);
-  if (savedLayersConfiguration != strConf) {
+  const strConf = JSON.stringify(minLayers);
+  if (savedMinLayers != strConf) {
     const nextFlatLayers = [];
     traverseLayers(configuration.layers, (layer, path, i, depth) => {
       nextFlatLayers.push({ layer, depth });
     });
     setFlatLayers(nextFlatLayers);
-    savedLayersConfiguration = strConf;
+    savedMinLayers = strConf;
   }
 
   const onIndent = (layer, idx) => {

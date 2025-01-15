@@ -11,6 +11,8 @@ import Filtering from '../../Basics/Layers_/Filtering/Filtering'
 import Help from '../../Ancillary/Help'
 import CursorInfo from '../../Ancillary/CursorInfo'
 
+import LegendTool from '../Legend/LegendTool.js'
+
 import tippy from 'tippy.js'
 import 'markjs'
 import calls from '../../../pre/calls'
@@ -306,20 +308,22 @@ function interfaceWithMMGIS(fromInit) {
                 case 'tile':
                     layerExport = ''
                     // Add download URL for raster layers
-                    if(node[i].hasOwnProperty('variables')) {
-                        if(node[i].variables.hasOwnProperty('downloadURL')) {
+                    if (node[i].hasOwnProperty('variables')) {
+                        if (node[i].variables.hasOwnProperty('downloadURL')) {
                             layerExport = [
                                 '<ul>',
-                                    '<li>',
-                                        '<div class="layersToolExportSourceGeoJSON">',
-                                            `<div><a href="` + node[i].variables.downloadURL + `" target="_blank">Download Data</a></div>`,
-                                        '</div>',
-                                    '</li>',
+                                '<li>',
+                                '<div class="layersToolExportSourceGeoJSON">',
+                                `<div><a href="` +
+                                    node[i].variables.downloadURL +
+                                    `" target="_blank">Download Data</a></div>`,
+                                '</div>',
+                                '</li>',
                                 '</ul>',
                             ].join('\n')
                         }
                     }
-                    break 
+                    break
                 default:
                     layerExport = ''
             }
@@ -328,28 +332,48 @@ function interfaceWithMMGIS(fromInit) {
             var timeDisplay = ''
             if (node[i].time != null) {
                 if (node[i].time.enabled == true) {
+                    // prettier-ignore
                     timeDisplay = [
                         '<ul>',
-                        '<li>',
-                        '<div>',
-                        '<div>Start Time</div>',
-                        '<label class="starttime ' +
-                            F_.getSafeName(node[i].name) +
-                            '">' +
-                            node[i].time.start +
-                            '</label>',
-                        '</div>',
-                        '</li>',
-                        '<li>',
-                        '<div>',
-                        '<div>End Time</div>',
-                        '<label class="endtime ' +
-                            F_.getSafeName(node[i].name) +
-                            '">' +
-                            node[i].time.end +
-                            '</label>',
-                        '</div>',
-                        '</li>',
+                            '<li class="layerTimeTitle">',
+                                '<div>Time</div>',
+                            '</li>',
+                            '<li>',
+                                '<div>',
+                                '<div>Start Time</div>',
+                                '<label class="starttime ' +
+                                    F_.getSafeName(node[i].name) +
+                                    '">' +
+                                    node[i].time.start +
+                                    '</label>',
+                                '</div>',
+                            '</li>',
+                            '<li>',
+                                '<div>',
+                                '<div>End Time</div>',
+                                '<label class="endtime ' +
+                                    F_.getSafeName(node[i].name) +
+                                    '">' +
+                                    node[i].time.end +
+                                    '</label>',
+                                '</div>',
+                            '</li>',
+                            (
+                                node[i].time.refreshIntervalEnabled === true
+                            ) ? 
+                            [
+                            '<li>',
+                                '<div>',
+                                '<div>Auto-Refreshes Every</div>',
+                                '<label class="autoRefreshInterval ' +
+                                    F_.getSafeName(node[i].name) +
+                                    '">' +
+                                    (node[i].time.refreshIntervalAmount || 60) +
+                                    ' Seconds</label>',
+                                '</div>',
+                            '</li>'
+                            ].join('\n')
+                            : null,
                         '</ul>',
                     ].join('\n')
                 }
@@ -357,6 +381,7 @@ function interfaceWithMMGIS(fromInit) {
 
             //Build settings object
             var settings
+            let additionalSettings = ''
             switch (node[i].type) {
                 case 'vector':
                 case 'vectortile':
@@ -392,6 +417,57 @@ function interfaceWithMMGIS(fromInit) {
                                 : f['mix-blend-mode']
                     }
 
+                    additionalSettings = ''
+                    if (
+                        node[i].cogTransform === true &&
+                        typeof node[i].url === 'string' &&
+                        node[i].url.split(':')[0] === 'stac-collection'
+                    ) {
+                        // prettier-ignore
+                        additionalSettings = [
+                            '<div class="layerSettingsTitle">',
+                                '<div>COG Settings</div>',
+                                `<div class="resetCog" title="Reset COG Settings" layername="${node[i].name}">`,
+                                    '<i class="mdi mdi-restore mdi-18px"></i>',
+                                '</div>',
+                            '</div>',
+                            `<li class="tileCogMin">`,
+                                '<div>',
+                                    '<div>Rescale Min Value</div>',
+                                    '<div>',
+                                        `<input class='tilerescalecogmin' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${node[i].name}" parameter="min" type="number" value="${node[i].currentCogMin != null ? node[i].currentCogMin : node[i].cogMin}" default="0">`,
+                                        node[i].cogUnits != null ? `<div class='tileCogUnits'>${node[i].cogUnits}</div>`: '',
+                                    '</div>',
+                                '</div>',
+                            '</li>',
+                            '<li id="tileCogLegend_1" class="tileCogLegend">-</li>',
+                            '<li id="tileCogLegend_2" class="tileCogLegend">-</li>',
+                            '<li id="tileCogLegend_3" class="tileCogLegend">-</li>',
+                            '<li id="tileCogLegend_4" class="tileCogLegend">-</li>',
+                            '<li id="tileCogLegend_5" class="tileCogLegend">-</li>',
+                            '<li id="tileCogLegend_6" class="tileCogLegend">-</li>',
+                            '<li id="tileCogLegend_7" class="tileCogLegend">-</li>',
+                            `<li class="tileCogMax">`,
+                                '<div>',
+                                    '<div>Rescale Max Value</div>',
+                                    '<div>',
+                                        `<input class='tilerescalecogmax' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${node[i].name}" parameter="max" type="number" value="${node[i].currentCogMin != null ? node[i].currentCogMax : node[i].cogMax}" default="255">`,
+                                        node[i].cogUnits != null ? `<div class='tileCogUnits'>${node[i].cogUnits}</div>`: '',
+                                    '</div>',
+                                '</div>',
+                            '</li>',
+                            '<div class="tileCogColor">',
+                                `<li class="tileCogColormap">`,
+                                    `<div class="tileCogColormapMap">`,
+                                        `<img id="titlerCogColormapImage" src="${window.location.origin}${(
+                                                    window.location.pathname || ''
+                                                ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap}?format=png"></img>`,
+                                        `<ul id="tileCogColormapMapLines"></ul>`,
+                                    `</div>`,
+                                '</li>',
+                            '</div>'
+                        ].join('\n')
+                    }
                     // prettier-ignore
                     settings = [
                         '<ul>',
@@ -442,6 +518,7 @@ function interfaceWithMMGIS(fromInit) {
                                     '</select>',
                                 '</div>',
                             '</li>',
+                            additionalSettings,
                             /*
                             '<li>',
                                 '<div>',
@@ -474,7 +551,7 @@ function interfaceWithMMGIS(fromInit) {
                                 : f['mix-blend-mode']
                     }
 
-                    let additionalSettings = ''
+                    additionalSettings = ''
                     const shader = F_.getIn(node[i], 'variables.shader')
 
                     if (shader && DataShaders[shader.type]) {
@@ -625,6 +702,9 @@ function interfaceWithMMGIS(fromInit) {
                                     '<div title="Settings" class="gears" id="layersettings' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
                                         '<i class="mdi mdi-tune mdi-18px" name="layersettings"></i>',
                                     '</div>',
+                                    '<div title="Locate" class="locate" id="layerlocate' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
+                                        '<i class="mdi mdi-crosshairs-gps mdi-18px" name="layerlocate"></i>',
+                                    '</div>',
                                     '<div title="Information" class="LayersToolInfo" id="layerinfo' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
                                         '<i class="mdi mdi-information-outline mdi-18px" name="layerinfo"></i>',
                                     '</div>',
@@ -759,8 +839,10 @@ function interfaceWithMMGIS(fromInit) {
             const layerName = li.attr('name')
 
             checkbox.addClass('loading')
+            L_.setGlobalLoading(layerName)
             await L_.toggleLayer(L_.layers.data[layerName])
             checkbox.removeClass('loading')
+            L_.setGlobalLoaded(layerName)
 
             if (
                 quasiLayers.includes(li.attr('type')) ||
@@ -941,6 +1023,71 @@ function interfaceWithMMGIS(fromInit) {
                 if (!wasOn) Filtering.make($(this).parent().parent(), layerName)
             }
         }
+
+        populateCogScale(layerName)
+    })
+
+    // Locates/zooms to fill extent of layer
+    $('#layersTool .locate').on('click', function (e) {
+        e.stopPropagation()
+        const layerName = $(this).attr('layername')
+        const data = L_.layers.data[layerName]
+        const layer = L_.layers.layer[layerName]
+
+        if (!data || !layer) {
+            CursorInfo.update(
+                'Unable to locate layer.',
+                4000,
+                true,
+                { x: 385, y: 6 },
+                '#e9ff26',
+                'black'
+            )
+            return
+        }
+
+        if (L_.layers.on[layerName] !== true) {
+            CursorInfo.update(
+                'Please turn the layer on before locating.',
+                4000,
+                true,
+                { x: 385, y: 6 },
+                '#e9ff26',
+                'black'
+            )
+            return
+        }
+
+        try {
+            if (typeof layer.getBounds === 'function') {
+                Map_.map.fitBounds(layer.getBounds())
+            } else if (data.boundingBox) {
+                Map_.map.fitBounds([
+                    [data.boundingBox[1], data.boundingBox[0]],
+                    [data.boundingBox[3], data.boundingBox[2]],
+                ])
+            } else {
+                CursorInfo.update(
+                    'Unable to locate layer.',
+                    4000,
+                    true,
+                    { x: 385, y: 6 },
+                    '#e9ff26',
+                    'black'
+                )
+                return
+            }
+        } catch (err) {
+            CursorInfo.update(
+                'Unable to locate layer.',
+                4000,
+                true,
+                { x: 385, y: 6 },
+                '#e9ff26',
+                'black'
+            )
+            return
+        }
     })
     //Enables the time dialogue box
     $('.LayersToolInfo').on('click', function (e) {
@@ -1085,10 +1232,11 @@ function interfaceWithMMGIS(fromInit) {
                     }
                 )
             } else {
-                let layerUrl = layerData.url
-
-                if (!F_.isUrlAbsolute(layerUrl))
-                    layerUrl = L_.missionPath + layerUrl
+                let layerUrl = L_.getUrl(
+                    layerData.type,
+                    layerData.url,
+                    layerData
+                )
                 $.getJSON(layerUrl, function (data) {
                     if (data.hasOwnProperty('Features')) {
                         data.features = data.Features
@@ -1149,6 +1297,33 @@ function interfaceWithMMGIS(fromInit) {
         li.find('.tileblender').val('unset')
     })
 
+    $('.resetCog').on('click', function () {
+        let layer = $(this).attr('layername')
+        layer = L_.asLayerUUID(layer)
+        layer = L_.layers.data[layer]
+
+        if (L_.layers.layer[layer.name] === null) return
+
+        layer.currentCogMin = layer.cogMin
+        layer.currentCogMax = layer.cogMax
+
+        $(this)
+            .parent()
+            .parent()
+            .find('.tilerescalecogmin')
+            .val(layer.currentCogMin)
+        $(this)
+            .parent()
+            .parent()
+            .find('.tilerescalecogmax')
+            .val(layer.currentCogMax)
+
+        L_.layers.layer[layer.name].refresh(null, true, {
+            currentCogMin: layer.currentCogMin,
+            currentCogMax: layer.currentCogMax,
+        })
+    })
+
     //Applies slider values to map layers
     $('.tilefilterslider').on('input', function () {
         var val = $(this).val()
@@ -1169,6 +1344,41 @@ function interfaceWithMMGIS(fromInit) {
             'mix-blend-mode',
             $(this).val()
         )
+    })
+
+    $('.tilerescalecogmin').on('change', function () {
+        let layer = $(this).attr('layername')
+        layer = L_.asLayerUUID(layer)
+        layer = L_.layers.data[layer]
+        if (L_.layers.layer[layer.name] === null) return
+        layer.currentCogMin = Math.min(
+            parseFloat($(this).val()),
+            layer.currentCogMax == null
+                ? layer.cogMax || 255
+                : layer.currentCogMax
+        )
+        $('.tilerescalecogmin').val(layer.currentCogMin)
+        L_.layers.layer[layer.name].refresh(null, true, {
+            currentCogMin: layer.currentCogMin,
+        })
+        populateCogScale(layer.name)
+    })
+    $('.tilerescalecogmax').on('change', function () {
+        let layer = $(this).attr('layername')
+        layer = L_.asLayerUUID(layer)
+        layer = L_.layers.data[layer]
+        if (L_.layers.layer[layer.name] === null) return
+        layer.currentCogMax = Math.max(
+            parseFloat($(this).val()),
+            layer.currentCogMin == null
+                ? layer.cogMin || 0
+                : layer.currentCogMin
+        )
+        $('.tilerescalecogmax').val(layer.currentCogMax)
+        L_.layers.layer[layer.name].refresh(null, true, {
+            currentCogMax: layer.currentCogMax,
+        })
+        populateCogScale(layer.name)
     })
 
     let tags = []
@@ -1616,6 +1826,59 @@ function interfaceWithMMGIS(fromInit) {
                     '</li>',
                 '</ul>',
             ].join('\n')
+    }
+
+    function populateCogScale(layerName) {
+        let layer = L_.asLayerUUID(layerName)
+        layer = L_.layers.data[layer]
+        if (L_.layers.layer[layer.name] === null) return
+        if (!layer.url.startsWith('stac-collection:')) return
+
+        const dynamicLegendConf = []
+        const imgElement = document.getElementById('titlerCogColormapImage')
+        const canvasElement = document.createElement('canvas')
+        document.body.appendChild(canvasElement)
+        canvasElement.style.display = 'none'
+        canvasElement.width = 256
+        canvasElement.height = 1
+        const context = canvasElement.getContext('2d')
+        context.drawImage(imgElement, 0, 0, 256, 1, 0, 0, 256, 1)
+
+        const min =
+            layer.currentCogMin == null ? layer.cogMin : layer.currentCogMin
+        const max =
+            layer.currentCogMax == null ? layer.cogMax : layer.currentCogMax
+        for (let i = 0; i < 9; i++) {
+            let label = `${
+                Math.round(F_.linearScale([0, 8], [min, max], i) * 100) / 100
+            }${layer.cogUnits || ''}`
+            if (i !== 0 && i !== 8) {
+                $(`#tileCogLegend_${i}`).text(label)
+            }
+            const c = context.getImageData(
+                parseInt((255 / 9) * i),
+                0,
+                1,
+                1
+            ).data
+            dynamicLegendConf.push({
+                color: `rgb(${c[0]}, ${c[1]}, ${c[2]})`,
+                strokecolor: null,
+                shape: 'continuous',
+                value: label,
+            })
+        }
+        document.body.removeChild(canvasElement)
+
+        L_.layers.data[layer.name]._legend = dynamicLegendConf
+        LegendTool.refreshLegends()
+
+        $('#tileCogColormapMapLines').empty()
+        for (let i = 0; i < 9; i++) {
+            $('#tileCogColormapMapLines').append(
+                `<li style="height: ${(1 / 9) * 100}%;"></li>`
+            )
+        }
     }
 
     function setSublayerEvents() {

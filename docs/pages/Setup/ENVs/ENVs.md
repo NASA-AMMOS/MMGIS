@@ -62,7 +62,19 @@ Password of Postgres database | string | default `null`
 
 #### `PORT=`
 
-Port to run on | positive integer | default `3000`
+Port to run on | positive integer | default `8888`
+
+#### `HTTPS=`
+
+If true, MMGIS will use an https server with the, now required, `HTTPS_KEY` and `HTTPS_CERT` envs. If false, use a wrapping https proxy server instead and block `PORT` from being public | boolean | false
+
+#### `HTTPS_KEY=`
+
+Relative path to key. If using docker, make sure the key is mounted. Everything under './ssl/' is gitignored and './ssl/' is mounted into docker.
+
+#### `HTTPS_CERT=`
+
+Relative path to cert. If using docker, make sure the cert is mounted. Everything under './ssl/' is gitignored and './ssl/' is mounted into docker.
 
 #### `DB_POOL_MAX=`
 
@@ -98,7 +110,11 @@ Sets "SameSite=None; Secure" on the login cookie. Useful when using AUTH=local a
 
 #### `ROOT_PATH=`
 
-Set MMGIS to be deployed under a subpath. For example if serving at the subpath 'https://{domain}/path/where/I/serve/mmgis' is desired, set `ROOT_PATH=/path/where/I/serve/mmgis`. If no subpath, leave blank. | string | default `""`
+Set MMGIS to be deployed under a subpath. For example if serving at the subpath 'https://{domain}/path/where/I/serve/mmgis' is desired, set `ROOT_PATH=/path/where/I/serve/mmgis`. Should always begin with a `/`. If no subpath, leave blank. | string | default `""`
+
+#### `EXTERNAL_ROOT_PATH=`
+
+Tell MMGIS that it's already deployed under a subpath. For example if already proxying to the subpath 'https://{domain}/path/where/I/serve/mmgis' is desired, set `ROOT_PATH=/path/where/I/serve/mmgis`. This differs from ROOT_PATH in that MMGIS will not place any of it's endpoints under this path but will still query as if it did. Should always begin with a `/`. If `ROOT_PATH` is also set, requests will use `EXTERNAL_ROOT_PATH` + `ROOT_PATH`. If no external subpath, leave blank. | string | default `""`
 
 #### `WEBSOCKET_ROOT_PATH=`
 
@@ -163,3 +179,7 @@ If true, then also triggers the kernel download when MMGIS starts | boolean | de
 #### `SPICE_SCHEDULED_KERNEL_CRON_EXPR=`
 
 A cron schedule expression for use in the [node-schedule npm library](https://www.npmjs.com/package/node-schedule) | string | default `"0 0 */2 * *"` (every other day)
+
+#### `COMPOSITE_TILE_DIR_STORE_MAX_AGE_MS=`
+
+When using composited time tiles, MMGIS queries the tileset's folder for existing time folders. It caches the results of the these folder listings every COMPOSITE_TILE_DIR_STORE_MAX_AGE_MS milliseconds. Defaults to requerying every 30 minutes. If 0, no caching. If null or NaN, uses default. | number | default `1800000`

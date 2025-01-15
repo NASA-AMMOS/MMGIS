@@ -1,5 +1,49 @@
 # MMGIS Changelog
 
+## 3.0.0
+
+_October 14, 2024_
+
+#### Summary
+
+Adds the new Configure Beta page at /configure-beta. The old Configure page still exists at /configure and is meant to be backwards compatible but do note that new configuration options will likely only make there way into /configure-beta.
+
+#### Added
+
+- /configure-beta
+- Made dynamicExtent requery timeEnabled aware.
+- Viewshed Tool can configure initial target and initial observer heights.
+- Viewshed Tool in-app documentation.
+- Allow adding relative seconds to initial times
+- Added downloadURL variable to allow users to download raster layers.
+- Info queries for dynamicExtent layers.
+- mmgisAPI.getActiveTools.
+- Can specify any mdi icon to be the shape icon for a vector layer.
+- Easily navigate to the next and previous feature of a layer
+- COMPOSITE_TILE_DIR_STORE_MAX_AGE_MS ENV (for composited tile layers).
+- Add per layer refreshInterval for which to requery vector or raster layer.
+
+#### Changed
+
+- Updated Identifier tool to be a separated floating tool.
+- MeasureTool now uses a linear x-axis.
+- Improvements to bulk_tiles and added quantize_colormap.
+- Enabled scalefactor and improved text readout for Identifier tool.
+
+#### Fixed
+
+- Improper WMS layer option forwarding in some cases.
+- Bad merging of values for injection into time={starttime} in a WMS URL.
+- mmgisAPI.setTime checking min-date restrictions too soon.
+- Chronice fix second loss.
+- Vector layers with heading/bearings would not toggle on/off.
+- dynamicExtent vector layer and filtering issues.
+- Fix setTime currentTime timezone.
+- Fix Deeplink to selected point or polygon.
+- Starting in Point Mode for Time doesn't work.
+
+---
+
 ## 2.11.0
 
 _Mar 15, 2024_
@@ -51,7 +95,7 @@ Disable Globe more thoroughly when off
 Additional Body Metadata for Draw Webhooks
 Remove restriction on Layer names
 Check for empty time configs in TimeControl
-Dropdown in the topbar for a selected feature’s properties links
+Dropdown in the topbar for a selected feature's properties links
 
 #### Fixed
 
@@ -104,7 +148,7 @@ This release makes Layer IDs based on UUIDs instead of their layer names, greatl
 #### Changed
 
 - Layers use UUIDs and identifiers instead of their layer names (backwards-compatibility still maintained)
-- The ENV `PUBLIC_URL` is deprecated in fovar of the new `ROOT_PATH`. Unlike `PUBLIC_URL`, `ROOT_PATH` can fully be changed at runtime
+- The ENV `PUBLIC_URL` is deprecated in favor of the new `ROOT_PATH`. Unlike `PUBLIC_URL`, `ROOT_PATH` can fully be changed at runtime
 - Database and POSTGIS extension are automatically created if they don't exist
 - Upgraded the configure page's jquery from `1.11.1` to `3.6.1`
 

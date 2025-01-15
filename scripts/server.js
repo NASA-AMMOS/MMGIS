@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const fs = require("fs");
 const http = require("http");
+const https = require("https");
 const { Pool } = require("pg");
 var path = require("path");
 const packagejson = require("../package.json");
@@ -24,6 +25,8 @@ const apiRouter = require("../API/Backend/APIs/routes/apis");
 
 const testEnv = require("../API/testEnv");
 
+const utils = require("../API/utils");
+
 const { sequelize } = require("../API/connection");
 
 const setups = require("../API/setups");
@@ -33,6 +36,9 @@ const { updateTools } = require("../API/updateTools");
 const { websocket } = require("../API/websocket");
 
 const { setSPICEKernelDownloadSchedule } = require("../spice/getKernels");
+
+const initAdjacentServersProxy = require("../adjacent-servers/adjacent-servers-proxy");
+const adjacentServers = require("../adjacent-servers/adjacent-servers");
 
 const WebSocket = require("isomorphic-ws");
 
@@ -71,6 +77,9 @@ const rootDir = `${__dirname}/..`;
 
 ///////////////////////////
 const app = express();
+
+const isDocker = utils.isDocker();
+process.env.IS_DOCKER = isDocker ? "true" : "false";
 
 const apilimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
@@ -125,6 +134,8 @@ if (process.env.SPICE_SCHEDULED_KERNEL_DOWNLOAD === "true")
     process.env.SPICE_SCHEDULED_KERNEL_DOWNLOAD_ON_START,
     process.env.SPICE_SCHEDULED_KERNEL_CRON_EXPR
   );
+
+///
 
 ///////////////////////////
 
@@ -284,7 +295,7 @@ function ensureGroup(allowedGroups) {
   };
 }
 
-function ensureAdmin(toLoginPage, denyLongTermTokens) {
+function ensureAdmin(toLoginPage, denyLongTermTokens, allowGets, disallow) {
   return (req, res, next) => {
     let url = req.originalUrl.split("?")[0].toLowerCase();
     const remoteAddress =
@@ -297,10 +308,27 @@ function ensureAdmin(toLoginPage, denyLongTermTokens) {
       url.endsWith("/api/geodatasets/search") ||
       url.endsWith("/api/datasets/get") ||
       req.session.permission === "111"
-    )
+    ) {
       next();
-    else if (toLoginPage) res.render("adminlogin", { user: req.user });
-    else if (!denyLongTermTokens && req.headers.authorization) {
+      return;
+    }
+
+    if (allowGets === true && req.method === "GET") {
+      if (
+        disallow == null ||
+        disallow.filter((path) => url.endsWith(path)).length == 0
+      ) {
+        next();
+        return;
+      }
+    }
+
+    if (toLoginPage) {
+      res.render("adminlogin", { user: req.user });
+      return;
+    }
+
+    if (!denyLongTermTokens && req.headers.authorization) {
       validateLongTermToken(
         req.headers.authorization,
         () => {
@@ -317,15 +345,16 @@ function ensureAdmin(toLoginPage, denyLongTermTokens) {
           );
         }
       );
-    } else {
-      res.send({ status: "failure", message: "Unauthorized!" });
-      logger(
-        "warn",
-        `Unauthorized call made and rejected (from ${remoteAddress})`,
-        req.originalUrl,
-        req
-      );
+      return;
     }
+
+    res.send({ status: "failure", message: "Unauthorized!" });
+    logger(
+      "warn",
+      `Unauthorized call made and rejected (from ${remoteAddress})`,
+      req.originalUrl,
+      req
+    );
     return;
   };
 }
@@ -408,6 +437,11 @@ const useSwaggerSchema =
   (schema) =>
   (...args) =>
     swaggerUi.setup(schema, swaggerOptions)(...args);
+
+///
+adjacentServers();
+initAdjacentServersProxy(app, isDocker, ensureAdmin);
+//
 
 let s = {
   app: app,
@@ -848,7 +882,16 @@ setups.getBackendSetups(function (setups) {
   //////Setups Init//////
   setups.init(s);
 
-  const httpServer = http.createServer(app);
+  let httpServer;
+  if (process.env.HTTPS == "true") {
+    httpServer = https.createServer(
+      {
+        key: fs.readFileSync(process.env.HTTPS_KEY),
+        cert: fs.readFileSync(process.env.HTTPS_CERT),
+      },
+      app
+    );
+  } else httpServer = http.createServer(app);
 
   // Start listening for requests.
   httpServer.listen(port, (err) => {
@@ -873,7 +916,7 @@ setups.getBackendSetups(function (setups) {
           let permission = "000";
           if (process.env.AUTH === "csso") permission = "001";
           if (req.session.permission) permission = req.session.permission;
-
+          console.log("process.env.IS_DOCKER", process.env.IS_DOCKER);
           const groups = req.groups ? Object.keys(req.groups) : [];
           res.render("../build/index.pug", {
             user: user,
@@ -886,6 +929,7 @@ setups.getBackendSetups(function (setups) {
             CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER,
             ENABLE_MMGIS_WEBSOCKETS: process.env.ENABLE_MMGIS_WEBSOCKETS,
             MAIN_MISSION: process.env.MAIN_MISSION,
+            IS_DOCKER: process.env.IS_DOCKER,
             SKIP_CLIENT_INITIAL_LOGIN: process.env.SKIP_CLIENT_INITIAL_LOGIN,
             THIRD_PARTY_COOKIES: process.env.THIRD_PARTY_COOKIES,
             PORT: process.env.PORT,

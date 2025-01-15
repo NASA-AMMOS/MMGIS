@@ -1,7 +1,8 @@
-const domain =
+let domain =
   window.mmgisglobal.NODE_ENV === "development"
     ? "http://localhost:8888/"
-    : window.location.origin + "/";
+    : window.mmgisglobal.ROOT_PATH || "";
+if (domain.length > 0 && !domain.endsWith("/")) domain += "/";
 
 const c = {
   missionPath: "Missions/",
@@ -81,6 +82,18 @@ const c = {
     type: "GET",
     url: "api/datasets/download",
   },
+  stac_collections: {
+    type: "GET",
+    url: "api/stac/collections",
+  },
+  stac_create_collection: {
+    type: "POST",
+    url: "stac/collections",
+  },
+  stac_delete_collection: {
+    type: "DELETE",
+    url: "stac/collections/:collection",
+  },
   longtermtoken_get: {
     type: "GET",
     url: "api/longtermtoken/get",
@@ -104,6 +117,14 @@ const c = {
   webhooks_config: {
     type: "POST",
     url: "api/webhooks/config",
+  },
+  titiler_tileMatrixSets: {
+    type: "GET",
+    url: "titiler/tileMatrixSets",
+  },
+  titiler_colormapNames: {
+    type: "GET",
+    url: "titiler/colorMaps",
   },
 };
 

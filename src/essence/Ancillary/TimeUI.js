@@ -156,10 +156,10 @@ const TimeUI = {
         return { dateString, additionalSeconds }
     },
     attachEvents: function (timeChange) {
-        let startingModeIndex = TimeUI.modeIndex
+        TimeUI._startingModeIndex = TimeUI.modeIndex
         // Set modeIndex to 1/Point if a deeplink had an endtime but no starttime
         if (L_.FUTURES.startTime == null && L_.FUTURES.endTime != null)
-            startingModeIndex = 1
+            TimeUI._startingModeIndex = 1
 
         // Timeline pan and zoom
         // zoom
@@ -355,11 +355,11 @@ const TimeUI = {
 
         if (L_.configData.time?.startInPointMode == true) {
             TimeUI.modeIndex = TimeUI.modes.indexOf('Point')
-            startingModeIndex = TimeUI.modeIndex
+            TimeUI._startingModeIndex = TimeUI.modes.indexOf('Point')
         }
         // Mode dropdown
         $('#mmgisTimeUIModeDropdown').html(
-            Dropy.construct(TimeUI.modes, 'Mode', startingModeIndex, {
+            Dropy.construct(TimeUI.modes, 'Mode', TimeUI._startingModeIndex, {
                 openUp: true,
                 dark: true,
             })
@@ -521,12 +521,6 @@ const TimeUI = {
             null,
             true
         )
-
-        if (L_.configData.time?.startInPointMode == true)
-            TimeUI.changeMode(TimeUI.modes.indexOf('Point'))
-        // Set modeIndex to 1/Point if a deeplink had an endtime but no starttime
-        else if (TimeUI.modeIndex != startingModeIndex)
-            TimeUI.changeMode(startingModeIndex)
     },
     fina() {
         let date
@@ -579,6 +573,12 @@ const TimeUI = {
         if (TimeUI.enabled) {
             TimeUI._makeHistogram()
         }
+
+        if (L_.configData.time?.startInPointMode == true)
+            TimeUI.changeMode(TimeUI.modes.indexOf('Point'))
+        // Set modeIndex to 1/Point if a deeplink had an endtime but no starttime
+        else if (TimeUI.modeIndex != TimeUI._startingModeIndex)
+            TimeUI.changeMode(TimeUI._startingModeIndex)
     },
     changeMode(idx) {
         TimeUI.modeIndex = idx
@@ -710,6 +710,7 @@ const TimeUI = {
     _remakeTimeSlider(ignoreHistogram) {
         const rangeMode =
             TimeUI.modes[TimeUI.modeIndex] === 'Range' ? true : false
+
         if (TimeUI.timeSlider) {
             TimeUI.timeSlider.$destroy()
             TimeUI.timeSlider = null
@@ -764,7 +765,6 @@ const TimeUI = {
         TimeUI.timeSlider.$on('change', (e) => {
             let idx = 0
             if (TimeUI.modes[TimeUI.modeIndex] === 'Point') idx -= 1
-
             const date = new Date(e.detail.value)
             const offsetNowDate = new Date(
                 date.getTime() + date.getTimezoneOffset() * 60000
@@ -843,7 +843,15 @@ const TimeUI = {
                 L_.layers.on[name] === true
             ) {
                 let layerUrl = l.url
-                if (!F_.isUrlAbsolute(layerUrl)) {
+                if (layerUrl.indexOf('stac-collection:') === 0) {
+                    sparklineLayers.push({
+                        name: name,
+                        stacCollection: layerUrl.replace(
+                            'stac-collection:',
+                            ''
+                        ),
+                    })
+                } else if (!F_.isUrlAbsolute(layerUrl)) {
                     layerUrl = L_.missionPath + layerUrl
                     if (layerUrl.indexOf('{t}') > -1)
                         sparklineLayers.push({
@@ -860,34 +868,77 @@ const TimeUI = {
         const endtimeISO = new Date(TimeUI._timelineEndTimestamp).toISOString()
 
         const NUM_BINS = Math.max(
-            Math.min(endTimestamp - startTimestamp, 360),
+            Math.min(endTimestamp - startTimestamp, 255),
             1
         )
-        const bins = new Array(NUM_BINS).fill(0)
+        let bins = new Array(NUM_BINS).fill(0)
+        let numBins = 0
 
         sparklineLayers.forEach((l) => {
             calls.api(
                 'query_tileset_times',
-                {
-                    path: l.path,
-                    starttime: starttimeISO,
-                    endtime: endtimeISO,
-                },
+                l.stacCollection != null
+                    ? {
+                          stacCollection: l.stacCollection,
+                          starttime: starttimeISO,
+                          endtime: endtimeISO,
+                      }
+                    : {
+                          path: l.path,
+                          starttime: starttimeISO,
+                          endtime: endtimeISO,
+                      },
                 function (data) {
                     if (data.body && data.body.times) {
-                        data.body.times.forEach((time) => {
-                            bins[
-                                Math.floor(
+                        if (l.stacCollection != null) {
+                            for (let i = 0; i < NUM_BINS; i++) {
+                                bins[i] = Math.floor(
                                     F_.linearScale(
-                                        [startTimestamp, endTimestamp],
                                         [0, NUM_BINS],
-                                        TimeUI.removeOffset(
-                                            new Date(time.t).getTime()
-                                        )
+                                        [
+                                            TimeUI._timelineStartTimestamp,
+                                            TimeUI._timelineEndTimestamp,
+                                        ],
+                                        i
                                     )
                                 )
-                            ]++
-                        })
+                            }
+
+                            const nextBins = []
+                            let ti = 0
+                            for (let bi = 1; bi < bins.length; bi++) {
+                                nextBins[bi - 1] = 0
+                                while (
+                                    data.body.times[ti] &&
+                                    new Date(data.body.times[ti].t).getTime() >=
+                                        bins[bi - 1] &&
+                                    new Date(data.body.times[ti].t).getTime() <
+                                        bins[bi]
+                                ) {
+                                    nextBins[bi - 1] += parseInt(
+                                        data.body.times[ti].total
+                                    )
+                                    ti++
+                                }
+                            }
+                            bins = nextBins
+                            numBins = bins.length
+                        } else {
+                            data.body.times.forEach((time) => {
+                                bins[
+                                    Math.floor(
+                                        F_.linearScale(
+                                            [startTimestamp, endTimestamp],
+                                            [0, NUM_BINS],
+                                            TimeUI.removeOffset(
+                                                new Date(time.t).getTime()
+                                            )
+                                        )
+                                    )
+                                ]++
+                            })
+                            numBins = NUM_BINS
+                        }
 
                         const minmax = F_.getMinMaxOfArray(bins)
 
@@ -897,10 +948,10 @@ const TimeUI = {
                             bins.forEach((b) => {
                                 histoElm.append(
                                     `<div style="width:${
-                                        (1 / NUM_BINS) * 100
-                                    }%; margin-top:${
-                                        40 - (b / minmax.max) * 40
-                                    }px"></div>`
+                                        (1 / numBins) * 100
+                                    }%; opacity:${
+                                        (b > 0 ? 20 : 0) + (b / minmax.max) * 80
+                                    }%;"></div>`
                                 )
                             })
                     }
@@ -953,7 +1004,7 @@ const TimeUI = {
         if (parsedStart != null && parsedEnd != null) {
             if (offsetStartDate.getTime() > offsetEndDate.getTime()) {
                 console.warn(
-                    `updateTimes: Cannot set start time after end time. ${parsedStart} > ${parseEnd}`
+                    `updateTimes: Cannot set start time after end time. ${parsedStart} > ${parsedEnd}`
                 )
                 return false
             }
@@ -1095,7 +1146,6 @@ const TimeUI = {
             TimeUI._endTimestamp != null
         ) {
             const mode = TimeUI.modes[TimeUI.modeIndex]
-
             TimeUI.timeChange(
                 new Date(
                     mode === 'Range'

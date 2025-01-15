@@ -3,12 +3,13 @@
 
 # returns an array of [band,value]
 
-# example: BandsToProfile.py MSL_DEM_v3_webgis.tif -4.66086473 137.36935616 [[0,7],9]
+# example: BandsToProfile.py MSL_DEM_v3_webgis.tif -4.66086473 137.36935616 ll [[0,7],9]
 # 2ptsToProfile.py MSL_DEM_v3_webgis.tif -4.67053145 137.36515045 -4.66086473 137.36935616 10 1
 
 import sys
 import ast
 import re
+import numpy as np
 import math
 from osgeo import gdal
 from osgeo import osr
@@ -50,7 +51,8 @@ def getValueAtBand(b):
         value = None
         bandName = None
 
-    return [bandName, value]
+
+    return np.array([bandName, value]).tolist()
 
 
 # Takes in a [[x,y],[x,y],[x,y],[x,y]...[x,y],[x,y]]
@@ -62,14 +64,12 @@ def getRasterDataValues():
         # if part needs work (safer to pass bands: "[[x,y]]" now)
         if(isinstance(bands[i], int)):
             value = getValueAtBand(bands[i])
-            print(value)
             valuesArray.append(value)
         else:
             # +1 for inclusivity
             for j in range(bands[i][0], bands[i][1] + 1):
                 value = getValueAtBand(j)
                 valuesArray.append(value)
-
     return valuesArray
 
 

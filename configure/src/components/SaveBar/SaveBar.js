@@ -87,7 +87,10 @@ export default function SaveBar() {
                       text:
                         status === "success"
                           ? "Saved!"
-                          : "Failed to save configuration!",
+                          : "Failed to save configuration!" +
+                            (resp?.errors?.[0]?.reason
+                              ? ` — ${resp?.errors?.[0]?.reason}`
+                              : ""),
                       severity: status,
                     })
                   );

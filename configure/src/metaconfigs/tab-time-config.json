@@ -47,7 +47,7 @@
         {
           "field": "time.format",
           "name": "Time Format",
-          "description": "The time format to be displayed on the Time UI. Uses D3 time format specifiers: https://github.com/d3/d3-time-format. Default: %Y-%m-%dT%H:%M:%SZ",
+          "description": "The time format to be displayed on the Time UI. Uses D3 time format specifiers: <a target='_blank' href='https://github.com/d3/d3-time-format'>https://github.com/d3/d3-time-format</a>. Default: %Y-%m-%dT%H:%M:%SZ",
           "type": "text",
           "width": 12
         }

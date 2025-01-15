@@ -141,7 +141,9 @@ const NewMissionModal = (props) => {
 
             dispatch(
               setSnackBarText({
-                text: res.message,
+                text:
+                  res.message ||
+                  `Successfully added new mission: ${missionName}`,
                 severity: "success",
               })
             );

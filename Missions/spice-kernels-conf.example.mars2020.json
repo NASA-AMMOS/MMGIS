@@ -1,0 +1,55 @@
+{
+  "body": {
+    "description": "If the MMGIS ENV 'SPICE_SCHEDULED_KERNEL_DOWNLOAD=true', then at every other midnight, MMGIS will read /Missions/spice-kernels-conf.json and re/download all the specified kernels to /spice/kernels.'body' names and 'target' names must be valid NAIF SPICE names/ids. Meta-kernels (.tm) can also be set for download by using an object instead of a string (see example below).",
+    "MARS": {
+      "description": "MARS",
+      "kernels": [
+        "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/lsk/naif0012.tls",
+        "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/pck00011.tpc",
+        "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440.bsp",
+        "https://naif.jpl.nasa.gov/pub/naif/MARS2020/kernels/spk/mar097s.bsp",
+        "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/mars_iau2000_v1.tpc"
+      ],
+      "targets": {
+        "MARS2020": {
+          "description": "M20 - Mars2020 Rover",
+          "kernels": [
+            "https://naif.jpl.nasa.gov/pub/naif/MARS2020/kernels/spk/m2020_atls_ops210303_v1.bsp",
+            "https://naif.jpl.nasa.gov/pub/naif/MARS2020/kernels/spk/m2020_ls_ops210303_iau2000_v1.bsp",
+            "https://naif.jpl.nasa.gov/pub/naif/MARS2020/kernels/sclk/M2020_168_SCLKSCET.00009.tsc",
+            "https://naif.jpl.nasa.gov/pub/naif/MARS2020/kernels/sclk/m2020_lmst_ops210303_v1.tsc",
+            "https://naif.jpl.nasa.gov/pub/naif/MARS2020/kernels/fk/m2020_v04.tf"
+          ]
+        },
+        "-74": {
+          "description": "MRO - Mars Reconnaissance Orbiter",
+          "kernels": [
+            "https://naif.jpl.nasa.gov/pub/naif/MRO/kernels/spk/mro_psp.bsp"
+          ]
+        },
+        "-202": {
+          "description": "MVN - MAVEN - Mars Atmosphere and Volatile Evolution",
+          "kernels": [
+            "https://naif.jpl.nasa.gov/pub/naif/MAVEN/kernels/spk/maven_orb.bsp"
+          ]
+        },
+        "-53": {
+          "description": "ODY - 2001 Mars Odyssey",
+          "kernels": [
+            "https://naif.jpl.nasa.gov/pub/naif/M01/kernels/spk/m01_map.bsp"
+          ]
+        },
+        "-143": {
+          "description": "TGO - ExoMars Trace Gas Orbiter",
+          "kernels": [
+            {
+              "url": "https://naif.jpl.nasa.gov/pub/naif/EXOMARS2016/kernels/mk/em16_ops.tm",
+              "mkRoot": "https://naif.jpl.nasa.gov/pub/naif/EXOMARS2016/kernels",
+              "mkRegex": ".*/spk/em16_tgo_fsp.*_01_202[4-9].*.bsp"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

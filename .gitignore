@@ -3,6 +3,8 @@
 .env
 
 /node_modules/
+/ssl/*
+!/ssl/.gitkeep
 /API/logs/*
 /Missions/*
 !/Missions/.gitkeep
@@ -20,7 +22,7 @@
 /spice/kernels/*
 !/spice/kernels/.gitkeep
 /Missions/spice-kernels-conf.json
-!/Missions/spice-kernels-conf.example.json
+!/Missions/spice-kernels-conf.example*json
 
 /build/*
 /data/*
@@ -29,5 +31,8 @@
 sessions
 .terraform/
 .terraform.lock.hcl
+
+docker-compose.yml
+docker-compose.env.yml
 
 #tools

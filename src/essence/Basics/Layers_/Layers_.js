@@ -34,6 +34,7 @@ const L_ = {
         opacity: {}, // opacityArray
         filters: {}, // layerFilters
         nameToUUID: {},
+        refreshIntervals: {}, // In order to reloadLayer
     },
     // ===== Private ======
     //Index -> layer name
@@ -241,10 +242,31 @@ const L_ = {
         if (L_._onSpecificLayerToggleSubscriptions[fid] != null)
             delete L_._onSpecificLayerToggleSubscriptions[fid]
     },
+    getUrl: function (type, url, layerData) {
+        let nextUrl = url
+        if (!F_.isUrlAbsolute(nextUrl)) {
+            nextUrl = L_.missionPath + nextUrl
+        }
+        if (
+            type === 'tile' &&
+            layerData &&
+            layerData.throughTileServer === true
+        ) {
+            if (
+                !F_.isUrlAbsolute(nextUrl) &&
+                window.mmgisglobal.IS_DOCKER !== 'true'
+            ) {
+                nextUrl = `../../${nextUrl}`
+            }
+        }
+        if (layerData && layerData.throughTileServer === true)
+            nextUrl = `${window.location.origin}/titiler/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.webp?url=${nextUrl}`
+        return nextUrl
+    },
     //Takes in config layer obj
     //Toggles a layer on and off and accounts for sublayers
     //Takes in a config layer object
-    toggleLayer: async function (s) {
+    toggleLayer: async function (s, skipOrderedBringToFront) {
         if (s == null) return
 
         const wasNeverOn = L_.layers.layer[s.name] === false
@@ -253,7 +275,7 @@ const L_ = {
         if (L_.layers.on[s.name] === true) on = true
         else on = false
 
-        await L_.toggleLayerHelper(s, on)
+        await L_.toggleLayerHelper(s, on, null, null, skipOrderedBringToFront)
 
         Object.keys(L_._onLayerToggleSubscriptions).forEach((k) => {
             L_._onLayerToggleSubscriptions[k](s.name, !on)
@@ -291,7 +313,8 @@ const L_ = {
         s,
         on,
         ignoreToggleStateChange,
-        globeOnly
+        globeOnly,
+        skipOrderedBringToFront
     ) {
         if (s.type !== 'header') {
             if (on) {
@@ -302,7 +325,7 @@ const L_ = {
                     try {
                         $('.drawToolContextMenuHeaderClose').click()
                     } catch (err) {}
-                    L_.Map_.map.removeLayer(L_.layers.layer[s.name])
+                    L_.Map_.rmNotNull(L_.layers.layer[s.name])
                     if (L_.layers.attachments[s.name]) {
                         for (let sub in L_.layers.attachments[s.name]) {
                             switch (L_.layers.attachments[s.name][sub].type) {
@@ -425,13 +448,10 @@ const L_ = {
                             L_._layersOrdered.indexOf(s.name)
                     )
                 }
+
                 if (s.type === 'tile') {
-                    let layerUrl = s.url
-                    if (!F_.isUrlAbsolute(layerUrl))
-                        layerUrl = L_.missionPath + layerUrl
-                    let demUrl = s.demtileurl
-                    if (!F_.isUrlAbsolute(demUrl))
-                        demUrl = L_.missionPath + demUrl
+                    let layerUrl = L_.getUrl(s.type, s.url, s)
+                    let demUrl = L_.getUrl(s.type, s.demtileurl, s)
                     if (s.demtileurl == undefined || s.demtileurl.length == 0)
                         demUrl = undefined
                     L_.Globe_.litho.addLayer('tile', {
@@ -587,7 +607,11 @@ const L_ = {
 
             if (s.type === 'vector') L_._updatePairings(s.name, !on)
 
-            if (!on && s.type === 'vector') {
+            if (
+                !on &&
+                s.type === 'vector' &&
+                skipOrderedBringToFront !== true
+            ) {
                 L_.Map_.orderedBringToFront()
             }
             L_._refreshAnnotationEvents()
@@ -1104,7 +1128,7 @@ const L_ = {
                         })
                         layer.options = savedOptions2
                     }
-                }, 1)
+                }, 100)
             }
         } catch (err) {
             if (layer._icon)
@@ -1638,6 +1662,10 @@ const L_ = {
             }
         }
         L_.layers.opacity[name] = newOpacity
+
+        if (L_.activeFeature?.layer && L_.activeFeature.layerName === name) {
+            L_.highlight(L_.activeFeature.layer)
+        }
     },
     getLayerOpacity: function (name) {
         var l = L_.layers.layer[name]
@@ -3437,6 +3465,25 @@ const L_ = {
 
         return images
     },
+    _globalLoadings: [],
+    _globalLoadingsTimeout: null,
+    setGlobalLoading(uuid) {
+        L_._globalLoadings.push(uuid)
+        L_._globalLoadings = [...new Set(L_._globalLoadings)]
+        clearTimeout(L_._globalLoadingsTimeout)
+        L_._globalLoadingsTimeout = setTimeout(() => {
+            $('#dataLoadingSpinner').css({ opacity: 1 })
+        }, 500)
+    },
+    setGlobalLoaded(uuid) {
+        L_._globalLoadings = L_._globalLoadings.filter(function (id) {
+            return id !== uuid
+        })
+        if (L_._globalLoadings.length === 0) {
+            clearTimeout(L_._globalLoadingsTimeout)
+            $('#dataLoadingSpinner').css({ opacity: 0 })
+        }
+    },
 }
 
 //Takes in a configData object and does a depth-first search through its
@@ -3528,8 +3575,62 @@ function parseConfig(configData, urlOnLayers) {
 
             //Create parsed layers named
             L_.layers.data[d[i].name] = d[i]
+
+            if (
+                d[i].time &&
+                d[i].time.enabled === true &&
+                d[i].time.refreshIntervalEnabled === true
+            ) {
+                if (L_.layers.refreshIntervals[d[i].name])
+                    clearInterval(L_.layers.refreshIntervals[d[i].name])
+                L_.layers.refreshIntervals[d[i].name] = setInterval(
+                    async () => {
+                        if (L_.layers.on[d[i].name] === true) {
+                            let savedActiveFeature
+                            if (
+                                L_.activeFeature &&
+                                L_.activeFeature.layerName === d[i].name
+                            ) {
+                                savedActiveFeature = {
+                                    layerName: L_.activeFeature.layerName,
+                                    feature: JSON.parse(
+                                        JSON.stringify(L_.activeFeature.feature)
+                                    ),
+                                }
+                            }
+                            await L_.TimeControl_.reloadLayer(
+                                d[i].name,
+                                false,
+                                false,
+                                true,
+                                true
+                            )
+                            // Reselect activeFeature
+                            if (
+                                savedActiveFeature &&
+                                savedActiveFeature.layerName === d[i].name
+                            ) {
+                                L_.selectFeature(
+                                    savedActiveFeature.layerName,
+                                    savedActiveFeature.feature
+                                )
+                            }
+                        }
+                    },
+                    (d[i].time.refreshIntervalAmount || 60) * 1000
+                )
+            }
             //Save the prevName for easy tracing back
             L_._layersParent[d[i].name] = prevName
+
+            // Set default kind to 'none'
+            if (
+                d[i].type === 'vector' ||
+                d[i].type === 'vectortile' ||
+                d[i].type === 'query'
+            ) {
+                L_.layers.data[d[i].name].kind = d[i].kind || 'none'
+            }
 
             //Check if it's not a header and thus an actual layer with data
             if (d[i].type != 'header') {
@@ -3562,6 +3663,10 @@ function parseConfig(configData, urlOnLayers) {
                 // Set disabled time object if missing
                 if (d[i].time == null) {
                     d[i].time = { enabled: false }
+                }
+
+                if (d[i].type === 'tile' && d[i].throughTileServer === true) {
+                    d[i].tileformat = 'wmts'
                 }
             }
 

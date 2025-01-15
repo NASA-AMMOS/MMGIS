@@ -2,7 +2,9 @@ import sys
 import subprocess
 import optparse
 from osgeo import gdal, osr
+import math
 
+PLANET_RADIUS = 3396190 # 6378137
 
 def optparse_init() -> optparse.OptionParser:
     """Prepare the option parser for input (argv)"""
@@ -47,6 +49,14 @@ def optparse_init() -> optparse.OptionParser:
         dest="srcnodata",
         metavar="NODATA",
         help="Value in the input dataset considered as transparent",
+    )
+    
+    p.add_option(
+        "-d",
+        "--dbez",
+        dest="dbez",
+        action="store_true",
+        help="Don't base every zoom. If true, instead of tiling each zoom level as the base zoom level, builds overview tiles from the four deeper zoom tiles from which it is made.",
     )
     return p
 
@@ -95,7 +105,6 @@ def ReprojectCoords(coords, src_srs, tgt_srs):
         trans_coords.append([x, y])
     return trans_coords
 
-
 def AutoGdalTranslate(geo_extent, cols, rows, raster):
     gdal_translate = "gdal_translate -of VRT -a_srs EPSG:4326 -gcp 0 0 " + str(geo_extent[0][0]) + " " + str(geo_extent[0][1]) + " -gcp " + str(cols) + " 0 " + str(geo_extent[3][0]) + " " + str(
         geo_extent[3][1]) + " -gcp " + str(cols) + " " + str(rows) + " " + str(geo_extent[2][0]) + " " + str(geo_extent[2][1]) + " " + raster + " " + raster[:-4] + ".vrt"
@@ -122,13 +131,24 @@ def AutoGdal2Tiles(raster, options, outputdir):
     srcnodata = " --srcnodata=0,0,0"
     if options.srcnodata is not None:
         srcnodata = f" --srcnodata={options.srcnodata}"
+    base_every_zoom = " --base_every_zoom"
+    if options.dbez is True:
+        base_every_zoom = ""
     output = ""
     if outputdir is not None:
         output = f" {outputdir}"
-    gdal2tiles = f"python gdal2customtiles.py -n{dem}{processes}{tilesize}{zoom}{resume}{srcnodata} {raster[:-4]}.vrt{output}"
+    gdal2tiles = f"python gdal2customtiles.py -n{dem}{processes}{tilesize}{zoom}{resume}{srcnodata}{base_every_zoom} {raster[:-4]}.vrt{output}"
     print(f"Running: {gdal2tiles}\n")
     subprocess.Popen(gdal2tiles)
 
+def ZoomForPixelSize(pixelSize):
+    MAXZOOMLEVEL = 32
+    tile_size = 256
+    initialResolution = 2 * math.pi * PLANET_RADIUS / tile_size
+    for i in range(MAXZOOMLEVEL):
+        if pixelSize > initialResolution / (2**i):
+            return max(0, i - 1)  # We don't want to scale up
+    return MAXZOOMLEVEL - 1
 
 parser = optparse_init()
 options, args = parser.parse_args(args=sys.argv)
@@ -139,7 +159,25 @@ ds = gdal.Open(raster)
 gt = ds.GetGeoTransform()
 cols = ds.RasterXSize
 rows = ds.RasterYSize
+
+"""
+x_res = gt[1]
+y_res = -gt[5]
+
+# oversample if needed
+oversample_zooms = ZoomForPixelSize(gt[1])
+print(oversample_zooms)
+
+if options.zoom:
+    oversample_factor = 1 << (19 - oversample_zooms)
+    x_res = x_res / oversample_factor
+    y_res = y_res / oversample_factor
+    cols = cols * oversample_factor
+    rows = rows * oversample_factor
+print(cols, ds.RasterXSize, rows, ds.RasterYSize)
+"""
 extent = GetExtent(gt, cols, rows)
+
 
 src_srs = osr.SpatialReference()
 src_srs.ImportFromWkt(ds.GetProjection())

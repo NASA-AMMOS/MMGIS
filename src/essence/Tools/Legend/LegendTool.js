@@ -27,21 +27,28 @@ var LegendTool = {
             toolController.style('right', '5px')
             toolContent.style('left', null)
             toolContent.style('right', '0px')
-        } else if (
-            this.justification != L_.getToolVars('identifier')['justification']
-        ) {
+        } else {
             const toolController = d3
                 .select('#toolcontroller_sepdiv')
                 .clone(false)
                 .attr('id', 'toolcontroller_sepdiv_left')
             $('#toolSeparated_Legend').appendTo('#toolcontroller_sepdiv_left')
-            toolController.style('top', '40px')
+            toolController.style(
+                'top',
+                (L_.getToolVars('identifier')['justification'] || 'left') ==
+                    'left'
+                    ? '75px'
+                    : '40px'
+            )
             toolController.style('left', '5px')
             toolController.style('right', null)
         }
     },
     make: function (targetId) {
-        this.targetId = targetId
+        this.targetId =
+            typeof targetId === 'string'
+                ? targetId
+                : '__LegendTool_missing_targetId'
         this.MMWebGISInterface = new interfaceWithMMWebGIS()
         this.activeLayerNames = []
 
@@ -57,6 +64,7 @@ var LegendTool = {
         L_.unsubscribeOnLayerToggle('LegendTool')
         this.made = false
     },
+    refreshLegends: refreshLegends,
     overwriteLegends: overwriteLegends,
 }
 
@@ -67,30 +75,14 @@ function interfaceWithMMWebGIS() {
     }
     separateFromMMWebGIS()
 
-    let tools = drawLegendHeader()
+    LegendTool.tools = drawLegendHeader()
 
     //Add the markup to tools or do it manually
     //tools.html( markup );
 
     //Add event functions and whatnot
     //Draw legends
-    var first = true
-    for (let l in L_.layers.on) {
-        if (L_.layers.on[l] == true) {
-            if (L_.layers.data[l].type != 'header') {
-                if (L_.layers.data[l]?._legend != undefined) {
-                    drawLegends(
-                        tools,
-                        L_.layers.data[l]?._legend,
-                        l,
-                        L_.layers.data[l].display_name,
-                        L_.layers.opacity[l]
-                    )
-                }
-            }
-        }
-    }
-
+    LegendTool.refreshLegends()
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
     function separateFromMMWebGIS() {
@@ -100,6 +92,26 @@ function interfaceWithMMWebGIS() {
         tools.style('background', 'var(--color-k)')
         //Clear it
         tools.selectAll('*').remove()
+    }
+}
+
+function refreshLegends() {
+    $('#LegendTool').empty()
+
+    for (let l in L_.layers.on) {
+        if (L_.layers.on[l] == true) {
+            if (L_.layers.data[l].type != 'header') {
+                if (L_.layers.data[l]?._legend != undefined) {
+                    drawLegends(
+                        LegendTool.tools,
+                        L_.layers.data[l]?._legend,
+                        l,
+                        L_.layers.data[l].display_name,
+                        L_.layers.opacity[l]
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -144,7 +156,10 @@ function drawLegendHeader() {
         .style('height', '30px')
         .style('line-height', '30px')
         .style('font-size', '13px')
-        .style('padding-right', '8px')
+        .style(
+            'padding-right',
+            LegendTool.justification === 'right' ? '30px' : '8px'
+        )
         .style(
             'padding-left',
             LegendTool.justification === 'right' ? '10px' : '30px'

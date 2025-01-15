@@ -1,6 +1,6 @@
 {
   "name": "mmgis",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "description": "A web-based mapping and localization solution for science operation on planetary missions.",
   "homepage": "build",
   "repository": {
@@ -38,6 +38,7 @@
   "scripts": {
     "start": "node scripts/init-db.js && node scripts/server.js",
     "start:prod": "node scripts/init-db.js && cross-env NODE_ENV=production node scripts/server.js",
+    "start:prod-docker": "node scripts/init-db.js && cross-env NODE_ENV=production node scripts/server.js",
     "start:prod:with_examples": "cross-env NODE_ENV=production node scripts/server.js --with_examples",
     "start:docs": "cd ./docs && bundle exec jekyll serve",
     "start:analyzer": "node scripts/server.js --analyze",
@@ -84,6 +85,7 @@
     "hotkeys-js": "^3.12.0",
     "html2canvas": "^1.4.1",
     "html2pug": "^4.0.0",
+    "http-proxy-middleware": "^3.0.2",
     "identity-obj-proxy": "3.0.0",
     "isomorphic-ws": "5.0.0",
     "jquery": "^3.5.1",

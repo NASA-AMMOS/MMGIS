@@ -1,5 +1,6 @@
 const Sequelize = require("sequelize");
 const logger = require("../API/logger");
+const execSync = require("child_process").execSync;
 require("dotenv").config({ path: __dirname + "/../.env" });
 
 initializeDatabase()
@@ -30,6 +31,59 @@ async function initializeDatabase() {
         },
       }
     );
+
+    if (
+      process.env.WITH_STAC === "true" ||
+      process.env.WITH_TIPG === "true" ||
+      process.env.WITH_TITILER_PGSTAC === "true"
+    ) {
+      // mmgis-stac
+      await baseSequelize
+        .query(`CREATE DATABASE "mmgis-stac";`)
+        .then(() => {
+          logger("info", `Created mmgis-stac database.`, "connection");
+
+          keepGoingSTAC();
+          return null;
+        })
+        .catch((err) => {
+          logger(
+            "info",
+            `Database mmgis-stac already exists. Nothing to do...`,
+            "connection"
+          );
+          keepGoingSTAC();
+          return null;
+        });
+
+      function keepGoingSTAC() {
+        try {
+          const output = execSync(`pypgstac migrate`, {
+            env: {
+              PYTHONUTF8: 1,
+              PGHOST: process.env.DB_HOST,
+              PGPORT: process.env.DB_PORT,
+              PGUSER: process.env.DB_USER,
+              PGDATABASE: "mmgis-stac",
+              PGPASSWORD: process.env.DB_PASS,
+            },
+          });
+          logger(
+            "info",
+            `Conformed the mmgis-stac database to pgstac.`,
+            "connection"
+          );
+        } catch (err) {
+          logger(
+            "warning",
+            `Failed to conform the mmgis-stac database to pgstac.`,
+            "connection",
+            err
+          );
+        }
+      }
+    }
+
     await baseSequelize
       .query(`CREATE DATABASE "${process.env.DB_NAME}";`)
       .then(() => {
@@ -77,7 +131,6 @@ async function initializeDatabase() {
             .query(`CREATE EXTENSION postgis;`)
             .then(() => {
               logger("info", `Created POSTGIS extension.`, "connection");
-              resolve();
               return null;
             })
             .catch((err) => {
@@ -86,7 +139,6 @@ async function initializeDatabase() {
                 `POSTGIS extension already exists. Nothing to do...`,
                 "connection"
               );
-
               return null;
             });
 
@@ -94,7 +146,6 @@ async function initializeDatabase() {
             .query(`CREATE EXTENSION btree_gist;`)
             .then(() => {
               logger("info", `Created BTREE_GIST extension.`, "connection");
-              resolve();
               return null;
             })
             .catch((err) => {
@@ -103,7 +154,6 @@ async function initializeDatabase() {
                 `BTREE_GIST extension already exists. Nothing to do...`,
                 "connection"
               );
-
               return null;
             });
           await sequelize
@@ -130,7 +180,6 @@ async function initializeDatabase() {
                 `"session" table already exists. Nothing to do...`,
                 "connection"
               );
-              resolve();
               return null;
             });
           resolve();
@@ -147,6 +196,7 @@ async function initializeDatabase() {
           return null;
         });
     }
+
     return null;
   });
 }

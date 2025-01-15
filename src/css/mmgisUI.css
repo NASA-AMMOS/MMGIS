@@ -1684,3 +1684,24 @@ input::-webkit-inner-spin-button {
         stroke-dashoffset: -124;
     }
 }
+
+/*spinner2*/
+.mmgis-spinner2 {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: inline-block;
+    position: relative;
+    border: 3px solid var(--color-m1);
+    border-top: 3px solid var(--color-c);
+    box-sizing: border-box;
+    animation: mmgis-spinner2-rotation 1s linear infinite;
+}
+@keyframes mmgis-spinner2-rotation {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}

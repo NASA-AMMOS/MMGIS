@@ -318,7 +318,7 @@ let Map_ = {
     removeTempTileLayer: function () {
         this.rmNotNull(this.tempTileLayer)
     },
-    //Removes the map layer if it isnt null
+    //Removes the map layer if it isn't null
     rmNotNull: function (layer) {
         if (layer != null) {
             this.map.removeLayer(layer)
@@ -402,7 +402,22 @@ let Map_ = {
             )
         }
     },
-    refreshLayer: async function (layerObj, cb) {
+    refreshLayer: async function (layerObj, cb, skipOrderedBringToFront) {
+        // If it's a dynamic extent layer, just re-call its function
+        if (
+            L_._onSpecificLayerToggleSubscriptions[
+                `dynamicextent_${layerObj.name}`
+            ] != null
+        ) {
+            if (L_.layers.on[layerObj.name])
+                L_._onSpecificLayerToggleSubscriptions[
+                    `dynamicextent_${layerObj.name}`
+                ].func(layerObj.name)
+
+            if (typeof cb === 'function') cb()
+            return true
+        }
+
         // We need to find and remove all points on the map that belong to the layer
         // Not sure if there is a cleaner way of doing this
         for (var i = L_._layersOrdered.length - 1; i >= 0; i--) {
@@ -413,7 +428,13 @@ let Map_ = {
             ) {
                 if (L_._layersBeingMade[layerObj.name] !== true) {
                     const wasOn = L_.layers.on[layerObj.name]
-                    if (wasOn) L_.toggleLayer(L_.layers.data[layerObj.name]) // turn off if on
+
+                    if (wasOn)
+                        L_.toggleLayer(
+                            L_.layers.data[layerObj.name],
+                            skipOrderedBringToFront
+                        ) // turn off if on
+
                     // fake on
                     L_.layers.on[layerObj.name] = true
                     await makeLayer(layerObj, true, null)
@@ -421,7 +442,10 @@ let Map_ = {
 
                     // turn off if was off
                     if (wasOn) L_.layers.on[layerObj.name] = false
-                    L_.toggleLayer(L_.layers.data[layerObj.name]) // turn back on/off
+                    L_.toggleLayer(
+                        L_.layers.data[layerObj.name],
+                        skipOrderedBringToFront
+                    ) // turn back on/off
 
                     L_.enforceVisibilityCutoffs()
                 } else {
@@ -804,11 +828,11 @@ async function makeVectorLayer(
                         layerObj.controlled !== true
                     )
                         L_.subscribeTimeChange(
-                            `dynamicgeodataset_${layerObj.name}`,
+                            `dynamicextent_${layerObj.name}`,
                             f
                         )
                     L_.subscribeOnSpecificLayerToggle(
-                        `dynamicgeodataset_${layerObj.name}`,
+                        `dynamicextent_${layerObj.name}`,
                         layerObj.name,
                         f
                     )
@@ -876,8 +900,28 @@ async function makeVectorLayer(
 }
 
 async function makeTileLayer(layerObj) {
-    let layerUrl = layerObj.url
-    if (!F_.isUrlAbsolute(layerUrl)) layerUrl = L_.missionPath + layerUrl
+    let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
+
+    let splitColonType
+    const splitColonLayerUrl = layerObj.url.split(':')
+    if (splitColonLayerUrl[1] != null)
+        switch (splitColonLayerUrl[0]) {
+            case 'stac-collection':
+                splitColonType = splitColonLayerUrl[0]
+                const splitParams = splitColonLayerUrl[1].split('?')
+                layerUrl = `${window.location.origin}${(
+                    window.location.pathname || ''
+                ).replace(/\/$/g, '')}/titilerpgstac/collections/${
+                    splitParams[0]
+                }/tiles/${
+                    layerObj.tileMatrixSet || 'WebMercatorQuad'
+                }/{z}/{x}/{y}?assets=asset`
+                layerObj.tileformat = 'wmts'
+                break
+            default:
+                break
+        }
+
     let bb = null
     if (layerObj.hasOwnProperty('boundingBox')) {
         bb = L.latLngBounds(
@@ -885,7 +929,11 @@ async function makeTileLayer(layerObj) {
             L.latLng(layerObj.boundingBox[1], layerObj.boundingBox[0])
         )
     }
-    layerUrl = await TimeControl.performTimeUrlReplacements(layerUrl, layerObj)
+    layerUrl = await TimeControl.performTimeUrlReplacements(
+        layerUrl,
+        layerObj,
+        null
+    )
 
     let tileFormat = 'tms'
     // For backward compatibility with the .tms option
@@ -895,11 +943,12 @@ async function makeTileLayer(layerObj) {
     } else tileFormat = layerObj.tileformat
 
     L_.layers.layer[layerObj.name] = L.tileLayer.colorFilter(layerUrl, {
-        minZoom: layerObj.minZoom,
-        maxZoom: layerObj.maxZoom,
-        maxNativeZoom: layerObj.maxNativeZoom,
+        minZoom: parseInt(layerObj.minZoom),
+        maxZoom: parseInt(layerObj.maxZoom),
+        maxNativeZoom: parseInt(layerObj.maxNativeZoom),
         tileFormat: tileFormat,
         tms: tileFormat === 'tms',
+        splitColonType: splitColonType,
         //noWrap: true,
         continuousWorld: true,
         reuseTiles: true,
@@ -917,18 +966,30 @@ async function makeTileLayer(layerObj) {
             typeof layerObj.time === 'undefined'
                 ? null
                 : layerObj.time.customTimes,
+        cogMin: layerObj.cogMin,
+        currentCogMin: layerObj.currentCogMin,
+        cogMax: layerObj.cogMax,
+        currentCogMax: layerObj.currentCogMax,
+        cogColormap: layerObj.cogColormap,
         variables: layerObj.variables || {},
     })
 
     L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
 
     L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
+    L_.layers.layer[layerObj.name].off('loading')
+    L_.layers.layer[layerObj.name].on('loading', () => {
+        L_.setGlobalLoading(layerObj.name)
+    })
+    L_.layers.layer[layerObj.name].off('load')
+    L_.layers.layer[layerObj.name].on('load', () => {
+        L_.setGlobalLoaded(layerObj.name)
+    })
     allLayersLoaded()
 }
 
 function makeVectorTileLayer(layerObj) {
-    var layerUrl = layerObj.url
-    if (!F_.isUrlAbsolute(layerUrl)) layerUrl = L_.missionPath + layerUrl
+    let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
 
     let urlSplit = layerObj.url.split(':')
 
@@ -1110,8 +1171,7 @@ function makeModelLayer(layerObj) {
 }
 
 function makeDataLayer(layerObj) {
-    let layerUrl = layerObj.demtileurl
-    if (!F_.isUrlAbsolute(layerUrl)) layerUrl = L_.missionPath + layerUrl
+    let layerUrl = L_.getUrl(layerObj.type, layerObj.demtileurl, layerObj)
 
     let bb = null
     if (layerObj.hasOwnProperty('boundingBox')) {

@@ -4,6 +4,7 @@
 const Sequelize = require("sequelize");
 const { sequelize } = require("../../../connection");
 const logger = require("../../../logger");
+const Utils = require("../../../utils.js");
 
 const attributes = {
   name: {
@@ -120,19 +121,31 @@ function makeNewGeodatasetTable(
           .then((r) => {
             sequelize
               .query(
-                `CREATE INDEX IF NOT EXISTS ${result.dataValues.table}_geom_idx on ${result.dataValues.table} USING gist (geom);`
+                `CREATE INDEX IF NOT EXISTS ${Utils.forceAlphaNumUnder(
+                  `${result.dataValues.table}_geom_idx`
+                )} on ${Utils.forceAlphaNumUnder(
+                  result.dataValues.table
+                )} USING gist (geom);`,
+                {
+                  replacements: {},
+                }
               )
               .then(() => {
                 if (startProp != null || endProp != null) {
                   sequelize
                     .query(
-                      `CREATE INDEX IF NOT EXISTS ${
+                      `CREATE INDEX IF NOT EXISTS ${Utils.forceAlphaNumUnder(
+                        `${result.dataValues.table}_time_idx`
+                      )} on ${Utils.forceAlphaNumUnder(
                         result.dataValues.table
-                      }_time_idx on ${result.dataValues.table} USING gist ${
+                      )} USING gist ${
                         startProp != null && endProp != null
                           ? "(start_time, end_time)"
                           : "(end_time)"
-                      };`
+                      };`,
+                      {
+                        replacements: {},
+                      }
                     )
                     .then(() => {
                       success({
@@ -197,8 +210,8 @@ function makeNewGeodatasetTable(
         sequelize
           .query("SELECT MAX(id) FROM geodatasets")
           .then(([results]) => {
-            let newTable =
-              "g" + (parseInt(results[0].max) + 1) + "_geodatasets";
+            const max = parseInt(results[0].max);
+            let newTable = "g" + ((isNaN(max) ? 0 : max) + 1) + "_geodatasets";
 
             Geodatasets.create({
               name: name,
@@ -219,12 +232,26 @@ function makeNewGeodatasetTable(
                   .then(() => {
                     sequelize
                       .query(
-                        `CREATE INDEX ${newTable}_geom_idx on ${newTable} USING gist (geom);`
+                        `CREATE INDEX ${Utils.forceAlphaNumUnder(
+                          `${newTable}_geom_idx`
+                        )} on ${Utils.forceAlphaNumUnder(
+                          newTable
+                        )} USING gist (geom);`,
+                        {
+                          replacements: {},
+                        }
                       )
                       .then(() => {
                         sequelize
                           .query(
-                            `CREATE INDEX ${newTable}_time_idx on ${newTable} USING gist (start_time, end_time);`
+                            `CREATE INDEX ${Utils.forceAlphaNumUnder(
+                              `${newTable}_time_idx`
+                            )} on ${Utils.forceAlphaNumUnder(
+                              newTable
+                            )} USING gist (start_time, end_time);`,
+                            {
+                              replacements: {},
+                            }
                           )
                           .then(() => {
                             success({

@@ -354,7 +354,7 @@ export default function Versions(props) {
                                     },
                                     (res) => {
                                       downloadObject(
-                                        res.config,
+                                        res,
                                         `${row.mission}_v${row.version}_config`,
                                         ".json"
                                       );

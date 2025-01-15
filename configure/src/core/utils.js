@@ -4,6 +4,12 @@ import { saveAs } from "file-saver";
 export const isNumeric = (value) => {
   return /^\d+$/.test(value);
 };
+
+export const isUrlAbsolute = (url) => {
+  const r = new RegExp("^(?:[a-z]+:)?//", "i");
+  return r.test(url);
+};
+
 /**
  * Traverses an object with an array of keys
  * @param {*} obj
@@ -27,6 +33,11 @@ export const setIn = (obj, keyArray, value, force) => {
   let object = obj;
   for (let i = 0; i < keyArray.length - 1; i++) {
     if (force) {
+      // If string but setting a number index at the end of keyArray, turn into array
+      if (i === keyArray.length - 2) {
+        if (isNumeric(keyArray[i + 1]) && !Array.isArray(object[keyArray[i]]))
+          object[keyArray[i]] = Array(object[keyArray[i]]);
+      }
       if (!object.hasOwnProperty(keyArray[i]))
         object[keyArray[i]] =
           i === keyArray.length - 2 && isNumeric(keyArray[i + 1]) ? [] : {};
