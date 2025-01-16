@@ -2,11 +2,19 @@ import React from 'react'
 import essence from './essence/essence'
 import $ from 'jquery'
 import LandingPage from './essence/LandingPage/LandingPage'
+import F_ from './essence/Basics/Formulae_/Formulae_'
 
 import calls from './pre/calls'
 
 //Start MMGIS
 $(document).ready(function () {
+    const browser = F_.getBrowser()
+    if (browser === 'firefox') {
+        $('body').css({
+            'scrollbar-color': 'var(--color-a2) transparent',
+            'scrollbar-width': 'thin',
+        })
+    }
     if (window.mmgisglobal.FORCE_CONFIG_PATH) {
         var u = window.location.href.split('?s=')
         if (!u[1]) {

@@ -622,7 +622,9 @@
                         ) {
                             tile.src =
                                 layer.dataUrls[coords.z][coords.x][coords.y]
-                            resolve(tile)
+                            tile.onload = () => {
+                                resolve(tile)
+                            }
                         } else {
                             reject(tile)
                         }

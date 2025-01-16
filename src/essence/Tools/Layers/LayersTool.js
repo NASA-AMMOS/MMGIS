@@ -66,7 +66,7 @@ const INDENT_COLOR = 'var(--color-a)'
 
 var LayersTool = {
     height: 0,
-    width: 340,
+    width: 350,
     vars: {},
     MMGISInterface: null,
     orderingHistory: [],

@@ -108,41 +108,41 @@ export const constructVectorLayer = (
             } else {
                 // Priority to prop, prop.color, then style color.
                 var finalCol =
-                    col.toLowerCase().substring(0, 4) === 'prop'
+                    col != null && col.toLowerCase().substring(0, 4) === 'prop'
                         ? F_.parseColor(feature.properties[col.substring(5)]) ||
                           '#FFF'
                         : feature.style && feature.style.stroke != null
                         ? feature.style.stroke
                         : col
                 var finalOpa =
-                    opa.toLowerCase().substring(0, 4) === 'prop'
+                    opa != null && opa.toLowerCase().substring(0, 4) === 'prop'
                         ? feature.properties[opa.substring(5)] || '1'
                         : feature.style && feature.style.opacity != null
                         ? feature.style.opacity
                         : opa
                 var finalWei =
-                    wei.toLowerCase().substring(0, 4) === 'prop'
+                    wei != null && wei.toLowerCase().substring(0, 4) === 'prop'
                         ? feature.properties[wei.substring(5)] || '1'
                         : feature.style && feature.style.weight != null
                         ? feature.style.weight
                         : wei
                 if (!isNaN(parseInt(finalWei))) finalWei = parseInt(finalWei)
                 var finalFiC =
-                    fiC.toLowerCase().substring(0, 4) === 'prop'
+                    fiC != null && fiC.toLowerCase().substring(0, 4) === 'prop'
                         ? F_.parseColor(feature.properties[fiC.substring(5)]) ||
                           '#000'
                         : feature.style && feature.style.fill != null
                         ? feature.style.fill
                         : fiC
                 var finalFiO =
-                    fiO.toLowerCase().substring(0, 4) === 'prop'
+                    fiO != null && fiO.toLowerCase().substring(0, 4) === 'prop'
                         ? feature.properties[fiO.substring(5)] || '1'
                         : feature.style && feature.style.fillopacity != null
                         ? feature.style.fillopacity
                         : fiO
 
                 var finalRad =
-                    rad.toLowerCase().substring(0, 4) === 'prop'
+                    rad != null && rad.toLowerCase().substring(0, 4) === 'prop'
                         ? feature.properties[rad.substring(5)] || '8'
                         : feature.style &&
                           feature.style.radius != null &&
@@ -158,11 +158,13 @@ export const constructVectorLayer = (
                         ? ' noPointerEvents'
                         : ''
 
-                layerObj.style.color = finalCol
-                layerObj.style.opacity = finalOpa
-                layerObj.style.weight = finalWei
-                layerObj.style.fillColor = finalFiC
-                layerObj.style.fillOpacity = finalFiO
+                layerObj.style.color = finalCol || '#FFF'
+                layerObj.style.opacity = finalOpa === 'undefined' ? 1 : finalOpa
+                layerObj.style.weight =
+                    finalWei === 'undefined' ? '2' : finalWei
+                layerObj.style.fillColor = finalFiC || '#FFF'
+                layerObj.style.fillOpacity =
+                    finalFiO === 'undefined' ? '1' : finalFiO
                 layerObj.style.radius = finalRad || 8
             }
             if (

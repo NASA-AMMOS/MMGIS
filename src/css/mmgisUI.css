@@ -1501,6 +1501,12 @@ input[type='range'].verticalSlider:focus::-ms-fill-upper {
     color: var(--color-mmgis);
 }
 
+input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+    margin: 0;
+}
+
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
     -webkit-appearance: none;
