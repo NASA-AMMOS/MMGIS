@@ -111,7 +111,10 @@ checkBrowsers(paths.appPath, isInteractive)
       );
       fs.writeFileSync(
         path.join(__dirname, "..", "build/index.pug"),
-        html2pug(htmlStr, {})
+        html2pug(htmlStr, {}).replace(
+          "'#{LINK_PREVIEW_DESCRIPTION}'",
+          "LINK_PREVIEW_DESCRIPTION"
+        )
       );
 
       printHostingInstructions(

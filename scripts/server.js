@@ -916,7 +916,7 @@ setups.getBackendSetups(function (setups) {
           let permission = "000";
           if (process.env.AUTH === "csso") permission = "001";
           if (req.session.permission) permission = req.session.permission;
-          console.log("process.env.IS_DOCKER", process.env.IS_DOCKER);
+
           const groups = req.groups ? Object.keys(req.groups) : [];
           res.render("../build/index.pug", {
             user: user,
@@ -927,6 +927,10 @@ setups.getBackendSetups(function (setups) {
             VERSION: packagejson.version,
             FORCE_CONFIG_PATH: process.env.FORCE_CONFIG_PATH,
             CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER,
+            LINK_PREVIEW_TITLE: process.env.LINK_PREVIEW_TITLE || "MMGIS",
+            LINK_PREVIEW_DESCRIPTION:
+              process.env.LINK_PREVIEW_DESCRIPTION ||
+              "A web-based mapping and localization solution for science operation on planetary missions.",
             ENABLE_MMGIS_WEBSOCKETS: process.env.ENABLE_MMGIS_WEBSOCKETS,
             MAIN_MISSION: process.env.MAIN_MISSION,
             IS_DOCKER: process.env.IS_DOCKER,
