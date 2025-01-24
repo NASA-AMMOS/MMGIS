@@ -3,86 +3,61 @@ head
   title MMGIS
   meta(charset='utf-8')
   meta(name='viewport' content='width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0')
-  link(rel='shortcut icon' href='../resources/logo.png')
+  link(rel='shortcut icon' href='../public/images/logos/logo.png')
   style.
-    @font-face {
-    font-family: venus;
-    src: url("../public/fonts/venus-rising/Venus-Rising-Regular.ttf");
-    }
-    @font-face {
-    font-family: roboto;
-    src: url("../public/fonts/roboto/Roboto-Regular.ttf");
-    }
     @keyframes fadein {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+      from { opacity: 0; }
+      to   { opacity: 1; }
     }
     body, html {
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    background: white;
-    user-select: none;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: rgb(239, 239, 239);
+      color: rgb(117, 117, 117);
+      user-select: none;
+      font-family: sans-serif;
     }
     #main-container {
-    width: 100%;
-    height: 100%;
-    animation: fadein 3.5s;
-    }
-    .background {
-    background-image: url("../public/images/fallingastronaut.jpg");
-    width: 100%;
-    height: 100%;
-    background-position: center top;
-    background-repeat: no-repeat;
-    background-size: 100% auto;
-    }
-    #top {
-    width: 100%;
-    height: 90px;
-    }
-    #middle {
-    width: 100%;
-    height: 100px;
-    }
-    #bottom {
-    width: 100%;
-    height: 50%;
+      width: 100%;
+      height: 100%;
+      animation: fadein 1.5s;
+      cursor: pointer;
     }
     #title {
-    font-family: venus;
-    font-size: 20px;
-    padding-left: 4px;
-    color: #c9d5de;
+      font-size: 20px;
+      margin: 90px 0px;
+      text-align: center;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    #code {
+      font-family: monospace;
+      font-size: 200px;
+      margin-top: 5px;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translateX(-50%) translateY(-50%);
+      color: #555555;
     }
     #message {
-    text-align: center;
-    font-family: monospace;
-    font-size: 20px;
-    color: #eee;
-    padding-top: 37px;
+      font-size: 14px;
+      margin: 125px 0px 90px;
+      text-align: center;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translateX(-50%);
     }
-    #button {
-    text-align: center;
-    width: 100%;
-    }
-    #link {
-    text-decoration: none;
-    font-family: monospace;
-    color: #444;
-    border-bottom: 1px solid rgba(68,68,68,0);
-    transition: border-bottom 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-    }
-    #link:hover {
-    border-bottom: 1px solid rgba(68,68,68,1);
-    }
-#main-container.background
-  #top
+#main-container
+    #code 404
     #title MMGIS
-  #middle
-    #message Something went wrong.
-#bottom
+    #message Click anywhere to return home...
 footer
   script.
+    document.addEventListener('click', function() { document.location.href = window.location.origin })
