@@ -27,7 +27,7 @@ let essenceFina = function () {}
 
 import GeoRasterLayer from '../../../external/georaster-layer-for-leaflet/georaster-layer-for-leaflet.ts'
 import georaster from 'georaster'
-import { evaluate_cmap } from '../../../external/js-colormaps/js-colormaps.js'
+import { evaluate_cmap, data as colormapData } from '../../../external/js-colormaps/js-colormaps.js'
 
 let Map_ = {
     //Our main leaflet map variable
@@ -587,6 +587,7 @@ async function makeLayer(
         }
         //Decide what kind of layer it is
         //Headers do not need to be made
+        console.log('layerObj', layerObj)
         if (layerObj.type != 'header') {
             //Simply call the appropriate function for each layer type
             switch (layerObj.type) {
@@ -942,6 +943,7 @@ async function makeTileLayer(layerObj) {
         tileFormat = tileFormat ? 'tms' : 'wmts'
     } else tileFormat = layerObj.tileformat
 
+    console.log("layerObj", layerObj)
     L_.layers.layer[layerObj.name] = L.tileLayer.colorFilter(layerUrl, {
         minZoom: parseInt(layerObj.minZoom),
         maxZoom: parseInt(layerObj.maxZoom),
@@ -1223,6 +1225,15 @@ function makeImageLayer(layerObj) {
         )
     }
 
+    const cogColormap = F_.getIn(
+        L_.layers.data[layerObj.name],
+        'cogColormap'
+    )
+
+    console.log("map cogColormap", cogColormap)
+
+    // TODO ON TUESDAY 
+
     parseGeoraster(layerUrl).then((georaster) => {
         let pixelValuesToColorFn = null;
         if (F_.getIn(
@@ -1247,13 +1258,71 @@ function makeImageLayer(layerObj) {
 
         let min = null;
         let max = null;
-        if (imageInfo && imageInfo.bands === 1 && georaster.numberOfRasters === 1
-                &&!isNaN(parseFloat(imageInfo.defaults[1].min))
-                && !isNaN(parseFloat(imageInfo.defaults[1].max))) {
-            min = parseFloat(imageInfo.defaults[1].min);
-            max = parseFloat(imageInfo.defaults[1].max);
+        console.log("layerObj.name", layerObj.display_name)
+        console.log("imageinfo", imageInfo)
+        console.log("georaster", georaster)
+        if (imageInfo && georaster.numberOfRasters === 1
+                && !isNaN(parseFloat(layerObj.cogMin))
+                && !isNaN(parseFloat(layerObj.cogMax))) {
+            min = layerObj.cogMin
+            max = layerObj.cogMax
+
             var range = max - min
 
+/*
+            // TiTiler colormap variables are all lower case so we need to format them correctly for js-colormaps
+            let colormap = layerObj.cogColormap
+            let reverse = false
+
+            if (colormap.toLowerCase().endsWith('_r')) {
+                colormap = colormap.substring(0, colormap.length -2)
+                reverse = true
+            }
+
+            if (!(colormap in colormapData)) {
+                colormap = colormap.split('').map((v, i) => (i % 2) == 0 ? v.toUpperCase() : v.toLowerCase()).join('')
+                if (!(colormap in colormapData)) {
+                    colormap = 'binary' // Give it the default value
+                }
+            }
+            if (!(colormap in colormapData)) {
+                let index = Object.keys(colormapData).findIndex(v => {
+                    return v.toLowerCase() === colormap.toLowerCase();
+                });
+
+                if (index > -1) {
+                    colormap = Object.keys(colormapData)[index]
+                } else {
+                    colormap = 'binary' // Give it the default value
+                }
+            }
+*/
+
+            let colormap = null
+            let reverse = false
+            console.log("colormap layerObj", JSON.stringify(layerObj, false, 4))
+            if (layerObj.cogTransform === true && 'cogColormap' in layerObj) {
+                colormap = layerObj.cogColormap
+                // TiTiler colormap variables are all lower case so we need to format them correctly for js-colormaps
+                if (colormap.toLowerCase().endsWith('_r')) {
+                    colormap = colormap.substring(0, colormap.length - 2)
+                    reverse = true
+                }
+
+                let index = Object.keys(colormapData).findIndex(v => {
+                    return v.toLowerCase() === colormap.toLowerCase();
+                });
+
+                if (index > -1) {
+                    colormap = Object.keys(colormapData)[index]
+                } else {
+                    colormap = 'binary' // Give it the default value
+                }
+            } else {
+                colormap = 'binary' // Give it the default value
+            }
+
+            console.log("colormap in Map", colormap)
             pixelValuesToColorFn = (values) => {
                 var pixelValue = values[0]; // single band
                 // don't return a color
@@ -1275,7 +1344,7 @@ function makeImageLayer(layerObj) {
                 }
 
                 // FIXME What should the default color ramp be?
-                return evaluate_cmap(scaledPixelValue, colorRampInfo || 'viridis', false)
+                return evaluate_cmap(scaledPixelValue, colormap || 'binary', reverse)
             }
         }
 
