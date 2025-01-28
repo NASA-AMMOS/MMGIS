@@ -5,10 +5,12 @@ dl {
     -webkit-margin-before: 0;
     -webkit-margin-after: 0;
     -webkit-padding-start: 0;
+    padding-left: 0;
 }
 
 dd {
     -webkit-margin-start: 0;
+    margin-inline-start: 0;
 }
 
 /* Dropy style */
@@ -67,6 +69,7 @@ dd {
     top: 0;
     right: 0;
     left: 0;
+    margin-inline-start: 0;
 }
 .dropy__content ul {
     z-index: 1;
@@ -130,6 +133,7 @@ dd {
     max-height: 20em;
     overflow-y: auto;
     opacity: 1;
+    padding-left: 0;
 }
 
 .dropy.dark .dropy__title {

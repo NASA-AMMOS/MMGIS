@@ -28,6 +28,7 @@ import TravelExploreIcon from "@mui/icons-material/TravelExplore"; // Query
 import LanguageIcon from "@mui/icons-material/Language"; // Tile
 import GridViewIcon from "@mui/icons-material/GridView"; // Vector tile
 import ViewInArIcon from "@mui/icons-material/ViewInAr"; // Model
+import AirIcon from "@mui/icons-material/Air"; // Velocity
 import ImageIcon from '@mui/icons-material/Image'; // Image
 import AddIcon from "@mui/icons-material/Add";
 
@@ -379,6 +380,9 @@ export default function Layers() {
                       iconType = <ViewInArIcon fontSize="small" />;
                       color = "#a98732";
                       break;
+                    case "velocity":
+                      iconType = <AirIcon fontSize="small" />;
+                      color = "#24807c";
                     case "image":
                       iconType = <ImageIcon fontSize="small" />;
                       color = "#b0518f";

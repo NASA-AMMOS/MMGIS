@@ -220,6 +220,23 @@ var TimeControl = {
                     L_.layers.layer[layer.name].refresh(changedUrl)
                 }
             }
+        } else if (layer.type == 'velocity') {
+            if (layer.time && layer.time.enabled === true) {
+                TimeControl.setLayerWmsParams(layer)
+                if (['streamlines', 'particles'].includes(layer.kind)) {
+                    const wasOn = L_.layers.on[layer.name]
+                    if (wasOn) {
+                        L_.toggleLayer(
+                            L_.layers.data[layer.name],
+                            skipOrderedBringToFront
+                        ) // turn off if on
+                        L_.toggleLayer(
+                            L_.layers.data[layer.name],
+                            skipOrderedBringToFront
+                        ) // turn back on
+                    }
+                }
+            } 
         } else {
             // replace start/endtime keywords
             if (layer.time && layer.time.enabled === true) {

@@ -98,6 +98,8 @@ function getClientEnvironment(publicUrl) {
         AUTH: process.env.AUTH,
         VERSION: packagejson.version,
         CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER,
+        LINK_PREVIEW_TITLE: process.env.LINK_PREVIEW_TITLE,
+        LINK_PREVIEW_DESCRIPTION: process.env.LINK_PREVIEW_DESCRIPTION,
         HOSTS: JSON.stringify({
           scienceIntent: process.env.SCIENCE_INTENT_HOST,
         }),

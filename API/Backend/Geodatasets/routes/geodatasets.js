@@ -77,7 +77,9 @@ function get(reqtype, req, res, next) {
             )}, ${Utils.forceAlphaNumUnder(parseFloat(maxy))}, 4326), geom)`;
             hasBounds = true;
           }
+          let startProp = "start_time";
           let start_time = "";
+          let endProp = "end_time";
           let end_time = "";
           if (req.query?.endtime != null) {
             const format = req.query?.format || "YYYY-MM-DDTHH:MI:SSZ";
@@ -86,10 +88,6 @@ function get(reqtype, req, res, next) {
             else t += `AND `;
 
             if (
-              req.query?.startProp == null ||
-              req.query?.startProp.indexOf(`'`) != -1 ||
-              req.query?.endProp == null ||
-              req.query?.endProp.indexOf(`'`) != -1 ||
               req.query?.starttime == null ||
               req.query?.starttime.indexOf(`'`) != -1 ||
               req.query?.endtime == null ||
@@ -98,37 +96,46 @@ function get(reqtype, req, res, next) {
             ) {
               res.send({
                 status: "failure",
-                message: "Missing inner or malformed 'time' parameters.",
+                message: "Missing inner or malformed time parameters.",
               });
               return;
             }
 
-            start_time = new Date(req.query.starttime).getTime();
+            start_time = new Date(
+              req.query.starttime || "1970-01-01T00:00:00Z"
+            ).getTime();
             end_time = new Date(req.query.endtime).getTime();
 
-            const startProp = Utils.forceAlphaNumUnder(req.query.startProp);
-            const endProp = Utils.forceAlphaNumUnder(req.query.endProp);
+            startProp = Utils.forceAlphaNumUnder(
+              req.query.startProp || startProp
+            );
+            endProp = Utils.forceAlphaNumUnder(req.query.endProp || endProp);
             // prettier-ignore
             t += [
-                `(`,
-                  `${startProp} IS NOT NULL AND ${endProp} IS NOT NULL AND`, 
-                    ` ${startProp} >= ${start_time}`,
-                    ` AND ${endProp} <= ${end_time}`,
-                `)`,
-                ` OR `,
-                `(`,
-                  `${startProp} IS NULL AND ${endProp} IS NOT NULL AND`,
-                    ` ${endProp} >= ${start_time}`,
-                    ` AND ${endProp} >= ${end_time}`,
-                `)`
-            ].join('')
+              `(`,
+                `${startProp} IS NOT NULL AND ${endProp} IS NOT NULL AND`, 
+                  ` ${startProp} >= ${start_time}`,
+                  ` AND ${endProp} <= ${end_time}`,
+              `)`,
+              ` OR `,
+              `(`,
+                `${startProp} IS NULL AND ${endProp} IS NOT NULL AND`,
+                  ` ${endProp} >= ${start_time}`,
+                  ` AND ${endProp} <= ${end_time}`,
+              `)`
+          ].join('')
             q += t;
           }
           q += `;`;
 
           sequelize
             .query(q, {
-              replacements: {},
+              replacements: {
+                startProp: startProp,
+                start_time: start_time,
+                endProp: endProp,
+                end_time: end_time,
+              },
             })
             .then(([results]) => {
               let geojson = { type: "FeatureCollection", features: [] };

@@ -74,12 +74,13 @@ export const palette = {
     },
   },
   layers: {
-    vector: "#0792c5",
-    tile: "#75351e",
-    vectortile: "#78b1c2",
-    query: "#87b051",
+    vector: "#245980",
+    tile: "#67401d",
+    vectortile: "#0792c5",
+    query: "#4c8b2d",
     data: "#c43541",
-    model: "#dbb658",
+    model: "#a98732",
+    velocity: "#24807c",
     image: "#b0518f",
   },
 };

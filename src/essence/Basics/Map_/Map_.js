@@ -20,6 +20,10 @@ import calls from '../../../pre/calls'
 import TimeControl from '../../Ancillary/TimeControl'
 
 import gjv from 'geojson-validation'
+import {
+    evaluate_cmap,
+    data as colormapData,
+} from '../../../external/js-colormaps/js-colormaps.js'
 
 let L = window.L
 
@@ -215,6 +219,22 @@ let Map_ = {
             // Set all zoom elements
             $('.map-autoset-zoom').text(Map_.map.getZoom())
         })
+
+        this.map.on('movestart', fadeOutCertainLayers)
+        this.map.on('zoomstart', fadeOutCertainLayers)
+
+        function fadeOutCertainLayers() {
+            // Fade out Velocity layer Streamlines to prevent rendering jumps
+            Object.keys(L_.layers.data).forEach((layerUUID) => {
+                const layerData = L_.layers.data[layerUUID]
+                if (
+                    layerData.type === 'velocity' &&
+                    (layerData.kind === 'streamlines' || layerData.kind == null)
+                ) {
+                    L_.layers.layer[layerUUID].setOpacity(0)
+                }
+            })
+        }
 
         if (Globe_.controls.link) {
             this.map.on('move', (e) => {
@@ -599,6 +619,14 @@ async function makeLayer(
                         forceGeoJSON
                     )
                     break
+                case 'velocity':
+                    await makeVelocityLayer(
+                        layerObj,
+                        evenIfOff,
+                        null,
+                        forceGeoJSON
+                    )
+                    break
                 case 'tile':
                     makeTileLayer(layerObj)
                     break
@@ -894,6 +922,188 @@ async function makeVectorLayer(
             )
             L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
 
+            allLayersLoaded()
+            resolve()
+        }
+    })
+}
+
+//For vector velocity layers
+async function makeVelocityLayer(
+    layerObj,
+    evenIfOff,
+    useEmptyGeoJSON,
+    forceGeoJSON
+) {
+    return new Promise((resolve, reject) => {
+        if (forceGeoJSON) add(forceGeoJSON)
+        else
+            captureVector(
+                layerObj,
+                { evenIfOff: evenIfOff, useEmptyGeoJSON: useEmptyGeoJSON },
+                add,
+                (f) => {
+                    Map_.map.on('moveend', f)
+                    if (
+                        layerObj.time?.enabled === true &&
+                        layerObj.controlled !== true
+                    )
+                        L_.subscribeTimeChange(
+                            `dynamicgeodataset_${layerObj.name}`,
+                            f
+                        )
+                    L_.subscribeOnSpecificLayerToggle(
+                        `dynamicgeodataset_${layerObj.name}`,
+                        layerObj.name,
+                        f
+                    )
+                }
+            )
+
+        function add(data, allowInvalid) {
+            if (layerObj.type == 'velocity') {
+                if (
+                    layerObj.kind == 'streamlines' ||
+                    'kind' in layerObj == false
+                ) {
+                    const defaultColors = [
+                        'rgb(36,104, 180)',
+                        'rgb(60,157, 194)',
+                        'rgb(128,205,193 )',
+                        'rgb(151,218,168 )',
+                        'rgb(198,231,181)',
+                        'rgb(238,247,217)',
+                        'rgb(255,238,159)',
+                        'rgb(252,217,125)',
+                        'rgb(255,182,100)',
+                        'rgb(252,150,75)',
+                        'rgb(250,112,52)',
+                        'rgb(245,64,32)',
+                        'rgb(237,45,28)',
+                        'rgb(220,24,32)',
+                        'rgb(180,0,35)',
+                    ]
+                    let colorScale = ''
+                    if (layerObj.variables?.streamlines?.colorScale) {
+                        let colorConfig =
+                            layerObj.variables?.streamlines?.colorScale
+                        if (colorConfig.includes(',')) {
+                            colorScale = colorConfig
+                                .split('", "')
+                                .map((item) => item.replace(/["]/g, ''))
+                        } else if (colorConfig === 'DEFAULT') {
+                            colorScale = defaultColors
+                        } else {
+                            // Assume we have a colormap name and look up the values
+                            let reverse = false
+                            if (colorConfig.endsWith('_r')) {
+                                reverse = true
+                                colorConfig = colorConfig.slice(0, -2)
+                            }
+                            colorScale = []
+                            let colors = colormapData[colorConfig]?.colors
+                            if (colors != null) {
+                                colors
+                                    .map((color) => {
+                                        const r = Math.round(color[0] * 255)
+                                        const g = Math.round(color[1] * 255)
+                                        const b = Math.round(color[2] * 255)
+                                        return `rgb(${r}, ${g}, ${b})`
+                                    })
+                                    .forEach((colorString) =>
+                                        colorScale.push(colorString)
+                                    )
+                                if (reverse) {
+                                    colorScale = colorScale.reverse()
+                                }
+                            } else {
+                                colorScale = defaultColors
+                            }
+                        }
+                    }
+                    let velocityLayer = L.velocityLayer({
+                        displayValues:
+                            layerObj.variables?.streamlines?.displayValues,
+                        displayOptions: {
+                            position: layerObj.variables?.streamlines
+                                ?.displayPosition
+                                ? layerObj.variables?.streamlines
+                                      ?.displayPosition
+                                : 'bottomleft',
+                            emptyString: '',
+                        },
+                        data: data,
+                        minVelocity: layerObj.variables?.streamlines
+                            ?.minVelocity
+                            ? layerObj.variables.streamlines.minVelocity
+                            : 0,
+                        maxVelocity: layerObj.variables?.streamlines
+                            ?.maxVelocity
+                            ? layerObj.variables.streamlines.maxVelocity
+                            : 15,
+                        velocityScale: layerObj.variables?.streamlines
+                            ?.velocityScale
+                            ? layerObj.variables.streamlines.velocityScale
+                            : 0.005,
+                        particleAge: layerObj.variables?.streamlines
+                            ?.particleAge
+                            ? layerObj.variables.streamlines.particleAge
+                            : 90,
+                        lineWidth: layerObj.variables?.streamlines?.lineWidth
+                            ? layerObj.variables.streamlines.lineWidth
+                            : 1,
+                        particleMultiplier: layerObj.variables?.streamlines
+                            ?.particleMultiplier
+                            ? layerObj.variables.streamlines.particleMultiplier
+                            : 1 / 300,
+                        frameRate: layerObj.variables?.streamlines?.frameRate
+                            ? layerObj.variables.streamlines.frameRate
+                            : 15,
+                        colorScale: colorScale,
+                    })
+                    velocityLayer.setZIndex = function () {}
+                    L_.layers.layer[layerObj.name] = velocityLayer
+                } else if (layerObj.kind == 'particles') {
+                    let points = []
+                    if (data.features) {
+                        data.features.forEach(function (feature) {
+                            points.push([
+                                feature.geometry.coordinates[1],
+                                feature.geometry.coordinates[0],
+                            ])
+                        })
+                    }
+                    let options = {
+                        angle: layerObj.variables?.particles?.angle
+                            ? layerObj.variables?.particles?.angle
+                            : 80,
+                        width: layerObj.variables?.particles?.width
+                            ? layerObj.variables?.particles?.width
+                            : 1,
+                        spacing: layerObj.variables?.particles?.spacing
+                            ? layerObj.variables?.particles?.spacing
+                            : 10,
+                        length: layerObj.variables?.particles?.length
+                            ? layerObj.variables?.particles?.length
+                            : 4,
+                        interval: layerObj.variables?.particles?.interval
+                            ? layerObj.variables?.particles?.interval
+                            : 10,
+                        speed: layerObj.variables?.particles?.speed
+                            ? layerObj.variables?.particles?.speed
+                            : 0.1,
+                        color: layerObj.style?.color
+                            ? layerObj.style?.color
+                            : 'Oxa6b3e9',
+                    }
+                    let rainLayer = L.rain(points, options)
+                    rainLayer.setZIndex = function () {}
+                    L_.layers.layer[layerObj.name] = rainLayer
+                }
+                L_._layersLoaded[
+                    L_._layersOrdered.indexOf(layerObj.name)
+                ] = true
+            }
             allLayersLoaded()
             resolve()
         }

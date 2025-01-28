@@ -119,13 +119,14 @@ body {
     --color-p10: #78b1c2;
     --color-p11: #b0518f;
 
-    --color-vector: var(--color-c2);
-    --color-tile: var(--color-p9);
-    --color-vectortile: var(--color-p10);
-    --color-query: var(--color-p3);
-    --color-data: var(--color-p4);
-    --color-model: var(--color-p0);
-    --color-image: var(--color-p11);
+    --color-vector: #245980;
+    --color-tile: #67401d;
+    --color-vectortile: #0792c5;
+    --color-query: #4c8b2d;
+    --color-data: #c43541;
+    --color-model: #a98732;
+    --color-velocity: #24807c;
+    --color-image: #b0518f;
 }
 
 #nodeenv {
@@ -397,6 +398,10 @@ body {
 }
 .noPointerEventsImportant {
     pointer-events: none !important;
+}
+
+.velocity-overlay {
+    transition: opacity 0.2s ease-in;
 }
 
 @media screen and (max-width: 600px) {
@@ -994,7 +999,6 @@ mark {
     background: var(--color-c2) !important;
     border-radius: 0px;
 }
-
 
 #mainDescPointLinks ul {
     width: fit-content;

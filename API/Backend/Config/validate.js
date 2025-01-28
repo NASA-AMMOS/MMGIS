@@ -78,7 +78,10 @@ const validateLayers = (config) => {
       case "vector":
         // Check url
         if (layer.controlled !== true) errs = errs.concat(isValidUrl(layer));
-
+        break;
+      case "velocity":
+        // Check url
+        if (layer.controlled !== true) errs = errs.concat(isValidUrl(layer));
         break;
       case "model":
         // Check url

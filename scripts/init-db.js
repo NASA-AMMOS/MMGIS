@@ -21,6 +21,7 @@ async function initializeDatabase() {
       process.env.DB_PASS,
       {
         host: process.env.DB_HOST,
+        port: process.env.DB_PORT || "5432",
         dialect: "postgres",
         logging: process.env.VERBOSE_LOGGING == "true" || false,
         pool: {
@@ -112,6 +113,7 @@ async function initializeDatabase() {
         process.env.DB_PASS,
         {
           host: process.env.DB_HOST,
+          port: process.env.DB_PORT || "5432",
           dialect: "postgres",
           logging: process.env.VERBOSE_LOGGING == "true" || false,
           pool: {

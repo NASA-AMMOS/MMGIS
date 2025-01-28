@@ -124,6 +124,14 @@ Overrides ROOT_PATH's use when the client connects via websocket. Websocket url:
 
 Sets a clearance for the website | string | default `CL##-####`
 
+#### `LINK_PREVIEW_TITLE=`
+
+Initial HTML page title. When sharing a link to MMGIS in an application that supports link previews, the title to be used | string | default `MMGIS`
+
+#### `LINK_PREVIEW_DESCRIPTION=`
+
+Initial HTML page description. When sharing a link to MMGIS in an application that supports link previews, the description to be used | string | default `A web-based mapping and localization solution for science operation on planetary missions.`
+
 #### `DISABLE_LINK_SHORTENER=`
 
 If true, users that use the 'Copy Link' feature will receive a full-length deep link. Writing new short links will be disabled but expanding existing ones will still work. | bool | default `false`

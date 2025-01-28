@@ -29,7 +29,7 @@ const helpKey = 'ShadeTool'
 
 let ShadeTool = {
     height: 0,
-    width: 250,
+    width: 260,
     vars: null,
     shadeTimeout: null,
     shadeElmCount: 0,

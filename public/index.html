@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>MMGIS</title>
+    <title>#{LINK_PREVIEW_TITLE}</title>
     <meta charset="utf-8" />
     <link
       id="favicon"
@@ -13,10 +13,7 @@
       content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
     />
     <meta name="theme-color" content="#1d1f20" />
-    <meta
-      name="description"
-      content="A web-based mapping and localization solution for science operation on planetary missions."
-    />
+    <meta name="description" content="#{LINK_PREVIEW_DESCRIPTION}" />
     <style>
       html,
       body {
@@ -319,6 +316,8 @@
       </div>
     </div>
     <script>
+      if(document.title.indexOf('LINK_PREVIEW_TITLE') != -1)
+        document.title = "MMGIS";
       const NODE_ENV = "%NODE_ENV%";
       mmgisglobal = {};
       mmgisglobal.name = "MMGIS";

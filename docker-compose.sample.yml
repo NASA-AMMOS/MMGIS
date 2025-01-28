@@ -19,7 +19,7 @@ services:
       # Postgres connection
       - POSTGRES_USER=username
       - POSTGRES_PASS=password
-      - POSTGRES_DBNAME=postgis
+      - POSTGRES_DBNAME=mmgis-stac
       - POSTGRES_HOST_READER=db
       - POSTGRES_HOST_WRITER=db
       - POSTGRES_PORT=5432
@@ -49,7 +49,7 @@ services:
       # Postgres connection
       - POSTGRES_USER=username
       - POSTGRES_PASS=password
-      - POSTGRES_DBNAME=postgis
+      - POSTGRES_DBNAME=mmgis-stac
       - POSTGRES_HOST=db
       - POSTGRES_PORT=5432
       - DB_MIN_CONN_SIZE=1
@@ -125,7 +125,7 @@ services:
       # Postgres connection
       - POSTGRES_USER=username
       - POSTGRES_PASS=password
-      - POSTGRES_DBNAME=postgis
+      - POSTGRES_DBNAME=mmgis-stac
       - POSTGRES_HOST=db
       - POSTGRES_PORT=5432
       - DB_MIN_CONN_SIZE=1

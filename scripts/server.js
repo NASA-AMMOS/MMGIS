@@ -532,21 +532,6 @@ app.use(cookieParser());
 app.use(cors());
 // app.set('Origin', false);
 
-// catch 404 and forward to error handler
-app.use(function (req, res, next) {
-  next(); //next(createError(404))
-});
-
-// error handler
-app.use(function (err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get("env") === "development" ? err : {};
-  // render the error page
-  res.status(err.status || 500);
-  res.render("error");
-});
-
 /*Require all dynamic backend setup scripts
 and return functions that bulk run their functions
 */
@@ -916,7 +901,7 @@ setups.getBackendSetups(function (setups) {
           let permission = "000";
           if (process.env.AUTH === "csso") permission = "001";
           if (req.session.permission) permission = req.session.permission;
-          console.log("process.env.IS_DOCKER", process.env.IS_DOCKER);
+
           const groups = req.groups ? Object.keys(req.groups) : [];
           res.render("../build/index.pug", {
             user: user,
@@ -927,6 +912,10 @@ setups.getBackendSetups(function (setups) {
             VERSION: packagejson.version,
             FORCE_CONFIG_PATH: process.env.FORCE_CONFIG_PATH,
             CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER,
+            LINK_PREVIEW_TITLE: process.env.LINK_PREVIEW_TITLE || "MMGIS",
+            LINK_PREVIEW_DESCRIPTION:
+              process.env.LINK_PREVIEW_DESCRIPTION ||
+              "A web-based mapping and localization solution for science operation on planetary missions.",
             ENABLE_MMGIS_WEBSOCKETS: process.env.ENABLE_MMGIS_WEBSOCKETS,
             MAIN_MISSION: process.env.MAIN_MISSION,
             IS_DOCKER: process.env.IS_DOCKER,
@@ -949,6 +938,12 @@ setups.getBackendSetups(function (setups) {
 
     //////Setups Started//////
     setups.started(s);
+
+    // error handler
+    app.all("*", (req, res, next) => {
+      // render the error page
+      res.status(404).render("error");
+    });
 
     logger(
       "success",

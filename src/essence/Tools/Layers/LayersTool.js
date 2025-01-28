@@ -68,7 +68,7 @@ const INDENT_COLOR = 'var(--color-a)'
 
 var LayersTool = {
     height: 0,
-    width: 340,
+    width: 350,
     vars: {},
     MMGISInterface: null,
     orderingHistory: [],
@@ -586,6 +586,10 @@ function interfaceWithMMGIS(fromInit) {
                     break
                 case 'model':
                 case 'query':
+                case 'velocity':
+                    currentOpacity = L_.getLayerOpacity(node[i].name)
+                    if (currentOpacity == null)
+                        currentOpacity = L_.layers.opacity[node[i].name]
                     // prettier-ignore
                     settings = [
                         '<ul>',

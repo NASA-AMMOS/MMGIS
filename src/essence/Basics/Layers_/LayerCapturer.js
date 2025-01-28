@@ -145,6 +145,9 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                         layerData?.variables
                                             ?.dynamicExtentMoveThreshold ==
                                             null ||
+                                        layerData?.variables
+                                            ?.dynamicExtentMoveThreshold ===
+                                            '' ||
                                         layerData._ignoreDynamicExtentMoveThreshold ===
                                             true ||
                                         F_.lngLatDistBetween(
@@ -358,12 +361,18 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
     } else {
         switch (urlSplit[0]) {
             case 'geodatasets':
+                const body = {
+                    layer: urlSplitRaw[1],
+                    type: 'geojson',
+                }
+                if (layerData.time?.enabled === true) {
+                    body.starttime = layerData.time.start
+                    body.endtime = layerData.time.end
+                }
+
                 calls.api(
                     'geodatasets_get',
-                    {
-                        layer: urlSplitRaw[1],
-                        type: 'geojson',
-                    },
+                    body,
                     (data) => {
                         cb(data)
                     },

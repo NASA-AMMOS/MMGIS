@@ -25,6 +25,8 @@ import ltm from './essence/Basics/Layers_/leaflet-tilelayer-middleware'
 import ltl from './external/Leaflet/leaflet.tilelayer.gl'
 import lvg from './external/Leaflet/leaflet.vectorGrid.bundled'
 import lrm from './external/Leaflet/leaflet.rotatedMarker'
+import lv from './external/Leaflet/leaflet-velocity'
+import lr from './external/Leaflet/L.Rain'
 
 import THREE from './external/THREE/three118.js'
 import OrbitControls from './external/THREE/OrbitControls'
