@@ -63,7 +63,9 @@ async function initializeDatabase() {
       function keepGoingSTAC() {
         try {
           const output = execSync(
-            `${isDocker ? `micromamba run -n mmgis ` : ``}pypgstac migrate`,
+            `${
+              isDocker ? `source ~/.bashrc && micromamba run -n mmgis ` : ``
+            }pypgstac migrate`,
             {
               env: {
                 PYTHONUTF8: 1,
