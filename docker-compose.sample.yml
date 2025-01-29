@@ -19,9 +19,9 @@ services:
           "-k",
           "http://mmgis:8888/API/utils/healthcheck",
         ]
-      interval: 10s
-      retries: 10
-      start_period: 10s
+      interval: 20s
+      retries: 5
+      start_period: 15s
       timeout: 8s
     restart: on-failure
     volumes:
@@ -193,11 +193,12 @@ services:
     image: postgis/postgis:16-3.4-alpine
     env_file: .env
     environment:
+      - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD_OFF=Rename to 'POSTGRES_PASSWORD' and replace this with an initial root password for the DB
     ports:
       - 5432
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready"]
+      test: ["CMD-SHELL", "pg_isready -d postgres -U ${DB_USER}"]
       interval: 10s
       retries: 10
       start_period: 10s
