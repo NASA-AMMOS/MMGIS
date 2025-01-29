@@ -13,7 +13,7 @@ services:
       # Use https if using HTTPS= env
       test:
         [
-          "CMD-SHELL",
+          "CMD",
           "curl",
           "-XGET",
           "-k",
