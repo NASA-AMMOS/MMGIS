@@ -172,7 +172,7 @@
               "field": "cogColormap",
               "name": "Colormap",
               "description": "",
-              "type": "dropdown",
+              "type": "colordropdown",
               "width": 3,
               "options": "{{COLORMAP_NAMES}}"
             }

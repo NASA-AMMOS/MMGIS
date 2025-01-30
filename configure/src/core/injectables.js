@@ -1,4 +1,5 @@
 import { calls } from "./calls";
+import { data as colormapData } from '../external/js-colormaps.js'
 
 const injectablesDefaults = {
   TILE_MATRIX_SETS: ["WebMercatorQuad"],
@@ -73,35 +74,33 @@ function getColormapNames() {
       "titiler_colormapNames",
       null,
       (res) => {
+        // Get the intersection of colormaps from js-colormaps and TiTiler
+        const js_colormaps = Object.keys(colormapData).map((color => color.toLowerCase()));
+        let colormaps = res.colorMaps;
+        colormaps = colormaps.filter((color) => {
+            if (js_colormaps.includes(color.toLowerCase())) {
+                return color;
+            }
+
+            // js-colormaps only includes the non reversed names so check for the reverse
+            if (color.endsWith("_r") && js_colormaps.includes(color.substr(0, color.length - 2))) {
+                return color;
+            }
+        });
+
+        // Sort
+        colormaps.sort();
+
         // ... new Set removes duplicates
         injectables[injectableName] = [
           ...new Set(
-            injectablesDefaults["COLORMAP_NAMES"].concat(res.colorMaps)
+            injectablesDefaults["COLORMAP_NAMES"].concat(colormaps)
           ),
         ];
       },
       (res) => {
         console.warn(`Failed to query for ${injectableName}. Using defaults.`);
-        injectables[injectableName] = [
-          "gist_earth",
-          "gist_earth_r",
-          "gist_gray",
-          "gist_gray_r",
-          "gist_heat",
-          "gist_heat_r",
-          "gist_ncar",
-          "gist_ncar_r",
-          "gist_rainbow",
-          "gist_rainbow_r",
-          "gist_stern",
-          "gist_stern_r",
-          "gist_yarg",
-          "gist_yarg_r",
-          "terrain",
-          "terrain_r",
-          "viridis",
-          "viridis_r",
-        ];
+        injectables[injectableName] = Object.keys(colormapData);
       }
     );
   }

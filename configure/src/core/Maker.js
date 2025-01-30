@@ -666,26 +666,64 @@ const getComponent = (
         </FormControl>
       );
 
+      let domain =
+      window.mmgisglobal.NODE_ENV === "development"
+        ? "http://localhost:8888/"
+        : window.mmgisglobal.ROOT_PATH || "";
+      if (domain.length > 0 && !domain.endsWith("/")) domain += "/";
+
+      let colormap_html
+      if (window.mmgisglobal.WITH_TITILER !== "true") {
+        // Get colors from TiTiler if it is available
+        colormap_html = (
+          <div>
+            <img id="titlerCogColormapImage" style={{height: "20px", width: "100%"}} src={`${domain}titiler/colorMaps/${dropdown_value.toLowerCase()}?format=png`} />
+          </div>
+        )
+      } else {
+        let colormap = dropdown_value
+        // js-colormaps data object only contains the non reversed color so we need to track if the color is reversed
+        let reverse = false
+
+        // TiTiler colormap variables are all lower case so we need to format them correctly for js-colormaps
+        if (colormap.toLowerCase().endsWith('_r')) {
+            colormap = colormap.substring(0, colormap.length - 2)
+            reverse = true
+        }
+
+        let index = Object.keys(colormapData).findIndex(v => {
+          return v.toLowerCase() === colormap.toLowerCase();
+        });
+
+        if (index > -1) {
+          colormap = Object.keys(colormapData)[index]
+        } else {
+          console.warn(`The colormap '${colormap}' does not exist`);
+        }
+
+        colormap_html = colormapData[colormap].colors.map(
+          (hex) => {
+            return (
+              <div
+                className={c.colorDropdownArrayHex}
+                style={{ background: `rgb(${hex.map(v => {return Math.floor(v * 255)}).join(',')})` }}
+              ></div>
+            );
+          }
+        )
+
+        if (reverse === true) {
+          colormap_html.reverse()
+        }
+      }
+
       return (
         <div>
           {inlineHelp ? (
             <>
               {inner}
               <div className={c.textArrayHexes}>
-                {typeof dropdown_value === "string"
-                  ? (colormapData[dropdown_value] && colormapData[dropdown_value].colors)
-                    ? (colormapData[dropdown_value].colors).map(
-                        (hex) => {
-                          return (
-                            <div
-                              className={c.colorDropdownArrayHex}
-                              style={{ background: `rgb(${hex.map(v => {return Math.floor(v * 255)}).join(',')})` }}
-                            ></div>
-                          );
-                        }
-                      )
-                    : null
-                  : null }
+                {colormap_html}
               </div>
               <Typography className={c.subtitle2}>
                 {com.description || ""}
