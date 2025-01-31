@@ -187,6 +187,7 @@ function drawLegendHeader() {
 }
 
 function drawLegends(tools, _legend, layerUUID, display_name, opacity) {
+    if (tools == null) return
     var c = tools
         .append('div')
         .attr('class', 'mmgisScrollbar')

@@ -8,6 +8,7 @@ dependencies:
   - pip:
       - numpy==2.1.0
       - requests==2.32.3
+      - rio_stac==0.8.1
       - spiceypy==5.1.2
       - pymap3d==3.0.1
       - pypgstac==0.8.6

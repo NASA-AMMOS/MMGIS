@@ -280,7 +280,8 @@ export const constructVectorLayer = (
             }
 
             // Use style.shapeProp
-            let finalShape = layerObj.style.shapeIcon || layerObj.shape
+            let finalShape =
+                layerObj.style.shapeIcon || layerObj.shape || 'none'
 
             if (
                 layerObj.style.shapeProp != null &&

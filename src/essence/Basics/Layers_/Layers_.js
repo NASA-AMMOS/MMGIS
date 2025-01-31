@@ -367,7 +367,11 @@ const L_ = {
                     L_.Globe_.litho.toggleLayer(s.name, false)
                 } else L_.Globe_.litho.removeLayer(s.name)
             } else {
-                if (L_.layers.layer[s.name] && globeOnly != true && s.type !== 'velocity') {
+                if (
+                    L_.layers.layer[s.name] &&
+                    globeOnly != true &&
+                    s.type !== 'velocity'
+                ) {
                     if (L_.layers.attachments[s.name]) {
                         for (let sub in L_.layers.attachments[s.name]) {
                             if (L_.layers.attachments[s.name][sub].on) {
@@ -3642,6 +3646,9 @@ function parseConfig(configData, urlOnLayers) {
                 d[i].type === 'query'
             ) {
                 L_.layers.data[d[i].name].kind = d[i].kind || 'none'
+            }
+            if (d[i].type === 'vector') {
+                d[i].radius = d[i].style?.radius || d[i].radius || 8
             }
 
             //Check if it's not a header and thus an actual layer with data

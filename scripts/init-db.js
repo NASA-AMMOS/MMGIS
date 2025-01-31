@@ -1,7 +1,10 @@
 const Sequelize = require("sequelize");
 const logger = require("../API/logger");
+const utils = require("../API/utils");
 const execSync = require("child_process").execSync;
 require("dotenv").config({ path: __dirname + "/../.env" });
+
+const isDocker = utils.isDocker();
 
 initializeDatabase()
   .then(() => {
@@ -59,16 +62,21 @@ async function initializeDatabase() {
 
       function keepGoingSTAC() {
         try {
-          const output = execSync(`pypgstac migrate`, {
-            env: {
-              PYTHONUTF8: 1,
-              PGHOST: process.env.DB_HOST,
-              PGPORT: process.env.DB_PORT,
-              PGUSER: process.env.DB_USER,
-              PGDATABASE: "mmgis-stac",
-              PGPASSWORD: process.env.DB_PASS,
-            },
-          });
+          const output = execSync(
+            `${
+              isDocker ? `source ~/.bashrc && micromamba run -n mmgis ` : ``
+            }pypgstac migrate`,
+            {
+              env: {
+                PYTHONUTF8: 1,
+                PGHOST: process.env.DB_HOST,
+                PGPORT: process.env.DB_PORT,
+                PGUSER: process.env.DB_USER,
+                PGDATABASE: "mmgis-stac",
+                PGPASSWORD: process.env.DB_PASS,
+              },
+            }
+          );
           logger(
             "info",
             `Conformed the mmgis-stac database to pgstac.`,

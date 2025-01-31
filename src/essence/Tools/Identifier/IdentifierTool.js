@@ -72,7 +72,7 @@ var IdentifierTool = {
         this.made = true
 
         //Get tool variables
-        this.varsRaw = L_.getToolVars('identifier', true)
+        this.varsRaw = L_.getToolVars('identifier', true) || {}
         this.vars = {
             data: {},
         }
@@ -653,6 +653,10 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
     numBands = numBands || 1
     var dataPath
     if (url.startsWith('stac-collection:')) {
+        let timeParam = ''
+        if (L_.layers.data[layerUUID].time?.enabled == true)
+            timeParam = `&datetime=${L_.layers.data[layerUUID].time.start}/${L_.layers.data[layerUUID].time.end}`
+
         fetch(
             `${
                 mmgisglobal.NODE_ENV === 'development'
@@ -660,7 +664,7 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
                     : ''
             }/titilerpgstac/collections/${
                 url.split('stac-collection:')[1]
-            }/point/${lng},${lat}?assets=asset&items_limit=10`,
+            }/point/${lng},${lat}?assets=asset&items_limit=10${timeParam}`,
             {
                 method: 'GET',
                 headers: {

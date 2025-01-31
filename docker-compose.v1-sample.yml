@@ -1,28 +1,11 @@
 services:
   mmgis:
-    # build: .
-    image: ghcr.io/nasa-ammos/mmgis:development
+    build: .
     depends_on:
-      db:
-        condition: service_healthy
-        restart: true
+      - db
     env_file: .env
     ports:
       - 8888:8888
-    healthcheck:
-      # Use https if using HTTPS= env
-      test:
-        [
-          "CMD",
-          "curl",
-          "-XGET",
-          "-k",
-          "http://mmgis:8888/API/utils/healthcheck",
-        ]
-      interval: 20s
-      retries: 5
-      start_period: 15s
-      timeout: 8s
     restart: on-failure
     volumes:
       - ./Missions:/usr/src/app/Missions
@@ -43,12 +26,7 @@ services:
       - DB_MIN_CONN_SIZE=1
       - DB_MAX_CONN_SIZE=1
     depends_on:
-      mmgis:
-        condition: service_healthy
-        restart: true
-      db:
-        condition: service_healthy
-        restart: true
+      - db
     command: bash -c "bash /tmp/scripts/wait-for-it.sh -t 120 -h db -p 5432 && uvicorn stac_fastapi.pgstac.app:app --host 0.0.0.0 --port 8881"
     volumes:
       - ./adjacent-servers/docker-scripts:/tmp/scripts
@@ -78,12 +56,7 @@ services:
       - DB_MAX_CONN_SIZE=10
     command: bash -c "bash /tmp/scripts/wait-for-it.sh -t 120 -h db -p 5432 && /start.sh"
     depends_on:
-      mmgis:
-        condition: service_healthy
-        restart: true
-      db:
-        condition: service_healthy
-        restart: true
+      - db
     volumes:
       - ./adjacent-servers/docker-scripts:/tmp/scripts
       - ./Missions:/Missions
@@ -178,12 +151,7 @@ services:
       - TITILER_PGSTAC_SEARCH_EXITWHENFULL=FALSE
       - TITILER_PGSTAC_SEARCH_SKIPCOVERED=FALSE
     depends_on:
-      mmgis:
-        condition: service_healthy
-        restart: true
-      db:
-        condition: service_healthy
-        restart: true
+      - db
     command: bash -c "bash /tmp/scripts/wait-for-it.sh -t 120 -h db -p 5432 && /start.sh"
     volumes:
       - ./Missions:/Missions
@@ -193,16 +161,9 @@ services:
     image: postgis/postgis:16-3.4-alpine
     env_file: .env
     environment:
-      - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD_OFF=Rename to 'POSTGRES_PASSWORD' and replace this with an initial root password for the DB
     ports:
       - 5432
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d postgres -U ${DB_USER}"]
-      interval: 10s
-      retries: 10
-      start_period: 10s
-      timeout: 8s
     restart: on-failure
     volumes:
       - mmgis-db:/var/lib/postgresql/data
