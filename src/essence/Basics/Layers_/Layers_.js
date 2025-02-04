@@ -558,6 +558,11 @@ const L_ = {
                             )
                         }
 
+                        if (s.type === 'image') {
+                            L_.layers.layer[s.name].clearCache()
+                            L_.layers.layer[s.name].updateColors(L_.layers.layer[s.name].options.pixelValuesToColorFn)
+                        }
+
                         if (s.type === 'vector') {
                             L_.Globe_.litho.addLayer(
                                 s.layer3dType || 'clamped',
