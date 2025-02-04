@@ -31,7 +31,6 @@ let essenceFina = function () {}
 
 import GeoRasterLayer from '../../../external/georaster-layer-for-leaflet/georaster-layer-for-leaflet.ts'
 import georaster from 'georaster'
-import { evaluate_cmap, data as colormapData } from '../../../external/js-colormaps/js-colormaps.js'
 
 let Map_ = {
     //Our main leaflet map variable
