@@ -100,7 +100,15 @@
               "description": "Fill in with the maximum color or minimum color value if below min and/or above max of the band",
               "type": "checkbox",
               "width": 2,
-              "defaultChecked": true
+              "defaultChecked": false
+            },
+            {
+              "field": "variables.hideNoDataValue",
+              "name": "Hide No Data Value",
+              "description": " If true, hides all values where there is no data. ",
+              "type": "checkbox",
+              "width": 3,
+              "defaultChecked": false
             }
           ]
         },
@@ -161,21 +169,63 @@
       ]
     },
     {
-      "name": "Miscellaneous",
+      "name": "Tool - Identifier",
       "rows": [
         {
+          "name": "Tool: Identifier",
           "components": [
             {
-              "field": "variables.hideNoDataValue",
-              "name": "Hide No Data Value",
-              "description": " If true, hides all values where there is no data. ",
-              "type": "checkbox",
-              "width": 3,
-              "defaultChecked": false
+              "field": "variables.tools.identifier.data",
+              "name": "Data",
+              "description": "Configure this layer for use with the IdentifierTool. Configuring the tool within this layer may override configurations of this layer within the tool itself in the Tools Tab.",
+              "type": "objectarray",
+              "width": 12,
+              "object": [
+                {
+                  "field": "url",
+                  "name": "URL to .tif",
+                  "description": "This can be a relative path to a file under the Mission name or a full url path. The former is preferred is the file is large. If this field is left empty, the Identifier Tool will try to best-match the hovered-over pixel color with this layer's legend (if any).",
+                  "type": "text",
+                  "width": 12
+                },
+                {
+                  "field": "bands",
+                  "name": "Bands",
+                  "description": "Number of bands from which to query.",
+                  "type": "number",
+                  "min": 0,
+                  "step": 1,
+                  "width": 2
+                },
+                {
+                  "field": "sigfigs",
+                  "name": "SigFigs",
+                  "description": "Number of significant figures to use after the decimal of returned values.",
+                  "type": "number",
+                  "min": 0,
+                  "step": 1,
+                  "width": 2
+                },
+                {
+                  "field": "unit",
+                  "name": "Unit",
+                  "description": "A string that is appended to your returned value. e.g. ' m' would be appended on a raw value ('41') and show '41 m'. If it was 'm', it would return '41m', without a space.",
+                  "type": "text",
+                  "width": 2
+                },
+                {
+                  "field": "scalefactor",
+                  "name": "Scale Factor",
+                  "description": "A number for which to multiply the raw value by for display purposes only. Useful, for instance, if the underlying dataset is in units that are off by factor's of 10 from what's desired to be shown to users.",
+                  "type": "number",
+                  "width": 2
+                }
+              ]
             }
           ]
         }
       ]
     }
+
   ]
 }

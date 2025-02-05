@@ -196,8 +196,8 @@ var IdentifierTool = {
         IdentifierTool.tileFormats = []
         for (let n in L_.layers.on) {
             if (L_.layers.on[n] == true) {
-                //We only want the tile layers
-                if (L_.layers.data[n].type == 'tile') {
+                //We only want the tile and image layers
+                if (L_.layers.data[n].type == 'tile' || L_.layers.data[n].type == 'image') {
                     let url =
                         L_.layers.data[n].url.indexOf('stac-collection:') === 0
                             ? L_.layers.data[n].url
@@ -323,6 +323,24 @@ var IdentifierTool = {
             //Oh IdentifierTool is the same as X != undefined
             if (
                 IdentifierTool.activeLayerURLs[i].startsWith('stac-collection:')
+            ) {
+                IdentifierTool.vars.data[
+                    IdentifierTool.activeLayerNames[i]
+                ].data = [
+                    {
+                        url: IdentifierTool.activeLayerURLs[i],
+                        bands: 1,
+                        units:
+                            L_.layers.data[IdentifierTool.activeLayerNames[i]]
+                                .cogUnits || '',
+                        sigfigs: 2,
+                        scalefactor: 1,
+                    },
+                ]
+            }
+
+            if (
+                L_.layers.data[IdentifierTool.activeLayerNames[i]].type === 'image'
             ) {
                 IdentifierTool.vars.data[
                     IdentifierTool.activeLayerNames[i]
@@ -684,7 +702,7 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
             })
             .catch((err) => {})
         return
-    } else if (url.startsWith('/vsicurl/')) {
+    } else if (url.startsWith('/vsicurl/') || url.startsWith('Missions/')) {
         dataPath = url
     } else {
         dataPath = 'Missions/' + L_.mission + '/' + url
@@ -704,10 +722,17 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
         },
         (data) => {
             //Convert python's Nones to nulls
-            data = data.replace(/none/gi, 'null')
-            if (data.length > 2) {
-                data = JSON.parse(data)
-                if (typeof callback === 'function') callback(data)
+            if (typeof data === 'string') {
+                data = data.replace(/none/gi, 'null')
+                if (data.length > 2) {
+                    data = JSON.parse(data)
+                    if (typeof callback === 'function') callback(data)
+                }
+            }
+            if (typeof data === 'object') {
+                if (data.length > 0) {
+                    if (typeof callback === 'function') callback(data)
+                }
             }
         },
         function () {
