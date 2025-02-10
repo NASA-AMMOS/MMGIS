@@ -244,7 +244,8 @@ const L_ = {
     },
     getUrl: function (type, url, layerData) {
         let nextUrl = url
-        if (nextUrl.startsWith('COG:')) nextUrl = nextUrl.slice(4)
+        if (nextUrl != null && nextUrl.startsWith('COG:'))
+            nextUrl = nextUrl.slice(4)
         if (!F_.isUrlAbsolute(nextUrl)) {
             nextUrl = L_.missionPath + nextUrl
         }
