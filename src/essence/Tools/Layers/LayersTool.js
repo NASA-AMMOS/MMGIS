@@ -19,7 +19,10 @@ import calls from '../../../pre/calls'
 import * as tokml from '@maphubs/tokml'
 import shpwrite from '@mapbox/shp-write'
 
-import { evaluate_cmap, data as colormapData } from '../../../external/js-colormaps/js-colormaps.js'
+import {
+    evaluate_cmap,
+    data as colormapData,
+} from '../../../external/js-colormaps/js-colormaps.js'
 
 import './LayersTool.css'
 
@@ -65,6 +68,9 @@ var markup = [
 const quasiLayers = ['model', 'query']
 const DEPTH_SIZE = 13
 const INDENT_COLOR = 'var(--color-a)'
+
+// The default color ramp used for image layer types
+const DEFAULT_COLOR_RAMP = 'binary'
 
 var LayersTool = {
     height: 0,
@@ -607,7 +613,11 @@ function interfaceWithMMGIS(fromInit) {
                     if (currentOpacity == null)
                         currentOpacity = L_.layers.opacity[node[i].name]
 
-                        if (window.mmgisglobal.WITH_TITILER !== "true") {
+                    if (
+                        node[i].cogTransform === true &&
+                        typeof node[i].url === 'string'
+                    ) {
+                        if (window.mmgisglobal.WITH_TITILER === "true") {
                             // prettier-ignore
                             additionalSettings = [
                                 `<img id="titlerCogColormapImage" src="${window.location.origin}${(
@@ -620,15 +630,16 @@ function interfaceWithMMGIS(fromInit) {
                             additionalSettings = (colormapData[colormap].colors).map(
                                 (hex) => {
                                     let rgb = hex.map(v => {return Math.floor(v * 255)}).join(',')
-                                    return `<div class="colorDropdownArrayHex" style="background: rgb(${rgb}); width: 20px; height: 100%; margin: 0px; flex-grow: 1;"></div>`;
+                                    return `<div style="background: rgb(${rgb}); width: 20px; height: 100%; margin: 0px; flex-grow: 1;"></div>`;
                                 }
                             )
 
                             if (reverse === true) {
                                 additionalSettings.reverse()
                             }
+
                             additionalSettings = [
-                                '<div style="width: 254px; height: 28px; transform: rotateZ(90deg) translateX(125px) translateY(-167px);border-left: 14px solid #222; border-right: 14px solid #222; display: flex; mix-blend-mode: normal !important;">',
+                                '<div id="titlerCogColormapCSS">',
                                 additionalSettings.join('\n'),
                                 '</div>',
                             ].join('\n')
@@ -677,6 +688,7 @@ function interfaceWithMMGIS(fromInit) {
                                 '</li>',
                             '</div>'
                         ].join('\n')
+                    }
 
                     // prettier-ignore
                     settings = [
@@ -806,99 +818,8 @@ function interfaceWithMMGIS(fromInit) {
                                 '</div>',
                             '</li>',
                         ].join('\n')
-
-
-
-
-
                     )
 
-
-                    // !!!!!!!!!
-/*
-                    let min = null;
-                    let max = null;
-                    if (node[i].variables && node[i].variables.image) {
-                        //min = node[i].variables.image.defaults[1].min
-                        //max = node[i].variables.image.defaults[1].max
-                        min = node[i].cogMin
-                        max = node[i].cogMax
-                        if (min !== null && max !== null) {
-                            // Make sliders
-                            const mySlider = new RangeSliderPips({
-                                target: document.querySelector('#image-slider-range-' + node[i].name),
-                                props: {
-                                    values: [min || 0, max || 255],
-                                    min: min,
-                                    max: max,
-                                    range: true,
-                                    pushy: false,
-                                },
-                            })
-
-                            mySlider.$on('change', function (e) {
-                                updateImageRange(e.detail.values[0], e.detail.values[1])
-                            })
-
-                            let layerName = node[i].name;
-
-                            const imageInfo =  F_.getIn(
-                                L_.layers.data[layerName],
-                                'variables.image'
-                            )
-
-
-                            //const colorRampInfo = F_.getIn(
-                            //    L_.layers.data[layerName],
-                            //    'cogColormap' //variables.shader.ramps.0
-                            //)
-
-                            function updateImageRange(vMin, vMax) {
-                                const layer = L_.layers.layer[layerName]
-                                if (vMin == null || vMax == null) return
-
-                                layer.currentCogMin = vMin
-                                layer.currentCogMax = vMax
-
-                                $('.imagerange.stylevalue').text(vMin + ' ➝ ' + vMax)
-                                $('.imagerange.stylevalue').attr('v', vMin + ',' + vMax)
-                                var range = vMax - vMin
-
-                                let { colormap, reverse } = findJSColormap(layer)
-
-                                let pixelValuesToColorFn = (values) => {
-                                    let georaster = layer.options.georaster
-                                    var pixelValue = values[0]; // single band
-
-                                    // don't return a color
-                                    if (georaster.noDataValue && georaster.noDataValue === pixelValue) {
-                                        return null;
-                                    }
-                                    // scale from 0 - 1
-                                    var scaledPixelValue = (pixelValue - vMin) / range;
-                                    if (!(0 <= scaledPixelValue && scaledPixelValue <= 1)
-                                            && imageInfo.fillMinMax) {
-                                        if (scaledPixelValue <= 0) {
-                                            scaledPixelValue = 0
-                                        } else if (scaledPixelValue >= 1.0) {
-                                            scaledPixelValue = 1
-                                        } else {
-                                            return null
-                                        }
-                                    }
-
-                                    // FIXME What should the default color ramp be?
-                                    return evaluate_cmap(scaledPixelValue, colormap.cogColormap || 'binary', reverse)
-                                }
-
-                                // Clear the cache so when zooming in/out, the old pixel colors are not cached
-                                layer.clearCache()
-                                layer.updateColors(pixelValuesToColorFn)
-                            }
-                        }
-                    }
-*/
-                    break
                     //Attach DataShader events
                     if (node[i].type === 'data') {
                         const shader = F_.getIn(node[i], 'variables.shader')
@@ -1413,10 +1334,25 @@ function interfaceWithMMGIS(fromInit) {
             .find('.tilerescalecogmax')
             .val(layer.currentCogMax)
 
-        L_.layers.layer[layer.name].refresh(null, true, {
-            currentCogMin: layer.currentCogMin,
-            currentCogMax: layer.currentCogMax,
-        })
+        if (layer.type === 'tile') {
+            L_.layers.layer[layer.name].refresh(null, true, {
+                currentCogMin: layer.currentCogMin,
+                currentCogMax: layer.currentCogMax,
+            })
+        } else if (layer.type === 'image') {
+            // TODO FIXME DOUBLE CHECK
+            updateImageRange(
+                layer.name,
+                layer.currentCogMin == null
+                    ? layer.cogMin || 0
+                    : layer.currentCogMin,
+                layer.currentCogMax == null
+                    ? layer.cogMax || 255
+                    : layer.currentCogMax
+            )
+        }
+
+
     })
 
     //Applies slider values to map layers
@@ -1453,9 +1389,21 @@ function interfaceWithMMGIS(fromInit) {
                 : layer.currentCogMax
         )
         $('.tilerescalecogmin').val(layer.currentCogMin)
-        L_.layers.layer[layer.name].refresh(null, true, {
-            currentCogMin: layer.currentCogMin,
-        })
+
+        if (layer.type === 'tile') {
+            L_.layers.layer[layer.name].refresh(null, true, {
+                currentCogMin: layer.currentCogMin,
+            })
+        } else if (layer.type === 'image') {
+            updateImageRange(
+                layer.name,
+                layer.currentCogMin,
+                layer.currentCogMax == null
+                    ? layer.cogMax || 255
+                    : layer.currentCogMax
+            )
+        }
+
         populateCogScale(layer.name)
     })
     $('.tilerescalecogmax').on('change', function () {
@@ -1470,9 +1418,18 @@ function interfaceWithMMGIS(fromInit) {
                 : layer.currentCogMin
         )
         $('.tilerescalecogmax').val(layer.currentCogMax)
-        L_.layers.layer[layer.name].refresh(null, true, {
-            currentCogMax: layer.currentCogMax,
-        })
+        if (layer.type === 'tile') {
+            L_.layers.layer[layer.name].refresh(null, true, {
+                currentCogMax: layer.currentCogMax,
+            })
+        } else if (layer.type === 'image') {
+            updateImageRange(
+                layer.name,
+                layer.currentCogMin == null
+                    ? layer.cogMin || 0
+                    : layer.currentCogMin,
+                L_.layers.layer[layer.name].currentCogMax)
+        }
         populateCogScale(layer.name)
     })
 
@@ -1927,7 +1884,7 @@ function interfaceWithMMGIS(fromInit) {
         let layer = L_.asLayerUUID(layerName)
         layer = L_.layers.data[layer]
         if (L_.layers.layer[layer.name] === null) return
-        if (!layer.url.startsWith('stac-collection:')) return
+        if (!layer.url.startsWith('stac-collection:') && layer.type !== 'image') return
 
         const dynamicLegendConf = []
         const imgElement = document.getElementById('titlerCogColormapImage')
@@ -1937,27 +1894,60 @@ function interfaceWithMMGIS(fromInit) {
         canvasElement.width = 256
         canvasElement.height = 1
         const context = canvasElement.getContext('2d')
-        context.drawImage(imgElement, 0, 0, 256, 1, 0, 0, 256, 1)
+        if (imgElement && layer.type === 'tile') {
+            context.drawImage(imgElement, 0, 0, 256, 1, 0, 0, 256, 1)
+        }
 
         const min =
             layer.currentCogMin == null ? layer.cogMin : layer.currentCogMin
         const max =
             layer.currentCogMax == null ? layer.cogMax : layer.currentCogMax
         for (let i = 0; i < 9; i++) {
+            let value = Math.round(F_.linearScale([0, 8], [min, max], i) * 100) / 100
             let label = `${
                 Math.round(F_.linearScale([0, 8], [min, max], i) * 100) / 100
             }${layer.cogUnits || ''}`
             if (i !== 0 && i !== 8) {
                 $(`#tileCogLegend_${i}`).text(label)
             }
-            const c = context.getImageData(
-                parseInt((255 / 9) * i),
-                0,
-                1,
-                1
-            ).data
+
+            let color
+            if (layer.type === 'tile') {
+                const c = context.getImageData(
+                    parseInt((255 / 9) * i),
+                    0,
+                    1,
+                    1
+                ).data
+                color = `rgb(${c[0]}, ${c[1]}, ${c[2]})`
+            } else if (layer.type === 'image') {
+                let { colormap, reverse } = findJSColormap(layer)
+
+                let scaledPixelValue
+                if (min !== undefined && max !== undefined) { // layer.cogTransform === true && 'cogColormap' in layer
+                    // scale from 0 - 1
+                    const range = max - min
+                    scaledPixelValue = (value - min) / range
+                    if (!(0 <= scaledPixelValue && scaledPixelValue <= 1)) {
+                        if (scaledPixelValue <= 0) {
+                            scaledPixelValue = 0
+                        } else if (scaledPixelValue >= 1.0) {
+                            scaledPixelValue = 1
+                        }
+                    }
+                } else {
+                    // If cog transform option is not turned on,
+                    scaledPixelValue = i / 9
+                    label = ''
+                }
+
+                const hex = evaluate_cmap(scaledPixelValue, colormap, reverse)
+                const rgb = hex.join(',')
+                color = `rgb(${rgb})`
+            }
+
             dynamicLegendConf.push({
-                color: `rgb(${c[0]}, ${c[1]}, ${c[2]})`,
+                color,
                 strokecolor: null,
                 shape: 'continuous',
                 value: label,
@@ -1974,6 +1964,54 @@ function interfaceWithMMGIS(fromInit) {
                 `<li style="height: ${(1 / 9) * 100}%;"></li>`
             )
         }
+    }
+
+    function updateImageRange(layerName, vMin, vMax) {
+        const layer = L_.layers.layer[layerName]
+        const layerData = L_.layers.data[layerName]
+        if (vMin == null || vMax == null) return
+
+        const imageInfo =  F_.getIn(
+            L_.layers.data[layerName],
+            'variables.image'
+        )
+
+        layer.currentCogMin = vMin
+        layer.currentCogMax = vMax
+
+        $('.imagerange.stylevalue').text(vMin + ' ➝ ' + vMax)
+        $('.imagerange.stylevalue').attr('v', vMin + ',' + vMax)
+        var range = vMax - vMin
+
+        var { colormap, reverse } = findJSColormap(layerData)
+
+        let pixelValuesToColorFn = (values) => {
+            let georaster = layer.options.georaster
+            var pixelValue = values[0]; // single band
+
+            // don't return a color
+            if (georaster.noDataValue && georaster.noDataValue === pixelValue) {
+                return null;
+            }
+            // scale from 0 - 1
+            var scaledPixelValue = (pixelValue - vMin) / range;
+            if (!(0 <= scaledPixelValue && scaledPixelValue <= 1)
+                    && imageInfo && imageInfo.fillMinMax) {
+                if (scaledPixelValue <= 0) {
+                    scaledPixelValue = 0
+                } else if (scaledPixelValue >= 1.0) {
+                    scaledPixelValue = 1
+                } else {
+                    return null
+                }
+            }
+
+            return evaluate_cmap(scaledPixelValue, colormap || DEFAULT_COLOR_RAMP, reverse)
+        }
+
+        // Clear the cache so when zooming in/out, the old pixel colors are not cached
+        layer.clearCache()
+        layer.updateColors(pixelValuesToColorFn)
     }
 
     function findJSColormap(layer) {
@@ -1995,10 +2033,10 @@ function interfaceWithMMGIS(fromInit) {
             if (index > -1) {
                 colormap = Object.keys(colormapData)[index]
             } else {
-                colormap = 'binary' // Give it the default value
+                colormap = DEFAULT_COLOR_RAMP // Give it the default value
             }
         } else {
-            colormap = 'binary' // Give it the default value
+            colormap = DEFAULT_COLOR_RAMP // Give it the default value
         }
         return { reverse, colormap }
     }

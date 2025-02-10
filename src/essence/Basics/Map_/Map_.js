@@ -42,7 +42,6 @@ let Map_ = {
     player: { arrow: null, lookat: null },
     //Initialize a map based on a config file
     init: function (essenceFinal) {
-        console.log("init map_")
         essenceFina = essenceFinal
 
         //Repair Leaflet and plugin incongruities
@@ -1439,10 +1438,6 @@ function makeImageLayer(layerObj) {
         'cogColormap'
     )
 
-    console.log("map cogColormap", cogColormap)
-
-    // TODO ON TUESDAY 
-
     parseGeoraster(layerUrl).then((georaster) => {
         let pixelValuesToColorFn = null;
         if (F_.getIn(
@@ -1460,56 +1455,49 @@ function makeImageLayer(layerObj) {
             'variables.image'
         )
 
-        const colorRampInfo = F_.getIn(
-            L_.layers.data[layerObj.name],
-            'variables.shader.ramps.0'
-        )
-
         let min = null;
         let max = null;
-        console.log("layerObj.name", layerObj.display_name)
-        console.log("imageinfo", imageInfo)
-        console.log("georaster", georaster)
-        if (imageInfo && georaster.numberOfRasters === 1
-                && !isNaN(parseFloat(layerObj.cogMin))
-                && !isNaN(parseFloat(layerObj.cogMax))) {
+        if (georaster.numberOfRasters === 1) { // imageInfo && 
             min = layerObj.cogMin
             max = layerObj.cogMax
 
+            if (isNaN(parseFloat(layerObj.cogMin)) || isNaN(parseFloat(layerObj.cogMax))) {
+                let path
+                if (layerObj.url.startsWith('http')) path = layerObj.url
+                else path = 'Missions/' + L_.mission + '/' + layerObj.url
+
+                // Try to get the min and max values using gdal if the user did not input min/max in the layer config
+                $.ajax({
+                    type: calls.getminmax.type,
+                    url: calls.getminmax.url,
+                    data: {
+                        type: 'minmax',
+                        path: calls.getprofile.pathprefix + path,
+                        bands: '[1]', // Assume the geotiff images only have a single band
+                    },
+                    async: false,
+                    success: function (data) {
+                        if (data && data[0] && data[0].band && data[0].band === 1) {
+                            if (isNaN(parseFloat(layerObj.cogMin))) {
+                                min = data[0].min
+                                layerObj.cogMin = min
+                            }
+                            if (isNaN(parseFloat(layerObj.cogMax))) {
+                                max = data[0].max
+                                layerObj.cogMax = max
+                            }
+                        }
+                    },
+                    error: function (request, status, error) {
+                        console.warn(`Failed to get gdal minmax info for ${layerObj.name}`, request, status, error)
+                    },
+                })
+
+            }
+
             var range = max - min
-
-/*
-            // TiTiler colormap variables are all lower case so we need to format them correctly for js-colormaps
-            let colormap = layerObj.cogColormap
-            let reverse = false
-
-            if (colormap.toLowerCase().endsWith('_r')) {
-                colormap = colormap.substring(0, colormap.length -2)
-                reverse = true
-            }
-
-            if (!(colormap in colormapData)) {
-                colormap = colormap.split('').map((v, i) => (i % 2) == 0 ? v.toUpperCase() : v.toLowerCase()).join('')
-                if (!(colormap in colormapData)) {
-                    colormap = 'binary' // Give it the default value
-                }
-            }
-            if (!(colormap in colormapData)) {
-                let index = Object.keys(colormapData).findIndex(v => {
-                    return v.toLowerCase() === colormap.toLowerCase();
-                });
-
-                if (index > -1) {
-                    colormap = Object.keys(colormapData)[index]
-                } else {
-                    colormap = 'binary' // Give it the default value
-                }
-            }
-*/
-
             let colormap = null
             let reverse = false
-            console.log("colormap layerObj", JSON.stringify(layerObj, false, 4))
             if (layerObj.cogTransform === true && 'cogColormap' in layerObj) {
                 colormap = layerObj.cogColormap
                 // TiTiler colormap variables are all lower case so we need to format them correctly for js-colormaps
@@ -1531,7 +1519,6 @@ function makeImageLayer(layerObj) {
                 colormap = 'binary' // Give it the default value
             }
 
-            console.log("colormap in Map", colormap)
             pixelValuesToColorFn = (values) => {
                 var pixelValue = values[0]; // single band
                 // don't return a color
@@ -1542,7 +1529,7 @@ function makeImageLayer(layerObj) {
                 // scale from 0 - 1
                 var scaledPixelValue = (pixelValue - min) / range;
                 if (!(0 <= scaledPixelValue && scaledPixelValue <= 1)
-                        && imageInfo.fillMinMax) {
+                        && imageInfo && imageInfo.fillMinMax) {
                     if (scaledPixelValue <= 0) {
                         scaledPixelValue = 0
                     } else if (scaledPixelValue >= 1.0) {
@@ -1552,16 +1539,13 @@ function makeImageLayer(layerObj) {
                     }
                 }
 
-                // FIXME What should the default color ramp be?
                 return evaluate_cmap(scaledPixelValue, colormap || 'binary', reverse)
             }
         }
 
-        console.log("pixelValuesToColorFn", pixelValuesToColorFn)
         L_.layers.layer[layerObj.name] = new GeoRasterLayer({
             georaster: georaster,
             resolution: 256,
-            //debugLevel: 1,
             opacity: 1.0,
             pixelValuesToColorFn: pixelValuesToColorFn,
         })

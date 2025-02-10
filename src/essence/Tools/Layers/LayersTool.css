@@ -365,14 +365,20 @@
     text-transform: capitalize;
     mix-blend-mode: difference;
 }
-#layersTool .tileCogColormap img {
+#layersTool .tileCogColormap img, #layersTool .tileCogColormap #titlerCogColormapCSS {
     width: 254px;
     height: 28px;
     transform: rotateZ(90deg) translateX(125px) translateY(-177px);
     border-left: 14px solid #222;
     border-right: 14px solid #222;
 }
-
+#layersTool .tileCogColormap #titlerCogColormapCSS {
+    display: flex;
+    mix-blend-mode: normal;
+}
+#layersTool .tileCogColormap #titlerCogColormapCSS + #tileCogColormapMapLines  {
+    margin-top: -2px;
+}
 #layersTool #layersToolList > li.download_on,
 #layersTool #layersToolList > li.gears_on {
     height: auto;
