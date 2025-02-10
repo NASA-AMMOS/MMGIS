@@ -322,7 +322,7 @@ var IdentifierTool = {
 
             //Oh IdentifierTool is the same as X != undefined
             if (
-                IdentifierTool.activeLayerURLs[i].startsWith('stac-collection:')
+                IdentifierTool.activeLayerURLs[i]?.startsWith('stac-collection:')
             ) {
                 IdentifierTool.vars.data[
                     IdentifierTool.activeLayerNames[i]
@@ -340,7 +340,9 @@ var IdentifierTool = {
             }
 
             if (
-                L_.layers.data[IdentifierTool.activeLayerNames[i]].type === 'image'
+                L_.layers.data[IdentifierTool.activeLayerNames[i]]?.type === 'image'
+                    && IdentifierTool.vars.data[IdentifierTool.activeLayerNames[i]]
+                    ?.data
             ) {
                 IdentifierTool.vars.data[
                     IdentifierTool.activeLayerNames[i]
