@@ -585,14 +585,9 @@ const Coordinates = {
                 },
                 function (data) {
                     Coordinates.elevation = null
-                    //Convert python's Nones to nulls
-                    data = data.replace(/none/gi, 'null')
-                    if (data.length > 2) {
-                        data = JSON.parse(data)
-                        if (data[0] && data[0][1] != null) {
-                            Coordinates.elevation = data[0][1]
-                            Coordinates.refresh()
-                        }
+                    if (data[0] && data[0][1] != null) {
+                        Coordinates.elevation = data[0][1]
+                        Coordinates.refresh()
                     }
                 },
                 function () {

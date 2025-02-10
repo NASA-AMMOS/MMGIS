@@ -3,6 +3,7 @@ layout: page
 title: ENVs
 permalink: /setup/envs
 parent: Setup
+nav_order: 2
 ---
 
 # Environment Variables
@@ -191,3 +192,47 @@ A cron schedule expression for use in the [node-schedule npm library](https://ww
 #### `COMPOSITE_TILE_DIR_STORE_MAX_AGE_MS=`
 
 When using composited time tiles, MMGIS queries the tileset's folder for existing time folders. It caches the results of the these folder listings every COMPOSITE_TILE_DIR_STORE_MAX_AGE_MS milliseconds. Defaults to requerying every 30 minutes. If 0, no caching. If null or NaN, uses default. | number | default `1800000`
+
+## Adjacent Servers
+
+Enables and proxies to other self-hosted services. [Additional setup](/MMGIS/setup/adjacent-servers) may be required.
+
+#### `WITH_STAC=`
+
+STAC Catalogs - https://github.com/stac-utils/stac-fastapi-pgstac | default `false`
+
+#### `STAC_PORT=`
+
+Port to proxy stac on | default `8881`
+
+#### `WITH_TIPG=`
+
+TiTiler PG Vectors - https://github.com/developmentseed/tipg | default `false`
+
+#### `TIPG_PORT=`
+
+Port to ruproxyn tipg on | default `8882`
+
+#### `WITH_TITILER=`
+
+TiTiler - https://developmentseed.org/titiler | default `false`
+
+#### `TITILER_PORT=`
+
+Port to proxy titiler on | default `8883`
+
+#### `WITH_TITILER_PGSTAC=`
+
+TiTiler Mosaicking - https://github.com/stac-utils/titiler-pgstac | default `false`
+
+#### `TITILER_PGSTAC_PORT=`
+
+Port to proxy titiler-pgstac on | default `8884`
+
+#### `WITH_VELOSERVER=`
+
+Veloserver - Velocity and Wind Data Visualization Server - https://github.com/NASA-AMMOS/Veloserver | default `false`
+
+#### `VELOSERVER_PORT=`
+
+Port to proxy veloserver on | default `8104`

@@ -866,19 +866,6 @@ let ShadeTool = {
                 ),
             },
             function (s) {
-                try {
-                    s = JSON.parse(s)
-                } catch {
-                    CursorInfo.update(
-                        "Failure Converting to Observer's Time",
-                        6000,
-                        true,
-                        { x: 296, y: -5 },
-                        '#e9ff26',
-                        'black'
-                    )
-                    return
-                }
                 if (s.error) {
                     CursorInfo.update(
                         "Cannot Convert to Observer's Time",
@@ -1078,91 +1065,70 @@ let ShadeTool = {
                 path: demUrl,
             },
             function (data) {
-                //Convert python's Nones to nulls
-                data = data.replace(/none/gi, 'null')
-                if (data.length > 2) {
-                    data = JSON.parse(data)
-                    if (data[0] && data[0][1] != null) {
-                        calls.api(
-                            'll2aerll',
-                            {
-                                lng: source.lng,
-                                lat: source.lat,
-                                height: data[0][1],
-                                target: options.target,
-                                time: options.time + ' UTC',
-                                obsRefFrame: obsRefFrame,
-                                obsBody: obsBody,
-                                includeSunEarth: options.includeSunEarth,
-                                isCustom: isCustom,
-                                customAz,
-                                customEl,
-                                customRange,
-                            },
-                            function (s) {
-                                /*
-                                Map_.rmNotNull(ShadeTool.tempIndicatorPoint)
-                                ShadeTool.tempIndicatorPoint =
-                                    new L.circleMarker(
-                                        [source.lat, source.lng],
-                                        ShadeTool.tempIndicatorPointStyle
-                                    )
-                                        .setRadius(4)
-                                        .addTo(Map_.map)
-                                        .bringToFront()
-
-                                ShadeTool.indicatorDragOn()
-                                */
-
-                                try {
-                                    s = JSON.parse(s)
-                                } catch {
-                                    CursorInfo.update(
-                                        'LatLng to AzEl Error',
-                                        6000,
-                                        true,
-                                        { x: 296, y: -5 },
-                                        '#e9ff26',
-                                        'black'
-                                    )
-                                    return
-                                }
-
-                                ShadeTool.updateRAEIndicators(s, activeElmId)
-                                // CLear result outputs
-                                $('#shadeTool_results_outputs_az').text('--')
-                                $('#shadeTool_results_outputs_el').text('--')
-                                $('#shadeTool_results_outputs_range').text('--')
-                                //$('#shadeTool_results_outputs_lng').text('--')
-                                //$('#shadeTool_results_outputs_lat').text('--')
-
-                                if (
-                                    s.message &&
-                                    s.message.indexOf('INSUFFDATA')
+                if (data[0] && data[0][1] != null) {
+                    calls.api(
+                        'll2aerll',
+                        {
+                            lng: source.lng,
+                            lat: source.lat,
+                            height: data[0][1],
+                            target: options.target,
+                            time: options.time + ' UTC',
+                            obsRefFrame: obsRefFrame,
+                            obsBody: obsBody,
+                            includeSunEarth: options.includeSunEarth,
+                            isCustom: isCustom,
+                            customAz,
+                            customEl,
+                            customRange,
+                        },
+                        function (s) {
+                            /*
+                            Map_.rmNotNull(ShadeTool.tempIndicatorPoint)
+                            ShadeTool.tempIndicatorPoint =
+                                new L.circleMarker(
+                                    [source.lat, source.lng],
+                                    ShadeTool.tempIndicatorPointStyle
                                 )
-                                    s.message =
-                                        'Insufficient SPICE kernels for this source entity and time period.'
-                                if (s.error) {
-                                    CursorInfo.update(
-                                        s.message || 'LatLng to AzEl Error',
-                                        6000,
-                                        true,
-                                        { x: 296, y: -5 },
-                                        '#e9ff26',
-                                        'black'
-                                    )
-                                } else {
-                                    // Update result outputs
-                                    $('#shadeTool_results_outputs_az').text(
-                                        s.azimuth.toFixed(3) + '°'
-                                    )
-                                    $('#shadeTool_results_outputs_el').text(
-                                        s.elevation.toFixed(3) + '°'
-                                    )
-                                    $('#shadeTool_results_outputs_range').text(
-                                        s.range.toFixed(3) + 'km'
-                                    )
-                                    /*
+                                    .setRadius(4)
+                                    .addTo(Map_.map)
+                                    .bringToFront()
+
+                            ShadeTool.indicatorDragOn()
+                            */
+
+                            ShadeTool.updateRAEIndicators(s, activeElmId)
+                            // CLear result outputs
+                            $('#shadeTool_results_outputs_az').text('--')
+                            $('#shadeTool_results_outputs_el').text('--')
+                            $('#shadeTool_results_outputs_range').text('--')
+                            //$('#shadeTool_results_outputs_lng').text('--')
+                            //$('#shadeTool_results_outputs_lat').text('--')
+
+                            if (s.message && s.message.indexOf('INSUFFDATA'))
+                                s.message =
+                                    'Insufficient SPICE kernels for this source entity and time period.'
+                            if (s.error) {
+                                CursorInfo.update(
+                                    s.message || 'LatLng to AzEl Error',
+                                    6000,
+                                    true,
+                                    { x: 296, y: -5 },
+                                    '#e9ff26',
+                                    'black'
+                                )
+                            } else {
+                                // Update result outputs
+                                $('#shadeTool_results_outputs_az').text(
+                                    s.azimuth.toFixed(3) + '°'
+                                )
+                                $('#shadeTool_results_outputs_el').text(
+                                    s.elevation.toFixed(3) + '°'
+                                )
+                                $('#shadeTool_results_outputs_range').text(
+                                    s.range.toFixed(3) + 'km'
+                                )
+                                /*
                                     $('#shadeTool_results_outputs_lng').text(
                                         s.longitude.toFixed(8) + '°'
                                     )
@@ -1171,25 +1137,24 @@ let ShadeTool = {
                                     )
                                     */
 
-                                    keepGoing({
-                                        lat: s.latitude,
-                                        lng: s.longitude,
-                                        altitude: s.horizontal_altitude,
-                                        az: s.azimuth,
-                                        el: s.elevation,
-                                        range: s.range,
-                                    })
-                                }
-                            },
-                            function (e) {
-                                $(
-                                    '#vstShades #vstId_' +
-                                        activeElmId +
-                                        ' .vstRegen'
-                                ).removeClass('regening')
+                                keepGoing({
+                                    lat: s.latitude,
+                                    lng: s.longitude,
+                                    altitude: s.horizontal_altitude,
+                                    az: s.azimuth,
+                                    el: s.elevation,
+                                    range: s.range,
+                                })
                             }
-                        )
-                    }
+                        },
+                        function (e) {
+                            $(
+                                '#vstShades #vstId_' +
+                                    activeElmId +
+                                    ' .vstRegen'
+                            ).removeClass('regening')
+                        }
+                    )
                 }
             },
             function () {

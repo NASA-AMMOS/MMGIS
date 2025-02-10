@@ -244,6 +244,7 @@ const L_ = {
     },
     getUrl: function (type, url, layerData) {
         let nextUrl = url
+        if (nextUrl.startsWith('COG:')) nextUrl = nextUrl.slice(4)
         if (!F_.isUrlAbsolute(nextUrl)) {
             nextUrl = L_.missionPath + nextUrl
         }
@@ -259,8 +260,9 @@ const L_ = {
                 nextUrl = `../../${nextUrl}`
             }
         }
-        if (layerData && layerData.throughTileServer === true)
+        if (layerData && layerData.throughTileServer === true) {
             nextUrl = `${window.location.origin}/titiler/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.webp?url=${nextUrl}`
+        }
         return nextUrl
     },
     //Takes in config layer obj

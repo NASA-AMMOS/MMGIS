@@ -189,6 +189,12 @@ services:
       - ./Missions:/Missions
       - ./adjacent-servers/docker-scripts:/tmp/scripts
 
+  veloserver:
+    image: ghcr.io/nasa-ammos/veloserver:development
+    ports:
+      - 8104
+    restart: on-failure
+
   db:
     image: postgis/postgis:16-3.4-alpine
     env_file: .env

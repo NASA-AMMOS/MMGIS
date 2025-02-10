@@ -89,6 +89,23 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
       })
     );
   }
+
+  // Veloserver
+  if (process.env.WITH_VELOSERVER === "true") {
+    app.use(
+      `${process.env.ROOT_PATH || ""}/veloserver`,
+      ensureAdmin(false, false, true), // true to allow all GETs - others require admin auth
+      createProxyMiddleware({
+        target: `http://${isDocker ? "veloserver" : "localhost"}:${
+          process.env.VELOSERVER_PORT || 8104
+        }`,
+        changeOrigin: true,
+        pathRewrite: {
+          [`^${process.env.ROOT_PATH || ""}/veloserver`]: "",
+        },
+      })
+    );
+  }
 }
 
 const createSwaggerInterceptor = (path) => {

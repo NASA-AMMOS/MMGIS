@@ -25,6 +25,8 @@ nav_order: 1
 To build the Docker image, run:
 `docker build -t <image tag> .`
 
+Alternatively you can use a prebuilt image from [github here.](https://github.com/NASA-AMMOS/MMGIS/pkgs/container/mmgis)
+
 ### Preparing
 
 #### .env

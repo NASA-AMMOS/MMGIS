@@ -1239,7 +1239,6 @@
               "description": "Width of image in meters in order to calculate scale.",
               "type": "number",
               "min": 0,
-              "max": 1,
               "width": 2
             },
             {
@@ -1248,7 +1247,6 @@
               "description": "Image width in pixels.",
               "type": "number",
               "min": 0,
-              "max": 1,
               "width": 2
             },
             {
@@ -1257,7 +1255,6 @@
               "description": "Image height in pixels.",
               "type": "number",
               "min": 0,
-              "max": 1,
               "width": 2
             }
           ]

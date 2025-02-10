@@ -47,7 +47,10 @@ import CodeMirror from "@uiw/react-codemirror";
 import { json } from "@codemirror/lang-json";
 import { Button } from "@mui/material";
 
-import { evaluate_cmap, data as colormapData } from '../external/js-colormaps.js'
+import {
+  evaluate_cmap,
+  data as colormapData,
+} from "../external/js-colormaps.js";
 
 const useStyles = makeStyles((theme) => ({
   Maker: {
@@ -253,7 +256,10 @@ const getComponent = (
           }}
           value={value != null ? value : getIn(directConf, com.field, "")}
           onChange={(e) => {
-            updateConfiguration(forceField || com.field, e.target.value, layer);
+            let v = e.target.value;
+            // remove surrounding whitespace, " hi " -> "hi"
+            if (typeof v === "string") v = v.trim();
+            updateConfiguration(forceField || com.field, v, layer);
           }}
         />
       );
@@ -645,7 +651,8 @@ const getComponent = (
         </div>
       );
     case "colordropdown":
-      let dropdown_value = value || getIn(directConf, com.field, com.options?.[0]);
+      let dropdown_value =
+        value || getIn(directConf, com.field, com.options?.[0]);
       inner = (
         <FormControl className={c.dropdown} variant="filled" size="small">
           <InputLabel>{com.name}</InputLabel>
