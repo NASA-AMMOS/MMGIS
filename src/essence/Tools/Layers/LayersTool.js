@@ -465,7 +465,7 @@ function interfaceWithMMGIS(fromInit) {
                             '<div class="tileCogColor">',
                                 `<li class="tileCogColormap">`,
                                     `<div class="tileCogColormapMap">`,
-                                        `<img id="titlerCogColormapImage" src="${window.location.origin}${(
+                                        `<img id="titlerCogColormapImage_${node[i].name}" src="${window.location.origin}${(
                                                     window.location.pathname || ''
                                                 ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap}?format=png"></img>`,
                                         `<ul id="tileCogColormapMapLines"></ul>`,
@@ -620,7 +620,7 @@ function interfaceWithMMGIS(fromInit) {
                         if (window.mmgisglobal.WITH_TITILER === "true") {
                             // prettier-ignore
                             additionalSettings = [
-                                `<img id="titlerCogColormapImage" src="${window.location.origin}${(
+                                `<img id="titlerCogColormapImage_${node[i].name}" src="${window.location.origin}${(
                                             window.location.pathname || ''
                                         ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap}?format=png"></img>`,
                             ].join('\n')
@@ -1885,9 +1885,10 @@ function interfaceWithMMGIS(fromInit) {
         layer = L_.layers.data[layer]
         if (L_.layers.layer[layer.name] === null) return
         if (!layer.url.startsWith('stac-collection:') && layer.type !== 'image') return
+        if (layer.cogColormap === undefined) return
 
         const dynamicLegendConf = []
-        const imgElement = document.getElementById('titlerCogColormapImage')
+        const imgElement = document.getElementById(`titlerCogColormapImage_${L_.asLayerUUID(layerName)}`)
         const canvasElement = document.createElement('canvas')
         document.body.appendChild(canvasElement)
         canvasElement.style.display = 'none'
@@ -1902,9 +1903,9 @@ function interfaceWithMMGIS(fromInit) {
             layer.currentCogMin == null ? layer.cogMin : layer.currentCogMin
         const max =
             layer.currentCogMax == null ? layer.cogMax : layer.currentCogMax
+        if (Number.isNaN(Number(min)) || Number.isNaN(Number(max))) return
         for (let i = 0; i < 9; i++) {
             let value = Math.round(F_.linearScale([0, 8], [min, max], i) * 100) / 100
-            console.log("val",value)
             let label = `${
                 Math.round(F_.linearScale([0, 8], [min, max], i) * 100) / 100
             }${layer.cogUnits || ''}`
