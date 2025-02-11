@@ -4,16 +4,19 @@ import { data as colormapData } from '../external/js-colormaps.js'
 const injectablesDefaults = {
   TILE_MATRIX_SETS: ["WebMercatorQuad"],
   COLORMAP_NAMES: ["viridis"],
+  VELOCITY_COLORMAP_NAMES: ["DEFAULT"],
 };
 // Initialize with reasonable defaults
 const injectables = {
   TILE_MATRIX_SETS: injectablesDefaults["TILE_MATRIX_SETS"],
   COLORMAP_NAMES: injectablesDefaults["COLORMAP_NAMES"],
+  VELOCITY_COLORMAP_NAMES: injectablesDefaults["VELOCITY_COLORMAP_NAMES"],
 };
 
 export const getInjectables = () => {
   getTileMatrixSets();
-  getColormapNames();
+  getColormapNames("COLORMAP_NAMES");
+  getColormapNames("VELOCITY_COLORMAP_NAMES");
 };
 
 export const inject = (configJson) => {
@@ -67,8 +70,7 @@ function getTileMatrixSets() {
   }
 }
 
-function getColormapNames() {
-  const injectableName = "COLORMAP_NAMES";
+function getColormapNames(injectableName) {
   if (window.mmgisglobal.WITH_TITILER === "true") {
     calls.api(
       "titiler_colormapNames",
@@ -94,7 +96,7 @@ function getColormapNames() {
         // ... new Set removes duplicates
         injectables[injectableName] = [
           ...new Set(
-            injectablesDefaults["COLORMAP_NAMES"].concat(colormaps)
+            injectablesDefaults[injectableName].concat(colormaps)
           ),
         ];
       },
