@@ -1904,11 +1904,13 @@ function interfaceWithMMGIS(fromInit) {
             layer.currentCogMax == null ? layer.cogMax : layer.currentCogMax
         for (let i = 0; i < 9; i++) {
             let value = Math.round(F_.linearScale([0, 8], [min, max], i) * 100) / 100
+            console.log("val",value)
             let label = `${
                 Math.round(F_.linearScale([0, 8], [min, max], i) * 100) / 100
             }${layer.cogUnits || ''}`
             if (i !== 0 && i !== 8) {
-                $(`#tileCogLegend_${i}`).text(label)
+                // Match all id
+                $(`[id=tileCogLegend_${i}]`).html(label)
             }
 
             let color
