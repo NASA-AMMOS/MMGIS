@@ -243,16 +243,20 @@ const L_ = {
             delete L_._onSpecificLayerToggleSubscriptions[fid]
     },
     getUrl: function (type, url, layerData) {
+        let wasCOG = false
+
         let nextUrl = url
-        if (nextUrl != null && nextUrl.startsWith('COG:'))
+        if (nextUrl != null && nextUrl.startsWith('COG:')) {
             nextUrl = nextUrl.slice(4)
+            wasCOG = true
+        }
         if (!F_.isUrlAbsolute(nextUrl)) {
             nextUrl = L_.missionPath + nextUrl
         }
         if (
             type === 'tile' &&
-            layerData &&
-            layerData.throughTileServer === true
+            ((layerData && layerData.throughTileServer === true) ||
+                wasCOG == true)
         ) {
             if (
                 !F_.isUrlAbsolute(nextUrl) &&
@@ -262,7 +266,20 @@ const L_ = {
             }
         }
         if (layerData && layerData.throughTileServer === true) {
-            nextUrl = `${window.location.origin}/titiler/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.webp?url=${nextUrl}`
+            let bandsParam = ''
+            if (layerData.cogBands) {
+                layerData.cogBands.forEach((band) => {
+                    if (band != null) bandsParam += `&bidx=${band}`
+                })
+            }
+            let resamplingParam = ''
+            if (layerData.cogResampling) {
+                resamplingParam = `&resampling=${layerData.cogResampling}`
+            }
+
+            nextUrl = `${window.location.origin}/titiler/cog/tiles/${
+                layerData.tileMatrixSet || 'WebMercatorQuad'
+            }/{z}/{x}/{y}.webp?url=${nextUrl}${bandsParam}${resamplingParam}`
         }
         return nextUrl
     },

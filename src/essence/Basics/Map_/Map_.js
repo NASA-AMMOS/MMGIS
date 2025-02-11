@@ -1109,13 +1109,29 @@ async function makeTileLayer(layerObj) {
             case 'stac-collection':
                 splitColonType = splitColonLayerUrl[0]
                 const splitParams = splitColonLayerUrl[1].split('?')
+
+                // Bands
+                let bandsParam = ''
+                let b = layerObj.cogBands
+                if (b != null) {
+                    b.forEach((band) => {
+                        if (band != null) bandsParam += `&bidx=${band}`
+                    })
+                }
+
+                // Resampling
+                let resamplingParam = ''
+                if (layerObj.cogResampling) {
+                    resamplingParam = `&resampling=${layerObj.cogResampling}`
+                }
+
                 layerUrl = `${window.location.origin}${(
                     window.location.pathname || ''
                 ).replace(/\/$/g, '')}/titilerpgstac/collections/${
                     splitParams[0]
                 }/tiles/${
                     layerObj.tileMatrixSet || 'WebMercatorQuad'
-                }/{z}/{x}/{y}?assets=asset`
+                }/{z}/{x}/{y}?assets=asset${bandsParam}${resamplingParam}`
                 layerObj.tileformat = 'wmts'
                 break
             default:

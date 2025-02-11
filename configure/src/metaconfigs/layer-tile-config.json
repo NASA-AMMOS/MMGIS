@@ -123,7 +123,7 @@
               "name": "Use TiTiler",
               "description": "Uses the TiTiler service to serve tiles if URL is a Cloud-Optimized GeoTiff (COG). TiTiler must be configured via the .env.",
               "type": "switch",
-              "width": 4,
+              "width": 3,
               "defaultChecked": false
             },
             {
@@ -131,16 +131,53 @@
               "name": "Tile Matrix Set",
               "description": "If using TiTiler or if using a 'stac-collection:{collection}' URL, specify the projection for which to serve the tiles. Defaults to 'WebMercatorQuad'.",
               "type": "dropdown",
-              "width": 4,
+              "width": 5,
               "options": "{{TILE_MATRIX_SETS}}"
+            },
+            {
+              "field": "cogResampling",
+              "name": "Resampling Method",
+              "description": "The resampling method for generated tiles through TiTiler. Defaults to 'nearest'.",
+              "type": "dropdown",
+              "width": 4,
+              "options": [
+                "nearest",
+                "bilinear",
+                "cubic",
+                "cubic_spline",
+                "lanczos",
+                "average",
+                "mode",
+                "gauss",
+                "rms"
+              ]
             }
           ]
         },
         {
           "components": [
             {
+              "field": "cogBands",
+              "name": "Tile Bands",
+              "description": "Which bands from the COG from which to generate tiles. Defaults to '1,2,3' as RGB or '1' if it's a Transformed 32-bit COG. Can be a single number or a comma-separated list of numbers. Order matters.",
+              "type": "textarray",
+              "width": 4
+            },
+            {
+              "field": "cogBandsQuery",
+              "name": "Query Bands",
+              "description": "Which bands from the COG upon which to perform queries. Defaults to value of 'Tile Bands'.",
+              "type": "textarray",
+              "width": 4
+            }
+          ]
+        },
+        {
+          "subname": "32-bit COGs",
+          "components": [
+            {
               "field": "cogTransform",
-              "name": "Transform COG",
+              "name": "Transform 32-bit COG",
               "description": "Enable rescaling and coloring 32-bit COGs on the fly. Will use TiTiler.",
               "type": "switch",
               "width": 3,
