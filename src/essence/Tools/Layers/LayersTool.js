@@ -214,6 +214,122 @@ var LayersTool = {
             }
         })
     },
+    populateCogScale: function (layerName) {
+        let layer = L_.asLayerUUID(layerName)
+        layer = L_.layers.data[layer]
+        if (L_.layers.layer[layer.name] === null) return
+        if (!layer.url.startsWith('stac-collection:') && layer.type !== 'image') return
+        if (layer.cogColormap === undefined) return
+
+        const dynamicLegendConf = []
+        const imgElement = document.getElementById(`titlerCogColormapImage_${L_.asLayerUUID(layerName)}`)
+        const canvasElement = document.createElement('canvas')
+        document.body.appendChild(canvasElement)
+        canvasElement.style.display = 'none'
+        canvasElement.width = 256
+        canvasElement.height = 1
+        const context = canvasElement.getContext('2d')
+        if (imgElement && layer.type === 'tile') {
+            context.drawImage(imgElement, 0, 0, 256, 1, 0, 0, 256, 1)
+        }
+
+        const min =
+            layer.currentCogMin == null ? layer.cogMin : layer.currentCogMin
+        const max =
+            layer.currentCogMax == null ? layer.cogMax : layer.currentCogMax
+        if (Number.isNaN(Number(min)) || Number.isNaN(Number(max))) return
+        for (let i = 0; i < 9; i++) {
+            let value = Math.round(F_.linearScale([0, 8], [min, max], i) * 100) / 100
+            let label = `${
+                Math.round(F_.linearScale([0, 8], [min, max], i) * 100) / 100
+            }${layer.cogUnits || ''}`
+            if (i !== 0 && i !== 8) {
+                // Match all id
+                $(`[id=tileCogLegend_${i}]`).html(label)
+            }
+
+            let color
+            if (layer.type === 'tile') {
+                const c = context.getImageData(
+                    parseInt((255 / 9) * i),
+                    0,
+                    1,
+                    1
+                ).data
+                color = `rgb(${c[0]}, ${c[1]}, ${c[2]})`
+            } else if (layer.type === 'image' || !imgElement) {
+                let { colormap, reverse } = LayersTool.findJSColormap(layer)
+
+                let scaledPixelValue
+                if (min !== undefined && max !== undefined) { // layer.cogTransform === true && 'cogColormap' in layer
+                    // scale from 0 - 1
+                    const range = max - min
+                    scaledPixelValue = (value - min) / range
+                    if (!(0 <= scaledPixelValue && scaledPixelValue <= 1)) {
+                        if (scaledPixelValue <= 0) {
+                            scaledPixelValue = 0
+                        } else if (scaledPixelValue >= 1.0) {
+                            scaledPixelValue = 1
+                        }
+                    }
+                } else {
+                    // If cog transform option is not turned on,
+                    scaledPixelValue = i / 9
+                    label = ''
+                }
+
+                const hex = evaluate_cmap(scaledPixelValue, colormap, reverse)
+                const rgb = hex.join(',')
+                color = `rgb(${rgb})`
+            }
+
+            dynamicLegendConf.push({
+                color,
+                strokecolor: null,
+                shape: 'continuous',
+                value: label,
+            })
+        }
+        document.body.removeChild(canvasElement)
+
+        L_.layers.data[layer.name]._legend = dynamicLegendConf
+
+        $('#tileCogColormapMapLines').empty()
+        for (let i = 0; i < 9; i++) {
+            $('#tileCogColormapMapLines').append(
+                `<li style="height: ${(1 / 9) * 100}%;"></li>`
+            )
+        }
+
+        $('.tilerescalecogmin').val(min)
+        $('.tilerescalecogmax').val(max)
+    },
+    findJSColormap: function (layer) {
+        let colormap = null
+        // js-colormaps data object only contains the non reversed color so we need to track if the color is reversed
+        let reverse = false
+        if (layer.cogTransform === true && 'cogColormap' in layer) {
+            colormap = layer.cogColormap
+            // TiTiler colormap variables are all lower case so we need to format them correctly for js-colormaps
+            if (colormap.toLowerCase().endsWith('_r')) {
+                colormap = colormap.substring(0, colormap.length - 2)
+                reverse = true
+            }
+
+            let index = Object.keys(colormapData).findIndex(v => {
+                return v.toLowerCase() === colormap.toLowerCase();
+            });
+
+            if (index > -1) {
+                colormap = Object.keys(colormapData)[index]
+            } else {
+                colormap = DEFAULT_COLOR_RAMP // Give it the default value
+            }
+        } else {
+            colormap = DEFAULT_COLOR_RAMP // Give it the default value
+        }
+        return { reverse, colormap }
+    },
 }
 
 //
@@ -625,7 +741,7 @@ function interfaceWithMMGIS(fromInit) {
                                         ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap}?format=png"></img>`,
                             ].join('\n')
                         } else {
-                            let { colormap, reverse } = findJSColormap(node[i])
+                            let { colormap, reverse } = LayersTool.findJSColormap(node[i])
 
                             additionalSettings = (colormapData[colormap].colors).map(
                                 (hex) => {
@@ -834,6 +950,13 @@ function interfaceWithMMGIS(fromInit) {
                                 shader
                             )
                     }
+
+                    // Populate the legends for tile (COG), and image layer
+                    // FIXME Add velocity layer
+                    if ((['image', 'tile'].includes(node[i].type) && node[i].cogTransform)) {
+                        LayersTool.populateCogScale(node[i].name)
+                    }
+
                     break
             }
 
@@ -1040,7 +1163,8 @@ function interfaceWithMMGIS(fromInit) {
             }
         }
 
-        populateCogScale(layerName)
+        LayersTool.populateCogScale(layerName)
+        LegendTool.refreshLegends()
     })
 
     // Locates/zooms to fill extent of layer
@@ -1352,7 +1476,8 @@ function interfaceWithMMGIS(fromInit) {
             )
         }
 
-
+        LayersTool.populateCogScale(layer.name)
+        LegendTool.refreshLegends()
     })
 
     //Applies slider values to map layers
@@ -1404,7 +1529,8 @@ function interfaceWithMMGIS(fromInit) {
             )
         }
 
-        populateCogScale(layer.name)
+        LayersTool.populateCogScale(layer.name)
+        LegendTool.refreshLegends()
     })
     $('.tilerescalecogmax').on('change', function () {
         let layer = $(this).attr('layername')
@@ -1430,7 +1556,8 @@ function interfaceWithMMGIS(fromInit) {
                     : layer.currentCogMin,
                 L_.layers.layer[layer.name].currentCogMax)
         }
-        populateCogScale(layer.name)
+        LayersTool.populateCogScale(layer.name)
+        LegendTool.refreshLegends()
     })
 
     let tags = []
@@ -1880,95 +2007,6 @@ function interfaceWithMMGIS(fromInit) {
             ].join('\n')
     }
 
-    function populateCogScale(layerName) {
-        let layer = L_.asLayerUUID(layerName)
-        layer = L_.layers.data[layer]
-        if (L_.layers.layer[layer.name] === null) return
-        if (!layer.url.startsWith('stac-collection:') && layer.type !== 'image') return
-        if (layer.cogColormap === undefined) return
-
-        const dynamicLegendConf = []
-        const imgElement = document.getElementById(`titlerCogColormapImage_${L_.asLayerUUID(layerName)}`)
-        const canvasElement = document.createElement('canvas')
-        document.body.appendChild(canvasElement)
-        canvasElement.style.display = 'none'
-        canvasElement.width = 256
-        canvasElement.height = 1
-        const context = canvasElement.getContext('2d')
-        if (imgElement && layer.type === 'tile') {
-            context.drawImage(imgElement, 0, 0, 256, 1, 0, 0, 256, 1)
-        }
-
-        const min =
-            layer.currentCogMin == null ? layer.cogMin : layer.currentCogMin
-        const max =
-            layer.currentCogMax == null ? layer.cogMax : layer.currentCogMax
-        if (Number.isNaN(Number(min)) || Number.isNaN(Number(max))) return
-        for (let i = 0; i < 9; i++) {
-            let value = Math.round(F_.linearScale([0, 8], [min, max], i) * 100) / 100
-            let label = `${
-                Math.round(F_.linearScale([0, 8], [min, max], i) * 100) / 100
-            }${layer.cogUnits || ''}`
-            if (i !== 0 && i !== 8) {
-                // Match all id
-                $(`[id=tileCogLegend_${i}]`).html(label)
-            }
-
-            let color
-            if (layer.type === 'tile') {
-                const c = context.getImageData(
-                    parseInt((255 / 9) * i),
-                    0,
-                    1,
-                    1
-                ).data
-                color = `rgb(${c[0]}, ${c[1]}, ${c[2]})`
-            } else if (layer.type === 'image') {
-                let { colormap, reverse } = findJSColormap(layer)
-
-                let scaledPixelValue
-                if (min !== undefined && max !== undefined) { // layer.cogTransform === true && 'cogColormap' in layer
-                    // scale from 0 - 1
-                    const range = max - min
-                    scaledPixelValue = (value - min) / range
-                    if (!(0 <= scaledPixelValue && scaledPixelValue <= 1)) {
-                        if (scaledPixelValue <= 0) {
-                            scaledPixelValue = 0
-                        } else if (scaledPixelValue >= 1.0) {
-                            scaledPixelValue = 1
-                        }
-                    }
-                } else {
-                    // If cog transform option is not turned on,
-                    scaledPixelValue = i / 9
-                    label = ''
-                }
-
-                const hex = evaluate_cmap(scaledPixelValue, colormap, reverse)
-                const rgb = hex.join(',')
-                color = `rgb(${rgb})`
-            }
-
-            dynamicLegendConf.push({
-                color,
-                strokecolor: null,
-                shape: 'continuous',
-                value: label,
-            })
-        }
-        document.body.removeChild(canvasElement)
-
-        L_.layers.data[layer.name]._legend = dynamicLegendConf
-        LegendTool.refreshLegends()
-
-        $('#tileCogColormapMapLines').empty()
-        for (let i = 0; i < 9; i++) {
-            $('#tileCogColormapMapLines').append(
-                `<li style="height: ${(1 / 9) * 100}%;"></li>`
-            )
-        }
-    }
-
     function updateImageRange(layerName, vMin, vMax) {
         const layer = L_.layers.layer[layerName]
         const layerData = L_.layers.data[layerName]
@@ -1986,7 +2024,7 @@ function interfaceWithMMGIS(fromInit) {
         $('.imagerange.stylevalue').attr('v', vMin + ',' + vMax)
         var range = vMax - vMin
 
-        var { colormap, reverse } = findJSColormap(layerData)
+        var { colormap, reverse } = LayersTool.findJSColormap(layerData)
 
         let pixelValuesToColorFn = (values) => {
             let georaster = layer.options.georaster
@@ -2015,33 +2053,6 @@ function interfaceWithMMGIS(fromInit) {
         // Clear the cache so when zooming in/out, the old pixel colors are not cached
         layer.clearCache()
         layer.updateColors(pixelValuesToColorFn)
-    }
-
-    function findJSColormap(layer) {
-        let colormap = null
-        // js-colormaps data object only contains the non reversed color so we need to track if the color is reversed
-        let reverse = false
-        if (layer.cogTransform === true && 'cogColormap' in layer) {
-            colormap = layer.cogColormap
-            // TiTiler colormap variables are all lower case so we need to format them correctly for js-colormaps
-            if (colormap.toLowerCase().endsWith('_r')) {
-                colormap = colormap.substring(0, colormap.length - 2)
-                reverse = true
-            }
-
-            let index = Object.keys(colormapData).findIndex(v => {
-                return v.toLowerCase() === colormap.toLowerCase();
-            });
-
-            if (index > -1) {
-                colormap = Object.keys(colormapData)[index]
-            } else {
-                colormap = DEFAULT_COLOR_RAMP // Give it the default value
-            }
-        } else {
-            colormap = DEFAULT_COLOR_RAMP // Give it the default value
-        }
-        return { reverse, colormap }
     }
 
     function setSublayerEvents() {
