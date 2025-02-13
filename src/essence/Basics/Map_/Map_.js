@@ -32,6 +32,9 @@ let essenceFina = function () {}
 import GeoRasterLayer from '../../../external/georaster-layer-for-leaflet/georaster-layer-for-leaflet.ts'
 import georaster from 'georaster'
 
+// The default color ramp used for image layer types
+const IMAGE_DEFAULT_COLOR_RAMP = 'binary'
+
 let Map_ = {
     //Our main leaflet map variable
     map: null,
@@ -1495,6 +1498,7 @@ function makeImageLayer(layerObj) {
 
             }
 
+            // FIXME A lot of this code is duplicated in LayersTool so find some way to consolidate them as functions
             var range = max - min
             let colormap = null
             let reverse = false
@@ -1539,7 +1543,7 @@ function makeImageLayer(layerObj) {
                     }
                 }
 
-                return evaluate_cmap(scaledPixelValue, colormap || 'binary', reverse)
+                return evaluate_cmap(scaledPixelValue, colormap || IMAGE_DEFAULT_COLOR_RAMP, reverse)
             }
         }
 
