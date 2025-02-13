@@ -70,7 +70,49 @@ const DEPTH_SIZE = 13
 const INDENT_COLOR = 'var(--color-a)'
 
 // The default color ramp used for image layer types
-const DEFAULT_COLOR_RAMP = 'binary'
+const IMAGE_DEFAULT_COLOR_RAMP = 'binary'
+
+// The default color ramp used for tile layer types
+const TILE_DEFAULT_COLOR_RAMP = 'viridis'
+
+// The default color ramp used for velocity layer types
+const VELOCITY_DEFAULT_COLOR_RAMP = 'DEFAULT'
+
+const velocityDefaultColorsRGB = [
+    'rgb(36,104, 180)',
+    'rgb(60,157, 194)',
+    'rgb(128,205,193 )',
+    'rgb(151,218,168 )',
+    'rgb(198,231,181)',
+    'rgb(238,247,217)',
+    'rgb(255,238,159)',
+    'rgb(252,217,125)',
+    'rgb(255,182,100)',
+    'rgb(252,150,75)',
+    'rgb(250,112,52)',
+    'rgb(245,64,32)',
+    'rgb(237,45,28)',
+    'rgb(220,24,32)',
+    'rgb(180,0,35)',
+]
+
+const velocityDefaultColorsHex = [
+    [0.1412,0.4078,0.7059],
+    [0.2353,0.6157,0.7608],
+    [0.502,0.8039,0.7569],
+    [0.5922,0.8549,0.6588],
+    [0.7765,0.9059,0.7098],
+    [0.9333,0.9686,0.851],
+    [1,0.9333,0.6235],
+    [0.9882,0.851,0.4902],
+    [1,0.7137,0.3922],
+    [0.9882,0.5882,0.2941],
+    [0.9804,0.4392,0.2039],
+    [0.9608,0.251,0.1255],
+    [0.9294,0.1765,0.1098],
+    [0.8627,0.0941,0.1255],
+    [0.7059,0,0.1373],
+]
 
 var LayersTool = {
     height: 0,
@@ -218,8 +260,7 @@ var LayersTool = {
         let layer = L_.asLayerUUID(layerName)
         layer = L_.layers.data[layer]
         if (L_.layers.layer[layer.name] === null) return
-        if (!layer.url.startsWith('stac-collection:') && layer.type !== 'image') return
-        if (layer.cogColormap === undefined) return
+        if (!layer.url.startsWith('stac-collection:') && layer.type !== 'image' && layer.type !== 'velocity') return
 
         const dynamicLegendConf = []
         const imgElement = document.getElementById(`titlerCogColormapImage_${L_.asLayerUUID(layerName)}`)
@@ -237,7 +278,6 @@ var LayersTool = {
             layer.currentCogMin == null ? layer.cogMin : layer.currentCogMin
         const max =
             layer.currentCogMax == null ? layer.cogMax : layer.currentCogMax
-        if (Number.isNaN(Number(min)) || Number.isNaN(Number(max))) return
         for (let i = 0; i < 9; i++) {
             let value = Math.round(F_.linearScale([0, 8], [min, max], i) * 100) / 100
             let label = `${
@@ -257,11 +297,27 @@ var LayersTool = {
                     1
                 ).data
                 color = `rgb(${c[0]}, ${c[1]}, ${c[2]})`
-            } else if (layer.type === 'image' || !imgElement) {
-                let { colormap, reverse } = LayersTool.findJSColormap(layer)
+            } else if (layer.type === 'image' || layer.type === 'velocity' || !imgElement) {
+                const layerColormap = ['tile', 'image'].includes(layer.type)
+                    ? layer.cogColormap
+                    : layer?.variables?.streamlines?.colorScale;
+                let { colormap, reverse } = LayersTool.findJSColormap(layer, layerColormap)
+
+                if (colormap === VELOCITY_DEFAULT_COLOR_RAMP) {
+                    // Handle the case where the velocity layer colormap is 'DEFAULT'
+                    velocityDefaultColorsRGB.forEach((color) => {
+                        dynamicLegendConf.push({
+                            color,
+                            strokecolor: null,
+                            shape: 'continuous',
+                            value: '', // FIXME This should be fixed when the metaconfig is updated with units, etc
+                        })
+                    })
+                    break
+                }
 
                 let scaledPixelValue
-                if (min !== undefined && max !== undefined) { // layer.cogTransform === true && 'cogColormap' in layer
+                if (min !== undefined && max !== undefined) {
                     // scale from 0 - 1
                     const range = max - min
                     scaledPixelValue = (value - min) / range
@@ -304,29 +360,32 @@ var LayersTool = {
         $('.tilerescalecogmin').val(min)
         $('.tilerescalecogmax').val(max)
     },
-    findJSColormap: function (layer) {
-        let colormap = null
+    findJSColormap: function (layer, layerColormap) {
+        if (!(['image', 'tile', 'velocity'].includes(layer.type))) return
+
+        let colormap
+        // Default to predefined values if the layer's colormap value is invalid
+        if (layer.type === 'image') {
+            colormap = layerColormap || IMAGE_DEFAULT_COLOR_RAMP
+        } else if (layer.type === 'tile') {
+            colormap = layerColormap || TILE_DEFAULT_COLOR_RAMP
+        } else if (layer.type === 'velocity') {
+            colormap = layerColormap || VELOCITY_DEFAULT_COLOR_RAMP
+        }
+
         // js-colormaps data object only contains the non reversed color so we need to track if the color is reversed
         let reverse = false
-        if (layer.cogTransform === true && 'cogColormap' in layer) {
-            colormap = layer.cogColormap
-            // TiTiler colormap variables are all lower case so we need to format them correctly for js-colormaps
-            if (colormap.toLowerCase().endsWith('_r')) {
-                colormap = colormap.substring(0, colormap.length - 2)
-                reverse = true
-            }
+        if (colormap.toLowerCase().endsWith('_r')) {
+            colormap = colormap.substring(0, colormap.length - 2)
+            reverse = true
+        }
 
-            let index = Object.keys(colormapData).findIndex(v => {
-                return v.toLowerCase() === colormap.toLowerCase();
-            });
+        let index = Object.keys(colormapData).findIndex(v => {
+            return v.toLowerCase() === colormap.toLowerCase();
+        });
 
-            if (index > -1) {
-                colormap = Object.keys(colormapData)[index]
-            } else {
-                colormap = DEFAULT_COLOR_RAMP // Give it the default value
-            }
-        } else {
-            colormap = DEFAULT_COLOR_RAMP // Give it the default value
+        if (index > -1) {
+            colormap = Object.keys(colormapData)[index]
         }
         return { reverse, colormap }
     },
@@ -741,7 +800,7 @@ function interfaceWithMMGIS(fromInit) {
                                         ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap}?format=png"></img>`,
                             ].join('\n')
                         } else {
-                            let { colormap, reverse } = LayersTool.findJSColormap(node[i])
+                            let { colormap, reverse } = LayersTool.findJSColormap(node[i], node[i].cogColormap)
 
                             additionalSettings = (colormapData[colormap].colors).map(
                                 (hex) => {
@@ -951,9 +1010,9 @@ function interfaceWithMMGIS(fromInit) {
                             )
                     }
 
-                    // Populate the legends for tile (COG), and image layer
-                    // FIXME Add velocity layer
-                    if ((['image', 'tile'].includes(node[i].type) && node[i].cogTransform)) {
+                    // Populate the legends for tile (COG), image, and velocity layers
+                    if ((['image', 'tile'].includes(node[i].type) && node[i].cogTransform)
+                            || node[i].type === 'velocity') {
                         LayersTool.populateCogScale(node[i].name)
                     }
 
@@ -2024,7 +2083,7 @@ function interfaceWithMMGIS(fromInit) {
         $('.imagerange.stylevalue').attr('v', vMin + ',' + vMax)
         var range = vMax - vMin
 
-        var { colormap, reverse } = LayersTool.findJSColormap(layerData)
+        var { colormap, reverse } = LayersTool.findJSColormap(layerData, layerData.cogColormap)
 
         let pixelValuesToColorFn = (values) => {
             let georaster = layer.options.georaster
@@ -2047,7 +2106,7 @@ function interfaceWithMMGIS(fromInit) {
                 }
             }
 
-            return evaluate_cmap(scaledPixelValue, colormap || DEFAULT_COLOR_RAMP, reverse)
+            return evaluate_cmap(scaledPixelValue, colormap || IMAGE_DEFAULT_COLOR_RAMP, reverse)
         }
 
         // Clear the cache so when zooming in/out, the old pixel colors are not cached

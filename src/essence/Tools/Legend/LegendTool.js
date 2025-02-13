@@ -103,7 +103,8 @@ function refreshLegends() {
         if (L_.layers.on[l] == true) {
             if (L_.layers.data[l].type != 'header') {
                 if (L_.layers.data[l]?._legend === undefined
-                        && (['image', 'tile'].includes(L_.layers.data[l].type) && L_.layers.data[l].cogTransform)) {
+                        && ((['image', 'tile'].includes(L_.layers.data[l].type) && L_.layers.data[l].cogTransform)
+                        || L_.layers.data[l].type === 'velocity')) {
                     const layersTool = ToolController_.getTool('LayersTool')
                     layersTool.populateCogScale(L_.layers.data[l].name)
                 }
