@@ -168,7 +168,7 @@ var IdentifierTool = {
                 e.latlng.lat,
                 Map_.map.getZoom(),
             ])
-        }, 5)
+        }, 500)
     },
     idPixelGlobe: function (e) {
         if (Globe_.litho.mouse)
@@ -194,12 +194,14 @@ var IdentifierTool = {
         IdentifierTool.activeLayerURLs = []
         IdentifierTool.zoomLevels = []
         IdentifierTool.tileFormats = []
+        IdentifierTool.imageData = []
         for (let n in L_.layers.on) {
             if (L_.layers.on[n] == true) {
                 //We only want the tile and image layers
                 if (L_.layers.data[n].type == 'tile' || L_.layers.data[n].type == 'image') {
                     let url =
-                        L_.layers.data[n].url.indexOf('stac-collection:') === 0
+                        L_.layers.data[n].url.indexOf('stac-collection:') ===
+                            0 || L_.layers.data[n].url.indexOf('COG:') === 0
                             ? L_.layers.data[n].url
                             : L_.getUrl(
                                   L_.layers.data[n].type,
@@ -223,7 +225,9 @@ var IdentifierTool = {
             if (
                 IdentifierTool.activeLayerURLs[i].indexOf(
                     'stac-collection:'
-                ) === 0
+                ) === 0 ||
+                IdentifierTool.activeLayerURLs[i].indexOf('COG:') === 0 ||
+                L_.layers.data[IdentifierTool.activeLayerNames[i]].type === 'image'
             ) {
                 IdentifierTool.imageData[i] = false
                 trueValue = true
@@ -322,28 +326,16 @@ var IdentifierTool = {
 
             //Oh IdentifierTool is the same as X != undefined
             if (
-                IdentifierTool.activeLayerURLs[i]?.startsWith('stac-collection:')
+                IdentifierTool.activeLayerURLs[i].startsWith(
+                    'stac-collection:'
+                ) ||
+                IdentifierTool.activeLayerURLs[i].startsWith('COG:') ||
+                L_.layers.data[IdentifierTool.activeLayerNames[i]].type === 'image'
             ) {
-                IdentifierTool.vars.data[
-                    IdentifierTool.activeLayerNames[i]
-                ].data = [
-                    {
-                        url: IdentifierTool.activeLayerURLs[i],
-                        bands: 1,
-                        units:
-                            L_.layers.data[IdentifierTool.activeLayerNames[i]]
-                                .cogUnits || '',
-                        sigfigs: 2,
-                        scalefactor: 1,
-                    },
-                ]
-            }
-
-            if (
-                L_.layers.data[IdentifierTool.activeLayerNames[i]]?.type === 'image'
-                    && IdentifierTool.vars.data[IdentifierTool.activeLayerNames[i]]
-                    ?.data
-            ) {
+                IdentifierTool.vars.data[IdentifierTool.activeLayerNames[i]] =
+                    IdentifierTool.vars.data[
+                        IdentifierTool.activeLayerNames[i]
+                    ] || {}
                 IdentifierTool.vars.data[
                     IdentifierTool.activeLayerNames[i]
                 ].data = [
@@ -519,7 +511,7 @@ var IdentifierTool = {
         if (!trueValue && !selfish) {
             IdentifierTool.mousemoveTimeout = setTimeout(function () {
                 IdentifierTool.idPixel(e, lnglatzoom, true, true)
-            }, 150)
+            }, 500)
         }
 
         function parseValue(v, sigfigs, scalefactor) {
@@ -677,14 +669,25 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
         if (L_.layers.data[layerUUID].time?.enabled == true)
             timeParam = `&datetime=${L_.layers.data[layerUUID].time.start}/${L_.layers.data[layerUUID].time.end}`
 
+        // Bands
+        let bandsParam = ''
+        let b = L_.layers.data[layerUUID].cogBandsQuery
+        if (b != null) {
+            b.forEach((band) => {
+                if (band != null) bandsParam += `&bidx=${band}`
+            })
+        }
+
         fetch(
             `${
                 mmgisglobal.NODE_ENV === 'development'
                     ? 'http://localhost:8888'
-                    : ''
+                    : `${window.location.origin}${(
+                          window.location.pathname || ''
+                      ).replace(/\/$/g, '')}`
             }/titilerpgstac/collections/${
                 url.split('stac-collection:')[1]
-            }/point/${lng},${lat}?assets=asset&items_limit=10${timeParam}`,
+            }/point/${lng},${lat}?assets=asset&items_limit=10${timeParam}${bandsParam}`,
             {
                 method: 'GET',
                 headers: {
@@ -699,7 +702,68 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
             })
             .then((json) => {
                 if (json.values) {
-                    if (typeof callback === 'function') callback(json.values)
+                    const values = []
+                    json.values.forEach((val, idx) => {
+                        val[2].forEach((val2, idx2) => {
+                            values.push([
+                                `${val[0]} - ${val2}`,
+                                [val[1][idx2]],
+                                [val2],
+                            ])
+                        })
+                    })
+                    if (typeof callback === 'function') callback(values)
+                }
+            })
+            .catch((err) => {})
+        return
+    } else if (url.startsWith('COG:')) {
+        // Time
+        let timeParam = ''
+        if (L_.layers.data[layerUUID].time?.enabled == true)
+            timeParam = `&datetime=${L_.layers.data[layerUUID].time.start}/${L_.layers.data[layerUUID].time.end}`
+
+        // Bands
+        let bandsParam = ''
+        let b =
+            L_.layers.data[layerUUID].cogBandsQuery ||
+            L_.layers.data[layerUUID].cogBands
+        if (b != null) {
+            b.forEach((band) => {
+                if (band != null) bandsParam += `&bidx=${band}`
+            })
+        }
+
+        fetch(
+            `${
+                mmgisglobal.NODE_ENV === 'development'
+                    ? 'http://localhost:8888'
+                    : `${window.location.origin}${(
+                          window.location.pathname || ''
+                      ).replace(/\/$/g, '')}`
+            }/titiler/cog/point/${lng},${lat}?assets=asset&url=${L_.getUrl(
+                'tile',
+                url
+            )}${timeParam}${bandsParam}`,
+            {
+                method: 'GET',
+                headers: {
+                    accept: 'application/json',
+                },
+            }
+        )
+            .then((res) => {
+                if (res.status === 200) {
+                    return res.json()
+                }
+            })
+            .then((json) => {
+                if (json.values) {
+                    const values = []
+                    json.values.forEach((val, idx) => {
+                        values.push([json.band_names[idx], [val]])
+                    })
+                    if (typeof callback === 'function') callback(values)
                 }
             })
             .catch((err) => {})

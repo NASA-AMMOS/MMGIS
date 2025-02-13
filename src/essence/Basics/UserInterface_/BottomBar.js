@@ -79,6 +79,10 @@ let BottomBar = {
                 $('.leaflet-control-zoom').css('display', 'none')
                 $('#topBarScreenshotLoading').css('display', 'block')
                 $('#scaleBar').css('margin-top', '0px')
+                const savedMapToolBarBottom =
+                    $('#mapToolBar').css('bottom') || '0px'
+                $('#mapToolBar').css('bottom', '0px')
+                $(`#toggleTimeUI.active`).trigger('click')
 
                 const documentElm = document.getElementById('mapScreen')
                 HTML2Canvas(documentElm, {
@@ -127,9 +131,18 @@ let BottomBar = {
                 }).then(function (canvas) {
                     canvas.id = 'mmgisScreenshot'
                     document.body.appendChild(canvas)
+
+                    const mission = L_.configData?.msv?.mission
+                    const time = L_.TimeControl_?.currentTime
+                    const mapCenter = L_.Map_.map.getCenter()
+                    const lng = mapCenter.lng.toFixed(4)
+                    const lat = mapCenter.lat.toFixed(4)
+
                     F_.downloadCanvas(
                         canvas.id,
-                        'mmgis-screenshot',
+                        `mmgis-${mission}_${
+                            time ? `${time.replaceAll(':', '-')}_` : ''
+                        }${lat}_${lng}`,
                         function () {
                             canvas.remove()
                             setTimeout(function () {
@@ -150,6 +163,7 @@ let BottomBar = {
                 $('#mmgis-map-compass').css('display', 'block')
                 $('.leaflet-control-zoom').css('display', 'block')
                 $('#scaleBar').css('margin-top', '5px')
+                $('#mapToolBar').css('bottom', 'savedMapToolBarBottom')
             })
 
         tippy(`#topBarScreenshot`, {

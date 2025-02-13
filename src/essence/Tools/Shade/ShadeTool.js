@@ -911,19 +911,6 @@ let ShadeTool = {
                 ).val(),
             },
             function (s) {
-                try {
-                    s = JSON.parse(s)
-                } catch {
-                    CursorInfo.update(
-                        'Failure Processing Inputted Time',
-                        6000,
-                        true,
-                        { x: 296, y: -5 },
-                        '#e9ff26',
-                        'black'
-                    )
-                    return
-                }
                 if (s.error) {
                     CursorInfo.update(
                         'Cannot Process Inputted Time',
@@ -1800,6 +1787,16 @@ function interfaceWithMMGIS() {
 
     if (TimeControl.enabled != true) {
         console.error('ERROR: ShadeTool - Time must be enabled.')
+        let tools = d3.select('#toolPanel')
+        //Clear it
+        tools.selectAll('*').remove()
+        //Add a semantic container
+        tools = tools.append('div').style('height', '100%')
+        //Add the markup to tools or do it manually
+        tools.html(
+            `<div style="position: absolute; top: 50%; left: 50%; transform: translateX(-50%) translateY(-50%); text-align: center; color: var(--color-h);">The Shade Tool requires that Time be enabled by the administrators.</div>`
+        )
+
         return
     }
 

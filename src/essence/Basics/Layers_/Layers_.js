@@ -243,16 +243,20 @@ const L_ = {
             delete L_._onSpecificLayerToggleSubscriptions[fid]
     },
     getUrl: function (type, url, layerData) {
+        let wasCOG = false
+
         let nextUrl = url
-        if (nextUrl != null && nextUrl.startsWith('COG:'))
+        if (nextUrl != null && nextUrl.startsWith('COG:')) {
             nextUrl = nextUrl.slice(4)
+            wasCOG = true
+        }
         if (!F_.isUrlAbsolute(nextUrl)) {
             nextUrl = L_.missionPath + nextUrl
         }
         if (
             type === 'tile' &&
-            layerData &&
-            layerData.throughTileServer === true
+            ((layerData && layerData.throughTileServer === true) ||
+                wasCOG == true)
         ) {
             if (
                 !F_.isUrlAbsolute(nextUrl) &&
@@ -262,7 +266,22 @@ const L_ = {
             }
         }
         if (layerData && layerData.throughTileServer === true) {
-            nextUrl = `${window.location.origin}/titiler/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.webp?url=${nextUrl}`
+            let bandsParam = ''
+            if (layerData.cogBands) {
+                layerData.cogBands.forEach((band) => {
+                    if (band != null) bandsParam += `&bidx=${band}`
+                })
+            }
+            let resamplingParam = ''
+            if (layerData.cogResampling) {
+                resamplingParam = `&resampling=${layerData.cogResampling}`
+            }
+
+            nextUrl = `${window.location.origin}${(
+                window.location.pathname || ''
+            ).replace(/\/$/g, '')}/titiler/cog/tiles/${
+                layerData.tileMatrixSet || 'WebMercatorQuad'
+            }/{z}/{x}/{y}.webp?url=${nextUrl}${bandsParam}${resamplingParam}`
         }
         return nextUrl
     },
@@ -3601,6 +3620,16 @@ function parseConfig(configData, urlOnLayers) {
 
             //Create parsed layers named
             L_.layers.data[d[i].name] = d[i]
+
+            if (d[i].display_name === 'TimeCogs') {
+                d[i].time.current = '2025-02-12T01:20:55Z'
+                d[i].time.start = ''
+                d[i].time.end = ''
+                d[i].time.startProp = ''
+                d[i].time.endProp = ''
+                d[i].time.refresh = '1 hours'
+                d[i].time.increment = '5 minutes'
+            }
 
             if (
                 d[i].time &&

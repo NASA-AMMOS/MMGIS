@@ -39,7 +39,7 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
 
     // Give time enabled layers a default start and end time to avoid errors
     const layerTimeFormat =
-        layerObj.time == null
+        layerObj.time?.format == null || layerObj.time?.format == ''
             ? d3.utcFormat('%Y-%m-%dT%H:%M:%SZ')
             : d3.utcFormat(layerObj.time.format)
 

@@ -196,7 +196,7 @@ var TimeControl = {
         if (L_.layers.layer[layer.name] === null) return false
 
         let layerTimeFormat =
-            layer.time?.format == null
+            layer.time?.format == null || layer.time?.format == ''
                 ? d3.utcFormat('%Y-%m-%dT%H:%M:%SZ')
                 : d3.utcFormat(layer.time.format)
         layer.time.current = TimeControl.currentTime // keeps track of when layer was refreshed
@@ -236,7 +236,7 @@ var TimeControl = {
                         ) // turn back on
                     }
                 }
-            } 
+            }
         } else {
             // replace start/endtime keywords
             if (layer.time && layer.time.enabled === true) {
@@ -335,7 +335,7 @@ var TimeControl = {
     ) {
         return new Promise(async (resolve, reject) => {
             let layerTimeFormat =
-                layer.time?.format == null
+                layer.time?.format == null || layer.time?.format == ''
                     ? d3.utcFormat('%Y-%m-%dT%H:%M:%SZ')
                     : d3.utcFormat(layer.time.format)
 
@@ -451,7 +451,7 @@ var TimeControl = {
     },
     setLayerWmsParams: function (layer) {
         let layerTimeFormat =
-            layer.time?.format == null
+            layer.time?.format == null || layer.time?.format == ''
                 ? d3.utcFormat('%Y-%m-%dT%H:%M:%SZ')
                 : d3.utcFormat(layer.time.format)
         const l = L_.layers.layer[layer.name]

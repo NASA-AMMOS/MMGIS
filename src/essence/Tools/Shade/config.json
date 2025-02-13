@@ -143,14 +143,28 @@
                                 "name": "Name",
                                 "description": "User-friendly name for observer for spacecraft time computations",
                                 "type": "text",
-                                "width": 4
+                                "width": 3
                             },
                             {
                                 "field": "value",
                                 "name": "Value",
                                 "description": "NAIF SPICE Spacecraft name or ID",
                                 "type": "text",
-                                "width": 4
+                                "width": 3
+                            },
+                            {
+                                "field": "frame",
+                                "name": "Frame",
+                                "description": "SPICE reference frame. i.e. 'IAU_MARS'",
+                                "type": "text",
+                                "width": 3
+                            },
+                            {
+                                "field": "body",
+                                "name": "Body",
+                                "description": "SPICE planet body. i.e. 'MARS'",
+                                "type": "text",
+                                "width": 3
                             }
                         ]
                     }

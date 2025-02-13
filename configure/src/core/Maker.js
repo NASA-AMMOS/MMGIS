@@ -377,7 +377,11 @@ const getComponent = (
           }}
           value={text_array_f}
           onChange={(e) => {
-            updateConfiguration(com.field, e.target.value.split(","), layer);
+            let newValue = null;
+            if (e.target.value == null || e.target.value == "") newValue = null;
+            else newValue = e.target.value.split(",");
+
+            updateConfiguration(com.field, newValue, layer);
           }}
         />
       );

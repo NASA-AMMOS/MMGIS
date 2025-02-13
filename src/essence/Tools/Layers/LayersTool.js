@@ -1238,7 +1238,7 @@ function interfaceWithMMGIS(fromInit) {
                 'Unable to locate layer.',
                 4000,
                 true,
-                { x: 385, y: 6 },
+                { x: 395, y: 6 },
                 '#e9ff26',
                 'black'
             )
@@ -1250,7 +1250,7 @@ function interfaceWithMMGIS(fromInit) {
                 'Please turn the layer on before locating.',
                 4000,
                 true,
-                { x: 385, y: 6 },
+                { x: 395, y: 6 },
                 '#e9ff26',
                 'black'
             )
@@ -1270,7 +1270,7 @@ function interfaceWithMMGIS(fromInit) {
                     'Unable to locate layer.',
                     4000,
                     true,
-                    { x: 385, y: 6 },
+                    { x: 395, y: 6 },
                     '#e9ff26',
                     'black'
                 )
