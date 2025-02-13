@@ -146,7 +146,6 @@ let Map_ = {
             })
             // Default CRS
 
-            console.log("L.Proj", L.Proj) 
             const projString = `+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=${F_.radiusOfPlanetMajor} +b=${F_.radiusOfPlanetMinor} +towgs84=0,0,0,0,0,0,0 +units=m +no_defs`
             window.mmgisglobal.customCRS = new L.Proj.CRS(
                 'EPSG:3857',
@@ -608,7 +607,6 @@ async function makeLayer(
         }
         //Decide what kind of layer it is
         //Headers do not need to be made
-        console.log('layerObj', layerObj)
         if (layerObj.type != 'header') {
             //Simply call the appropriate function for each layer type
             switch (layerObj.type) {
@@ -1154,7 +1152,6 @@ async function makeTileLayer(layerObj) {
         tileFormat = tileFormat ? 'tms' : 'wmts'
     } else tileFormat = layerObj.tileformat
 
-    console.log("layerObj", layerObj)
     L_.layers.layer[layerObj.name] = L.tileLayer.colorFilter(layerUrl, {
         minZoom: parseInt(layerObj.minZoom),
         maxZoom: parseInt(layerObj.maxZoom),
