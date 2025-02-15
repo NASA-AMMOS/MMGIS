@@ -5,6 +5,8 @@ import {
   getLayerByUUID,
   traverseLayers,
   insertLayerAfterUUID,
+  getIn,
+  setIn,
 } from "../../../../../core/utils";
 
 import {
@@ -160,11 +162,6 @@ const LayerModal = (props) => {
 
   const dispatch = useDispatch();
 
-  const handleClose = () => {
-    // close modal
-    dispatch(setModal({ name: MODAL_NAME, on: false }));
-  };
-
   let config = {};
   switch (layer.type) {
     case "data":
@@ -204,6 +201,84 @@ const LayerModal = (props) => {
   }
 
   config = inject(config);
+
+  const handleClose = () => {
+    const nextConfiguration = JSON.parse(JSON.stringify(configuration));
+    traverseLayers(nextConfiguration.layers, (l, path, index) => {
+      if (layer.uuid === l.uuid) {
+        // We're repopulating all the layers values to trim it exactly to its spec
+        // (otherwise defaults may be missing and switching layer types would mix parameters)
+        let completedLayer = {
+          uuid: l.uuid,
+          sublayers: l.sublayers || [],
+        };
+        config.tabs.forEach((t) => {
+          t.rows.forEach((r) => {
+            r.components.forEach((c) => {
+              // Skip non-field components (such as the map)
+              if (c.field == null) return;
+
+              const currentValue = getIn(l, c.field.split("."), null);
+              if (currentValue != null)
+                setIn(completedLayer, c.field.split("."), currentValue, true);
+
+              if (c.type === "dropdown" || c.type === "colordropdown") {
+                const currentValue = getIn(l, c.field);
+                if (currentValue == null) {
+                  setIn(completedLayer, c.field.split("."), c.options[0], true);
+                }
+              } else if (c.type === "checkbox" || c.type === "switch") {
+                const currentValue = getIn(l, c.field);
+                if (currentValue == null && c.defaultChecked != null) {
+                  setIn(
+                    completedLayer,
+                    c.field.split("."),
+                    c.defaultChecked,
+                    true
+                  );
+                }
+              } else if (c.type === "slider") {
+                const currentValue = getIn(l, c.field);
+                if (currentValue == null && c.default != null) {
+                  setIn(
+                    completedLayer,
+                    c.field.split("."),
+                    c.default || c.min || 0,
+                    true
+                  );
+                }
+              } else if (c.type === "colorpicker") {
+                const currentValue = getIn(l, c.field);
+                if (currentValue == null) {
+                  setIn(
+                    completedLayer,
+                    c.field.split("."),
+                    c.default || "#FFFFFF",
+                    true
+                  );
+                }
+              }
+            });
+          });
+        });
+
+        // Clear and copy while maintaining reference
+        Object.keys(l).forEach((key) => {
+          delete l[key];
+        });
+        // Setting these here just so that the show up first in the object
+        l.name = completedLayer.name;
+        l.uuid = completedLayer.uuid;
+        Object.keys(completedLayer).forEach((key) => {
+          l[key] = completedLayer[key];
+        });
+      }
+    });
+    dispatch(setConfiguration(nextConfiguration));
+
+    // close modal
+    dispatch(setModal({ name: MODAL_NAME, on: false }));
+  };
 
   return (
     <Dialog

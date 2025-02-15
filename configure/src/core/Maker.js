@@ -538,11 +538,19 @@ const getComponent = (
         <Box>
           <Grid container spacing={2} className={c.slider}>
             <Typography className={c.sliderName} id="input-slider" gutterBottom>
-              {com.name}
+              {`${com.name} (${
+                value != null
+                  ? value
+                  : getIn(directConf, com.field, com.default || "")
+              })`}
             </Typography>
             <Grid item xs style={{ margin: "0px 10px" }}>
               <Slider
-                value={value != null ? value : getIn(directConf, com.field, "")}
+                value={
+                  value != null
+                    ? value
+                    : getIn(directConf, com.field, com.default || "")
+                }
                 onChange={(e) => {
                   let v = e.target.value;
                   const min = com.min != null ? com.min : -Infinity;
@@ -716,10 +724,18 @@ const getComponent = (
       );
     case "colorpicker":
       let color;
-      if (tool) color = getIn(tool, com.field.split("."), { hex: "#000000" });
+      if (tool)
+        color = getIn(tool, com.field.split("."), {
+          hex: com.default || "#FFFFFF",
+        });
       else if (layer)
-        color = getIn(layer, com.field.split("."), { hex: "#000000" });
-      else color = getIn(directConf, com.field.split("."), { hex: "#000000" });
+        color = getIn(layer, com.field.split("."), {
+          hex: com.default || "#FFFFFF",
+        });
+      else
+        color = getIn(directConf, com.field.split("."), {
+          hex: com.default || "#FFFFFF",
+        });
 
       inner = (
         <ColorButton
