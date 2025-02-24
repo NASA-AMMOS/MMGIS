@@ -227,32 +227,9 @@ export default function Layers() {
     savedMinLayers = strConf;
   }
 
-  const onIndent = (layer, idx) => {
-    const nextFlatLayers = JSON.parse(JSON.stringify(flatLayers));
-    nextFlatLayers[idx].depth = Math.min(nextFlatLayers[idx].depth + 1, 12);
-    setFlatLayers(nextFlatLayers);
-  };
-  const onExdent = (layer, idx) => {
-    const nextFlatLayers = JSON.parse(JSON.stringify(flatLayers));
-    nextFlatLayers[idx].depth = Math.max(nextFlatLayers[idx].depth - 1, 0);
-    setFlatLayers(nextFlatLayers);
-  };
-
-  const onDragEnd = (result) => {
-    // dropped outside the list
-    if (!result.destination) {
-      return;
-    }
-
-    const nextLayers = [];
-
-    const nextFlatLayers = reorderArray(
-      JSON.parse(JSON.stringify(flatLayers)),
-      result.source.index,
-      result.destination.index
-    );
-
+  const updateDepth = (nextFlatLayers, result) => {
     // Now we have to convert flatLayers to actual configuration structure
+    const nextLayers = [];
 
     const prevIndentations = [];
     const prevLayerObjects = [];
@@ -266,12 +243,13 @@ export default function Layers() {
       }
 
       // Make dragged layer always match the depth of the new layer just above it
-      if (idx === result.destination.index) {
-        if (idx === 0) layer.depth = 0;
-        else if (prevLayerObjects[idx - 1].type === "header")
-          layer.depth = prevIndentations[idx - 1] + 1;
-        else layer.depth = prevIndentations[idx - 1];
-      }
+      if (result != null)
+        if (idx === result.destination.index) {
+          if (idx === 0) layer.depth = 0;
+          else if (prevLayerObjects[idx - 1].type === "header")
+            layer.depth = prevIndentations[idx - 1] + 1;
+          else layer.depth = prevIndentations[idx - 1];
+        }
 
       //This is now the proper spelling and 'broke' is the misspelling
       let breaked = false;
@@ -301,6 +279,32 @@ export default function Layers() {
     const nextConfiguration = JSON.parse(JSON.stringify(configuration));
     nextConfiguration.layers = nextLayers;
     dispatch(setConfiguration(nextConfiguration));
+  };
+
+  const onIndent = (layer, idx) => {
+    const nextFlatLayers = JSON.parse(JSON.stringify(flatLayers));
+    nextFlatLayers[idx].depth = Math.min(nextFlatLayers[idx].depth + 1, 12);
+    updateDepth(nextFlatLayers);
+  };
+  const onExdent = (layer, idx) => {
+    const nextFlatLayers = JSON.parse(JSON.stringify(flatLayers));
+    nextFlatLayers[idx].depth = Math.max(nextFlatLayers[idx].depth - 1, 0);
+    updateDepth(nextFlatLayers);
+  };
+
+  const onDragEnd = (result) => {
+    // dropped outside the list
+    if (!result.destination) {
+      return;
+    }
+
+    const nextFlatLayers = reorderArray(
+      JSON.parse(JSON.stringify(flatLayers)),
+      result.source.index,
+      result.destination.index
+    );
+
+    updateDepth(nextFlatLayers, result);
   };
 
   return (

@@ -13,9 +13,13 @@ const Help = {
     },
     finalize: function (helpKey) {
         $(`#helpModal_${helpKey}`).on('click', function () {
-            $.get(`/public/helps/${helpKey}.md`, function (doc) {
-                // prettier-ignore
-                Modal.set(
+            $.get(
+                `${
+                    window.mmgisglobal.ROOT_PATH || ''
+                }/public/helps/${helpKey}.md`,
+                function (doc) {
+                    // prettier-ignore
+                    Modal.set(
                     [
                         `<div id='HelpModal'>`,
                             `<div id='HelpModalTitle'>`,
@@ -33,7 +37,8 @@ const Help = {
                         })
                     }       
                 )
-            })
+                }
+            )
         })
     },
 }
