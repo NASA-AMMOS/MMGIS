@@ -120,516 +120,539 @@ const Measure = () => {
     // Compute line of sight for each segment and then merge back together
     recomputeLineOfSight()
 
-    return (
-        <div
-            className='MeasureTool'
-            onMouseLeave={() => {
-                MeasureTool.clearInfo()
-            }}
-        >
-            <div id='measureLeft'>
-                <div id='measureTop'>
-                    <div id='measureTitle'>Measure</div>
-                    <div id='measureIcons'>
-                        <div
-                            id='measureUndo'
-                            title='Undo'
-                            onClick={MeasureTool.undo}
-                        >
-                            <i className='mdi mdi-undo mdi-18px'></i>
-                        </div>
-                        <div
-                            id='measureReset'
-                            title='Reset'
-                            onClick={MeasureTool.reset}
-                        >
-                            <i className='mdi mdi-refresh mdi-18px'></i>
-                        </div>
-                    </div>
-                </div>
-                {dems.length > 1 && (
-                    <div id='measureDem'>
-                        <div title='Digital Elevation Model'>Dataset</div>
-                        <select
-                            className='dropdown'
-                            defaultValue={dems[0].path}
-                            onChange={MeasureTool.changeDem}
-                        >
-                            {dems.map((l, idx) => (
-                                <option key={idx} value={idx}>
-                                    {l.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                )}
-                <div id='measureMode'>
-                    <div>Mode</div>
-                    <select
-                        className='dropdown'
-                        defaultValue={mode}
-                        onChange={MeasureTool.changeMode}
-                    >
-                        <option value='segment'>Segment</option>
-                        <option value='continuous'>Continuous</option>
-                        <option value='continuous_color'>
-                            Continuous Color
-                        </option>
-                    </select>
-                </div>
-                <div id='measureSamples'>
-                    <div>Samples</div>
-                    <select
-                        className='dropdown'
-                        defaultValue='100'
-                        onChange={MeasureTool.changeSamples}
-                    >
-                        <option value='100'>100</option>
-                        <option value='250'>250</option>
-                        <option value='500'>500</option>
-                        <option value='1000'>1000</option>
-                        <option value='2000'>2000</option>
-                    </select>
-                </div>
-                <div id='measureUnit'>
-                    <div>Unit</div>
-                    <select
-                        className='dropdown'
-                        defaultValue='meters'
-                        onChange={MeasureTool.changeDistDisplayUnit}
-                    >
-                        <option value='meters'>M</option>
-                        <option value='kilometers'>KM</option>
-                    </select>
-                </div>
-                <div id='measureLOS'>
-                    <div>Line of Sight</div>
-                    <div className='mmgis-checkbox small'>
-                        <input
-                            type='checkbox'
-                            defaultChecked={LOS.on}
-                            id='measureLOSCheck'
-                            onChange={MeasureTool.changeLOS}
-                        />
-                        <label htmlFor='measureLOSCheck'></label>
-                    </div>
-                </div>
-                <div id='measureObserverHeight'>
-                    <div>Observer Height</div>
-                    <div className='flexbetween'>
-                        <input
-                            type='number'
-                            min={0}
-                            step={1}
-                            defaultValue={LOS.observerHeight}
-                            placeholder={0}
-                            id='measureObserverHeightInput'
-                            onChange={MeasureTool.changeLOSObserverHeight}
-                        />
-                        <div className='measureToolInputUnit'>m</div>
-                    </div>
-                </div>
-                <div id='measureTargetHeight'>
-                    <div>Target Height</div>
-                    <div className='flexbetween'>
-                        <input
-                            type='number'
-                            min={0}
-                            step={1}
-                            defaultValue={LOS.targetHeight}
-                            placeholder={0}
-                            id='measureTargetHeightInput'
-                            onChange={MeasureTool.changeLOSTargetHeight}
-                        />
-                        <div className='measureToolInputUnit'>m</div>
-                    </div>
-                </div>
-            </div>
+    if (dems.length > 0) {
+        return (
             <div
-                id='measureGraph'
+                className='MeasureTool'
                 onMouseLeave={() => {
-                    MeasureTool.clearFocusPoint()
-
-                    $('#measureVerticalCursor').css({
-                        opacity: 0,
-                    })
-
-                    $('#measureSVGLine').attr('stroke', 'rgba(0,0,0,0)')
-                    if (!LOS.on)
-                        $('#measureSVGObserver')
-                            .attr('fill', 'rgba(0,0,0,0)')
-                            .attr('stroke', 'rgba(0,0,0,0)')
+                    MeasureTool.clearInfo()
                 }}
             >
-                <Line
-                    ref={refLine}
-                    data={{
-                        labels: MeasureTool.uniformData.map((uD) => {
-                            const d = MeasureTool.lastData[uD.index]
-                            const xAxes = parseInt(d[2], 10)
-                            return distDisplayUnit === 'kilometers'
-                                ? (xAxes / 1000).toFixed(2)
-                                : xAxes
-                        }),
-                        datasets: [
-                            {
-                                label: 'Profile',
-                                data: MeasureTool.uniformData.map((d) => d.y),
-                                segment: {
-                                    backgroundColor: (ctx) => {
-                                        if (
-                                            LOS.on &&
-                                            MeasureTool.lineOfSight[
-                                                MeasureTool.uniformData[
-                                                    ctx.p1DataIndex
-                                                ].index
-                                            ] === 0
-                                        )
-                                            return 'black'
-                                        const i =
-                                            MeasureTool.datasetMapping[
-                                                MeasureTool.uniformData[
-                                                    ctx.p0DataIndex
-                                                ].index
-                                            ] - 1
-                                        if (mode === 'continuous_color') {
-                                            return MeasureTool.getColor(i, 0.4)
-                                        } else
-                                            return i % 2 === 0
-                                                ? 'rgba(255, 0, 47, 0.4)'
-                                                : 'rgba(255, 80, 112, 0.4)'
-                                    },
-                                    borderColor: (ctx) => {
-                                        let alpha = 1
-                                        if (
-                                            LOS.on &&
-                                            MeasureTool.lineOfSight[
-                                                MeasureTool.uniformData[
-                                                    ctx.p1DataIndex
-                                                ].index
-                                            ] === 0
-                                        )
-                                            alpha = 0.75
-                                        const i =
-                                            MeasureTool.datasetMapping[
-                                                MeasureTool.uniformData[
-                                                    ctx.p0DataIndex
-                                                ].index
-                                            ] - 1
-                                        if (mode === 'continuous_color')
-                                            return MeasureTool.getColor(
-                                                i,
-                                                alpha
-                                            )
-                                        else
-                                            return i % 2
-                                                ? `rgba(255, 80, 112, ${alpha})`
-                                                : `rgba(255, 0, 47, ${alpha})`
-                                    },
-                                },
-                                spanGaps: false,
-                                borderWidth: 1,
-                                fill: 'start',
-                                pointRadius: 0,
-                                pointHitRadius: 0,
-                                pointBackgroundColor: 'rgba(0,0,0,0)',
-                                pointBorderColor: 'rgba(0,0,0,0)',
-                                pointHoverBackgroundColor: 'yellow',
-                                pointHoverBorderColor: '#1f1f1f',
-                            },
-                        ],
+                <div id='measureLeft'>
+                    <div id='measureTop'>
+                        <div id='measureTitle'>Measure</div>
+                        <div id='measureIcons'>
+                            <div
+                                id='measureUndo'
+                                title='Undo'
+                                onClick={MeasureTool.undo}
+                            >
+                                <i className='mdi mdi-undo mdi-18px'></i>
+                            </div>
+                            <div
+                                id='measureReset'
+                                title='Reset'
+                                onClick={MeasureTool.reset}
+                            >
+                                <i className='mdi mdi-refresh mdi-18px'></i>
+                            </div>
+                        </div>
+                    </div>
+                    {dems.length > 1 && (
+                        <div id='measureDem'>
+                            <div title='Digital Elevation Model'>Dataset</div>
+                            <select
+                                className='dropdown'
+                                defaultValue={dems[0].path}
+                                onChange={MeasureTool.changeDem}
+                            >
+                                {dems.map((l, idx) => (
+                                    <option key={idx} value={idx}>
+                                        {l.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                    <div id='measureMode'>
+                        <div>Mode</div>
+                        <select
+                            className='dropdown'
+                            defaultValue={mode}
+                            onChange={MeasureTool.changeMode}
+                        >
+                            <option value='segment'>Segment</option>
+                            <option value='continuous'>Continuous</option>
+                            <option value='continuous_color'>
+                                Continuous Color
+                            </option>
+                        </select>
+                    </div>
+                    <div id='measureSamples'>
+                        <div>Samples</div>
+                        <select
+                            className='dropdown'
+                            defaultValue='100'
+                            onChange={MeasureTool.changeSamples}
+                        >
+                            <option value='100'>100</option>
+                            <option value='250'>250</option>
+                            <option value='500'>500</option>
+                            <option value='1000'>1000</option>
+                            <option value='2000'>2000</option>
+                        </select>
+                    </div>
+                    <div id='measureUnit'>
+                        <div>Unit</div>
+                        <select
+                            className='dropdown'
+                            defaultValue='meters'
+                            onChange={MeasureTool.changeDistDisplayUnit}
+                        >
+                            <option value='meters'>M</option>
+                            <option value='kilometers'>KM</option>
+                        </select>
+                    </div>
+                    <div id='measureLOS'>
+                        <div>Line of Sight</div>
+                        <div className='mmgis-checkbox small'>
+                            <input
+                                type='checkbox'
+                                defaultChecked={LOS.on}
+                                id='measureLOSCheck'
+                                onChange={MeasureTool.changeLOS}
+                            />
+                            <label htmlFor='measureLOSCheck'></label>
+                        </div>
+                    </div>
+                    <div id='measureObserverHeight'>
+                        <div>Observer Height</div>
+                        <div className='flexbetween'>
+                            <input
+                                type='number'
+                                min={0}
+                                step={1}
+                                defaultValue={LOS.observerHeight}
+                                placeholder={0}
+                                id='measureObserverHeightInput'
+                                onChange={MeasureTool.changeLOSObserverHeight}
+                            />
+                            <div className='measureToolInputUnit'>m</div>
+                        </div>
+                    </div>
+                    <div id='measureTargetHeight'>
+                        <div>Target Height</div>
+                        <div className='flexbetween'>
+                            <input
+                                type='number'
+                                min={0}
+                                step={1}
+                                defaultValue={LOS.targetHeight}
+                                placeholder={0}
+                                id='measureTargetHeightInput'
+                                onChange={MeasureTool.changeLOSTargetHeight}
+                            />
+                            <div className='measureToolInputUnit'>m</div>
+                        </div>
+                    </div>
+                </div>
+                <div
+                    id='measureGraph'
+                    onMouseLeave={() => {
+                        MeasureTool.clearFocusPoint()
+
+                        $('#measureVerticalCursor').css({
+                            opacity: 0,
+                        })
+
+                        $('#measureSVGLine').attr('stroke', 'rgba(0,0,0,0)')
+                        if (!LOS.on)
+                            $('#measureSVGObserver')
+                                .attr('fill', 'rgba(0,0,0,0)')
+                                .attr('stroke', 'rgba(0,0,0,0)')
                     }}
-                    height={150}
-                    options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: false,
-                            },
-                            tooltip: {
-                                enabled: false,
-                            },
-                            zoom: {
-                                pan: {
-                                    enabled: true,
-                                    mode: 'x',
+                >
+                    <Line
+                        ref={refLine}
+                        data={{
+                            labels: MeasureTool.uniformData.map((uD) => {
+                                const d = MeasureTool.lastData[uD.index]
+                                const xAxes = parseInt(d[2], 10)
+                                return distDisplayUnit === 'kilometers'
+                                    ? (xAxes / 1000).toFixed(2)
+                                    : xAxes
+                            }),
+                            datasets: [
+                                {
+                                    label: 'Profile',
+                                    data: MeasureTool.uniformData.map(
+                                        (d) => d.y
+                                    ),
+                                    segment: {
+                                        backgroundColor: (ctx) => {
+                                            if (
+                                                LOS.on &&
+                                                MeasureTool.lineOfSight[
+                                                    MeasureTool.uniformData[
+                                                        ctx.p1DataIndex
+                                                    ].index
+                                                ] === 0
+                                            )
+                                                return 'black'
+                                            const i =
+                                                MeasureTool.datasetMapping[
+                                                    MeasureTool.uniformData[
+                                                        ctx.p0DataIndex
+                                                    ].index
+                                                ] - 1
+                                            if (mode === 'continuous_color') {
+                                                return MeasureTool.getColor(
+                                                    i,
+                                                    0.4
+                                                )
+                                            } else
+                                                return i % 2 === 0
+                                                    ? 'rgba(255, 0, 47, 0.4)'
+                                                    : 'rgba(255, 80, 112, 0.4)'
+                                        },
+                                        borderColor: (ctx) => {
+                                            let alpha = 1
+                                            if (
+                                                LOS.on &&
+                                                MeasureTool.lineOfSight[
+                                                    MeasureTool.uniformData[
+                                                        ctx.p1DataIndex
+                                                    ].index
+                                                ] === 0
+                                            )
+                                                alpha = 0.75
+                                            const i =
+                                                MeasureTool.datasetMapping[
+                                                    MeasureTool.uniformData[
+                                                        ctx.p0DataIndex
+                                                    ].index
+                                                ] - 1
+                                            if (mode === 'continuous_color')
+                                                return MeasureTool.getColor(
+                                                    i,
+                                                    alpha
+                                                )
+                                            else
+                                                return i % 2
+                                                    ? `rgba(255, 80, 112, ${alpha})`
+                                                    : `rgba(255, 0, 47, ${alpha})`
+                                        },
+                                    },
+                                    spanGaps: false,
+                                    borderWidth: 1,
+                                    fill: 'start',
+                                    pointRadius: 0,
+                                    pointHitRadius: 0,
+                                    pointBackgroundColor: 'rgba(0,0,0,0)',
+                                    pointBorderColor: 'rgba(0,0,0,0)',
+                                    pointHoverBackgroundColor: 'yellow',
+                                    pointHoverBorderColor: '#1f1f1f',
+                                },
+                            ],
+                        }}
+                        height={150}
+                        options={{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false,
+                                },
+                                tooltip: {
+                                    enabled: false,
                                 },
                                 zoom: {
-                                    wheel: {
+                                    pan: {
                                         enabled: true,
-                                        speed: 1 / steps,
+                                        mode: 'x',
                                     },
-                                    limits: {
-                                        x: 'original',
-                                    },
-                                    mode: 'x',
-                                },
-                            },
-                        },
-                        layout: {
-                            padding: {
-                                top: 16,
-                                left: 4,
-                                right: 4,
-                                bottom: 0,
-                            },
-                        },
-                        scales: {
-                            x: {
-                                type: 'linear',
-                                min: 0,
-                                max:
-                                    MeasureTool.lastData.length > 1
-                                        ? parseInt(
-                                              MeasureTool.lastData[
-                                                  MeasureTool.lastData.length -
-                                                      1
-                                              ][2]
-                                          ) *
-                                          (distDisplayUnit === 'kilometers'
-                                              ? 0.001
-                                              : 1)
-                                        : 1,
-                                ticks: {
-                                    autoSkip: false,
-                                    stepSize: getIdealXAxisStepSize(),
-                                    callback: function (value, index, values) {
-                                        if (distDisplayUnit === 'kilometers') {
-                                            return value.toFixed(2) + 'km'
-                                        }
-                                        return value + 'm'
+                                    zoom: {
+                                        wheel: {
+                                            enabled: true,
+                                            speed: 1 / steps,
+                                        },
+                                        limits: {
+                                            x: 'original',
+                                        },
+                                        mode: 'x',
                                     },
                                 },
                             },
-                            y: {
-                                grid: {
-                                    color: 'rgba(255,255,255,0.05)',
-                                },
-                                ticks: {
-                                    callback: function (value, index, values) {
-                                        return `${value}m`
-                                    },
-                                    lineHeight: 1.5,
+                            layout: {
+                                padding: {
+                                    top: 16,
+                                    left: 4,
+                                    right: 4,
+                                    bottom: 0,
                                 },
                             },
-                        },
-                        onHover: (e, el) => {
-                            let d
-                            let visible = '--'
-                            if (
-                                refLine &&
-                                e.x != null &&
-                                MeasureTool.uniformData.length > 2
-                            ) {
-                                const chartArea = refLine.current.chartArea
-                                const yScale = refLine.current.scales.y
-                                let bestIndex =
-                                    MeasureTool.uniformData[
-                                        Math.round(
-                                            F_.linearScale(
-                                                [
-                                                    chartArea.left,
-                                                    chartArea.right,
-                                                ],
-                                                [0, profileData.length],
-                                                e.x
-                                            )
-                                        )
-                                    ]
-                                if (bestIndex != null)
-                                    bestIndex = bestIndex.index
-                                else return
-
-                                $('#measureVerticalCursor').css({
-                                    left: `${e.x}px`,
-                                    height: `${chartArea.bottom}px`,
-                                    opacity: 1,
-                                })
+                            scales: {
+                                x: {
+                                    type: 'linear',
+                                    min: 0,
+                                    max:
+                                        MeasureTool.lastData.length > 1
+                                            ? parseInt(
+                                                  MeasureTool.lastData[
+                                                      MeasureTool.lastData
+                                                          .length - 1
+                                                  ][2]
+                                              ) *
+                                              (distDisplayUnit === 'kilometers'
+                                                  ? 0.001
+                                                  : 1)
+                                            : 1,
+                                    ticks: {
+                                        autoSkip: false,
+                                        stepSize: getIdealXAxisStepSize(),
+                                        callback: function (
+                                            value,
+                                            index,
+                                            values
+                                        ) {
+                                            if (
+                                                distDisplayUnit === 'kilometers'
+                                            ) {
+                                                return value.toFixed(2) + 'km'
+                                            }
+                                            return value + 'm'
+                                        },
+                                    },
+                                },
+                                y: {
+                                    grid: {
+                                        color: 'rgba(255,255,255,0.05)',
+                                    },
+                                    ticks: {
+                                        callback: function (
+                                            value,
+                                            index,
+                                            values
+                                        ) {
+                                            return `${value}m`
+                                        },
+                                        lineHeight: 1.5,
+                                    },
+                                },
+                            },
+                            onHover: (e, el) => {
+                                let d
+                                let visible = '--'
                                 if (
-                                    bestIndex >= 0 &&
-                                    bestIndex < MeasureTool.lastData.length
+                                    refLine &&
+                                    e.x != null &&
+                                    MeasureTool.uniformData.length > 2
                                 ) {
-                                    d = MeasureTool.lastData[bestIndex]
-                                    if (LOS.on) {
-                                        if (
-                                            MeasureTool.lineOfSight[
-                                                bestIndex
-                                            ] === 0
+                                    const chartArea = refLine.current.chartArea
+                                    const yScale = refLine.current.scales.y
+                                    let bestIndex =
+                                        MeasureTool.uniformData[
+                                            Math.round(
+                                                F_.linearScale(
+                                                    [
+                                                        chartArea.left,
+                                                        chartArea.right,
+                                                    ],
+                                                    [0, profileData.length],
+                                                    e.x
+                                                )
+                                            )
+                                        ]
+                                    if (bestIndex != null)
+                                        bestIndex = bestIndex.index
+                                    else return
+
+                                    $('#measureVerticalCursor').css({
+                                        left: `${e.x}px`,
+                                        height: `${chartArea.bottom}px`,
+                                        opacity: 1,
+                                    })
+                                    if (
+                                        bestIndex >= 0 &&
+                                        bestIndex < MeasureTool.lastData.length
+                                    ) {
+                                        d = MeasureTool.lastData[bestIndex]
+                                        if (LOS.on) {
+                                            if (
+                                                MeasureTool.lineOfSight[
+                                                    bestIndex
+                                                ] === 0
+                                            )
+                                                visible = false
+                                            else visible = true
+                                        }
+                                        MeasureTool.makeFocusPoint(
+                                            d[1],
+                                            d[0],
+                                            d[4]
                                         )
-                                            visible = false
-                                        else visible = true
                                     }
-                                    MeasureTool.makeFocusPoint(d[1], d[0], d[4])
-                                }
 
-                                if (LOS.on && profileData.length > 0) {
-                                    _observerXY.index =
-                                        Math.floor(bestIndex / steps) * steps
-                                    // Observer
-                                    _observerXY.x = F_.linearScale(
-                                        [0, profileData.length],
-                                        [chartArea.left, chartArea.right],
-                                        _observerXY.index
-                                    )
-                                    _observerXY.y = F_.linearScale(
-                                        [yScale.min, yScale.max],
-                                        [chartArea.bottom, chartArea.top],
-                                        profileData[_observerXY.index] +
-                                            LOS.observerHeight
-                                    )
-                                    $('#measureSVGObserver')
-                                        .attr('cx', _observerXY.x)
-                                        .attr('cy', _observerXY.y)
-                                        .attr('r', 4)
-                                        .attr('fill', 'var(--color-green2)')
-                                        .attr('stroke', 'black')
-
-                                    // Line
-                                    const yPos = F_.linearScale(
-                                        [yScale.min, yScale.max],
-                                        [chartArea.bottom, chartArea.top],
-                                        profileData[bestIndex] +
-                                            LOS.targetHeight
-                                    )
-                                    $('#measureSVGLine')
-                                        .attr('x1', _observerXY.x)
-                                        .attr('y1', _observerXY.y)
-                                        .attr('x2', e.x)
-                                        .attr('y2', yPos)
-                                        .attr(
-                                            'stroke',
-                                            visible
-                                                ? 'var(--color-a7)'
-                                                : 'var(--color-a2)'
+                                    if (LOS.on && profileData.length > 0) {
+                                        _observerXY.index =
+                                            Math.floor(bestIndex / steps) *
+                                            steps
+                                        // Observer
+                                        _observerXY.x = F_.linearScale(
+                                            [0, profileData.length],
+                                            [chartArea.left, chartArea.right],
+                                            _observerXY.index
                                         )
-                                } else {
-                                    $('#measureSVGLine').attr(
-                                        'stroke',
-                                        'rgba(0,0,0,0)'
-                                    )
+                                        _observerXY.y = F_.linearScale(
+                                            [yScale.min, yScale.max],
+                                            [chartArea.bottom, chartArea.top],
+                                            profileData[_observerXY.index] +
+                                                LOS.observerHeight
+                                        )
+                                        $('#measureSVGObserver')
+                                            .attr('cx', _observerXY.x)
+                                            .attr('cy', _observerXY.y)
+                                            .attr('r', 4)
+                                            .attr('fill', 'var(--color-green2)')
+                                            .attr('stroke', 'black')
+
+                                        // Line
+                                        const yPos = F_.linearScale(
+                                            [yScale.min, yScale.max],
+                                            [chartArea.bottom, chartArea.top],
+                                            profileData[bestIndex] +
+                                                LOS.targetHeight
+                                        )
+                                        $('#measureSVGLine')
+                                            .attr('x1', _observerXY.x)
+                                            .attr('y1', _observerXY.y)
+                                            .attr('x2', e.x)
+                                            .attr('y2', yPos)
+                                            .attr(
+                                                'stroke',
+                                                visible
+                                                    ? 'var(--color-a7)'
+                                                    : 'var(--color-a2)'
+                                            )
+                                    } else {
+                                        $('#measureSVGLine').attr(
+                                            'stroke',
+                                            'rgba(0,0,0,0)'
+                                        )
+                                    }
                                 }
-                            }
 
-                            if (d) {
-                                $('#measureInfoLng > div:last-child')
-                                    .text(`${d[0].toFixed(6)}°`)
-                                    .css({ opacity: 1 })
+                                if (d) {
+                                    $('#measureInfoLng > div:last-child')
+                                        .text(`${d[0].toFixed(6)}°`)
+                                        .css({ opacity: 1 })
 
-                                $('#measureInfoLat > div:last-child')
-                                    .text(`${d[1].toFixed(6)}°`)
-                                    .css({ opacity: 1 })
+                                    $('#measureInfoLat > div:last-child')
+                                        .text(`${d[1].toFixed(6)}°`)
+                                        .css({ opacity: 1 })
 
-                                $('#measureInfoElev > div:last-child')
-                                    .text(
-                                        d[4] != null
-                                            ? `${d[4].toFixed(3)}m`
-                                            : 'No Data'
-                                    )
-                                    .css({ opacity: 1 })
+                                    $('#measureInfoElev > div:last-child')
+                                        .text(
+                                            d[4] != null
+                                                ? `${d[4].toFixed(3)}m`
+                                                : 'No Data'
+                                        )
+                                        .css({ opacity: 1 })
 
-                                const text2d =
-                                    distDisplayUnit === 'kilometers'
-                                        ? `${(d[2] / 1000).toFixed(2)}km`
-                                        : `${d[2].toFixed(3)}m`
-                                $('#measureInfo2d > div:last-child')
-                                    .text(text2d)
-                                    .css({ opacity: 1 })
+                                    const text2d =
+                                        distDisplayUnit === 'kilometers'
+                                            ? `${(d[2] / 1000).toFixed(2)}km`
+                                            : `${d[2].toFixed(3)}m`
+                                    $('#measureInfo2d > div:last-child')
+                                        .text(text2d)
+                                        .css({ opacity: 1 })
 
-                                const text3d =
-                                    distDisplayUnit === 'kilometers'
-                                        ? `${(d[3] / 1000).toFixed(2)}km`
-                                        : `${d[3].toFixed(3)}m`
+                                    const text3d =
+                                        distDisplayUnit === 'kilometers'
+                                            ? `${(d[3] / 1000).toFixed(2)}km`
+                                            : `${d[3].toFixed(3)}m`
 
-                                $('#measureInfo3d > div:last-child')
-                                    .text(text3d)
-                                    .css({ opacity: 1 })
+                                    $('#measureInfo3d > div:last-child')
+                                        .text(text3d)
+                                        .css({ opacity: 1 })
 
-                                $('#measureInfoVis > div:last-child')
-                                    .text(
-                                        `${
-                                            LOS.on
-                                                ? visible
-                                                    ? 'TRUE'
-                                                    : 'FALSE'
-                                                : 'N/A'
-                                        }`
-                                    )
-                                    .css({ opacity: 1 })
-                            }
-                        },
-                    }}
-                />
-                <svg id='measureSVGOverlay'>
-                    <line
-                        id='measureSVGLine'
-                        x1={0}
-                        y1={0}
-                        x2={0}
-                        y2={0}
-                        stroke='rgba(0,0,0,0)'
-                        strokeWidth={1}
-                        strokeDasharray='10 3'
+                                    $('#measureInfoVis > div:last-child')
+                                        .text(
+                                            `${
+                                                LOS.on
+                                                    ? visible
+                                                        ? 'TRUE'
+                                                        : 'FALSE'
+                                                    : 'N/A'
+                                            }`
+                                        )
+                                        .css({ opacity: 1 })
+                                }
+                            },
+                        }}
                     />
-                    <circle
-                        id='measureSVGObserver'
-                        cx={0}
-                        cy={0}
-                        r={0}
-                        stroke='rgba(0,0,0,0)'
-                        strokeWidth={1}
-                        fill='rgba(0,0,0,0)'
-                    />
-                </svg>
-                <div id='measureVerticalCursor'></div>
+                    <svg id='measureSVGOverlay'>
+                        <line
+                            id='measureSVGLine'
+                            x1={0}
+                            y1={0}
+                            x2={0}
+                            y2={0}
+                            stroke='rgba(0,0,0,0)'
+                            strokeWidth={1}
+                            strokeDasharray='10 3'
+                        />
+                        <circle
+                            id='measureSVGObserver'
+                            cx={0}
+                            cy={0}
+                            r={0}
+                            stroke='rgba(0,0,0,0)'
+                            strokeWidth={1}
+                            fill='rgba(0,0,0,0)'
+                        />
+                    </svg>
+                    <div id='measureVerticalCursor'></div>
+                </div>
+                <div id='measureInfo'>
+                    <div id='measureInfoLng' className='measure-info-elm'>
+                        <div>Longitude</div>
+                        <div>--</div>
+                    </div>
+                    <div id='measureInfoLat' className='measure-info-elm'>
+                        <div>Latitude</div>
+                        <div>--</div>
+                    </div>
+                    <div id='measureInfoElev' className='measure-info-elm'>
+                        <div>Elevation</div>
+                        <div>--</div>
+                    </div>
+                    <div id='measureInfo2d' className='measure-info-elm'>
+                        <div>2D Distance</div>
+                        <div>--</div>
+                    </div>
+                    <div id='measureInfo3d' className='measure-info-elm'>
+                        <div>3D Distance</div>
+                        <div>--</div>
+                    </div>
+                    <div id='measureInfoVis' className='measure-info-elm'>
+                        <div>Visible</div>
+                        <div>--</div>
+                    </div>
+                </div>
+                <div id='measureToolBar'>
+                    <div
+                        id='measureReset'
+                        title='Reset Graph'
+                        onClick={() => {
+                            // Zooming not working nicely, see register above
+                            //if (refLine) refLine.current.chartInstance.resetZoom()
+                        }}
+                    >
+                        <i className='mdi mdi-restore mdi-18px'></i>
+                    </div>
+                    <div
+                        id='measureDownload'
+                        title='Download'
+                        onClick={MeasureTool.download}
+                    >
+                        <i className='mdi mdi-download mdi-18px'></i>
+                    </div>
+                </div>
             </div>
-            <div id='measureInfo'>
-                <div id='measureInfoLng' className='measure-info-elm'>
-                    <div>Longitude</div>
-                    <div>--</div>
-                </div>
-                <div id='measureInfoLat' className='measure-info-elm'>
-                    <div>Latitude</div>
-                    <div>--</div>
-                </div>
-                <div id='measureInfoElev' className='measure-info-elm'>
-                    <div>Elevation</div>
-                    <div>--</div>
-                </div>
-                <div id='measureInfo2d' className='measure-info-elm'>
-                    <div>2D Distance</div>
-                    <div>--</div>
-                </div>
-                <div id='measureInfo3d' className='measure-info-elm'>
-                    <div>3D Distance</div>
-                    <div>--</div>
-                </div>
-                <div id='measureInfoVis' className='measure-info-elm'>
-                    <div>Visible</div>
-                    <div>--</div>
-                </div>
-            </div>
-            <div id='measureToolBar'>
-                <div
-                    id='measureReset'
-                    title='Reset Graph'
-                    onClick={() => {
-                        // Zooming not working nicely, see register above
-                        //if (refLine) refLine.current.chartInstance.resetZoom()
-                    }}
-                >
-                    <i className='mdi mdi-restore mdi-18px'></i>
-                </div>
-                <div
-                    id='measureDownload'
-                    title='Download'
-                    onClick={MeasureTool.download}
-                >
-                    <i className='mdi mdi-download mdi-18px'></i>
-                </div>
-            </div>
-        </div>
-    )
+        )
+    }
+    return null
 }
 
 let MeasureTool = {
@@ -667,7 +690,13 @@ let MeasureTool = {
         '#3dffdf',
         '#cc5200',
     ],
-    init: function () {},
+    init: function () {
+        const dems = MeasureTool.getDems()
+
+        if (dems.length === 0) {
+            MeasureTool.height = 0
+        }
+    },
     make: function () {
         Map_.rmNotNull(measureToolLayer)
         MeasureTool.data = []
@@ -708,6 +737,7 @@ let MeasureTool = {
         else mode = 'segment'
 
         this.dems = MeasureTool.getDems()
+
         this.activeDemIdx = 0
 
         render(<Measure />, document.getElementById('tools'))
@@ -794,8 +824,8 @@ let MeasureTool = {
                     }
                 })
             }
-        if (dems.length === 0)
-            dems.push({ name: 'Misconfigured', path: 'none' })
+        // if (dems.length === 0)
+        //     dems.push({ name: 'Misconfigured', path: 'none' })
 
         return dems
     },
@@ -1331,7 +1361,7 @@ function makeMeasureToolLayer() {
 }
 function makeProfile() {
     var numOfPts = clickedLatLngs.length
-    const path = MeasureTool.dems[MeasureTool.activeDemIdx].path
+    const path = MeasureTool.dems[MeasureTool.activeDemIdx]?.path
     if (numOfPts > 1 && path && path != 'none' && path != 'undefined') {
         // enable remote access via GDAL Virtual File Systems /vsi* prefix
         let pathDEM
