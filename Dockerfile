@@ -1,4 +1,4 @@
-FROM oraclelinux:8.9
+FROM --platform=linux/amd64 oraclelinux:8.9
 
 ARG PUBLIC_URL_ARG=
 ENV PUBLIC_URL=$PUBLIC_URL_ARG
