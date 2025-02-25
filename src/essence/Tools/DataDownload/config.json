@@ -1,0 +1,79 @@
+{
+    "defaultIcon": "download",
+    "description": "Do the coolest thing ever.",
+    "descriptionFull": {
+        "title": "Use this tool to be better than you were before you used it."
+    },
+    "hasVars": true,
+    "expandable": true,
+    "name": "Data Download",
+    "paths": {
+        "DataDownload": "essence/Tools/DataDownload/DataDownload"
+    },
+    "config": {
+        "rows": [
+            {
+                "components": [
+                    {
+                        "field": "variables.opt_str",
+                        "name": "Option String",
+                        "description": "Specify a text input for this tool.",
+                        "type": "text",
+                        "width": 12
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.opt_obj_arr",
+                        "name": "Object Array",
+                        "description": "Create a list of dictionaries for this tool config.",
+                        "type": "objectarray",
+                        "width": 12,
+                        "object": [
+                            {
+                                "field": "field_1",
+                                "name": "Field Name - 1",
+                                "description": "",
+                                "type": "text",
+                                "width": 4
+                            },
+                            {
+                                "field": "field_2",
+                                "name": "Field Name - 2",
+                                "description": "",
+                                "type": "text",
+                                "width": 8
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.opt_check",
+                        "name": "Checkbox Option",
+                        "description": "Toggle this on or off nice yes.",
+                        "type": "checkbox",
+                        "width": 2,
+                        "defaultChecked": false
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.opt_select",
+                        "name": "Select Option",
+                        "description": "List of options to select from",
+                        "type": "dropdown",
+                        "width": 2,
+                        "options": ["select_opt_1", "select_opt_2", "select_opt_3"]
+                    }
+                ]
+            }
+        ]
+    }
+}
