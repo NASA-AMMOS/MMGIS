@@ -691,6 +691,7 @@ let MeasureTool = {
         '#cc5200',
     ],
     init: function () {
+        // hide the measure tool pane if there aren't any valid DEMs to query
         const dems = MeasureTool.getDems()
 
         if (dems.length === 0) {
