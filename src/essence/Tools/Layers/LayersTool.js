@@ -261,6 +261,7 @@ var LayersTool = {
         layer = L_.layers.data[layer]
         if (L_.layers.layer[layer.name] === null) return
         if (!layer.url.startsWith('stac-collection:') && layer.type !== 'image' && layer.type !== 'velocity') return
+        if (layer.cogTransform !== true && (layer.url.startsWith('stac-collection:') || layer.type === 'image')) return
 
         const dynamicLegendConf = []
         const imgElement = document.getElementById(`titlerCogColormapImage_${L_.asLayerUUID(layerName)}`)
