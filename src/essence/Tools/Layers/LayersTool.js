@@ -2096,12 +2096,13 @@ function interfaceWithMMGIS(fromInit) {
             }
             // scale from 0 - 1
             var scaledPixelValue = (pixelValue - vMin) / range;
-            if (!(0 <= scaledPixelValue && scaledPixelValue <= 1)
-                    && imageInfo && imageInfo.fillMinMax) {
-                if (scaledPixelValue <= 0) {
-                    scaledPixelValue = 0
-                } else if (scaledPixelValue >= 1.0) {
-                    scaledPixelValue = 1
+            if (!(scaledPixelValue >= 0 && scaledPixelValue <= 1)) {
+                if (imageInfo && imageInfo.fillMinMax) {
+                    if (scaledPixelValue <= 0) {
+                        scaledPixelValue = 0
+                    } else if (scaledPixelValue >= 1.0) {
+                        scaledPixelValue = 1
+                    }
                 } else {
                     return null
                 }
