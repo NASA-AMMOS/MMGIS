@@ -1,0 +1,1244 @@
+{
+  "definitions": {},
+  "host": "localhost:8888",
+  "info": {
+    "title": "mmgis",
+    "version": "4.0.0",
+    "description": "Specification JSONs: [v2](/api-spec/v2), [v3](/api-spec/v3).\n\nA web-based mapping and localization solution for science operation on planetary missions."
+  },
+  "paths": {
+    "/docs": {
+      "get": {
+        "summary": "/docs",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/configure": {
+      "get": {
+        "summary": "/configure",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/configure-beta": {
+      "get": {
+        "summary": "/configure-beta",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "string",
+              "example": "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"><link rel=\"icon\" href=\"./configure/build/favicon.png\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"theme-color\" content=\"#000000\"><meta name=\"description\" content=\"Web site created using create-react-app\"><script>var mmgisglobal={SERVER:\"node\",AUTH:\"none\",SHOW_AUTH_TIMEOUT:!0,user:\"\",NODE_ENV:\"development\",ROOT_PATH:\"\",WEBSOCKET_ROOT_PATH:\"\",PORT:\"8888\",ENABLE_CONFIG_WEBSOCKETS:\"true\",ENABLE_CONFIG_OVERRIDE:\"false\",IS_DOCKER:\"false\",WITH_STAC:\"true\",WITH_TIPG:\"true\",WITH_TITILER:\"true\",WITH_TITILER_PGSTAC:\"true\"}</script><title>MMGIS Configure - BETA</title><link rel=\"stylesheet\" href=\"public/fonts/materialdesignicons/css/materialdesignicons.min.css\"><script defer src=\"./configure/build/static/js/main.d72a1731.js\"></script><link href=\"./configure/build/static/css/main.4810335f.css\" rel=\"stylesheet\"></head><body><noscript>You need to enable JavaScript to run this app.</noscript><div id=\"root\"></div></body></html>"
+            }
+          }
+        },
+        "tags": [],
+        "produces": [
+          "text/html"
+        ]
+      }
+    },
+    "/api/configure/get": {
+      "get": {
+        "summary": "/api/configure/get",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "type": "string",
+            "name": "mission",
+            "in": "query",
+            "example": "MSL"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "failure"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Mission not found."
+                }
+              }
+            }
+          }
+        },
+        "tags": [],
+        "produces": [
+          "application/json"
+        ],
+        "security": [
+          {
+            "x-forwarded-host": []
+          },
+          {
+            "x-forwarded-proto": []
+          },
+          {
+            "x-forwarded-port": []
+          },
+          {
+            "x-forwarded-for": []
+          },
+          {
+            "x-requested-with": []
+          }
+        ]
+      }
+    },
+    "/api/configure/add": {
+      "post": {
+        "summary": "/api/configure/add",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/configure/upsert": {
+      "post": {
+        "summary": "/api/configure/upsert",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/configure/missions": {
+      "get": {
+        "summary": "/api/configure/missions",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "success"
+                },
+                "missions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "example": [
+                    "Earth"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [],
+        "produces": [
+          "application/json"
+        ]
+      }
+    },
+    "/api/configure/versions": {
+      "get": {
+        "summary": "/api/configure/versions",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "failure"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Failed to find versions."
+                }
+              }
+            }
+          }
+        },
+        "tags": [],
+        "produces": [
+          "application/json"
+        ]
+      }
+    },
+    "/api/configure/clone": {
+      "post": {
+        "summary": "/api/configure/clone",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/configure/rename": {
+      "post": {
+        "summary": "/api/configure/rename",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/configure/destroy": {
+      "post": {
+        "summary": "/api/configure/destroy",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/configure/validate": {
+      "post": {
+        "summary": "/api/configure/validate",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/configure/addLayer": {
+      "post": {
+        "summary": "/api/configure/addLayer",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/configure/updateLayer": {
+      "post": {
+        "summary": "/api/configure/updateLayer",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/configure/removeLayer": {
+      "post": {
+        "summary": "/api/configure/removeLayer",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/configure/updateInitialView": {
+      "post": {
+        "summary": "/api/configure/updateInitialView",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/datasets/get": {
+      "post": {
+        "summary": "/api/datasets/get",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/datasets/entries": {
+      "post": {
+        "summary": "/api/datasets/entries",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/datasets/search": {
+      "post": {
+        "summary": "/api/datasets/search",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/datasets/download": {
+      "get": {
+        "summary": "/api/datasets/download",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/datasets/upload": {
+      "post": {
+        "summary": "/api/datasets/upload",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/datasets/recreate": {
+      "post": {
+        "summary": "/api/datasets/recreate",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/files": {
+      "post": {
+        "summary": "/api/files",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/files/getfiles": {
+      "post": {
+        "summary": "/api/files/getfiles",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/files/getfile": {
+      "post": {
+        "summary": "/api/files/getfile",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/files/make": {
+      "post": {
+        "summary": "/api/files/make",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/files/remove": {
+      "post": {
+        "summary": "/api/files/remove",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/files/restore": {
+      "post": {
+        "summary": "/api/files/restore",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/files/change": {
+      "post": {
+        "summary": "/api/files/change",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/files/modifykeyword": {
+      "post": {
+        "summary": "/api/files/modifykeyword",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/files/compile": {
+      "get": {
+        "summary": "/api/files/compile",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/files/publish": {
+      "post": {
+        "summary": "/api/files/publish",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/files/gethistory": {
+      "post": {
+        "summary": "/api/files/gethistory",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/draw": {
+      "post": {
+        "summary": "/api/draw",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/draw/add": {
+      "post": {
+        "summary": "/api/draw/add",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/draw/edit": {
+      "post": {
+        "summary": "/api/draw/edit",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/draw/remove": {
+      "post": {
+        "summary": "/api/draw/remove",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/draw/undo": {
+      "post": {
+        "summary": "/api/draw/undo",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/draw/merge": {
+      "post": {
+        "summary": "/api/draw/merge",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/draw/split": {
+      "post": {
+        "summary": "/api/draw/split",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/draw/replace": {
+      "post": {
+        "summary": "/api/draw/replace",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/draw/sendtofront": {
+      "post": {
+        "summary": "/api/draw/sendtofront",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/draw/sendtoback": {
+      "post": {
+        "summary": "/api/draw/sendtoback",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/draw/clear_test": {
+      "post": {
+        "summary": "/api/draw/clear_test",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/geodatasets/get/{layer}": {
+      "get": {
+        "summary": "/api/geodatasets/get/{layer}",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/geodatasets/get": {
+      "get": {
+        "summary": "/api/geodatasets/get",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/geodatasets/entries": {
+      "post": {
+        "summary": "/api/geodatasets/entries",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/geodatasets/search": {
+      "post": {
+        "summary": "/api/geodatasets/search",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/geodatasets/append/{name}": {
+      "post": {
+        "summary": "/api/geodatasets/append/{name}",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/geodatasets/append/{name}/{start_end_prop}": {
+      "post": {
+        "summary": "/api/geodatasets/append/{name}/{start_end_prop}",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "start_end_prop",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/geodatasets/recreate/{name}": {
+      "post": {
+        "summary": "/api/geodatasets/recreate/{name}",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/geodatasets/recreate/{name}/{start_end_prop}": {
+      "post": {
+        "summary": "/api/geodatasets/recreate/{name}/{start_end_prop}",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "start_end_prop",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/geodatasets/recreate": {
+      "post": {
+        "summary": "/api/geodatasets/recreate",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/geodatasets/remove/{name}": {
+      "delete": {
+        "summary": "/api/geodatasets/remove/{name}",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/longtermtoken/get": {
+      "get": {
+        "summary": "/api/longtermtoken/get",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/longtermtoken/generate": {
+      "post": {
+        "summary": "/api/longtermtoken/generate",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/longtermtoken/clear": {
+      "post": {
+        "summary": "/api/longtermtoken/clear",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/shortener/shorten": {
+      "post": {
+        "summary": "/api/shortener/shorten",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/shortener/expand": {
+      "post": {
+        "summary": "/api/shortener/expand",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/stac/collections": {
+      "get": {
+        "summary": "/api/stac/collections",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/users/has": {
+      "post": {
+        "summary": "/api/users/has",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/users/first_signup": {
+      "post": {
+        "summary": "/api/users/first_signup",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/users/signup": {
+      "post": {
+        "summary": "/api/users/signup",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/users/login": {
+      "post": {
+        "summary": "/api/users/login",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "success"
+                },
+                "username": {
+                  "type": "string",
+                  "example": "ADMIN"
+                },
+                "token": {
+                  "type": "string",
+                  "example": "a4f8353aa8e48d1e11bfe308762845fb026723c1f15a3607b1de4e2a6da5889078fcdcbab56810ba3bff72fd391845c5b36ffe4a50b5d77cc0e250b620a67a3f1f1c66359fae9c469ca2af59a352dc25b8ef00024c739508253919a902bda62ba952627b944306248de8a4a0d6400aece20f849b9fffa7aaaec821adb9a681b2"
+                },
+                "groups": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "example": [
+                    "mmgis-group"
+                  ]
+                },
+                "additional": {
+                  "type": "string",
+                  "example": ""
+                }
+              }
+            }
+          }
+        },
+        "tags": [],
+        "produces": [
+          "application/json"
+        ]
+      }
+    },
+    "/api/users/logout": {
+      "post": {
+        "summary": "/api/users/logout",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/users/logged_in": {
+      "get": {
+        "summary": "/api/users/logged_in",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/utils/queryTilesetTimes": {
+      "get": {
+        "summary": "/api/utils/queryTilesetTimes",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/utils/healthcheck": {
+      "get": {
+        "summary": "/api/utils/healthcheck",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/utils/getprofile": {
+      "post": {
+        "summary": "/api/utils/getprofile",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/utils/getbands": {
+      "post": {
+        "summary": "/api/utils/getbands",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "array"
+              }
+            }
+          }
+        },
+        "tags": [],
+        "produces": [
+          "application/json"
+        ]
+      }
+    },
+    "/api/utils/ll2aerll": {
+      "post": {
+        "summary": "/api/utils/ll2aerll",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/utils/chronice": {
+      "post": {
+        "summary": "/api/utils/chronice",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/utils/proj42wkt": {
+      "get": {
+        "summary": "/api/utils/proj42wkt",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/webhooks/save": {
+      "post": {
+        "summary": "/api/webhooks/save",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/webhooks/entries": {
+      "get": {
+        "summary": "/api/webhooks/entries",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/webhooks/config": {
+      "post": {
+        "summary": "/api/webhooks/config",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/testwebhooks/test": {
+      "get": {
+        "summary": "/api/testwebhooks/test",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/testwebhooks/test_webhook_post/": {
+      "post": {
+        "summary": "/api/testwebhooks/test_webhook_post/",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/testwebhooks/test_webhook_del/{id}": {
+      "delete": {
+        "summary": "/api/testwebhooks/test_webhook_del/{id}",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/testwebhooks/test_webhook_patch/{id}": {
+      "patch": {
+        "summary": "/api/testwebhooks/test_webhook_patch/{id}",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/rksml/convert": {
+      "post": {
+        "summary": "/api/rksml/convert",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/spatial/published": {
+      "get": {
+        "summary": "/api/spatial/published",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      },
+      "post": {
+        "summary": "/api/spatial/published",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/spatial/published/strategic_targets": {
+      "get": {
+        "summary": "/api/spatial/published/strategic_targets",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      },
+      "post": {
+        "summary": "/api/spatial/published/strategic_targets",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/spatial/published/changes": {
+      "get": {
+        "summary": "/api/spatial/published/changes",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      },
+      "post": {
+        "summary": "/api/spatial/published/changes",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/spatial/published/versions": {
+      "get": {
+        "summary": "/api/spatial/published/versions",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      },
+      "post": {
+        "summary": "/api/spatial/published/versions",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/tactical/run": {
+      "get": {
+        "summary": "/api/tactical/run",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/api/tactical/targets": {
+      "get": {
+        "summary": "/api/tactical/targets",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {},
+        "tags": []
+      }
+    }
+  },
+  "schemes": [
+    "http"
+  ],
+  "securityDefinitions": {
+    "x-forwarded-host": {
+      "name": "x-forwarded-host",
+      "in": "header",
+      "type": "apiKey"
+    },
+    "x-forwarded-proto": {
+      "name": "x-forwarded-proto",
+      "in": "header",
+      "type": "apiKey"
+    },
+    "x-forwarded-port": {
+      "name": "x-forwarded-port",
+      "in": "header",
+      "type": "apiKey"
+    },
+    "x-forwarded-for": {
+      "name": "x-forwarded-for",
+      "in": "header",
+      "type": "apiKey"
+    },
+    "x-requested-with": {
+      "name": "x-requested-with",
+      "in": "header",
+      "type": "apiKey"
+    }
+  },
+  "swagger": "2.0",
+  "tags": []
+}

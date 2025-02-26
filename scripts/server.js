@@ -59,6 +59,8 @@ const createDevServerConfig = require("../configuration/webpackDevServer.config"
 
 const middleware = require("./middleware").middleware;
 
+const expressOasGenerator = require("express-oas-generator");
+
 const isDevEnv = process.env.NODE_ENV === "development";
 
 //Username to use when not logged in
@@ -76,6 +78,14 @@ const rootDir = `${__dirname}/..`;
 
 ///////////////////////////
 const app = express();
+
+if (isDevEnv)
+  expressOasGenerator.handleResponses(app, {
+    specOutputPath: "./docs/openapi.json",
+    alwaysServeDocs: true,
+    specOutputFileBehavior:
+      expressOasGenerator.SPEC_OUTPUT_FILE_BEHAVIOR.PRESERVE,
+  });
 
 const isDocker = utils.isDocker();
 process.env.IS_DOCKER = isDocker ? "true" : "false";
@@ -670,6 +680,8 @@ setups.getBackendSetups(function (setups) {
   //////Setups Init//////
   setups.init(s);
 
+  if (isDevEnv) expressOasGenerator.handleRequests();
+
   let httpServer;
   if (process.env.HTTPS == "true") {
     httpServer = https.createServer(
@@ -742,10 +754,12 @@ setups.getBackendSetups(function (setups) {
     //////Setups Started//////
     setups.started(s);
 
+    console.log("=============", process.env.NODE_ENV);
     // error handler
     app.all("*", (req, res, next) => {
       // render the error page
-      res.status(404).render("error");
+      if (req.complete) {
+      } else res.status(404).render("error");
     });
 
     logger(
@@ -826,7 +840,6 @@ function setupDevServer() {
       );
       console.log();
     }
-
     console.log(chalk.cyan("Starting the development server...\n"));
   });
 

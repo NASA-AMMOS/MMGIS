@@ -3,7 +3,7 @@ let setup = {
   //Once the app initializes
   onceInit: (s) => {
     s.app.use(
-      s.ROOT_PATH + "/API/longtermtoken",
+      s.ROOT_PATH + "/api/longtermtoken",
       s.ensureAdmin(false, true),
       s.checkHeadersCodeInjection,
       s.setContentType,

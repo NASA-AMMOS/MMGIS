@@ -379,6 +379,7 @@ var IdentifierTool = {
                                                     i
                                                 ]
                                             ].data[j]
+
                                         let htmlValues = ''
                                         // first empty it
                                         $(
@@ -393,7 +394,7 @@ var IdentifierTool = {
                                         )
                                         let cnt = 0
                                         for (let v in value) {
-                                            let unit = d2.units || ''
+                                            let unit = d2.unit || d2.units || ''
                                             if (
                                                 d2.units &&
                                                 d2.units.constructor ===

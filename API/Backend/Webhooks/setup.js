@@ -6,13 +6,13 @@ let setup = {
   //Once the app initializes
   onceInit: (s) => {
     s.app.use(
-      s.ROOT_PATH + "/API/webhooks",
+      s.ROOT_PATH + "/api/webhooks",
       s.checkHeadersCodeInjection,
       routerWebhooks
     );
     if (process.env.NODE_ENV === "development") {
       s.app.use(
-        s.ROOT_PATH + "/API/testwebhooks",
+        s.ROOT_PATH + "/api/testwebhooks",
         s.checkHeadersCodeInjection,
         routerTestWebhooks
       );

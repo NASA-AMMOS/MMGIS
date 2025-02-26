@@ -67,7 +67,7 @@ let setup = {
     }
 
     s.app.use(
-      s.ROOT_PATH + "/API/configure",
+      s.ROOT_PATH + "/api/configure",
       s.ensureAdmin(),
       s.checkHeadersCodeInjection,
       s.setContentType,
