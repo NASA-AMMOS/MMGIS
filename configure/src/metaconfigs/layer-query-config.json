@@ -1680,7 +1680,7 @@
               "name": "Color Ramp",
               "description": "Array of css colors indicating the color ramp. The first color represents the min value and the last color represents the max value in the layer.",
               "type": "textarray",
-              "width": 10
+              "width": 8
             },
             {
               "field": "variables.pathAttachments.gradient.weight",
@@ -1689,6 +1689,14 @@
               "type": "number",
               "min": 1,
               "width": 2
+            },
+            {
+              "field": "variables.pathAttachments.gradient.connectAllPoints",
+              "name": "Connect all Points",
+              "description": "Draws a gradient path line between all such point features in order the appear in the file. Expects the geojson file to be a series of Point features. Otherwise expects an enhanced per-coordinate properties geojson format.",
+              "type": "checkbox",
+              "width": 2,
+              "defaultChecked": false
             }
           ]
         }
