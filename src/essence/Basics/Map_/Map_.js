@@ -1466,14 +1466,14 @@ function makeImageLayer(layerObj) {
             }
         }
 
-        const imageInfo =  F_.getIn(
+        const imageInfo = F_.getIn(
             L_.layers.data[layerObj.name],
             'variables.image'
         )
 
-        let min = null;
-        let max = null;
-        if (georaster.numberOfRasters === 1) { // imageInfo && 
+        let min = null
+        let max = null
+        if (georaster.numberOfRasters === 1) {
             min = layerObj.cogMin
             max = layerObj.cogMax
 
@@ -1566,6 +1566,8 @@ function makeImageLayer(layerObj) {
             opacity: 1.0,
             pixelValuesToColorFn: pixelValuesToColorFn,
         })
+
+        L_.layers.layer[layerObj.name].clearCache()
 
         L_.layers.layer[layerObj.name].setZIndex(
             L_._layersOrdered.length +
