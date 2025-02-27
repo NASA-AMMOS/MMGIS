@@ -376,12 +376,19 @@ let Map_ = {
                         L_.layers.data[L_._layersOrdered[i]].type === 'data'
                     ) {
                         hasIndexRaster.push(i)
+                    } else if (
+                        L_.layers.data[L_._layersOrdered[i]].type === 'image'
+                    ) {
+                        Map_.map.removeLayer(
+                            L_.layers.layer[L_._layersOrdered[i]]
+                        )
+                        hasIndex.push(i)
                     }
                 }
             }
         }
 
-        // First only vectors
+        // First only vectors and images
         for (let i = 0; i < hasIndex.length; i++) {
             if (L_.layers.attachments[L_._layersOrdered[hasIndex[i]]]) {
                 for (let s in L_.layers.attachments[
@@ -406,6 +413,19 @@ let Map_ = {
                 }
             }
             Map_.map.addLayer(L_.layers.layer[L_._layersOrdered[hasIndex[i]]])
+
+            // If image layer, reorder the z index and redraw the layer
+            if (L_.layers.data[L_._layersOrdered[hasIndex[i]]].type === 'image') {
+                L_.layers.layer[L_._layersOrdered[hasIndex[i]]].setZIndex(
+                    L_._layersOrdered.length +
+                        1 -
+                        L_._layersOrdered.indexOf(
+                            L_._layersOrdered[hasIndex[i]]
+                        )
+                )
+                L_.layers.layer[L_._layersOrdered[hasIndex[i]]].clearCache()
+                L_.layers.layer[L_._layersOrdered[hasIndex[i]]].redraw()
+            }
         }
 
         L_.enforceVisibilityCutoffs()
