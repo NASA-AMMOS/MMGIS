@@ -27,7 +27,7 @@
               "field": "name",
               "name": "Layer Name",
               "description": "A display name for the layer.",
-              "type": "text",
+              "type": "textnotrim",
               "width": 6
             },
             {

@@ -256,10 +256,46 @@ const getComponent = (
           }}
           value={value != null ? value : getIn(directConf, com.field, "")}
           onChange={(e) => {
+            updateConfiguration(forceField || com.field, e.target.value, layer);
+          }}
+          onBlur={(e) => {
             let v = e.target.value;
             // remove surrounding whitespace, " hi " -> "hi"
             if (typeof v === "string") v = v.trim();
             updateConfiguration(forceField || com.field, v, layer);
+          }}
+        />
+      );
+      return (
+        <div>
+          {inlineHelp ? (
+            <>
+              {inner}
+              <div
+                className={c.subtitle2}
+                dangerouslySetInnerHTML={{ __html: com.description || "" }}
+              ></div>
+            </>
+          ) : (
+            <Tooltip title={com.description || ""} placement="top" arrow>
+              {inner}
+            </Tooltip>
+          )}
+        </div>
+      );
+    case "textnotrim":
+      inner = (
+        <TextField
+          className={c.text}
+          label={com.name}
+          variant="filled"
+          size="small"
+          inputProps={{
+            autoComplete: "off",
+          }}
+          value={value != null ? value : getIn(directConf, com.field, "")}
+          onChange={(e) => {
+            updateConfiguration(forceField || com.field, e.target.value, layer);
           }}
         />
       );
