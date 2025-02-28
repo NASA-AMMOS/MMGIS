@@ -17,7 +17,7 @@ services:
           "curl",
           "-XGET",
           "-k",
-          "http://mmgis:8888/API/utils/healthcheck",
+          "http://mmgis:8888/api/utils/healthcheck",
         ]
       interval: 20s
       retries: 5

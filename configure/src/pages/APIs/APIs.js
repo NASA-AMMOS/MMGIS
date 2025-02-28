@@ -11,11 +11,14 @@ import ApiIcon from "@mui/icons-material/Api";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 
 const apiCards = {
-  "MMGIS Backend API": {
-    title: "MMGIS Backend API",
-    subtitle: "An incomplete list of supported backend endpoints.",
+  "MMGIS API": {
+    title: "MMGIS API",
+    subtitle:
+      "The Core MMGIS API provides a series of robust endpoints for managing mission configurations, datasets, geodatasets, drawing functionalities, file operations, user management and geospatial operations.",
     description: "",
-    link: `https://nasa-ammos.github.io/MMGIS/apis/backend`,
+    link: `${window.location.pathname
+      .replace(`/configure-beta`, "")
+      .replace(/^\//g, "")}/api/docs`,
     active: true,
   },
   "MMGIS JavaScript API": {
@@ -24,21 +27,6 @@ const apiCards = {
       "Client-side functions that can be called using the global window.mmgisAPI object.",
     description: "",
     link: `https://nasa-ammos.github.io/MMGIS/apis/javascript`,
-    active: true,
-  },
-  "MMGIS Configure API": {
-    title: "MMGIS Configure API",
-    subtitle: "Enables programmatic control over configuration endpoints.",
-    description: "",
-    link: `https://nasa-ammos.github.io/MMGIS/apis/configure`,
-    active: true,
-  },
-  "MMGIS GeoDatasets API": {
-    title: "MMGIS GeoDatasets API",
-    subtitle:
-      "Enables programmatic control over GeoDataset layers. GeoDatasets are GeoJSON files uploaded and managed by MMGIS and stored in MMGIS’ Postgres/PostGIS database.",
-    description: "",
-    link: `https://nasa-ammos.github.io/MMGIS/apis/geodatasets`,
     active: true,
   },
   STAC: {
@@ -118,7 +106,7 @@ const useStyles = makeStyles((theme) => ({
       "rgba(0, 0, 0, 0.2) 0px 2px 1px -1px, rgba(0, 0, 0, 0.14) 0px 1px 1px 0px, rgba(0, 0, 0, 0.12) 0px 1px 3px 0px",
     transition: "background 0.2s ease-in-out",
     "&:hover": {
-      background: theme.palette.swatches.grey[850],
+      background: theme.palette.swatches.grey[800],
       cursor: "pointer",
     },
   },
