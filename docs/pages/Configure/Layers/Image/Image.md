@@ -33,7 +33,7 @@ Fill in with the maximum color or minimum color value if below min and/or above 
 #### Hide No Data Value
 
 _type:_ bool  
-If true, hides all values where there is no data.
+If true, hides all values where there is no data. This requires the image to have the nodata value set. 
 
 #### Transform COG
 
