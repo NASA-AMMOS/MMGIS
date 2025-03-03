@@ -791,7 +791,9 @@ function interfaceWithMMGIS(fromInit) {
 
                     if (
                         node[i].cogTransform === true &&
-                        typeof node[i].url === 'string'
+                        typeof node[i].url === 'string' &&
+                        L_.layers.layer[node[i].name].georasters &&
+                        L_.layers.layer[node[i].name].georasters[0].numberOfRasters === 1
                     ) {
                         if (window.mmgisglobal.WITH_TITILER === "true") {
                             // prettier-ignore
