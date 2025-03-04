@@ -89,6 +89,12 @@ const validateLayers = (config) => {
         // Check model params (pos, rot, scale)
         errs = errs.concat(isValidModelParams(layer));
         break;
+      case "image":
+        // Check url
+        errs = errs.concat(isValidUrl(layer));
+        // Check zooms
+        errs = errs.concat(isValidZooms(layer));
+        break;
       default:
         errs = errs.concat(
           err(`Unknown layer type: '${layer.type}'`, ["layers[layer].type"])
@@ -313,6 +319,10 @@ const fillInMissingFieldsWithDefaults = (layer) => {
       layer.style.className = layer.name.replace(/ /g, "").toLowerCase();
       break;
     case "vector":
+      layer.style = layer.style || {};
+      layer.style.className = layer.name.replace(/ /g, "").toLowerCase();
+      break;
+    case "image":
       layer.style = layer.style || {};
       layer.style.className = layer.name.replace(/ /g, "").toLowerCase();
       break;

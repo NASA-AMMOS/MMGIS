@@ -2,6 +2,7 @@ import $ from 'jquery'
 import * as d3 from 'd3'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
+import ToolController_ from '../../Basics/ToolController_/ToolController_'
 
 //Add the tool markup if you want to do it this way
 var markup = [].join('\n')
@@ -101,6 +102,13 @@ function refreshLegends() {
     for (let l in L_.layers.on) {
         if (L_.layers.on[l] == true) {
             if (L_.layers.data[l].type != 'header') {
+                if (L_.layers.data[l]?._legend === undefined
+                        && ((['image', 'tile'].includes(L_.layers.data[l].type) && L_.layers.data[l].cogTransform)
+                        || L_.layers.data[l].type === 'velocity')) {
+                    const layersTool = ToolController_.getTool('LayersTool')
+                    layersTool.populateCogScale(L_.layers.data[l].name)
+                }
+
                 if (L_.layers.data[l]?._legend != undefined) {
                     drawLegends(
                         LegendTool.tools,

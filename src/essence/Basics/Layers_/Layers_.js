@@ -580,6 +580,13 @@ const L_ = {
                             )
                         }
 
+                        if (s.type === 'image') {
+                            L_.layers.layer[s.name].clearCache()
+                            L_.layers.layer[s.name].updateColors(L_.layers.layer[s.name].options.pixelValuesToColorFn)
+                            // Redraw the layer or the image will not refresh again unless zooming in/out
+                            L_.layers.layer[s.name].redraw()
+                        }
+
                         if (s.type === 'vector') {
                             L_.Globe_.litho.addLayer(
                                 s.layer3dType || 'clamped',

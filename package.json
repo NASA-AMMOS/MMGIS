@@ -75,6 +75,11 @@
     "flat": "^5.0.2",
     "fs-extra": "^8.1.0",
     "geojson-validation": "^1.0.2",
+    "georaster": "^1.7.0-0",
+    "georaster-stack": "^0.5.0",
+    "geotiff": "^2.1.3",
+    "geowarp": "^1.26.2",
+    "geowarp-canvas": "^0.2.0",
     "hammerjs": "^2.0.8",
     "helmet": "^4.1.1",
     "hotkeys-js": "^3.12.0",
@@ -115,7 +120,16 @@
     "util": "^0.12.3",
     "uuid": "^9.0.0",
     "ws": "^8.8.1",
-    "xml2js": "^0.6.2"
+    "xml2js": "^0.6.2",
+    "chroma-js": "^1.4.1",
+    "geo-extent": "^1.5.0",
+    "geocanvas": "^0.4.0",
+    "pixel-utils": "^0.7.0",
+    "proj4-fully-loaded": "^0.1.0",
+    "regenerator-runtime": "^0.13.9",
+    "reproject-bbox": "^0.4.1",
+    "snap-bbox": "^0.2.0",
+    "utm-utils": "^0.1.0"
   },
   "eslintConfig": {
     "extends": "react-app"

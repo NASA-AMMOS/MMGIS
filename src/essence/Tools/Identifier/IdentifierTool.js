@@ -203,8 +203,8 @@ var IdentifierTool = {
 
         for (let n in L_.layers.on) {
             if (L_.layers.on[n] == true) {
-                //We only want the tile layers
-                if (L_.layers.data[n].type == 'tile') {
+                //We only want the tile and image layers
+                if (L_.layers.data[n].type == 'tile' || L_.layers.data[n].type == 'image') {
                     let url =
                         L_.layers.data[n].url.indexOf('stac-collection:') ===
                             0 || L_.layers.data[n].url.indexOf('COG:') === 0
@@ -232,7 +232,8 @@ var IdentifierTool = {
                 IdentifierTool.activeLayerURLs[i].indexOf(
                     'stac-collection:'
                 ) === 0 ||
-                IdentifierTool.activeLayerURLs[i].indexOf('COG:') === 0
+                IdentifierTool.activeLayerURLs[i].indexOf('COG:') === 0 ||
+                L_.layers.data[IdentifierTool.activeLayerNames[i]].type === 'image'
             ) {
                 IdentifierTool.imageData[i] = false
                 trueValue = true
@@ -334,464 +335,477 @@ var IdentifierTool = {
                 (IdentifierTool.activeLayerURLs[i].startsWith(
                     'stac-collection:'
                 ) ||
-                    IdentifierTool.activeLayerURLs[i].startsWith('COG:'))
-            ) {
-                IdentifierTool.vars.data[IdentifierTool.activeLayerNames[i]] =
-                    IdentifierTool.vars.data[
-                        IdentifierTool.activeLayerNames[i]
-                    ] || {}
+                IdentifierTool.activeLayerURLs[i].startsWith('COG:') ||
+                L_.layers.data[IdentifierTool.activeLayerNames[i]].type === 'image')
+        ) {
+            IdentifierTool.vars.data[IdentifierTool.activeLayerNames[i]] =
                 IdentifierTool.vars.data[
                     IdentifierTool.activeLayerNames[i]
-                ].data = [
-                    {
-                        url: IdentifierTool.activeLayerURLs[i],
-                        bands: 1,
-                        units:
-                            L_.layers.data[IdentifierTool.activeLayerNames[i]]
-                                .cogUnits || '',
-                        sigfigs: 2,
-                        scalefactor: 1,
-                    },
-                ]
-            }
-            if (
+                ] || {}
+            IdentifierTool.vars.data[
+                IdentifierTool.activeLayerNames[i]
+            ].data = [
+                {
+                    url: IdentifierTool.activeLayerURLs[i],
+                    bands: 1,
+                    units:
+                        L_.layers.data[IdentifierTool.activeLayerNames[i]]
+                            .cogUnits || '',
+                    sigfigs: 2,
+                    scalefactor: 1,
+                },
+            ]
+        }
+        if (
+            IdentifierTool.vars.data[IdentifierTool.activeLayerNames[i]]
+                ?.data
+        ) {
+            const data =
                 IdentifierTool.vars.data[IdentifierTool.activeLayerNames[i]]
-                    ?.data
-            ) {
-                const data =
-                    IdentifierTool.vars.data[IdentifierTool.activeLayerNames[i]]
 
-                for (let j = 0; j < data.data.length; j++) {
-                    const d = data.data[j]
-                    if (pxRGBA) {
-                        if (trueValue) {
-                            queryDataValue(
-                                d.url,
-                                lnglatzoom[0],
-                                lnglatzoom[1],
-                                d.bands,
-                                IdentifierTool.activeLayerNames[i],
-                                (function (pxRGBA, i, j) {
-                                    return function (value) {
-                                        const d2 =
-                                            IdentifierTool.vars.data[
-                                                IdentifierTool.activeLayerNames[
-                                                    i
-                                                ]
-                                            ].data[j]
-                                        let htmlValues = ''
-                                        // first empty it
-                                        $(
-                                            `#identifierToolIdPixelCursorInfo_${i}_${j}`
-                                        ).html(
-                                            [
-                                                '<div style="width: 100%; height: 22px; display: flex; justify-content: space-between;">',
-                                                '<div></div>',
-                                                '<div style="width: calc(100% - 2px); margin: 4px 2px 4px 0px; background: var(--color-a1);">&nbsp;</div>',
-                                                '</div>',
-                                            ].join('')
-                                        )
-                                        let cnt = 0
-                                        for (let v in value) {
-                                            let unit = d2.units || ''
-                                            if (
-                                                d2.units &&
-                                                d2.units.constructor ===
-                                                    Array &&
-                                                d2.units[cnt]
-                                            ) {
-                                                unit = d2.units[cnt]
-                                            }
-                                            let valueParsed =
-                                                parseValue(
-                                                    value[v][1],
-                                                    d2.sigfigs,
-                                                    d2.scalefactor
-                                                ) +
-                                                '' +
-                                                unit
-
-                                            if (
-                                                value.length > 1 ||
-                                                value[v][2] != null
-                                            ) {
-                                                htmlValues +=
-                                                    '<div style="display: flex; justify-content: space-between;"><div style="margin-right: 15px; color: var(--color-a5); font-size: 12px;">' +
-                                                    value[v][0] +
-                                                    '</div><div style="color: var(--color-a6); font-size: 14px;">' +
-                                                    valueParsed +
-                                                    '</div></div>'
-                                            } else {
-                                                htmlValues +=
-                                                    '<div style="display: flex; justify-content: space-between;"><div style="color: var(--color-a6); font-size: 16px;">' +
-                                                    valueParsed +
-                                                    '</div></div>'
-                                            }
-                                            cnt++
+            for (let j = 0; j < data.data.length; j++) {
+                const d = data.data[j]
+                if (pxRGBA) {
+                    if (trueValue) {
+                        queryDataValue(
+                            d.url,
+                            lnglatzoom[0],
+                            lnglatzoom[1],
+                            d.bands,
+                            IdentifierTool.activeLayerNames[i],
+                            (function (pxRGBA, i, j) {
+                                return function (value) {
+                                    const d2 =
+                                        IdentifierTool.vars.data[
+                                            IdentifierTool.activeLayerNames[
+                                                i
+                                            ]
+                                        ].data[j]
+                                    let htmlValues = ''
+                                    // first empty it
+                                    $(
+                                        `#identifierToolIdPixelCursorInfo_${i}_${j}`
+                                    ).html(
+                                        [
+                                            '<div style="width: 100%; height: 22px; display: flex; justify-content: space-between;">',
+                                            '<div></div>',
+                                            '<div style="width: calc(100% - 2px); margin: 4px 2px 4px 0px; background: var(--color-a1);">&nbsp;</div>',
+                                            '</div>',
+                                        ].join('')
+                                    )
+                                    let cnt = 0
+                                    for (let v in value) {
+                                        let unit = d2.units || ''
+                                        if (
+                                            d2.units &&
+                                            d2.units.constructor ===
+                                                Array &&
+                                            d2.units[cnt]
+                                        ) {
+                                            unit = d2.units[cnt]
                                         }
-                                        $(
-                                            `#identifierToolIdPixelCursorInfo_${i}_${j}`
-                                        ).html(htmlValues)
+                                        let valueParsed =
+                                            parseValue(
+                                                value[v][1],
+                                                d2.sigfigs,
+                                                d2.scalefactor
+                                            ) +
+                                            '' +
+                                            unit
 
-                                        $('#cursorInfo ul').css({
-                                            width: '',
-                                            height: '',
-                                        })
+                                        if (
+                                            value.length > 1 ||
+                                            value[v][2] != null
+                                        ) {
+                                            htmlValues +=
+                                                '<div style="display: flex; justify-content: space-between;"><div style="margin-right: 15px; color: var(--color-a5); font-size: 12px;">' +
+                                                value[v][0] +
+                                                '</div><div style="color: var(--color-a6); font-size: 14px;">' +
+                                                valueParsed +
+                                                '</div></div>'
+                                        } else {
+                                            htmlValues +=
+                                                '<div style="display: flex; justify-content: space-between;"><div style="color: var(--color-a6); font-size: 16px;">' +
+                                                valueParsed +
+                                                '</div></div>'
+                                        }
+                                        cnt++
                                     }
-                                })(pxRGBA, i, j)
-                            )
-                        } else {
-                            if (
+                                    $(
+                                        `#identifierToolIdPixelCursorInfo_${i}_${j}`
+                                    ).html(htmlValues)
+
+                                    $('#cursorInfo ul').css({
+                                        width: '',
+                                        height: '',
+                                    })
+                                }
+                            })(pxRGBA, i, j)
+                        )
+                    } else {
+                        if (
+                            L_.layers.data[
+                                IdentifierTool.activeLayerNames[i]
+                            ]?._legend
+                        ) {
+                            value = bestMatchInLegend(
+                                pxRGBA,
                                 L_.layers.data[
                                     IdentifierTool.activeLayerNames[i]
-                                ]?._legend
-                            ) {
-                                value = bestMatchInLegend(
-                                    pxRGBA,
+                                ]._legend
+                            )
+                        }
+                    }
+                    colorString =
+                        'rgba(' +
+                        pxRGBA.r +
+                        ',' +
+                        pxRGBA.g +
+                        ',' +
+                        pxRGBA.b +
+                        ',' +
+                        pxRGBA.a / 255 +
+                        ')'
+                }
+
+                // prettier-ignore
+                liEls.push(
+                    [`<li style="padding: 4px 9px; border-top: ${liEls.length === 1 ? 'none' : '1px solid var(--color-a2)'};">`,
+                        `<div style="display: flex;">`,
+                            `<div style='width: 14px; height: 14px; margin-right: 8px; margin-top: 2px; background: ${colorString};'></div>`,
+                            `<div style="letter-spacing: 0.5px; white-space: nowrap;">`,
+                                d.name ||
                                     L_.layers.data[
                                         IdentifierTool.activeLayerNames[i]
-                                    ]._legend
-                                )
-                            }
-                        }
-                        colorString =
-                            'rgba(' +
-                            pxRGBA.r +
-                            ',' +
-                            pxRGBA.g +
-                            ',' +
-                            pxRGBA.b +
-                            ',' +
-                            pxRGBA.a / 255 +
-                            ')'
-                    }
-
-                    // prettier-ignore
-                    liEls.push(
-                        [`<li style="padding: 4px 9px; border-top: ${liEls.length === 1 ? 'none' : '1px solid var(--color-a2)'};">`,
-                            `<div style="display: flex;">`,
-                                `<div style='width: 14px; height: 14px; margin-right: 8px; margin-top: 2px; background: ${colorString};'></div>`,
-                                `<div style="letter-spacing: 0.5px; white-space: nowrap;">`,
-                                    d.name ||
-                                        L_.layers.data[
-                                            IdentifierTool.activeLayerNames[i]
-                                        ].display_name,
-                                `</div>`,
+                                    ].display_name,
                             `</div>`,
-                            `<div id='identifierToolIdPixelCursorInfo_${i}_${j}' style='padding-left: 20px;'>`,
-                            
-                                (trueValue || value == null || value == '') ? [
-                                    '<div style="width: 100%; height: 22px; display: flex; justify-content: space-between;">',
-                                        '<div></div>',
-                                        '<div style="width: calc(100% - 2px); margin: 4px 2px 4px 0px; background: var(--color-a1);">&nbsp;</div>',
-                                    '</div>'].join('') : value,
-                                    
-                            `</div>`,
-                        '</li>',
-                        ].join('')
-                    )
-                }
+                        `</div>`,
+                        `<div id='identifierToolIdPixelCursorInfo_${i}_${j}' style='padding-left: 20px;'>`,
+                        
+                            (trueValue || value == null || value == '') ? [
+                                '<div style="width: 100%; height: 22px; display: flex; justify-content: space-between;">',
+                                    '<div></div>',
+                                    '<div style="width: calc(100% - 2px); margin: 4px 2px 4px 0px; background: var(--color-a1);">&nbsp;</div>',
+                                '</div>'].join('') : value,
+                                
+                        `</div>`,
+                    '</li>',
+                    ].join('')
+                )
             }
         }
+    }
 
-        CursorInfo.update(
-            `<ul style='list-style-type: none; padding: 0; margin: 0; width:${
-                $('#cursorInfo').width() ? $('#cursorInfo').width() + 'px' : ''
-            }; height:${
-                $('#cursorInfo').height()
-                    ? $('#cursorInfo').height() + 'px'
-                    : ''
-            };'>${liEls.join('')}</ul>`,
-            null,
-            false,
-            null,
-            null,
-            null,
-            true,
-            null,
-            true
-        )
+    CursorInfo.update(
+        `<ul style='list-style-type: none; padding: 0; margin: 0; width:${
+            $('#cursorInfo').width() ? $('#cursorInfo').width() + 'px' : ''
+        }; height:${
+            $('#cursorInfo').height()
+                ? $('#cursorInfo').height() + 'px'
+                : ''
+        };'>${liEls.join('')}</ul>`,
+        null,
+        false,
+        null,
+        null,
+        null,
+        true,
+        null,
+        true
+    )
 
-        if (!trueValue && !selfish) {
-            IdentifierTool.mousemoveTimeout = setTimeout(function () {
-                IdentifierTool.idPixel(e, lnglatzoom, true, true)
-            }, 150)
+    if (!trueValue && !selfish) {
+        IdentifierTool.mousemoveTimeout = setTimeout(function () {
+            IdentifierTool.idPixel(e, lnglatzoom, true, true)
+        }, 150)
+    }
+
+    function parseValue(v, sigfigs, scalefactor) {
+        var ed = 10
+        if (typeof v === 'string') {
+            return v
         }
-
-        function parseValue(v, sigfigs, scalefactor) {
-            var ed = 10
-            if (typeof v === 'string') {
-                return v
+        if (v == null) {
+            return v
+        } else if (v.toString().indexOf('e') != -1) {
+            if (sigfigs != undefined) ed = sigfigs
+            if (scalefactor != undefined) v = v * parseFloat(scalefactor)
+            v = parseFloat(v)
+            return v.toExponential(ed)
+        } else {
+            var decSplit = v.toString().split('.')
+            var decPlacesBefore = decSplit[0] ? decSplit[0].length : 0
+            var decPlacesAfter = decSplit[1] ? decSplit[1].length : 0
+            if (decPlacesBefore <= 5) {
+                if (scalefactor != undefined)
+                    v = v * parseFloat(scalefactor)
+                if (sigfigs != undefined) v = v.toFixed(sigfigs)
             }
-            if (v == null) {
-                return v
-            } else if (v.toString().indexOf('e') != -1) {
-                if (sigfigs != undefined) ed = sigfigs
-                if (scalefactor != undefined) v = v * parseFloat(scalefactor)
-                v = parseFloat(v)
-                return v.toExponential(ed)
-            } else {
-                var decSplit = v.toString().split('.')
-                var decPlacesBefore = decSplit[0] ? decSplit[0].length : 0
-                var decPlacesAfter = decSplit[1] ? decSplit[1].length : 0
-                if (decPlacesBefore <= 5) {
-                    if (scalefactor != undefined)
-                        v = v * parseFloat(scalefactor)
-                    if (sigfigs != undefined) v = v.toFixed(sigfigs)
-                }
-                v = parseFloat(v)
-                if (decPlacesAfter >= ed) {
-                    v = v.toExponential(ed)
-                }
-                return parseFloat(v)
+            v = parseFloat(v)
+            if (decPlacesAfter >= ed) {
+                v = v.toExponential(ed)
             }
+            return parseFloat(v)
         }
-    },
+    }
+},
 }
 
 //
 function interfaceWithMMWebGIS() {
-    this.separateFromMMWebGIS = function () {
-        separateFromMMWebGIS()
+this.separateFromMMWebGIS = function () {
+    separateFromMMWebGIS()
+}
+
+//MMWebGIS should always have a div with id 'tools'
+if (IdentifierTool.targetId !== 'toolContentSeparated_Identifier') {
+    var tools = d3.select('#tools')
+    //Clear it
+    tools.selectAll('*').remove()
+    //Add a semantic container
+    tools = tools
+        .append('div')
+        .attr('class', 'center aligned ui padded grid')
+        .style('height', '100%')
+    //Add the markup to tools or do it manually
+    //tools.html( markup );
+}
+
+//Add event functions and whatnot
+var previousCursor = d3.select('#map').style('cursor')
+d3.select('#map').style('cursor', 'crosshair')
+
+Map_.map.on('mousemove', IdentifierTool.idPixelMap)
+Map_.map.on('mouseout', IdentifierTool.clearCursor)
+if (L_.hasGlobe) {
+    Globe_.litho
+        .getContainer()
+        .addEventListener('mousemove', IdentifierTool.idPixelGlobe, false)
+    Globe_.litho
+        .getContainer()
+        .addEventListener('mouseout', IdentifierTool.clearCursor, false)
+    //Globe_.shouldRaycastSprites = false
+
+    Globe_.litho.getContainer().style.cursor = 'crosshair'
+}
+
+//Share everything. Don't take things that aren't yours.
+// Put things back where you found them.
+
+var newActive = $('#toolcontroller_sepdiv #IdentifierTool')
+newActive.addClass('active').css({
+    color: ToolController_.activeColor,
+})
+newActive.parent().css({
+    background: ToolController_.activeBG,
+})
+
+function separateFromMMWebGIS() {
+    CursorInfo.hide()
+    Map_.map.off('mousemove', IdentifierTool.idPixelMap)
+    Map_.map.off('mouseout', IdentifierTool.clearCursor)
+    //Globe_.shouldRaycastSprites = true
+    if (L_.hasGlobe) {
+        Globe_.litho.getContainer().style.cursor = 'default'
+        Globe_.litho
+            .getContainer()
+            .removeEventListener('mousemove', IdentifierTool.idPixelGlobe)
+        Globe_.litho
+            .getContainer()
+            .removeEventListener('mousemove', IdentifierTool.clearCursor)
     }
 
-    //MMWebGIS should always have a div with id 'tools'
-    if (IdentifierTool.targetId !== 'toolContentSeparated_Identifier') {
-        var tools = d3.select('#tools')
+    if (IdentifierTool.targetId === 'toolContentSeparated_Identifier') {
+        d3.select('#map').style('cursor', 'grab')
+        let tools = d3.select(
+            IdentifierTool.targetId
+                ? `#${IdentifierTool.targetId}`
+                : '#toolPanel'
+        )
+        tools.style('background', 'var(--color-k)')
         //Clear it
         tools.selectAll('*').remove()
-        //Add a semantic container
-        tools = tools
-            .append('div')
-            .attr('class', 'center aligned ui padded grid')
-            .style('height', '100%')
-        //Add the markup to tools or do it manually
-        //tools.html( markup );
+        var prevActive = $(
+            '#toolcontroller_sepdiv #' + 'Identifier' + 'Tool'
+        )
+        prevActive.removeClass('active').css({
+            color: ToolController_.defaultColor,
+            background: 'none',
+        })
+        prevActive.parent().css({
+            background: 'none',
+        })
+    } else {
+        d3.select('#map').style('cursor', previousCursor)
     }
-
-    //Add event functions and whatnot
-    var previousCursor = d3.select('#map').style('cursor')
-    d3.select('#map').style('cursor', 'crosshair')
-
-    Map_.map.on('mousemove', IdentifierTool.idPixelMap)
-    Map_.map.on('mouseout', IdentifierTool.clearCursor)
-    if (L_.hasGlobe) {
-        Globe_.litho
-            .getContainer()
-            .addEventListener('mousemove', IdentifierTool.idPixelGlobe, false)
-        Globe_.litho
-            .getContainer()
-            .addEventListener('mouseout', IdentifierTool.clearCursor, false)
-        //Globe_.shouldRaycastSprites = false
-
-        Globe_.litho.getContainer().style.cursor = 'crosshair'
-    }
-
-    //Share everything. Don't take things that aren't yours.
-    // Put things back where you found them.
-
-    var newActive = $('#toolcontroller_sepdiv #IdentifierTool')
-    newActive.addClass('active').css({
-        color: ToolController_.activeColor,
-    })
-    newActive.parent().css({
-        background: ToolController_.activeBG,
-    })
-
-    function separateFromMMWebGIS() {
-        CursorInfo.hide()
-        Map_.map.off('mousemove', IdentifierTool.idPixelMap)
-        Map_.map.off('mouseout', IdentifierTool.clearCursor)
-        //Globe_.shouldRaycastSprites = true
-        if (L_.hasGlobe) {
-            Globe_.litho.getContainer().style.cursor = 'default'
-            Globe_.litho
-                .getContainer()
-                .removeEventListener('mousemove', IdentifierTool.idPixelGlobe)
-            Globe_.litho
-                .getContainer()
-                .removeEventListener('mousemove', IdentifierTool.clearCursor)
-        }
-
-        if (IdentifierTool.targetId === 'toolContentSeparated_Identifier') {
-            d3.select('#map').style('cursor', 'grab')
-            let tools = d3.select(
-                IdentifierTool.targetId
-                    ? `#${IdentifierTool.targetId}`
-                    : '#toolPanel'
-            )
-            tools.style('background', 'var(--color-k)')
-            //Clear it
-            tools.selectAll('*').remove()
-            var prevActive = $(
-                '#toolcontroller_sepdiv #' + 'Identifier' + 'Tool'
-            )
-            prevActive.removeClass('active').css({
-                color: ToolController_.defaultColor,
-                background: 'none',
-            })
-            prevActive.parent().css({
-                background: 'none',
-            })
-        } else {
-            d3.select('#map').style('cursor', previousCursor)
-        }
-    }
+}
 }
 
 //Other functions
 
 function bestMatchInLegend(rgba, legendData) {
-    var bestMatch = ''
-    //Empty string if invisible value
-    if (rgba.a == 0) return bestMatch
+var bestMatch = ''
+//Empty string if invisible value
+if (rgba.a == 0) return bestMatch
 
-    var bestHeuristic = Infinity
-    var l, h, r
-    for (var i = 0; i < legendData.length; i++) {
-        if (legendData[i].color.length > 0) {
-            r = F_.rgb2hex(legendData[i].color)
-            l = F_.hexToRGB(r[0] == '#' ? r : legendData[i].color)
-            h =
-                Math.abs(rgba.r - l.r) +
-                Math.abs(rgba.g - l.g) +
-                Math.abs(rgba.b - l.b)
-            if (h < bestHeuristic) {
-                bestHeuristic = h
-                bestMatch = legendData[i].value
-            }
+var bestHeuristic = Infinity
+var l, h, r
+for (var i = 0; i < legendData.length; i++) {
+    if (legendData[i].color.length > 0) {
+        r = F_.rgb2hex(legendData[i].color)
+        l = F_.hexToRGB(r[0] == '#' ? r : legendData[i].color)
+        h =
+            Math.abs(rgba.r - l.r) +
+            Math.abs(rgba.g - l.g) +
+            Math.abs(rgba.b - l.b)
+        if (h < bestHeuristic) {
+            bestHeuristic = h
+            bestMatch = legendData[i].value
         }
     }
-    return bestMatch
+}
+return bestMatch
 }
 
 function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
-    numBands = numBands || 1
-    var dataPath
-    if (url != null && url.startsWith('stac-collection:')) {
-        let timeParam = ''
-        if (L_.layers.data[layerUUID].time?.enabled == true)
-            timeParam = `&datetime=${L_.layers.data[layerUUID].time.start}/${L_.layers.data[layerUUID].time.end}`
+numBands = numBands || 1
+var dataPath
+if (url != null && url.startsWith('stac-collection:')) {
+    let timeParam = ''
+    if (L_.layers.data[layerUUID].time?.enabled == true)
+        timeParam = `&datetime=${L_.layers.data[layerUUID].time.start}/${L_.layers.data[layerUUID].time.end}`
 
-        // Bands
-        let bandsParam = ''
-        let b = L_.layers.data[layerUUID].cogBandsQuery
-        if (b != null) {
-            b.forEach((band) => {
-                if (band != null) bandsParam += `&bidx=${band}`
-            })
-        }
-
-        fetch(
-            `${
-                mmgisglobal.NODE_ENV === 'development'
-                    ? 'http://localhost:8888'
-                    : `${window.location.origin}${(
-                          window.location.pathname || ''
-                      ).replace(/\/$/g, '')}`
-            }/titilerpgstac/collections/${
-                url.split('stac-collection:')[1]
-            }/point/${lng},${lat}?assets=asset&items_limit=10${timeParam}${bandsParam}`,
-            {
-                method: 'GET',
-                headers: {
-                    accept: 'application/json',
-                },
-            }
-        )
-            .then((res) => {
-                if (res.status === 200) {
-                    return res.json()
-                }
-            })
-            .then((json) => {
-                if (json.values) {
-                    const values = []
-                    json.values.forEach((val, idx) => {
-                        val[2].forEach((val2, idx2) => {
-                            values.push([
-                                `${val[0]} - ${val2}`,
-                                [val[1][idx2]],
-                                [val2],
-                            ])
-                        })
-                    })
-                    if (typeof callback === 'function') callback(values)
-                }
-            })
-            .catch((err) => {})
-        return
-    } else if (url != null && url.startsWith('COG:')) {
-        // Time
-        let timeParam = ''
-        if (L_.layers.data[layerUUID].time?.enabled == true)
-            timeParam = `&datetime=${L_.layers.data[layerUUID].time.start}/${L_.layers.data[layerUUID].time.end}`
-
-        // Bands
-        let bandsParam = ''
-        let b =
-            L_.layers.data[layerUUID].cogBandsQuery ||
-            L_.layers.data[layerUUID].cogBands
-        if (b != null) {
-            b.forEach((band) => {
-                if (band != null) bandsParam += `&bidx=${band}`
-            })
-        }
-
-        fetch(
-            `${
-                mmgisglobal.NODE_ENV === 'development'
-                    ? 'http://localhost:8888'
-                    : `${window.location.origin}${(
-                          window.location.pathname || ''
-                      ).replace(/\/$/g, '')}`
-            }/titiler/cog/point/${lng},${lat}?assets=asset&url=${L_.getUrl(
-                'tile',
-                url
-            )}${timeParam}${bandsParam}`,
-            {
-                method: 'GET',
-                headers: {
-                    accept: 'application/json',
-                },
-            }
-        )
-            .then((res) => {
-                if (res.status === 200) {
-                    return res.json()
-                }
-            })
-            .then((json) => {
-                if (json.values) {
-                    const values = []
-                    json.values.forEach((val, idx) => {
-                        values.push([json.band_names[idx], [val]])
-                    })
-                    if (typeof callback === 'function') callback(values)
-                }
-            })
-            .catch((err) => {})
-        return
-    } else if (url != null && url.startsWith('/vsicurl/')) {
-        dataPath = url
-    } else {
-        dataPath = 'Missions/' + L_.mission + '/' + url
+    // Bands
+    let bandsParam = ''
+    let b = L_.layers.data[layerUUID].cogBandsQuery
+    if (b != null) {
+        b.forEach((band) => {
+            if (band != null) bandsParam += `&bidx=${band}`
+        })
     }
 
-    dataPath = IdentifierTool.fillURLParameters(dataPath, layerUUID)
-
-    calls.api(
-        'getbands',
+    fetch(
+        `${
+            mmgisglobal.NODE_ENV === 'development'
+                ? 'http://localhost:8888'
+                : `${window.location.origin}${(
+                      window.location.pathname || ''
+                  ).replace(/\/$/g, '')}`
+        }/titilerpgstac/collections/${
+            url.split('stac-collection:')[1]
+        }/point/${lng},${lat}?assets=asset&items_limit=10${timeParam}${bandsParam}`,
         {
-            type: 'band',
-            x: lat,
-            y: lng,
-            xyorll: 'll',
-            bands: '[[1,' + numBands + ']]',
-            path: dataPath,
-        },
-        (data) => {
-            if (typeof callback === 'function') callback(data)
+            method: 'GET',
+            headers: {
+                accept: 'application/json',
+            },
+        }
+    )
+        .then((res) => {
+            if (res.status === 200) {
+                return res.json()
+            }
+        })
+        .then((json) => {
+            if (json.values) {
+                const values = []
+                json.values.forEach((val, idx) => {
+                    val[2].forEach((val2, idx2) => {
+                        values.push([
+                            `${val[0]} - ${val2}`,
+                            [val[1][idx2]],
+                            [val2],
+                        ])
+                    })
+                })
+                if (typeof callback === 'function') callback(values)
+            }
+        })
+        .catch((err) => {})
+    return
+} else if (url != null && url.startsWith('COG:')) {
+    // Time
+    let timeParam = ''
+    if (L_.layers.data[layerUUID].time?.enabled == true)
+        timeParam = `&datetime=${L_.layers.data[layerUUID].time.start}/${L_.layers.data[layerUUID].time.end}`
+
+    // Bands
+    let bandsParam = ''
+    let b =
+        L_.layers.data[layerUUID].cogBandsQuery ||
+        L_.layers.data[layerUUID].cogBands
+    if (b != null) {
+        b.forEach((band) => {
+            if (band != null) bandsParam += `&bidx=${band}`
+        })
+    }
+
+    fetch(
+        `${
+            mmgisglobal.NODE_ENV === 'development'
+                ? 'http://localhost:8888'
+                : `${window.location.origin}${(
+                      window.location.pathname || ''
+                  ).replace(/\/$/g, '')}`
+        }/titiler/cog/point/${lng},${lat}?assets=asset&url=${L_.getUrl(
+            'tile',
+            url
+        )}${timeParam}${bandsParam}`,
+        {
+            method: 'GET',
+            headers: {
+                accept: 'application/json',
+            },
+        }
+    )
+        .then((res) => {
+            if (res.status === 200) {
+                return res.json()
+            }
+        })
+        .then((json) => {
+            if (json.values) {
+                const values = []
+                json.values.forEach((val, idx) => {
+                    values.push([json.band_names[idx], [val]])
+                })
+                if (typeof callback === 'function') callback(values)
+            }
+        })
+        .catch((err) => {})
+    return
+} else if (url.startsWith('/vsicurl/') || url.startsWith('Missions/')) {
+    dataPath = url
+} else {
+    dataPath = 'Missions/' + L_.mission + '/' + url
+}
+
+dataPath = IdentifierTool.fillURLParameters(dataPath, layerUUID)
+
+calls.api(
+    'getbands',
+    {
+        type: 'band',
+        x: lat,
+        y: lng,
+        xyorll: 'll',
+        bands: '[[1,' + numBands + ']]',
+        path: dataPath,
+    },
+    (data) => {
+        //Convert python's Nones to nulls
+        if (typeof data === 'string') {
+            data = data.replace(/none/gi, 'null')
+            if (data.length > 2) {
+                data = JSON.parse(data)
+                if (typeof callback === 'function') callback(data)
+                }
+            }
+            if (typeof data === 'object') {
+                if (data.length > 0) {
+                    if (typeof callback === 'function') callback(data)
+                }
+            }
         },
         function () {
             console.warn('IdentifierTool: Failed to query bands.')

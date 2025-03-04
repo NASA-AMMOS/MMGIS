@@ -1,0 +1,453 @@
+{
+  "tabs": [
+    {
+      "name": "Core",
+      "rows": [
+        {
+          "forceHeight": "64px",
+          "components": [
+            {
+              "field": "type",
+              "name": "Layer Type",
+              "description": "",
+              "type": "dropdown",
+              "width": 2,
+              "options": [
+                "data",
+                "header",
+                "image",
+                "model",
+                "query",
+                "tile",
+                "vector",
+                "vectortile"
+              ]
+            },
+            {
+              "field": "name",
+              "name": "Layer Name",
+              "description": "",
+              "type": "textnotrim",
+              "width": 8
+            },
+            {
+              "field": "visibility",
+              "name": "Initially On",
+              "description": "",
+              "type": "checkbox",
+              "width": 2,
+              "defaultChecked": false
+            }
+          ]
+        },
+        {
+          "name": "Image",
+          "components": [
+            {
+              "field": "url",
+              "name": "URL",
+              "description": "",
+              "type": "text",
+              "width": 12
+            },
+            {
+              "field": "initialOpacity",
+              "name": "Initial Opacity",
+              "description": "0 (transparent) to 1 (opaque)",
+              "type": "number",
+              "min": 0,
+              "width": 2
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "minZoom",
+              "name": "Minimum Zoom",
+              "description": "",
+              "type": "number",
+              "min": 0,
+              "step": 1,
+              "width": 3
+            },
+            {
+              "field": "maxNativeZoom",
+              "name": "Maximum Native Zoom",
+              "description": "",
+              "type": "number",
+              "min": 0,
+              "step": 1,
+              "width": 2
+            },
+            {
+              "field": "maxZoom",
+              "name": "Maximum Zoom",
+              "description": "",
+              "type": "number",
+              "min": 0,
+              "step": 1,
+              "width": 3
+            }
+          ]
+        },
+        {
+          "name": "Data",
+          "components": [
+            {
+              "field": "variables.image.fillMinMax",
+              "name": "Fill min/max",
+              "description": "Fill in with the maximum color or minimum color value if below min and/or above max of the band",
+              "type": "checkbox",
+              "width": 2,
+              "defaultChecked": false
+            },
+            {
+              "field": "variables.hideNoDataValue",
+              "name": "Hide No Data Value",
+              "description": " If true, hides all values where there is no data. ",
+              "type": "checkbox",
+              "width": 3,
+              "defaultChecked": false
+            }
+          ]
+        },
+        {
+          "name": "Cloud-Optimized GeoTiffs (COG)",
+          "components": [
+            {
+              "field": "cogTransform",
+              "name": "Transform COG",
+              "description": "Enable rescaling and coloring single banded COGs on the fly.",
+              "type": "switch",
+              "width": 3,
+              "defaultChecked": false
+            },
+            {
+              "field": "cogMin",
+              "name": "Minimum Pixel Data Value",
+              "description": "If using single banded COGs, the default minimum value for which to rescale.",
+              "type": "number",
+              "width": 2
+            },
+            {
+              "field": "cogMax",
+              "name": "Maximum Pixel Data Value",
+              "description": "If using single banded COGs, the default maximum value for which to rescale.",
+              "type": "number",
+              "width": 2
+            },
+            {
+              "field": "cogUnits",
+              "name": "Units",
+              "description": "Units string by which to suffix values. For instance if the units are meters, use 'm' so that values are displayed as '100m'.",
+              "type": "textnotrim",
+              "width": 2
+            },
+            {
+              "field": "cogColormap",
+              "name": "Colormap",
+              "description": "",
+              "type": "colordropdown",
+              "width": 3,
+              "options": "{{COLORMAP_NAMES}}"
+            }
+          ]
+        },
+        {
+          "name": "Other",
+          "components": [
+            {
+              "field": "boundingBox",
+              "name": "Bounding Box",
+              "description": "minx,miny,maxx,maxy",
+              "type": "textarray",
+              "width": 12
+            }
+          ]
+        },
+        {
+          "name": "Actions",
+          "components": [
+            {
+              "name": "Populate Fields From tilemapresource.xml or from cog/info",
+              "description": "If the above URL is relative to the Missions/{mission} directory and the tileset contains a tilemapresource.xml within it, queries that xml and auto-fills the 'Minimum Zoom', 'Maximum Native Zoom' and 'Bounding Box' fields above. If it is a COG and TiTiler is true, the COG's data will be queried instead.",
+              "type": "button",
+              "action": "tile-populate-from-x",
+              "width": 6
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Legend",
+      "rows": [
+        {
+          "name": "Legend",
+          "components": [
+            {
+              "new": true,
+              "field": "legend",
+              "name": "Legend From URL",
+              "description": "A URL to a .csv with the following header: 'color,strokecolor,shape,value'. If the path is relative, it will be relative to the mission's directory. This legend is overridden if a legend is also configured below.",
+              "type": "text",
+              "width": 12
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "variables.legend",
+              "name": "Legend",
+              "description": "Configures a legend for the layer. The Legend Tool renders symbologies and gradient scales for any properly configured layer that is on.",
+              "type": "objectarray",
+              "width": 12,
+              "object": [
+                {
+                  "field": "color",
+                  "name": "Fill Color",
+                  "description": "A color for the main fill of the symbol.",
+                  "type": "colorpicker",
+                  "width": 2
+                },
+                {
+                  "field": "strokecolor",
+                  "name": "Border Color",
+                  "description": "A stroke/border color. Note that 'discreet' and 'continuous' shapes have no borders.",
+                  "type": "colorpicker",
+                  "width": 2
+                },
+                {
+                  "field": "shape",
+                  "name": "Shape",
+                  "description": "The symbol for which to us for this legend entry. Discreet and continuous describe scales. These scales are broken into groups by a change in shape value. For instance, 'discreet, discreet, discreet, circle, discreet, discreet' represents a discreet scales of three colors, a circle and then a discreet scale of two colors.",
+                  "type": "dropdown",
+                  "width": 5,
+                  "options": [
+                    "circle",
+                    "square",
+                    "rect",
+                    "triangle",
+                    "continuous",
+                    "discreet"
+                  ]
+                },
+                {
+                  "field": "value",
+                  "name": "Label",
+                  "description": "A label description for this legend entry.",
+                  "type": "text",
+                  "width": 3
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Interface",
+      "rows": [
+        {
+          "name": "Interface",
+          "subname": "Key Bindings",
+          "components": [
+            {
+              "field": "variables.shortcutSuffix",
+              "name": "Alt + {letter} Toggle Shortcut",
+              "description": "A single letter to 'ALT + {letter}' toggle the layer on and off. Please verify that your chosen shortcut does not conflict with other system or browser-level keyboard shortcuts.",
+              "type": "text",
+              "width": 6
+            }
+          ]
+        },
+        {
+          "subname": "Downloads",
+          "components": [
+            {
+              "field": "variables.downloadURL",
+              "name": "Download URL",
+              "description": "Provides a menu option for users to download the specified source data file for the layer.",
+              "type": "text",
+              "width": 12
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Information",
+      "rows": [
+        {
+          "name": "Information",
+          "subname": "Layer Tags",
+          "subdescription": "Assign tags to this layer so that they may be searched upon through the LayersTool. A category may be specified with the following pattern: 'category:tag'",
+          "components": [
+            {
+              "field": "tags.0",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.1",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.2",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.3",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.4",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.5",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "field": "tags.6",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.7",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.8",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.9",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.10",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "tags.11",
+              "name": "Tag",
+              "description": "",
+              "type": "text",
+              "width": 2
+            }
+          ]
+        },
+        {
+          "subname": "Description",
+          "subdescription": "A freeform markdown description of the layer. In the LayersTool, users may click the information icon beside the layer's name to view this information.",
+          "components": [
+            {
+              "field": "description",
+              "name": "Description",
+              "description": "",
+              "type": "markdown",
+              "width": 12
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Tool - Identifier",
+      "rows": [
+        {
+          "name": "Tool: Identifier",
+          "components": [
+            {
+              "field": "variables.tools.identifier.data",
+              "name": "Data",
+              "description": "Configure this layer for use with the IdentifierTool. Configuring the tool within this layer may override configurations of this layer within the tool itself in the Tools Tab.",
+              "type": "objectarray",
+              "width": 12,
+              "object": [
+                {
+                  "field": "url",
+                  "name": "URL to .tif",
+                  "description": "This can be a relative path to a file under the Mission name or a full url path. The former is preferred is the file is large. If this field is left empty, the Identifier Tool will try to best-match the hovered-over pixel color with this layer's legend (if any).",
+                  "type": "text",
+                  "width": 12
+                },
+                {
+                  "field": "bands",
+                  "name": "Bands",
+                  "description": "Number of bands from which to query.",
+                  "type": "number",
+                  "min": 0,
+                  "step": 1,
+                  "width": 2
+                },
+                {
+                  "field": "sigfigs",
+                  "name": "SigFigs",
+                  "description": "Number of significant figures to use after the decimal of returned values.",
+                  "type": "number",
+                  "min": 0,
+                  "step": 1,
+                  "width": 2
+                },
+                {
+                  "field": "unit",
+                  "name": "Unit",
+                  "description": "A string that is appended to your returned value. e.g. ' m' would be appended on a raw value ('41') and show '41 m'. If it was 'm', it would return '41m', without a space.",
+                  "type": "text",
+                  "width": 2
+                },
+                {
+                  "field": "scalefactor",
+                  "name": "Scale Factor",
+                  "description": "A number for which to multiply the raw value by for display purposes only. Useful, for instance, if the underlying dataset is in units that are off by factor's of 10 from what's desired to be shown to users.",
+                  "type": "number",
+                  "width": 2
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+
+  ]
+}

@@ -694,7 +694,7 @@ function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
     mission: "{mission_name}",
     layer: {
       name: "{new_layer_name}",
-      type: "header || vector || vectortile || query || model || tile || data",
+      type: "header || vector || vectortile || query || model || tile || data || image",
       "more...": "...",
     },
     "placement?": {
