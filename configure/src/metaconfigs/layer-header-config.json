@@ -27,7 +27,7 @@
               "field": "name",
               "name": "Layer Name",
               "description": "",
-              "type": "text",
+              "type": "textnotrim",
               "width": 8
             }
           ]

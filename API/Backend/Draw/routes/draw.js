@@ -204,7 +204,7 @@ const clipOver = function (
           historyIndex: lastHistory[0].history_id + 1,
           history: lastHistory[0].history,
         };
-      } else return { historyIndex: 0, history: [] };
+      } else return { historyIndex: 0, history: null };
     })
     .then((historyObj) => {
       let history = historyObj.history;
@@ -335,7 +335,7 @@ const clipUnder = function (
           historyIndex: lastHistory[0].history_id + 1,
           history: lastHistory[0].history,
         };
-      } else return { historyIndex: 0, history: [] };
+      } else return { historyIndex: 0, history: null };
     })
     .then((historyObj) => {
       let history = historyObj.history;

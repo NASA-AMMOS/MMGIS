@@ -27,7 +27,7 @@
               "field": "name",
               "name": "Layer Name",
               "description": "",
-              "type": "text",
+              "type": "textnotrim",
               "width": 4
             },
             {
@@ -201,7 +201,7 @@
               "field": "cogUnits",
               "name": "Units",
               "description": "Units string by which to suffix values. For instance if the units are meters, use 'm' so that values are displayed as '100m'.",
-              "type": "text",
+              "type": "textnotrim",
               "width": 2
             },
             {
