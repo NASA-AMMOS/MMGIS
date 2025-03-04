@@ -4,7 +4,7 @@ import { data as colormapData } from '../external/js-colormaps.js'
 const injectablesDefaults = {
   TILE_MATRIX_SETS: ["WebMercatorQuad"],
   COLORMAP_NAMES: ["viridis"],
-  VELOCITY_COLORMAP_NAMES: ["DEFAULT"],
+  VELOCITY_COLORMAP_NAMES: ["RDYLBU_R"],
 };
 // Initialize with reasonable defaults
 const injectables = {

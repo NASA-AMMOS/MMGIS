@@ -193,7 +193,7 @@
               "description": "Set of colors for visualizing velocity magnitude values.",
               "type": "colordropdown",
               "width": 9,
-              "default": "DEFAULT",
+              "default": "RDYLBU_R",
               "options": "{{VELOCITY_COLORMAP_NAMES}}"
             },
             {

@@ -76,43 +76,7 @@ const IMAGE_DEFAULT_COLOR_RAMP = 'binary'
 const TILE_DEFAULT_COLOR_RAMP = 'viridis'
 
 // The default color ramp used for velocity layer types
-const VELOCITY_DEFAULT_COLOR_RAMP = 'DEFAULT'
-
-const velocityDefaultColorsRGB = [
-    'rgb(36,104, 180)',
-    'rgb(60,157, 194)',
-    'rgb(128,205,193 )',
-    'rgb(151,218,168 )',
-    'rgb(198,231,181)',
-    'rgb(238,247,217)',
-    'rgb(255,238,159)',
-    'rgb(252,217,125)',
-    'rgb(255,182,100)',
-    'rgb(252,150,75)',
-    'rgb(250,112,52)',
-    'rgb(245,64,32)',
-    'rgb(237,45,28)',
-    'rgb(220,24,32)',
-    'rgb(180,0,35)',
-]
-
-const velocityDefaultColorsHex = [
-    [0.1412,0.4078,0.7059],
-    [0.2353,0.6157,0.7608],
-    [0.502,0.8039,0.7569],
-    [0.5922,0.8549,0.6588],
-    [0.7765,0.9059,0.7098],
-    [0.9333,0.9686,0.851],
-    [1,0.9333,0.6235],
-    [0.9882,0.851,0.4902],
-    [1,0.7137,0.3922],
-    [0.9882,0.5882,0.2941],
-    [0.9804,0.4392,0.2039],
-    [0.9608,0.251,0.1255],
-    [0.9294,0.1765,0.1098],
-    [0.8627,0.0941,0.1255],
-    [0.7059,0,0.1373],
-]
+const VELOCITY_DEFAULT_COLOR_RAMP = 'rdylbu_r'
 
 var LayersTool = {
     height: 0,
@@ -304,19 +268,6 @@ var LayersTool = {
                     ? layer.cogColormap
                     : layer?.variables?.streamlines?.colorScale;
                 let { colormap, reverse } = LayersTool.findJSColormap(layer, layerColormap)
-
-                if (colormap === VELOCITY_DEFAULT_COLOR_RAMP) {
-                    // Handle the case where the velocity layer colormap is 'DEFAULT'
-                    velocityDefaultColorsRGB.forEach((color) => {
-                        dynamicLegendConf.push({
-                            color,
-                            strokecolor: null,
-                            shape: 'continuous',
-                            value: '', // FIXME This should be fixed when the metaconfig is updated with units, etc
-                        })
-                    })
-                    break
-                }
 
                 let scaledPixelValue
                 if (min !== undefined && max !== undefined) {
