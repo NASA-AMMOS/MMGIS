@@ -728,10 +728,10 @@ const getComponent = (
       if (domain.length > 0 && !domain.endsWith("/")) domain += "/";
 
       let colormap_html
-      if (window.mmgisglobal.WITH_TITILER !== "true") {
+      if (window.mmgisglobal.WITH_TITILER === "true") {
         // Get colors from TiTiler if it is available
         colormap_html = (
-          <div>
+          <div style={{width: "100%"}}>
             <img id="titlerCogColormapImage" style={{height: "20px", width: "100%"}} src={`${domain}titiler/colorMaps/${dropdown_value.toLowerCase()}?format=png`} />
           </div>
         )

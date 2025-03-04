@@ -262,6 +262,7 @@ var LayersTool = {
         if (L_.layers.layer[layer.name] === null) return
         if (!layer.url.startsWith('stac-collection:') && layer.type !== 'image' && layer.type !== 'velocity') return
         if (layer.cogTransform !== true && (layer.url.startsWith('stac-collection:') || layer.type === 'image')) return
+        if (layer.type === 'image' && (L_.layers.layer[layer.name].hasOwnProperty('georasters') && L_.layers.layer[layer.name].georasters[0].numberOfRasters !== 1)) return
 
         const dynamicLegendConf = []
         const imgElement = document.getElementById(`titlerCogColormapImage_${L_.asLayerUUID(layerName)}`)
@@ -290,7 +291,7 @@ var LayersTool = {
             }
 
             let color
-            if (layer.type === 'tile') {
+            if (imgElement && layer.type === 'tile') {
                 const c = context.getImageData(
                     parseInt((255 / 9) * i),
                     0,
@@ -605,6 +606,34 @@ function interfaceWithMMGIS(fromInit) {
                         typeof node[i].url === 'string' &&
                         node[i].url.split(':')[0] === 'stac-collection'
                     ) {
+                        if (window.mmgisglobal.WITH_TITILER === "true") {
+                            // prettier-ignore
+                            additionalSettings = [
+                                `<img id="titlerCogColormapImage_${node[i].name}" src="${window.location.origin}${(
+                                            window.location.pathname || ''
+                                        ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap}?format=png"></img>`,
+                            ].join('\n')
+                        } else {
+                            let { colormap, reverse } = LayersTool.findJSColormap(node[i], node[i].cogColormap)
+
+                            additionalSettings = (colormapData[colormap].colors).map(
+                                (hex) => {
+                                    let rgb = hex.map(v => {return Math.floor(v * 255)}).join(',')
+                                    return `<div style="background: rgb(${rgb}); width: 20px; height: 100%; margin: 0px; flex-grow: 1;"></div>`;
+                                }
+                            )
+
+                            if (reverse === true) {
+                                additionalSettings.reverse()
+                            }
+
+                            additionalSettings = [
+                                '<div id="titlerCogColormapCSS">',
+                                additionalSettings.join('\n'),
+                                '</div>',
+                            ].join('\n')
+                        }
+
                         // prettier-ignore
                         additionalSettings = [
                             '<div class="layerSettingsTitle">',
@@ -641,9 +670,7 @@ function interfaceWithMMGIS(fromInit) {
                             '<div class="tileCogColor">',
                                 `<li class="tileCogColormap">`,
                                     `<div class="tileCogColormapMap">`,
-                                        `<img id="titlerCogColormapImage_${node[i].name}" src="${window.location.origin}${(
-                                                    window.location.pathname || ''
-                                                ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap}?format=png"></img>`,
+                                        additionalSettings,
                                         `<ul id="tileCogColormapMapLines"></ul>`,
                                     `</div>`,
                                 '</li>',
