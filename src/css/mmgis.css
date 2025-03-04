@@ -117,6 +117,7 @@ body {
     --color-p8: #11495c;
     --color-p9: #75351e; /*#5708ea;*/
     --color-p10: #78b1c2;
+    --color-p11: #b0518f;
 
     --color-vector: #245980;
     --color-tile: #67401d;
@@ -125,6 +126,7 @@ body {
     --color-data: #c43541;
     --color-model: #a98732;
     --color-velocity: #24807c;
+    --color-image: #b0518f;
 }
 
 #nodeenv {

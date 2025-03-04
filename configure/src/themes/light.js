@@ -81,6 +81,7 @@ export const palette = {
     data: "#c43541",
     model: "#a98732",
     velocity: "#24807c",
+    image: "#b0518f",
   },
 };
 

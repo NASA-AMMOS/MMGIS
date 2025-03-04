@@ -87,6 +87,9 @@
 #layersTool #filterLayers div.velocity.on {
     border-bottom: 4px solid var(--color-velocity);
 }
+#layersTool #filterLayers div.image.on {
+    border-bottom: 4px solid var(--color-image);
+}
 #layersTool #filterLayers div.visible.on {
     border-bottom: 4px solid rgba(255, 255, 255, 1);
 }
@@ -362,14 +365,20 @@
     text-transform: capitalize;
     mix-blend-mode: difference;
 }
-#layersTool .tileCogColormap img {
+#layersTool .tileCogColormap img, #layersTool .tileCogColormap #titlerCogColormapCSS {
     width: 254px;
     height: 28px;
     transform: rotateZ(90deg) translateX(125px) translateY(-177px);
     border-left: 14px solid #222;
     border-right: 14px solid #222;
 }
-
+#layersTool .tileCogColormap #titlerCogColormapCSS {
+    display: flex;
+    mix-blend-mode: normal;
+}
+#layersTool .tileCogColormap #titlerCogColormapCSS + #tileCogColormapMapLines  {
+    margin-top: -2px;
+}
 #layersTool #layersToolList > li.download_on,
 #layersTool #layersToolList > li.gears_on {
     height: auto;
@@ -516,6 +525,9 @@
 }
 .layersToolColor.velocity {
     background: var(--color-velocity);
+}
+.layersToolColor.image {
+    background: var(--color-image);
 }
 
 #LayersToolLayer.model {

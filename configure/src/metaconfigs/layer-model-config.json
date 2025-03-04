@@ -15,6 +15,7 @@
               "options": [
                 "data",
                 "header",
+                "image",
                 "model",
                 "query",
                 "tile",

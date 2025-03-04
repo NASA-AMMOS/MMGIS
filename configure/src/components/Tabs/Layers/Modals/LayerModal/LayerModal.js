@@ -45,6 +45,7 @@ import tileConfig from "../../../../../metaconfigs/layer-tile-config.json";
 import vectorConfig from "../../../../../metaconfigs/layer-vector-config.json";
 import vectortileConfig from "../../../../../metaconfigs/layer-vectortile-config.json";
 import velocityConfig from "../../../../../metaconfigs/layer-velocity-config.json";
+import imageConfig from "../../../../../metaconfigs/layer-image-config.json";
 
 const useStyles = makeStyles((theme) => ({
   Modal: {
@@ -194,6 +195,10 @@ const LayerModal = (props) => {
 
     case "velocity":
       config = velocityConfig;
+      break;
+
+    case "image":
+      config = imageConfig;
       break;
 
     default:

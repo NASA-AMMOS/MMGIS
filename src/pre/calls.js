@@ -30,6 +30,11 @@ const c = {
         url: 'api/utils/getprofile',
         pathprefix: '',
     },
+    getminmax: {
+        type: 'POST',
+        url: 'api/utils/getminmax',
+        pathprefix: '',
+    },
     ll2aerll: {
         type: 'POST',
         url: 'api/utils/ll2aerll',
