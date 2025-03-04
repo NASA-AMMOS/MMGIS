@@ -69,6 +69,25 @@
         "tags": ["Webpages"]
       }
     },
+    "/api/docs": {
+      "get": {
+        "summary": "MMGIS API Documentation",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string",
+                  "example": "<!DOCTYPE html><html></html>"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["Webpages"]
+      }
+    },
     "/api/configure/get": {
       "get": {
         "summary": "Get mission configuration",
@@ -77,6 +96,8 @@
           {
             "name": "mission",
             "in": "query",
+            "description": "The name of a pre-existing MMGIS configured mission.",
+            "example": "ExampleMission",
             "required": true,
             "schema": {
               "type": "string"
@@ -85,6 +106,8 @@
           {
             "name": "version",
             "in": "query",
+            "description": "The version number of the provided mission's configuration object. If unset, gets the latest version.",
+            "example": 3,
             "required": false,
             "schema": {
               "type": "integer"
@@ -93,6 +116,8 @@
           {
             "name": "full",
             "in": "query",
+            "description": "If true, return a fuller response of which the configuration object will be in the 'config' key, otherwise return the raw configuration object directly.",
+            "example": true,
             "required": false,
             "schema": {
               "type": "boolean"
@@ -107,18 +132,30 @@
                 "examples": {
                   "success": {
                     "summary": "Success",
+                    "value": "example_config",
+                    "status": "success"
+                  },
+                  "success_full": {
+                    "summary": "Success: Full",
                     "value": {
                       "status": "success",
-                      "mission": "example_mission",
+                      "mission": "ExampleMission",
                       "config": "example_config",
                       "version": 1
                     }
                   },
-                  "failure": {
-                    "summary": "Failure",
+                  "failure_not_found": {
+                    "summary": "Failure: Not Found",
                     "value": {
                       "status": "failure",
-                      "message": "Mission 'example_mission v1' not found."
+                      "message": "Mission not found."
+                    }
+                  },
+                  "failure_version_not_found": {
+                    "summary": "Failure: Version Not Found",
+                    "value": {
+                      "status": "failure",
+                      "message": "Mission 'ExampleMission v3' not found."
                     }
                   }
                 }
@@ -277,6 +314,8 @@
           {
             "name": "full",
             "in": "query",
+            "description": "If true, return a fuller response of which the configuration object will be in the 'config' key, otherwise return the raw configuration object directly.",
+            "example": true,
             "required": false,
             "schema": {
               "type": "boolean"
@@ -293,7 +332,7 @@
                     "summary": "Success: Full",
                     "value": {
                       "status": "success",
-                      "missions": "example_missions_data"
+                      "missions": ["example_mission_1", "example_mission_2"]
                     }
                   },
                   "success": {
@@ -325,6 +364,8 @@
           {
             "name": "mission",
             "in": "query",
+            "description": "The name of a pre-existing MMGIS configured mission.",
+            "example": "ExampleMission",
             "required": true,
             "schema": {
               "type": "string"
@@ -341,7 +382,18 @@
                     "summary": "Success",
                     "value": {
                       "status": "success",
-                      "versions": "example_versions_data"
+                      "versions": [
+                        {
+                          "mission": "ExampleMission",
+                          "version": 0,
+                          "createdAt": "2022-05-04T17:28:55.735Z"
+                        },
+                        {
+                          "mission": "ExampleMission",
+                          "version": 1,
+                          "createdAt": "2022-05-04T17:32:32.543Z"
+                        }
+                      ]
                     }
                   },
                   "failure": {
@@ -935,6 +987,8 @@
           {
             "name": "layer",
             "in": "query",
+            "description": "The name of the Dataset to download.",
+            "example": "ExampleDataset",
             "required": true,
             "schema": {
               "type": "string"
@@ -951,7 +1005,7 @@
                     "summary": "Success",
                     "value": {
                       "status": "success",
-                      "body": "example_dataset"
+                      "body": "ExampleDataset"
                     }
                   },
                   "failure_layer_not_found": {
@@ -2272,6 +2326,8 @@
           {
             "name": "layer",
             "in": "path",
+            "description": "The name of a GeoDataset to get.",
+            "example": "ExampleGeoDataset",
             "required": true,
             "schema": {
               "type": "string"
@@ -2280,6 +2336,8 @@
           {
             "name": "type",
             "in": "query",
+            "description": "Whether to return a geojson response or Mapbox vector tiles. Defaults to 'geojson'.",
+            "example": "geojson",
             "required": false,
             "schema": {
               "type": "string",
@@ -2289,6 +2347,8 @@
           {
             "name": "x",
             "in": "query",
+            "description": "In the case of type=mvt, the x of the vector tile to return.",
+            "example": 28,
             "required": false,
             "schema": {
               "type": "integer"
@@ -2297,6 +2357,8 @@
           {
             "name": "y",
             "in": "query",
+            "description": "In the case of type=mvt, the y of the vector tile to return.",
+            "example": 12,
             "required": false,
             "schema": {
               "type": "integer"
@@ -2305,6 +2367,8 @@
           {
             "name": "z",
             "in": "query",
+            "description": "In the case of type=mvt, the z of the vector tile to return.",
+            "example": 4,
             "required": false,
             "schema": {
               "type": "integer"
@@ -2313,6 +2377,8 @@
           {
             "name": "minx",
             "in": "query",
+            "description": "In the case of type=geojson, if only a certain spatial extent is desired, the minimum x/longitude of such bounding box.",
+            "example": -83.6,
             "required": false,
             "schema": {
               "type": "number"
@@ -2321,6 +2387,8 @@
           {
             "name": "miny",
             "in": "query",
+            "description": "In the case of type=geojson, if only a certain spatial extent is desired, the minimum y/latitude of such bounding box.",
+            "example": -23.8,
             "required": false,
             "schema": {
               "type": "number"
@@ -2329,6 +2397,8 @@
           {
             "name": "maxx",
             "in": "query",
+            "description": "In the case of type=geojson, if only a certain spatial extent is desired, the maximum x/longitude of such bounding box.",
+            "example": -32.6,
             "required": false,
             "schema": {
               "type": "number"
@@ -2337,6 +2407,8 @@
           {
             "name": "maxy",
             "in": "query",
+            "description": "In the case of type=geojson, if only a certain spatial extent is desired, the maximum y/latitude of such bounding box.",
+            "example": 10.5,
             "required": false,
             "schema": {
               "type": "number"
@@ -2345,6 +2417,8 @@
           {
             "name": "starttime",
             "in": "query",
+            "description": "In the case of type=geojson, if only a certain temporal extent is desired, the start time of the window. If unset but 'endtime' is set, defaults to '1970-01-01T00:00:00Z'",
+            "example": "2024-08-01T00:00:00.000Z",
             "required": false,
             "schema": {
               "type": "string"
@@ -2353,14 +2427,8 @@
           {
             "name": "endtime",
             "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "format",
-            "in": "query",
+            "description": "In the case of type=geojson, if only a certain temporal extent is desired, the end time of the window.",
+            "example": "2025-04-03T21:55:06.013Z",
             "required": false,
             "schema": {
               "type": "string"
@@ -2369,6 +2437,8 @@
           {
             "name": "startProp",
             "in": "query",
+            "description": "In the case of type=geojson and a temporal query, the start time column defined at the GeoDataset's creation. Defaults to 'start_time'",
+            "example": "start_time",
             "required": false,
             "schema": {
               "type": "string"
@@ -2377,6 +2447,8 @@
           {
             "name": "endProp",
             "in": "query",
+            "description": "In the case of type=geojson and a temporal query, the end time column defined at the GeoDataset's creation. Defaults to 'end_time'",
+            "example": "end_time",
             "required": false,
             "schema": {
               "type": "string"
@@ -2385,6 +2457,8 @@
           {
             "name": "limited",
             "in": "query",
+            "description": "In the case of type=geojson and if true, returns only the first three features.",
+            "example": false,
             "required": false,
             "schema": {
               "type": "boolean"
@@ -2454,6 +2528,8 @@
           {
             "name": "layer",
             "in": "query",
+            "description": "The name of a GeoDataset to get.",
+            "example": "ExampleGeoDataset",
             "required": true,
             "schema": {
               "type": "string"
@@ -2462,6 +2538,8 @@
           {
             "name": "type",
             "in": "query",
+            "description": "Whether to return a geojson response or Mapbox vector tiles. Defaults to 'geojson'.",
+            "example": "geojson",
             "required": false,
             "schema": {
               "type": "string",
@@ -2471,6 +2549,8 @@
           {
             "name": "x",
             "in": "query",
+            "description": "In the case of type=mvt, the x of the vector tile to return.",
+            "example": 28,
             "required": false,
             "schema": {
               "type": "integer"
@@ -2479,6 +2559,8 @@
           {
             "name": "y",
             "in": "query",
+            "description": "In the case of type=mvt, the y of the vector tile to return.",
+            "example": 12,
             "required": false,
             "schema": {
               "type": "integer"
@@ -2487,6 +2569,8 @@
           {
             "name": "z",
             "in": "query",
+            "description": "In the case of type=mvt, the z of the vector tile to return.",
+            "example": 4,
             "required": false,
             "schema": {
               "type": "integer"
@@ -2495,6 +2579,8 @@
           {
             "name": "minx",
             "in": "query",
+            "description": "In the case of type=geojson, if only a certain spatial extent is desired, the minimum x/longitude of such bounding box.",
+            "example": -83.6,
             "required": false,
             "schema": {
               "type": "number"
@@ -2503,6 +2589,8 @@
           {
             "name": "miny",
             "in": "query",
+            "description": "In the case of type=geojson, if only a certain spatial extent is desired, the minimum y/latitude of such bounding box.",
+            "example": -23.8,
             "required": false,
             "schema": {
               "type": "number"
@@ -2511,6 +2599,8 @@
           {
             "name": "maxx",
             "in": "query",
+            "description": "In the case of type=geojson, if only a certain spatial extent is desired, the maximum x/longitude of such bounding box.",
+            "example": -32.6,
             "required": false,
             "schema": {
               "type": "number"
@@ -2519,6 +2609,8 @@
           {
             "name": "maxy",
             "in": "query",
+            "description": "In the case of type=geojson, if only a certain spatial extent is desired, the maximum y/latitude of such bounding box.",
+            "example": 10.5,
             "required": false,
             "schema": {
               "type": "number"
@@ -2527,6 +2619,8 @@
           {
             "name": "starttime",
             "in": "query",
+            "description": "In the case of type=geojson, if only a certain temporal extent is desired, the start time of the window. If unset but 'endtime' is set, defaults to '1970-01-01T00:00:00Z'",
+            "example": "2024-08-01T00:00:00.000Z",
             "required": false,
             "schema": {
               "type": "string"
@@ -2535,14 +2629,8 @@
           {
             "name": "endtime",
             "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "format",
-            "in": "query",
+            "description": "In the case of type=geojson, if only a certain temporal extent is desired, the end time of the window.",
+            "example": "2025-04-03T21:55:06.013Z",
             "required": false,
             "schema": {
               "type": "string"
@@ -2551,6 +2639,8 @@
           {
             "name": "startProp",
             "in": "query",
+            "description": "In the case of type=geojson and a temporal query, the start time column defined at the GeoDataset's creation. Defaults to 'start_time'",
+            "example": "start_time",
             "required": false,
             "schema": {
               "type": "string"
@@ -2559,6 +2649,8 @@
           {
             "name": "endProp",
             "in": "query",
+            "description": "In the case of type=geojson and a temporal query, the end time column defined at the GeoDataset's creation. Defaults to 'end_time'",
+            "example": "end_time",
             "required": false,
             "schema": {
               "type": "string"
@@ -2567,6 +2659,8 @@
           {
             "name": "limited",
             "in": "query",
+            "description": "In the case of type=geojson and if true, returns only the first three features.",
+            "example": false,
             "required": false,
             "schema": {
               "type": "boolean"
@@ -3975,9 +4069,16 @@
                 "examples": {
                   "success": {
                     "summary": "Success",
-                    "value": {
-                      "profile": "example_profile_data"
-                    }
+                    "value": [
+                      [
+                        137.3841404914856, -4.788970052851372,
+                        -3719.488525390625
+                      ],
+                      [
+                        137.38425731647186, -4.788977073412585,
+                        -3718.595947265625
+                      ]
+                    ]
                   },
                   "failure": {
                     "summary": "Failure",
@@ -4032,9 +4133,7 @@
                 "examples": {
                   "success": {
                     "summary": "Success",
-                    "value": {
-                      "bands": "example_bands_data"
-                    }
+                    "value": [[1.0, -3709.4365234375]]
                   },
                   "failure": {
                     "summary": "Failure",
@@ -4111,7 +4210,19 @@
                   "success": {
                     "summary": "Success",
                     "value": {
-                      "aer_ll": "example_aer_ll_data"
+                      "azimuth": 191.17744306249563,
+                      "elevation": -45.4859750699031,
+                      "range": 5166.627261717188,
+                      "longitude": 7.48097842042331,
+                      "latitude": -75.54934840621075,
+                      "altitude": 253.27393520309107,
+                      "horizontal_altitude": -5698067.895290766,
+                      "ancillary": {
+                        "sun_az": 28.19882168843999,
+                        "sun_el": 62.11075361222813,
+                        "earth_az": 309.46653868627635,
+                        "earth_el": 70.63581738464735
+                      }
                     }
                   },
                   "failure": {
@@ -4164,9 +4275,7 @@
                 "examples": {
                   "success": {
                     "summary": "Success",
-                    "value": {
-                      "converted_time": "example_converted_time"
-                    }
+                    "value": { "result": "SOL-04471M11:09:24" }
                   },
                   "failure": {
                     "summary": "Failure",
@@ -4204,7 +4313,7 @@
                   "success": {
                     "summary": "Success",
                     "value": {
-                      "wkt": "example_wkt_data"
+                      "wkt": "example_wkt_string"
                     }
                   },
                   "failure": {
