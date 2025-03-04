@@ -105,5 +105,26 @@ function getColormapNames(injectableName) {
         injectables[injectableName] = Object.keys(colormapData);
       }
     );
+  } else {
+    // Get colormaps from js-colormaps and the inversed colors
+    const js_colormaps = Object.keys(colormapData).map((color => color.toLowerCase()));
+    let colormaps = [];
+    js_colormaps.forEach((color) => {
+      colormaps.push(color);
+      // js-colormaps only includes the non reversed names so add the reverse
+      if (!color.endsWith("_r")) {
+        colormaps.push(`${color}_r`);
+      }
+    });
+
+    // Sort
+    colormaps.sort();
+
+    // ... new Set removes duplicates
+    injectables[injectableName] = [
+      ...new Set(
+        injectablesDefaults[injectableName].concat(colormaps)
+      ),
+    ];
   }
 }
