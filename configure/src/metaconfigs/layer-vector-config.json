@@ -260,7 +260,7 @@
             {
               "field": "style.shapeIcon",
               "name": "Shape From Icon",
-              "description": "Shape but taken from the Material Design Icon (mdi) library. akes priority over the value in the 'shape' field. See <a target='_blank' href='https://pictogrammers.com/library/mdi/'>https://pictogrammers.com/library/mdi/</a>",
+              "description": "Shape but taken from the Material Design Icon (mdi) library. Takes priority over the value in the 'shape' field. See <a target='_blank' href='https://pictogrammers.com/library/mdi/'>https://pictogrammers.com/library/mdi/</a>",
               "type": "text",
               "width": 3
             },
@@ -269,6 +269,13 @@
               "name": "Shape From Property",
               "description": "Shape but taken from each individual feature's property. For example 'shape' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'shape' and 'shape from icon' fields. Shape values are formatted like the dropdown options but all lowercase. Material Design Icon (mdi) icon names are also supported values.",
               "type": "text",
+              "width": 3
+            },
+            {
+              "field": "style.shapeRotationOffset",
+              "name": "Shape Rotation Offset",
+              "description": "A original offset by which the rotate the original shape/icon so that it is natively pointing up. Useful with Attachment - Marker Bearings where, for instance, a plane with a bearing is desired but the plane icon natively points leftward.",
+              "type": "number",
               "width": 3
             }
           ]
@@ -1156,7 +1163,7 @@
             {
               "field": "variables.markerAttachments.bearing.enabled",
               "name": "Enabled",
-              "description": "Sets a bearing direction (clockwise from north) of this layer's point markers (or markerIcons if set). Overrides the layer's shape dropdown value.",
+              "description": "Sets a bearing direction (clockwise from north) of this layer's point markers (or Shape from Icon or Marker Icons if set). Overrides the layer's shape dropdown value.",
               "type": "switch",
               "width": 3,
               "defaultChecked": false
@@ -1183,7 +1190,7 @@
             {
               "field": "variables.markerAttachments.bearing.color",
               "name": "Color",
-              "description": "A color for the directional arrow for non-markerIcon bearings.",
+              "description": "A color for the directional arrow for non-Shape-from-Icon and non-Marker-Icon bearings.",
               "type": "colorpicker",
               "width": 4
             }

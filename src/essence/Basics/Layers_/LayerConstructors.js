@@ -399,7 +399,13 @@ export const constructVectorLayer = (
                             ((layerObj.style.radius || layerObj.radius || 8) *
                                 2) /
                             24
-                        }); text-shadow:  
+                        }) rotate(${
+                            (layerObj.style.shapeRotationOffset != null
+                                ? parseFloat(layerObj.style.shapeRotationOffset)
+                                : 0) + (yaw || 0)
+                        }deg); ${
+                            layerObj.style.weight != 0
+                                ? `text-shadow:  
                             1px 1px 0px ${featureStyle.color}, 
                             -1px -1px 0px ${featureStyle.color}, 
                             1px -1px 0px ${featureStyle.color}, 
@@ -408,7 +414,9 @@ export const constructVectorLayer = (
                             0px 1px 0px ${featureStyle.color}, 
                             -1px 0px 0px ${featureStyle.color}, 
                             0px -1px 0px ${featureStyle.color}, 
-                            1px 0px 0px ${featureStyle.color};
+                            1px 0px 0px ${featureStyle.color}; `
+                                : ''
+                        }
                             display: block;
                             text-align: center;"
                             ><i class='mdi mdi-${finalShape.replace(
