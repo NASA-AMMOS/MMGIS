@@ -23,6 +23,7 @@ const L_ = {
     UserInterface_: null,
     TimeControl_: null,
     tools: null,
+    _toolCopyables: {},
     //The full, unchanged data
     configData: null,
     layers: {

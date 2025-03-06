@@ -47,6 +47,13 @@ function showContextMenuMap(e) {
             "</div>",
             "<ul>",
                 "<li id='contextMenuMapCopyCoords'>Copy Coordinates</li>",
+                Object.keys(L_._toolCopyables).map((key, idx) => {
+                    const c = L_._toolCopyables[key]
+                    const items = []
+                    if( c.title && c.copyable)
+                    items.push(`<li id='contextMenuCopyable' key='${key}'>${c.title}</li>`)
+                    return items.join('\n')
+                }).join('\n'),
                 contextMenuActions.map((a, idx) => {
                     const items = []
                     if(a.for == null) {
@@ -89,10 +96,23 @@ function showContextMenuMap(e) {
     })
 
     $('#contextMenuMapCopyCoords').on('click', function () {
-        F_.copyToClipboard(JSON.stringify(Coordinates.getAllCoordinates()))
+        F_.copyToClipboard(
+            JSON.stringify(Coordinates.getAllCoordinates(), null, 2)
+        )
         $('#contextMenuMapCopyCoords').text('Copied!')
         setTimeout(function () {
             $('#contextMenuMapCopyCoords').text('Copy Coordinates')
+        }, 2000)
+    })
+
+    $('#contextMenuCopyable').on('click', function () {
+        const that = this
+        const key = $(that).attr('key')
+        const copyable = L_._toolCopyables[key]
+        F_.copyToClipboard(JSON.stringify(copyable.copyable, null, 2))
+        $(that).text('Copied!')
+        setTimeout(function () {
+            $(that).text(copyable.title)
         }, 2000)
     })
 
