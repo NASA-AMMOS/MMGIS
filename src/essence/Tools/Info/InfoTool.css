@@ -202,8 +202,8 @@
 }
 
 #infoToolData > li > div:first-child {
-    max-width: 86px;
-    min-width: 86px;
+    max-width: 33%;
+    min-width: 33%;
     color: white;
     text-overflow: ellipsis;
     overflow: hidden;
