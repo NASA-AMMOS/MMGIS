@@ -6,8 +6,11 @@ import Map_ from '../../Basics/Map_/Map_'
 import { Kinds } from '../../../pre/tools'
 import Dropy from '../../../external/Dropy/dropy'
 
+import Datasets from '../../Ancillary/Datasets'
 import Help from '../../Ancillary/Help'
 import ConfirmationModal from '../../Ancillary/ConfirmationModal'
+
+import tippy from 'tippy.js'
 
 import './InfoTool.css'
 
@@ -48,6 +51,9 @@ var markup = [
                 "<i class='mdi mdi-book-outline mdi-18px'></i>",
             "</div>",
         "</div>",
+        "<div id='infoToolSelectedDataset'>",
+            "<div id='infoToolSelectedDatasetDropdown'></div>",
+        "</div>",
         "<div id='infoToolContent'>",
             "<ul id='infoToolData'></ul>",
             "<div id='infoToolNoneSelected'>No feature selected</div>",
@@ -63,6 +69,7 @@ var InfoTool = {
     info: null,
     variables: null,
     activeFeatureI: null,
+    activeDatasetI: null,
     featureLayers: [],
     filterString: '',
     hiddenShown: false,
@@ -118,6 +125,7 @@ var InfoTool = {
                 activeIndex = foundI != -1 ? foundI : 0
             }
             this.activeFeatureI = activeIndex
+            this.activeDatasetI = 0
             this.initialEvent = initialEvent
 
             // Always highlight even if redundant
@@ -141,6 +149,17 @@ var InfoTool = {
         //Add the markup to tools or do it manually
         tools.html(markup)
 
+        tippy('#infoToolSelected', {
+            content: 'Select An Overlapping Feature',
+            placement: 'right',
+            theme: 'blue',
+        })
+        tippy('#infoToolSelectedDataset', {
+            content: 'Select An Associated Dataset',
+            placement: 'right',
+            theme: 'blue',
+        })
+
         Help.finalize(helpKey)
 
         $('#infoToolUnhideAll').css(
@@ -151,6 +170,7 @@ var InfoTool = {
         if (this.info == null || this.info.length == 0) {
             $('#infoToolHeader > .right').css('display', 'none')
             $('#infoToolSelected').css('display', 'none')
+            $('#infoToolSelectedDataset').css('display', 'none')
             $('#infoToolFilter').css('display', 'none')
             $('#infoToolNoneSelected').css('display', 'block')
             return
@@ -219,17 +239,24 @@ var InfoTool = {
         )
         Dropy.init($('#infoToolSelectedDropdown'), function (idx) {
             let e = JSON.parse(JSON.stringify(InfoTool.initialEvent))
-            Kinds.use(
-                L_.layers.data[InfoTool.currentLayerName]?.kind || null,
-                Map_,
-                InfoTool.info[idx],
+            Datasets.populateFromDataset(
                 InfoTool.featureLayers[idx] || InfoTool.currentLayer,
-                InfoTool.currentLayerName,
-                null,
-                e,
-                { idx: idx },
-                InfoTool.info,
-                InfoTool.featureLayers[idx] ? InfoTool.featureLayers : null
+                () => {
+                    Kinds.use(
+                        L_.layers.data[InfoTool.currentLayerName]?.kind || null,
+                        Map_,
+                        InfoTool.info[idx],
+                        InfoTool.featureLayers[idx] || InfoTool.currentLayer,
+                        InfoTool.currentLayerName,
+                        null,
+                        e,
+                        { idx: idx },
+                        InfoTool.info,
+                        InfoTool.featureLayers[idx]
+                            ? InfoTool.featureLayers
+                            : null
+                    )
+                }
             )
         })
 
@@ -378,6 +405,34 @@ var InfoTool = {
                 Area: F_.getFeatureArea(this.info[this.activeFeatureI], true),
             }
 
+        InfoTool.hasDataset = props._dataset != null
+        if (InfoTool.hasDataset) {
+            $('#infoToolSelectedDatasetDropdown').css('display', 'inherit')
+            const datasetNames = []
+            props._dataset.results.forEach((d) => {
+                let name = F_.getIn(d, props._dataset.prop.split('.'))
+                if (name != null)
+                    datasetNames.push(
+                        `${props._dataset.prop.split('.').slice(-1)}: ${name}`
+                    )
+            })
+            $('#infoToolSelectedDatasetDropdown').html(
+                Dropy.construct(
+                    datasetNames,
+                    `Dataset`,
+                    InfoTool.activeDatasetI
+                )
+            )
+            Dropy.init($('#infoToolSelectedDatasetDropdown'), function (idx) {
+                InfoTool.activeDatasetI = idx
+                InfoTool.createInfo()
+            })
+
+            props.Dataset = props._dataset.results[InfoTool.activeDatasetI]
+        } else {
+            $('#infoToolSelectedDatasetDropdown').css('display', 'none')
+        }
+
         depthTraversal(
             props,
             0,
@@ -396,6 +451,7 @@ var InfoTool = {
                 type = 'infoTool_hidden'
             else if (path[0] == 'Coordinates') type = 'infoTool_geometry'
             else if (path[0] == 'Metrics') type = 'infoTool_metrics'
+            else if (path[0] == '_dataset') return
 
             for (var i = 0; i < keys.length; i++) {
                 if (path.length == 0) {
@@ -515,6 +571,7 @@ var InfoTool = {
         $('#infoToolData').empty()
         $('#infoToolHeader > .right').css('display', 'none')
         $('#infoToolSelected').css('display', 'none')
+        $('#infoToolSelectedDataset').css('display', 'none')
         $('#infoToolFilter').css('display', 'none')
         $('#infoToolNoneSelected').css('display', 'block')
     },

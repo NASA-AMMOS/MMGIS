@@ -835,6 +835,13 @@
                   "description": "This is a property key already within the features properties. It's value will be searched for in the specified dataset column.",
                   "type": "text",
                   "width": 3
+                },
+                {
+                  "field": "displayProp",
+                  "name": "Connecting Feature Display Name Property",
+                  "description": "This is a property key within the returned dataset feature properties. This is effectively an optional second-order property key. In the case of multiple dataset row entries being returned, this is useful for users of the UI to be able to distinguish between them. If unset, defaults to the value of 'Connecting Feature Property'.",
+                  "type": "text",
+                  "width": 3
                 }
               ]
             }

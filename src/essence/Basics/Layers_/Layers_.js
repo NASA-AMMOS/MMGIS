@@ -2054,6 +2054,8 @@ const L_ = {
             const featureWithout_ = JSON.parse(JSON.stringify(f))
             if (featureWithout_.properties?._ != null)
                 delete featureWithout_.properties._
+            if (featureWithout_.properties?._dataset != null)
+                delete featureWithout_.properties._dataset
 
             for (let i = 0; i < layerKeys.length; i++) {
                 const l = layerKeys[i]
