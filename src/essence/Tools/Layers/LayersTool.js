@@ -1594,7 +1594,8 @@ function interfaceWithMMGIS(fromInit) {
                 layer.currentCogMin == null
                     ? layer.cogMin || 0
                     : layer.currentCogMin,
-                L_.layers.layer[layer.name].currentCogMax)
+                layer.currentCogMax
+            )
         }
         LayersTool.populateCogScale(layer.name)
         LegendTool.refreshLegends()
