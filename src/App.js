@@ -15,8 +15,24 @@ $(document).ready(function () {
             'scrollbar-width': 'thin',
         })
     }
+
+    calls.api(
+        'get_generaloptions',
+        {},
+        function (resp) {
+            mmgisglobal.options = resp.options
+            initApp()
+        },
+        function (err) {
+            mmgisglobal.options = {}
+            initApp()
+        }
+    )
+})
+
+function initApp() {
     if (window.mmgisglobal.FORCE_CONFIG_PATH) {
-        var u = window.location.href.split('?s=')
+        const u = window.location.href.split('?s=')
         if (!u[1]) {
             //Not a shortened URL
             LandingPage.init(null, false, window.mmgisglobal.FORCE_CONFIG_PATH)
@@ -28,7 +44,7 @@ $(document).ready(function () {
                 },
                 function (s) {
                     //Set and update the url
-                    var url = u[0] + s.body.url
+                    const url = u[0] + s.body.url
                     window.history.replaceState('', '', url)
 
                     LandingPage.init(
@@ -59,7 +75,7 @@ $(document).ready(function () {
         )
 
         function continueOn(missions) {
-            var u = window.location.href.split('?s=')
+            const u = window.location.href.split('?s=')
             if (!u[1]) {
                 //Not a shortened URL
                 LandingPage.init(missions)
@@ -71,7 +87,7 @@ $(document).ready(function () {
                     },
                     function (s) {
                         //Set and update the url
-                        var url = u[0] + s.body.url
+                        const url = u[0] + s.body.url
                         window.history.replaceState('', '', url)
                         LandingPage.init(missions)
                     },
@@ -82,7 +98,7 @@ $(document).ready(function () {
             }
         }
     }
-})
+}
 
 function App() {
     return <div className='App'></div>

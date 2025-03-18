@@ -40,6 +40,7 @@ import Datasets from "../../pages/Datasets/Datasets";
 import WebHooks from "../../pages/WebHooks/WebHooks";
 import APIs from "../../pages/APIs/APIs";
 import STAC from "../../pages/STAC/STAC";
+import GeneralOptions from "../../pages/GeneralOptions/GeneralOptions";
 
 const useStyles = makeStyles((theme) => ({
   Main: {
@@ -174,6 +175,9 @@ export default function Main() {
       break;
     case "stac":
       Page = <STAC />;
+      break;
+    case "general_options":
+      Page = <GeneralOptions />;
       break;
     default:
   }

@@ -5,6 +5,10 @@ const c = {
         type: 'GET',
         url: 'api/configure/get',
     },
+    get_generaloptions: {
+        type: 'GET',
+        url: 'api/configure/getGeneralOptions',
+    },
     missions: {
         type: 'GET',
         url: 'api/configure/missions',

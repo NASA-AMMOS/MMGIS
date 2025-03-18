@@ -15,6 +15,7 @@ import Button from "@mui/material/Button";
 import TextSnippetIcon from "@mui/icons-material/TextSnippet";
 import ShapeLineIcon from "@mui/icons-material/ShapeLine";
 import KeyIcon from "@mui/icons-material/Key";
+import SettingsIcon from "@mui/icons-material/Settings";
 import PhishingIcon from "@mui/icons-material/Phishing";
 import ApiIcon from "@mui/icons-material/Api";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
@@ -251,6 +252,19 @@ export default function Panel() {
             }}
           >
             Webhooks
+          </Button>
+
+          <Button
+            className={c.pageButton}
+            variant="contained"
+            disableElevation
+            startIcon={<SettingsIcon size="small" />}
+            onClick={() => {
+              dispatch(setMission(null));
+              dispatch(setPage({ page: "general_options" }));
+            }}
+          >
+            General Options
           </Button>
         </div>
       </div>

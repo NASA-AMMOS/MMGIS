@@ -13,6 +13,8 @@ const logger = require("../../../logger");
 const Config = require("../models/config");
 const config_template = require("../../../templates/config_template");
 
+const GeneralOptions = require("../../GeneralOptions/models/generaloptions");
+
 const validate = require("../validate");
 const populateUUIDs = require("../uuids");
 const Utils = require("../../../utils.js");
@@ -1249,5 +1251,81 @@ if (fullAccess)
       }
     );
   });
+
+if (fullAccess) {
+  router.post("/updateGeneralOptions", function (req, res, next) {
+    let optionsJSON;
+    if (typeof req.body.options === "string") {
+      try {
+        optionsJSON = JSON.parse(req.body.options);
+      } catch (err) {
+        res.send({
+          status: "failure",
+          message: "Stringified general options object is not JSON.",
+        });
+      }
+    } else optionsJSON = req.body.options;
+
+    GeneralOptions.upsert({
+      id: 1,
+      options: optionsJSON,
+    })
+      .then((upserted) => {
+        logger(
+          "info",
+          "Successfully updated the general options.",
+          req.originalUrl,
+          req
+        );
+        res.send({
+          status: "success",
+        });
+      })
+      .catch((err) => {
+        res.send({
+          status: "failure",
+          message: `Failed to update the general options.`,
+        });
+      });
+  });
+}
+
+function getGeneralOptions(req, res, next, cb) {
+  GeneralOptions.findOne({
+    where: {
+      id: 1,
+    },
+  })
+    .then((resp) => {
+      if (cb)
+        cb({
+          status: "success",
+          options: resp.options,
+        });
+      else
+        res.send({
+          status: "success",
+          options: resp.options,
+        });
+      return null;
+    })
+    .catch((err) => {
+      if (cb)
+        cb({
+          status: "success",
+          options: {},
+        });
+      else
+        res.send({
+          status: "success",
+          options: {},
+        });
+      return null;
+    });
+  return null;
+}
+router.get("/getGeneralOptions", function (req, res, next) {
+  getGeneralOptions(req, res, next);
+});
 
 module.exports = router;

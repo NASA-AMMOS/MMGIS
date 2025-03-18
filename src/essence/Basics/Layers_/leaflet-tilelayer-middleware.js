@@ -52,6 +52,22 @@ var colorFilterExtension = {
                         url.indexOf('?') === -1 ? '?' : '&'
                     }colormap_name=${this.options.cogColormap}`
                 }
+
+                if (mmgisglobal.options?.stac?.mosaicItemLimit != null) {
+                    url += `${url.indexOf('?') === -1 ? '?' : '&'}items_limit=${
+                        mmgisglobal.options.stac.mosaicItemLimit
+                    }`
+                }
+                if (mmgisglobal.options?.stac?.mosaicScanLimit != null) {
+                    url += `${url.indexOf('?') === -1 ? '?' : '&'}scan_limit=${
+                        mmgisglobal.options.stac.mosaicScanLimit
+                    }`
+                }
+                if (mmgisglobal.options?.stac?.mosaicTimeLimit != null) {
+                    url += `${url.indexOf('?') === -1 ? '?' : '&'}time_limit=${
+                        mmgisglobal.options.stac.mosaicTimeLimit
+                    }`
+                }
             }
         }
 

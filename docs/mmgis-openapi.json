@@ -50,9 +50,9 @@
         "tags": ["Webpages"]
       }
     },
-    "/configure-beta": {
+    "/configure-legacy": {
       "get": {
-        "summary": "MMGIS Configure CMS (BETA)",
+        "summary": "MMGIS Configure CMS (legacy)",
         "responses": {
           "200": {
             "description": "OK",
@@ -741,6 +741,63 @@
                       "message": "Failed to remove layers. Layer not found.",
                       "unableToRemoveUUIDs": "example_unable_to_remove_uuids"
                     }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/configure/getGeneralOptions": {
+      "get": {
+        "summary": "Get the system-wide configured options",
+        "tags": ["Configure"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Get general options response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "options": {},
+                    "status": "success"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/configure/updateGeneralOptions": {
+      "post": {
+        "summary": "Update the system-wide configured options. Fully replaces the existing general options.",
+        "tags": ["Configure"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Update general options response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "status": "success"
+                  },
+                  "failure": {
+                    "status": "failure",
+                    "message": "Failed to update the general options."
                   }
                 }
               }
