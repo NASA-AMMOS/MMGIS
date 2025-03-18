@@ -133,7 +133,7 @@ export default function Panel() {
         <div className={c.title}>
           <img className={c.titleImage} src={mmgisLogo} alt="MMGIS"></img>
           <div className={c.configurationName}>
-            Configuration <span>BETA</span>
+            <span>Config</span>uration
           </div>
         </div>
         <div className={c.newMission}>

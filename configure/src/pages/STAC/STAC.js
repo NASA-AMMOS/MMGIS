@@ -443,7 +443,7 @@ export default function STAC() {
                                 window
                                   .open(
                                     `${window.location.pathname
-                                      .replace(`/configure-beta`, "")
+                                      .replace(`/configure`, "")
                                       .replace(/^\//g, "")}/stac/collections/${
                                       row.id
                                     }`,
@@ -465,7 +465,7 @@ export default function STAC() {
                                 window
                                   .open(
                                     `${window.location.pathname
-                                      .replace(`/configure-beta`, "")
+                                      .replace(`/configure`, "")
                                       .replace(/^\//g, "")}/stac/collections/${
                                       row.id
                                     }/items`,

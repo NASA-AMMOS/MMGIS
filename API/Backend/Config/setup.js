@@ -9,7 +9,7 @@ let setup = {
       process.env.HIDE_CONFIG != "true"
     ) {
       s.app.get(
-        s.ROOT_PATH + "/configure",
+        s.ROOT_PATH + "/configure-legacy",
         s.ensureGroup(s.permissions.users),
         s.ensureAdmin(true),
         (req, res) => {
@@ -35,7 +35,7 @@ let setup = {
       );
 
       s.app.get(
-        s.ROOT_PATH + "/configure-beta",
+        s.ROOT_PATH + "/configure",
         s.ensureGroup(s.permissions.users),
         s.ensureAdmin(true),
         (req, res) => {

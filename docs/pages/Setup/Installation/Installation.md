@@ -159,7 +159,7 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
 
 1. Run `npm run build` to bundle up the code (first time or if there are any changes)
 
-1. Go into /configure and run `npm install` followed by `npm run build` to build the beta configuration site.
+1. Go into /configure and run `npm install` followed by `npm run build` to build the configuration site.
 
 1. Go back to the root `/` directory
 
