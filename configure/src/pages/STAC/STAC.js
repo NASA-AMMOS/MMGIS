@@ -39,6 +39,7 @@ import UploadIcon from "@mui/icons-material/Upload";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import AddIcon from "@mui/icons-material/Add";
 import HorizontalSplitIcon from "@mui/icons-material/HorizontalSplit";
+import SettingsIcon from "@mui/icons-material/Settings";
 
 import NewStacCollectionModal from "./Modals/NewStacCollectionModal/NewStacCollectionModal";
 import DeleteStacCollectionModal from "./Modals/DeleteStacCollectionModal/DeleteStacCollectionModal";
@@ -46,6 +47,7 @@ import LayersUsedByModal from "./Modals/LayersUsedByModal/LayersUsedByModal";
 import PreviewGeoDatasetModal from "./Modals/PreviewGeoDatasetModal/PreviewGeoDatasetModal";
 import AppendGeoDatasetModal from "./Modals/AppendGeoDatasetModal/AppendGeoDatasetModal";
 import UpdateGeoDatasetModal from "./Modals/UpdateGeoDatasetModal/UpdateGeoDatasetModal";
+import StacSettingsModal from "./Modals/StacSettingsModal/StacSettingsModal";
 
 function descendingComparator(a, b, orderBy) {
   if (b[orderBy] < a[orderBy]) {
@@ -280,17 +282,28 @@ function EnhancedTableToolbar(props) {
           {`1) Create a Collection. 2) Add COG Items to the Collection. See MMGIS/auxiliary/stac for script examples. 3) Set a Tile Layer URL to 'stac-collection:{collection_name}'`}
         </Typography>
       </div>
+      <div>
+        <Tooltip title="Global STAC Settings" placement="bottom" arrow>
+          <IconButton
+            onClick={() => {
+              dispatch(setModal({ name: "stacSettings" }));
+            }}
+          >
+            <SettingsIcon fontSize="inherit" />
+          </IconButton>
+        </Tooltip>
 
-      <Button
-        variant="contained"
-        className={c.addButton}
-        endIcon={<AddIcon />}
-        onClick={() => {
-          dispatch(setModal({ name: "newStacCollection" }));
-        }}
-      >
-        New Collection
-      </Button>
+        <Button
+          variant="contained"
+          className={c.addButton}
+          endIcon={<AddIcon />}
+          onClick={() => {
+            dispatch(setModal({ name: "newStacCollection" }));
+          }}
+        >
+          New Collection
+        </Button>
+      </div>
     </Toolbar>
   );
 }
@@ -532,6 +545,7 @@ export default function STAC() {
       <PreviewGeoDatasetModal />
       <AppendGeoDatasetModal querySTAC={querySTAC} />
       <UpdateGeoDatasetModal querySTAC={querySTAC} />
+      <StacSettingsModal />
     </>
   );
 }
