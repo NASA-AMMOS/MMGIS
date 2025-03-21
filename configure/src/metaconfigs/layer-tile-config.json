@@ -262,6 +262,57 @@
       ]
     },
     {
+      "name": "Style",
+      "rows": [
+        {
+          "name": "Filters",
+          "components": [
+            {
+              "field": "style.brightness",
+              "name": "Brightness",
+              "description": "The brightness filter applies a linear multiplier over the tile layer, making it appear brighter or darker. A value of 0 renders a completely black image. A value of 1 leaves the image unchanged. A value greater than 1 brightens. Default 1.",
+              "type": "slider",
+              "default": 1,
+              "min": 0,
+              "max": 3,
+              "step": 0.05,
+              "width": 3
+            },
+            {
+              "field": "style.contrast",
+              "name": "Contrast",
+              "description": "The contrast filter adjusts the contrast of the tile layer. A value of 0 renders a completely gray image. A value of 1 leaves the image unchanged. A value greater than 1 exaggerates the contrast. Default 1.",
+              "type": "slider",
+              "default": 1,
+              "min": 0,
+              "max": 4,
+              "step": 0.05,
+              "width": 3
+            },
+            {
+              "field": "style.saturation",
+              "name": "Saturation",
+              "description": "The saturation filter super-saturates or desaturates the colors of the tile layer. A value of 0 renders a greyscale image. A value of 1 leaves the image unchanged. A value greater than 1 super-saturates. Default 1.",
+              "type": "slider",
+              "default": 1,
+              "min": 0,
+              "max": 4,
+              "step": 0.05,
+              "width": 3
+            },
+            {
+              "field": "style.blend",
+              "name": "Blend",
+              "description": "Specifies how this tile layer should blend with the tile layers beneath it. Default 'none'.",
+              "type": "dropdown",
+              "width": 3,
+              "options": ["none", "color", "overlay"]
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Time",
       "rows": [
         {

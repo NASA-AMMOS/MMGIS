@@ -224,12 +224,28 @@ var LayersTool = {
         let layer = L_.asLayerUUID(layerName)
         layer = L_.layers.data[layer]
         if (L_.layers.layer[layer.name] === null) return
-        if (!layer.url.startsWith('stac-collection:') && layer.type !== 'image' && layer.type !== 'velocity') return
-        if (layer.cogTransform !== true && (layer.url.startsWith('stac-collection:') || layer.type === 'image')) return
-        if (layer.type === 'image' && (L_.layers.layer[layer.name].hasOwnProperty('georasters') && L_.layers.layer[layer.name].georasters[0].numberOfRasters !== 1)) return
+        if (
+            !layer.url.startsWith('stac-collection:') &&
+            layer.type !== 'image' &&
+            layer.type !== 'velocity'
+        )
+            return
+        if (
+            layer.cogTransform !== true &&
+            (layer.url.startsWith('stac-collection:') || layer.type === 'image')
+        )
+            return
+        if (
+            layer.type === 'image' &&
+            L_.layers.layer[layer.name].hasOwnProperty('georasters') &&
+            L_.layers.layer[layer.name].georasters[0].numberOfRasters !== 1
+        )
+            return
 
         const dynamicLegendConf = []
-        const imgElement = document.getElementById(`titlerCogColormapImage_${L_.asLayerUUID(layerName)}`)
+        const imgElement = document.getElementById(
+            `titlerCogColormapImage_${L_.asLayerUUID(layerName)}`
+        )
         const canvasElement = document.createElement('canvas')
         document.body.appendChild(canvasElement)
         canvasElement.style.display = 'none'
@@ -245,7 +261,8 @@ var LayersTool = {
         const max =
             layer.currentCogMax == null ? layer.cogMax : layer.currentCogMax
         for (let i = 0; i < 9; i++) {
-            let value = Math.round(F_.linearScale([0, 8], [min, max], i) * 100) / 100
+            let value =
+                Math.round(F_.linearScale([0, 8], [min, max], i) * 100) / 100
             let label = `${
                 Math.round(F_.linearScale([0, 8], [min, max], i) * 100) / 100
             }${layer.cogUnits || ''}`
@@ -263,11 +280,18 @@ var LayersTool = {
                     1
                 ).data
                 color = `rgb(${c[0]}, ${c[1]}, ${c[2]})`
-            } else if (layer.type === 'image' || layer.type === 'velocity' || !imgElement) {
+            } else if (
+                layer.type === 'image' ||
+                layer.type === 'velocity' ||
+                !imgElement
+            ) {
                 const layerColormap = ['tile', 'image'].includes(layer.type)
                     ? layer.cogColormap
-                    : layer?.variables?.streamlines?.colorScale;
-                let { colormap, reverse } = LayersTool.findJSColormap(layer, layerColormap)
+                    : layer?.variables?.streamlines?.colorScale
+                let { colormap, reverse } = LayersTool.findJSColormap(
+                    layer,
+                    layerColormap
+                )
 
                 let scaledPixelValue
                 if (min !== undefined && max !== undefined) {
@@ -314,7 +338,7 @@ var LayersTool = {
         $('.tilerescalecogmax').val(max)
     },
     findJSColormap: function (layer, layerColormap) {
-        if (!(['image', 'tile', 'velocity'].includes(layer.type))) return
+        if (!['image', 'tile', 'velocity'].includes(layer.type)) return
 
         let colormap
         // Default to predefined values if the layer's colormap value is invalid
@@ -333,9 +357,9 @@ var LayersTool = {
             reverse = true
         }
 
-        let index = Object.keys(colormapData).findIndex(v => {
-            return v.toLowerCase() === colormap.toLowerCase();
-        });
+        let index = Object.keys(colormapData).findIndex((v) => {
+            return v.toLowerCase() === colormap.toLowerCase()
+        })
 
         if (index > -1) {
             colormap = Object.keys(colormapData)[index]
@@ -526,28 +550,45 @@ function interfaceWithMMGIS(fromInit) {
                     if (currentOpacity == null)
                         currentOpacity = L_.layers.opacity[node[i].name]
 
-                    currentBrightness = 1
-                    currentContrast = 1
-                    currentSaturation = 1
-                    currentBlend = 'none'
+                    currentBrightness =
+                        node[i]?.style?.brightness != null
+                            ? node[i].style.brightness
+                            : 1
+                    const defaultBrightness = currentBrightness
+                    currentContrast =
+                        node[i]?.style?.contrast != null
+                            ? node[i].style.contrast
+                            : 1
+                    const defaultContrast = currentContrast
+                    currentSaturation =
+                        node[i]?.style?.saturation != null
+                            ? node[i].style.saturation
+                            : 1
+                    const defaultSaturation = currentSaturation
+                    currentBlend =
+                        node[i]?.style?.blend != null
+                            ? node[i].style.blend
+                            : 'none'
+                    const defaultBlend = currentBlend
+
                     if (L_.layers.filters[node[i].name]) {
                         let f = L_.layers.filters[node[i].name]
 
                         currentBrightness =
                             f['brightness'] == null
-                                ? 1
+                                ? currentBrightness
                                 : parseFloat(f['brightness'])
                         currentContrast =
                             f['contrast'] == null
-                                ? 1
+                                ? currentContrast
                                 : parseFloat(f['contrast'])
                         currentSaturation =
                             f['saturate'] == null
-                                ? 1
+                                ? currentSaturation
                                 : parseFloat(f['saturate'])
                         currentBlend =
                             f['mix-blend-mode'] == null
-                                ? 'none'
+                                ? currentBlend
                                 : f['mix-blend-mode']
                     }
 
@@ -557,7 +598,7 @@ function interfaceWithMMGIS(fromInit) {
                         typeof node[i].url === 'string' &&
                         node[i].url.split(':')[0] === 'stac-collection'
                     ) {
-                        if (window.mmgisglobal.WITH_TITILER === "true") {
+                        if (window.mmgisglobal.WITH_TITILER === 'true') {
                             // prettier-ignore
                             additionalSettings = [
                                 `<img id="titlerCogColormapImage_${node[i].name}" src="${window.location.origin}${(
@@ -565,14 +606,22 @@ function interfaceWithMMGIS(fromInit) {
                                         ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap}?format=png"></img>`,
                             ].join('\n')
                         } else {
-                            let { colormap, reverse } = LayersTool.findJSColormap(node[i], node[i].cogColormap)
+                            let { colormap, reverse } =
+                                LayersTool.findJSColormap(
+                                    node[i],
+                                    node[i].cogColormap
+                                )
 
-                            additionalSettings = (colormapData[colormap].colors).map(
-                                (hex) => {
-                                    let rgb = hex.map(v => {return Math.floor(v * 255)}).join(',')
-                                    return `<div style="background: rgb(${rgb}); width: 20px; height: 100%; margin: 0px; flex-grow: 1;"></div>`;
-                                }
-                            )
+                            additionalSettings = colormapData[
+                                colormap
+                            ].colors.map((hex) => {
+                                let rgb = hex
+                                    .map((v) => {
+                                        return Math.floor(v * 255)
+                                    })
+                                    .join(',')
+                                return `<div style="background: rgb(${rgb}); width: 20px; height: 100%; margin: 0px; flex-grow: 1;"></div>`
+                            })
 
                             if (reverse === true) {
                                 additionalSettings.reverse()
@@ -640,25 +689,25 @@ function interfaceWithMMGIS(fromInit) {
                             '<li>',
                                 '<div>',
                                     '<div>Brightness</div>',
-                                        '<input class="tilefilterslider slider2" filter="brightness" unit="%" layername="' + node[i].name + '" type="range" min="0" max="3" step="0.05" value="' + currentBrightness + '" default="1">',
+                                        '<input class="tilefilterslider slider2" filter="brightness" unit="%" layername="' + node[i].name + '" type="range" min="0" max="3" step="0.05" value="' + currentBrightness + '" default="' + defaultBrightness + '">',
                                 '</div>',
                             '</li>',
                             '<li>',
                                 '<div>',
                                     '<div>Contrast</div>',
-                                    '<input class="tilefilterslider slider2" filter="contrast" unit="%" layername="' + node[i].name + '" type="range" min="0" max="4" step="0.05" value="' + currentContrast + '" default="1">',
+                                    '<input class="tilefilterslider slider2" filter="contrast" unit="%" layername="' + node[i].name + '" type="range" min="0" max="4" step="0.05" value="' + currentContrast + '" default="' + defaultContrast + '">',
                                 '</div>',
                             '</li>',
                             '<li>',
                                 '<div>',
                                     '<div>Saturation</div>',
-                                    '<input class="tilefilterslider slider2" filter="saturate" unit="%" layername="' + node[i].name + '" type="range" min="0" max="4" step="0.05" value="' + currentSaturation + '" default="1">',
+                                    '<input class="tilefilterslider slider2" filter="saturate" unit="%" layername="' + node[i].name + '" type="range" min="0" max="4" step="0.05" value="' + currentSaturation + '" default="' + defaultSaturation + '">',
                                 '</div>',
                             '</li>',
                             '<li>',
                                 '<div>',
                                     '<div>Blend</div>',
-                                    '<select class="tileblender dropdown" layername="' + node[i].name + '">',
+                                    '<select class="tileblender dropdown" layername="' + node[i].name + '" defaultBlend="' + defaultBlend + '">',
                                         '<option value="unset"' + (currentBlend == 'none' ? ' selected' : '') + '>None</option>',
                                         '<option value="color"' + (currentBlend == 'color' ? ' selected' : '') + '>Color</option>',
                                         //'<option value="color-burn">Color Burn</option>',
@@ -771,9 +820,10 @@ function interfaceWithMMGIS(fromInit) {
                         node[i].cogTransform === true &&
                         typeof node[i].url === 'string' &&
                         L_.layers.layer[node[i].name].georasters &&
-                        L_.layers.layer[node[i].name].georasters[0].numberOfRasters === 1
+                        L_.layers.layer[node[i].name].georasters[0]
+                            .numberOfRasters === 1
                     ) {
-                        if (window.mmgisglobal.WITH_TITILER === "true") {
+                        if (window.mmgisglobal.WITH_TITILER === 'true') {
                             // prettier-ignore
                             additionalSettings = [
                                 `<img id="titlerCogColormapImage_${node[i].name}" src="${window.location.origin}${(
@@ -781,14 +831,22 @@ function interfaceWithMMGIS(fromInit) {
                                         ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap}?format=png"></img>`,
                             ].join('\n')
                         } else {
-                            let { colormap, reverse } = LayersTool.findJSColormap(node[i], node[i].cogColormap)
+                            let { colormap, reverse } =
+                                LayersTool.findJSColormap(
+                                    node[i],
+                                    node[i].cogColormap
+                                )
 
-                            additionalSettings = (colormapData[colormap].colors).map(
-                                (hex) => {
-                                    let rgb = hex.map(v => {return Math.floor(v * 255)}).join(',')
-                                    return `<div style="background: rgb(${rgb}); width: 20px; height: 100%; margin: 0px; flex-grow: 1;"></div>`;
-                                }
-                            )
+                            additionalSettings = colormapData[
+                                colormap
+                            ].colors.map((hex) => {
+                                let rgb = hex
+                                    .map((v) => {
+                                        return Math.floor(v * 255)
+                                    })
+                                    .join(',')
+                                return `<div style="background: rgb(${rgb}); width: 20px; height: 100%; margin: 0px; flex-grow: 1;"></div>`
+                            })
 
                             if (reverse === true) {
                                 additionalSettings.reverse()
@@ -800,7 +858,6 @@ function interfaceWithMMGIS(fromInit) {
                                 '</div>',
                             ].join('\n')
                         }
-
 
                         // prettier-ignore
                         additionalSettings = [
@@ -858,7 +915,7 @@ function interfaceWithMMGIS(fromInit) {
                             additionalSettings,
                     ]
 
-/*
+                    /*
                     let min = null, max = null
                     if (node[i].variables && node[i].variables.image) {
                         min = node[i].variables.image.defaults[1].min
@@ -881,10 +938,7 @@ function interfaceWithMMGIS(fromInit) {
                         }
                     }
 */
-                    settings = [
-                        settings.join('\n'),
-                        '</ul>'
-                    ].join('\n')
+                    settings = [settings.join('\n'), '</ul>'].join('\n')
                     break
                 default:
                     settings = ''
@@ -992,8 +1046,11 @@ function interfaceWithMMGIS(fromInit) {
                     }
 
                     // Populate the legends for tile (COG), image, and velocity layers
-                    if ((['image', 'tile'].includes(node[i].type) && node[i].cogTransform)
-                            || node[i].type === 'velocity') {
+                    if (
+                        (['image', 'tile'].includes(node[i].type) &&
+                            node[i].cogTransform) ||
+                        node[i].type === 'velocity'
+                    ) {
                         LayersTool.populateCogScale(node[i].name)
                     }
 
@@ -1474,7 +1531,10 @@ function interfaceWithMMGIS(fromInit) {
             $(this).val($(this).attr('default'))
         })
 
-        li.find('.tileblender').val('unset')
+        let defaultBlend =
+            li.find('.tileblender').attr('defaultBlend') || 'unset'
+        if (defaultBlend == 'none') defaultBlend = 'unset'
+        li.find('.tileblender').val(defaultBlend)
     })
 
     $('.resetCog').on('click', function () {
@@ -2053,10 +2113,7 @@ function interfaceWithMMGIS(fromInit) {
         const layerData = L_.layers.data[layerName]
         if (vMin == null || vMax == null) return
 
-        const imageInfo =  F_.getIn(
-            L_.layers.data[layerName],
-            'variables.image'
-        )
+        const imageInfo = F_.getIn(L_.layers.data[layerName], 'variables.image')
 
         layer.currentCogMin = vMin
         layer.currentCogMax = vMax
@@ -2065,18 +2122,21 @@ function interfaceWithMMGIS(fromInit) {
         $('.imagerange.stylevalue').attr('v', vMin + ',' + vMax)
         var range = vMax - vMin
 
-        var { colormap, reverse } = LayersTool.findJSColormap(layerData, layerData.cogColormap)
+        var { colormap, reverse } = LayersTool.findJSColormap(
+            layerData,
+            layerData.cogColormap
+        )
 
         let pixelValuesToColorFn = (values) => {
             let georaster = layer.options.georaster
-            var pixelValue = values[0]; // single band
+            var pixelValue = values[0] // single band
 
             // don't return a color
             if (georaster.noDataValue && georaster.noDataValue === pixelValue) {
-                return null;
+                return null
             }
             // scale from 0 - 1
-            var scaledPixelValue = (pixelValue - vMin) / range;
+            var scaledPixelValue = (pixelValue - vMin) / range
             if (!(scaledPixelValue >= 0 && scaledPixelValue <= 1)) {
                 if (imageInfo && imageInfo.fillMinMax) {
                     if (scaledPixelValue <= 0) {
@@ -2089,7 +2149,11 @@ function interfaceWithMMGIS(fromInit) {
                 }
             }
 
-            return evaluate_cmap(scaledPixelValue, colormap || IMAGE_DEFAULT_COLOR_RAMP, reverse)
+            return evaluate_cmap(
+                scaledPixelValue,
+                colormap || IMAGE_DEFAULT_COLOR_RAMP,
+                reverse
+            )
         }
 
         // Clear the cache so when zooming in/out, the old pixel colors are not cached

@@ -1179,6 +1179,44 @@ async function makeTileLayer(layerObj) {
     })
     L_.layers.layer[layerObj.name].off('load')
     L_.layers.layer[layerObj.name].on('load', () => {
+        // Set default css filters for tile layer
+        if (
+            layerObj.style?.brightness != null &&
+            L_.layers.filters[layerObj.name]?.brightness == null
+        )
+            L_.setLayerFilter(
+                layerObj.name,
+                'brightness',
+                layerObj.style.brightness
+            )
+        if (
+            layerObj.style?.contrast != null &&
+            L_.layers.filters[layerObj.name]?.contrast == null
+        )
+            L_.setLayerFilter(
+                layerObj.name,
+                'contrast',
+                layerObj.style.contrast
+            )
+        if (
+            layerObj.style?.saturation != null &&
+            L_.layers.filters[layerObj.name]?.saturation == null
+        )
+            L_.setLayerFilter(
+                layerObj.name,
+                'saturation',
+                layerObj.style.saturation
+            )
+        if (
+            layerObj.style?.blend != null &&
+            L_.layers.filters[layerObj.name]?.blend == null
+        )
+            L_.setLayerFilter(
+                layerObj.name,
+                'mix-blend-mode',
+                layerObj.style.blend
+            )
+
         L_.setGlobalLoaded(layerObj.name)
     })
     allLayersLoaded()
