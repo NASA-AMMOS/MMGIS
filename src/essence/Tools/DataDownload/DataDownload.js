@@ -1,10 +1,12 @@
 //New Tool Template
 import $ from 'jquery'
 import * as d3 from 'd3'
+import * as moment from 'moment'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
 import Help from '../../Ancillary/Help'
+import TimeControl from '../../Ancillary/TimeControl'
 import Dropy from '../../../external/Dropy/dropy'
 import { TempusDominus, Namespace } from '@eonasdan/tempus-dominus'
 
@@ -66,6 +68,7 @@ const DataDownload = {
     MMGISInterface: null,
     downloadEnabledLayers: [],
     selectedLayerIdx: 0,
+    currBounds: null,
     currDrawing: null,
     dateRangeTempus: null,
     areaSelectionLayer: null,
@@ -93,6 +96,7 @@ const DataDownload = {
         })
 
         // init change listener
+        DataDownload.setSelectedArea(Map_.map.getBounds())
         $('#downloadAreaInput').on('change', () => {
             const subText = $('#downloadAreaInput').val()
             if (subText) {
@@ -168,9 +172,51 @@ const DataDownload = {
             document.getElementById('downloadDateRange'),
             dateOptions
         )
+        DataDownload.dateRangeTempus.dates.formatInput = function (date) {
+            return moment(date).format('MM/DD/yyyy, hh:mm A')
+        }
+        const tempusDates = DataDownload.dateRangeTempus.dates
+        tempusDates.setValue(tempusDates.parseInput(new Date(TimeControl.startTime)), 0)
+        tempusDates.setValue(tempusDates.parseInput(new Date(TimeControl.endTime)), 1)
 
         DataDownload.dateRangeTempus.subscribe(Namespace.events.change, (e) => {
             DataDownload.enableDownload()
+        })
+        TimeControl.timeUI.startTempus.subscribe(Namespace.events.change, (e) => {
+            tempusDates.setValue(tempusDates.parseInput(new Date(TimeControl.startTime)), 0)
+        });
+        TimeControl.timeUI.endTempus.subscribe(Namespace.events.change, (e) => {
+            tempusDates.setValue(tempusDates.parseInput(new Date(TimeControl.endTime)), 1)
+        });
+
+        $('#dataDownload_submit').on('click', () => {
+            const layer =
+                DataDownload.downloadEnabledLayers[
+                    DataDownload.selectedLayerIdx
+                ]
+            const renderedLayer = L_.layers.layer[layer.name]
+            const dates = DataDownload.dateRangeTempus.dates.getFirst()
+            if (renderedLayer) {
+                // TODO start here and figure out how to get the download links
+                console.log(layer, renderedLayer)
+                const filteredItems = []
+                renderedLayer.eachLayer((rl) => {
+                    if (rl.getBounds().intersects(DataDownload.currBounds)) {
+                        if (layer.time.enabled) {
+                            const startProp = layer.time.startProp
+                            const rlTime = new Date(
+                                rl.feature.properties[startProp]
+                            )
+                            if (rlTime > dates[0] && rlTime < dates[1]) {
+                                filteredItems.push(rl)
+                            }
+                        }
+                    }
+                })
+                console.log(filteredItems)
+            } else {
+                console.warn('Could not find layer on map')
+            }
         })
 
         DataDownload.enableDownload()
@@ -194,21 +240,7 @@ const DataDownload = {
     },
     drawAreaStop: function (ctx) {
         const bounds = ctx.layer._bounds
-        const minX = _round(bounds.getSouthWest().lng)
-        const minY = _round(bounds.getSouthWest().lat)
-        const maxX = _round(bounds.getNorthEast().lng)
-        const maxY = _round(bounds.getNorthEast().lat)
-        const bbox_str = `${minX}, ${minY}, ${maxX}, ${maxY}`
-
-        $('#downloadAreaInput').val(bbox_str)
-
-        if (DataDownload.areaSelectionLayer) {
-            Map_.map.removeLayer(DataDownload.areaSelectionLayer)
-        }
-
-        const layer = L.rectangle(bounds, { ...drawStyle, interactive: false })
-        Map_.map.addLayer(layer)
-        DataDownload.areaSelectionLayer = layer
+        DataDownload.setSelectedArea(bounds)
 
         DataDownload.drawAreaEnd()
 
@@ -231,12 +263,14 @@ const DataDownload = {
         const layer = L.rectangle(bounds, { ...drawStyle, interactive: false })
         Map_.map.addLayer(layer)
         DataDownload.areaSelectionLayer = layer
+        DataDownload.currBounds = bounds
     },
     clearSelectedArea: function () {
         if (DataDownload.areaSelectionLayer) {
             Map_.map.removeLayer(DataDownload.areaSelectionLayer)
         }
         DataDownload.areaSelectionLayer = null
+        DataDownload.currBounds = null
 
         $('#downloadAreaInput').val('')
 
@@ -275,8 +309,6 @@ const DataDownload = {
         return ''
     },
 }
-
-// TODO - Make a subsetting download tool
 
 function _round(num, prec = 4) {
     return Number(Math.round(num + 'e' + prec) + 'e-' + prec)
