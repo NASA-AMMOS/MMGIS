@@ -1448,6 +1448,12 @@ function makeDataLayer(layerObj) {
 
 function makeImageLayer(layerObj) {
     let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
+    if (!F_.isUrlAbsolute(layerUrl)) {
+        layerUrl =
+            `${window.location.origin}${(
+                window.location.pathname || ''
+            ).replace(/\/$/g, '')}/${layerUrl}`
+    }
 
     let bb = null
     if (layerObj.hasOwnProperty('boundingBox')) {
