@@ -1447,8 +1447,7 @@ function makeDataLayer(layerObj) {
 }
 
 function makeImageLayer(layerObj) {
-    let layerUrl = layerObj.url
-    if (!F_.isUrlAbsolute(layerUrl)) layerUrl = L_.missionPath + layerUrl
+    let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
 
     let bb = null
     if (layerObj.hasOwnProperty('boundingBox')) {
@@ -1492,17 +1491,13 @@ function makeImageLayer(layerObj) {
                     isNaN(parseFloat(layerObj.cogMin)) ||
                     isNaN(parseFloat(layerObj.cogMax))
                 ) {
-                    let path
-                    if (layerObj.url.startsWith('http')) path = layerObj.url
-                    else path = 'Missions/' + L_.mission + '/' + layerObj.url
-
                     // Try to get the min and max values using gdal if the user did not input min/max in the layer config
                     $.ajax({
                         type: calls.getminmax.type,
                         url: calls.getminmax.url,
                         data: {
                             type: 'minmax',
-                            path: calls.getprofile.pathprefix + path,
+                            path: calls.getprofile.pathprefix + layerUrl,
                             bands: '[1]', // Assume the geotiff images only have a single band
                         },
                         async: false,
