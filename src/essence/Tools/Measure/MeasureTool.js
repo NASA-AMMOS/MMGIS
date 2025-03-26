@@ -121,8 +121,6 @@ const Measure = () => {
     // Compute line of sight for each segment and then merge back together
     recomputeLineOfSight()
 
-    console.log(MeasureTool)
-
     return (
         <div
             className='MeasureTool'
@@ -218,7 +216,7 @@ const Measure = () => {
                     </div>
                 </div>
                 <div id='measureObserverHeight'>
-                    <div>Observer Height</div>
+                    <div>&nbsp;&nbsp;&nbsp;Observer Height</div>
                     <div className='flexbetween'>
                         <input
                             type='number'
@@ -233,7 +231,7 @@ const Measure = () => {
                     </div>
                 </div>
                 <div id='measureTargetHeight'>
-                    <div>Target Height</div>
+                    <div>&nbsp;&nbsp;&nbsp;Target Height</div>
                     <div className='flexbetween'>
                         <input
                             type='number'
@@ -247,33 +245,31 @@ const Measure = () => {
                         <div className='measureToolInputUnit'>m</div>
                     </div>
                 </div>
-                {MeasureTool.vars?.showSpeed === true && (
-                    <div id='measureSpeed'>
-                        <div>Travel Speed</div>
-                        <div className='flexbetween'>
-                            <input
-                                type='number'
-                                min={0}
-                                defaultValue={0}
-                                placeholder={0}
-                                id='measureSpeedInput'
-                                onChange={MeasureTool.changeSpeed}
-                            />
+                <div id='measureSpeed'>
+                    <div>Travel Speed</div>
+                    <div className='flexbetween'>
+                        <input
+                            type='number'
+                            min={0}
+                            defaultValue={0}
+                            placeholder={0}
+                            id='measureSpeedInput'
+                            onChange={MeasureTool.changeSpeed}
+                        />
 
-                            <select
-                                className='dropdown'
-                                defaultValue='100'
-                                onChange={MeasureTool.changeSpeedUnit}
-                            >
-                                <option value='m/s'>m/s</option>
-                                <option value='km/h'>km/h</option>
-                                <option value='mph'>mph</option>
-                                <option value='kt'>kt</option>
-                                <option value='ft/s'>ft/s</option>
-                            </select>
-                        </div>
+                        <select
+                            className='dropdown'
+                            defaultValue='100'
+                            onChange={MeasureTool.changeSpeedUnit}
+                        >
+                            <option value='m/s'>m/s</option>
+                            <option value='km/h'>km/h</option>
+                            <option value='mph'>mph</option>
+                            <option value='kt'>kt</option>
+                            <option value='ft/s'>ft/s</option>
+                        </select>
                     </div>
-                )}
+                </div>
             </div>
             <div
                 id='measureGraph'
@@ -586,6 +582,24 @@ const Measure = () => {
                                         }`
                                     )
                                     .css({ opacity: 1 })
+
+                                $('#measureInfoSpeed > div:last-child')
+                                    .text(
+                                        MeasureTool.speed != null &&
+                                            MeasureTool.speed != 0
+                                            ? `${MeasureTool.speed}${MeasureTool.speedUnit}`
+                                            : 'N/A'
+                                    )
+                                    .css({ opacity: 1 })
+
+                                $('#measureInfoArrives > div:last-child')
+                                    .text(
+                                        MeasureTool.speed != null &&
+                                            MeasureTool.speed != 0
+                                            ? getArrivesStringFromDistance(d[2])
+                                            : 'N/A'
+                                    )
+                                    .css({ opacity: 1 })
                             }
                         },
                     }}
@@ -636,6 +650,14 @@ const Measure = () => {
                 </div>
                 <div id='measureInfoVis' className='measure-info-elm'>
                     <div>Visible</div>
+                    <div>--</div>
+                </div>
+                <div id='measureInfoSpeed' className='measure-info-elm'>
+                    <div>Speed</div>
+                    <div>--</div>
+                </div>
+                <div id='measureInfoArrives' className='measure-info-elm'>
+                    <div>Arrives in</div>
                     <div>--</div>
                 </div>
             </div>
@@ -1092,6 +1114,8 @@ let MeasureTool = {
         $('#measureInfo2d > div:last-child').css({ opacity: 0 })
         $('#measureInfo3d > div:last-child').css({ opacity: 0 })
         $('#measureInfoVis > div:last-child').css({ opacity: 0 })
+        $('#measureInfoSpeed > div:last-child').css({ opacity: 0 })
+        $('#measureInfoArrives > div:last-child').css({ opacity: 0 })
     },
     download: function (e) {
         const header = [
@@ -1257,20 +1281,9 @@ function makeMeasureToolLayer() {
 
                 let timeToArrival = ''
                 if (MeasureTool.speed != null && MeasureTool.speed != 0) {
-                    let speed = F_.speedToMetersPerSeconds(
-                        MeasureTool.speed,
-                        MeasureTool.speedUnit
-                    )
-                    const duration = moment.duration((dist / speed) * 1000)
-                    const dDays = duration.get('days')
-                    const dHrs = duration.get('hours')
-                    const dMins = duration.get('minutes')
-                    const dSecs = duration.get('seconds')
-                    timeToArrival = ` | Arrives in 
-                    ${isNaN(dDays) || dDays === 0 ? '' : `${dDays} days, `}
-                    ${isNaN(dHrs) || dHrs === 0 ? '' : `${dHrs} hours, `}
-                    ${isNaN(dMins) || dMins === 0 ? '' : `${dMins} min, `}
-                    ${isNaN(dSecs) || dSecs === 0 ? '' : `${dSecs} sec`} `
+                    timeToArrival = ` | Arrives in ${getArrivesStringFromDistance(
+                        dist
+                    )} (at ${MeasureTool.speed}${MeasureTool.speedUnit})`
                 }
                 if (distDisplayUnit == 'kilometers') {
                     dist = (roundedTotalDist / 1000).toFixed(2)
@@ -1696,33 +1709,13 @@ function makeGhostLine(lng, lat) {
         let timeToArrivalTotal = ''
         let timeToArrival = ''
         if (MeasureTool.speed != null && MeasureTool.speed != 0) {
-            let speed = F_.speedToMetersPerSeconds(
-                MeasureTool.speed,
-                MeasureTool.speedUnit
-            )
-            let duration = moment.duration((dist / speed) * 1000)
-            let dDays = duration.get('days')
-            let dHrs = duration.get('hours')
-            let dMins = duration.get('minutes')
-            let dSecs = duration.get('seconds')
-            timeToArrival = `
-<span style="font-size: 12px; font-weight: unset; color: var(--color-a5); letter-spacing: 1px;">                 +(${
-                isNaN(dDays) || dDays === 0 ? '' : `${dDays} day, `
-            }${isNaN(dHrs) || dHrs === 0 ? '' : `${dHrs} hour, `}${
-                isNaN(dMins) || dMins === 0 ? '' : `${dMins} min, `
-            }${isNaN(dSecs) || dSecs === 0 ? '' : `${dSecs} sec`})</span>`
-
-            duration = moment.duration((distTotal / speed) * 1000)
-            dDays = duration.get('days')
-            dHrs = duration.get('hours')
-            dMins = duration.get('minutes')
-            dSecs = duration.get('seconds')
+            timeToArrival = `<span style="font-size: 12px; font-weight: unset; color: var(--color-a5); letter-spacing: 1px;"> (+${getArrivesStringFromDistance(
+                dist
+            )})</span>`
             timeToArrivalTotal = `
-<span style="font-size: 13px; font-weight: unset; color: var(--color-h); letter-spacing: 1px;">Arrives in: ${
-                isNaN(dDays) || dDays === 0 ? '' : `${dDays} day, `
-            }${isNaN(dHrs) || dHrs === 0 ? '' : `${dHrs} hour, `}${
-                isNaN(dMins) || dMins === 0 ? '' : `${dMins} min, `
-            }${isNaN(dSecs) || dSecs === 0 ? '' : `${dSecs} sec`}</span>`
+<span style="font-size: 13px; font-weight: unset; color: var(--color-h); letter-spacing: 1px;">Arrives in: ${getArrivesStringFromDistance(
+                distTotal
+            )}</span>`
         }
         if (distDisplayUnit == 'kilometers') {
             distTotal = (roundedTotalDist / 1000).toFixed(2)
@@ -1731,10 +1724,12 @@ function makeGhostLine(lng, lat) {
         }
         CursorInfo.update(
             `Distance: ${distTotal}${distUnit} ${
-                mode === 'continuous' ? `(+${dist}${distUnit})` : ''
+                mode === 'continuous'
+                    ? `<span style="font-size: 12px; font-weight: unset; color: var(--color-a5); letter-spacing: 1px;">(+${dist}${distUnit})</span>`
+                    : ''
             }
 <span style="font-size: 14px; font-weight: unset; color: var(--color-a6); ">Angle${
-                mode === 'continuous' ? ' from start' : ''
+                mode === 'continuous' ? ' (from start)' : ''
             }: ${distAzimuth}&deg;</span>${timeToArrivalTotal}${
                 mode === 'continuous' ? timeToArrival : ''
             }`,
@@ -1746,6 +1741,29 @@ function makeGhostLine(lng, lat) {
             true
         )
     }
+}
+
+function getArrivesStringFromDistance(dist, abbreviated) {
+    let speed = F_.speedToMetersPerSeconds(
+        MeasureTool.speed,
+        MeasureTool.speedUnit
+    )
+    let duration = moment.duration((dist / speed) * 1000)
+    let dDays = duration.get('days')
+    let dHrs = duration.get('hours')
+    let dMins = duration.get('minutes')
+    let dSecs = duration.get('seconds')
+
+    if (dDays === 0) {
+        if (dHrs === 0) {
+            if (dMins === 0) {
+                return `${dSecs}s`
+            }
+            return `${dMins}m ${dSecs}s`
+        }
+        return `${dHrs}h ${dMins}m ${dSecs}s`
+    }
+    return `${dDays}D ${dHrs}h ${dMins}m ${dSecs}s`
 }
 
 function totalDistToIndex(l) {

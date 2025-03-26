@@ -2057,6 +2057,8 @@ var Formulae_ = {
             case 'kt':
             case 'kn':
                 return speed / 1.9438444924
+            case 'ft/s':
+                return speed / 3.280839895
             default:
                 console.warn(`Unknown speed conversion unit: ${fromUnit}`)
                 return speed
@@ -2076,6 +2078,8 @@ var Formulae_ = {
             case 'kt':
             case 'kn':
                 return speed * 1.9438444924
+            case 'ft/s':
+                return speed * 3.280839895
             default:
                 console.warn(`Unknown speed conversion unit: ${toUnit}`)
                 return speed
