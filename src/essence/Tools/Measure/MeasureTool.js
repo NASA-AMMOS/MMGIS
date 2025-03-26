@@ -16,6 +16,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Chart } from 'chart.js'
 import { Line } from 'react-chartjs-2'
 import zoomPlugin from 'chartjs-plugin-zoom'
+import * as moment from 'moment'
 
 import './MeasureTool.css'
 
@@ -119,6 +120,8 @@ const Measure = () => {
 
     // Compute line of sight for each segment and then merge back together
     recomputeLineOfSight()
+
+    console.log(MeasureTool)
 
     return (
         <div
@@ -244,6 +247,33 @@ const Measure = () => {
                         <div className='measureToolInputUnit'>m</div>
                     </div>
                 </div>
+                {MeasureTool.vars?.showSpeed === true && (
+                    <div id='measureSpeed'>
+                        <div>Travel Speed</div>
+                        <div className='flexbetween'>
+                            <input
+                                type='number'
+                                min={0}
+                                defaultValue={0}
+                                placeholder={0}
+                                id='measureSpeedInput'
+                                onChange={MeasureTool.changeSpeed}
+                            />
+
+                            <select
+                                className='dropdown'
+                                defaultValue='100'
+                                onChange={MeasureTool.changeSpeedUnit}
+                            >
+                                <option value='m/s'>m/s</option>
+                                <option value='km/h'>km/h</option>
+                                <option value='mph'>mph</option>
+                                <option value='kt'>kt</option>
+                                <option value='ft/s'>ft/s</option>
+                            </select>
+                        </div>
+                    </div>
+                )}
             </div>
             <div
                 id='measureGraph'
@@ -633,7 +663,7 @@ const Measure = () => {
 }
 
 let MeasureTool = {
-    height: 217,
+    height: 243,
     width: 'full',
     disableLayerInteractions: true,
     vars: {},
@@ -644,6 +674,8 @@ let MeasureTool = {
     mapFocusMarker: null,
     dems: [],
     activeDemIdx: 0,
+    speed: null,
+    speedUnit: 'm/s',
     colorRamp: [
         '#e60049',
         '#0bb4ff',
@@ -1047,6 +1079,12 @@ let MeasureTool = {
             makeMeasureToolLayer()
         }
     },
+    changeSpeed: function (e) {
+        MeasureTool.speed = e.target.value
+    },
+    changeSpeedUnit: function (e) {
+        MeasureTool.speedUnit = e.target.value
+    },
     clearInfo: function () {
         $('#measureInfoLng > div:last-child').css({ opacity: 0 })
         $('#measureInfoLat > div:last-child').css({ opacity: 0 })
@@ -1214,31 +1252,39 @@ function makeMeasureToolLayer() {
                 ) / rAm
             if (distAzimuth < 0) distAzimuth = 360 + distAzimuth //Map to 0 to 360 degrees
             if (i == clickedLatLngs.length - 1) {
-                if (distDisplayUnit == 'meters') {
-                    temp.bindTooltip(
-                        '' + roundedTotalDist + 'm ' + distAzimuth + '&deg;',
-                        {
-                            permanent: true,
-                            direction: 'right',
-                            className: 'distLabel',
-                            offset: [4, 0],
-                        }
+                let dist = roundedTotalDist
+                let distUnit = 'm'
+
+                let timeToArrival = ''
+                if (MeasureTool.speed != null && MeasureTool.speed != 0) {
+                    let speed = F_.speedToMetersPerSeconds(
+                        MeasureTool.speed,
+                        MeasureTool.speedUnit
                     )
-                } else if (distDisplayUnit == 'kilometers') {
-                    temp.bindTooltip(
-                        '' +
-                            (roundedTotalDist / 1000).toFixed(2) +
-                            'km ' +
-                            distAzimuth +
-                            '&deg;',
-                        {
-                            permanent: true,
-                            direction: 'right',
-                            className: 'distLabel',
-                            offset: [4, 0],
-                        }
-                    )
+                    const duration = moment.duration((dist / speed) * 1000)
+                    const dDays = duration.get('days')
+                    const dHrs = duration.get('hours')
+                    const dMins = duration.get('minutes')
+                    const dSecs = duration.get('seconds')
+                    timeToArrival = ` | Arrives in 
+                    ${isNaN(dDays) || dDays === 0 ? '' : `${dDays} days, `}
+                    ${isNaN(dHrs) || dHrs === 0 ? '' : `${dHrs} hours, `}
+                    ${isNaN(dMins) || dMins === 0 ? '' : `${dMins} min, `}
+                    ${isNaN(dSecs) || dSecs === 0 ? '' : `${dSecs} sec`} `
                 }
+                if (distDisplayUnit == 'kilometers') {
+                    dist = (roundedTotalDist / 1000).toFixed(2)
+                    distUnit = 'km'
+                }
+                temp.bindTooltip(
+                    `${dist}${distUnit} | ${distAzimuth}&deg;${timeToArrival}`,
+                    {
+                        permanent: true,
+                        direction: 'right',
+                        className: 'distLabel',
+                        offset: [4, 0],
+                    }
+                )
             }
         }
         pointsAndPathArr.push(temp)
@@ -1642,33 +1688,63 @@ function makeGhostLine(lng, lat) {
         //distMousePoint.bindTooltip("" + roundedTotalDist + "m\n (+" + roundedDist + "m) " + distAzimuth + "&deg;",
         //  {permanent: true, direction: 'right', className: "distLabel", className: "noPointerEvents", offset: [15,-15]})
         //distMousePoint.addTo(Map_.map);
-        if (distDisplayUnit == 'meters') {
-            CursorInfo.update(
-                `${roundedTotalDist}m ${
-                    mode === 'continuous' ? `(+${roundedDist}m)` : ''
-                } ${distAzimuth}&deg;`,
-                null,
-                false,
-                null,
-                null,
-                null,
-                true
+
+        let distTotal = roundedTotalDist
+        let dist = roundedDist
+        let distUnit = 'm'
+
+        let timeToArrivalTotal = ''
+        let timeToArrival = ''
+        if (MeasureTool.speed != null && MeasureTool.speed != 0) {
+            let speed = F_.speedToMetersPerSeconds(
+                MeasureTool.speed,
+                MeasureTool.speedUnit
             )
-        } else if (distDisplayUnit == 'kilometers') {
-            CursorInfo.update(
-                `${(roundedTotalDist / 1000).toFixed(2)}km ${
-                    mode === 'continuous'
-                        ? `(+${(roundedDist / 1000).toFixed(2)}km)`
-                        : ''
-                } ${distAzimuth}&deg;`,
-                null,
-                false,
-                null,
-                null,
-                null,
-                true
-            )
+            let duration = moment.duration((dist / speed) * 1000)
+            let dDays = duration.get('days')
+            let dHrs = duration.get('hours')
+            let dMins = duration.get('minutes')
+            let dSecs = duration.get('seconds')
+            timeToArrival = `
+<span style="font-size: 12px; font-weight: unset; color: var(--color-a5); letter-spacing: 1px;">                 +(${
+                isNaN(dDays) || dDays === 0 ? '' : `${dDays} day, `
+            }${isNaN(dHrs) || dHrs === 0 ? '' : `${dHrs} hour, `}${
+                isNaN(dMins) || dMins === 0 ? '' : `${dMins} min, `
+            }${isNaN(dSecs) || dSecs === 0 ? '' : `${dSecs} sec`})</span>`
+
+            duration = moment.duration((distTotal / speed) * 1000)
+            dDays = duration.get('days')
+            dHrs = duration.get('hours')
+            dMins = duration.get('minutes')
+            dSecs = duration.get('seconds')
+            timeToArrivalTotal = `
+<span style="font-size: 13px; font-weight: unset; color: var(--color-h); letter-spacing: 1px;">Arrives in: ${
+                isNaN(dDays) || dDays === 0 ? '' : `${dDays} day, `
+            }${isNaN(dHrs) || dHrs === 0 ? '' : `${dHrs} hour, `}${
+                isNaN(dMins) || dMins === 0 ? '' : `${dMins} min, `
+            }${isNaN(dSecs) || dSecs === 0 ? '' : `${dSecs} sec`}</span>`
         }
+        if (distDisplayUnit == 'kilometers') {
+            distTotal = (roundedTotalDist / 1000).toFixed(2)
+            dist = (roundedDist / 1000).toFixed(2)
+            distUnit = 'km'
+        }
+        CursorInfo.update(
+            `Distance: ${distTotal}${distUnit} ${
+                mode === 'continuous' ? `(+${dist}${distUnit})` : ''
+            }
+<span style="font-size: 14px; font-weight: unset; color: var(--color-a6); ">Angle${
+                mode === 'continuous' ? ' from start' : ''
+            }: ${distAzimuth}&deg;</span>${timeToArrivalTotal}${
+                mode === 'continuous' ? timeToArrival : ''
+            }`,
+            null,
+            false,
+            null,
+            null,
+            null,
+            true
+        )
     }
 }
 

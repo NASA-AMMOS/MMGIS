@@ -80,6 +80,18 @@
                         "options": ["segment", "continuous", "continuous_color"]
                     }
                 ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.showSpeed",
+                        "name": "Show Speed",
+                        "description": "If true, enables users to input a speed and receive a simple time-to-destination along the line of measurement.",
+                        "type": "checkbox",
+                        "width": 2,
+                        "defaultChecked": false
+                    }
+                ]
             }
         ]
     }
