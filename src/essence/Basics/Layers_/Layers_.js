@@ -587,13 +587,16 @@ const L_ = {
                         }
 
                         if (s.type === 'image') {
-                            L_.layers.layer[s.name].clearCache()
-                            L_.layers.layer[s.name].updateColors(
-                                L_.layers.layer[s.name].options
-                                    .pixelValuesToColorFn
-                            )
-                            // Redraw the layer or the image will not refresh again unless zooming in/out
-                            L_.layers.layer[s.name].redraw()
+                            if (L_.layers.layer[s.name].options.pixelValuesToColorFn
+                                && L_.layers.layer[s.name].options.pixelValuesToColorFn !== null) {
+                                L_.layers.layer[s.name].clearCache()
+                                L_.layers.layer[s.name].updateColors(
+                                    L_.layers.layer[s.name].options
+                                        .pixelValuesToColorFn
+                                )
+                                // Redraw the layer or the image will not refresh again unless zooming in/out
+                                L_.layers.layer[s.name].redraw()
+                            }
                         }
 
                         if (s.type === 'vector') {
