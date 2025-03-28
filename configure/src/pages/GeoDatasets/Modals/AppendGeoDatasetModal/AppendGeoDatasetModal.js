@@ -5,6 +5,8 @@ import { calls } from "../../../../core/calls";
 
 import { setModal, setSnackBarText } from "../../../../core/ConfigureStore";
 
+import { LineNavigator } from "../../../../external/line-navigator.js";
+
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -12,10 +14,12 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
+import LinearProgress from "@mui/material/LinearProgress";
 
 import CloseSharpIcon from "@mui/icons-material/CloseSharp";
 import ControlPointDuplicateIcon from "@mui/icons-material/ControlPointDuplicate";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
 import { useDropzone } from "react-dropzone";
 
@@ -41,7 +45,8 @@ const useStyles = makeStyles((theme) => ({
   contents: {
     background: theme.palette.primary.main,
     height: "100%",
-    width: "600px",
+    width: "700px",
+    maxWidth: "700px !important",
   },
   heading: {
     height: theme.headHeights[2],
@@ -137,6 +142,33 @@ const useStyles = makeStyles((theme) => ({
       marginLeft: "5px",
     },
   },
+  fileprogress: {
+    width: "100%",
+    height: "4px",
+  },
+  progressbar: {
+    flex: 1,
+  },
+  progressPercent: {},
+  largeFileNotice: {
+    display: "flex",
+    justifyContent: "space-between",
+    border: `1px solid ${theme.palette.swatches.p[11]}`,
+    background: "#effbf8",
+    color: theme.palette.swatches.grey[300],
+    borderRadius: "3px",
+    padding: "10px",
+    fontSize: "14px",
+    "& > div:first-child": {
+      padding: "0px 16px 0px 8px",
+      margin: "auto",
+    },
+    "& > div:last-child": {},
+  },
+  largeFileIcon: {
+    color: theme.palette.swatches.p[11],
+    fontSize: "32px !important",
+  },
 }));
 
 const MODAL_NAME = "appendGeoDataset";
@@ -155,6 +187,9 @@ const AppendGeoDatasetModal = (props) => {
   const [fileName, setFileName] = useState(null);
   const [startTimeField, setStartTimeField] = useState(null);
   const [endTimeField, setEndTimeField] = useState(null);
+  const [fileProgress, setFileProgress] = useState(false);
+  const [progress, setProgress] = useState(false);
+  const [progressPercent, setProgressPercent] = useState(false);
 
   useEffect(() => {
     setStartTimeField(modal?.geoDataset?.start_time_field);
@@ -193,27 +228,122 @@ const AppendGeoDatasetModal = (props) => {
     if (startTimeField) forceParams.start_prop = startTimeField;
     if (endTimeField) forceParams.end_prop = endTimeField;
 
-    calls.api(
-      "geodatasets_append",
-      {
-        urlReplacements: {
-          name: geoDatasetName,
-        },
-        forceParams,
-        type: geojson.type,
-        features: geojson.features,
-      },
-      (res) => {
-        if (res.status === "success") {
-          dispatch(
-            setSnackBarText({
-              text: "Successfully appended to GeoDataset.",
-              severity: "success",
-            })
+    setProgress(true);
+    if (geojson instanceof File) {
+      const navigator = new LineNavigator(geojson);
+
+      let firstPass = true;
+      // === Reading exact amount of lines ===
+      let indexToStartWith = 0;
+      const numberOfLines = 5000;
+      navigator.readLines(
+        indexToStartWith,
+        numberOfLines,
+        function linesReadHandler(err, index, lines, isEof, progress) {
+          // Error happened
+          if (err) throw err;
+
+          const features = [];
+          // Reading lines
+          for (let i = 0; i < lines.length; i++) {
+            try {
+              features.push(JSON.parse(lines[i]));
+            } catch (err) {}
+          }
+
+          // progress is a position of the last read line as % from whole file length
+          setProgressPercent(progress);
+
+          calls.api(
+            "geodatasets_recreate",
+            {
+              name: geoDatasetName,
+              startProp: startTimeField,
+              endProp: endTimeField,
+              geojson: {
+                type: "FeatureCollection",
+                features: features,
+              },
+              filename: fileName,
+              action: "append",
+            },
+            (res) => {
+              firstPass = false;
+              if (isEof) {
+                setProgress(false);
+                setProgressPercent(false);
+                if (res.status === "success") {
+                  dispatch(
+                    setSnackBarText({
+                      text: "Successfully appended to GeoDataset.",
+                      severity: "success",
+                    })
+                  );
+                  queryGeoDatasets();
+                  handleClose();
+                } else {
+                  dispatch(
+                    setSnackBarText({
+                      text: res?.message || "Failed to append to GeoDataset.",
+                      severity: "error",
+                    })
+                  );
+                }
+              } else {
+                // Reading next chunk, adding number of lines read to first line in current chunk
+                navigator.readLines(
+                  index + lines.length,
+                  numberOfLines,
+                  linesReadHandler
+                );
+              }
+            },
+            (res) => {
+              setProgress(false);
+              setProgressPercent(false);
+              dispatch(
+                setSnackBarText({
+                  text: res?.message || "Failed to append to GeoDataset.",
+                  severity: "error",
+                })
+              );
+            }
           );
-          queryGeoDatasets();
-          handleClose();
-        } else {
+        }
+      );
+    } else {
+      calls.api(
+        "geodatasets_append",
+        {
+          urlReplacements: {
+            name: geoDatasetName,
+          },
+          forceParams,
+          type: geojson.type,
+          features: geojson.features,
+        },
+        (res) => {
+          setProgress(false);
+          if (res.status === "success") {
+            dispatch(
+              setSnackBarText({
+                text: "Successfully appended to GeoDataset.",
+                severity: "success",
+              })
+            );
+            queryGeoDatasets();
+            handleClose();
+          } else {
+            dispatch(
+              setSnackBarText({
+                text: res?.message || "Failed to append to GeoDataset.",
+                severity: "error",
+              })
+            );
+          }
+        },
+        (res) => {
+          setProgress(false);
           dispatch(
             setSnackBarText({
               text: res?.message || "Failed to append to GeoDataset.",
@@ -221,16 +351,8 @@ const AppendGeoDatasetModal = (props) => {
             })
           );
         }
-      },
-      (res) => {
-        dispatch(
-          setSnackBarText({
-            text: res?.message || "Failed to append to GeoDataset.",
-            severity: "error",
-          })
-        );
-      }
-    );
+      );
+    }
   };
 
   // Dropzone initialization
@@ -243,19 +365,31 @@ const AppendGeoDatasetModal = (props) => {
   } = useDropzone({
     maxFiles: 1,
     accept: {
-      "application/json": [".json", ".geojson"],
+      "application/json": [".json", ".geojson", ".ndjson", ".ndgeojson"],
     },
     onDropAccepted: (files) => {
       const file = files[0];
       setFileName(file.name);
+      const nameSplit = file.name.split(".");
+      setFileProgress(true);
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setGeojson(JSON.parse(e.target.result));
-      };
-      reader.readAsText(file);
+      if (
+        nameSplit[nameSplit.length - 1].toLowerCase() === "ndjson" ||
+        nameSplit[nameSplit.length - 1].toLowerCase() === "ndgeojson"
+      ) {
+        setGeojson(file);
+        setFileProgress(false);
+      } else {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setGeojson(JSON.parse(e.target.result));
+          setFileProgress(false);
+        };
+        reader.readAsText(file);
+      }
     },
     onDropRejected: () => {
+      setFileProgress(false);
       setFileName(null);
       setGeojson(null);
     },
@@ -302,10 +436,18 @@ const AppendGeoDatasetModal = (props) => {
             {!isDragActive && (
               <div className={c.dropzoneMessage}>
                 <p>Drag 'n' drop or click to select files...</p>
-                <p>Only *.json and *.geojson files are accepted.</p>
+                <p>
+                  Only *.json and *.geojson, *.ndjson and *.ndgeojson files are
+                  accepted.
+                </p>
               </div>
             )}
           </div>
+        </div>
+        <div className={c.fileprogress}>
+          {fileProgress == true && (
+            <LinearProgress className={c.progressbar} variant="indeterminate" />
+          )}
         </div>
 
         <div className={c.fileName}>
@@ -343,12 +485,33 @@ const AppendGeoDatasetModal = (props) => {
             </Typography>
           </div>
         </div>
+
+        <div className={c.largeFileNotice}>
+          <div>
+            <InfoOutlinedIcon className={c.largeFileIcon} />
+          </div>
+          <div>
+            Note: Appending geojson files greater than 500mb will likely fail.
+            To append larger files, first convert your geojson file into a
+            GeoJSONSeq/ndjson/ndgeojson (new-line delimited geojson) file with
+            either `node /MMGIS/auxiliary/geojson2ndgeojson input.geojson` or
+            `ogr2ogr -of GeoJSONSeq output.ndgeojson input.geojson` and upload
+            its result instead.
+          </div>
+        </div>
       </DialogContent>
       <DialogActions>
+        {progress == true && (
+          <LinearProgress className={c.progressbar} variant="indeterminate" />
+        )}
+        {progress == true && progressPercent != false && (
+          <div className={c.progressPercent}>{progressPercent + "%"}</div>
+        )}
         <Button
           className={c.addSelected}
           variant="contained"
           onClick={handleSubmit}
+          disabled={fileProgress === true || progress === true}
         >
           Append to GeoDataset
         </Button>

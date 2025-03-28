@@ -23,7 +23,7 @@ const useStyles = makeStyles((theme) => ({
   },
   right: {
     height: "100%",
-    flex: 1,
+    width: "calc(100% - 220px)",
     position: "relative",
   },
 }));

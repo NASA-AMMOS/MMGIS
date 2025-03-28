@@ -26,9 +26,13 @@ function get(reqtype, req, res, next) {
   let layer = null;
   let type = "geojson";
   let xyz = {};
+  let _source = null; // Works just like ES _source
+
   if (reqtype == "post") {
     layer = req.body.layer;
     type = req.body.type || type;
+    if (req.body._source && Array.isArray(req.body._source))
+      _source = req.body._source;
     if (type == "mvt") {
       xyz = {
         x: parseInt(req.body.x),
@@ -39,6 +43,8 @@ function get(reqtype, req, res, next) {
   } else if (reqtype == "get") {
     layer = req.query.layer;
     type = req.query.type || type;
+    if (req.query._source && typeof req.query._source === "string")
+      _source = req.query._source.split(",");
     if (type == "mvt") {
       xyz = {
         x: parseInt(req.query.x),
@@ -53,7 +59,17 @@ function get(reqtype, req, res, next) {
       if (result) {
         let table = result.dataValues.table;
         if (type == "geojson") {
-          let q = `SELECT properties, ST_AsGeoJSON(geom), id FROM ${Utils.forceAlphaNumUnder(
+          let properties = "properties";
+          if (Array.isArray(_source)) {
+            properties = `jsonb_build_object(
+            ${_source
+              .map((v, i) => {
+                return `'prop_${i}', properties->'prop_${i}'`;
+              })
+              .join(",")} 
+            ) AS properties`;
+          }
+          let q = `SELECT ${properties}, ST_AsGeoJSON(geom), id FROM ${Utils.forceAlphaNumUnder(
             table
           )}`;
 
@@ -128,14 +144,21 @@ function get(reqtype, req, res, next) {
           }
           q += `;`;
 
+          const replacements = {
+            startProp: startProp,
+            start_time: start_time,
+            endProp: endProp,
+            end_time: end_time,
+          };
+          if (Array.isArray(_source)) {
+            _source.array.forEach((v, i) => {
+              replacements[`prop_${i}`] = v;
+            });
+          }
+
           sequelize
             .query(q, {
-              replacements: {
-                startProp: startProp,
-                start_time: start_time,
-                endProp: endProp,
-                end_time: end_time,
-              },
+              replacements: replacements,
             })
             .then(([results]) => {
               let geojson = { type: "FeatureCollection", features: [] };
@@ -551,6 +574,8 @@ router.post("/append/:name", function (req, res, next) {
     name: req.params.name,
     startProp: req.query.start_prop || null,
     endProp: req.query.end_prop || null,
+    groupIdProp: req.query.group_id_prop || null,
+    featureIdProp: req.query.feature_id_prop || null,
     filename: req.query.filename || null,
     geojson: typeof req.body === "string" ? JSON.parse(req.body) : req.body,
     action: "append",
@@ -563,6 +588,8 @@ router.post("/append/:name/:start_end_prop", function (req, res, next) {
     name: req.params.name,
     startProp: req.params.start_end_prop.split(",")[0] || null,
     endProp: req.params.start_end_prop.split(",")[1] || null,
+    groupIdProp: null,
+    featureIdProp: null,
     geojson: req.body,
     action: "append",
   };
@@ -574,6 +601,8 @@ router.post("/recreate/:name", function (req, res, next) {
     name: req.params.name,
     startProp: null,
     endProp: null,
+    groupIdProp: null,
+    featureIdProp: null,
     geojson: req.body,
     action: "recreate",
   };
@@ -585,6 +614,8 @@ router.post("/recreate/:name/:start_end_prop", function (req, res, next) {
     name: req.params.name,
     startProp: req.params.start_end_prop.split(",")[0] || null,
     endProp: req.params.start_end_prop.split(",")[1] || null,
+    groupIdProp: null,
+    featureIdProp: null,
     geojson: req.body,
     action: "recreate",
   };
@@ -598,6 +629,8 @@ router.post("/recreate", function (req, res, next) {
 function recreate(req, res, next) {
   let startProp = req.body.startProp;
   let endProp = req.body.endProp;
+  let groupIdProp = req.body.groupIdProp;
+  let featureIdProp = req.body.featureIdProp;
   let filename = req.body.filename;
 
   let features = null;
@@ -620,7 +653,14 @@ function recreate(req, res, next) {
   } else {
     startProp = req?.body?.geojson?.startProp || startProp;
     endProp = req?.body?.geojson?.endProp || endProp;
+    groupIdProp = req?.body?.geojson?.groupIdProp || groupIdProp;
+    featureIdProp = req?.body?.geojson?.featureIdProp || featureIdProp;
   }
+
+  if (startProp == "") startProp = null;
+  if (endProp == "") endProp = null;
+  if (groupIdProp == "") groupIdProp = null;
+  if (featureIdProp == "") featureIdProp = null;
 
   makeNewGeodatasetTable(
     req.body.name,
@@ -628,7 +668,9 @@ function recreate(req, res, next) {
     features.length,
     startProp,
     endProp,
-    res?.body?.action || null,
+    groupIdProp,
+    featureIdProp,
+    req?.body?.action || null,
     function (result) {
       let checkEnding = result.table.split("_");
       if (checkEnding[checkEnding.length - 1] !== "geodatasets") {
@@ -657,6 +699,8 @@ function recreate(req, res, next) {
             features,
             startProp,
             endProp,
+            groupIdProp,
+            featureIdProp,
             function (success) {
               res.send({
                 status: success == true ? "success" : "failure",
@@ -679,7 +723,15 @@ function recreate(req, res, next) {
   );
 }
 
-function populateGeodatasetTable(Table, features, startProp, endProp, cb) {
+function populateGeodatasetTable(
+  Table,
+  features,
+  startProp,
+  endProp,
+  groupIdProp,
+  featureIdProp,
+  cb
+) {
   let rows = [];
 
   for (var i = 0; i < features.length; i++) {
@@ -699,6 +751,35 @@ function populateGeodatasetTable(Table, features, startProp, endProp, cb) {
       end_time = new Date(end_time).getTime();
       end_time = isNaN(end_time) ? null : end_time;
     }
+
+    // group_id can be comma-separated to merge various props into one. i.e. "track,frame"
+    let group_id = null;
+    if (groupIdProp != null) {
+      const vals = [];
+      groupIdProp.split(",").forEach((v) => {
+        vals.push(Utils.getIn(features[i].properties, v, null));
+      });
+      group_id = vals.join(",");
+      if (group_id == "") group_id = null;
+      if (group_id != null) {
+        group_id = String(group_id);
+      }
+    }
+
+    // feature_id can be comma-separated to merge various props into one. i.e. "track,id"
+    let feature_id = null;
+    if (featureIdProp != null) {
+      const vals = [];
+      featureIdProp.split(",").forEach((v) => {
+        vals.push(Utils.getIn(features[i].properties, v, null));
+      });
+      feature_id = vals.join(",");
+      if (feature_id == "") feature_id = null;
+      if (feature_id != null) {
+        feature_id = String(feature_id);
+      }
+    }
+
     const row = {
       properties: features[i].properties,
       geometry_type: features[i].geometry.type,
@@ -708,8 +789,12 @@ function populateGeodatasetTable(Table, features, startProp, endProp, cb) {
         coordinates: features[i].geometry.coordinates,
       },
     };
+
     if (startProp) row.start_time = start_time;
     if (endProp) row.end_time = end_time;
+    if (groupIdProp) row.group_id = group_id;
+    if (featureIdProp) row.feature_id = feature_id;
+
     rows.push(row);
   }
 

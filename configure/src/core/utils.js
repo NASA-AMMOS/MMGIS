@@ -196,3 +196,10 @@ export const downloadObject = (
     downloadAnchorNode.remove();
   }
 };
+
+export const trimString = (string, length) => {
+  if (typeof string !== "string") return string;
+  return string.length > length
+    ? string.substring(0, length).trimEnd() + "..."
+    : string;
+};
