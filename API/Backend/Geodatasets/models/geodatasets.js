@@ -169,8 +169,7 @@ function makeNewGeodatasetTable(
                         `${result.dataValues.table}_group_id_idx`
                       )} on ${Utils.forceAlphaNumUnder(
                         result.dataValues.table
-                      )} USING gist "(group_id)"
-                        };`,
+                      )} USING gist (group_id);`,
                       {
                         replacements: {},
                       }
@@ -185,8 +184,7 @@ function makeNewGeodatasetTable(
                         `${result.dataValues.table}_feature_id_idx`
                       )} on ${Utils.forceAlphaNumUnder(
                         result.dataValues.table
-                      )} USING gist "(feature_id)"
-                        };`,
+                      )} USING gist (feature_id);`,
                       {
                         replacements: {},
                       }

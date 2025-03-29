@@ -328,6 +328,8 @@ router.post("/entries", function (req, res, next) {
             num_features: sets[i].num_features,
             start_time_field: sets[i].start_time_field,
             end_time_field: sets[i].end_time_field,
+            group_id_field: sets[i].group_id_field,
+            feature_id_field: sets[i].feature_id_field,
           });
         }
         // For each entry, list all occurrences in latest configuration objects

@@ -101,7 +101,7 @@ const useStyles = makeStyles((theme) => ({
     "& td:first-child": {
       fontWeight: "bold",
       letterSpacing: "1px",
-      fontSize: "16px",
+      fontSize: "15px",
       color: `${theme.palette.swatches.p[13]}`,
     },
   },
@@ -183,8 +183,9 @@ const useStyles = makeStyles((theme) => ({
   },
   th: {
     fontWeight: "bold !important",
+    lineHeight: "1rem !important",
+    fontSize: "12px !important",
     textTransform: "uppercase",
-    letterSpacing: "1px !important",
     backgroundColor: `${theme.palette.swatches.grey[1000]} !important`,
     borderRight: `1px solid ${theme.palette.swatches.grey[900]}`,
   },
@@ -214,6 +215,14 @@ const headCells = [
   {
     id: "end_time_field",
     label: "End Time Field",
+  },
+  {
+    id: "group_id_field",
+    label: "Group Id Field",
+  },
+  {
+    id: "feature_id_field",
+    label: "Feature Id Field",
   },
   {
     id: "actions",
@@ -471,6 +480,10 @@ export default function GeoDatasets() {
                         {row.start_time_field}
                       </TableCell>
                       <TableCell align="right">{row.end_time_field}</TableCell>
+                      <TableCell align="right">{row.group_id_field}</TableCell>
+                      <TableCell align="right">
+                        {row.feature_id_field}
+                      </TableCell>
                       <TableCell align="right">
                         <div className={c.actions}>
                           <Tooltip title={"Used By"} placement="top" arrow>

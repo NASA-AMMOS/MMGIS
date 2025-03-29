@@ -35,7 +35,7 @@ const useStyles = makeStyles((theme) => ({
       margin: "6px",
     },
     "& .MuiDialog-container": {
-      height: "unset !important",
+      overflowY: "auto",
       transform: "translateX(-50%) translateY(-50%)",
       left: "50%",
       top: "50%",
@@ -45,8 +45,8 @@ const useStyles = makeStyles((theme) => ({
   contents: {
     background: theme.palette.primary.main,
     height: "100%",
-    width: "700px",
-    maxWidth: "700px !important",
+    width: "1200px",
+    maxWidth: "1200px !important",
   },
   heading: {
     height: theme.headHeights[2],
@@ -133,7 +133,7 @@ const useStyles = makeStyles((theme) => ({
     "& > p:first-child": { fontWeight: "bold", letterSpacing: "1px" },
     "& > p:last-child": { fontSize: "14px", fontStyle: "italic" },
   },
-  timeFields: {
+  fields: {
     display: "flex",
     "& > div:first-child": {
       marginRight: "5px",
@@ -187,6 +187,8 @@ const NewGeoDatasetModal = (props) => {
   const [geoDatasetName, setGeoDatasetName] = useState(null);
   const [startTimeField, setStartTimeField] = useState(null);
   const [endTimeField, setEndTimeField] = useState(null);
+  const [groupIdField, setGroupIdField] = useState(null);
+  const [featureIdField, setFeatureIdField] = useState(null);
   const [fileName, setFileName] = useState(null);
   const [geojson, setGeojson] = useState(null);
   const [fileProgress, setFileProgress] = useState(false);
@@ -208,7 +210,7 @@ const NewGeoDatasetModal = (props) => {
       return;
     }
 
-    if (geoDatasetName == null || geoDatasetName == "") {
+    if (geoDatasetName == null || geoDatasetName === "") {
       dispatch(
         setSnackBarText({
           text: "Please enter a name for the new GeoDataset.",
@@ -247,7 +249,7 @@ const NewGeoDatasetModal = (props) => {
       let firstPass = true;
       // === Reading exact amount of lines ===
       let indexToStartWith = 0;
-      const numberOfLines = 5000;
+      const numberOfLines = 10000;
       navigator.readLines(
         indexToStartWith,
         numberOfLines,
@@ -272,12 +274,14 @@ const NewGeoDatasetModal = (props) => {
               name: geoDatasetName,
               startProp: startTimeField,
               endProp: endTimeField,
+              groupIdProp: groupIdField,
+              featureIdProp: featureIdField,
               geojson: {
                 type: "FeatureCollection",
                 features: features,
               },
               filename: fileName,
-              action: firstPass == true ? "recreate" : "append",
+              action: firstPass === true ? "recreate" : "append",
             },
             (res) => {
               firstPass = false;
@@ -330,6 +334,8 @@ const NewGeoDatasetModal = (props) => {
           name: geoDatasetName,
           startProp: startTimeField,
           endProp: endTimeField,
+          groupIdProp: groupIdField,
+          featureIdProp: featureIdField,
           geojson: geojson,
           filename: fileName,
         },
@@ -479,7 +485,7 @@ const NewGeoDatasetModal = (props) => {
           {`A new and unique name for a GeoDataset. No special characters allowed.`}
         </Typography>
 
-        <div className={c.timeFields}>
+        <div className={c.fields}>
           <div>
             <TextField
               className={c.missionNameInput}
@@ -509,6 +515,36 @@ const NewGeoDatasetModal = (props) => {
             </Typography>
           </div>
         </div>
+        <div className={c.fields}>
+          <div>
+            <TextField
+              className={c.missionNameInput}
+              label="Group Id Field"
+              variant="filled"
+              value={groupIdField}
+              onChange={(e) => {
+                setGroupIdField(e.target.value);
+              }}
+            />
+            <Typography className={c.subtitle2}>
+              {`(Optional) The name of a field inside each feature's "properties" object to serve as a group id. In the case of features with duplicated geometries but different properties objects, this enables the performance gain of only returning one of the geometries. It works conceptually analogous to one feature linking to many Dataset rows. The value here can use dot.notation in the case the property is nested in the properties object. Comma-separating property field names (no spaces) enables the construction of group ids to be derived from multiple fields. This field cannot be changed after the GeoDataset is created.`}
+            </Typography>
+          </div>
+          <div>
+            <TextField
+              className={c.missionNameInput}
+              label="Feature Id Field"
+              variant="filled"
+              value={featureIdField}
+              onChange={(e) => {
+                setFeatureIdField(e.target.value);
+              }}
+            />
+            <Typography className={c.subtitle2}>
+              {`(Optional) The name of a field inside each feature's "properties" object to serve as a feature id. The value of the field that the feature id is formed off of should be unique for each feature in the GeoDataset. This is useful when the sequential database integer id is not verbose or representative enough for feature. The value here can use dot.notation in the case the property is nested in the properties object. Comma-separating property field names (no spaces) enables the construction of feature ids to be derived from multiple fields. This field cannot be changed after the GeoDataset is created.`}
+            </Typography>
+          </div>
+        </div>
         <div className={c.largeFileNotice}>
           <div>
             <InfoOutlinedIcon className={c.largeFileIcon} />
@@ -524,10 +560,10 @@ const NewGeoDatasetModal = (props) => {
         </div>
       </DialogContent>
       <DialogActions>
-        {progress == true && (
+        {progress === true && (
           <LinearProgress className={c.progressbar} variant="indeterminate" />
         )}
-        {progress == true && progressPercent != false && (
+        {progress === true && progressPercent !== false && (
           <div className={c.progressPercent}>{progressPercent + "%"}</div>
         )}
         <Button
