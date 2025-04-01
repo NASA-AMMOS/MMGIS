@@ -226,9 +226,23 @@ var LayersTool = {
         layer = L_.layers.data[layer]
         if (L_.layers.layer[layer.name] === null) return
 
-        if (!layer.url.startsWith('stac-collection:') && layer.type !== 'image' && layer.type !== 'velocity') return
-        if (layer.cogTransform !== true && (layer.url.startsWith('stac-collection:') || layer.type === 'image')) return
-        if (layer.type === 'image' && (L_.layers.layer[layer.name].hasOwnProperty('georasters') && L_.layers.layer[layer.name].georasters[0].numberOfRasters !== 1)) return
+        if (
+            !layer.url.startsWith('stac-collection:') &&
+            layer.type !== 'image' &&
+            layer.type !== 'velocity'
+        )
+            return
+        if (
+            layer.cogTransform !== true &&
+            (layer.url.startsWith('stac-collection:') || layer.type === 'image')
+        )
+            return
+        if (
+            layer.type === 'image' &&
+            L_.layers.layer[layer.name].hasOwnProperty('georasters') &&
+            L_.layers.layer[layer.name].georasters[0].numberOfRasters !== 1
+        )
+            return
         // set units to proper unit property
         if (layer.type === 'velocity') {
             if (layer.kind === 'particles') {
@@ -255,9 +269,17 @@ var LayersTool = {
         }
 
         const min =
-            layer.currentCogMin == null ? (layer.cogMin == null ? layer.variables.streamlines.minVelocity : layer.cogMin) : layer.currentCogMin
+            layer.currentCogMin == null
+                ? layer.cogMin == null
+                    ? layer.variables?.streamlines?.minVelocity
+                    : layer.cogMin
+                : layer.currentCogMin
         const max =
-            layer.currentCogMax == null ? (layer.cogMax == null ? layer.variables.streamlines.maxVelocity : layer.cogMax) : layer.currentCogMax
+            layer.currentCogMax == null
+                ? layer.cogMax == null
+                    ? layer.variables?.streamlines?.maxVelocity
+                    : layer.cogMax
+                : layer.currentCogMax
 
         for (let i = 0; i < 9; i++) {
             let value =
@@ -799,25 +821,31 @@ function interfaceWithMMGIS(fromInit) {
                     if (currentOpacity == null)
                         currentOpacity = L_.layers.opacity[node[i].name]
 
-                    if (
-                        node[i].kind === 'streamlines'
-                    ) {
-                        if (window.mmgisglobal.WITH_TITILER === "true") {
+                    if (node[i].kind === 'streamlines') {
+                        if (window.mmgisglobal.WITH_TITILER === 'true') {
                             // prettier-ignore
                             additionalSettings = [
                                 `<img id="titlerCogColormapImage_${node[i].name}" src="${window.location.origin}${(
                                             window.location.pathname || ''
-                                        ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].variables.streamlines.colorScale.toLowerCase()}?format=png"></img>`,
+                                        ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].variables?.streamlines?.colorScale?.toLowerCase() || 'rdylbu_r'}?format=png"></img>`,
                             ].join('\n')
                         } else {
-                            let { colormap, reverse } = LayersTool.findJSColormap(node[i], node[i].variables.streamlines.colorScale)
+                            let { colormap, reverse } =
+                                LayersTool.findJSColormap(
+                                    node[i],
+                                    node[i].variables?.streamlines?.colorScale
+                                )
 
-                            additionalSettings = (colormapData[colormap].colors).map(
-                                (hex) => {
-                                    let rgb = hex.map(v => {return Math.floor(v * 255)}).join(',')
-                                    return `<div style="background: rgb(${rgb}); width: 20px; height: 100%; margin: 0px; flex-grow: 1;"></div>`;
-                                }
-                            )
+                            additionalSettings = colormapData[
+                                colormap
+                            ].colors.map((hex) => {
+                                let rgb = hex
+                                    .map((v) => {
+                                        return Math.floor(v * 255)
+                                    })
+                                    .join(',')
+                                return `<div style="background: rgb(${rgb}); width: 20px; height: 100%; margin: 0px; flex-grow: 1;"></div>`
+                            })
 
                             if (reverse === true) {
                                 additionalSettings.reverse()
@@ -829,7 +857,6 @@ function interfaceWithMMGIS(fromInit) {
                                 '</div>',
                             ].join('\n')
                         }
-
 
                         // prettier-ignore
                         additionalSettings = [

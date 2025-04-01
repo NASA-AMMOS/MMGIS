@@ -104,6 +104,13 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                 ''
                             ),
                             zoom: zoom,
+                            noDuplicates:
+                                layerData?.variables?.noDuplicates === true,
+                            _source:
+                                layerData?.variables
+                                    ?.getFeaturePropertiesOnClick === true
+                                    ? ['group_id', 'feature_id']
+                                    : null,
                         }
 
                         if (layerData.time?.enabled === true) {
@@ -369,6 +376,11 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                     body.starttime = layerData.time.start
                     body.endtime = layerData.time.end
                 }
+                body.noDuplicates = layerData?.variables?.noDuplicates === true
+                body._source =
+                    layerData?.variables?.getFeaturePropertiesOnClick === true
+                        ? ['group_id', 'feature_id']
+                        : null
 
                 calls.api(
                     'geodatasets_get',

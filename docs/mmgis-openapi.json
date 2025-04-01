@@ -2512,6 +2512,26 @@
             }
           },
           {
+            "name": "noDuplicates",
+            "in": "query",
+            "description": "Returns only DISTINCT features. Uses the group_id field, if set, for distinctness else uses the geometry field.",
+            "example": false,
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "_source",
+            "in": "query",
+            "description": "Return only certain feature properties fields, otherwise return them all.",
+            "example": "prop1,prop2,prop3",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "limited",
             "in": "query",
             "description": "In the case of type=geojson and if true, returns only the first three features.",
@@ -2708,6 +2728,26 @@
             "in": "query",
             "description": "In the case of type=geojson and a temporal query, the end time column defined at the GeoDataset's creation. Defaults to 'end_time'",
             "example": "end_time",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "noDuplicates",
+            "in": "query",
+            "description": "Returns only DISTINCT features. Uses the group_id field, if set, for distinctness else uses the geometry field.",
+            "example": false,
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "_source",
+            "in": "query",
+            "description": "Return only certain feature properties fields, otherwise return them all.",
+            "example": "prop1,prop2,prop3",
             "required": false,
             "schema": {
               "type": "string"

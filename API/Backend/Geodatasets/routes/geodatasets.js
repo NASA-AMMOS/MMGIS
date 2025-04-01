@@ -27,25 +27,33 @@ function get(reqtype, req, res, next) {
   let type = "geojson";
   let xyz = {};
   let _source = null; // Works just like ES _source
+  let noDuplicates = false;
 
-  if (reqtype == "post") {
+  if (reqtype === "post") {
     layer = req.body.layer;
     type = req.body.type || type;
     if (req.body._source && Array.isArray(req.body._source))
       _source = req.body._source;
-    if (type == "mvt") {
+    if (req.body.noDuplicates === true || req.body.noDuplicates === "true")
+      noDuplicates = true;
+    if (type === "mvt") {
       xyz = {
         x: parseInt(req.body.x),
         y: parseInt(req.body.y),
         z: parseInt(req.body.z),
       };
     }
-  } else if (reqtype == "get") {
+  } else if (reqtype === "get") {
     layer = req.query.layer;
     type = req.query.type || type;
     if (req.query._source && typeof req.query._source === "string")
       _source = req.query._source.split(",");
-    if (type == "mvt") {
+    else if (req.query._source && Array.isArray(req.query._source))
+      _source = req.query._source;
+
+    if (req.query.noDuplicates === true || req.query.noDuplicates === "true")
+      noDuplicates = true;
+    if (type === "mvt") {
       xyz = {
         x: parseInt(req.query.x),
         y: parseInt(req.query.y),
@@ -58,18 +66,29 @@ function get(reqtype, req, res, next) {
     .then((result) => {
       if (result) {
         let table = result.dataValues.table;
-        if (type == "geojson") {
+        if (type === "geojson") {
           let properties = "properties";
           if (Array.isArray(_source)) {
             properties = `jsonb_build_object(
             ${_source
               .map((v, i) => {
-                return `'prop_${i}', properties->'prop_${i}'`;
+                if (["feature_id", "group_id"].indexOf(v) === -1)
+                  return `:prop_${i}, properties->:prop_${i}`;
+                else return "";
               })
+              .filter(Boolean)
               .join(",")} 
             ) AS properties`;
           }
-          let q = `SELECT ${properties}, ST_AsGeoJSON(geom), id FROM ${Utils.forceAlphaNumUnder(
+
+          let distinct = "";
+          if (noDuplicates === true) {
+            if (result.dataValues.group_id_field != null)
+              distinct = ` DISTINCT ON (group_id)`;
+            else distinct = ` DISTINCT ON (geom)`;
+          }
+
+          let q = `SELECT${distinct} ${properties}, ST_AsGeoJSON(geom), id, group_id, feature_id FROM ${Utils.forceAlphaNumUnder(
             table
           )}`;
 
@@ -151,7 +170,7 @@ function get(reqtype, req, res, next) {
             end_time: end_time,
           };
           if (Array.isArray(_source)) {
-            _source.array.forEach((v, i) => {
+            _source.forEach((v, i) => {
               replacements[`prop_${i}`] = v;
             });
           }
@@ -169,6 +188,15 @@ function get(reqtype, req, res, next) {
                 let feature = {};
                 feature.type = "Feature";
                 feature.properties = properties;
+                if (Array.isArray(_source)) {
+                  if (_source.indexOf("group_id") !== -1)
+                    feature.properties.group_id = results[i].group_id;
+                  if (_source.indexOf("feature_id") !== -1)
+                    feature.properties.feature_id =
+                      result.dataValues.feature_id_field != null
+                        ? results[i].feature_id
+                        : results[i].id;
+                }
                 feature.geometry = JSON.parse(results[i].st_asgeojson);
                 geojson.features.push(feature);
               }
@@ -761,7 +789,7 @@ function populateGeodatasetTable(
       groupIdProp.split(",").forEach((v) => {
         vals.push(Utils.getIn(features[i].properties, v, null));
       });
-      group_id = vals.join(",");
+      group_id = vals.join("_");
       if (group_id == "") group_id = null;
       if (group_id != null) {
         group_id = String(group_id);
@@ -775,7 +803,7 @@ function populateGeodatasetTable(
       featureIdProp.split(",").forEach((v) => {
         vals.push(Utils.getIn(features[i].properties, v, null));
       });
-      feature_id = vals.join(",");
+      feature_id = vals.join("_");
       if (feature_id == "") feature_id = null;
       if (feature_id != null) {
         feature_id = String(feature_id);
