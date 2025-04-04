@@ -1757,6 +1757,7 @@ const L_ = {
             brightness: 'brightness',
             contrast: 'contrast',
             saturate: 'saturation',
+            saturation: 'saturation',
         }
 
         if (typeof L_.layers.layer[name].updateFilter === 'function') {
@@ -2056,6 +2057,8 @@ const L_ = {
                 delete featureWithout_.properties._
             if (featureWithout_.properties?._dataset != null)
                 delete featureWithout_.properties._dataset
+            if (featureWithout_.properties?._geodataset != null)
+                delete featureWithout_.properties._geodataset
 
             for (let i = 0; i < layerKeys.length; i++) {
                 const l = layerKeys[i]
@@ -2064,6 +2067,10 @@ const L_ = {
                 )
                 if (lfeatureWithout_.properties?._ != null)
                     delete lfeatureWithout_.properties._
+                if (lfeatureWithout_.properties?._dataset != null)
+                    delete lfeatureWithout_.properties._dataset
+                if (lfeatureWithout_.properties?._geodataset != null)
+                    delete lfeatureWithout_.properties._geodataset
 
                 if (
                     F_.isEqual(layers[l].feature.geometry, f.geometry, true) &&
@@ -2082,6 +2089,17 @@ const L_ = {
                 }
             }
         }
+    },
+    // Returns any array of all the "fromProp"-like configuration fields for a layer
+    getDynamicProps(layerData) {
+        const dynamicProps = []
+        if (layerData?.style) {
+            Object.keys(layerData.style).forEach((key) => {
+                if (key.endsWith('Prop'))
+                    dynamicProps.push(layerData.style[key])
+            })
+        }
+        return dynamicProps
     },
     /**
      * Converts lnglat geojsons into the primary coordinate type.

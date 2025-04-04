@@ -28,14 +28,25 @@ function get(reqtype, req, res, next) {
   let xyz = {};
   let _source = null; // Works just like ES _source
   let noDuplicates = false;
+  let get_group_id = null;
+  let get_id = null;
+  let filters = null;
+  let spatialFilter = null; // Not implemented
 
   if (reqtype === "post") {
     layer = req.body.layer;
     type = req.body.type || type;
     if (req.body._source && Array.isArray(req.body._source))
       _source = req.body._source;
+
     if (req.body.noDuplicates === true || req.body.noDuplicates === "true")
       noDuplicates = true;
+
+    if (req.body.group_id != null) get_group_id = req.body.group_id;
+    if (req.body.id != null) get_id = req.body.id;
+    if (req.body.filters != null) filters = req.body.filters;
+    if (req.body.spatialFilter != null) spatialFilter = req.body.spatialFilter;
+
     if (type === "mvt") {
       xyz = {
         x: parseInt(req.body.x),
@@ -53,6 +64,31 @@ function get(reqtype, req, res, next) {
 
     if (req.query.noDuplicates === true || req.query.noDuplicates === "true")
       noDuplicates = true;
+
+    if (req.query.group_id != null) get_group_id = req.query.group_id;
+    if (req.query.id != null) get_id = req.query.id;
+    if (req.query.filters != null) {
+      const filterSplit = req.query.filters.split(",");
+      filters = [];
+      filterSplit.forEach((f) => {
+        const fSplit = f.split("+");
+        filters.push({
+          key: fSplit[0],
+          op: fSplit[1],
+          type: fSplit[2],
+          value: fSplit[3],
+        });
+      });
+    }
+    if (req.query.spatialFilter != null) {
+      const spatialFilterSplit = req.query.spatialFilter.split(",");
+      spatialFilter = {
+        lat: spatialFilterSplit[0],
+        lng: spatialFilterSplit[1],
+        radius: spatialFilterSplit[2],
+      };
+    }
+
     if (type === "mvt") {
       xyz = {
         x: parseInt(req.query.x),
@@ -61,6 +97,10 @@ function get(reqtype, req, res, next) {
       };
     }
   }
+
+  console.log(spatialFilter);
+  console.log(filters);
+
   //First Find the table name
   Geodatasets.findOne({ where: { name: layer } })
     .then((result) => {
@@ -88,7 +128,13 @@ function get(reqtype, req, res, next) {
             else distinct = ` DISTINCT ON (geom)`;
           }
 
-          let q = `SELECT${distinct} ${properties}, ST_AsGeoJSON(geom), id, group_id, feature_id FROM ${Utils.forceAlphaNumUnder(
+          let cols = ["id"];
+          if (result.dataValues.group_id_field != null) cols.push("group_id");
+          if (result.dataValues.feature_id_field != null)
+            cols.push("feature_id");
+          cols = cols.join(", ");
+
+          let q = `SELECT${distinct} ${properties}, ST_AsGeoJSON(geom), ${cols} FROM ${Utils.forceAlphaNumUnder(
             table
           )}`;
 
@@ -147,7 +193,7 @@ function get(reqtype, req, res, next) {
             endProp = Utils.forceAlphaNumUnder(req.query.endProp || endProp);
             // prettier-ignore
             t += [
-              `(`,
+              `((`,
                 `${startProp} IS NOT NULL AND ${endProp} IS NOT NULL AND`, 
                   ` ${startProp} >= ${start_time}`,
                   ` AND ${endProp} <= ${end_time}`,
@@ -157,24 +203,86 @@ function get(reqtype, req, res, next) {
                 `${startProp} IS NULL AND ${endProp} IS NOT NULL AND`,
                   ` ${endProp} >= ${start_time}`,
                   ` AND ${endProp} <= ${end_time}`,
-              `)`
+              `))`
           ].join('')
             q += t;
           }
-          q += `;`;
+
+          if (get_group_id != null) {
+            q += `${
+              q.indexOf(" WHERE ") == -1 ? " WHERE " : " AND "
+            }group_id = :get_group_id`;
+          } else if (get_id != null) {
+            q += `${
+              q.indexOf(" WHERE ") == -1 ? " WHERE " : " AND "
+            }id = :get_id`;
+          }
 
           const replacements = {
             startProp: startProp,
             start_time: start_time,
             endProp: endProp,
             end_time: end_time,
+            get_group_id: get_group_id,
+            get_id: get_id,
           };
+
           if (Array.isArray(_source)) {
             _source.forEach((v, i) => {
               replacements[`prop_${i}`] = v;
             });
           }
 
+          // Filters
+          if (filters != null && filters.length > 0) {
+            let filterSQL = [];
+            filters.forEach((f, i) => {
+              replacements[`filter_key_${i}`] = f.key;
+              replacements[`filter_value_${i}`] = f.value;
+              let op = "=";
+              switch (f.op) {
+                case ">":
+                  op = ">";
+                  break;
+                case "<":
+                  op = "<";
+                  break;
+                case "in":
+                  op = "IN";
+                  break;
+                case "=":
+                default:
+                  break;
+              }
+              let value = "";
+              if (op === "IN") {
+                const valueSplit = f.value.split("$");
+                const values = [];
+                valueSplit.forEach((v) => {
+                  replacements[`filter_value_${i}_${v}`] = v;
+                  values.push(`:filter_value_${i}_${v}`);
+                });
+                value = `(${values.join(",")})`;
+              } else {
+                replacements[`filter_value_${i}`] = f.value;
+                value = `:filter_value_${i}`;
+              }
+              if (f.type === "number") {
+                filterSQL.push(
+                  `(properties->>:filter_key_${i})::FLOAT ${op} ${value}`
+                );
+              } else {
+                filterSQL.push(`properties->>:filter_key_${i} ${op} ${value}`);
+              }
+            });
+            q += `${
+              q.indexOf(" WHERE ") == -1 ? " WHERE " : " AND "
+            }${filterSQL.join(` AND `)}`;
+          }
+
+          q += `;`;
+
+          console.log(q);
           sequelize
             .query(q, {
               replacements: replacements,
@@ -200,6 +308,10 @@ function get(reqtype, req, res, next) {
                 feature.geometry = JSON.parse(results[i].st_asgeojson);
                 geojson.features.push(feature);
               }
+              if (get_id != null)
+                geojson.feature_id_field = result.dataValues.feature_id_field;
+              if (get_group_id != null)
+                geojson.group_id_field = result.dataValues.group_id_field;
 
               res.setHeader("Access-Control-Allow-Origin", "*");
 
@@ -211,6 +323,7 @@ function get(reqtype, req, res, next) {
               } else {
                 res.send(geojson);
               }
+
               return null;
             })
             .catch((err) => {
@@ -338,9 +451,167 @@ function get(reqtype, req, res, next) {
     })
     .catch((err) => {
       logger("error", "Failure finding geodataset.", req.originalUrl, req, err);
-      res.send({ status: "failure", message: "d" });
+      res.send({ status: "failure", message: "Failure finding geodataset." });
     });
 }
+
+/*
+req.query.limit
+req.query.minx
+req.query.miny
+req.query.maxx
+req.query.maxy
+req.query.starttime
+req.query.endtime
+*/
+router.get("/aggregations", function (req, res, next) {
+  //First Find the table name
+  Geodatasets.findOne({ where: { name: req.query.layer } })
+    .then((result) => {
+      if (result) {
+        let table = result.dataValues.table;
+        let q = `SELECT properties FROM ${Utils.forceAlphaNumUnder(table)}`;
+
+        let hasBounds = false;
+        let minx = req.query?.minx;
+        let miny = req.query?.miny;
+        let maxx = req.query?.maxx;
+        let maxy = req.query?.maxy;
+        if (minx != null && miny != null && maxx != null && maxy != null) {
+          // ST_MakeEnvelope is (xmin, ymin, xmax, ymax, srid)
+          q += ` WHERE ST_Intersects(ST_MakeEnvelope(${Utils.forceAlphaNumUnder(
+            parseFloat(minx)
+          )}, ${Utils.forceAlphaNumUnder(
+            parseFloat(miny)
+          )}, ${Utils.forceAlphaNumUnder(
+            parseFloat(maxx)
+          )}, ${Utils.forceAlphaNumUnder(parseFloat(maxy))}, 4326), geom)`;
+          hasBounds = true;
+        }
+        let startProp = "start_time";
+        let start_time = "";
+        let endProp = "end_time";
+        let end_time = "";
+        if (req.query?.endtime != null) {
+          const format = req.query?.format || "YYYY-MM-DDTHH:MI:SSZ";
+          let t = ` `;
+          if (!hasBounds) t += `WHERE `;
+          else t += `AND `;
+
+          if (
+            req.query?.starttime == null ||
+            req.query?.starttime.indexOf(`'`) != -1 ||
+            req.query?.endtime == null ||
+            req.query?.endtime.indexOf(`'`) != -1 ||
+            format.indexOf(`'`) != -1
+          ) {
+            res.send({
+              status: "failure",
+              message: "Missing inner or malformed time parameters.",
+            });
+            return;
+          }
+
+          start_time = new Date(
+            req.query.starttime || "1970-01-01T00:00:00Z"
+          ).getTime();
+          end_time = new Date(req.query.endtime).getTime();
+
+          startProp = Utils.forceAlphaNumUnder(
+            req.query.startProp || startProp
+          );
+          endProp = Utils.forceAlphaNumUnder(req.query.endProp || endProp);
+          // prettier-ignore
+          t += [
+            `(`,
+              `${startProp} IS NOT NULL AND ${endProp} IS NOT NULL AND`, 
+                ` ${startProp} >= ${start_time}`,
+                ` AND ${endProp} <= ${end_time}`,
+            `)`,
+            ` OR `,
+            `(`,
+              `${startProp} IS NULL AND ${endProp} IS NOT NULL AND`,
+                ` ${endProp} >= ${start_time}`,
+                ` AND ${endProp} <= ${end_time}`,
+            `)`
+        ].join('')
+          q += t;
+        }
+
+        q += ` ORDER BY id DESC LIMIT :limit;`;
+
+        sequelize
+          .query(q, {
+            replacements: {
+              limit: req.query.limit != null ? parseInt(req.query.limit) : 100,
+              startProp: startProp,
+              start_time: start_time,
+              endProp: endProp,
+              end_time: end_time,
+            },
+          })
+          .then(([results]) => {
+            let aggs = {};
+            results.forEach((feature) => {
+              const flatProps = feature.properties;
+              for (let p in flatProps) {
+                let value = flatProps[p];
+                let type = null;
+
+                if (!isNaN(value) && !isNaN(parseFloat(value))) type = "number";
+                else if (typeof value === "string") type = "string";
+                else if (typeof value === "number") type = "number";
+                else if (typeof value === "boolean") type = "boolean";
+
+                if (type != null) {
+                  // First type will be from index 0
+                  aggs[p] = aggs[p] || { type: type, aggs: {} };
+                  // Because of that, strings can usurp numbers (ex. ["1", "2", "Melon", "Pastry"])
+                  if (aggs[p].type === "number" && type === "string")
+                    aggs[p].type = type;
+                  aggs[p].aggs[flatProps[p]] = aggs[p].aggs[flatProps[p]] || 0;
+                  aggs[p].aggs[flatProps[p]]++;
+                }
+              }
+            });
+
+            // sort
+            Object.keys(aggs).forEach((agg) => {
+              const sortedAggs = {};
+              Object.keys(aggs[agg].aggs)
+                .sort()
+                .reverse()
+                .forEach((agg2) => {
+                  sortedAggs[agg2] = aggs[agg].aggs[agg2];
+                });
+              aggs[agg].aggs = sortedAggs;
+            });
+
+            res.send({ status: "success", aggregations: aggs });
+          })
+          .catch((err) => {
+            logger(
+              "error",
+              "Failure querying geodataset aggregations.",
+              req.originalUrl,
+              req,
+              err
+            );
+            res.send({
+              status: "failure",
+              message: "Failure querying geodataset aggregations.",
+            });
+          });
+      } else {
+        res.send({ status: "failure", message: "Not Found" });
+      }
+      return null;
+    })
+    .catch((err) => {
+      logger("error", "Failure finding geodataset.", req.originalUrl, req, err);
+      res.send({ status: "failure", message: "Failure finding geodataset." });
+    });
+});
 
 //Returns a list of entries in the geodatasets table
 router.post("/entries", function (req, res, next) {

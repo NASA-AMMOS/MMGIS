@@ -14,7 +14,7 @@ import ToolController_ from '../ToolController_/ToolController_'
 import CursorInfo from '../../Ancillary/CursorInfo'
 import Description from '../../Ancillary/Description'
 import QueryURL from '../../Ancillary/QueryURL'
-import Datasets from '../../Ancillary/Datasets'
+import MetadataCapturer from '../Layers_/MetadataCapturer.js'
 import { Kinds } from '../../../pre/tools'
 import DataShaders from '../../Ancillary/DataShaders'
 import calls from '../../../pre/calls'
@@ -680,7 +680,6 @@ async function makeLayer(
             Filtering.updateGeoJSON(layerObj.name)
             Filtering.triggerFilter(layerObj.name)
         }
-
         resolve(true)
     })
 }
@@ -733,7 +732,7 @@ function featureDefaultClick(feature, layer, e) {
         ToolController_.activeTool.disableLayerInteractions === true
     )
         return
-    Datasets.populateFromDataset(layer, () => {
+    MetadataCapturer.populateMetadata(layer, () => {
         Kinds.use(
             L_.layers.data[layer.options.layerName].kind,
             Map_,
@@ -1262,7 +1261,7 @@ function makeVectorTileLayer(layerObj) {
                     let ell = { latlng: null }
                     if (e.latlng != null)
                         ell.latlng = JSON.parse(JSON.stringify(e.latlng))
-                    Datasets.populateFromDataset(layer, () => {
+                    MetadataCapturer.populateMetadata(layer, () => {
                         Kinds.use(
                             L_.layers.data[layerName].kind,
                             Map_,
@@ -1449,10 +1448,9 @@ function makeDataLayer(layerObj) {
 function makeImageLayer(layerObj) {
     let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
     if (!F_.isUrlAbsolute(layerUrl)) {
-        layerUrl =
-            `${window.location.origin}${(
-                window.location.pathname || ''
-            ).replace(/\/$/g, '')}/${layerUrl}`
+        layerUrl = `${window.location.origin}${(
+            window.location.pathname || ''
+        ).replace(/\/$/g, '')}/${layerUrl}`
     }
 
     let bb = null

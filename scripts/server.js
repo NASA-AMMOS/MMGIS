@@ -177,18 +177,7 @@ function setContentType(req, res, next) {
 }
 
 function checkHeadersCodeInjection(req, res, next) {
-  let injectionWords = [
-    "pass",
-    "pw",
-    "password",
-    "insert",
-    "select",
-    "disable",
-    "enable",
-    "drop",
-    "script",
-    "<script>",
-  ];
+  let injectionWords = ["<script>"];
 
   let code_injected = false;
 
@@ -299,6 +288,7 @@ function ensureAdmin(toLoginPage, denyLongTermTokens, allowGets, disallow) {
       url.endsWith("/api/configure/missions") ||
       url.endsWith("/api/configure/getgeneraloptions") ||
       url.endsWith("/api/geodatasets/get") ||
+      url.endsWith("/api/geodatasets/aggregations") ||
       url.endsWith("/api/geodatasets/search") ||
       url.endsWith("/api/datasets/get") ||
       req.session.permission === "111"

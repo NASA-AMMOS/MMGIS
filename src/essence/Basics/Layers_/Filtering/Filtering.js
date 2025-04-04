@@ -7,6 +7,7 @@ import Map_ from '../../Map_/Map_'
 
 import LocalFilterer from '../../../Ancillary/LocalFilterer'
 import ESFilterer from './ESFilterer'
+import GeodatasetFilterer from './GeodatasetFilterer'
 
 import Help from '../../../Ancillary/Help'
 import Dropy from '../../../../external/Dropy/dropy'
@@ -37,22 +38,35 @@ const Filtering = {
             layerName: layerName,
             layerObj: layerObj,
             type: layerObj.type,
+            needsToQueryGeodataset:
+                layerObj?.url.startsWith('geodatasets:') &&
+                layerObj?.variables?.dynamicExtent === true &&
+                layerObj?.variables?.getFeaturePropertiesOnClick === true,
         }
 
         if (Filtering.current.type === 'vector') {
-            try {
-                Filtering.filters[layerName].geojson =
-                    Filtering.filters[layerName].geojson ||
-                    L_.layers.layer[layerName].toGeoJSON(L_.GEOJSON_PRECISION)
-            } catch (err) {
-                console.warn(
-                    `Filtering - Cannot find GeoJSON to filter on for layer: ${layerName}`
-                )
-                return
+            if (Filtering.current.needsToQueryGeodataset) {
+                Filtering.filters[layerName].aggs =
+                    await GeodatasetFilterer.getAggregations(layerName)
+            } else {
+                try {
+                    Filtering.filters[layerName].geojson =
+                        Filtering.filters[layerName].geojson ||
+                        L_.layers.layer[layerName].toGeoJSON(
+                            L_.GEOJSON_PRECISION
+                        )
+                } catch (err) {
+                    console.warn(
+                        `Filtering - Cannot find GeoJSON to filter on for layer: ${layerName}`
+                    )
+                    return
+                }
+                Filtering.filters[layerName].aggs =
+                    LocalFilterer.getAggregations(
+                        Filtering.filters[layerName].geojson,
+                        layerName
+                    )
             }
-            Filtering.filters[layerName].aggs = LocalFilterer.getAggregations(
-                Filtering.filters[layerName].geojson
-            )
         } else if (Filtering.current.type === 'query') {
             Filtering.filters[layerName].aggs =
                 await ESFilterer.getAggregations(
@@ -78,7 +92,7 @@ const Filtering = {
                 "</div>",
                 "<div id='layerTool_filtering_filters'>",
                     "<ul id='layerTool_filtering_filters_list'></ul>",
-                    `<ul id='layerTool_filtering_filters_spatial' class='${spatialActive ? 'drawn' : ''}'>`,
+                    Filtering.current.needsToQueryGeodataset === true ? null : [`<ul id='layerTool_filtering_filters_spatial' class='${spatialActive ? 'drawn' : ''}'>`,
                         `<div id='layerTool_filtering_filters_spatial_draw' class='mmgisButton5' title='Place a point on the map to enable a spatial filter.'><i class='mdi mdi-pencil mdi-14px'></i><div>${spatialActive ? 'Active' : 'Place Point'}</div></div>`,
                         "<div id='layerTool_filtering_filters_spatial_radius_wrapper' title='Radius\n= 0: Queries for features that contain this point.\n> 0: Queries for features intersecting this circle.'>",
                             "<div>R:</div>",
@@ -86,7 +100,7 @@ const Filtering = {
                             "<div>m</div>",
                         "</div>",
                         "<div id='layerTool_filtering_filters_spatial_clear' class='mmgisButton5 layerTool_filtering_filters_clear'><i class='mdi mdi-close mdi-18px'></i></div>",
-                    "</ul>",
+                    "</ul>"].join('\n'),
                 "</div>",
                 `<div id='layersTool_filtering_footer'>`,
                     "<div id='layersTool_filtering_clear' class='mmgisButton5'><div>Clear Filter</div></div>",
@@ -306,7 +320,17 @@ const Filtering = {
             Filtering.setSubmitButtonState(true)
             $(`#layersTool_filtering_submit_loading`).addClass('active')
             if (Filtering.current.type === 'vector') {
-                LocalFilterer.filter(layerName, Filtering.filters[layerName])
+                if (Filtering.current.needsToQueryGeodataset) {
+                    GeodatasetFilterer.filter(
+                        layerName,
+                        Filtering.filters[layerName]
+                    )
+                } else {
+                    LocalFilterer.filter(
+                        layerName,
+                        Filtering.filters[layerName]
+                    )
+                }
             } else if (Filtering.current.type === 'query') {
                 await ESFilterer.filter(
                     layerName,
@@ -343,7 +367,17 @@ const Filtering = {
 
             // Refilter to show all
             if (Filtering.current.type === 'vector') {
-                LocalFilterer.filter(layerName, Filtering.filters[layerName])
+                if (Filtering.current.needsToQueryGeodataset) {
+                    GeodatasetFilterer.filter(
+                        layerName,
+                        Filtering.filters[layerName]
+                    )
+                } else {
+                    LocalFilterer.filter(
+                        layerName,
+                        Filtering.filters[layerName]
+                    )
+                }
             } else if (Filtering.current.type === 'query') {
                 await ESFilterer.filter(
                     layerName,
@@ -611,10 +645,17 @@ const Filtering = {
         if (Filtering.filters[layerName]) {
             if (L_.layers.data[layerName].type === 'vector')
                 if (Filtering.filters[layerName]?.values?.[0]?.type != null) {
-                    LocalFilterer.filter(
-                        layerName,
-                        Filtering.filters[layerName]
-                    )
+                    if (Filtering.current.needsToQueryGeodataset) {
+                        GeodatasetFilterer.filter(
+                            layerName,
+                            Filtering.filters[layerName]
+                        )
+                    } else {
+                        LocalFilterer.filter(
+                            layerName,
+                            Filtering.filters[layerName]
+                        )
+                    }
                 }
         }
     },
@@ -622,20 +663,26 @@ const Filtering = {
     updateGeoJSON: async function (layerName) {
         if (Filtering.filters[layerName]) {
             if (L_.layers.data[layerName].type === 'vector') {
-                try {
-                    Filtering.filters[layerName].geojson = L_.layers.layer[
-                        layerName
-                    ].toGeoJSON(L_.GEOJSON_PRECISION)
-                } catch (err) {
-                    console.warn(
-                        `Filtering - Cannot find GeoJSON to filter on for layer: ${layerName}`
-                    )
-                    return
+                if (Filtering.current.needsToQueryGeodataset) {
+                    Filtering.filters[layerName].aggs =
+                        await GeodatasetFilterer.getAggregations(layerName)
+                } else {
+                    try {
+                        Filtering.filters[layerName].geojson = L_.layers.layer[
+                            layerName
+                        ].toGeoJSON(L_.GEOJSON_PRECISION)
+                    } catch (err) {
+                        console.warn(
+                            `Filtering - Cannot find GeoJSON to filter on for layer: ${layerName}`
+                        )
+                        return
+                    }
+                    Filtering.filters[layerName].aggs =
+                        LocalFilterer.getAggregations(
+                            Filtering.filters[layerName].geojson,
+                            layerName
+                        )
                 }
-                Filtering.filters[layerName].aggs =
-                    LocalFilterer.getAggregations(
-                        Filtering.filters[layerName].geojson
-                    )
             } else if (L_.layers.data[layerName].type === 'query')
                 Filtering.filters[layerName].aggs =
                     await ESFilterer.getAggregations(

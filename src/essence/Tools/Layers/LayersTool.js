@@ -466,7 +466,8 @@ function interfaceWithMMGIS(fromInit) {
                                 node[i]?.variables?.dynamicExtent === true ? ['<div>',
                                     '<div>Extent</div>',
                                     '<select class="layersToolExportExtent dropdown">',
-                                        '<option value="local" selected>Current Window Extent</option>',
+                                        '<option value="local" selected>Current Extent</option>',
+                                        (node[i]?.variables?.getFeaturePropertiesOnClick === true && node[i]?._lastGeodatasetRequestBody != null) ? '<option value="raw-extent" selected>Current Extent w/ Props</option>' : null,
                                         '<option value="raw">Entire File</option>',
                                     '</select>',
                                 '</div>',].join('\n') : '',
@@ -1596,6 +1597,44 @@ function interfaceWithMMGIS(fromInit) {
                     )
                 })
             }
+        } else if (extent == 'raw-extent') {
+            const body = JSON.parse(
+                JSON.stringify(layerData._lastGeodatasetRequestBody)
+            )
+
+            if (body._source != null) {
+                delete body._source
+            }
+            if (body.noDuplicates != null) {
+                delete body.noDuplicates
+            }
+
+            calls.api(
+                'geodatasets_get',
+                body,
+                (data) => {
+                    download(data)
+                },
+                (data) => {
+                    CursorInfo.update(
+                        `Failed to download ${layerDisplayName}.`,
+                        6000,
+                        true,
+                        { x: 385, y: 6 },
+                        '#e9ff26',
+                        'black'
+                    )
+                    console.warn(
+                        'ERROR: ' +
+                            data.status +
+                            ' in LayersTool geodatasets_get:' +
+                            layerDisplayName +
+                            ' /// ' +
+                            data.message
+                    )
+                    return
+                }
+            )
         } else {
             let geojson = L_.layers.layer[layerUUID].toGeoJSON(
                 L_.GEOJSON_PRECISION

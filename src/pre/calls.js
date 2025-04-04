@@ -139,6 +139,10 @@ const c = {
         type: 'GET',
         url: 'api/geodatasets/get',
     },
+    geodatasets_aggregations: {
+        type: 'GET',
+        url: 'api/geodatasets/aggregations',
+    },
     geodatasets_search: {
         type: 'POST',
         url: 'api/geodatasets/search',
