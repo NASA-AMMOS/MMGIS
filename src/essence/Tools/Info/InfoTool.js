@@ -56,6 +56,7 @@ var markup = [
                 "<i class='mdi mdi-chevron-left mdi-18px'></i>",
             "</div>",
             "<div id='infoToolSelectedGeoDatasetDropdown'></div>",
+            "<div id='infoToolSelectedGeoDatasetDropdownTotal'></div>",
             "<div id='infoToolSelectedGeoDatasetRight'>",
                 "<i class='mdi mdi-chevron-right mdi-18px'></i>",
             "</div>",
@@ -65,6 +66,7 @@ var markup = [
                 "<i class='mdi mdi-chevron-left mdi-18px'></i>",
             "</div>",
             "<div id='infoToolSelectedDatasetDropdown'></div>",
+            "<div id='infoToolSelectedDatasetDropdownTotal'></div>",
             "<div id='infoToolSelectedDatasetRight'>",
                 "<i class='mdi mdi-chevron-right mdi-18px'></i>",
             "</div>",
@@ -438,7 +440,11 @@ var InfoTool = {
                 for (let i = 0; i < propSplit.length; i++) {
                     name.push(F_.getIn(d, propSplit[i].split('.')))
                 }
-                geodatasetNames.push(`${propSplit[0]}: ${name.join('_')}`)
+                geodatasetNames.push(
+                    `${
+                        propSplit[0] === '_.idx' ? 'ID' : propSplit[0]
+                    }: ${name.join('_')}`
+                )
             })
             $('#infoToolSelectedGeoDatasetDropdown').html(
                 Dropy.construct(
@@ -451,8 +457,16 @@ var InfoTool = {
                 $('#infoToolSelectedGeoDatasetDropdown'),
                 function (idx) {
                     InfoTool.activeGeoDatasetI = idx
+                    $('#infoToolSelectedGeoDatasetDropdownTotal').text(
+                        `${InfoTool.activeGeoDatasetI + 1} of ${
+                            geodatasetNames.length
+                        }`
+                    )
                     InfoTool.createInfo()
                 }
+            )
+            $('#infoToolSelectedGeoDatasetDropdownTotal').text(
+                `${InfoTool.activeGeoDatasetI + 1} of ${geodatasetNames.length}`
             )
 
             $('#infoToolSelectedGeoDatasetLeft').off('click')
@@ -496,8 +510,14 @@ var InfoTool = {
             )
             Dropy.init($('#infoToolSelectedDatasetDropdown'), function (idx) {
                 InfoTool.activeDatasetI = idx
+                $('#infoToolSelectedDatasetDropdownTotal').text(
+                    `${InfoTool.activeDatasetI + 1} of ${datasetNames.length}`
+                )
                 InfoTool.createInfo()
             })
+            $('#infoToolSelectedDatasetDropdownTotal').text(
+                `${InfoTool.activeDatasetI + 1} of ${datasetNames.length}`
+            )
 
             $('#infoToolSelectedDatasetLeft').off('click')
             $('#infoToolSelectedDatasetLeft').on('click', () => {

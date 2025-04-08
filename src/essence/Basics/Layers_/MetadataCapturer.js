@@ -58,28 +58,41 @@ const MetadataCapturer = {
         }
     },
     populateFromGeoDataset(layer, cb) {
+        const layerData = L_.layers.data[layer.options.layerName]
         if (
             layer.options.layerName &&
-            L_.layers.data[layer.options.layerName] &&
-            L_.layers.data[layer.options.layerName].variables &&
-            L_.layers.data[layer.options.layerName].variables
-                .getFeaturePropertiesOnClick === true &&
-            L_.layers.data[layer.options.layerName].url.indexOf(
-                'geodatasets:'
-            ) != -1 &&
+            layerData &&
+            layerData.variables &&
+            layerData.variables.getFeaturePropertiesOnClick === true &&
+            layerData.url.indexOf('geodatasets:') != -1 &&
             layer.feature.properties._?.idx != null
         ) {
-            const urlSplit =
-                L_.layers.data[layer.options.layerName].url.split(':')
+            const urlSplit = layerData.url.split(':')
+
+            let body = {
+                layer: urlSplit[1],
+                type: 'geojson',
+                group_id: layer.feature.properties.group_id,
+                id: layer.feature.properties._.idx,
+            }
+
+            // time
+            if (layerData.time?.enabled === true) {
+                body.starttime = layerData.time.start
+                body.startProp = layerData.time.startProp
+                body.endtime = layerData.time.end
+                body.endProp = layerData.time.endProp
+            }
+
+            // filters
+            if (layerData._filterEncoded?.filters)
+                body.filters = layerData._filterEncoded.filters
+            if (layerData._filterEncoded?.spatialFilter)
+                body.spatialFilter = layerData._filterEncoded.spatialFilter
 
             calls.api(
                 'geodatasets_get',
-                {
-                    layer: urlSplit[1],
-                    type: 'geojson',
-                    group_id: layer.feature.properties.group_id,
-                    id: layer.feature.properties._.idx,
-                },
+                body,
                 function (data) {
                     if (data?.features) {
                         const d = data.features

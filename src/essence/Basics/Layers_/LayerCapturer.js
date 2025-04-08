@@ -109,9 +109,9 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                             _source:
                                 layerData?.variables
                                     ?.getFeaturePropertiesOnClick === true
-                                    ? ['group_id', 'feature_id'].concat(
-                                          L_.getDynamicProps(layerData)
-                                      )
+                                    ? ['group_id', 'feature_id']
+                                          .concat(L_.getDynamicProps(layerData))
+                                          .filter(Boolean)
                                     : null,
                         }
 
@@ -129,31 +129,11 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                         }
 
                         // filters
-                        if (layerData._filter) {
-                            let fspatial = layerData._filter.spatial
-                            let fvalues = layerData._filter.values
-                            if (fspatial != null && fspatial.radius > 0)
-                                body.spatialFilter = `${fspatial.center.lat},${fspatial.center.lng},${fspatial.radius}`
-
-                            if (fvalues != null && fvalues.length > 0) {
-                                fvalues = fvalues.filter(Boolean)
-
-                                if (fvalues.length > 0) {
-                                    let encoded = []
-                                    fvalues.forEach((v) => {
-                                        encoded.push(
-                                            `${v.key}+${
-                                                v.op === ',' ? 'in' : v.op
-                                            }+${v.type}+${v.value.replaceAll(
-                                                ',',
-                                                '$'
-                                            )}`
-                                        )
-                                    })
-                                    body.filters = encoded.join(',')
-                                }
-                            }
-                        }
+                        if (layerData._filterEncoded?.filters)
+                            body.filters = layerData._filterEncoded.filters
+                        if (layerData._filterEncoded?.spatialFilter)
+                            body.spatialFilter =
+                                layerData._filterEncoded.spatialFilter
 
                         const dateNow = new Date().getTime()
 
@@ -420,9 +400,9 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                 body.noDuplicates = layerData?.variables?.noDuplicates === true
                 body._source =
                     layerData?.variables?.getFeaturePropertiesOnClick === true
-                        ? ['group_id', 'feature_id'].concat(
-                              L_.getDynamicProps(layerData)
-                          )
+                        ? ['group_id', 'feature_id']
+                              .concat(L_.getDynamicProps(layerData))
+                              .filter(Boolean)
                         : null
                 layerData._lastGeodatasetRequestBody = body
                 calls.api(

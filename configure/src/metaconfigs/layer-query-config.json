@@ -925,10 +925,10 @@
       ]
     },
     {
-      "name": "Behavior",
+      "name": "Performance",
       "rows": [
         {
-          "name": "Behavior",
+          "name": "Performance",
           "subname": "Dynamic Extent",
           "components": [
             {

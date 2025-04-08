@@ -2532,6 +2532,16 @@
             }
           },
           {
+            "name": "filters",
+            "in": "query",
+            "description": "Filter based on feature properties. The input is of the form: key+op+type+value,key+op+type+value,... 'key' is a properties field key. 'op' is '>', '<', '=', or 'in'. If 'op' is 'in', 'value' is a list separated by dollar signs. 'type' is either 'string' or 'number'.",
+            "example": "passDirection+=+string+Ascending,fractionLand+<+number+0.10274648744404924",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "limited",
             "in": "query",
             "description": "In the case of type=geojson and if true, returns only the first three features.",
@@ -2748,6 +2758,16 @@
             "in": "query",
             "description": "Return only certain feature properties fields, otherwise return them all.",
             "example": "prop1,prop2,prop3",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filters",
+            "in": "query",
+            "description": "Filter based on feature properties. The input is of the form: key+op+type+value,key+op+type+value,... 'key' is a properties field key. 'op' is '>', '<', '=', or 'in'. If 'op' is 'in', 'value' is a list separated by dollar-signs. 'type' is either 'string' or 'number'.",
+            "example": "passDirection+=+string+Ascending,fractionLand+<+number+0.10274648744404924",
             "required": false,
             "schema": {
               "type": "string"
@@ -2973,6 +2993,139 @@
                     "value": {
                       "status": "failure",
                       "message": "Layer not found."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/geodatasets/aggregations": {
+      "get": {
+        "summary": "Return the histograms/aggregations of values for the feature properties within a GeoDataset.",
+        "tags": ["GeoDatasets"],
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "query",
+            "description": "The name of a GeoDataset for which to get aggregations.",
+            "example": "ExampleGeoDataset",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Construct the aggregations based on a random sample of 'limit' features. Default 500",
+            "example": 100,
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "minx",
+            "in": "query",
+            "description": "If only a certain spatial extent is desired, the minimum x/longitude of such bounding box.",
+            "example": -83.6,
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "miny",
+            "in": "query",
+            "description": "If only a certain spatial extent is desired, the minimum y/latitude of such bounding box.",
+            "example": -23.8,
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "maxx",
+            "in": "query",
+            "description": "If only a certain spatial extent is desired, the maximum x/longitude of such bounding box.",
+            "example": -32.6,
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "maxy",
+            "in": "query",
+            "description": "If only a certain spatial extent is desired, the maximum y/latitude of such bounding box.",
+            "example": 10.5,
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "starttime",
+            "in": "query",
+            "description": "If only a certain temporal extent is desired, the start time of the window. If unset but 'endtime' is set, defaults to '1970-01-01T00:00:00Z'",
+            "example": "2024-08-01T00:00:00.000Z",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endtime",
+            "in": "query",
+            "description": "If only a certain temporal extent is desired, the end time of the window.",
+            "example": "2025-04-03T21:55:06.013Z",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "GeoDataset aggregations",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "aggregations": [
+                        {
+                          "passDirection": {
+                            "type": "string",
+                            "aggs": { "Descending": 252, "Ascending": 248 }
+                          }
+                        },
+                        {
+                          "crossesDateline": {
+                            "type": "boolean",
+                            "aggs": { "true": 2, "false": 498 }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failure querying geodataset aggregations"
+                    }
+                  },
+                  "not_found": {
+                    "summary": "Not Found",
+                    "value": {
+                      "status": "failure",
+                      "message": "Not Found"
                     }
                   }
                 }

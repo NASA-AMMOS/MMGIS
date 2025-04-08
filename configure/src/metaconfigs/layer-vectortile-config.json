@@ -824,26 +824,6 @@
       "rows": [
         {
           "name": "Behavior",
-          "subname": "Dynamic Extent",
-          "components": [
-            {
-              "field": "variables.dynamicExtent",
-              "name": "Enabled",
-              "description": "If true, tries to only query the vector features present in the user's current map viewport. This can be very performant for large vector datasets especially if minimum and maximum zooms are set for the layer. Pan and zooming causes requeries. If used with a geodataset, the time and extent queries will work out-of-the-box. Otherwise, if using an external server, the following parameters in {} will be automatically replaced on query in the url: 'starttime={starttime}&endtime={endtime}&startprop={startprop}&endprop={endprop}&crscode={crscode}&zoom={zoom}&minx={minx}&miny={miny}&maxx={maxx}&maxy={maxy}'. This setting is not advised if the data source is a straight geojson file because it expects a server that can crop the data to given extents.",
-              "type": "switch",
-              "width": 3,
-              "defaultChecked": false
-            },
-            {
-              "field": "variables.dynamicExtentMoveThreshold",
-              "name": "Threshold",
-              "description": "If dynamicExtent is true, only requery if the map was panned past the stated threshold. Unit is in meters. If a zoom-dependent threshold is desired, set this value to a string ending in '/z'. This will then internally use 'dynamicExtentMoveThreshold / Math.pow(2, zoom)' as the threshold value.",
-              "type": "text",
-              "width": 3
-            }
-          ]
-        },
-        {
           "subname": "Miscellaneous",
           "components": [
             {

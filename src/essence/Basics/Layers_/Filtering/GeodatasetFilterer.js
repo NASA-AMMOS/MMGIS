@@ -66,6 +66,32 @@ const GeodatasetFilterer = {
     filter: function (layerName, filter, refreshFunction) {
         L_.layers.data[layerName]._stopLoops = true
         L_.layers.data[layerName]._filter = filter
+        L_.layers.data[layerName]._filterEncoded = {}
+        if (L_.layers.data[layerName]._filter) {
+            let fspatial = L_.layers.data[layerName]._filter.spatial
+            let fvalues = L_.layers.data[layerName]._filter.values
+            if (fspatial != null && fspatial.radius > 0)
+                L_.layers.data[
+                    layerName
+                ]._filterEncoded.spatialFilter = `${fspatial.center.lat},${fspatial.center.lng},${fspatial.radius}`
+
+            if (fvalues != null && fvalues.length > 0) {
+                fvalues = fvalues.filter(Boolean)
+
+                if (fvalues.length > 0) {
+                    let encoded = []
+                    fvalues.forEach((v) => {
+                        encoded.push(
+                            `${v.key}+${v.op === ',' ? 'in' : v.op}+${
+                                v.type
+                            }+${v.value.replaceAll(',', '$')}`
+                        )
+                    })
+                    L_.layers.data[layerName]._filterEncoded.filters =
+                        encoded.join(',')
+                }
+            }
+        }
         L_.Map_.refreshLayer(L_.layers.data[layerName])
     },
     match: function (feature, filter) {

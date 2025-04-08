@@ -2059,6 +2059,8 @@ const L_ = {
                 delete featureWithout_.properties._dataset
             if (featureWithout_.properties?._geodataset != null)
                 delete featureWithout_.properties._geodataset
+            if (featureWithout_.properties?.feature_id != null)
+                delete featureWithout_.properties.feature_id
 
             for (let i = 0; i < layerKeys.length; i++) {
                 const l = layerKeys[i]
@@ -2071,6 +2073,8 @@ const L_ = {
                     delete lfeatureWithout_.properties._dataset
                 if (lfeatureWithout_.properties?._geodataset != null)
                     delete lfeatureWithout_.properties._geodataset
+                if (lfeatureWithout_.properties?.feature_id != null)
+                    delete lfeatureWithout_.properties.feature_id
 
                 if (
                     F_.isEqual(layers[l].feature.geometry, f.geometry, true) &&

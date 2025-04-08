@@ -98,9 +98,6 @@ function get(reqtype, req, res, next) {
     }
   }
 
-  console.log(spatialFilter);
-  console.log(filters);
-
   //First Find the table name
   Geodatasets.findOne({ where: { name: layer } })
     .then((result) => {
@@ -137,10 +134,6 @@ function get(reqtype, req, res, next) {
           let q = `SELECT${distinct} ${properties}, ST_AsGeoJSON(geom), ${cols} FROM ${Utils.forceAlphaNumUnder(
             table
           )}`;
-
-          if (req.query?.limited) {
-            q += ` ORDER BY id DESC LIMIT 3`;
-          }
 
           let hasBounds = false;
           let minx = req.query?.minx;
@@ -210,11 +203,11 @@ function get(reqtype, req, res, next) {
 
           if (get_group_id != null) {
             q += `${
-              q.indexOf(" WHERE ") == -1 ? " WHERE " : " AND "
+              q.indexOf(" WHERE ") === -1 ? " WHERE " : " AND "
             }group_id = :get_group_id`;
           } else if (get_id != null) {
             q += `${
-              q.indexOf(" WHERE ") == -1 ? " WHERE " : " AND "
+              q.indexOf(" WHERE ") === -1 ? " WHERE " : " AND "
             }id = :get_id`;
           }
 
@@ -280,9 +273,12 @@ function get(reqtype, req, res, next) {
             }${filterSQL.join(` AND `)}`;
           }
 
+          if (req.query?.limited) {
+            q += ` ORDER BY id DESC LIMIT 3`;
+          }
+
           q += `;`;
 
-          console.log(q);
           sequelize
             .query(q, {
               replacements: replacements,
@@ -538,7 +534,7 @@ router.get("/aggregations", function (req, res, next) {
           q += t;
         }
 
-        q += ` ORDER BY id DESC LIMIT :limit;`;
+        q += ` ORDER BY RANDOM() DESC LIMIT :limit;`;
 
         sequelize
           .query(q, {
