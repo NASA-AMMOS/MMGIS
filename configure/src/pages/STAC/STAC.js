@@ -314,7 +314,9 @@ export default function STAC() {
   const querySTAC = () => {
     calls.api(
       "stac_collections",
-      {},
+      {
+        limit: 2000,
+      },
       (res) => {
         if (res?.body?.collections != null)
           dispatch(setStacCollections(res.body.collections));

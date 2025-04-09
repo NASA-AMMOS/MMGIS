@@ -29,7 +29,7 @@ services:
       - ./ssl:/usr/src/app/ssl
 
   stac-fastapi:
-    image: ghcr.io/stac-utils/stac-fastapi-pgstac:3.0.0
+    image: ghcr.io/stac-utils/stac-fastapi-pgstac:4.0.3
     ports:
       - 8881
     environment:
