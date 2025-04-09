@@ -228,13 +228,16 @@ var LayersTool = {
 
         if (
             !layer.url.startsWith('stac-collection:') &&
+            !layer.url.startsWith('COG:') &&
             layer.type !== 'image' &&
             layer.type !== 'velocity'
         )
             return
         if (
             layer.cogTransform !== true &&
-            (layer.url.startsWith('stac-collection:') || layer.type === 'image')
+            (layer.url.startsWith('stac-collection:') ||
+                layer.url.startsWith('COG:') ||
+                layer.type === 'image')
         )
             return
         if (
@@ -618,7 +621,8 @@ function interfaceWithMMGIS(fromInit) {
                     if (
                         node[i].cogTransform === true &&
                         typeof node[i].url === 'string' &&
-                        node[i].url.split(':')[0] === 'stac-collection'
+                        (node[i].url.split(':')[0] === 'stac-collection' ||
+                            node[i].url.split(':')[0] === 'COG')
                     ) {
                         if (window.mmgisglobal.WITH_TITILER === 'true') {
                             // prettier-ignore

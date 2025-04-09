@@ -1083,15 +1083,19 @@ async function makeTileLayer(layerObj) {
 
     let splitColonType
     const splitColonLayerUrl = layerObj.url.split(':')
-    if (splitColonLayerUrl[1] != null)
+    if (splitColonLayerUrl[1] != null) {
+        let bandsParam = ''
+        let b
+        let resamplingParam = ''
+
         switch (splitColonLayerUrl[0]) {
             case 'stac-collection':
                 splitColonType = splitColonLayerUrl[0]
                 const splitParams = splitColonLayerUrl[1].split('?')
 
                 // Bands
-                let bandsParam = ''
-                let b = layerObj.cogBands
+                bandsParam = ''
+                b = layerObj.cogBands
                 if (b != null) {
                     b.forEach((band) => {
                         if (band != null) bandsParam += `&bidx=${band}`
@@ -1099,7 +1103,7 @@ async function makeTileLayer(layerObj) {
                 }
 
                 // Resampling
-                let resamplingParam = ''
+                resamplingParam = ''
                 if (layerObj.cogResampling) {
                     resamplingParam = `&resampling=${layerObj.cogResampling}`
                 }
@@ -1113,9 +1117,32 @@ async function makeTileLayer(layerObj) {
                 }/{z}/{x}/{y}?assets=asset${bandsParam}${resamplingParam}`
                 layerObj.tileformat = 'wmts'
                 break
+            case 'COG':
+                splitColonType = splitColonLayerUrl[0]
+                // Bands
+                bandsParam = ''
+                b = layerObj.cogBands
+                if (b != null) {
+                    b.forEach((band) => {
+                        if (band != null) bandsParam += `&bidx=${band}`
+                    })
+                }
+
+                resamplingParam = ''
+                if (layerObj.cogResampling) {
+                    resamplingParam = `&resampling=${layerObj.cogResampling}`
+                }
+
+                layerUrl = `${window.location.origin}${(
+                    window.location.pathname || ''
+                ).replace(/\/$/g, '')}/titiler/cog/tiles/${
+                    layerObj.tileMatrixSet || 'WebMercatorQuad'
+                }/{z}/{x}/{y}.webp?url=${layerUrl}${bandsParam}${resamplingParam}`
+
             default:
                 break
         }
+    }
 
     let bb = null
     if (layerObj.hasOwnProperty('boundingBox')) {

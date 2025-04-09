@@ -271,24 +271,6 @@ const L_ = {
                 nextUrl = `/${nextUrl}`
             }
         }
-        if (layerData && layerData.throughTileServer === true) {
-            let bandsParam = ''
-            if (layerData.cogBands) {
-                layerData.cogBands.forEach((band) => {
-                    if (band != null) bandsParam += `&bidx=${band}`
-                })
-            }
-            let resamplingParam = ''
-            if (layerData.cogResampling) {
-                resamplingParam = `&resampling=${layerData.cogResampling}`
-            }
-
-            nextUrl = `${window.location.origin}${(
-                window.location.pathname || ''
-            ).replace(/\/$/g, '')}/titiler/cog/tiles/${
-                layerData.tileMatrixSet || 'WebMercatorQuad'
-            }/{z}/{x}/{y}.webp?url=${nextUrl}${bandsParam}${resamplingParam}`
-        }
         return nextUrl
     },
     //Takes in config layer obj
@@ -587,8 +569,12 @@ const L_ = {
                         }
 
                         if (s.type === 'image') {
-                            if (L_.layers.layer[s.name].options.pixelValuesToColorFn
-                                && L_.layers.layer[s.name].options.pixelValuesToColorFn !== null) {
+                            if (
+                                L_.layers.layer[s.name].options
+                                    .pixelValuesToColorFn &&
+                                L_.layers.layer[s.name].options
+                                    .pixelValuesToColorFn !== null
+                            ) {
                                 L_.layers.layer[s.name].clearCache()
                                 L_.layers.layer[s.name].updateColors(
                                     L_.layers.layer[s.name].options

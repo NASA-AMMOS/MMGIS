@@ -20,7 +20,10 @@ var colorFilterExtension = {
     getTileUrl: function (coords) {
         let url = L.TileLayer.prototype.getTileUrl.call(this, coords)
 
-        if (this.options.splitColonType === 'stac-collection') {
+        if (
+            this.options.splitColonType === 'stac-collection' ||
+            this.options.splitColonType === 'COG'
+        ) {
             let datetime
             if (this.options.endtime != null) {
                 if (this.options.starttime != null) {
@@ -32,11 +35,14 @@ var colorFilterExtension = {
             if (datetime != null)
                 url += `${
                     url.indexOf('?') === -1 ? '?' : '&'
-                }datetime=${datetime}&exitwhenfull=false&skipcovered=false`
-            else
+                }datetime=${datetime}`
+
+            if (this.options.splitColonType === 'stac-collection') {
                 url += `${
                     url.indexOf('?') === -1 ? '?' : '&'
                 }exitwhenfull=false&skipcovered=false`
+            }
+
             if (this.options.cogMin != null && this.options.cogMax != null) {
                 url += `${url.indexOf('?') === -1 ? '?' : '&'}rescale=[${
                     this.options.currentCogMin != null
