@@ -9,6 +9,8 @@
 
 <span style="display:block;text-align:center">![Example](/docs/assets/images/Full_Example.png)</span>
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15237385.svg)](https://doi.org/10.5281/zenodo.15237385)
+
 ---
 
 ## Features
@@ -23,6 +25,9 @@
 - Elevation profiler
 - Custom projections
 - Tiling scripts
+- COGs
+- TiTiler
+- STAC
 - And so much more...
 
 ---

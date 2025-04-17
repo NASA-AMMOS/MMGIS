@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: "Calef III"
+    given-names: "Fred"
+    orcid: "https://orcid.org/0000-0002-5132-3980"
+  - family-names: "Soliman"
+    given-names: "Tariq"
+    orcid: "https://orcid.org/0009-0001-2264-3176"
+  - family-names: "Roberts"
+    given-names: "Joe"
+    orcid: "https://orcid.org/0000-0002-1545-1862"
+  - family-names: "Chung"
+    given-names: "Amanda"
+    orcid: "https://orcid.org/0009-0004-8926-7859"
+title: "MMGIS (Multi-Mission Geographic Information System)"
+version: 4.0.0
+doi: 10.5281/zenodo.15237385
+date-released: 2025-04-17
+url: "https://github.com/NASA-AMMOS/MMGIS"
