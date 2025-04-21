@@ -3640,7 +3640,16 @@ function parseConfig(configData, urlOnLayers) {
             d[i] = { display_name: d[i].name, ...d[i] }
             d[i].name = d[i].uuid || d[i].name
 
-            //Create parsed layers named
+            // If sourceType, prefix onto url
+            if (
+                d[i].sourceType != null &&
+                d[i].sourceType !== 'url' &&
+                d[i].url.indexOf(`${d[i].sourceType}:`) !== 0
+            ) {
+                d[i].url = `${d[i].sourceType}:${d[i].url}`
+            }
+
+            // Create parsed layers named
             L_.layers.data[d[i].name] = d[i]
 
             if (d[i].display_name === 'TimeCogs') {

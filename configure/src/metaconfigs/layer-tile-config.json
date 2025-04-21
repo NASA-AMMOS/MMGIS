@@ -47,13 +47,22 @@
           ]
         },
         {
+          "subname": "Source",
           "components": [
             {
+              "field": "sourceType",
+              "name": "Source Type",
+              "description": "What the 'Source URL' is meant to reference. See the 'Source URL' description for more.",
+              "type": "dropdown",
+              "width": 2,
+              "options": ["url", "COG", "stac-collection"]
+            },
+            {
               "field": "url",
-              "name": "URL",
-              "description": "A path that points to a tileset, service, or file. If the path is relative, it will be relative to the mission's /Missions/{mission} directory.\n\t<strong>• TMS:</strong> Tile Map Service tiles are 256x256 sized images hierarchically organized by zoom level and referenced with x and y coordinates. These are the standard format for web tiles and are the format that MMGIS's auxiliary tiling scripts output. Append /{z}/{x}/{y}.png to your URL.\n\t<strong>• WMTS:</strong> Web Map Tile Service is the same exact concept as TMS but it has an inverted Y-axis. Just like TMS, append /{z}/{x}/{y}.png to your URL.\n\t<strong>• WMS:</strong> Web Map Service tiles are a popular way of publishing maps by professional GIS software. This format is similar to the previous two formats, but more generic and not so well optimized for use in web maps. A WMS image is defined by the coordinates of its corners. A layer (or list of layers) should be provided as an options by appending ?layers=<your_layer_name><,another_if_you _want> to your URL. To override WMS parameters append &<wms_param>=<value> again to the URL after the 'layers' parameters. If desired, use &TILESIZE= to change the tile size of the request and layer away from the default of 256. Example URL: http://ows.mundialis.de/services/service?layers=TOPO-WMS,OSM-Overlay-WMS\n\t<strong>• GeoTiff:</strong> A URL to the .tif. Note that this is not tiled and clients will download the entire file.\n\t<strong>• COG:</strong> A URL to the .tif and make sure the 'Use TiTiler' option is enabled.\nThe following constructed URLs can also be used:\n\t<strong>• 'stac-collection:{collection}'</strong> - If titiler-pgstac is available, the tileset is the mosaicked COGs within the specified STAC collection.",
+              "name": "Source URL",
+              "description": "<strong>• URL: '{url}'</strong> A path that points to a tileset, service, or file. If the path is relative, it will be relative to the mission's /Missions/{mission} directory.\n\t<strong>• URL (TMS):</strong> Tile Map Service tiles are 256x256 sized images hierarchically organized by zoom level and referenced with x and y coordinates. These are the standard format for web tiles and are the format that MMGIS's auxiliary tiling scripts output. Append /{z}/{x}/{y}.png to your URL.\n\t<strong>• URL (WMTS):</strong> Web Map Tile Service is the same exact concept as TMS but it has an inverted Y-axis. Just like TMS, append /{z}/{x}/{y}.png to your URL.\n\t<strong>• URL (WMS):</strong> Web Map Service tiles are a popular way of publishing maps by professional GIS software. This format is similar to the previous two formats, but more generic and not so well optimized for use in web maps. A WMS image is defined by the coordinates of its corners. A layer (or list of layers) should be provided as an options by appending ?layers=<your_layer_name><,another_if_you _want> to your URL. To override WMS parameters append &<wms_param>=<value> again to the URL after the 'layers' parameters. If desired, use &TILESIZE= to change the tile size of the request and layer away from the default of 256. Example URL: http://ows.mundialis.de/services/service?layers=TOPO-WMS,OSM-Overlay-WMS\n\t<strong>• URL (GeoTiff): '{url_to_tif.tif}'</strong> A URL to the .tif. Note that this is not tiled and clients will download the entire file.\n<strong>• COG: '{url_to_cog.tif}'</strong> A URL to the .tif and make sure the 'Use TiTiler' option is enabled.\n<strong>• 'STAC-COLLECTION: '{name_of_an_mmgis_stac_collection}'</strong> - If titiler-pgstac is available, the tileset is the mosaicked COGs within the specified STAC collection.",
               "type": "text",
-              "width": 8
+              "width": 6
             }
           ]
         },
