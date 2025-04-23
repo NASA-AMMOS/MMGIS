@@ -451,6 +451,145 @@ function get(reqtype, req, res, next) {
     });
 }
 
+router.post("/intersect", function (req, res, next) {
+  let layer = req.body.layer;
+  let noDuplicates = null;
+
+  if (req.body.noDuplicates === true || req.body.noDuplicates === "true")
+    noDuplicates = true;
+
+  //First Find the table name
+  Geodatasets.findOne({ where: { name: layer } })
+    .then((result) => {
+      if (result) {
+        let table = result.dataValues.table;
+
+        let distinct = "";
+        if (noDuplicates === true) {
+          if (result.dataValues.group_id_field != null)
+            distinct = ` DISTINCT ON (group_id)`;
+          else distinct = ` DISTINCT ON (geom)`;
+        }
+
+        let q = `SELECT${distinct} properties, ST_AsGeoJSON(geom) FROM ${Utils.forceAlphaNumUnder(
+          table
+        )}`;
+
+        // Intersect
+        q += ` WHERE ST_Intersects(geom, ST_GeomFromGeoJSON(:intersect))`;
+
+        let startProp = "start_time";
+        let start_time = "";
+        let endProp = "end_time";
+        let end_time = "";
+        if (req.body?.endtime != null) {
+          const format = req.body?.format || "YYYY-MM-DDTHH:MI:SSZ";
+          let t = ` `;
+          t += `AND `;
+
+          if (
+            req.body?.starttime == null ||
+            req.body?.starttime.indexOf(`'`) != -1 ||
+            req.body?.endtime == null ||
+            req.body?.endtime.indexOf(`'`) != -1 ||
+            format.indexOf(`'`) != -1
+          ) {
+            res.send({
+              status: "failure",
+              message: "Missing inner or malformed time parameters.",
+            });
+            return;
+          }
+
+          start_time = new Date(
+            req.body.starttime || "1970-01-01T00:00:00Z"
+          ).getTime();
+          end_time = new Date(req.body.endtime).getTime();
+
+          startProp = Utils.forceAlphaNumUnder(req.body.startProp || startProp);
+          endProp = Utils.forceAlphaNumUnder(req.body.endProp || endProp);
+          // prettier-ignore
+          t += [
+              `((`,
+                `${startProp} IS NOT NULL AND ${endProp} IS NOT NULL AND`, 
+                  ` ${startProp} >= ${start_time}`,
+                  ` AND ${endProp} <= ${end_time}`,
+              `)`,
+              ` OR `,
+              `(`,
+                `${startProp} IS NULL AND ${endProp} IS NOT NULL AND`,
+                  ` ${endProp} >= ${start_time}`,
+                  ` AND ${endProp} <= ${end_time}`,
+              `))`
+          ].join('')
+          q += t;
+        }
+
+        const replacements = {
+          intersect:
+            typeof req.body.intersect === "string"
+              ? req.body.intersect
+              : JSON.stringify(req.body.intersect),
+          startProp: startProp,
+          start_time: start_time,
+          endProp: endProp,
+          end_time: end_time,
+        };
+
+        q += `;`;
+
+        sequelize
+          .query(q, {
+            replacements: replacements,
+          })
+          .then(([results]) => {
+            let geojson = { type: "FeatureCollection", features: [] };
+            for (let i = 0; i < results.length; i++) {
+              let properties = results[i].properties;
+              properties._ = properties._ || {};
+              properties._.idx = results[i].id;
+              let feature = {};
+              feature.type = "Feature";
+              feature.properties = properties;
+
+              feature.geometry = JSON.parse(results[i].st_asgeojson);
+              geojson.features.push(feature);
+            }
+
+            res.setHeader("Access-Control-Allow-Origin", "*");
+
+            res.send({
+              status: "success",
+              body: geojson,
+            });
+
+            return null;
+          })
+          .catch((err) => {
+            logger(
+              "error",
+              "Geodataset query SQL error.",
+              req.originalUrl,
+              req,
+              err
+            );
+            res.send({
+              status: "failure",
+              message: "Failed to query Geodataset.",
+            });
+          });
+      } else {
+        res.send({ status: "failure", message: "Not Found" });
+      }
+
+      return null;
+    })
+    .catch((err) => {
+      logger("error", "Failure finding geodataset.", req.originalUrl, req, err);
+      res.send({ status: "failure", message: "Failure finding geodataset." });
+    });
+});
+
 /*
 req.query.layer
 req.query.limit
