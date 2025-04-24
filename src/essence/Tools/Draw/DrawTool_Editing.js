@@ -618,8 +618,16 @@ var Editing = {
                     "</div>",
                     (file.template != null ) ? [
                     "<div class='drawToolContextMenuPropertiesCollapsible'>",
-                        `<div class='drawToolContextMenuPropertiesTitle'><div>Template (${file.template?.name})</div><i class='mdi mdi-chevron-down mdi-24px'></i></div>`,
-                        "<div id='drawToolContextMenuPropertiesTemplate'></div>",
+                        `<div class='drawToolContextMenuPropertiesTitle'>`,
+                            `<div style='display: flex;'>`,
+                                `<div>Template (${file.template?.name})</div>`,
+                            `</div>`,
+                            `<i class='mdi mdi-chevron-down mdi-24px'></i>`,
+                        `</div>`,
+                        `<div>`,
+                            `<div class='drawToolContextMenuPropertiesRecomputeTemplate'><div><i class='mdi mdi-restore mdi-18px'></i><div>Recompute Templated Fields</div></div></div>`,
+                            "<div id='drawToolContextMenuPropertiesTemplate'></div>",
+                        `</div>`,
                     "</div>"].join('\n') : "",
                     "<div class='drawToolContextMenuPropertiesCollapsible state-collapsed'>",
                         "<div class='drawToolContextMenuPropertiesTitle'><div>Metrics</div><i class='mdi mdi-chevron-down mdi-24px'></i></div>",
@@ -894,6 +902,31 @@ var Editing = {
         ).on('click', function () {
             $(this).parent().toggleClass('state-collapsed')
         })
+        $(`.drawToolContextMenuPropertiesRecomputeTemplate`).on(
+            'click',
+            async () => {
+                const templateDefaults =
+                    await DrawTool_Templater.getTemplateDefaults(
+                        file?.template?.template,
+                        L_.layers.layer[`DrawTool_${file.file_id}`],
+                        {
+                            geometry: JSON.stringify(
+                                DrawTool.contextMenuLayer?.feature?.geometry
+                            ),
+                        }
+                    )
+
+                $('#drawToolContextMenuPropertiesTemplate').empty()
+                templater = DrawTool_Templater.renderTemplate(
+                    'drawToolContextMenuPropertiesTemplate',
+                    file.template,
+                    {
+                        ...DrawTool.contextMenuLayer?.feature?.properties,
+                        ...templateDefaults,
+                    }
+                )
+            }
+        )
         UserInterface_.openRightPanel(360)
 
         $('#drawToolContextMenuPropertiesDescription').text(description)

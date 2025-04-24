@@ -1,8 +1,10 @@
 import $ from 'jquery'
 
+import F_ from '../../Basics/Formulae_/Formulae_'
 import CursorInfo from '../../Ancillary/CursorInfo'
 import Dropy from '../../../external/Dropy/dropy'
 import TimeControl from '../../Ancillary/TimeControl'
+import calls from '../../../pre/calls'
 
 import * as moment from 'moment'
 import { TempusDominus, Namespace } from '@eonasdan/tempus-dominus'
@@ -707,7 +709,29 @@ const DrawTool_Templater = {
                                     `<div>Default: </div>`,
                                     `<div class="mmgis-checkbox"><input type="checkbox" ${opts.default === true ? 'checked ' : ''}id="design-checkbox-checkbox-${idx}"/><label for="design-checkbox-checkbox-${idx}"></label></div>`,
                                 "</div>",
-                            "</div>"
+                            "</div>",  
+                            `<div class='drawToolTemplaterLiBody_${type}'>`,
+                                `<div class='drawToolTemplaterLiBody_${type}_intersectedGeodataset'>`,
+                                    `<div>Intersect Layer: </div>`,
+                                    `<select id='drawToolTemplaterLiBody_${idx}_intersectedGeodataset' class='dropdown' style='width: 200px;'>`,
+                                        `<option value="">OFF</option>`,
+                                        L_.getListOfUsedGeoDatasets().map((d) => `<option value="${d.geodataset}" ${opts.intersectedGeodataset === d.geodataset ? 'selected' : ''}>${d.display_name} (${d.geodataset})</option>`).join('\n'),
+                                    `</select>`,
+                                "</div>",
+                                `<div class='drawToolTemplaterLiBody_${type}_intersectedProp'>`,
+                                    `<div>and default to the value of: </div>`,
+                                    `<input id='drawToolTemplaterLiFieldInput_${idx}_intersectedProp' placeholder='path.to.property' type='text' value='${opts.intersectedProp != null ? opts.intersectedProp : ''}' style='width: 120px;'></input>`,
+                                "</div>",
+                                `<div class='drawToolTemplaterLiBody_${type}_intersectedConflict'>`,
+                                    `<div>If Multiple Intersect: </div>`,
+                                    `<select id='drawToolTemplaterLiBody_${idx}_intersectedConflict' class='dropdown' style='width: 180px;'>`,
+                                        `<option value="default" ${opts.intersectedConflict === 'default' ? 'selected': ''}>Set as Default</option>`,
+                                        `<option value="null" ${opts.intersectedConflict === 'null' ? 'selected': ''}>Set as Null</option>`,
+                                        `<option value="first" ${opts.intersectedConflict === 'first' ? 'selected': ''}>Use First Intersection</option>`,
+                                        `<option value="last" ${opts.intersectedConflict === 'last' ? 'selected': ''}>Use Last Intersection</option>`,
+                                    `</select>`,
+                                "</div>",
+                            `</div>`
                         ]
                         break
                     case 'dropdown':
@@ -749,7 +773,29 @@ const DrawTool_Templater = {
                                     `<div title='Required'>Req: </div>`,
                                     `<div class="mmgis-checkbox"><input type="checkbox" ${opts.required === true ? 'checked ' : ''}id="design-number-checkbox-${idx}"/><label for="design-number-checkbox-${idx}"></label></div>`,
                                 "</div>",
-                            "</div>"
+                            "</div>",  
+                            `<div class='drawToolTemplaterLiBody_${type}'>`,
+                                `<div class='drawToolTemplaterLiBody_${type}_intersectedGeodataset'>`,
+                                    `<div>Intersect Layer: </div>`,
+                                    `<select id='drawToolTemplaterLiBody_${idx}_intersectedGeodataset' class='dropdown' style='width: 200px;'>`,
+                                        `<option value="">OFF</option>`,
+                                        L_.getListOfUsedGeoDatasets().map((d) => `<option value="${d.geodataset}" ${opts.intersectedGeodataset === d.geodataset ? 'selected' : ''}>${d.display_name} (${d.geodataset})</option>`).join('\n'),
+                                    `</select>`,
+                                "</div>",
+                                `<div class='drawToolTemplaterLiBody_${type}_intersectedProp'>`,
+                                    `<div>and default to the value of: </div>`,
+                                    `<input id='drawToolTemplaterLiFieldInput_${idx}_intersectedProp' placeholder='path.to.property' type='text' value='${opts.intersectedProp != null ? opts.intersectedProp : ''}' style='width: 120px;'></input>`,
+                                "</div>",
+                                `<div class='drawToolTemplaterLiBody_${type}_intersectedConflict'>`,
+                                    `<div>If Multiple Intersect: </div>`,
+                                    `<select id='drawToolTemplaterLiBody_${idx}_intersectedConflict' class='dropdown' style='width: 180px;'>`,
+                                        `<option value="default" ${opts.intersectedConflict === 'default' ? 'selected': ''}>Set as Default</option>`,
+                                        `<option value="null" ${opts.intersectedConflict === 'null' ? 'selected': ''}>Set as Null</option>`,
+                                        `<option value="first" ${opts.intersectedConflict === 'first' ? 'selected': ''}>Use First Intersection</option>`,
+                                        `<option value="last" ${opts.intersectedConflict === 'last' ? 'selected': ''}>Use Last Intersection</option>`,
+                                    `</select>`,
+                                "</div>",
+                            `</div>`
                         ]
                         break
                     case 'range':
@@ -772,6 +818,28 @@ const DrawTool_Templater = {
                                 `<div class='drawToolTemplaterLiBody_${type}_step'>`,
                                     `<div>Step: </div>`,
                                     `<input id='drawToolTemplaterLiFieldInput_${idx}_step' type='number' value='${opts.step != null ? opts.step : '1'}'></input>`,
+                                "</div>",
+                            "</div>",  
+                            `<div class='drawToolTemplaterLiBody_${type}'>`,
+                                `<div class='drawToolTemplaterLiBody_${type}_intersectedGeodataset'>`,
+                                    `<div>Intersect Layer: </div>`,
+                                    `<select id='drawToolTemplaterLiBody_${idx}_intersectedGeodataset' class='dropdown' style='width: 200px;'>`,
+                                        `<option value="">OFF</option>`,
+                                        L_.getListOfUsedGeoDatasets().map((d) => `<option value="${d.geodataset}" ${opts.intersectedGeodataset === d.geodataset ? 'selected' : ''}>${d.display_name} (${d.geodataset})</option>`).join('\n'),
+                                    `</select>`,
+                                "</div>",
+                                `<div class='drawToolTemplaterLiBody_${type}_intersectedProp'>`,
+                                    `<div>and default to the value of: </div>`,
+                                    `<input id='drawToolTemplaterLiFieldInput_${idx}_intersectedProp' placeholder='path.to.property' type='text' value='${opts.intersectedProp != null ? opts.intersectedProp : ''}' style='width: 120px;'></input>`,
+                                "</div>",
+                                `<div class='drawToolTemplaterLiBody_${type}_intersectedConflict'>`,
+                                    `<div>If Multiple Intersect: </div>`,
+                                    `<select id='drawToolTemplaterLiBody_${idx}_intersectedConflict' class='dropdown' style='width: 180px;'>`,
+                                        `<option value="default" ${opts.intersectedConflict === 'default' ? 'selected': ''}>Set as Default</option>`,
+                                        `<option value="null" ${opts.intersectedConflict === 'null' ? 'selected': ''}>Set as Null</option>`,
+                                        `<option value="first" ${opts.intersectedConflict === 'first' ? 'selected': ''}>Use First Intersection</option>`,
+                                        `<option value="last" ${opts.intersectedConflict === 'last' ? 'selected': ''}>Use Last Intersection</option>`,
+                                    `</select>`,
                                 "</div>",
                             "</div>"
                         ]
@@ -800,6 +868,29 @@ const DrawTool_Templater = {
                                     `<div title='Required'>Req: </div>`,
                                     `<div class="mmgis-checkbox"><input type="checkbox" ${opts.required === true ? 'checked ' : ''}id="design-number-checkbox-${idx}"/><label for="design-number-checkbox-${idx}"></label></div>`,
                                 "</div>",
+                            `</div>`,  
+                            `<div class='drawToolTemplaterLiBody_${type}'>`,
+                                `<div class='drawToolTemplaterLiBody_${type}_intersectedGeodataset'>`,
+                                    `<div>Intersect Layer: </div>`,
+                                    `<select id='drawToolTemplaterLiBody_${idx}_intersectedGeodataset' class='dropdown' style='width: 200px;'>`,
+                                        `<option value="">OFF</option>`,
+                                        L_.getListOfUsedGeoDatasets().map((d) => `<option value="${d.geodataset}" ${opts.intersectedGeodataset === d.geodataset ? 'selected' : ''}>${d.display_name} (${d.geodataset})</option>`).join('\n'),
+                                    `</select>`,
+                                "</div>",
+                                `<div class='drawToolTemplaterLiBody_${type}_intersectedProp'>`,
+                                    `<div>and default to the value of: </div>`,
+                                    `<input id='drawToolTemplaterLiFieldInput_${idx}_intersectedProp' placeholder='path.to.property' type='text' value='${opts.intersectedProp != null ? opts.intersectedProp : ''}' style='width: 120px;'></input>`,
+                                "</div>",
+                                `<div class='drawToolTemplaterLiBody_${type}_intersectedConflict'>`,
+                                    `<div>If Multiple Intersect: </div>`,
+                                    `<select id='drawToolTemplaterLiBody_${idx}_intersectedConflict' class='dropdown' style='width: 180px;'>`,
+                                        `<option value="default" ${opts.intersectedConflict === 'default' ? 'selected': ''}>Set as Default</option>`,
+                                        `<option value="null" ${opts.intersectedConflict === 'null' ? 'selected': ''}>Set as Null</option>`,
+                                        `<option value="first" ${opts.intersectedConflict === 'first' ? 'selected': ''}>Use First Intersection</option>`,
+                                        `<option value="last" ${opts.intersectedConflict === 'last' ? 'selected': ''}>Use Last Intersection</option>`,
+                                        `<option value="array" ${opts.intersectedConflict === 'array' ? 'selected': ''}>Comma-Separate All Intersections</option>`,
+                                    `</select>`,
+                                "</div>",
                             "</div>"
                         ]
                         break
@@ -818,6 +909,29 @@ const DrawTool_Templater = {
                                 `<div class='drawToolTemplaterLiBody_${type}_required'>`,
                                     `<div title='Required'>Req: </div>`,
                                     `<div class="mmgis-checkbox"><input type="checkbox" ${opts.required === true ? 'checked ' : ''}id="design-textarea-checkbox-${idx}"/><label for="design-textarea-checkbox-${idx}"></label></div>`,
+                                "</div>",
+                            "</div>",  
+                            `<div class='drawToolTemplaterLiBody_${type}'>`,
+                                `<div class='drawToolTemplaterLiBody_${type}_intersectedGeodataset'>`,
+                                    `<div>Intersect Layer: </div>`,
+                                    `<select id='drawToolTemplaterLiBody_${idx}_intersectedGeodataset' class='dropdown' style='width: 200px;'>`,
+                                        `<option value="">OFF</option>`,
+                                        L_.getListOfUsedGeoDatasets().map((d) => `<option value="${d.geodataset}" ${opts.intersectedGeodataset === d.geodataset ? 'selected' : ''}>${d.display_name} (${d.geodataset})</option>`).join('\n'),
+                                    `</select>`,
+                                "</div>",
+                                `<div class='drawToolTemplaterLiBody_${type}_intersectedProp'>`,
+                                    `<div>and default to the value of: </div>`,
+                                    `<input id='drawToolTemplaterLiFieldInput_${idx}_intersectedProp' placeholder='path.to.property' type='text' value='${opts.intersectedProp != null ? opts.intersectedProp : ''}' style='width: 120px;'></input>`,
+                                "</div>",
+                                `<div class='drawToolTemplaterLiBody_${type}_intersectedConflict'>`,
+                                    `<div>If Multiple Intersect: </div>`,
+                                    `<select id='drawToolTemplaterLiBody_${idx}_intersectedConflict' class='dropdown' style='width: 180px;'>`,
+                                        `<option value="default" ${opts.intersectedConflict === 'default' ? 'selected': ''}>Set as Default</option>`,
+                                        `<option value="null" ${opts.intersectedConflict === 'null' ? 'selected': ''}>Set as Null</option>`,
+                                        `<option value="first" ${opts.intersectedConflict === 'first' ? 'selected': ''}>Use First Intersection</option>`,
+                                        `<option value="last" ${opts.intersectedConflict === 'last' ? 'selected': ''}>Use Last Intersection</option>`,
+                                        `<option value="array" ${opts.intersectedConflict === 'array' ? 'selected': ''}>Comma-Separate All Intersections</option>`,
+                                    `</select>`,
                                 "</div>",
                             "</div>"
                         ]
@@ -845,6 +959,28 @@ const DrawTool_Templater = {
                                 `<div class='drawToolTemplaterLiBody_${type}_required'>`,
                                     `<div title='Required'>Req: </div>`,
                                     `<div class="mmgis-checkbox"><input type="checkbox" ${opts.required === true ? 'checked ' : ''}id="design-date-checkbox-${idx}"/><label for="design-date-checkbox-${idx}"></label></div>`,
+                                "</div>",
+                            "</div>",  
+                            `<div class='drawToolTemplaterLiBody_${type}'>`,
+                                `<div class='drawToolTemplaterLiBody_${type}_intersectedGeodataset'>`,
+                                    `<div>Intersect Layer: </div>`,
+                                    `<select id='drawToolTemplaterLiBody_${idx}_intersectedGeodataset' class='dropdown' style='width: 200px;'>`,
+                                        `<option value="">OFF</option>`,
+                                        L_.getListOfUsedGeoDatasets().map((d) => `<option value="${d.geodataset}" ${opts.intersectedGeodataset === d.geodataset ? 'selected' : ''}>${d.display_name} (${d.geodataset})</option>`).join('\n'),
+                                    `</select>`,
+                                "</div>",
+                                `<div class='drawToolTemplaterLiBody_${type}_intersectedProp'>`,
+                                    `<div>and default to the value of: </div>`,
+                                    `<input id='drawToolTemplaterLiFieldInput_${idx}_intersectedProp' placeholder='path.to.property' type='text' value='${opts.intersectedProp != null ? opts.intersectedProp : ''}' style='width: 120px;'></input>`,
+                                "</div>",
+                                `<div class='drawToolTemplaterLiBody_${type}_intersectedConflict'>`,
+                                    `<div>If Multiple Intersect: </div>`,
+                                    `<select id='drawToolTemplaterLiBody_${idx}_intersectedConflict' class='dropdown' style='width: 180px;'>`,
+                                        `<option value="default" ${opts.intersectedConflict === 'default' ? 'selected': ''}>Set as Default</option>`,
+                                        `<option value="null" ${opts.intersectedConflict === 'null' ? 'selected': ''}>Set as Null</option>`,
+                                        `<option value="first" ${opts.intersectedConflict === 'first' ? 'selected': ''}>Use First Intersection</option>`,
+                                        `<option value="last" ${opts.intersectedConflict === 'last' ? 'selected': ''}>Use Last Intersection</option>`,
+                                    `</select>`,
                                 "</div>",
                             "</div>"
                         ]
@@ -980,6 +1116,21 @@ const DrawTool_Templater = {
                         item.default = $(this)
                             .find('.drawToolTemplaterLiBody_checkbox input')
                             .prop('checked')
+                        item.intersectedGeodataset = $(this)
+                            .find(
+                                '.drawToolTemplaterLiBody_checkbox_intersectedGeodataset select'
+                            )
+                            .val()
+                        item.intersectedProp = $(this)
+                            .find(
+                                '.drawToolTemplaterLiBody_checkbox_intersectedProp input'
+                            )
+                            .val()
+                        item.intersectedConflict = $(this)
+                            .find(
+                                '.drawToolTemplaterLiBody_checkbox_intersectedConflict select'
+                            )
+                            .val()
                         break
                     case 'dropdown':
                         item.default = $(this)
@@ -1020,6 +1171,21 @@ const DrawTool_Templater = {
                                 '.drawToolTemplaterLiBody_number_required input'
                             )
                             .prop('checked')
+                        item.intersectedGeodataset = $(this)
+                            .find(
+                                '.drawToolTemplaterLiBody_number_intersectedGeodataset select'
+                            )
+                            .val()
+                        item.intersectedProp = $(this)
+                            .find(
+                                '.drawToolTemplaterLiBody_number_intersectedProp input'
+                            )
+                            .val()
+                        item.intersectedConflict = $(this)
+                            .find(
+                                '.drawToolTemplaterLiBody_number_intersectedConflict select'
+                            )
+                            .val()
                         break
                     case 'slider':
                         item.default = $(this)
@@ -1041,6 +1207,21 @@ const DrawTool_Templater = {
                             .find('.drawToolTemplaterLiBody_slider_step input')
                             .val()
                         if (item.step != '') item.step = parseFloat(item.step)
+                        item.intersectedGeodataset = $(this)
+                            .find(
+                                '.drawToolTemplaterLiBody_slider_intersectedGeodataset select'
+                            )
+                            .val()
+                        item.intersectedProp = $(this)
+                            .find(
+                                '.drawToolTemplaterLiBody_slider_intersectedProp input'
+                            )
+                            .val()
+                        item.intersectedConflict = $(this)
+                            .find(
+                                '.drawToolTemplaterLiBody_slider_intersectedConflict select'
+                            )
+                            .val()
                         break
                     case 'text':
                         item.default = $(this)
@@ -1064,6 +1245,21 @@ const DrawTool_Templater = {
                                 '.drawToolTemplaterLiBody_text_required input'
                             )
                             .prop('checked')
+                        item.intersectedGeodataset = $(this)
+                            .find(
+                                '.drawToolTemplaterLiBody_text_intersectedGeodataset select'
+                            )
+                            .val()
+                        item.intersectedProp = $(this)
+                            .find(
+                                '.drawToolTemplaterLiBody_text_intersectedProp input'
+                            )
+                            .val()
+                        item.intersectedConflict = $(this)
+                            .find(
+                                '.drawToolTemplaterLiBody_text_intersectedConflict select'
+                            )
+                            .val()
                         break
                     case 'textarea':
                         item.default = $(this)
@@ -1081,6 +1277,21 @@ const DrawTool_Templater = {
                                 '.drawToolTemplaterLiBody_textarea_required input'
                             )
                             .prop('checked')
+                        item.intersectedGeodataset = $(this)
+                            .find(
+                                '.drawToolTemplaterLiBody_textarea_intersectedGeodataset select'
+                            )
+                            .val()
+                        item.intersectedProp = $(this)
+                            .find(
+                                '.drawToolTemplaterLiBody_textarea_intersectedProp input'
+                            )
+                            .val()
+                        item.intersectedConflict = $(this)
+                            .find(
+                                '.drawToolTemplaterLiBody_textarea_intersectedConflict select'
+                            )
+                            .val()
                         break
                     case 'date':
                         item.default = $(this)
@@ -1100,6 +1311,21 @@ const DrawTool_Templater = {
                                 '.drawToolTemplaterLiBody_date_required input'
                             )
                             .prop('checked')
+                        item.intersectedGeodataset = $(this)
+                            .find(
+                                '.drawToolTemplaterLiBody_date_intersectedGeodataset select'
+                            )
+                            .val()
+                        item.intersectedProp = $(this)
+                            .find(
+                                '.drawToolTemplaterLiBody_date_intersectedProp input'
+                            )
+                            .val()
+                        item.intersectedConflict = $(this)
+                            .find(
+                                '.drawToolTemplaterLiBody_date_intersectedConflict select'
+                            )
+                            .val()
                         break
                     case 'incrementer':
                         item.default = $(this)
@@ -1324,44 +1550,260 @@ const DrawTool_Templater = {
         }
         return true
     },
-    getTemplateDefaults: function (template, layer) {
-        const defaultProps = {}
+    getTemplateDefaults: async function (template, layer, toAdd) {
+        return new Promise(async (resolve, reject) => {
+            let defaultHasBeenSet = false
+            const intersectedGeodatasets = {}
+            const defaultProps = {}
+            for (let i = 0; i < template.length; i++) {
+                let t = template[i]
+                defaultHasBeenSet = false
+                if (
+                    t.field != null &&
+                    t.intersectedGeodataset != null &&
+                    t.intersectedGeodataset != '' &&
+                    t.intersectedProp != null &&
+                    t.intersectedProp != ''
+                ) {
+                    let body = {
+                        layer: t.intersectedGeodataset,
+                        intersect: toAdd.geometry,
+                        limit: 10,
+                    }
 
-        template.forEach((t, idx) => {
-            if (t.field != null && t.default != null && t.default != '') {
-                let f = t.field
-                let v = t.default
-                switch (t.type) {
-                    case 'incrementer':
-                        const nextIncrement =
-                            DrawTool_Templater._validateIncrement(
-                                t.default,
-                                t,
-                                layer
+                    // time
+                    if (L_.TimeControl_.enabled === true) {
+                        body.starttime = L_.TimeControl_.startTime
+                        body.endtime = L_.TimeControl_.endTime
+                    }
+
+                    let intersectResult =
+                        intersectedGeodatasets[t.intersectedGeodataset] != null
+                            ? intersectedGeodatasets[t.intersectedGeodataset]
+                            : await new Promise(async (resolve, reject) => {
+                                  calls.api(
+                                      'geodatasets_intersect',
+                                      body,
+                                      (data) => {
+                                          resolve(data)
+                                      },
+                                      function (data) {
+                                          console.error(data)
+                                          resolve(false)
+                                      }
+                                  )
+                              })
+                    intersectedGeodatasets[t.intersectedGeodataset] =
+                        intersectResult
+
+                    let f = t.field
+                    if (f != null && intersectResult) {
+                        switch (t.intersectedConflict) {
+                            case 'null':
+                                if (
+                                    intersectResult?.body?.features?.length ===
+                                    0
+                                ) {
+                                    defaultProps[f] = null
+                                    defaultHasBeenSet = true
+                                } else if (
+                                    intersectResult?.body?.features?.length > 1
+                                ) {
+                                    defaultProps[f] = null
+                                    defaultHasBeenSet = true
+                                }
+                                break
+                            case 'first':
+                                if (
+                                    intersectResult?.body?.features?.length ===
+                                    0
+                                ) {
+                                    defaultProps[f] = null
+                                } else {
+                                    defaultProps[f] = F_.getIn(
+                                        intersectResult?.body?.features[0]
+                                            .properties,
+                                        t.intersectedProp.split('.'),
+                                        null
+                                    )
+                                    defaultHasBeenSet = true
+                                }
+                                break
+                            case 'last':
+                                if (
+                                    intersectResult?.body?.features?.length ===
+                                    0
+                                ) {
+                                    defaultProps[f] = null
+                                } else {
+                                    defaultProps[f] = F_.getIn(
+                                        intersectResult?.body?.features[
+                                            intersectResult?.body?.features
+                                                ?.length - 1
+                                        ].properties,
+                                        t.intersectedProp.split('.'),
+                                        null
+                                    )
+                                    defaultHasBeenSet = true
+                                }
+                                break
+                            case 'array':
+                                if (
+                                    intersectResult?.body?.features?.length ===
+                                    0
+                                ) {
+                                    defaultProps[f] = null
+                                    defaultHasBeenSet = true
+                                } else if (
+                                    intersectResult?.body?.features?.length > 0
+                                ) {
+                                    const arrayVal = []
+                                    intersectResult?.body?.features.forEach(
+                                        (feature) => {
+                                            arrayVal.push(
+                                                F_.getIn(
+                                                    feature.properties,
+                                                    t.intersectedProp.split(
+                                                        '.'
+                                                    ),
+                                                    null
+                                                )
+                                            )
+                                        }
+                                    )
+                                    defaultProps[f] = arrayVal.join(',')
+                                    defaultHasBeenSet = true
+                                }
+                                break
+                            default:
+                                defaultProps[f] = null
+                                break
+                        }
+
+                        if (!defaultHasBeenSet) {
+                            if (intersectResult?.body?.features?.[0] != null) {
+                                defaultProps[f] = F_.getIn(
+                                    intersectResult.body.features[0].properties,
+                                    t.intersectedProp.split('.'),
+                                    null
+                                )
+                                defaultHasBeenSet = true
+                            }
+                        }
+                    }
+                    if (
+                        t.intersectedConflict != 'null' &&
+                        defaultProps[f] == null
+                    )
+                        defaultHasBeenSet = false
+
+                    if (
+                        t.intersectedConflict != null &&
+                        intersectResult?.body?.features?.length != 1
+                    ) {
+                        if (intersectResult?.body?.features?.length === 0)
+                            CursorInfo.update(
+                                `No intersected feature for templating. Using fallbacks.`,
+                                5000,
+                                true,
+                                null,
+                                '#e9ff26',
+                                'black',
+                                null,
+                                null,
+                                null,
+                                5000
                             )
-                        v = nextIncrement.newValue
-                        break
-                    case 'date':
-                        if (v === 'NOW')
-                            v = moment
-                                .utc(new Date().getTime())
-                                .format(t.format || 'YYYY-MM-DDTHH:mm:ss')
-                        else if (v === 'STARTTIME')
-                            v = moment
-                                .utc(TimeControl.getStartTime())
-                                .format(t.format || 'YYYY-MM-DDTHH:mm:ss')
-                        else if (v === 'ENDTIME')
-                            v = moment
-                                .utc(TimeControl.getEndTime())
-                                .format(t.format || 'YYYY-MM-DDTHH:mm:ss')
-                        break
-                    default:
+                        else
+                            CursorInfo.update(
+                                `Too many intersected features for templating. Using fallbacks.`,
+                                5000,
+                                true,
+                                null,
+                                '#e9ff26',
+                                'black',
+                                null,
+                                null,
+                                null,
+                                5000
+                            )
+                    }
                 }
-                defaultProps[f] = v
-            }
-        })
 
-        return defaultProps
+                if (
+                    t.field != null &&
+                    t.default != null &&
+                    t.default != '' &&
+                    defaultHasBeenSet === false
+                ) {
+                    let f = t.field
+                    let v = t.default
+                    switch (t.type) {
+                        case 'incrementer':
+                            const nextIncrement =
+                                DrawTool_Templater._validateIncrement(
+                                    t.default,
+                                    t,
+                                    layer
+                                )
+                            v = nextIncrement.newValue
+                            break
+                        case 'date':
+                            if (v === 'NOW')
+                                v = moment
+                                    .utc(new Date().getTime())
+                                    .format(t.format || 'YYYY-MM-DDTHH:mm:ss')
+                            else if (v === 'STARTTIME')
+                                v = moment
+                                    .utc(TimeControl.getStartTime())
+                                    .format(t.format || 'YYYY-MM-DDTHH:mm:ss')
+                            else if (v === 'ENDTIME')
+                                v = moment
+                                    .utc(TimeControl.getEndTime())
+                                    .format(t.format || 'YYYY-MM-DDTHH:mm:ss')
+                            break
+                        default:
+                    }
+                    defaultProps[f] = v
+                }
+
+                // Last check to cast all non-bool checkbox values to bools
+                if (
+                    t.field != null &&
+                    t.type === 'checkbox' &&
+                    typeof defaultProps[t.field] !== 'boolean'
+                )
+                    defaultProps[t.field] = Boolean(defaultProps[t.field])
+                else if (
+                    t.field != null &&
+                    t.type === 'number' &&
+                    t.min != null &&
+                    t.max != null &&
+                    !isNaN(parseFloat(defaultProps[t.field])) &&
+                    (parseFloat(defaultProps[t.field]) > t.max ||
+                        parseFloat(defaultProps[t.field]) < t.min)
+                )
+                    defaultProps[t.field] = Math.min(
+                        Math.max(parseFloat(defaultProps[t.field]), t.min),
+                        t.max
+                    )
+                else if (
+                    t.field != null &&
+                    t.type === 'slider' &&
+                    t.min != null &&
+                    t.max != null &&
+                    !isNaN(parseFloat(defaultProps[t.field])) &&
+                    (parseFloat(defaultProps[t.field]) > t.max ||
+                        parseFloat(defaultProps[t.field]) < t.min)
+                )
+                    defaultProps[t.field] = Math.min(
+                        Math.max(parseFloat(defaultProps[t.field]), t.min),
+                        t.max
+                    )
+            }
+
+            resolve(defaultProps)
+        })
     },
 }
 

@@ -740,7 +740,6 @@ var DrawTool = {
                                         null,
                                         d
                                     )
-
                                     Viewer_.changeImages(layer.feature, layer)
                                     Globe_.highlight(
                                         Globe_.findSpriteObject(
@@ -1170,15 +1169,17 @@ var DrawTool = {
             }
         )
     },
-    addDrawing: function (body, callback, failure) {
+    addDrawing: async function (body, callback, failure) {
         // Add template property defaults
         const file = DrawTool.getFileObjectWithId(body.file_id)
         if (file?.template?.template && body?.properties) {
             let newProps = JSON.parse(body.properties)
-            const templateDefaults = DrawTool_Templater.getTemplateDefaults(
-                file?.template?.template,
-                L_.layers.layer[`DrawTool_${body.file_id}`]
-            )
+            const templateDefaults =
+                await DrawTool_Templater.getTemplateDefaults(
+                    file?.template?.template,
+                    L_.layers.layer[`DrawTool_${body.file_id}`],
+                    body
+                )
 
             newProps = { ...newProps, ...templateDefaults }
             body.properties = JSON.stringify(newProps)

@@ -220,7 +220,7 @@ const DrawTool_FileModal = {
                                         window.mmgisglobal.ROOT_PATH
                                             ? window.mmgisglobal.ROOT_PATH + '/'
                                             : ''
-                                    }api/rksml/convert`,
+                                    }API/rksml/convert`,
                                     data: rksmlBody,
                                     xhrFields: {
                                         withCredentials: true,

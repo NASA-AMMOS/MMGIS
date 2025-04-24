@@ -413,6 +413,7 @@ let Map_ = {
                     }
                 }
             }
+
             Map_.map.addLayer(L_.layers.layer[L_._layersOrdered[hasIndex[i]]])
 
             // If image layer, reorder the z index and redraw the layer
@@ -444,6 +445,20 @@ let Map_ = {
                     )
             )
         }
+
+        // Now bring any Drawn layers back to the front:
+        Object.keys(L_.layers.layer).forEach((key) => {
+            if (
+                key.startsWith('DrawTool_') &&
+                Array.isArray(L_.layers.layer[key])
+            ) {
+                L_.layers.layer[key].forEach((l) => {
+                    try {
+                        l.bringToFront()
+                    } catch (err) {}
+                })
+            }
+        })
     },
     refreshLayer: async function (layerObj, cb, skipOrderedBringToFront) {
         // If it's a dynamic extent layer, just re-call its function
