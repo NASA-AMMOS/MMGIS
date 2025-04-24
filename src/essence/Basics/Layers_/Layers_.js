@@ -3551,6 +3551,18 @@ const L_ = {
             $('#dataLoadingSpinner').css({ opacity: 0 })
         }
     },
+    getListOfUsedGeoDatasets() {
+        const list = []
+        Object.keys(L_.layers.data).forEach((key) => {
+            const d = L_.layers.data[key]
+            if (d.url && d.url.startsWith('geodatasets:'))
+                list.push({
+                    display_name: d.display_name,
+                    geodataset: d.url.replace('geodatasets:', ''),
+                })
+        })
+        return list
+    },
 }
 
 //Takes in a configData object and does a depth-first search through its
