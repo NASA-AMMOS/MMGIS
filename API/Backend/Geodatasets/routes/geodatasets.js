@@ -239,7 +239,17 @@ function get(reqtype, req, res, next) {
           if (filters != null && filters.length > 0) {
             let filterSQL = [];
             filters.forEach((f, i) => {
-              replacements[`filter_key_${i}`] = f.key;
+              let fkey = f.key;
+              let derivedKey = false;
+              if (fkey === "Latitude (Centroid)") {
+                fkey = `ST_Y(ST_Centroid(geom))`;
+                derivedKey = true;
+              } else if (fkey === "Longitude (Centroid)") {
+                fkey = `ST_X(ST_Centroid(geom))`;
+                derivedKey = true;
+              }
+
+              replacements[`filter_key_${i}`] = fkey;
               replacements[`filter_value_${i}`] = f.value;
               let op = "=";
               switch (f.op) {
@@ -271,15 +281,46 @@ function get(reqtype, req, res, next) {
               }
               if (f.type === "number") {
                 filterSQL.push(
-                  `(properties->>:filter_key_${i})::FLOAT ${op} ${value}`
+                  `${
+                    derivedKey === true
+                      ? `${fkey}`
+                      : `(properties->>:filter_key_${i})`
+                  }::FLOAT ${op} ${value}`
                 );
               } else {
-                filterSQL.push(`properties->>:filter_key_${i} ${op} ${value}`);
+                filterSQL.push(
+                  `${
+                    derivedKey === true
+                      ? `${fkey}`
+                      : `properties->>:filter_key_${i}`
+                  } ${op} ${value}`
+                );
               }
             });
             q += `${
-              q.indexOf(" WHERE ") == -1 ? " WHERE " : " AND "
+              q.indexOf(" WHERE ") === -1 ? " WHERE " : " AND "
             }${filterSQL.join(` AND `)}`;
+          }
+
+          if (
+            spatialFilter?.lat != null &&
+            spatialFilter?.lng != null &&
+            spatialFilter?.radius != null
+          ) {
+            // prettier-ignore
+            q += `${
+              q.indexOf(" WHERE ") === -1 ? " WHERE " : " AND "
+            }ST_Intersects(
+              geom,
+              ST_Transform(
+                ST_Buffer(
+                  ST_Transform(
+                    ST_SetSRID(ST_MakePoint(${parseFloat(spatialFilter.lng)}, ${parseFloat(spatialFilter.lat)}), 4326), 3857
+                  ),
+                  ${parseFloat(spatialFilter.radius)}
+                ),
+                4326
+              ))`;
           }
 
           if (req.query?.limited) {
@@ -739,6 +780,14 @@ router.get("/aggregations", function (req, res, next) {
                 });
               aggs[agg].aggs = sortedAggs;
             });
+            aggs["Latitude (Centroid)"] = {
+              type: "number",
+              aggs: {},
+            };
+            aggs["Longitude (Centroid)"] = {
+              type: "number",
+              aggs: {},
+            };
 
             res.send({ status: "success", aggregations: aggs });
           })

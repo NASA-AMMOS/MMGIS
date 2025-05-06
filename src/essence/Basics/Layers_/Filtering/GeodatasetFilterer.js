@@ -70,7 +70,12 @@ const GeodatasetFilterer = {
         if (L_.layers.data[layerName]._filter) {
             let fspatial = L_.layers.data[layerName]._filter.spatial
             let fvalues = L_.layers.data[layerName]._filter.values
-            if (fspatial != null && fspatial.radius > 0)
+            if (
+                fspatial != null &&
+                fspatial.radius > 0 &&
+                fspatial.center?.lat != null &&
+                fspatial.center?.lng != null
+            )
                 L_.layers.data[
                     layerName
                 ]._filterEncoded.spatialFilter = `${fspatial.center.lat},${fspatial.center.lng},${fspatial.radius}`
@@ -81,11 +86,12 @@ const GeodatasetFilterer = {
                 if (fvalues.length > 0) {
                     let encoded = []
                     fvalues.forEach((v) => {
-                        encoded.push(
-                            `${v.key}+${v.op === ',' ? 'in' : v.op}+${
-                                v.type
-                            }+${v.value.replaceAll(',', '$')}`
-                        )
+                        if (v.value != null && v.key != null)
+                            encoded.push(
+                                `${v.key}+${v.op === ',' ? 'in' : v.op}+${
+                                    v.type
+                                }+${v.value.replaceAll(',', '$')}`
+                            )
                     })
                     L_.layers.data[layerName]._filterEncoded.filters =
                         encoded.join(',')
