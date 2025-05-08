@@ -239,15 +239,21 @@ const DrawTool_Templater = {
 
         $(`#drawToolTemplater_setTimeStart`).on('click', () => {
             L_.TimeControl_.setTime(
-                properties[startTime],
+                L_.TimeControl_.timeUI.removeOffset(
+                    new Date(properties[startTime]).getTime()
+                ),
                 L_.TimeControl_.getEndTime()
             )
+            L_.TimeControl_.timeUI.fitWindowToTime()
         })
         $(`#drawToolTemplater_setTimeEnd`).on('click', () => {
             L_.TimeControl_.setTime(
                 L_.TimeControl_.getStartTime(),
-                properties[endTime]
+                L_.TimeControl_.timeUI.removeOffset(
+                    new Date(properties[endTime]).getTime()
+                )
             )
+            L_.TimeControl_.timeUI.fitWindowToTime()
         })
 
         return {

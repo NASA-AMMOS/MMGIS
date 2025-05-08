@@ -3585,7 +3585,7 @@ async function parseConfig(configData, urlOnLayers) {
     if (
         L_.configData.projection &&
         L_.configData.projection.resunitsperpixel &&
-        L_.configData.projection.reszoomlevel
+        L_.configData.projection.reszoomlevel != null
     ) {
         var baseRes =
             L_.configData.projection.resunitsperpixel *

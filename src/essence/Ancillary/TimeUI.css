@@ -269,3 +269,16 @@
 #mmgisTimeUIEndWrapperFake {
     right: 0;
 }
+
+#mmgisTimeUIFitTime,
+#mmgisTimeUIFitWindow,
+#mmgisTimeUIPresent {
+    color: var(--color-a5);
+    transition: color 0.2s ease-out;
+}
+
+#mmgisTimeUIFitTime:hover,
+#mmgisTimeUIFitWindow:hover,
+#mmgisTimeUIPresent:hover {
+    color: var(--color-a7);
+}

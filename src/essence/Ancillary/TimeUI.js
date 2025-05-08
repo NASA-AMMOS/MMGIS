@@ -110,6 +110,12 @@ const TimeUI = {
                     `</div>`,
                 `</div>`,
                 `<div id="mmgisTimeUIActionsRight">`,
+                    `<div id="mmgisTimeUIFitTime" class="mmgisTimeUIButton">`,
+                        `<i class='mdi mdi-view-carousel-outline mdi-24px'></i>`,
+                    `</div>`,
+                    `<div id="mmgisTimeUIFitWindow" class="mmgisTimeUIButton">`,
+                        `<i class='mdi mdi-view-array-outline mdi-24px'></i>`,
+                    `</div>`,
                     `<div id="mmgisTimeUIPresent" class="mmgisTimeUIButton">`,
                         `<i class='mdi mdi-clock-end mdi-24px'></i>`,
                     `</div>`,
@@ -203,17 +209,14 @@ const TimeUI = {
             }
             TimeUI._timelineDragging = true
             $('#mmgisTimeUITimelineSlider').css({ pointerEvents: 'none' })
-            $('#mmgisTimeUITimelineInner').on('mousemove', TimeUI._timelineDrag)
+            $('body').on('mousemove', TimeUI._timelineDrag)
         })
         $('body').on('mouseup', function () {
             if (TimeUI._timelineDragging === true) {
                 $('#mmgisTimeUITimelineSlider').css({
                     pointerEvents: 'inherit',
                 })
-                $('#mmgisTimeUITimelineInner').off(
-                    'mousemove',
-                    TimeUI._timelineDrag
-                )
+                $('#mmgisTimeUITimelineInner').off('body', TimeUI._timelineDrag)
                 TimeUI._timelineDragging = false
             }
         })
@@ -344,6 +347,16 @@ const TimeUI = {
         })
         tippy('#mmgisTimeUIRate', {
             content: 'Step Duration',
+            placement: 'top',
+            theme: 'blue',
+        })
+        tippy('#mmgisTimeUIFitTime', {
+            content: 'Fit Time to Window',
+            placement: 'top',
+            theme: 'blue',
+        })
+        tippy('#mmgisTimeUIFitWindow', {
+            content: 'Fit Window to Time',
             placement: 'top',
             theme: 'blue',
         })
@@ -565,6 +578,8 @@ const TimeUI = {
         TimeUI.startTempus.dates.setValue(parsedStart)
 
         $('#mmgisTimeUIPlay').on('click', TimeUI.togglePlay)
+        $('#mmgisTimeUIFitTime').on('click', TimeUI.fitTimeToWindow)
+        $('#mmgisTimeUIFitWindow').on('click', TimeUI.fitWindowToTime)
         $('#mmgisTimeUIPresent').on('click', TimeUI.toggleTimeNow)
 
         TimeUI._remakeTimeSlider()
@@ -686,6 +701,53 @@ const TimeUI = {
         if (mode === 'Point') TimeUI.setCurrentTime(next, null, null, true)
 
         TimeUI._remakeTimeSlider(true)
+    },
+    fitTimeToWindow() {
+        let nextStart
+        let nextEnd
+
+        nextStart =
+            TimeUI._timelineEndTimestamp != null
+                ? TimeUI._timelineStartTimestamp
+                : 0
+        nextEnd =
+            TimeUI._timelineStartTimestamp != null
+                ? TimeUI._timelineEndTimestamp
+                : 100
+
+        TimeUI.updateTimes(nextStart, nextEnd, nextEnd)
+    },
+    fitWindowToTime() {
+        const rangeMode =
+            TimeUI.modes[TimeUI.modeIndex] === 'Range' ? true : false
+
+        let nextStart
+        let nextEnd
+        if (rangeMode) {
+            // Match window edges exactly with time range
+            nextStart = TimeUI.removeOffset(TimeUI._startTimestamp)
+            nextEnd = TimeUI.removeOffset(TimeUI.getCurrentTimestamp())
+        } else {
+            // Adjust window such that Point is in its center
+            const existingMin =
+                TimeUI._timelineEndTimestamp != null
+                    ? TimeUI._timelineStartTimestamp
+                    : 0
+            const existingMax =
+                TimeUI._timelineStartTimestamp != null
+                    ? TimeUI._timelineEndTimestamp
+                    : 100
+            const buffer = (existingMax - existingMin) / 2
+            nextStart = TimeUI.removeOffset(
+                TimeUI.getCurrentTimestamp() - buffer
+            )
+            nextEnd = TimeUI.removeOffset(TimeUI.getCurrentTimestamp() + buffer)
+        }
+        TimeUI._drawTimeLine(nextStart, nextEnd)
+
+        clearTimeout(TimeUI._panHistoTimeout)
+        $('#mmgisTimeUITimelineHisto').empty()
+        TimeUI._makeHistogram()
     },
     toggleTimeNow(force) {
         if ((!TimeUI.now && typeof force != 'boolean') || force === true) {
