@@ -377,10 +377,12 @@
     position: absolute;
     background: #601a2e;
     transition: opacity 0.2s ease-out;
+    z-index: -1;
 }
 #mmgisTimeUITimelineExtent {
     height: 100%;
     position: absolute;
     background: rgb(96, 78, 26, 0.7);
     transition: opacity 0.2s ease-out;
+    z-index: -1;
 }

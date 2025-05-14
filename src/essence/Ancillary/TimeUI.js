@@ -679,9 +679,7 @@ const TimeUI = {
         date = new Date(TimeUI._initialEnd)
         const savedEndDate = new Date(date)
 
-        const offsetEndDate = new Date(
-            date.getTime() + date.getTimezoneOffset() * 60000
-        )
+        const offsetEndDate = TimeUI.addOffset(date.getTime())
         const parsedEnd = TimeUI.endTempus.dates.parseInput(
             new Date(offsetEndDate)
         )
@@ -707,9 +705,7 @@ const TimeUI = {
         }
         date = new Date(TimeUI._initialStart)
 
-        const offsetStartDate = new Date(
-            date.getTime() + date.getTimezoneOffset() * 60000
-        )
+        const offsetStartDate = TimeUI.addOffset(date.getTime())
         const parsedStart = TimeUI.startTempus.dates.parseInput(
             new Date(offsetStartDate)
         )
@@ -1104,9 +1100,7 @@ const TimeUI = {
             let idx = 0
             if (TimeUI.modes[TimeUI.modeIndex] === 'Point') idx -= 1
             const date = new Date(e.detail.value)
-            const offsetNowDate = new Date(
-                date.getTime() + date.getTimezoneOffset() * 60000
-            )
+            const offsetNowDate = TimeUI.addOffset(date.getTime())
             if (e.detail.activeHandle === idx) {
                 $('#mmgisTimeUIStartWrapperFake').css('display', 'block')
                 $('#mmgisTimeUIStartFake').val(
@@ -1139,9 +1133,7 @@ const TimeUI = {
             if (TimeUI.modes[TimeUI.modeIndex] === 'Point') idx -= 1
 
             const date = new Date(e.detail.value)
-            const offsetNowDate = new Date(
-                date.getTime() + date.getTimezoneOffset() * 60000
-            )
+            const offsetNowDate = TimeUI.addOffset(date.getTime())
             if (e.detail.activeHandle === idx) {
                 const parsedNow = TimeUI.startTempus.dates.parseInput(
                     new Date(offsetNowDate)
@@ -1310,9 +1302,7 @@ const TimeUI = {
     _setCurrentTime(force, forceDate, disableChange) {
         if (TimeUI.now === true || force === true) {
             let date = forceDate || new Date()
-            const offsetNowDate = new Date(
-                date.getTime() + date.getTimezoneOffset() * 60000
-            )
+            const offsetNowDate = TimeUI.addOffset(date.getTime())
             const parsedNow = TimeUI.endTempus.dates.parseInput(
                 new Date(offsetNowDate)
             )
@@ -1410,18 +1400,30 @@ const TimeUI = {
         if (disableChange != true) TimeUI.change()
     },
     addOffset(timestamp) {
-        const date = new Date(timestamp)
-        const addedOffset = new Date(
-            date.getTime() + date.getTimezoneOffset() * 60000
+        const utcDate = new Date(timestamp)
+        return new Date(
+            utcDate.getUTCFullYear(),
+            utcDate.getUTCMonth(),
+            utcDate.getUTCDate(),
+            utcDate.getUTCHours(),
+            utcDate.getUTCMinutes(),
+            utcDate.getUTCSeconds(),
+            utcDate.getUTCMilliseconds()
         )
-        return addedOffset
     },
     removeOffset(timestamp) {
-        const date = new Date(timestamp)
-        const removedOffset = new Date(
-            date.getTime() - date.getTimezoneOffset() * 60000
+        const localDate = new Date(timestamp)
+        return new Date(
+            Date.UTC(
+                localDate.getFullYear(),
+                localDate.getMonth(),
+                localDate.getDate(),
+                localDate.getHours(),
+                localDate.getMinutes(),
+                localDate.getSeconds(),
+                localDate.getMilliseconds()
+            )
         )
-        return removedOffset
     },
     getCurrentTimestamp(removeOffset) {
         let currentTimestamp = TimeUI._timeSliderTimestamp
@@ -1471,9 +1473,7 @@ const TimeUI = {
 
         if (TimeUI.play) {
             const date = new Date(TimeUI._timeSliderTimestamp)
-            const offsetNowDate = new Date(
-                date.getTime() // + date.getTimezoneOffset() * 60000 Not needed
-            )
+            const offsetNowDate = new Date(date.getTime())
             const parsedNow = TimeUI.endTempus.dates.parseInput(
                 new Date(offsetNowDate)
             )
