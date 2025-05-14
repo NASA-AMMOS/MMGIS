@@ -89,6 +89,18 @@ How many milliseconds until a DB connection times out | integer | default `30000
 
 How many milliseconds for an incoming connection to wait for a DB connection before getting kicked away | integer | default `10000` (10 sec)
 
+#### `DB_SSL=`
+
+If the Postgres DB instance is enforcing SSL, set to true to have MMGIS connect to it via SSL | boolean | default `false`
+
+#### `DB_SSL_CERT=`
+
+If `DB_SSL=true` and if needed, the path to a certificate for ssl | string | default `null`
+
+#### `DB_SSL_CERT_BASE64=`
+
+Alternatively, if `DB_SSL=true` and if needed, a base64 encoded certificate for ssl. `DB_SSL_CERT_BASE64` will take priority over `DB_SSL_CERT` | string | default `null`
+
 #### `CSSO_GROUPS=`
 
 A list of CSSO LDAP groups that have access | string[] | default `[]`
