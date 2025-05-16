@@ -21,9 +21,10 @@ const sequelize = new Sequelize(
               ca:
                 process.env.DB_SSL_CERT_BASE64 != null &&
                 process.env.DB_SSL_CERT_BASE64 !== ""
-                  ? Buffer.from(process.env.DB_SSL_CERT, "base64").toString(
-                      "utf-8"
-                    )
+                  ? Buffer.from(
+                      process.env.DB_SSL_CERT_BASE64,
+                      "base64"
+                    ).toString("utf-8")
                   : process.env.DB_SSL_CERT != null &&
                     process.env.DB_SSL_CERT !== ""
                   ? fs.readFileSync(process.env.DB_SSL_CERT)
@@ -66,9 +67,10 @@ const sequelizeSTAC =
                   ca:
                     process.env.DB_SSL_CERT_BASE64 != null &&
                     process.env.DB_SSL_CERT_BASE64 !== ""
-                      ? Buffer.from(process.env.DB_SSL_CERT, "base64").toString(
-                          "utf-8"
-                        )
+                      ? Buffer.from(
+                          process.env.DB_SSL_CERT_BASE64,
+                          "base64"
+                        ).toString("utf-8")
                       : process.env.DB_SSL_CERT != null &&
                         process.env.DB_SSL_CERT !== ""
                       ? fs.readFileSync(process.env.DB_SSL_CERT)
