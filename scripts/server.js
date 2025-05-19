@@ -107,6 +107,23 @@ const pool = new Pool({
   database: process.env.DB_NAME,
   password: process.env.DB_PASS,
   port: process.env.DB_PORT || "5432",
+  ssl:
+    process.env.DB_SSL === "true"
+      ? {
+          require: true,
+          rejectUnauthorized: true,
+          ca:
+            process.env.DB_SSL_CERT_BASE64 != null &&
+            process.env.DB_SSL_CERT_BASE64 !== ""
+              ? Buffer.from(process.env.DB_SSL_CERT_BASE64, "base64").toString(
+                  "utf-8"
+                )
+              : process.env.DB_SSL_CERT != null &&
+                process.env.DB_SSL_CERT !== ""
+              ? fs.readFileSync(process.env.DB_SSL_CERT)
+              : false,
+        }
+      : false,
 });
 app.use(
   session({
