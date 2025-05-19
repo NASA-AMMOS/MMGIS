@@ -5,6 +5,7 @@ import * as moment from 'moment'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
+import Filtering from '../../Basics/Layers_/Filtering/Filtering'
 import Help from '../../Ancillary/Help'
 import TimeControl from '../../Ancillary/TimeControl'
 import Dropy from '../../../external/Dropy/dropy'
@@ -46,6 +47,8 @@ const markup = [
             '<div class="downloadToolControlRow">',
                 '<i class="mdi mdi-calendar-arrow-right mdi-18px input-icon"></i>',
                 "<input id='downloadDateRange' type='text' placeholder='Date Range' />",
+            "</div>",
+            '<div id="downloadToolFilteringContainer" class="downloadToolControlRow gears_on">',
             "</div>",
             "<div id='dataDownload_footer'>",
                 "<div id='dataDownload_submit' class='mmgisButton5'>",
@@ -219,6 +222,8 @@ const DataDownload = {
             }
         })
 
+        DataDownload.refreshFilters()
+
         DataDownload.enableDownload()
     },
     drawAreaStart: function () {
@@ -278,6 +283,15 @@ const DataDownload = {
     },
     setSelectedIdx: function (idx) {
         DataDownload.selectedLayerIdx = idx
+        DataDownload.refreshFilters()
+    },
+    refreshFilters: function() {
+        Filtering.destroy()
+        const layer = DataDownload.downloadEnabledLayers[DataDownload.selectedLayerIdx]
+        if(layer) {
+            console.log(layer)
+            Filtering.make($("#downloadToolFilteringContainer"), layer.name)
+        }
     },
     enableDownload: function () {
         if (
